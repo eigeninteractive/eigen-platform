@@ -1,0 +1,19 @@
+{
+  "name": "eigen-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo and workspace for the EigenInteractive Backend",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.1.2",
+      "onFail": "download"
+    }
+  },
+  "type": "module"
+}
