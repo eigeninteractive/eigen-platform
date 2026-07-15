@@ -1,0 +1,12 @@
+{
+  "name": "@eigen/kernel",
+  "version": "1.0.0",
+  "description": "Kernel for the Eigen Server",
+  "keywords": [],
+  "author": "",
+  "type": "module",
+  "dependencies": {
+    "openskill": "^5.0.1",
+    "rand-seed": "^3.0.0"
+  }
+}
