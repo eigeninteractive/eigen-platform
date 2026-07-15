@@ -1,0 +1,8 @@
+{
+  "name": "@eigen/testkit",
+  "version": "1.0.0",
+  "description": "Testing Kit for the Eigen Server",
+  "keywords": [],
+  "author": "",
+  "type": "module"
+}
