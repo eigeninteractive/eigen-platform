@@ -7,14 +7,12 @@
 	"name": "rps",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-07-15",
-	"migrations": [
-		{
-			"new_sqlite_classes": [
-				"MyDurableObject"
-			],
-			"tag": "v1"
+	"exports": {
+		"MyDurableObject": {
+			"type": "durable-object",
+			"storage": "sqlite"
 		}
-	],
+	},
 	"assets": {
 		// The path to the directory containing the `index.html` file to be served at `/`
 		"directory": "./public"
