@@ -241,19 +241,6 @@ importers:
         specifier: ^4.110.0
         version: 4.110.0
 
-  examples/temp:
-    dependencies:
-      hono:
-        specifier: ^4.12.30
-        version: 4.12.30
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      wrangler:
-        specifier: ^4.110.0
-        version: 4.110.0
-
   packages/kernel:
     dependencies:
       '@eigen/rules':
