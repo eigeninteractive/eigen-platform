@@ -912,10 +912,13 @@ replace):
   // tier) comes later, with paid.
   "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "eigen-avatars-dev" }],
   "triggers": { "crons": ["0 3 * * *"] },   // guest purge
-  // §2.4 — static assets unmetered; only these paths invoke the worker:
+  // §2.4 — static assets unmetered; only these paths invoke the worker.
+  // `run_worker_first` DEFERRED (2026-07-16): assets only serve exact file
+  // matches and everything else falls through to the worker, so it's needed
+  // only once public/ contains files that could shadow worker routes — add
+  // ["/api/*", "/.well-known/*", "/j/*"] then.
   "assets": {
-    "directory": "./public/",
-    "run_worker_first": ["/api/*", "/.well-known/*", "/j/*"]
+    "directory": "./public/"
   }
 }
 ```

@@ -1,7 +1,7 @@
 {
-  "name": "@eigen/rules",
+  "name": "@eigen/server",
   "version": "1.0.0",
-  "description": "Rules Definition for the Eigen Server",
+  "description": "Deployable engine host for the Eigen Server: GameDO + routes + D1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,6 +21,14 @@
   "author": "",
   "type": "module",
   "dependencies": {
-    "@standard-schema/spec": "^1.1.0"
+    "@eigen/kernel": "workspace:*",
+    "@hono/zod-openapi": "^1.5.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.30",
+    "jose": "^6.2.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.10"
   }
 }

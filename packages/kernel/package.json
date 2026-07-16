@@ -2,10 +2,26 @@
   "name": "@eigen/kernel",
   "version": "1.0.0",
   "description": "Kernel for the Eigen Server",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean",
+    "test": "vitest run"
+  },
   "keywords": [],
   "author": "",
   "type": "module",
   "dependencies": {
+    "@eigen/rules": "workspace:*",
     "openskill": "^5.0.1",
     "rand-seed": "^3.0.0"
   }
