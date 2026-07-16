@@ -16,12 +16,14 @@
 > upgrade to paid ($5/mo) at the traffic trigger defined in §10. The upgrade is one click,
 > zero code change.
 >
-> **Cutover is big-bang.** The Supabase stack (documented in `engine_architecture.md`, now
-> the *legacy* reference) is frozen bugfix-only; `supabase/` is deleted from this repo at
-> parity. There are no production users, so there is no data migration.
+> **Cutover is big-bang.** The Supabase stack (documented in `engine_architecture.md` in
+> the `eigen_engine` repo, now the *legacy* reference) is frozen bugfix-only; `supabase/`
+> is deleted from that repo at parity. There are no production users, so there is no data
+> migration.
 
 This document is the **final architecture**: every design decision below is settled, not
-proposed. `engine_architecture.md` remains the reference for the frozen Supabase system —
+proposed. `engine_architecture.md` (in `eigen_engine`, the sibling Dart repo) remains the
+reference for the frozen Supabase system —
 useful because most *semantics* (hooks, timing, ratings, bots, guests, deletion) carry over
 verbatim; only the *host machinery* changes.
 

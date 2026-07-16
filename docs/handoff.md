@@ -6,7 +6,7 @@ first, then the architecture of record.
 
 ## 0. The one source of truth
 
-**`../eigen_engine/docs/engine_stack.md`** is the architecture of record.
+**`docs/engine_stack.md`** (this repo) is the architecture of record.
 Every decision below is written up there in full, with rationale. When this
 handoff and that doc disagree, the doc wins. Read it end-to-end before
 writing engine code; it is long but it IS the spec.
@@ -225,5 +225,5 @@ architecture doc (section refs given).
 - CLI-first: real CLI output beats doc snippets in §15 (exception:
   `exports` over the legacy DO `migrations` array).
 - No real R2 bucket creation, no payment method, until the user says so.
-- Keep `../eigen_engine/docs/engine_stack.md` and its decisions current
+- Keep `docs/engine_stack.md` and its decisions current
   when anything here changes — it is the record.
