@@ -1,15 +1,15 @@
 {
-	"name": "rps",
-	"version": "0.0.0",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"cf-typegen": "wrangler types",
-		"test": "vitest run"
-	},
-	"devDependencies": {
-		"@types/node": "^26.1.1"
-	}
+  "name": "rps",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "cf-typegen": "wrangler types",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1"
+  }
 }
