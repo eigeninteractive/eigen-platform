@@ -15,13 +15,22 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --sourcemap --clean",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "keywords": [],
   "author": "",
   "type": "module",
   "dependencies": {
     "@eigen/kernel": "workspace:*",
-    "@eigen/rules": "workspace:*"
+    "@eigen/rules": "workspace:*",
+    "rand-seed": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "vitest": "^4.1.0"
   }
 }

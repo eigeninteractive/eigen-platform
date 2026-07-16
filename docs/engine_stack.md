@@ -311,12 +311,12 @@ a stale `expectedVersion` (someone else committed while it was in flight):
 > A stale-version action is **accepted iff the acting seat's own projected observation is
 > unchanged** between `expectedVersion` and the current version — comparing the stored
 > frames' `data` + the seat's observed `pending_players` as canonical JSON, ignoring
-> version/timing bookkeeping. Otherwise it is rejected with the "board updated" error.
+> version/timing bookkeeping. Otherwise it is rejected with the "state updated" error.
 
 Rationale: the observation *is* the seat's decision basis — that is the whole
 hidden-information model. Identical view ⇒ the intent transfers soundly (and `applyAction`
 still validates legality against the true current state). Changed view ⇒ the conflict is
-genuine, and "board updated — try again" is literally true.
+genuine, and "state updated — try again" is literally true.
 
 Consequences:
 
