@@ -1,3 +1,2 @@
 - CI Setup (Biome, etc.)
-- Checkout Drizzle
 - Twin Fixtures Types Issue

@@ -10,7 +10,6 @@ export {
   isRejected,
   type ObservationFrame,
   projectView,
-  type RatingPrior,
   type RejectCode,
   type Rejected,
   randomSeed,

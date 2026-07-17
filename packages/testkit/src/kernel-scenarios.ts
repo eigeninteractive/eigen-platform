@@ -19,7 +19,6 @@ export type {
   GameRow,
   Intent,
   ObservationFrame,
-  RatingPrior,
   RejectCode,
   Rejected,
   Seat,

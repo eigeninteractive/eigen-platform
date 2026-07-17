@@ -1,0 +1,321 @@
+/**
+ * The finish apply (engine_stack.md §4.5 step 3) and the fire-and-forget
+ * summary upsert (§4.2). Called from the DO post-commit — never under the
+ * input gate.
+ *
+ * Rating deltas are computed HERE, not in the DO: they depend on global
+ * cross-game priors, and any prior snapshotted into the DO is stale by
+ * construction (games can run for days). The whole apply — summary row,
+ * rating CAS, history log, and the `finish_id` marker — is ONE `batch()`
+ * transaction, so the dedupe marker and the effects it guards can never
+ * disagree.
+ *
+ * The CAS: each history INSERT reads its before-values from the live
+ * player_ratings row via subselects filtered by the revision we computed
+ * against; a concurrent finish bumps the revision, the subselect returns
+ * NULL, the NOT NULL column rejects the row, and the whole batch rolls back —
+ * then we re-read fresh priors and recompute (§4.5 step 5: recompute on
+ * conflict). Within one committed batch there is no concurrent writer, so a
+ * validated revision guarantees the paired UPDATE lands.
+ */
+
+import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigen/kernel";
+import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/d1";
+import { games, participants, playerRatings, ratingHistory } from "./schema.js";
+
+export interface FinishApplyInput {
+  gameId: string;
+  /** The DO-minted idempotency key (§3.6) — the apply is a no-op replay when
+   * the games row already carries it. */
+  finishId: string;
+  outcomes: OutcomeEntry[];
+  roster: Seat[];
+  rated: boolean;
+  ratingPool: string | null;
+  now: number;
+}
+
+const CAS_ATTEMPTS = 5;
+
+/** Apply one finished game to D1. Returns the rated deltas (null for an
+ * unrated game) for the DO to deliver as the ratings transition. Throws on
+ * failure — the caller logs and keeps the outbox row (§8: single attempt at
+ * the call site; the internal loop only absorbs CAS conflicts). */
+export async function applyFinish(d1: D1Database, input: FinishApplyInput): Promise<RatingDelta[] | null> {
+  const db = drizzle(d1);
+  /** Non-null exactly when this finish is rated — the sole rated/pool gate. */
+  const pool = input.rated ? input.ratingPool : null;
+
+  for (let attempt = 1; attempt <= CAS_ATTEMPTS; attempt++) {
+    const game = await db.select({ finishId: games.finishId }).from(games).where(eq(games.id, input.gameId)).get();
+    if (!game) throw new GameBugError(`No games row for ${input.gameId} at finish apply`);
+    if (game.finishId === input.finishId) return pool !== null ? await recoverDeltas(d1, input.finishId) : null;
+    if (game.finishId !== null) {
+      throw new GameBugError(`Game ${input.gameId} already finished under ${game.finishId}`);
+    }
+
+    const summaryUpdate = db
+      .update(games)
+      .set({
+        status: "finished",
+        outcomes: input.outcomes,
+        finishId: input.finishId,
+        finishedAt: input.now,
+        pendingPlayers: [],
+        turnDeadline: null,
+        updatedAt: input.now,
+      })
+      .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`));
+
+    if (pool === null) {
+      await summaryUpdate;
+      return null;
+    }
+
+    const priors = await readPriors(d1, pool, input.roster);
+    const players = input.outcomes.map((entry) => {
+      const seat = input.roster.find((s) => s.player_index === entry.player_index);
+      if (!seat) throw new GameBugError(`Outcome for unknown seat ${entry.player_index}`);
+      const prior = priors.get(identityKey(seat.user_id, seat.bot_id)) ?? { ...defaultRating(), revision: null };
+      return {
+        player_index: entry.player_index,
+        user_id: seat.user_id,
+        bot_id: seat.bot_id,
+        mu: prior.mu,
+        sigma: prior.sigma,
+        placement: entry.placement,
+        team_index: entry.team_index,
+      };
+    });
+
+    const results = computeRatings(players);
+    const deltas: RatingDelta[] = results.map((r) => {
+      const key = identityKey("user_id" in r.identity ? r.identity.user_id : null, "bot_id" in r.identity ? r.identity.bot_id : null);
+      const prior = priors.get(key) ?? { ...defaultRating(), revision: null };
+      return {
+        identity: r.identity,
+        pool,
+        mu_before: prior.mu,
+        sigma_before: prior.sigma,
+        display_before: displayRating(prior.mu, prior.sigma),
+        mu_after: r.mu,
+        sigma_after: r.sigma,
+        display_after: displayRating(r.mu, r.sigma),
+        display_change: displayRating(r.mu, r.sigma) - displayRating(prior.mu, prior.sigma),
+      };
+    });
+
+    const statements = [summaryUpdate, ...ratingStatements(db, input, pool, deltas, priors)];
+    try {
+      await db.batch(statements as [typeof summaryUpdate, ...typeof statements]);
+      return deltas;
+    } catch (error) {
+      // A CAS conflict (revision moved / row appeared) aborts the batch by
+      // design; anything is retried with fresh priors up to the bound.
+      if (attempt === CAS_ATTEMPTS) throw error;
+    }
+  }
+  throw new GameBugError("unreachable: CAS loop exit");
+}
+
+interface PriorRow {
+  mu: number;
+  sigma: number;
+  /** Null ⇒ no player_ratings row yet (never-rated identity). */
+  revision: number | null;
+}
+
+function identityKey(userId: string | null, botId: string | null): string {
+  return userId !== null ? `u:${userId}` : `b:${botId}`;
+}
+
+/** One round trip for the whole roster (this runs inside the CAS loop):
+ * every identified seat's rating row in the pool, keyed for the recompute. */
+async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise<Map<string, PriorRow>> {
+  const priors = new Map<string, PriorRow>();
+  const userIds = roster.flatMap((s) => (s.user_id !== null ? [s.user_id] : []));
+  const botIds = roster.flatMap((s) => (s.user_id === null && s.bot_id !== null ? [s.bot_id] : []));
+  const identities = [...(userIds.length > 0 ? [inArray(playerRatings.userId, userIds)] : []), ...(botIds.length > 0 ? [inArray(playerRatings.botId, botIds)] : [])];
+  if (identities.length === 0) return priors; // every seat purged: defaults
+  const rows = await drizzle(d1)
+    .select({ userId: playerRatings.userId, botId: playerRatings.botId, mu: playerRatings.mu, sigma: playerRatings.sigma, revision: playerRatings.revision })
+    .from(playerRatings)
+    .where(and(eq(playerRatings.pool, pool), or(...identities)))
+    .all();
+  for (const row of rows) {
+    priors.set(identityKey(row.userId, row.botId), { mu: row.mu, sigma: row.sigma, revision: row.revision });
+  }
+  return priors;
+}
+
+/** Per identity: the history INSERT (whose revision-guarded subselects are
+ * the CAS check) followed by the rating UPDATE, or a plain INSERT for a
+ * first-time identity (a concurrent creation trips the unique index and
+ * rolls the batch back — same retry path). */
+function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
+  const statements = [];
+  for (const delta of deltas) {
+    const userId = "user_id" in delta.identity ? delta.identity.user_id : null;
+    const botId = "bot_id" in delta.identity ? delta.identity.bot_id : null;
+    const prior = priors.get(identityKey(userId, botId));
+    const identityWhere = userId !== null ? and(eq(playerRatings.userId, userId), eq(playerRatings.pool, pool)) : and(eq(playerRatings.botId, botId as string), eq(playerRatings.pool, pool));
+
+    if (prior === undefined || prior.revision === null) {
+      statements.push(
+        db.insert(playerRatings).values({
+          id: crypto.randomUUID(),
+          userId,
+          botId,
+          pool,
+          mu: delta.mu_after,
+          sigma: delta.sigma_after,
+          displayRating: delta.display_after,
+          revision: 1,
+          createdAt: input.now,
+          updatedAt: input.now,
+        }),
+      );
+      statements.push(db.insert(ratingHistory).values(historyValues(input, pool, delta, userId, botId)));
+    } else {
+      const guard = and(identityWhere, eq(playerRatings.revision, prior.revision));
+      statements.push(
+        db.insert(ratingHistory).values({
+          ...historyValues(input, pool, delta, userId, botId),
+          // The CAS: NULL (revision moved) violates NOT NULL → batch rollback.
+          muBefore: sql`(SELECT mu FROM player_ratings WHERE ${guard})`,
+          sigmaBefore: sql`(SELECT sigma FROM player_ratings WHERE ${guard})`,
+        }),
+      );
+      statements.push(
+        db
+          .update(playerRatings)
+          .set({
+            mu: delta.mu_after,
+            sigma: delta.sigma_after,
+            displayRating: delta.display_after,
+            revision: prior.revision + 1,
+            updatedAt: input.now,
+          })
+          .where(guard),
+      );
+    }
+  }
+  return statements;
+}
+
+function historyValues(input: FinishApplyInput, pool: string, delta: RatingDelta, userId: string | null, botId: string | null) {
+  return {
+    id: crypto.randomUUID(),
+    userId,
+    botId,
+    gameId: input.gameId,
+    pool,
+    finishId: input.finishId,
+    muBefore: delta.mu_before,
+    sigmaBefore: delta.sigma_before,
+    displayBefore: delta.display_before,
+    muAfter: delta.mu_after,
+    sigmaAfter: delta.sigma_after,
+    displayAfter: delta.display_after,
+    displayChange: delta.display_change,
+    createdAt: input.now,
+  };
+}
+
+/** A crashed-then-re-poked apply already landed: rebuild the deltas the DO
+ * still needs (for the ratings transition) from the history rows. */
+async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDelta[]> {
+  const db = drizzle(d1);
+  const rows = await db.select().from(ratingHistory).where(eq(ratingHistory.finishId, finishId)).all();
+  return rows.map((row) => ({
+    identity: row.userId !== null ? { user_id: row.userId } : { bot_id: row.botId as string },
+    pool: row.pool,
+    mu_before: row.muBefore,
+    sigma_before: row.sigmaBefore,
+    display_before: row.displayBefore,
+    mu_after: row.muAfter,
+    sigma_after: row.sigmaAfter,
+    display_after: row.displayAfter,
+    display_change: row.displayChange,
+  }));
+}
+
+/** The §4.2 display upsert after a non-finishing transition — fire-and-forget
+ * from `waitUntil`, single attempt, re-derivable from the DO at any time. */
+export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
+  const db = drizzle(d1);
+  await db
+    .update(games)
+    .set({
+      ...(args.status !== undefined ? { status: args.status } : {}),
+      pendingPlayers: args.pendingPlayers,
+      turnDeadline: args.turnDeadline,
+      updatedAt: args.now,
+    })
+    .where(eq(games.id, args.gameId));
+}
+
+/** The §4.1 worker-direct create, engine-owned so implementors never touch
+ * the D1 schema: seats already validated by worker policy. */
+export interface CreateGameInput {
+  gameId: string;
+  createdBy: string | null;
+  status: Extract<GameStatus, "waiting" | "ready">;
+  access: GameAccess;
+  schemaVersion: number;
+  config: JsonObject;
+  turnSeconds: number | null;
+  budgetSeconds: number | null;
+  incrementSeconds: number | null;
+  rated: boolean;
+  ratingPool: string | null;
+  minPlayers: number;
+  maxPlayers: number;
+  shortCode: string;
+  seats: Seat[];
+  now: number;
+}
+
+/** Write the games row + one participants row per seat, atomically. The DO
+ * lazy-inits from exactly these rows on first contact. Callers own the
+ * short_code retry (§4.1): a duplicate trips the UNIQUE index and throws. */
+export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
+  const db = drizzle(d1);
+  await db.batch([
+    db.insert(games).values({
+      id: input.gameId,
+      createdBy: input.createdBy,
+      status: input.status,
+      access: input.access,
+      schemaVersion: input.schemaVersion,
+      config: input.config,
+      turnSeconds: input.turnSeconds,
+      budgetSeconds: input.budgetSeconds,
+      incrementSeconds: input.incrementSeconds,
+      rated: input.rated,
+      ratingPool: input.ratingPool,
+      minPlayers: input.minPlayers,
+      maxPlayers: input.maxPlayers,
+      shortCode: input.shortCode,
+      createdAt: input.now,
+      updatedAt: input.now,
+    }),
+    db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.user_id, botId: s.bot_id, playerIndex: s.player_index, type: s.type, createdAt: input.now }))),
+  ]);
+}
+
+/** Lazy-init read (§4.1): the D1 game + participants rows the DO copies into
+ * its `meta`/`roster` on first contact — one batched round trip. */
+export async function readGameRow(d1: D1Database, gameId: string) {
+  const db = drizzle(d1);
+  const [gameRows, seatRows] = await db.batch([
+    db.select().from(games).where(eq(games.id, gameId)),
+    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
+  ]);
+  const game = gameRows[0];
+  if (game === undefined) return undefined;
+  const roster: Seat[] = seatRows;
+  return { ...game, participants: roster };
+}

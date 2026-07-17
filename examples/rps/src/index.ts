@@ -1,53 +1,21 @@
-import { DurableObject } from "cloudflare:workers";
-
 /**
- * Welcome to Cloudflare Workers! This is your first Durable Objects application.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your Durable Object in action
- * - Run `npm run deploy` to publish your application
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/durable-objects
+ * The RPS example worker — the whole implementor surface: the rules module,
+ * a `GameDO` subclass binding it, and one harness call. `createDevHarness`
+ * is the engine's TEMPORARY unauthenticated stand-in for `createEngine`
+ * (the routes milestone) — see its doc in `@eigen/server`.
  */
 
-/** A Durable Object's behavior is defined in an exported Javascript class */
-export class GameDO extends DurableObject {
-  /**
-   * The Durable Object exposes an RPC method sayHello which will be invoked when a Durable
-   *  Object instance receives a request from a Worker via the same method invocation on the stub
-   *
-   * @param name - The name provided to a Durable Object instance from a Worker
-   * @returns The greeting to be sent back to the Worker
-   */
-  async sayHello(name: string): Promise<string> {
-    return `Hello, ${name}!`;
+import { BaseGameDO, createDevHarness } from "@eigen/server";
+import { gameModule as rpsGame } from "./rules";
+
+export class GameDO extends BaseGameDO<Env> {
+  protected readonly gameModule = rpsGame;
+  protected d1(env: Env): D1Database {
+    return env.rps_dev;
   }
 }
 
-export default {
-  /**
-   * This is the standard fetch handler for a Cloudflare Worker
-   *
-   * @param request - The request submitted to the Worker from the client
-   * @param env - The interface to reference bindings declared in wrangler.jsonc
-   * @param ctx - The execution context of the Worker
-   * @returns The response to be sent back to the client
-   */
-  async fetch(_request, env, _ctx): Promise<Response> {
-    // Create a stub to open a communication channel with the Durable Object
-    // instance named "foo".
-    //
-    // Requests from all Workers to the Durable Object instance named "foo"
-    // will go to a single remote Durable Object instance.
-    const stub = env.GAME_DO.getByName("foo");
-
-    // Call the `sayHello()` RPC method on the stub to invoke the method on
-    // the remote Durable Object instance.
-    const greeting = await stub.sayHello("world");
-
-    return new Response(greeting);
-  },
-} satisfies ExportedHandler<Env>;
+export default createDevHarness({
+  d1: (env: Env) => env.rps_dev,
+  gameDO: (env: Env) => env.GAME_DO,
+});

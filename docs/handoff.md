@@ -118,9 +118,10 @@ architecture doc (section refs given).
 
 ### History & storage (§4.5, §4.6, §5)
 - **Game history is retained in the game's DO** (supersedes
-  R2-write-at-finish; "archive" renamed → "game history"). The finish
-  transaction **compacts** in the same atomic step: delete per-seat
-  `frames[]` (live-only) and command-dedupe rows; ~20–40 KB retained/game.
+  R2-write-at-finish; "archive" renamed → "game history"). **Compaction
+  rides the outbox clear** (2026-07-17; supersedes compact-at-finish): the
+  pipeline-completing transaction empties the live-only `frames` and
+  `commands` tables; ~20–40 KB retained/game.
   Outbox row cleared only AFTER the D1 apply succeeds (it is the recovery
   signal; failed apply → manual re-poke, idempotent via `finish_id`). DO
   storage is never dropped at finish — only at cancel/abort.

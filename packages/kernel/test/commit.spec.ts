@@ -371,39 +371,22 @@ describe("commit: forfeit / auto_forfeit", () => {
   });
 });
 
-describe("commit: ratings", () => {
-  const finishing = (overrides: Partial<CommitInput> = {}) =>
-    input({
-      game: makeGame({ rated: true, ratingPool: "main" }),
-      state: makeState({ state: { count: 9 } }),
-      ...overrides,
-    });
-
-  const priors = [
-    { player_index: 0, mu: 25, sigma: 25 / 3 },
-    { player_index: 1, mu: 25, sigma: 25 / 3 },
-  ];
-
-  it("computes posteriors on a rated finish when priors are supplied", () => {
-    const plan = expectPlan(commit(finishing({ ratingPriors: priors })));
-    expect(plan.ratings).toHaveLength(2);
-    const winner = plan.ratings?.find((r) => "user_id" in r.identity && r.identity.user_id === "user-a");
-    expect(winner?.mu).toBeGreaterThan(25);
-  });
-
-  it("leaves ratings null without priors (applier computes)", () => {
-    const plan = expectPlan(commit(finishing()));
+describe("commit: rated finish", () => {
+  // Rating deltas are not the kernel's to compute at commit time — they need
+  // global priors (D1-domain data). The plan carries outcomes only; the D1
+  // applier computes deltas inside the rating CAS and the host delivers them
+  // as a follow-up versioned ratings transition (engine_stack.md §4.5).
+  it("finishes a rated game with outcomes and no rating material in the plan", () => {
+    const plan = expectPlan(
+      commit(
+        input({
+          game: makeGame({ rated: true, ratingPool: "main" }),
+          state: makeState({ state: { count: 9 } }),
+        }),
+      ),
+    );
     expect(plan.outcomes).not.toBeNull();
-    expect(plan.ratings).toBeNull();
-  });
-
-  it("leaves ratings null for an unrated game even with priors", () => {
-    const plan = expectPlan(commit(finishing({ game: makeGame(), ratingPriors: priors })));
-    expect(plan.ratings).toBeNull();
-  });
-
-  it("throws when a prior is missing for an outcome seat", () => {
-    expect(() => commit(finishing({ ratingPriors: [priors[0]] }))).toThrow(GameBugError);
+    expect("ratings" in plan).toBe(false);
   });
 });
 

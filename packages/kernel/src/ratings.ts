@@ -41,6 +41,27 @@ export interface RatingResult extends Rating {
   identity: { user_id: string } | { bot_id: string };
 }
 
+/** One rated identity's before → after, exactly the rating_history row minus
+ * store keys. Computed by the D1 applier inside the rating CAS and delivered
+ * on the post-finish ratings transition (the `kind: "ratings"` action). */
+export interface RatingDelta {
+  identity: RatingResult["identity"];
+  pool: string;
+  mu_before: number;
+  sigma_before: number;
+  display_before: number;
+  mu_after: number;
+  sigma_after: number;
+  display_after: number;
+  display_change: number;
+}
+
+/** max(0, round((mu − 3σ) · 40)) — the one server-side home of the display
+ * formula (the client mirrors it for optimistic display only). */
+export function displayRating(mu: number, sigma: number): number {
+  return Math.max(0, Math.round((mu - 3 * sigma) * 40));
+}
+
 /** The OpenSkill prior for a never-rated identity. */
 export function defaultRating(): Rating {
   return rating();

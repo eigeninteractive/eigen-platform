@@ -15,11 +15,11 @@
  * order.
  */
 
-import { type ActionKind, type ActionType, type Envelope, type GameRules, IllegalMoveError, type JsonObject, type LifecycleAction, type OutcomeEntry, type TransitionCause } from "@eigen/rules";
+import { type ActionType, type Envelope, type GameRules, IllegalMoveError, type JsonObject, type LifecycleAction, type OutcomeEntry, type TransitionCause } from "@eigen/rules";
 import { GameBugError, type Rejected, reject } from "./errors.js";
 import { assertBudgetPending, assertForfeitPending, assertHookState, assertPendingIdentified, type SeatView, sameView } from "./guards.js";
 import { fanOutObservations, type ObservationFrame } from "./observe.js";
-import { computeRatings, type RatingResult } from "./ratings.js";
+import type { RatingDelta } from "./ratings.js";
 import { deriveRng } from "./rng.js";
 import { parseClientPayload, parseStoredPayload } from "./schema.js";
 import { computeNextDeadline, DEADLINE_GRACE_MS, deadlineExpired, deductBank } from "./timing.js";
@@ -93,14 +93,6 @@ export type Intent =
    * engine-driven variant (account purge; identity-less system action). */
   | { kind: "lifecycle"; type: "forfeit" | "auto_forfeit"; seat: number };
 
-/** One seat's current rating baseline, supplied by the host when a
- * transition may finish a rated game (see {@link CommitInput.ratingPriors}). */
-export interface RatingPrior {
-  player_index: number;
-  mu: number;
-  sigma: number;
-}
-
 export interface CommitInput {
   game: GameRow;
   /** The latest transition, or null before v0 (only a `start` intent is
@@ -125,27 +117,19 @@ export interface CommitInput {
     expected: SeatView | null;
     current: SeatView | null;
   };
-  /**
-   * Rating baselines per seat, when the host anticipates a rated finish.
-   * When present on a finishing rated transition, {@link CommitPlan.ratings}
-   * carries the computed posteriors (they ship in the final frame); when
-   * absent, `ratings` is null and the applier computes them itself at D1
-   * apply time (the CAS recomputes on conflict either way).
-   */
-  ratingPriors?: RatingPrior[] | null;
 }
 
 // ── Plan (what the host applies) ──────────────────────────────────────────────
 
 /** The action-log entry for a transition. Null only for the start transition
  * (v0), which no action produced. `player_index` is the performer's seat —
- * null for identity-less system actions (timeout, auto-forfeit). */
-export interface TransitionAction {
-  type: ActionType;
-  kind: ActionKind;
-  data: JsonObject;
-  player_index: number | null;
-}
+ * null for identity-less system actions (timeout, auto-forfeit).
+ *
+ * The `ratings` variant is engine-owned, never produced by `commit()`: the
+ * host appends it as the post-finish ratings transition (§4.5 step 3) once
+ * the D1 apply returns the deltas. Game hooks never see it — its data is the
+ * engine's, not the game's opaque payload. */
+export type TransitionAction = { type: "user" | "bot"; kind: "game"; data: JsonObject; player_index: number } | { type: ActionType; kind: "lifecycle"; data: LifecycleAction; player_index: number | null } | { type: "system"; kind: "ratings"; data: { deltas: RatingDelta[] }; player_index: null };
 
 /** A push/wake the host should attempt post-commit (single attempt + error
  * log — no retry machinery in v1). The kernel names seats; the host resolves
@@ -159,10 +143,13 @@ export interface CommitPlan {
   /** Per-seat projected frames (identified seats only) — persisted with the
    * transition, fanned out over sockets. No raw state escapes the kernel. */
   frames: ObservationFrame[];
-  /** Per-seat results when this transition ends the game, else null. */
+  /** Per-seat results when this transition ends the game, else null.
+   *
+   * Rating deltas are deliberately NOT here: they depend on global cross-game
+   * priors (D1-domain data the kernel must never need). The D1 applier
+   * computes them inside the rating CAS via `computeRatings` (ratings.ts) and
+   * the host delivers them as a follow-up versioned ratings transition. */
   outcomes: OutcomeEntry[] | null;
-  /** OpenSkill posteriors for a rated finish, when priors were supplied. */
-  ratings: RatingResult[] | null;
   /** The instant the DO must arm its alarm at — the true deadline plus the
    * grace window — or null to clear it. */
   alarm: number | null;
@@ -286,7 +273,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     playerTimes = deductBank(playerTimes, intent.seat, now, state.turnStartedAt, game.incrementSeconds);
   }
 
-  const data = parsed.value as JsonObject;
+  const data = parsed.value;
   return buildPlan(input, {
     version: state.version + 1,
     seed: state.rngSeed,
@@ -348,7 +335,7 @@ function commitTimeout(input: CommitInput, _intent: Extract<Intent, { kind: "lif
     action: {
       type: "system",
       kind: "lifecycle",
-      data: data as JsonObject,
+      data,
       player_index: null,
     },
     cause: { kind: "lifecycle", data },
@@ -393,7 +380,7 @@ function commitForfeit(input: CommitInput, intent: Extract<Intent, { kind: "life
       // identity-less system, exactly like the old commit modes.
       type: intent.type === "forfeit" ? "user" : "system",
       kind: "lifecycle",
-      data: data as JsonObject,
+      data,
       player_index: intent.type === "forfeit" ? intent.seat : null,
     },
     cause: { kind: "lifecycle", data },
@@ -461,7 +448,6 @@ function buildPlan(
     action: t.action,
     frames,
     outcomes,
-    ratings: computePlanRatings(input, outcomes),
     alarm: next.deadline === null ? null : next.deadline + DEADLINE_GRACE_MS,
     effects: computeEffects(roster, envelope, outcomes, t.actingSeat),
   };
@@ -488,31 +474,6 @@ function validateOutcomes(envelope: Envelope, roster: readonly Seat[], schemaVer
     }
   }
   return outcome;
-}
-
-function computePlanRatings(input: CommitInput, outcomes: OutcomeEntry[] | null): RatingResult[] | null {
-  const priors = input.ratingPriors;
-  if (outcomes === null || !input.game.rated || input.game.ratingPool === null || !priors) {
-    return null;
-  }
-  return computeRatings(
-    outcomes.map((entry) => {
-      const seat = input.roster.find((s) => s.player_index === entry.player_index);
-      const prior = priors.find((p) => p.player_index === entry.player_index);
-      if (!seat || !prior) {
-        throw new GameBugError(`No rating prior supplied for outcome seat ${entry.player_index}`);
-      }
-      return {
-        player_index: entry.player_index,
-        user_id: seat.user_id,
-        bot_id: seat.bot_id,
-        mu: prior.mu,
-        sigma: prior.sigma,
-        placement: entry.placement,
-        team_index: entry.team_index,
-      };
-    }),
-  );
 }
 
 /** Post-commit deliveries: turn notifications / bot wakes for every newly

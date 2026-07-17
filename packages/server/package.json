@@ -11,18 +11,22 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "migrations"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --sourcemap --clean",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json",
+    "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
+    "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts"
   },
   "keywords": [],
   "author": "",
   "type": "module",
   "dependencies": {
     "@eigen/kernel": "workspace:*",
+    "@eigen/rules": "workspace:*",
     "@hono/zod-openapi": "^1.5.1",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.30",
@@ -30,6 +34,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260715.1",
     "drizzle-kit": "^0.31.10"
   }
 }

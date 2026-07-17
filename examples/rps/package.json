@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler d1 migrations apply rps_dev --remote && wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",
     "cf-typegen": "wrangler types",
@@ -12,10 +12,12 @@
   },
   "devDependencies": {
     "@eigen/testkit": "workspace:*",
-    "@types/node": "^26.1.1"
+    "@types/node": "^26.1.1",
+    "drizzle-orm": "^0.45.2"
   },
   "dependencies": {
     "@eigen/rules": "workspace:*",
+    "@eigen/server": "workspace:*",
     "zod": "^4.4.3"
   }
 }

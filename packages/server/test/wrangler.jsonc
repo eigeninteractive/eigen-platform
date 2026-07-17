@@ -1,0 +1,35 @@
+/**
+ * Test-only worker config for @eigen/server's vitest-pool-workers suite —
+ * never deployed. Binds the GameDO produced by createGameDO plus a simulated
+ * D1 database.
+ */
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "eigen-server-test",
+  "main": "./worker.ts",
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "exports": {
+    "GameDO": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GameDO",
+        "name": "GAME_DO"
+      }
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eigen-test",
+      "database_id": "eigen-test"
+    }
+  ],
+  // The drizzle durable-sqlite migrations.js imports its .sql as text.
+  "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }]
+}

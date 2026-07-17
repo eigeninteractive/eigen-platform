@@ -13,10 +13,8 @@
       "storage": "sqlite"
     }
   },
-  "assets": {
-    // The path to the directory containing the `index.html` file to be served at `/`
-    "directory": "./public"
-  },
+  // Static assets return at the §2.4 deep-link milestone (landing page +
+  // engine-generated .well-known files, with run_worker_first for /api etc.).
   "durable_objects": {
     "bindings": [
       {
@@ -34,7 +32,12 @@
     {
       "binding": "rps_dev",
       "database_name": "rps-dev",
-      "database_id": "4f5e2940-1262-4b4b-9551-c19364e86509"
+      "database_id": "4f5e2940-1262-4b4b-9551-c19364e86509",
+      // Engine-owned schema (§5.2), like the DO's: migrations ship inside
+      // @eigen/server and `deploy` applies them before the code goes out.
+      // App-custom data belongs in a SEPARATE second d1_databases entry with
+      // its own migrations_dir — never in this database.
+      "migrations_dir": "node_modules/@eigen/server/migrations"
     }
   ],
   "r2_buckets": [

@@ -7,7 +7,6 @@ export {
   type GameStatus,
   type Intent,
   isRejected,
-  type RatingPrior,
   type Seat,
   type StateRow,
   type TransitionAction,
@@ -26,8 +25,10 @@ export { fanOutObservations, type ObservationFrame } from "./observe.js";
 export {
   computeRatings,
   defaultRating,
+  displayRating,
   type PlayerInput,
   type Rating,
+  type RatingDelta,
   type RatingResult,
 } from "./ratings.js";
 export { deriveRng, randomSeed } from "./rng.js";
