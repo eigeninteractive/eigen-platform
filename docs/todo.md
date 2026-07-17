@@ -1,2 +1,3 @@
 - CI Setup (Biome, etc.)
 - Twin Fixtures Types Issue
+- Compare to old structure end to end
