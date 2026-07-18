@@ -33,16 +33,20 @@ import type { GameModule, GameRules, JsonObject, OutcomeEntry, TransitionCause }
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { type DrizzleSqliteDODatabase, drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
-import { applyFinish, readGameRow, updateSummary } from "../d1/apply.js";
-import type { Command, CommandResult, FrameMessage } from "../protocol.js";
+import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
+import type { Command, CommandResult, FrameMessage, Principal, RosterSnapshot } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
 type MetaRow = typeof t.meta.$inferSelect;
 type TransitionRow = typeof t.transitions.$inferSelect;
 
-function seatTag(seat: number): string {
-  return `seat:${seat}`;
+/** What each hibernating socket remembers (§4.2/§4.3): the authenticated
+ * principal only. Seats are resolved against the CURRENT roster at every
+ * send, so a socket opened pre-join starts receiving its seat's frames the
+ * moment its user is seated — no re-tagging machinery. */
+interface SocketAttachment {
+  userId: string | null;
 }
 
 export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
@@ -68,27 +72,154 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
   // ── Commands (worker → DO, §3.3) ──────────────────────────────────────────
 
   async handle(cmd: Command): Promise<CommandResult> {
-    await this.#ensureInit(cmd.gameId);
+    if (!(await this.#ensureInit(cmd.gameId))) {
+      return { ok: false, code: "unknown_game", message: "No game with this id" };
+    }
     const stored = this.#storedResponse(cmd.commandId);
     if (stored !== null) return stored;
 
     switch (cmd.kind) {
       case "join":
       case "leave":
-      case "cancel":
       case "add-bot":
-        throw new Error(`Command '${cmd.kind}' is not implemented yet (waiting-room milestone)`);
+        return this.#lobbyCommand(cmd);
+      case "cancel":
+        return await this.#cancel(cmd);
       default:
         return await this.#commitCommand(cmd);
     }
   }
 
+  // ── Waiting room (§4.2): integrity under the gate ─────────────────────────
+
+  /** The §4.2 DO column for join/leave/add-bot: status + seat integrity
+   * checks, roster rewrite, ready/waiting threshold — one synchronous storage
+   * transaction, then the snapshot push and the D1 mirror post-commit.
+   * Refusals here are *expected* lobby races (accepted staleness: the lobby
+   * may show a game that just filled), so they come back as values. */
+  #lobbyCommand(cmd: Extract<Command, { kind: "join" | "leave" | "add-bot" }>): CommandResult {
+    const meta = this.#meta();
+    const roster = this.#roster();
+    const now = Date.now();
+
+    if (meta.status !== "waiting" && meta.status !== "ready") {
+      return { ok: false, code: "not_joinable", message: `Game is ${meta.status}` };
+    }
+
+    let nextRoster: Seat[];
+    switch (cmd.kind) {
+      case "join": {
+        if (roster.some((s) => s.user_id !== null && s.user_id === cmd.actor.userId)) {
+          return { ok: false, code: "already_joined", message: "Already seated in this game" };
+        }
+        if (roster.length >= meta.maxPlayers) {
+          return { ok: false, code: "game_full", message: "Game is full" };
+        }
+        nextRoster = [...roster, { player_index: roster.length, user_id: cmd.actor.userId, bot_id: null, type: "human" }];
+        break;
+      }
+      case "leave": {
+        if (cmd.actor.userId !== null && cmd.actor.userId === meta.createdBy) {
+          return { ok: false, code: "creator_cannot_leave", message: "The creator cancels the game instead of leaving it" };
+        }
+        const seat = roster.find((s) => s.user_id !== null && s.user_id === cmd.actor.userId);
+        if (seat === undefined) {
+          return { ok: false, code: "not_participant", message: "Not seated in this game" };
+        }
+        // Compact the indexes (§4.2) — safe pre-start only, which lobby
+        // statuses guarantee: no frames or transitions reference seats yet.
+        nextRoster = roster.filter((s) => s.player_index !== seat.player_index).map((s, i) => ({ ...s, player_index: i }));
+        break;
+      }
+      case "add-bot": {
+        if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
+          return { ok: false, code: "not_creator", message: "Only the creator can add a bot" };
+        }
+        if (roster.length >= meta.maxPlayers) {
+          return { ok: false, code: "game_full", message: "Game is full" };
+        }
+        nextRoster = [...roster, { player_index: roster.length, user_id: null, bot_id: cmd.botId, type: "bot" }];
+        break;
+      }
+    }
+
+    const status: GameStatus = nextRoster.length >= meta.minPlayers ? "ready" : "waiting";
+    const snapshot: RosterSnapshot = { type: "roster", status, players: nextRoster };
+    const response: CommandResult = { ok: true, roster: snapshot };
+    this.#db.transaction((tx) => {
+      tx.delete(t.roster).run();
+      for (const seat of nextRoster) {
+        tx.insert(t.roster).values({ playerIndex: seat.player_index, userId: seat.user_id, botId: seat.bot_id, type: seat.type }).run();
+      }
+      if (status !== meta.status) {
+        tx.update(t.meta).set({ status }).where(eq(t.meta.id, 1)).run();
+      }
+      tx.insert(t.commands).values({ commandId: cmd.commandId, response, createdAt: now }).run();
+    });
+
+    // ── post-commit ──
+    this.#broadcast(snapshot);
+    const gameId = meta.gameId;
+    this.ctx.waitUntil(mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }).catch((error) => console.error(`roster mirror failed for game ${gameId}`, error)));
+    return response;
+  }
+
+  /** Cancel (§4.2): creator-only, lobby statuses only; status → `aborted` and
+   * the DO's storage is dropped — nothing worth retaining, the D1 row alone
+   * serves history lists. The D1 mirror is AWAITED here (unlike every other
+   * lobby effect): the aborted games row is the only survivor, so its write
+   * failing must fail the command — a retry re-enters through the `aborted`
+   * branch and completes idempotently. */
+  async #cancel(cmd: Extract<Command, { kind: "cancel" }>): Promise<CommandResult> {
+    const meta = this.#meta();
+    if (meta.status !== "waiting" && meta.status !== "ready" && meta.status !== "aborted") {
+      return { ok: false, code: "not_joinable", message: `Game is ${meta.status}` };
+    }
+    if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
+      return { ok: false, code: "not_creator", message: "Only the creator can cancel the game" };
+    }
+    // Terminal status lands in storage first: anything interleaving with the
+    // awaits below already sees an aborted game.
+    if (meta.status !== "aborted") {
+      this.#db.update(t.meta).set({ status: "aborted" }).where(eq(t.meta.id, 1)).run();
+    }
+    await mirrorRoster(this.d1(this.env), { gameId: meta.gameId, status: "aborted", seats: [], now: Date.now() });
+
+    const snapshot: RosterSnapshot = { type: "roster", status: "aborted", players: [] };
+    this.#broadcast(snapshot);
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.close(1000, "Game cancelled");
+      } catch {
+        // Already closing — nothing to do.
+      }
+    }
+    await this.ctx.storage.deleteAlarm();
+    await this.ctx.storage.deleteAll();
+    // The schema went with the storage; restore it so this live instance can
+    // keep serving (a later poke lazy-re-inits from the aborted D1 row).
+    await migrate(this.#db, migrations);
+    return { ok: true, roster: snapshot };
+  }
+
   async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>): Promise<CommandResult> {
     const meta = this.#meta();
     const roster = this.#roster();
+    // Creator-only start (§4.2) — a clean rejection, not a throw: any seated
+    // client can reach this without a protocol violation.
+    if (cmd.kind === "start" && meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
+      return { ok: false, code: "not_creator", message: "Only the creator can start the game" };
+    }
+    let actingSeat: number | null = null;
+    if (cmd.kind === "action" || (cmd.kind === "lifecycle" && cmd.type === "forfeit")) {
+      if (cmd.actor === null) throw new Error("Forfeit requires an actor");
+      const resolved = this.#actingSeat(cmd.actor, cmd.seat, roster);
+      if (typeof resolved !== "number") return resolved;
+      actingSeat = resolved;
+    }
     const latest = this.#latestTransition();
     const state = latest === null ? null : this.#toStateRow(latest, meta);
-    const intent = this.#toIntent(cmd, meta, roster);
+    const intent = this.#toIntent(cmd, actingSeat);
     const now = Date.now();
 
     const result = commit({
@@ -98,30 +229,41 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
       intent,
       now,
       rules: this.#rules(meta),
-      staleViews: this.#staleViews(cmd, latest),
+      staleViews: this.#staleViews(cmd, actingSeat, latest),
     });
     if (isRejected(result)) {
       return { ok: false, code: result.code, message: result.message };
     }
-    return await this.#apply(cmd, meta, roster, result, now);
+    return await this.#apply(cmd, meta, roster, result, now, actingSeat);
   }
 
-  /** DO-side integrity (§4.2): the worker did policy before minting; the
-   * DO still refuses a command whose actor doesn't own what it claims.
-   * These are protocol violations, not gameplay rejections — they throw. */
-  #toIntent(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[]): Intent {
+  /** Resolve the acting seat against the authoritative roster (§4.2) — the
+   * D1 participants copy is a display mirror and never arbitrates. A command
+   * naming a seat (bots: one bot id may hold several seats) must own it, or
+   * it is a protocol violation and throws. An unnamed seat resolves by the
+   * actor's user id; an unseated actor is reachable without a client bug
+   * (left the game, stale UI), so that refusal is a value. */
+  #actingSeat(actor: Principal, seat: number | undefined, roster: Seat[]): number | CommandResult {
+    if (seat !== undefined) {
+      this.#assertSeat(roster, seat, actor);
+      return seat;
+    }
+    const own = roster.find((s) => s.user_id !== null && s.user_id === actor.userId);
+    if (own === undefined) {
+      return { ok: false, code: "not_participant", message: "Not seated in this game" };
+    }
+    return own.player_index;
+  }
+
+  #toIntent(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, actingSeat: number | null): Intent {
     switch (cmd.kind) {
-      case "start": {
-        if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
-          throw new Error("Only the creator can start the game");
-        }
+      case "start":
         return { kind: "start", seed: randomSeed() };
-      }
       case "action": {
-        this.#assertSeat(roster, cmd.seat, cmd.actor);
+        if (actingSeat === null) throw new GameBugError("action reached #toIntent without a resolved seat");
         return {
           kind: "action",
-          seat: cmd.seat,
+          seat: actingSeat,
           expectedVersion: cmd.expectedVersion,
           data: cmd.data,
           actor: cmd.actor.botId !== null ? "bot" : "user",
@@ -129,12 +271,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
       }
       case "lifecycle": {
         if (cmd.type === "timeout") return { kind: "lifecycle", type: "timeout" };
-        if (cmd.seat === undefined) throw new Error(`Lifecycle '${cmd.type}' requires a seat`);
-        if (cmd.type === "forfeit") {
-          if (cmd.actor === null) throw new Error("Forfeit requires an actor");
-          this.#assertSeat(roster, cmd.seat, cmd.actor);
-        }
-        return { kind: "lifecycle", type: cmd.type, seat: cmd.seat };
+        const seat = actingSeat ?? cmd.seat;
+        if (seat === undefined) throw new Error(`Lifecycle '${cmd.type}' requires a seat`);
+        return { kind: "lifecycle", type: cmd.type, seat };
       }
     }
   }
@@ -147,21 +286,20 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
 
   /** Same-view material (§3.5): the acting seat's stored frames at the
    * expected and current versions. Only needed for a stale action. */
-  #staleViews(cmd: Command, latest: TransitionRow | null): { expected: SeatView | null; current: SeatView | null } | undefined {
-    if (cmd.kind !== "action" || latest === null || cmd.expectedVersion >= latest.version) return undefined;
+  #staleViews(cmd: Command, actingSeat: number | null, latest: TransitionRow | null): { expected: SeatView | null; current: SeatView | null } | undefined {
+    if (cmd.kind !== "action" || actingSeat === null || latest === null || cmd.expectedVersion >= latest.version) return undefined;
     return {
-      expected: this.#storedView(cmd.expectedVersion, cmd.seat),
-      current: this.#storedView(latest.version, cmd.seat),
+      expected: this.#storedView(cmd.expectedVersion, actingSeat),
+      current: this.#storedView(latest.version, actingSeat),
     };
   }
 
   /** Apply the plan — ONE SQLite transaction, gate held (§3.4). Everything
    * after the transaction is post-commit: interleaving is harmless. */
-  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number): Promise<CommandResult> {
+  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null): Promise<CommandResult> {
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
-    const actingSeat = cmd.kind === "action" ? cmd.seat : cmd.kind === "lifecycle" && cmd.type === "forfeit" && cmd.seat !== undefined ? cmd.seat : null;
     const ownFrame = actingSeat === null ? null : (plan.frames.find((f) => f.player_index === actingSeat) ?? null);
     const response: CommandResult = {
       ok: true,
@@ -199,7 +337,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     });
 
     // ── post-commit ──
-    this.#fanOut(plan.frames, next, plan.outcomes);
+    this.#fanOut(plan.frames, next, plan.outcomes, roster);
     if (plan.alarm !== null) {
       await this.ctx.storage.setAlarm(plan.alarm);
     } else {
@@ -285,7 +423,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
         player_times: null,
         ratings: deltas,
       };
-      this.#send(frame.player_index, message);
+      this.#send(roster, frame.player_index, message);
     }
   }
 
@@ -323,22 +461,30 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
 
   // ── Sockets (hibernating, §4.2/§4.3) ──────────────────────────────────────
 
-  /** The worker routes the upgrade here after authenticating; the seat
+  /** The worker routes the upgrade here after authenticating; the principal
    * header is worker-set (never client-supplied — the worker strips inbound
-   * headers when forwarding). Null seat = a seated-later lobby socket. */
+   * headers when forwarding). One socket serves the game's whole lifetime
+   * (§4.2): unversioned roster snapshots pre-game, versioned frames from v0.
+   * A not-yet-seated user's socket simply receives no frames until the
+   * roster contains them. */
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("Expected a WebSocket upgrade", { status: 426 });
     }
     const gameId = request.headers.get("x-eigen-game");
     if (gameId === null) return new Response("Missing game id", { status: 400 });
-    await this.#ensureInit(gameId);
-    const seatHeader = request.headers.get("x-eigen-seat");
-    const seat = seatHeader === null ? null : Number.parseInt(seatHeader, 10);
+    if (!(await this.#ensureInit(gameId))) return new Response("No game with this id", { status: 404 });
+    const attachment: SocketAttachment = { userId: request.headers.get("x-eigen-user") };
 
     const pair = new WebSocketPair();
-    pair[1].serializeAttachment({ seat });
-    this.ctx.acceptWebSocket(pair[1], seat === null ? [] : [seatTag(seat)]);
+    pair[1].serializeAttachment(attachment);
+    this.ctx.acceptWebSocket(pair[1]);
+    // Pre-game the current snapshot rides the open (idempotent — a reconnect
+    // just gets it again); mid-game the client resyncs by range fetch.
+    const meta = this.#meta();
+    if (meta.status === "waiting" || meta.status === "ready") {
+      pair[1].send(JSON.stringify({ type: "roster", status: meta.status, players: this.#roster() } satisfies RosterSnapshot));
+    }
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
@@ -358,20 +504,40 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     console.error("game socket errored", error);
   }
 
-  #fanOut(frames: ObservationFrame[], next: StateRow, outcomes: OutcomeEntry[] | null): void {
+  #fanOut(frames: ObservationFrame[], next: StateRow, outcomes: OutcomeEntry[] | null, roster: Seat[]): void {
     for (const frame of frames) {
-      this.#send(frame.player_index, this.#wireFrame(frame, next, outcomes));
+      this.#send(roster, frame.player_index, this.#wireFrame(frame, next, outcomes));
     }
   }
 
-  #send(seat: number, message: FrameMessage): void {
+  /** Deliver one seat's frame to every socket whose authenticated principal
+   * owns that seat — resolved against the roster at send time. */
+  #send(roster: Seat[], seat: number, message: FrameMessage): void {
+    const owner = roster.find((s) => s.player_index === seat);
+    if (owner === undefined || owner.user_id === null) return;
     const payload = JSON.stringify(message);
-    for (const ws of this.ctx.getWebSockets(seatTag(seat))) {
+    for (const ws of this.ctx.getWebSockets()) {
+      const attachment = ws.deserializeAttachment() as SocketAttachment | null;
+      if (attachment?.userId !== null && attachment?.userId === owner.user_id) {
+        try {
+          ws.send(payload);
+        } catch {
+          // A dead socket is the client's reconnect problem; frames are
+          // recoverable by range fetch.
+        }
+      }
+    }
+  }
+
+  /** Push an unversioned roster snapshot to EVERY socket (§4.2) — seated or
+   * not, it is public lobby information and idempotent by construction. */
+  #broadcast(snapshot: RosterSnapshot): void {
+    const payload = JSON.stringify(snapshot);
+    for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.send(payload);
       } catch {
-        // A dead socket is the client's reconnect problem; frames are
-        // recoverable by range fetch.
+        // Dead socket — reconnect gets the current snapshot on open.
       }
     }
   }
@@ -479,13 +645,20 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
 
   /** First contact: copy the D1 game row into `meta` + `roster`. The one
    * sanctioned non-storage await near the gate — `blockConcurrencyWhile`
-   * holds ALL events, so nothing interleaves, and it runs once per game. */
-  async #ensureInit(gameId: string): Promise<void> {
-    if (this.#loadMeta() !== undefined) return;
+   * holds ALL events, so nothing interleaves, and it runs once per game.
+   * Returns false when no such game exists (callers answer 404 /
+   * `unknown_game`; a missing row must not throw here — an exception inside
+   * `blockConcurrencyWhile` resets the whole object). */
+  async #ensureInit(gameId: string): Promise<boolean> {
+    if (this.#loadMeta() !== undefined) return true;
+    let found = true;
     await this.ctx.blockConcurrencyWhile(async () => {
       if (this.#loadMeta() !== undefined) return;
       const row = await readGameRow(this.d1(this.env), gameId);
-      if (row === undefined) throw new Error(`Unknown game ${gameId}`);
+      if (row === undefined) {
+        found = false;
+        return;
+      }
       this.#db.transaction((tx) => {
         tx.insert(t.meta)
           .values({
@@ -511,6 +684,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
         }
       });
     });
+    return found;
   }
 
   #rules(meta: MetaRow): GameRules {

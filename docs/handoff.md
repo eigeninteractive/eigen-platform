@@ -207,14 +207,24 @@ architecture doc (section refs given).
 
 ## 6. Immediate next steps
 
-1. **User** finishes §15: vitest-pool-workers wiring, package src stubs,
-   `packages/server`, hello-world verified under `wrangler dev`.
-2. **Claude** then starts `@eigen/rules` + `@eigen/kernel`: contract types,
-   RPS rules as the first version unit, twin fixtures, timing/grace/
-   same-view under unit test. Then §14 phases in order.
-3. Deferred small items: delete `examples/temp/` when done with it; decide
-   in Phase 2 how `@eigen/server` (a library, not a worker) gets runtime
-   types.
+Progress (verify with `git log` — this list dates fast): Phase 1
+(rules/kernel/testkit + RPS twin fixtures) shipped 2026-07-16; Phase 2
+milestone 1 (BaseGameDO + finish apply) and **Milestone A — `createEngine`**
+(jose Firebase auth + `@eigen/server/testing`, hono/zod-openapi routes:
+create/waiting room/action/forfeit/frames/socket + reads, OpenAPI emission
+via `pnpm openapi`, rps flipped to the production shape, dev harness and
+deploy runbook deleted) landed 2026-07-17.
+
+Remaining in Phase 2, in order:
+
+1. **Milestone B** — bot wake (HMAC, single attempt) + FCM effects; the
+   local-bot observation read; `bot/action` route; create-solo.
+2. **Milestone C** — lifecycle edges: account deletion, cron backstop,
+   `HistoryStore` interface extraction, the §11 leak test.
+3. **Milestone D** — deep-link group (`.well-known`, `/j/:shortCode`,
+   `run_worker_first`, assets return) + opt-in avatars (local R2 simulation
+   only — no bucket, no card).
+4. Deferred small items: delete `examples/temp/` when done with it.
 
 ## 7. Standing user constraints (do not violate)
 

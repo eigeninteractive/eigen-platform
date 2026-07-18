@@ -1,11 +1,10 @@
 /**
- * The RPS example worker — the whole implementor surface: the rules module,
- * a `GameDO` subclass binding it, and one harness call. `createDevHarness`
- * is the engine's TEMPORARY unauthenticated stand-in for `createEngine`
- * (the routes milestone) — see its doc in `@eigen/server`.
+ * The RPS example worker — the whole implementor surface (§2.3): the rules
+ * module, a `GameDO` subclass binding it, and one `createEngine` call.
+ * Deploys with `pnpm deploy` (engine D1 migrations apply, then the code).
  */
 
-import { BaseGameDO, createDevHarness } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigen/server";
 import { gameModule as rpsGame } from "./rules";
 
 export class GameDO extends BaseGameDO<Env> {
@@ -15,7 +14,8 @@ export class GameDO extends BaseGameDO<Env> {
   }
 }
 
-export default createDevHarness({
+export default createEngine({
+  gameModule: rpsGame,
   d1: (env: Env) => env.rps_dev,
   gameDO: (env: Env) => env.GAME_DO,
 });

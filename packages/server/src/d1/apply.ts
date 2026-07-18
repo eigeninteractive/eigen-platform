@@ -257,6 +257,20 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
     .where(eq(games.id, args.gameId));
 }
 
+/** The §4.2 roster mirror after a committed waiting-room command — the DO's
+ * roster is the integrity copy; this rewrites the D1 display copy wholesale
+ * (delete + reinsert), which is idempotent and immune to per-row drift.
+ * Fire-and-forget from `waitUntil`, single attempt (§8). */
+export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
+  const db = drizzle(d1);
+  const statements = [db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)), db.delete(participants).where(eq(participants.gameId, args.gameId))] as const;
+  if (args.seats.length === 0) {
+    await db.batch([...statements]);
+    return;
+  }
+  await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.user_id, botId: s.bot_id, playerIndex: s.player_index, type: s.type, createdAt: args.now })))]);
+}
+
 /** The §4.1 worker-direct create, engine-owned so implementors never touch
  * the D1 schema: seats already validated by worker policy. */
 export interface CreateGameInput {

@@ -26,6 +26,11 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    // §6: the only value token verification needs. Set to the Firebase
+    // project id before deploying; empty makes every request fail 500.
+    "FIREBASE_PROJECT_ID": ""
+  },
   "upload_source_maps": true,
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [

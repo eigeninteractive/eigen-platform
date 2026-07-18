@@ -153,19 +153,33 @@ Unchanged: every screen, the Dart `GameModule` contract (`buildContent`, twins,
 
 ### 2.3 What an implementor ships
 
-Server — the entire deployable:
+Server — the entire deployable (the shape `examples/rps` ships, verbatim):
 
 ```ts
 // bravado-server/src/index.ts
-import { createEngine, GameDO } from '@eigen/server';
+import { BaseGameDO, createEngine } from '@eigen/server';
 import { gameModule } from './rules';   // GameRules per schema_version — same contract as today
 
-export default createEngine({ module: gameModule });
-export { GameDO };
+export class GameDO extends BaseGameDO<Env> {
+  protected readonly gameModule = gameModule;
+  protected d1(env: Env) { return env.MY_D1; }
+}
+export default createEngine({
+  gameModule,
+  d1: (env: Env) => env.MY_D1,
+  gameDO: (env: Env) => env.GAME_DO,
+});
 ```
 
-plus `wrangler.jsonc` (bindings from a template), `wrangler secret put`, and the
-template's `deploy` script (`wrangler d1 migrations apply` + `wrangler deploy`; §5.2). Client: depend on `eigen_flutter`, register the Dart
+(The accessors are the EngineConfig seam — the engine never assumes binding
+names; annotate `env` and both type arguments infer.) Plus `wrangler.jsonc`
+(bindings from a template; `FIREBASE_PROJECT_ID` in `vars`), `wrangler secret put`, and the
+template's `deploy` script (`wrangler d1 migrations apply` + `wrangler deploy`; §5.2).
+Tests: a `test/worker.ts` that repeats this entry with
+`auth: testVerifier()` from **`@eigen/server/testing`** (a checked-in local
+JWKS + `mintTestToken`/`testBearer`; §6 — the same jose verify path as
+production, only the key source differs), bound by a test-only wrangler
+config for `vitest-pool-workers`. Client: depend on `eigen_flutter`, register the Dart
 `GameModule` + `BoardView`, `flutterfire configure`. The implementor writes **rules TS, a
 board widget, and an optional Dart twin** — nothing else. Packages are consumed from a
 private GitHub Packages npm registry (OSS-shaped, private-first).
@@ -275,10 +289,15 @@ type Command =
       gameId: string; commandId: string; actor: Principal }
   | { kind: 'add-bot';   gameId: string; commandId: string; actor: Principal; botId: string }
   | { kind: 'action';    gameId: string; commandId: string; actor: Principal;
-                         seat: number; expectedVersion: number; data: unknown }
+                         seat?: number; expectedVersion: number; data: unknown }
   | { kind: 'lifecycle'; gameId: string; commandId: string; actor: Principal | null;
                          type: 'timeout' | 'forfeit' | 'auto_forfeit'; seat?: number };
 ```
+
+(`seat` on `action`/`forfeit` is bot-only — one bot id may hold several
+seats, so the actor alone is ambiguous there; a named seat must belong to the
+actor. Human commands omit it and the DO resolves the seat from its
+authoritative roster, §4.2.)
 
 - **Authorization happens at the edge.** The Worker verifies the Firebase token and runs
   every *policy* check (guest gating, friends-access via D1, schema gate, `botSeatable`,
@@ -383,7 +402,9 @@ POST /games → worker: validate (timing modes, player counts, access, guest gat
 
 D1-first is deliberate: existence and lobby visibility have one source of truth, and a game
 nobody joins never wakes a DO. The DO lazily initializes from the D1 row via
-`blockConcurrencyWhile` on its first command or socket.
+`blockConcurrencyWhile` on its first command or socket. Short codes are 6 chars from a
+no-lookalike alphabet (no 0/O/1/I/L — they're read aloud), retried on the UNIQUE index
+up to 5 times.
 
 ### 4.2 Waiting room — D1 never arbitrates, it only displays
 
@@ -402,6 +423,56 @@ relocated:
 The D1 summary is updated post-commit via `waitUntil` (fire-and-forget, reconcilable from
 the DO). Accepted staleness: the lobby may briefly show a game that just filled; the join
 then fails cleanly at the DO ("game full") — the identical UX to today's lobby race.
+
+Landed 2026-07-17, three shipped refinements:
+
+- **Lobby refusals are values, not throws.** The DO answers expected lobby
+  races with a `LobbyRejectCode` (`unknown_game`, `not_joinable`,
+  `game_full`, `already_joined`, `not_participant`, `not_creator`,
+  `creator_cannot_leave`) alongside the kernel's `RejectCode`s; the worker
+  maps codes → HTTP (client mistakes 400, ownership 403, missing game 404,
+  conflicts 409) and every handler's non-200 path is an `HttpError` throw
+  rendered by one app-level error handler. Genuine protocol violations
+  (naming a seat the principal doesn't own) still throw across the RPC —
+  those are bugs, not races. The creator-only `start` check moved from throw
+  to a clean `not_creator` rejection for the same reason: any seated client
+  can reach it honestly. Accepted lobby commands answer with the roster
+  snapshot (`{ok, roster}`) — there is no version yet to answer with.
+- **The DO resolves the acting seat** (revised 2026-07-18; supersedes the
+  first-landed shape, which resolved it worker-side through the D1
+  participants index — a Supabase-era holdover that made the display mirror
+  arbitrate gameplay and opened a staleness window). Human `action`/`forfeit`
+  commands carry no seat at all: the DO looks the actor's user id up in its
+  own roster — the authoritative copy, current by construction under the
+  gate — and answers `not_participant` (403) for an unseated actor. A
+  command MAY name a seat, which must then belong to the actor (throw on
+  mismatch): that is the bot path, where one bot id can hold several seats
+  so the actor alone is ambiguous (Milestone B's wake names the seat). A
+  client therefore cannot forge a move for another seat: identity comes only
+  from the verified token, and the seat is derived from it inside the DO.
+  Bonus: `leave`/`cancel`/`start`/`action`/`forfeit` skip the worker-side D1
+  existence read entirely — the DO answers `unknown_game` (404) from its
+  lazy init when the game row doesn't exist. Only `join` (policy needs the
+  game row), the frames read (access policy), and the socket upgrade (don't
+  wake DOs for garbage ids) still read D1 first.
+- **Roster mirror.** After join/leave/add-bot the DO rewrites the D1 display
+  copy wholesale (delete + reinsert participants + games.status, one batch)
+  from `waitUntil` — idempotent, immune to per-row drift, and pure display:
+  since the seat-resolution revision above, nothing on the gameplay path
+  reads it. **Cancel is the exception**: its mirror is awaited (the aborted
+  games row is the only survivor of the storage drop), and a
+  cancelled-but-unmirrored game re-enters cancel idempotently through the
+  `aborted` branch. After `deleteAll()` the DO re-runs its migrations so the
+  live instance keeps a schema.
+- **Sockets carry the principal, not the seat.** The worker authenticates
+  (bearer header, or `?token=` for upgrades — browsers can't set WS headers)
+  and stamps `x-eigen-user` (inbound `x-eigen-*` is dropped wholesale); the
+  DO stores just `{userId}` in the hibernation attachment and resolves seats
+  against the CURRENT roster at every send. A socket opened before joining
+  starts receiving its seat's frames the moment its user is seated — no
+  re-tagging machinery. Roster snapshots broadcast to every socket (public
+  lobby information); the current snapshot also rides the socket open while
+  the game is in a lobby status.
 
 **Waiting-room realtime.** The client opens the game WebSocket immediately, pre-start — one
 socket for the game's whole lifetime. Pre-game, the DO pushes a **full roster snapshot** on
@@ -722,6 +793,21 @@ Already run for FCM/Analytics/Crashlytics: no new vendor, no new keys.
   `FIREBASE_PROJECT_ID` is needed to verify; the service-account trio is for FCM sends and
   account deletion.
 - A `users` row is provisioned in D1 on first sight of a token (replaces `handle_new_user`).
+  Landed shape: the auth middleware does one D1 read per request; it writes only on first
+  sight and on guest → permanent conversion (the uid is stable across
+  `linkWithCredential`, so it's an UPDATE on the same row). The old trigger's username
+  rules port intact (revised 2026-07-18; the first-landed shape generated `player_NNNNN`
+  for everyone): with an email, the handle is the sanitised local part (lowercased,
+  `[a-z0-9_.]`, 3–20 chars, `player` fallback), collisions retry as
+  `base[:15]_NNNN`, 10 attempts; guests get `player_NNNNN`. Display name/avatar seed
+  from the provider claims (`name`/`picture`). Conversion follows the old product
+  decision: the provider's name and avatar OVERWRITE the guest's, the username stays
+  the stable handle.
+- **Test strategy** (landed 2026-07-17): `@eigen/server/testing` ships a checked-in
+  RS256 keypair (a public fixture protecting nothing), `testVerifier()` for
+  `createEngine({ auth })` in a test worker, and `mintTestToken`/`testBearer` for specs —
+  tokens flow through the SAME jose verify path as production, only the JWKS is local.
+  The `auth` config field is the one test seam; production configs never set it.
 
 ---
 
@@ -890,10 +976,13 @@ free duration budget).
 
 > **Phase 0 folded into Phase 2** (decided 2026-07-16, after Phase 1 shipped
 > first): no throwaway echo worker — Phase 2's first milestone built the real
-> `GameDO` skeleton under vitest-pool-workers, and the spike's two
-> deploy-only exit criteria (hibernation duration billing, finish-sequence
-> survival across eviction) moved to `docs/deploy_runbook.md`, executed
-> manually by the user against a temporary dev harness in `examples/rps`.
+> `GameDO` skeleton under vitest-pool-workers. The spike's two deploy-only
+> exit criteria (hibernation duration billing, finish-sequence survival
+> across eviction) briefly lived in a manual `docs/deploy_runbook.md` against
+> a temporary dev harness; both were RETIRED 2026-07-17 (user call: no manual
+> testing) when `createEngine` landed and the harness + runbook were deleted —
+> the deploy-only checks fold into the Phase 4 "full game on a phone against
+> production CF" criterion instead.
 
 ---
 

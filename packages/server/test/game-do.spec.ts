@@ -1,9 +1,11 @@
 /**
  * GameDO skeleton suite — the folded-in §14 Phase 0 spike, minus the two
- * checks only a real deploy can make (hibernation billing, forced eviction —
- * see docs/deploy_runbook.md): lazy init, the gated command loop, dedupe,
- * the deadline alarm, hibernating socket fan-out, and the finish sequence
- * (compaction → outbox → D1 apply → ratings transition N+1 → outbox clear).
+ * checks only a real deploy can make (hibernation billing, forced eviction):
+ * lazy init, the gated command loop, dedupe, the deadline alarm, hibernating
+ * socket fan-out, and the finish sequence (compaction → outbox → D1 apply →
+ * ratings transition N+1 → outbox clear). The worker-facing surface
+ * (`createEngine`) is exercised HTTP-first in engine.spec.ts; this suite
+ * drives the DO's RPC seam directly.
  */
 
 import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
@@ -92,7 +94,7 @@ async function playToFinish(gameId: string, stub: ReturnType<typeof stubFor>) {
   expect(a1).toMatchObject({ ok: true, version: 1 });
   const a2 = await stub.handle(action(gameId, 1, 2, 1, "user-b"));
   expect(a2).toMatchObject({ ok: true, version: 2 });
-  if (!a2.ok) throw new Error("unreachable");
+  if (!a2.ok || !("frame" in a2)) throw new Error("unreachable");
   expect(a2.frame?.outcomes).toBeDefined();
   return a2;
 }
@@ -111,10 +113,11 @@ describe("lazy init & start", () => {
     });
   });
 
-  it("rejects a start from a non-creator", async () => {
+  it("rejects a start from a non-creator (clean rejection, not a throw)", async () => {
     const gameId = await seedGame();
     const stub = stubFor(gameId);
-    await expect(stub.handle({ ...cmd("start", gameId), actor: { userId: "user-b", botId: null } })).rejects.toThrow(/creator/);
+    const result = await stub.handle({ ...cmd("start", gameId), actor: { userId: "user-b", botId: null } });
+    expect(result).toMatchObject({ ok: false, code: "not_creator" });
   });
 
   it("updates the D1 summary post-commit", async () => {
@@ -132,7 +135,7 @@ describe("actions & dedupe", () => {
     const { gameId, stub } = await startGame();
     const a1 = await stub.handle(action(gameId, 0, 1, 0, "user-a"));
     expect(a1).toMatchObject({ ok: true, version: 1 });
-    if (!a1.ok) throw new Error("unreachable");
+    if (!a1.ok || !("frame" in a1)) throw new Error("unreachable");
     expect(a1.frame?.data).toEqual({ count: 1 });
     expect(a1.frame?.pending_players).toEqual([1]);
   });
@@ -288,7 +291,7 @@ describe("hibernating sockets", () => {
   it("accepts an upgrade and fans versioned frames out to the seat", async () => {
     const { gameId, stub } = await startGame();
     const res = await stub.fetch("https://do/socket", {
-      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-seat": "1" },
+      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-user": "user-b" },
     });
     expect(res.status).toBe(101);
     const ws = res.webSocket;

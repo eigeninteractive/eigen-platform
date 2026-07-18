@@ -5,7 +5,8 @@
  */
 
 import type { GameModule, GameRules, JsonObject } from "@eigen/rules";
-import { BaseGameDO } from "../src/index.js";
+import { BaseGameDO, createEngine } from "../src/index.js";
+import { testVerifier } from "../src/testing.js";
 
 /** The worker-side Env — the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
@@ -77,8 +78,11 @@ export class GameDO extends BaseGameDO<TestEnv> {
   }
 }
 
-export default {
-  async fetch(): Promise<Response> {
-    return new Response("eigen-server test worker");
-  },
-};
+/** The deployed shape (§2.3), with the §6 test auth seam: the same verifier
+ * code path production uses, against the checked-in local JWKS. */
+export default createEngine({
+  gameModule: testGame,
+  d1: (env: TestEnv) => env.DB,
+  gameDO: (env: TestEnv) => env.GAME_DO,
+  auth: testVerifier(),
+});

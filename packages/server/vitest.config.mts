@@ -23,7 +23,7 @@ export default defineConfig(async () => {
       // `rejects.toThrow` consumes it, but workerd reports the DO-side
       // throw as unhandled too — ignore exactly those.
       onUnhandledError(error: { message?: string }): boolean {
-        return !/Only the creator|does not belong to the acting principal/.test(error.message ?? "");
+        return !/does not belong to the acting principal/.test(error.message ?? "");
       },
     },
   };
