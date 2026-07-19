@@ -66,7 +66,11 @@ const rules: GameRules = {
   // Full-reveal observation: every seat (and viewers) sees the raw state.
   computeObservation: ({ state, pending }) => ({ data: state as JsonObject, pending_players: pending }),
   ratingPool: () => "test-pool",
-  botSeatable: () => false,
+  botSeatable: () => true,
+  // In-DO brains (§7), keyed by bot username: the `test-engine-bot` always
+  // adds 1, so a human-vs-bot race advances two versions per human move.
+  // Deterministic — no rng needed.
+  botActions: { "test-engine-bot": () => ({ add: 1 }) },
 };
 
 const testGame: GameModule = { versions: { 1: rules } };

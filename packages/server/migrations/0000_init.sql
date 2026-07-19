@@ -4,11 +4,13 @@ CREATE TABLE `bots` (
 	`display_name` text NOT NULL,
 	`avatar_url` text,
 	`schema_version` integer NOT NULL,
-	`is_local` integer NOT NULL,
+	`type` text NOT NULL,
 	`webhook_url` text,
 	`rated_eligible` integer NOT NULL,
 	`config` text NOT NULL,
-	`created_at` integer NOT NULL
+	`created_at` integer NOT NULL,
+	CONSTRAINT "bots_webhook_matches_type" CHECK(("bots"."type" = 'external') = ("bots"."webhook_url" IS NOT NULL)),
+	CONSTRAINT "bots_type_valid" CHECK("bots"."type" IN ('engine', 'external', 'local'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `bots_username_unique` ON `bots` (`username`);--> statement-breakpoint

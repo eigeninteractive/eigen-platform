@@ -17,7 +17,7 @@
 import type { GameStatus, Seat } from "@eigen/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
 import { sql } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /** Merged users + user_profiles (the split served RLS separation that no
  * longer exists). Provisioned on first sight of a verified Firebase token;
@@ -124,21 +124,42 @@ export const relationships = sqliteTable(
   (t) => [uniqueIndex("idx_relationships_pair").on(t.userId1, t.userId2), index("idx_relationships_user2").on(t.userId2)],
 );
 
-/** Bot registry, columns unchanged from the Supabase era. `is_local` is the
- * authoritative locality (never inferred from webhook_url). */
-export const bots = sqliteTable("bots", {
-  id: text("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  displayName: text("display_name").notNull(),
-  avatarUrl: text("avatar_url"),
-  /** Highest game schema this bot supports — the seating gate. */
-  schemaVersion: integer("schema_version").notNull(),
-  isLocal: integer("is_local", { mode: "boolean" }).notNull(),
-  webhookUrl: text("webhook_url"),
-  ratedEligible: integer("rated_eligible", { mode: "boolean" }).notNull(),
-  config: text("config", { mode: "json" }).$type<JsonObject>().notNull(),
-  createdAt: integer("created_at").notNull(),
-});
+/** How a bot's moves are produced (§7) — the dispatch discriminator:
+ * - `engine`: the brain ships in the game's `GameModule` as
+ *   `GameRules.botActions[username]`, run in-process by the DO;
+ * - `external`: the bot is hosted elsewhere and woken over HMAC (`webhook_url`
+ *   is then required);
+ * - `local`: client-driven (future offline-solo transcript import) — a
+ *   registry row for identity only, never dispatched server-side.
+ * Replaces the Supabase-era `is_local` boolean. */
+export type BotType = "engine" | "external" | "local";
+
+/** Bot registry (§7). `type` selects the dispatch path; `webhook_url` is
+ * required for (and only for) `external`. `username` is the stable,
+ * human-readable key the game's `botActions` map is keyed by for `engine`
+ * bots. */
+export const bots = sqliteTable(
+  "bots",
+  {
+    id: text("id").primaryKey(),
+    username: text("username").notNull().unique(),
+    displayName: text("display_name").notNull(),
+    avatarUrl: text("avatar_url"),
+    /** Highest game schema this bot supports — the seating gate. */
+    schemaVersion: integer("schema_version").notNull(),
+    type: text("type").$type<BotType>().notNull(),
+    webhookUrl: text("webhook_url"),
+    ratedEligible: integer("rated_eligible", { mode: "boolean" }).notNull(),
+    config: text("config", { mode: "json" }).$type<JsonObject>().notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    // A webhook is present iff the bot is external — the type/columns stay a
+    // valid discriminated union at the storage layer, not just in TS.
+    check("bots_webhook_matches_type", sql`(${t.type} = 'external') = (${t.webhookUrl} IS NOT NULL)`),
+    check("bots_type_valid", sql`${t.type} IN ('engine', 'external', 'local')`),
+  ],
+);
 
 /** Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
  * set. `revision` is the CAS counter (§4.5): the finish apply reads

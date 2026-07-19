@@ -46,7 +46,7 @@ policy · §9 client · §10 cost · §11 CI & testkit · §12 non-negotiables �
 | Blobs (opt-in / later) | **R2** (§5.4) | `AVATARS`: profile-photo uploads — v1 code, opt-in per app · `GAME_HISTORY`: future cold tier for old finished games. Local dev simulates R2 free; a *real* bucket (deploy) requires a payment method |
 | Push | **FCM**, sent from the Worker/DO | Service-account JWT minted with WebCrypto — ported as-is from `_engine/fcm.ts` |
 | Scheduled work | **DO alarms** (turn deadlines — *only*) · **Cron Triggers** (guest purge) | No alarm multiplexer — see §8 |
-| Rules | **Pure TypeScript `GameRules`**, unchanged contract | One unit per `schema_version`; optional Dart twin for preview / local bots |
+| Rules | **Pure TypeScript `GameRules`**, unchanged contract | One unit per `schema_version`; optional Dart twin for preview |
 | Token verify | **`jose`** + ~40 lines of Firebase claim checks | Deliberately not `firebase-auth-cloudflare-workers` (unofficial, low adoption) |
 
 ---
@@ -146,10 +146,11 @@ assertion (§11).
   roster-snapshot handling pre-start). Pure Dart.
 - **`eigen_flutter`** — everything else in `lib/` today: Riverpod shell, lobby, waiting
   room, game screen, history, replay scrubber, friends, settings, account deletion, push
-  wiring, timing widgets, local-bot driver.
+  wiring, timing widgets.
 
-Unchanged: every screen, the Dart `GameModule` contract (`buildContent`, twins,
-`LocalBot`), theming, persistence, twin fixtures in Dart CI.
+Unchanged: every screen, the Dart `GameModule` contract (`buildContent`, twins), theming,
+persistence, twin fixtures in Dart CI. (The `LocalBot` isolate driver is deleted with
+local bots — §7.)
 
 ### 2.3 What an implementor ships
 
@@ -289,15 +290,15 @@ type Command =
       gameId: string; commandId: string; actor: Principal }
   | { kind: 'add-bot';   gameId: string; commandId: string; actor: Principal; botId: string }
   | { kind: 'action';    gameId: string; commandId: string; actor: Principal;
-                         seat?: number; expectedVersion: number; data: unknown }
+                         seat: number; expectedVersion: number; data: unknown }
   | { kind: 'lifecycle'; gameId: string; commandId: string; actor: Principal | null;
                          type: 'timeout' | 'forfeit' | 'auto_forfeit'; seat?: number };
 ```
 
-(`seat` on `action`/`forfeit` is bot-only — one bot id may hold several
-seats, so the actor alone is ambiguous there; a named seat must belong to the
-actor. Human commands omit it and the DO resolves the seat from its
-authoritative roster, §4.2.)
+(`action`/`forfeit` carry `seat` uniformly — humans and bots alike; the DO
+verifies it belongs to the actor against its roster and rejects otherwise
+(§4.2). `timeout`/`auto_forfeit` are system lifecycles: `timeout` carries no
+seat (resolves all pending), `auto_forfeit` the purged seat.)
 
 - **Authorization happens at the edge.** The Worker verifies the Firebase token and runs
   every *policy* check (guest gating, friends-access via D1, schema gate, `botSeatable`,
@@ -417,7 +418,7 @@ relocated:
 | `join` | guest-vs-rated gate; friends-access (D1 relationships); schema gate vs `client_schema_version`; by-code resolves `short_code` in D1 | status `waiting`/`ready`; seat free; not already seated; assign `player_index`; `ready` at `min_players` |
 | `leave` | — | non-creator; lobby statuses only; compact `player_index`es; demote below `min_players` |
 | `cancel` | — | creator-only; lobby statuses only; status → `aborted`; drop DO storage (nothing worth retaining — the D1 row alone serves history lists) |
-| `add-bot` | guest rejection; `botSeatable`; schema / `rated_eligible` / server-only / timed invariants | creator-only; seat cap; seat the bot |
+| `add-bot` | `botSeatable`; schema / `rated_eligible` / timed invariants; brain-or-webhook exists (§7) | creator-only; seat cap; seat the bot |
 | `start` | — | creator-only; `ready`; kernel `initialState` → v0; arm alarm; status `active` |
 
 The D1 summary is updated post-commit via `waitUntil` (fire-and-forget, reconcilable from
@@ -438,18 +439,19 @@ Landed 2026-07-17, three shipped refinements:
   to a clean `not_creator` rejection for the same reason: any seated client
   can reach it honestly. Accepted lobby commands answer with the roster
   snapshot (`{ok, roster}`) — there is no version yet to answer with.
-- **The DO resolves the acting seat** (revised 2026-07-18; supersedes the
-  first-landed shape, which resolved it worker-side through the D1
-  participants index — a Supabase-era holdover that made the display mirror
-  arbitrate gameplay and opened a staleness window). Human `action`/`forfeit`
-  commands carry no seat at all: the DO looks the actor's user id up in its
-  own roster — the authoritative copy, current by construction under the
-  gate — and answers `not_participant` (403) for an unseated actor. A
-  command MAY name a seat, which must then belong to the actor (throw on
-  mismatch): that is the bot path, where one bot id can hold several seats
-  so the actor alone is ambiguous (Milestone B's wake names the seat). A
-  client therefore cannot forge a move for another seat: identity comes only
-  from the verified token, and the seat is derived from it inside the DO.
+- **The DO verifies the acting seat, carried uniformly** (revised twice:
+  first away from worker-side D1-mirror resolution — a Supabase-era holdover
+  that let the display mirror arbitrate gameplay; then, 2026-07-18, to the
+  uniform shape). Every `action`/`forfeit` command carries a `seat` —
+  humans and bots alike — and the DO verifies it belongs to the actor (user
+  id from the verified token, bot id from the HMAC claim) against its own
+  roster, the authoritative copy. A seat the actor doesn't hold is a clean
+  `not_participant` **value → 403**, never a throw: it is reachable without
+  malice (a stale UI after leaving) and from a misbehaving external bot
+  alike. This is forgery-proof because identity still comes only from the
+  token/claim (never the request body — the client sends a seat, not its own
+  id), and it is one code path for humans and bots, which supports one bot id
+  holding several seats (as the Supabase infra did via `player_index`).
   Bonus: `leave`/`cancel`/`start`/`action`/`forfeit` skip the worker-side D1
   existence read entirely — the DO answers `unknown_game` (404) from its
   lazy init when the game row doesn't exist. Only `join` (policy needs the
@@ -485,8 +487,9 @@ begin at `start` (v0). "Player joined" becomes instant instead of poll-driven.
 Unchanged frame protocol — the best idea in the codebase, now transport-native: append-only
 per-seat observations; the own-move frame rides the command response; gaps recovered by
 range fetch against the DO's stored transitions; reconnect resyncs from the latest frame.
-Local bots, the solo gate, and `local-bot-action` port unchanged (the bot-observation read
-is the one sanctioned DO read, as today's gated RPC was).
+Bot turns are in-DO post-commit effects (or a webhook wake for external bots — §7); the
+old local-bot machinery (`local-bot-action` and its sanctioned DO observation read) is
+deleted, not ported (2026-07-18, §7).
 
 ### 4.4 Timing — grace collapses to one constant
 
@@ -691,7 +694,7 @@ raw SQL, no hand-mapped rows: row types are `$inferSelect` off the schema.
 | `games` | The summary/read-model row: status, access, `schema_version`, config, rated/pool, `short_code` (UNIQUE), min/max players, `pending_players` + `turn_deadline` (dashboard), `outcomes` **JSON** (at finish), `finish_id` + `finished_at` (stamped by the finish apply; the future abort path stamps `finished_at` too), `archived_at` (nullable; `NULL` = history lives in the DO — stays `NULL` until the §4.6 cold-tier sweep exists), timestamps. Indexed: (status, access), created_by, and the partial lobby index (`created_at` WHERE public + waiting/ready), all ported |
 | `participants` | The roster join table, ported as-is — one row per seat (`game_id`, `user_id`/`bot_id`, `player_index`, `type`), THE indexed access path for "games of user X" (SQLite cannot index into a JSON array; a 2026-07-17 audit reverted a brief JSON-snapshot detour). Game-scoped unique indexes on (game_id, user_id) and (game_id, player_index) guard the join race; the DO's roster stays the integrity copy |
 | `relationships` | Friends — canonical pair order + UNIQUE, as today |
-| `bots` | Registry, unchanged columns (`is_local`, `webhook_url`, `schema_version`, `rated_eligible`, `config`) |
+| `bots` | Registry (§7): `type` (`engine`/`external`/`local` — replaces `is_local`), `username` (UNIQUE — the key `GameRules.botActions` uses for engine brains), `webhook_url` (nullable; two CHECKs make it present ⟺ `external`), `schema_version`, `rated_eligible`, `config` |
 | `player_ratings` | Per identity per pool: mu, sigma, display, **`version` (CAS counter)** |
 | `rating_history` | Immutable per-game log, keyed for the per-user history screen; unique on (`game_id`, identity) *and* carrying `finish_id` |
 | `device_installations` | FCM targets (FID-keyed), unchanged |
@@ -729,9 +732,8 @@ drizzle-kit config; `drizzle-kit generate` there is an engine-development act, i
 downstream.
 
 > **Rule: never wake a Durable Object to serve a read.** Lobby, history lists, profiles,
-> search, players, bot catalog: Worker → D1. Only commands, the WebSocket, range fetches
-> (live gap recovery *and* finished-game replay — §4.6), and the local-bot observation
-> touch the DO.
+> search, players, bot catalog: Worker → D1. Only commands, the WebSocket, and range
+> fetches (live gap recovery *and* finished-game replay — §4.6) touch the DO.
 
 ### 5.3 RLS is gone; the kernel is the guarantee
 
@@ -786,7 +788,8 @@ Already run for FCM/Analytics/Crashlytics: no new vendor, no new keys.
   switch-into-existing-account on `credential-already-in-use`) ports with Firebase doing
   the hard part.
 - The ID token's `firebase.sign_in_provider === 'anonymous'` drives every guest gate (no
-  rated, no social, no search, local-bots-only) — same checks, same places (worker policy).
+  rated, no social, no search; bot games allowed, unrated — §7) — same checks, same
+  places (worker policy).
 - Verification: `jose` `createRemoteJWKSet` against Google's securetoken JWKS (cached per
   isolate) + Firebase claim checks (`aud` = project id, `iss` =
   `https://securetoken.google.com/<project>`, `sub`, `exp`). ~40 lines of our code. Only
@@ -813,20 +816,97 @@ Already run for FCM/Analytics/Crashlytics: no new vendor, no new keys.
 
 ## 7. Push & bots
 
-**FCM** — `_engine/fcm.ts` (WebCrypto service-account JWT) ports as-is; pushes target the
-FID as today. Turn/finish pushes are DO post-commit effects; social pushes come from the
-worker's social routes.
+**FCM** — `notify/fcm.ts`, ported from `_engine/fcm.ts` but adapted off Deno +
+`google-auth-library` to Workers-native **jose**: the engine signs the service-account
+JWT (RS256) itself, exchanges it at Google's OAuth token endpoint, and caches the bearer
+per isolate. Pushes target the FID as today. Turn/finish pushes are DO post-commit
+effects delivered from the kernel's `notify_turn` / `notify_finished` effect plan (single
+attempt + log; `notify/push.ts` owns the `device_installations` FID read and dead-device
+prune); social pushes come from the worker's social routes. Configured by env convention
+(`FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY`) — absent ⇒ the
+whole push step is skipped (best-effort, §8).
 
-**Server bots** — unchanged contract: woken post-commit with their observation
-(HMAC-signed, `x-wake-signature`), reply via `bot/action` (per-bot key =
-`HMAC(BOT_SIGNING_SECRET, bot_id)`, domain-tagged, constant-time verify). **The wake is a
-single attempt + error log** — the turn deadline is the designed liveness backstop for a
-lost wake (the reason for the server ⇒ timed invariant). All four authorization invariants
-(local ⇒ sole human; 2+ humans ⇒ server; rated ⇒ server, no guests; local ⇒ untimed /
-server ⇒ timed) enforce at the same two seams as today: worker policy + DO seating.
+**Bot dispatch is driven by a registry `type`** (decided 2026-07-18; supersedes the
+ported local/server split and the first-cut `is_local`/`webhook_url` inference). The
+`bots` row carries `type ∈ {engine, external, local}` — a discriminated union enforced by
+a DB CHECK (`external ⟺ webhook_url`) and narrowed to an exact TS union at the read
+boundary (`narrowBot`). The DO reads the seated bot's row post-commit (off the hot path)
+and routes on `type`.
 
-**Local bots** — the Dart `LocalBot` isolate driver ports unchanged; its observation pull
-is a gated DO read (the sanctioned exception, as today's `app_local_bot_observation`).
+*Engine bots run in the DO.* The rules are already TypeScript in the same bundle as the
+DO, so the idiomatic home for a bot brain is an in-process function, not an HTTP hop: a
+`GameRules` version unit ships **`botActions?: Record<username, (args) => action>`**,
+keyed by **bot username** (the stable, human-readable registry field). When the kernel's
+post-commit effect plan carries a `wake_bot` for an engine-bot seat, the DO resolves the
+row's `username`, looks the function up in `botActions`, runs it, and self-applies the
+move as the next serial command. Args are `{observation, botConfig, playerIndex, config,
+rng}` — the bot is handed only its seat's fog-of-war **observation** (`plan.frames` for
+its seat), never raw state, so it cannot cheat any more than a human at that seat;
+`botConfig` is that row's own knob. Several bots that share behaviour point their
+usernames at the same function and differ by `botConfig`; distinct behaviour is a distinct
+entry. No webhook, no HMAC, no auth — the authority is talking to itself, and the
+lost-wake window doesn't exist. It runs in `waitUntil` off the acting client's response,
+so a bot that keeps the turn chains through the same effect dispatch (the kernel emits
+`wake_bot` even for a bot actor re-entering pending — a bot has no live client);
+commandId is deterministic so a double-dispatch dedupes. Two rules with reasons: brains
+must be fast (tens of ms — the DO is single-threaded, and a long synchronous brain stalls
+frame delivery for every socket on that game; heavy AI belongs in an external bot), and
+there is **no pacing machinery in the DO** (the alarm stays deadline-only) — bot frames
+arrive instantly and the client animates the thinking pause.
+
+*External bots* (`type: external`) are hosted elsewhere (third parties, other languages,
+heavy AI). The old server-bot contract, kept: woken post-commit with their observation
+(HMAC-signed, `Eigen-Signature` header, single attempt), reply via the **`POST /api/bot/action`**
+route. The API has two route groups under one `/api` prefix — the client engine group
+(`/api/engine/*`, Firebase-authed) and the bot group (`/api/bot/*`, HMAC-authed) — as
+**separate hono sub-apps mounted on one `/api` root**. Auth is per-sub-app middleware, so
+the engine's Firebase check is scoped to `/api/engine/*` and never runs for `/api/bot/*`
+(no shared `/api/*` middleware, no per-request path exemption). The bot self-authenticates
+by HMAC (per-bot key = `HMAC(BOT_SIGNING_SECRET, bot_id)`, domain-tagged wake/action,
+constant-time verify); the signature rides the **`Eigen-Signature` header** over the exact
+request body — **the same header both directions** (wake and action), since the direction
+is bound in the signed bytes, not the header name. A header signature is a representable
+`apiKey` security scheme, so both groups surface in the one emitted OpenAPI doc, each with
+its own scheme (`firebase` vs `botHmac`). The turn deadline
+is the liveness backstop for a lost wake; `BOT_SIGNING_SECRET` unset ⇒ wakes are skipped.
+
+*Local bots* (`type: local`) are client-driven and never dispatched server-side — a
+registry row for identity only, reserved for the future offline-solo transcript import
+(below). Seating one in an online game is rejected.
+
+**Failure policy** is the standard one (single attempt + log), and **bots ⇒ timed**
+survives as the one bot-liveness invariant (enforced for engine *and* external bots): a
+thrown brain or an eviction mid-effect is backstopped by the turn deadline.
+
+**Seating bots** — `add-bot` seats a bot into a waiting room; **create-solo**
+(`POST /api/games/solo`) creates a private game seated with the caller plus bots and
+starts it in one call (a guest's first-run experience, unrated). Both run the same gates
+via one `assertBotSeatable` helper, switching on `type`: bots ⇒ timed, schema supported,
+rated ⇒ `rated_eligible`; `engine` ⇒ a `botActions[username]` entry exists; `external` ⇒
+a webhook (the CHECK guarantees it); `local` ⇒ rejected; and
+`botSeatable(gameConfig, botConfig)`.
+
+**Local bots are DELETED, not ported** (2026-07-18). They were a Supabase-era cost
+optimization — every server-side bot move billed an EF invocation, while the client's
+Dart twin ran the brain for free — and they were never offline: `local-bot-action`
+posted every move and the observation pull was a server read. With in-DO brains the
+advantage is gone and the costs remain (the Dart brain requirement, the isolate driver,
+the sanctioned DO-read exception, three invariants). The invariants scoped to them
+(local ⇒ sole human, 2+ humans ⇒ server, local ⇒ untimed) leave with them; what
+survives is **rated ⇒ no guests + `rated_eligible`** and **bots ⇒ timed**, enforced at
+the same two seams (worker policy + DO seating). Guests' bot access restates from
+"local-bots-only" to "unrated only" — solo-vs-bot stays a guest's first-run experience.
+
+**Future seam — offline solo (transcript import), designed, not built:** the *true*
+fully-local experience local bots never were. The client simulates the whole game
+on-device (Dart rules twin + Dart brain, seeded RNG — the twin-fixture drift suites are
+exactly the contract that makes this safe), then uploads the seed + ordered action
+transcript; the server replays it through the real TS rules in a DO — create-solo, then
+each action as a normal serial command, legality-checked, illegal transcripts rejected
+wholesale — so versions, frames, finish, compaction, and §4.6 replay come out identical
+to an online game. Imported games are unrated, untimed, sole-human (the deleted local
+invariants, resurrected scoped to imports, where they're honest: nobody was under a
+server clock). Nothing in v1 forecloses this; nothing in v1 builds it.
 
 ---
 
@@ -836,7 +916,7 @@ By decision, there is **no retry machinery** in v1:
 
 | Effect | Policy | Backstop |
 | --- | --- | --- |
-| Bot wake | 1 attempt, log | Turn deadline → timeout resolves the seat |
+| Bot turn | in-DO brain: 1 self-apply; external: 1 wake attempt, log | Turn deadline → timeout resolves the seat |
 | D1 summary upsert | fire-and-forget (`waitUntil`), log | Re-derivable from the DO at any time |
 | Finish: D1 apply | 1 attempt, log | **The outbox row is kept on failure** (DO storage is retained regardless — §4.6); gated admin re-poke re-runs the apply, idempotent via `finish_id` |
 | FCM push | 1 attempt, log | Push is best-effort by nature |
@@ -852,10 +932,9 @@ convention and review.
 
 Auth swaps to `firebase_auth`; the ~22 supabase-touching files collapse into
 `eigen_client`'s generated API + hand-written frame stream. Everything downstream of the
-transport — screens, providers, timing widgets, local-bot driver, persistence, the Dart
-`GameModule` contract — is untouched. The implementor still supplies three things: TS
-`GameRules` (server truth), a `BoardView`, and an optional Dart twin for optimistic preview
-and local bots.
+transport — screens, providers, timing widgets, persistence, the Dart `GameModule`
+contract — is untouched. The implementor still supplies three things: TS `GameRules`
+(server truth), a `BoardView`, and an optional Dart twin for optimistic preview.
 
 ---
 
@@ -935,7 +1014,7 @@ free duration budget).
 
 1. **Hibernation from the first commit.**
 2. **No network I/O between reading and writing DO storage** (§3.4).
-3. **Never wake a DO for a read** (exceptions: live range fetch, local-bot observation).
+3. **Never wake a DO for a read** (exception: live range fetch).
 4. **One transition = one DO SQLite row.**
 5. **The kernel stays pure** — no I/O, no platform imports, injected clock, forever.
 6. **Commands are values**, pre-authorized, carrying a `commandId`.

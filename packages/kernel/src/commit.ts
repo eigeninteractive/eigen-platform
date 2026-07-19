@@ -488,12 +488,18 @@ function computeEffects(roster: readonly Seat[], envelope: Envelope, outcomes: O
   }
   const effects: Effect[] = [];
   for (const seat of envelope.pending_players) {
-    if (seat === actingSeat) continue;
     const member = bySeat.get(seat);
     if (!member) continue;
     if (member.bot_id !== null) {
+      // A bot always needs its wake — even the acting seat re-entering pending
+      // (an extra turn): a bot has no live client to act on its own, so its
+      // only signal to move again is a fresh wake. A duplicate is harmless
+      // (the in-DO self-apply dedupes on commandId; an external wake carries
+      // the same version and loses the version check at commit).
       effects.push({ kind: "wake_bot", seat, bot_id: member.bot_id });
-    } else if (member.user_id !== null) {
+    } else if (seat !== actingSeat && member.user_id !== null) {
+      // A human actor is live in-app and needs no push; only newly-waiting
+      // humans are notified.
       effects.push({ kind: "notify_turn", seat, user_id: member.user_id });
     }
   }

@@ -10,9 +10,12 @@ import { SELF } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { describe, expect, it, vi } from "vitest";
-import { participants } from "../src/d1/schema.js";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { signForBot } from "../src/bot/bot-auth.js";
+import { bots, participants } from "../src/d1/schema.js";
 import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
+
+const BOT_SECRET = "test-bot-signing-secret";
 
 const db = drizzle(env.DB);
 
@@ -24,7 +27,7 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
-  return await SELF.fetch(`https://x/api${path}`, {
+  return await SELF.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -160,7 +163,7 @@ describe("waiting room (§4.2)", () => {
 
   it("answers 404 for a command against a game that does not exist", async () => {
     const u = makeUsers();
-    const res = await api(u.a, "POST", `/games/${crypto.randomUUID()}/action`, { data: { add: 1 }, expected_version: 0 });
+    const res = await api(u.a, "POST", `/games/${crypto.randomUUID()}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 });
     expect(res.status).toBe(404);
     expect(((await res.json()) as { code: string }).code).toBe("unknown_game");
   });
@@ -193,13 +196,14 @@ describe("active play (§4.3) & frames (§4.6)", () => {
     const u = makeUsers();
     const gameId = await readyGame(u, { rated: false });
 
-    const a1 = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { data: { add: 1 }, expected_version: 0 }));
+    const a1 = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
     expect(a1.version).toBe(1);
     expect(a1.frame?.data).toEqual({ count: 1 });
 
-    expect((await api(u.c, "POST", `/games/${gameId}/action`, { data: { add: 1 }, expected_version: 1 })).status).toBe(403);
+    // A non-participant naming a seat they don't hold is a clean 403.
+    expect((await api(u.c, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 1 }, expected_version: 1 })).status).toBe(403);
 
-    const illegal = await api(u.b, "POST", `/games/${gameId}/action`, { data: { add: 7 }, expected_version: 1 });
+    const illegal = await api(u.b, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 7 }, expected_version: 1 });
     expect(illegal.status).toBe(400);
   });
 
@@ -207,8 +211,8 @@ describe("active play (§4.3) & frames (§4.6)", () => {
     const u = makeUsers();
     const gameId = await readyGame(u);
 
-    await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { data: { add: 2 }, expected_version: 0 }));
-    const finish = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/action`, { data: { add: 2 }, expected_version: 1 }));
+    await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 2 }, expected_version: 0 }));
+    const finish = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 2 }, expected_version: 1 }));
     expect(finish.frame?.outcomes).toBeDefined();
 
     await vi.waitFor(async () => {
@@ -236,7 +240,7 @@ describe("active play (§4.3) & frames (§4.6)", () => {
   it("forfeit resolves through the same command path", async () => {
     const u = makeUsers();
     const gameId = await readyGame(u, { rated: false });
-    const result = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/forfeit`, {}));
+    const result = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/forfeit`, { seat: 1 }));
     expect(result.frame?.outcomes).toBeDefined();
   });
 
@@ -253,7 +257,7 @@ describe("socket (§4.2 roster snapshots → §4.3 frames)", () => {
     const { game_id } = await createGame(u.a, { rated: false });
 
     const token = await mintToken({ uid: u.b });
-    const res = await SELF.fetch(`https://x/api/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const res = await SELF.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
     expect(res.status).toBe(101);
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
@@ -279,6 +283,116 @@ describe("socket (§4.2 roster snapshots → §4.3 frames)", () => {
     await vi.waitFor(() => expect(messages).toHaveLength(3));
     expect(messages[2]).toMatchObject({ type: "frame", version: 0 });
     ws.close();
+  });
+});
+
+describe("bots (§7)", () => {
+  // Fixed registry rows: engine brains are keyed by username, so the engine
+  // bot's username must match the test game's `botActions`. Seeded once
+  // (idempotent) — bots are global registry data, seatable across games.
+  const ENGINE = "test-engine-bot";
+  const EXTERNAL = "test-external-bot";
+  const LOCAL = "test-local-bot";
+  // The external bot's wake target. Intercepted below so the DO's fire-and-forget
+  // wake resolves instantly (202) instead of making a real outbound fetch to an
+  // unresolvable host — that call fails nondeterministically slowly under load,
+  // and until it settles the bot's follow-up `bot/action` command queues behind
+  // it on the same DO, so the move sometimes doesn't land before `vi.waitFor`
+  // gives up. This version of vitest-pool-workers dropped the `fetchMock`
+  // MockAgent, so we wrap `globalThis.fetch` exactly as the pool itself does for
+  // MSW — the test and the DO share one workerd isolate, so the DO's `fetch`
+  // picks up the override.
+  const WAKE_ORIGIN = "https://wake.test";
+  const realFetch = globalThis.fetch;
+
+  beforeAll(async () => {
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.startsWith(WAKE_ORIGIN)) return new Response("", { status: 202 });
+      return realFetch(input, init);
+    }) as typeof fetch;
+
+    await db
+      .insert(bots)
+      .values([
+        { id: ENGINE, username: ENGINE, displayName: "Engine Bot", avatarUrl: null, schemaVersion: 1, type: "engine", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() },
+        { id: EXTERNAL, username: EXTERNAL, displayName: "External Bot", avatarUrl: null, schemaVersion: 1, type: "external", webhookUrl: `${WAKE_ORIGIN}/wake`, ratedEligible: false, config: {}, createdAt: Date.now() },
+        { id: LOCAL, username: LOCAL, displayName: "Local Bot", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() },
+      ])
+      .onConflictDoNothing();
+  });
+
+  afterAll(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const soloBody = (botId: string) => ({ schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, turn_seconds: 60, rated: false, bot_ids: [botId] });
+
+  it("plays a human-vs-bot solo game through the in-DO brain", async () => {
+    const u = makeUsers();
+    const solo = await json<{ game_id: string; version: number; frame: { data: { count: number } } | null }>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)));
+    expect(solo.version).toBe(0);
+    expect(solo.frame?.data.count).toBe(0);
+
+    // The human opens (v1); the bot answers via its in-DO brain (add 1),
+    // committing v2 with no second client involved.
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.game_id}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
+    await vi.waitFor(async () => {
+      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.game_id}/frames?from=0&to=10`));
+      expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);
+    });
+  });
+
+  it("rejects seating a bot in an untimed game (bots ⇒ timed)", async () => {
+    const u = makeUsers();
+    // The default game is untimed; add-bot must refuse it.
+    const { game_id } = await createGame(u.a, { rated: false });
+    const res = await api(u.a, "POST", `/games/${game_id}/add-bot`, { bot_id: ENGINE });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects seating a local bot online (reserved for offline import)", async () => {
+    const u = makeUsers();
+    const res = await api(u.a, "POST", "/games/solo", soloBody(LOCAL));
+    expect(res.status).toBe(400);
+  });
+
+  it("guests may create a solo bot game (unrated)", async () => {
+    const u = makeUsers();
+    const solo = await api(u.a, "POST", "/games/solo", soloBody(ENGINE), true);
+    expect(solo.status).toBe(200);
+  });
+
+  it("accepts an external bot's HMAC-signed move on bot/action; rejects a forged one", async () => {
+    const u = makeUsers();
+    // An external bot: its webhook_url means the DO wakes it instead of running
+    // an in-DO brain. The wake is intercepted (202) in beforeAll; the move
+    // arrives here on bot/action.
+    const solo = await json<{ game_id: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)));
+    // Human opens (v1); now seat 1 (the external bot) is due.
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.game_id}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
+
+    // The bot signs the EXACT body bytes it sends and carries the signature in
+    // the Eigen-Signature header (§7), bound to the `action` domain.
+    const body = JSON.stringify({ bot_id: EXTERNAL, game_id: solo.game_id, player_index: 1, version: 1, data: { add: 1 } });
+    const good = await SELF.fetch("https://x/api/bot/action", {
+      method: "POST",
+      headers: { "content-type": "application/json", "eigen-signature": await signForBot(BOT_SECRET, EXTERNAL, "action", body) },
+      body,
+    });
+    expect(good.status).toBe(200);
+    await vi.waitFor(async () => {
+      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.game_id}/frames?from=0&to=10`));
+      expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);
+    });
+
+    // A forged signature (wrong secret) is rejected before the claim is trusted.
+    const forged = await SELF.fetch("https://x/api/bot/action", {
+      method: "POST",
+      headers: { "content-type": "application/json", "eigen-signature": await signForBot("wrong-secret", EXTERNAL, "action", body) },
+      body,
+    });
+    expect(forged.status).toBe(401);
   });
 });
 

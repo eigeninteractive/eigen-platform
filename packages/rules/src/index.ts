@@ -1,8 +1,11 @@
 export type {
   ActionKind,
   ActionType,
+  AnyGameRules,
   ApplyActionArgs,
   ApplyLifecycleArgs,
+  BotAction,
+  BotActionArgs,
   BotSeatableArgs,
   ComputeObservationArgs,
   Envelope,

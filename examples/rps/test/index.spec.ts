@@ -17,7 +17,7 @@ const BOB = "rps-bob";
 const VIEWER = "rps-viewer";
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://rps.test/api${path}`, {
+  return await SELF.fetch(`https://rps.test/api/engine${path}`, {
     method,
     headers: { ...(await testBearer({ uid })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -25,7 +25,7 @@ async function api(uid: string, method: string, path: string, body?: unknown): P
 }
 
 it("requires a token on every route", async () => {
-  expect((await SELF.fetch("https://rps.test/api/lobby")).status).toBe(401);
+  expect((await SELF.fetch("https://rps.test/api/engine/lobby")).status).toBe(401);
 });
 
 it("plays a full game: waiting room, same-view simultaneous commits, finish, replay reveal", async () => {
@@ -42,20 +42,19 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   const joined = await api(BOB, "POST", `/games/${gameId}/join`, { client_schema_version: 1 });
   expect((await joined.json()) as object).toMatchObject({ ok: true, roster: { status: "ready" } });
 
-  // The action route resolves seats through the fire-and-forget D1 mirror —
-  // wait for Bob's row before acting as him (§4.2 accepted staleness).
+  // No mirror wait: the DO seats Bob on the join command and verifies the
+  // seat each client sends against its own roster (§4.2), so Bob can act the
+  // moment his join returns.
   const db = drizzle(env.rps_dev);
-  await expect.poll(async () => (await db.select().from(d1Schema.participants).where(eq(d1Schema.participants.gameId, gameId)).all()).length).toBe(2);
-
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
   expect(await started.json()).toMatchObject({ ok: true, version: 0 });
 
   // Both seats commit against v0. The second arrives stale — and lands,
   // because RPS masks the opponent's hidden commit (same-view rule).
-  const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { data: { move: "rock" }, expected_version: 0 });
+  const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expected_version: 0 });
   expect(await rock.json()).toMatchObject({ ok: true, version: 1 });
 
-  const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { data: { move: "scissors" }, expected_version: 0 });
+  const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { seat: 1, data: { move: "scissors" }, expected_version: 0 });
   const resolved = (await scissors.json()) as { ok: boolean; version: number; frame: { outcomes?: unknown[] } };
   expect(resolved).toMatchObject({ ok: true, version: 2 });
   expect(resolved.frame.outcomes).toHaveLength(2);

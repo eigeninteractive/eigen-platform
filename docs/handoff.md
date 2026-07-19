@@ -217,8 +217,24 @@ deploy runbook deleted) landed 2026-07-17.
 
 Remaining in Phase 2, in order:
 
-1. **Milestone B** — bot wake (HMAC, single attempt) + FCM effects; the
-   local-bot observation read; `bot/action` route; create-solo.
+1. ~~**Milestone B**~~ **SHIPPED + REFINED 2026-07-18** (bots redesigned,
+   engine_stack §7): in-DO engine bots — brains keyed by **bot username** in
+   `GameRules.botActions`, DO resolves `bot_id → row → username → fn` and
+   self-applies post-commit via the kernel's `wake_bot` effect (deterministic
+   commandId, chains for consecutive turns) — plus external webhook bots (HMAC
+   wake single attempt + the **`POST /api/bot/action`** route with the HMAC in
+   the `Eigen-Signature` header, same header both directions) + create-solo
+   (`POST /api/engine/games/solo`)
+   + a `type` enum (`engine`/`external`/`local`, CHECK-enforced) replacing
+   `is_local` + **uniform seat** (humans and bots both send `seat`, DO
+   verifies → clean 403) + FCM (jose service-account JWT → OAuth bearer → FID
+   push, skipped when unconfigured). **Local bots deleted**; offline solo =
+   documented transcript-import seam, not built. New: `docs/client_changes.md`
+   (running list of client-side changes). **Two route groups under `/api`:**
+   `/api/engine/*` (client, Firebase) and `/api/bot/*` (HMAC) as separate hono
+   sub-apps — auth scoped per sub-app, both in one OpenAPI doc (2026-07-19).
+   132 tests green (kernel 73 /
+   server 45 / rps 2+12).
 2. **Milestone C** — lifecycle edges: account deletion, cron backstop,
    `HistoryStore` interface extraction, the §11 leak test.
 3. **Milestone D** — deep-link group (`.well-known`, `/j/:shortCode`,

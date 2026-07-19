@@ -17,10 +17,14 @@
  * });
  * ```
  *
- * hono + @hono/zod-openapi under `/api`; every route requires a verified
- * Firebase ID token (§6). Handlers return only their declared 200 shape —
- * every failure is an HttpError throw rendered by the app-level error
- * handler as `{ error, code? }`.
+ * hono + @hono/zod-openapi. Two route groups share the `/api` prefix but not
+ * their auth: the client-facing engine group (`/api/engine/*`, every route
+ * gated by a verified Firebase ID token — §6) and the external-bot webhook
+ * (`/api/bot/*`, self-authenticated by an HMAC signature — §7). They are
+ * separate sub-apps mounted on one `/api` root, so the engine's auth
+ * middleware is scoped to the engine sub-app and never touches the bot group.
+ * Handlers return only their declared 200 shape — every failure is an
+ * HttpError throw rendered by the app-level error handler as `{ error, code? }`.
  */
 
 import type { GameModule } from "@eigen/rules";
@@ -29,6 +33,7 @@ import type { ErrorHandler, MiddlewareHandler } from "hono";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 import { ensureUser, type UserRow } from "./auth/provision.js";
+import { registerBotRoutes } from "./bot/routes.js";
 import type { BaseGameDO } from "./do/game-do.js";
 import { HttpError } from "./http.js";
 import type { Command, CommandResult, FrameMessage } from "./protocol.js";
@@ -70,6 +75,10 @@ export interface RouteContext {
   d1(env: unknown): D1Database;
   stub(env: unknown, gameId: string): GameStub;
   verify(env: unknown, token: string): Promise<AuthClaims>;
+  /** The engine bot-signing master secret (§7), read from env by the
+   * `BOT_SIGNING_SECRET` convention. Null when unset — the `/api/bot/action`
+   * route then refuses every request (external bots are unsupported). */
+  botSigningSecret(env: unknown): string | null;
 }
 
 /** What the auth middleware resolves for every request. */
@@ -80,7 +89,10 @@ export interface Authed {
 
 export type AppEnv = { Bindings: object; Variables: { auth: Authed } };
 
-function newApp() {
+/** A fresh @hono/zod-openapi app with the engine's shared validation-error
+ * shape. No basePath — callers mount it under a prefix (`/api/engine`,
+ * `/api/bot`) so a validation failure reads the same everywhere. */
+function newOpenApiApp() {
   return new OpenAPIHono<AppEnv>({
     // Request-validation failures share the engine error shape.
     defaultHook: (result, c) => {
@@ -89,11 +101,14 @@ function newApp() {
         return c.json({ error: `Invalid request: ${detail}` }, 400);
       }
     },
-  }).basePath("/api");
+  });
 }
 
-/** The engine's hono app type — what the route modules register against. */
-export type EngineApp = ReturnType<typeof newApp>;
+/** The engine's hono app type — what the route modules register against. Both
+ * the Firebase-authed engine group and the HMAC bot group are this shape (a
+ * bare @hono/zod-openapi app); the auth difference is per-group middleware, not
+ * a different app type. */
+export type EngineApp = ReturnType<typeof newOpenApiApp>;
 
 const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof HttpError) {
@@ -123,19 +138,44 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
   };
 }
 
-export function createApp(ctx: RouteContext): EngineApp {
-  const app = newApp();
-  app.onError(errorHandler);
-  app.openAPIRegistry.registerComponent("securitySchemes", "firebase", {
+/** Assemble the whole API: the Firebase-authed engine group and the
+ * HMAC-authed external-bot group, mounted as two sub-apps on one `/api` root.
+ *
+ * The two groups share the `/api` prefix but are separate `OpenAPIHono`
+ * instances, so the engine's `use("*", auth)` is scoped to the engine sub-app
+ * (its matcher becomes `/api/engine/*` once mounted) and never runs for
+ * `/api/bot/*` — the bot webhook carries no Firebase token and authenticates
+ * itself. Mounting also merges each sub-app's OpenAPI operations into the
+ * root's document, so a single spec describes both groups, each with its own
+ * security scheme (`firebase` vs `botHmac`). */
+export function buildApp(ctx: RouteContext) {
+  const engine = newOpenApiApp();
+  engine.onError(errorHandler);
+  engine.use("*", authMiddleware(ctx));
+  registerReadRoutes(engine, ctx);
+  registerGameRoutes(engine, ctx);
+
+  const bot = newOpenApiApp();
+  bot.onError(errorHandler);
+  registerBotRoutes(bot, ctx);
+
+  const root = newOpenApiApp().basePath("/api");
+  root.onError(errorHandler);
+  root.openAPIRegistry.registerComponent("securitySchemes", "firebase", {
     type: "http",
     scheme: "bearer",
     bearerFormat: "JWT",
-    description: "A Firebase ID token.",
+    description: "A Firebase ID token, sent as `Authorization: Bearer <token>` (or `?token=` on WebSocket upgrades).",
   });
-  app.use("*", authMiddleware(ctx));
-  registerReadRoutes(app, ctx);
-  registerGameRoutes(app, ctx);
-  return app;
+  root.openAPIRegistry.registerComponent("securitySchemes", "botHmac", {
+    type: "apiKey",
+    in: "header",
+    name: "Eigen-Signature",
+    description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain (§7). Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
+  });
+  root.route("/engine", engine);
+  root.route("/bot", bot);
+  return root;
 }
 
 // ── The factory ───────────────────────────────────────────────────────────────
@@ -157,8 +197,12 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
       return ns.get(ns.idFromName(gameId));
     },
     verify: (env, token) => (cfg.auth ?? createFirebaseVerifier(projectId(env as TEnv))).verify(token),
+    botSigningSecret: (env) => {
+      const secret = (env as Record<string, unknown>).BOT_SIGNING_SECRET;
+      return typeof secret === "string" && secret.length > 0 ? secret : null;
+    },
   };
-  const app = createApp(ctx);
+  const app = buildApp(ctx);
   return {
     fetch: (request, env, executionCtx) => app.fetch(request, env, executionCtx),
   };
@@ -172,14 +216,16 @@ export function openApiDocument(): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
-  const app = createApp({ gameModule: { versions: {} }, d1: inert, stub: inert, verify: inert });
+  const app = buildApp({ gameModule: { versions: {} }, d1: inert, stub: inert, verify: inert, botSigningSecret: () => null });
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {
       title: "Eigen Engine API",
       version: "1.0.0",
-      description: "The server-authoritative game engine API. All routes require a Firebase ID token.",
+      description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated (§7).",
     },
+    // The default requirement is the client's Firebase token; the bot webhook
+    // overrides it per-operation with `botHmac`.
     security: [{ firebase: [] }],
   });
 }

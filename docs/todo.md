@@ -3,3 +3,5 @@
 - Compare to old structure end to end
 - Are we reinventing CAS?
 - Do we need GameStub?
+- Make single attemps retry based (where all does it make sense)
+- Can anything be optimizied - unnecessary network call, N + 1 patterns, batch simplifications, etc.?

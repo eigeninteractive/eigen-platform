@@ -18,13 +18,6 @@ export default defineConfig(async () => {
     test: {
       include: ["test/**/*.spec.ts"],
       setupFiles: ["./test/apply-migrations.ts"],
-      // A DO integrity violation intentionally throws across the RPC
-      // boundary (the worker maps it to an HTTP error). The caller's
-      // `rejects.toThrow` consumes it, but workerd reports the DO-side
-      // throw as unhandled too — ignore exactly those.
-      onUnhandledError(error: { message?: string }): boolean {
-        return !/does not belong to the acting principal/.test(error.message ?? "");
-      },
     },
   };
 });

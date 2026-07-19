@@ -147,7 +147,6 @@ export const botShape = z
     display_name: z.string(),
     avatar_url: z.string().nullable(),
     schema_version: z.number().int(),
-    is_local: z.boolean(),
     rated_eligible: z.boolean(),
     config: jsonObjectShape,
   })
@@ -185,6 +184,30 @@ export const createGameBody = z
 
 export const createdShape = z.object({ game_id: z.string(), short_code: z.string() }).openapi("Created");
 
+/** Create-solo (§7): a private game seated with the caller plus one or more
+ * bots, created and started in one call. Same timing/config fields as
+ * `createGameBody` (no `access` — solo games are always private) plus the
+ * bots to seat. */
+export const createSoloBody = z
+  .object({
+    schema_version: z.number().int(),
+    config: z.record(z.string(), z.unknown()).default({}),
+    min_players: z.number().int().min(1),
+    max_players: z.number().int().min(1),
+    rated: z.boolean().optional(),
+    /** The bots to seat alongside the caller, in seat order after seat 0. */
+    bot_ids: z.array(z.string()).min(1),
+    ...timingFields,
+  })
+  .refine(timingExclusive, "turn_seconds and budget_seconds are mutually exclusive")
+  .refine(incrementNeedsBudget, "increment_seconds requires budget_seconds")
+  .refine((v) => v.max_players >= v.min_players, "max_players must be at least min_players")
+  .openapi("CreateSolo");
+
+/** The started solo game: its ids plus the caller's committed v0 frame (the
+ * same ride-along an action response carries). */
+export const soloStartedShape = z.object({ game_id: z.string(), short_code: z.string(), version: z.number().int(), frame: frameShape.nullable() }).openapi("SoloStarted");
+
 /** Client retries reuse the same command_id — the DO replays the stored
  * response instead of re-executing (§3.6). */
 const commandId = z.string().min(1).max(128).optional();
@@ -206,12 +229,19 @@ export const addBotBody = z.object({ bot_id: z.string(), command_id: commandId }
 
 export const actionBody = z
   .object({
+    /** The caller's own seat (§4.2) — verified against the roster at the DO;
+     * a seat the caller doesn't hold is rejected. Carried uniformly with bots. */
+    seat: z.number().int().min(0),
     /** Game-defined move payload; parsed by the version unit's action schema. */
     data: z.unknown(),
     expected_version: z.number().int().min(0),
     command_id: commandId,
   })
   .openapi("Action");
+
+/** Forfeit carries the resigning seat, verified against the roster like an
+ * action. */
+export const forfeitBody = z.object({ seat: z.number().int().min(0), command_id: commandId }).openapi("Forfeit");
 
 // ── Projections ───────────────────────────────────────────────────────────────
 

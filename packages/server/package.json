@@ -22,7 +22,7 @@
     "build": "tsup",
     "openapi": "tsup && node scripts/emit-openapi.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json",
     "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
     "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts"
   },

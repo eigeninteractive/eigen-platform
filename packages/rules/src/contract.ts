@@ -209,6 +209,27 @@ export interface BotSeatableArgs<TConfig extends JsonObject = JsonObject> {
   botConfig: JsonObject;
 }
 
+/** A seated engine bot's turn to move, passed to the matching entry in
+ * {@link GameRules.botActions}. The brain runs inside the game's Durable
+ * Object post-commit and sees exactly what a human at this seat would
+ * (`observation` — the same fog-of-war projection, so a bot cannot read hidden
+ * state its seat may not); `botConfig` is that bot registry row's declared
+ * knob (difficulty, personality). The engine self-applies the returned move as
+ * this seat's action, validated against `schemas.action` exactly like a human
+ * move. `rng` is deterministic per (game, version, seat) for reproducible
+ * tests — but the chosen move is what gets logged, so the brain need not be
+ * pure (replay uses the recorded action, never re-runs the brain). */
+export interface BotActionArgs<TConfig extends JsonObject = JsonObject> extends HookContext<TConfig> {
+  observation: ObservationSlice;
+  botConfig: JsonObject;
+  playerIndex: number;
+  rng: Rng;
+}
+
+/** One engine bot's move function — the value type in
+ * {@link GameRules.botActions}. */
+export type BotAction<TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> = (args: BotActionArgs<TConfig>) => TAction;
+
 // ── Schemas + rules unit ──────────────────────────────────────────────────────
 
 /** The declarative payload contracts for one `schema_version`: the Standard
@@ -282,7 +303,38 @@ export interface GameRules<TState extends JsonObject = JsonObject, TAction exten
    * committing; the Dart `GameRules` twin filters the bot pickers locally.
    * Return `true` to allow. */
   botSeatable(args: BotSeatableArgs<TConfig>): boolean;
+
+  /** Optional — the in-DO bot brains (§7), **keyed by bot username**. When a
+   * seated `engine`-type bot's turn starts, the engine resolves its registry
+   * row's `username`, looks the move function up here, runs it post-commit,
+   * and self-applies the returned move — so a bot game needs no external
+   * service. Several bots that share behaviour point their usernames at the
+   * same function and differ by their per-row `botConfig`; distinct behaviour
+   * is a distinct entry. A seated engine bot whose username is absent here
+   * (or an `external` bot with no `webhook_url`) is rejected at seating. The
+   * returned move is validated against `schemas.action` and an illegal one is
+   * rejected exactly like a human's, so a buggy brain fails that seat's turn
+   * (the deadline backstops it) rather than corrupting the game. */
+  botActions?: Record<string, BotAction<TAction, TConfig>>;
 }
+
+/**
+ * A {@link GameRules} unit with its payload types erased — the type of a rules
+ * entry once it is stored in a {@link GameModule.versions} registry that holds
+ * *many* games'/versions' rules whose concrete `TState`/`TAction`/`TConfig`
+ * genuinely differ. That container needs "a `GameRules` for *some* payload
+ * types", an existential TypeScript cannot spell; `any` is the one sanctioned
+ * escape for it (`unknown` cannot — the config/action params are contravariant
+ * input positions). It is **safe** here because the engine re-validates every
+ * payload against that entry's own `schemas` before invoking a hook, so the
+ * static type was only ever an authoring aid — redundant once the unit is
+ * registered. Authors keep full type-checking by writing
+ * `class X implements GameRules<State, Action, Config>` (or annotating a
+ * literal `: GameRules<…>`); assigning that into a `versions` map just works,
+ * with no `as`-cast, because `any` disables the variance check at this seam.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: type-erased plugin registry — see the doc comment above; `any` is the existential escape, guarded at runtime by per-entry schema validation.
+export type AnyGameRules = GameRules<any, any, any>;
 
 /**
  * The complete game-specific surface — the same-named twin of the Dart
@@ -297,7 +349,8 @@ export interface GameModule {
    * versions this build ships. Sparse on purpose: game creation rejects a
    * version not present here, loading a stored game requires its version's
    * entry, and a drained old version is retired by deleting its entry. The
-   * entries erase to bare `GameRules` — safe, because the engine parses each
-   * payload with the same entry's schemas before invoking its hooks. */
-  versions: Record<number, GameRules>;
+   * value type is {@link AnyGameRules} — each entry is authored against its
+   * concrete payload types and erased here; safe because the engine parses
+   * each payload with the same entry's schemas before invoking its hooks. */
+  versions: Record<number, AnyGameRules>;
 }

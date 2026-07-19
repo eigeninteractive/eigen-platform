@@ -104,7 +104,6 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
             display_name: b.displayName,
             avatar_url: b.avatarUrl,
             schema_version: b.schemaVersion,
-            is_local: b.isLocal,
             rated_eligible: b.ratedEligible,
             config: b.config,
           })),

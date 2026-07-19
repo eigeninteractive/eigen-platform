@@ -159,9 +159,11 @@ describe("actions & dedupe", () => {
     expect(stale).toMatchObject({ ok: false, code: "state_updated" });
   });
 
-  it("refuses a seat the actor does not own", async () => {
+  it("refuses a seat the actor does not own with a clean rejection", async () => {
     const { gameId, stub } = await startGame();
-    await expect(stub.handle(action(gameId, 0, 1, 0, "user-b"))).rejects.toThrow(/does not belong/);
+    // user-b naming user-a's seat 0 is rejected as a value (§4.2), not thrown.
+    const res = await stub.handle(action(gameId, 0, 1, 0, "user-b"));
+    expect(res).toMatchObject({ ok: false, code: "not_participant" });
   });
 });
 

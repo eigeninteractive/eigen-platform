@@ -2,7 +2,7 @@
  * Worker → D1 reads (engine_stack.md §5.2): lobby, history lists, profiles,
  * players, bot catalog, and the per-route policy lookups. The rule they all
  * serve: **never wake a Durable Object to serve a read** — only commands, the
- * socket, range fetches, and the local-bot observation touch the DO.
+ * socket, and range fetches touch the DO.
  */
 
 import type { Seat } from "@eigen/kernel";
@@ -12,6 +12,21 @@ import { bots, games, participants, playerRatings, ratingHistory, relationships,
 
 export type GameRow = typeof games.$inferSelect;
 export type BotRow = typeof bots.$inferSelect;
+
+/** The bot registry row as a discriminated union on `type` (§7). The two
+ * `bots` CHECK constraints make these shapes exact at the storage layer —
+ * `external` always has a `webhook_url`, the others never do — so narrowing a
+ * loaded row is total. */
+export type Bot = (Omit<BotRow, "type" | "webhookUrl"> & { type: "engine"; webhookUrl: null }) | (Omit<BotRow, "type" | "webhookUrl"> & { type: "external"; webhookUrl: string }) | (Omit<BotRow, "type" | "webhookUrl"> & { type: "local"; webhookUrl: null });
+
+/** Restate the DB's type/webhook invariant in the type system. The CHECK
+ * guarantees the pairing; the guard catches a row that somehow violated it
+ * (a hand-edited registry) rather than trusting the cast blindly. */
+export function narrowBot(row: BotRow): Bot {
+  if (row.type === "external" && row.webhookUrl === null) throw new Error(`bot ${row.id} is type 'external' but has no webhook_url`);
+  if (row.type !== "external" && row.webhookUrl !== null) throw new Error(`bot ${row.id} is type '${row.type}' but has a webhook_url`);
+  return row as Bot;
+}
 
 /** A games row joined with its roster — the §4.1 create's inverse, and the
  * shape every summary response projects from. */
@@ -53,17 +68,6 @@ export async function readGameByCode(d1: D1Database, shortCode: string): Promise
   const row = await drizzle(d1).select().from(games).where(eq(games.shortCode, shortCode)).get();
   if (row === undefined) return undefined;
   return (await withRosters(d1, [row]))[0];
-}
-
-/** The caller's seat in a game, resolved through the participants unique
- * index — the action/forfeit routes' policy lookup. */
-export async function readSeatOf(d1: D1Database, gameId: string, userId: string): Promise<number | null> {
-  const row = await drizzle(d1)
-    .select({ playerIndex: participants.playerIndex })
-    .from(participants)
-    .where(and(eq(participants.gameId, gameId), eq(participants.userId, userId)))
-    .get();
-  return row?.playerIndex ?? null;
 }
 
 /** The lobby page: public joinable games, newest first — exactly the shape
@@ -114,6 +118,16 @@ export async function readBots(d1: D1Database, ids?: string[]): Promise<BotRow[]
   if (ids === undefined) return await db.select().from(bots).all();
   if (ids.length === 0) return [];
   return await db.select().from(bots).where(inArray(bots.id, ids)).all();
+}
+
+/** One bot's registry row, narrowed on `type` — the DO's post-commit bot-turn
+ * dispatch (§7) reads it to route (engine brain / external wake / local skip)
+ * and to feed the brain the bot's declared `config`. Off the hot path (a
+ * post-commit effect), so a read here costs nothing the human's response
+ * waits on. */
+export async function readBot(d1: D1Database, id: string): Promise<Bot | undefined> {
+  const row = await drizzle(d1).select().from(bots).where(eq(bots.id, id)).get();
+  return row === undefined ? undefined : narrowBot(row);
 }
 
 /** Friends-access join gate (§4.2): an accepted relationship between the two

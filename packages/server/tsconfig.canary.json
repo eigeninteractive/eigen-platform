@@ -1,0 +1,7 @@
+{
+  // Compiles ONLY the shim canary, with the shim (src/runtime-globals.d.ts)
+  // deliberately out of scope, so it type-checks against the platform types
+  // alone. See type-tests/shim-canary.ts for what this detects.
+  "extends": "./tsconfig.json",
+  "include": ["type-tests"]
+}

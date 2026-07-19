@@ -29,7 +29,7 @@
  * running against this unit until they drain.
  */
 
-import { type ApplyActionArgs, type ApplyLifecycleArgs, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigen/rules";
+import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigen/rules";
 import { z } from "zod";
 
 const moveSchema = z.enum(["rock", "paper", "scissors"]);
@@ -197,7 +197,24 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
   botSeatable(): boolean {
     return true;
   }
+
+  /** The in-DO brains (§7), keyed by bot username. RPS ships one engine bot,
+   * `rps-random`, which throws a uniformly random move: seat a registry row
+   * with `type: 'engine'` and `username: 'rps-random'` and the DO runs this
+   * post-commit whenever that bot is due. A second personality would be
+   * another entry (e.g. `rps-counter`), or the same function reading a
+   * `botConfig` difficulty knob. */
+  readonly botActions: Record<string, BotAction<Action, Config>> = {
+    "rps-random": ({ rng }) => {
+      const moves: Move[] = ["rock", "paper", "scissors"];
+      return { move: moves[Math.floor(rng.next() * moves.length)] };
+    },
+  };
 }
 
-/** The v1 rules unit, registered under key `1` in `index.ts`. */
-export const rulesV1: GameRules = new RpsRulesV1();
+/** The v1 rules unit, registered under key `1` in `index.ts`. The class is
+ * authored against its concrete payload types (`implements GameRules<State,
+ * Action, Config>` above — fully type-checked); annotating the export as
+ * {@link AnyGameRules} erases those types for the registry with no cast, since
+ * the engine re-validates every payload against `schemas` before a hook runs. */
+export const rulesV1: AnyGameRules = new RpsRulesV1();

@@ -28,15 +28,24 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { type CommitPlan, commit, DEADLINE_GRACE_MS, fanOutObservations, GameBugError, type GameStatus, type Intent, isRejected, type ObservationFrame, parseStoredPayload, type RatingDelta, randomSeed, type Seat, type SeatView, type StateRow, type TransitionAction } from "@eigen/kernel";
-import type { GameModule, GameRules, JsonObject, OutcomeEntry, TransitionCause } from "@eigen/rules";
+import { type CommitPlan, commit, DEADLINE_GRACE_MS, deriveRng, fanOutObservations, GameBugError, type GameStatus, type Intent, isRejected, type ObservationFrame, parseStoredPayload, type RatingDelta, randomSeed, type Seat, type SeatView, type StateRow, type TransitionAction } from "@eigen/kernel";
+import type { GameModule, GameRules, JsonObject, ObservationSlice, OutcomeEntry, TransitionCause } from "@eigen/rules";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { type DrizzleSqliteDODatabase, drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
+import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
+import { type Bot, readBot } from "../d1/reads.js";
+import { finishPush, pushToUser, readServiceAccount, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, Principal, RosterSnapshot } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
+
+/** Caps how long the fire-and-forget wake holds its outbound connection for a
+ * slow or hanging bot webhook (§7). Not a correctness deadline — we never wait
+ * for the bot's move (it arrives on `/api/bot/action`) and a lost wake rides
+ * the turn deadline; this is purely a resource bound. */
+const WAKE_TIMEOUT_MS = 10_000;
 
 type MetaRow = typeof t.meta.$inferSelect;
 type TransitionRow = typeof t.transitions.$inferSelect;
@@ -160,7 +169,11 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     // ── post-commit ──
     this.#broadcast(snapshot);
     const gameId = meta.gameId;
-    this.ctx.waitUntil(mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }).catch((error) => console.error(`roster mirror failed for game ${gameId}`, error)));
+    // Background D1 mirror, off the response path. No ctx.waitUntil: a Durable
+    // Object stays alive while a promise is pending, so an unawaited (but
+    // .catch-guarded) promise runs to completion on its own — waitUntil is a
+    // stateless-Worker idiom that's redundant here.
+    void mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }).catch((error) => console.error(`roster mirror failed for game ${gameId}`, error));
     return response;
   }
 
@@ -212,7 +225,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     }
     let actingSeat: number | null = null;
     if (cmd.kind === "action" || (cmd.kind === "lifecycle" && cmd.type === "forfeit")) {
-      if (cmd.actor === null) throw new Error("Forfeit requires an actor");
+      if (cmd.actor === null) throw new GameBugError("action/forfeit reached the DO without an actor");
+      if (cmd.seat === undefined) throw new GameBugError("action/forfeit reached the DO without a seat");
       const resolved = this.#actingSeat(cmd.actor, cmd.seat, roster);
       if (typeof resolved !== "number") return resolved;
       actingSeat = resolved;
@@ -237,22 +251,20 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     return await this.#apply(cmd, meta, roster, result, now, actingSeat);
   }
 
-  /** Resolve the acting seat against the authoritative roster (§4.2) — the
-   * D1 participants copy is a display mirror and never arbitrates. A command
-   * naming a seat (bots: one bot id may hold several seats) must own it, or
-   * it is a protocol violation and throws. An unnamed seat resolves by the
-   * actor's user id; an unseated actor is reachable without a client bug
-   * (left the game, stale UI), so that refusal is a value. */
-  #actingSeat(actor: Principal, seat: number | undefined, roster: Seat[]): number | CommandResult {
-    if (seat !== undefined) {
-      this.#assertSeat(roster, seat, actor);
-      return seat;
+  /** Verify the acting seat against the authoritative roster (§4.2) — the D1
+   * participants copy is a display mirror and never arbitrates. Both humans
+   * and bots name their seat; it must belong to the actor (user id from the
+   * token, bot id from the HMAC claim). A seat the actor does not hold is
+   * reachable without malice (a stale UI after leaving, a buggy client) and
+   * from a misbehaving external bot alike, so the refusal is a clean value
+   * (→ 403), never a throw. */
+  #actingSeat(actor: Principal, seat: number, roster: Seat[]): number | CommandResult {
+    const row = roster.find((s) => s.player_index === seat);
+    const owns = row !== undefined && ((actor.userId !== null && row.user_id === actor.userId) || (actor.botId !== null && row.bot_id === actor.botId));
+    if (!owns) {
+      return { ok: false, code: "not_participant", message: "That seat is not yours" };
     }
-    const own = roster.find((s) => s.user_id !== null && s.user_id === actor.userId);
-    if (own === undefined) {
-      return { ok: false, code: "not_participant", message: "Not seated in this game" };
-    }
-    return own.player_index;
+    return seat;
   }
 
   #toIntent(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, actingSeat: number | null): Intent {
@@ -276,12 +288,6 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
         return { kind: "lifecycle", type: cmd.type, seat };
       }
     }
-  }
-
-  #assertSeat(roster: Seat[], seat: number, actor: { userId: string | null; botId: string | null }): void {
-    const row = roster.find((s) => s.player_index === seat);
-    const owns = row !== undefined && ((actor.userId !== null && row.user_id === actor.userId) || (actor.botId !== null && row.bot_id === actor.botId));
-    if (!owns) throw new Error(`Seat ${seat} does not belong to the acting principal`);
   }
 
   /** Same-view material (§3.5): the acting seat's stored frames at the
@@ -344,20 +350,181 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
       await this.ctx.storage.deleteAlarm();
     }
     const gameId = meta.gameId;
+    // Post-commit work runs off the response path. None of it is wrapped in
+    // ctx.waitUntil: a Durable Object stays alive while any promise or I/O is
+    // pending, so these unawaited promises run to completion on their own
+    // (waitUntil is redundant in a DO — see the roster mirror above). Each keeps
+    // its own .catch so a failure logs rather than becoming an unhandled
+    // rejection. #finishEffects also self-catches; the outer .catch is a belt.
     if (finish !== null) {
-      this.ctx.waitUntil(this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next));
+      void this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next).catch((error) => console.error(`finish effects failed for game ${gameId}`, error));
     } else {
-      this.ctx.waitUntil(
-        updateSummary(this.d1(this.env), {
-          gameId,
-          ...(cmd.kind === "start" ? { status: "active" as const } : {}),
-          pendingPlayers: next.pending,
-          turnDeadline: next.deadline,
-          now,
-        }).catch((error) => console.error(`summary upsert failed for game ${gameId}`, error)),
-      );
+      void updateSummary(this.d1(this.env), {
+        gameId,
+        ...(cmd.kind === "start" ? { status: "active" as const } : {}),
+        pendingPlayers: next.pending,
+        turnDeadline: next.deadline,
+        now,
+      }).catch((error) => console.error(`summary upsert failed for game ${gameId}`, error));
+    }
+    // Named post-commit effects (§7): bot turns and human turn/finish pushes.
+    if (plan.effects.length > 0) {
+      void this.#dispatchEffects(meta, roster, plan, next).catch((error) => console.error(`effect dispatch failed for game ${gameId}`, error));
     }
     return response;
+  }
+
+  // ── Post-commit effects (§7) — bot turns, and turn/finish pushes ──────────
+
+  /** Deliver the kernel's named effects for a committed transition: a seated
+   * bot's turn (in-DO brain self-apply, or an external HMAC wake) and human
+   * turn/finish pushes. Single attempt + log throughout (§8) — a bot that
+   * never moves rides the turn deadline (bots ⇒ timed). Runs in `waitUntil`. */
+  async #dispatchEffects(meta: MetaRow, roster: Seat[], plan: CommitPlan, next: StateRow): Promise<void> {
+    for (const effect of plan.effects) {
+      if (effect.kind === "wake_bot") {
+        await this.#botTurn(meta, plan, next, effect.seat, effect.bot_id);
+      }
+      // `notify_turn` / `notify_finished` (FCM pushes) are delivered by the
+      // push step (§7) — wired in `#pushNotifications` below.
+    }
+    await this.#pushNotifications(meta, roster, plan);
+  }
+
+  /** One seated bot's turn. Routes on the registry row's `type`: an `engine`
+   * bot runs its in-DO brain (`botActions[username]`) and the DO self-applies
+   * the move; an `external` bot gets a signed HMAC wake carrying its
+   * observation; a `local` bot is client-driven and never dispatched here
+   * (it should not be seatable online — a stray one just logs). The bot sees
+   * only its seat's projection (`plan.frames`), so it can never read hidden
+   * state — the same fog a human at the seat gets. */
+  async #botTurn(meta: MetaRow, plan: CommitPlan, next: StateRow, seat: number, botId: string): Promise<void> {
+    try {
+      const bot = await readBot(this.d1(this.env), botId);
+      if (bot === undefined) {
+        console.error(`bot turn skipped: bot ${botId} not in registry (game ${meta.gameId} seat ${seat})`);
+        return;
+      }
+      const frame = plan.frames.find((f) => f.player_index === seat);
+      if (frame === undefined) {
+        console.error(`bot turn skipped: no projected frame for seat ${seat} (game ${meta.gameId})`);
+        return;
+      }
+      const observation: ObservationSlice = { data: frame.data, pending_players: frame.pending_players };
+      switch (bot.type) {
+        case "engine":
+          await this.#runBotBrain(meta, bot, seat, observation, next);
+          break;
+        case "external":
+          await this.#wakeExternalBot(meta, bot, seat, observation, next);
+          break;
+        case "local":
+          console.error(`local bot ${bot.id} was seated in an online game (game ${meta.gameId} seat ${seat}) — local bots are client-driven and not dispatchable`);
+          break;
+      }
+    } catch (error) {
+      // Single attempt (§8): the turn deadline resolves a bot that never moves.
+      console.error(`bot turn failed for game ${meta.gameId} seat ${seat}`, error);
+    }
+  }
+
+  /** In-DO brain: look the engine bot's move function up by its username in
+   * the game's `botActions`, run it, and self-apply the result as this seat's
+   * action — a normal serialized command, so it commits as the next version,
+   * dedupes on its deterministic commandId, and (if it leaves another bot
+   * pending) chains through the same effect dispatch. */
+  async #runBotBrain(meta: MetaRow, bot: Extract<Bot, { type: "engine" }>, seat: number, observation: ObservationSlice, next: StateRow): Promise<void> {
+    const rules = this.#rules(meta);
+    const action = rules.botActions?.[bot.username];
+    if (action === undefined) {
+      console.error(`engine bot ${bot.username} has no botActions entry for schema_version ${meta.schemaVersion} (game ${meta.gameId})`);
+      return;
+    }
+    const config = parseStoredPayload(rules.schemas.config, meta.config, "config", meta.schemaVersion);
+    const move = action({
+      observation,
+      botConfig: bot.config,
+      playerIndex: seat,
+      config,
+      // Deterministic per (game, version, seat) for reproducible tests; the
+      // chosen move is what gets logged, so the brain need not be pure.
+      rng: deriveRng(`${next.rngSeed}:bot${seat}`, next.version),
+    });
+    const result = await this.handle({
+      kind: "action",
+      gameId: meta.gameId,
+      commandId: `bot:${bot.id}:seat${seat}:v${next.version}`,
+      actor: { userId: null, botId: bot.id },
+      seat,
+      expectedVersion: next.version,
+      data: move,
+    });
+    if (!result.ok) {
+      // A rejection here (e.g. a race lost the version) is expected and
+      // harmless — the winning transition already advanced the game.
+      console.error(`in-DO bot move not applied (${result.code}) for game ${meta.gameId} seat ${seat}: ${result.message}`);
+    }
+  }
+
+  /** External bot: POST a signed wake carrying the bot's freshly-committed
+   * observation, so the bot needs no callback to fetch state. Fire-and-forget
+   * (§7/§8): a single attempt, no retry, and we neither wait for nor act on the
+   * result — the move arrives later on `/api/bot/action`, and a lost or bounced
+   * wake rides the turn deadline. A failure is therefore logged, never thrown;
+   * the only bound is `WAKE_TIMEOUT_MS`, capping the held connection. */
+  async #wakeExternalBot(meta: MetaRow, bot: Extract<Bot, { type: "external" }>, seat: number, observation: ObservationSlice, next: StateRow): Promise<void> {
+    const secret = this.#botSigningSecret();
+    if (secret === null) {
+      console.error(`external bot wake skipped (BOT_SIGNING_SECRET not configured) for game ${meta.gameId} seat ${seat}`);
+      return;
+    }
+    const body = JSON.stringify({
+      game_id: meta.gameId,
+      bot_id: bot.id,
+      player_index: seat,
+      observation: observation.data,
+      version: next.version,
+      pending_players: observation.pending_players,
+      turn_deadline: next.deadline,
+    });
+    const signature = await signForBot(secret, bot.id, "wake", body);
+    try {
+      const res = await fetch(bot.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Eigen-Signature": signature },
+        body,
+        signal: AbortSignal.timeout(WAKE_TIMEOUT_MS),
+      });
+      await res.body?.cancel();
+      if (!res.ok) console.warn(`external bot wake for game ${meta.gameId} seat ${seat} got HTTP ${res.status} — ignored (the turn deadline backstops it)`);
+    } catch (error) {
+      console.warn(`external bot wake for game ${meta.gameId} seat ${seat} failed — ignored (the turn deadline backstops it)`, error);
+    }
+  }
+
+  /** FCM turn/finish pushes (§7): a "your turn" push to each newly-waiting
+   * human, and a "game over" push to every human when the game ends. Skipped
+   * wholesale when FCM is not configured (no service account) — pushes are
+   * best-effort (§8). Each `pushToUser` catches and logs on its own. */
+  async #pushNotifications(meta: MetaRow, _roster: Seat[], plan: CommitPlan): Promise<void> {
+    const sa = readServiceAccount(this.env);
+    if (sa === null) return;
+    const d1 = this.d1(this.env);
+    for (const effect of plan.effects) {
+      if (effect.kind === "notify_turn") {
+        await pushToUser(d1, sa, effect.user_id, turnPush(meta.gameId));
+      } else if (effect.kind === "notify_finished") {
+        await Promise.all(effect.user_ids.map((userId) => pushToUser(d1, sa, userId, finishPush(meta.gameId))));
+      }
+    }
+  }
+
+  /** The engine bot-signing master secret, read from env by the documented
+   * `BOT_SIGNING_SECRET` convention (mirrors `FIREBASE_PROJECT_ID`). Null when
+   * unset — external bots are then unsupported and their wakes are skipped. */
+  #botSigningSecret(): string | null {
+    const secret = (this.env as Record<string, unknown>).BOT_SIGNING_SECRET;
+    return typeof secret === "string" && secret.length > 0 ? secret : null;
   }
 
   // ── Finish (§4.5 steps 3–4) ───────────────────────────────────────────────

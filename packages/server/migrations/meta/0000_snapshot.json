@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7602c31c-7afb-4754-92df-078ef3548790",
+  "id": "62d138d5-643c-467f-9d3f-5ed86724c4cd",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -42,9 +42,9 @@
           "notNull": true,
           "autoincrement": false
         },
-        "is_local": {
-          "name": "is_local",
-          "type": "integer",
+        "type": {
+          "name": "type",
+          "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -90,7 +90,16 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "bots_webhook_matches_type": {
+          "name": "bots_webhook_matches_type",
+          "value": "(\"bots\".\"type\" = 'external') = (\"bots\".\"webhook_url\" IS NOT NULL)"
+        },
+        "bots_type_valid": {
+          "name": "bots_type_valid",
+          "value": "\"bots\".\"type\" IN ('engine', 'external', 'local')"
+        }
+      }
     },
     "device_installations": {
       "name": "device_installations",

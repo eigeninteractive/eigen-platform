@@ -30,11 +30,12 @@ export type Command =
       gameId: string;
       commandId: string;
       actor: Principal;
-      /** Omitted for humans — the DO resolves the seat from its own roster
-       * (the authoritative copy; the D1 mirror only displays, §4.2). Bots
-       * name theirs: one bot id may hold several seats. A named seat must
-       * belong to the actor or the DO throws. */
-      seat?: number;
+      /** The acting seat — carried uniformly by humans and bots (§4.2). The
+       * DO verifies it belongs to the actor (user id from the token, bot id
+       * from the HMAC claim) against its own roster and rejects otherwise, so
+       * a client can never act on a seat it does not hold. Required because
+       * one bot id may hold several seats, and uniform for one code path. */
+      seat: number;
       /** The version the client computed the move against — a lower value is
        * arbitrated by the same-view rule (§3.5). */
       expectedVersion: number;
@@ -47,8 +48,9 @@ export type Command =
       /** Null for identity-less system lifecycles (timeout, auto_forfeit). */
       actor: Principal | null;
       type: LifecycleType;
-      /** The affected seat; forfeit resolves it from the actor when omitted,
-       * timeout never carries one (resolves all pending). */
+      /** The affected seat: `forfeit` carries the resigning seat (verified
+       * against the actor, like an action); `auto_forfeit` the purged seat;
+       * `timeout` carries none (it resolves all pending). */
       seat?: number;
     };
 

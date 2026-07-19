@@ -3,7 +3,7 @@
   "info": {
     "title": "Eigen Engine API",
     "version": "1.0.0",
-    "description": "The server-authoritative game engine API. All routes require a Firebase ID token."
+    "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated (§7)."
   },
   "security": [
     {
@@ -16,7 +16,13 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "A Firebase ID token."
+        "description": "A Firebase ID token, sent as `Authorization: Bearer <token>` (or `?token=` on WebSocket upgrades)."
+      },
+      "botHmac": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Eigen-Signature",
+        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain (§7). Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction."
       }
     },
     "schemas": {
@@ -351,9 +357,6 @@
           "schema_version": {
             "type": "integer"
           },
-          "is_local": {
-            "type": "boolean"
-          },
           "rated_eligible": {
             "type": "boolean"
           },
@@ -367,7 +370,6 @@
           "display_name",
           "avatar_url",
           "schema_version",
-          "is_local",
           "rated_eligible",
           "config"
         ]
@@ -560,118 +562,14 @@
           "max_players"
         ]
       },
-      "LobbyAccepted": {
+      "SoloStarted": {
         "type": "object",
         "properties": {
-          "ok": {
-            "type": "boolean",
-            "enum": [
-              true
-            ]
-          },
-          "roster": {
-            "$ref": "#/components/schemas/Roster"
-          }
-        },
-        "required": [
-          "ok",
-          "roster"
-        ]
-      },
-      "Roster": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "roster"
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/GameStatus"
-          },
-          "players": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Seat"
-            }
-          }
-        },
-        "required": [
-          "type",
-          "status",
-          "players"
-        ]
-      },
-      "Join": {
-        "type": "object",
-        "properties": {
-          "client_schema_version": {
-            "type": "integer"
-          },
-          "command_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
-          }
-        },
-        "required": [
-          "client_schema_version"
-        ]
-      },
-      "JoinByCode": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Join"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "short_code": {
-                "type": "string",
-                "minLength": 1
-              }
-            },
-            "required": [
-              "short_code"
-            ]
-          }
-        ]
-      },
-      "LobbyCommand": {
-        "type": "object",
-        "properties": {
-          "command_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
-          }
-        }
-      },
-      "AddBot": {
-        "type": "object",
-        "properties": {
-          "bot_id": {
+          "game_id": {
             "type": "string"
           },
-          "command_id": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
-          }
-        },
-        "required": [
-          "bot_id"
-        ]
-      },
-      "CommandAccepted": {
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean",
-            "enum": [
-              true
-            ]
+          "short_code": {
+            "type": "string"
           },
           "version": {
             "type": "integer"
@@ -681,7 +579,8 @@
           }
         },
         "required": [
-          "ok",
+          "game_id",
+          "short_code",
           "version",
           "frame"
         ]
@@ -813,9 +712,200 @@
           "display_change"
         ]
       },
+      "CreateSolo": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "type": "integer"
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": {},
+            "default": {}
+          },
+          "min_players": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_players": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "rated": {
+            "type": "boolean"
+          },
+          "bot_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "turn_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "default": null
+          },
+          "budget_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "default": null
+          },
+          "increment_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "exclusiveMinimum": 0,
+            "default": null
+          }
+        },
+        "required": [
+          "schema_version",
+          "min_players",
+          "max_players",
+          "bot_ids"
+        ]
+      },
+      "LobbyAccepted": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "roster": {
+            "$ref": "#/components/schemas/Roster"
+          }
+        },
+        "required": [
+          "ok",
+          "roster"
+        ]
+      },
+      "Roster": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "roster"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/GameStatus"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Seat"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "status",
+          "players"
+        ]
+      },
+      "Join": {
+        "type": "object",
+        "properties": {
+          "client_schema_version": {
+            "type": "integer"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "client_schema_version"
+        ]
+      },
+      "JoinByCode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Join"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "short_code": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "short_code"
+            ]
+          }
+        ]
+      },
+      "LobbyCommand": {
+        "type": "object",
+        "properties": {
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        }
+      },
+      "AddBot": {
+        "type": "object",
+        "properties": {
+          "bot_id": {
+            "type": "string"
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "bot_id"
+        ]
+      },
+      "CommandAccepted": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "frame": {
+            "$ref": "#/components/schemas/Frame"
+          }
+        },
+        "required": [
+          "ok",
+          "version",
+          "frame"
+        ]
+      },
       "Action": {
         "type": "object",
         "properties": {
+          "seat": {
+            "type": "integer",
+            "minimum": 0
+          },
           "data": {},
           "expected_version": {
             "type": "integer",
@@ -828,7 +918,25 @@
           }
         },
         "required": [
+          "seat",
           "expected_version"
+        ]
+      },
+      "Forfeit": {
+        "type": "object",
+        "properties": {
+          "seat": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "command_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "seat"
         ]
       },
       "Frames": {
@@ -844,12 +952,54 @@
         "required": [
           "frames"
         ]
+      },
+      "BotActionAccepted": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "BotAction": {
+        "type": "object",
+        "properties": {
+          "bot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "game_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "player_index": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "data": {}
+        },
+        "required": [
+          "bot_id",
+          "game_id",
+          "player_index",
+          "version"
+        ]
       }
     },
     "parameters": {}
   },
   "paths": {
-    "/api/lobby": {
+    "/api/engine/lobby": {
       "get": {
         "operationId": "getLobby",
         "parameters": [
@@ -919,7 +1069,7 @@
         }
       }
     },
-    "/api/games/mine": {
+    "/api/engine/games/mine": {
       "get": {
         "operationId": "getMyGames",
         "parameters": [
@@ -1002,7 +1152,7 @@
         }
       }
     },
-    "/api/games/{gameId}": {
+    "/api/engine/games/{gameId}": {
       "get": {
         "operationId": "getGame",
         "parameters": [
@@ -1070,7 +1220,7 @@
         }
       }
     },
-    "/api/players": {
+    "/api/engine/players": {
       "get": {
         "operationId": "getPlayers",
         "parameters": [
@@ -1138,7 +1288,7 @@
         }
       }
     },
-    "/api/bots": {
+    "/api/engine/bots": {
       "get": {
         "operationId": "getBots",
         "responses": {
@@ -1195,7 +1345,7 @@
         }
       }
     },
-    "/api/me": {
+    "/api/engine/me": {
       "get": {
         "operationId": "getProfile",
         "responses": {
@@ -1252,7 +1402,7 @@
         }
       }
     },
-    "/api/me/ratings": {
+    "/api/engine/me/ratings": {
       "get": {
         "operationId": "getMyRatings",
         "responses": {
@@ -1309,7 +1459,7 @@
         }
       }
     },
-    "/api/me/rating-history": {
+    "/api/engine/me/rating-history": {
       "get": {
         "operationId": "getMyRatingHistory",
         "parameters": [
@@ -1387,7 +1537,7 @@
         }
       }
     },
-    "/api/games": {
+    "/api/engine/games": {
       "post": {
         "operationId": "createGame",
         "requestBody": {
@@ -1474,7 +1624,94 @@
         }
       }
     },
-    "/api/games/{gameId}/join": {
+    "/api/engine/games/solo": {
+      "post": {
+        "operationId": "createSoloGame",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSolo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created-and-started solo game",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SoloStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "State conflict — resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Assertion mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/games/{gameId}/join": {
       "post": {
         "operationId": "joinGame",
         "parameters": [
@@ -1572,7 +1809,7 @@
         }
       }
     },
-    "/api/games/join-by-code": {
+    "/api/engine/games/join-by-code": {
       "post": {
         "operationId": "joinGameByCode",
         "requestBody": {
@@ -1659,7 +1896,7 @@
         }
       }
     },
-    "/api/games/{gameId}/leave": {
+    "/api/engine/games/{gameId}/leave": {
       "post": {
         "operationId": "leaveGame",
         "parameters": [
@@ -1757,7 +1994,7 @@
         }
       }
     },
-    "/api/games/{gameId}/cancel": {
+    "/api/engine/games/{gameId}/cancel": {
       "post": {
         "operationId": "cancelGame",
         "parameters": [
@@ -1855,7 +2092,7 @@
         }
       }
     },
-    "/api/games/{gameId}/add-bot": {
+    "/api/engine/games/{gameId}/add-bot": {
       "post": {
         "operationId": "addBot",
         "parameters": [
@@ -1953,7 +2190,7 @@
         }
       }
     },
-    "/api/games/{gameId}/start": {
+    "/api/engine/games/{gameId}/start": {
       "post": {
         "operationId": "startGame",
         "parameters": [
@@ -2051,7 +2288,7 @@
         }
       }
     },
-    "/api/games/{gameId}/action": {
+    "/api/engine/games/{gameId}/action": {
       "post": {
         "operationId": "submitAction",
         "parameters": [
@@ -2149,7 +2386,7 @@
         }
       }
     },
-    "/api/games/{gameId}/forfeit": {
+    "/api/engine/games/{gameId}/forfeit": {
       "post": {
         "operationId": "forfeitGame",
         "parameters": [
@@ -2168,7 +2405,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LobbyCommand"
+                "$ref": "#/components/schemas/Forfeit"
               }
             }
           }
@@ -2247,7 +2484,7 @@
         }
       }
     },
-    "/api/games/{gameId}/frames": {
+    "/api/engine/games/{gameId}/frames": {
       "get": {
         "operationId": "getFrames",
         "parameters": [
@@ -2353,6 +2590,74 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bot/action": {
+      "post": {
+        "operationId": "botAction",
+        "security": [
+          {
+            "botHmac": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BotAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The move was accepted and applied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BotActionAccepted"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
                 }
               }
             }
