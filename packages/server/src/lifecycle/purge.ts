@@ -1,5 +1,5 @@
 /**
- * Account deletion & guest purge (engine_stack.md §4.7) — the one path shared
+ * Account deletion & guest purge — the one path shared
  * by the `DELETE /api/engine/me` route and the cron guest sweep.
  *
  * Order is **games → Firebase → D1**, a deliberate departure from the old
@@ -11,12 +11,12 @@
  *
  *   1. resolve the user's live games and forfeit / cancel / leave each (a
  *      rated forfeit applies ratings while the user row still exists);
- *   2. delete the Firebase account (single attempt, §8) — on failure we throw
+ *   2. delete the Firebase account (single attempt) — on failure we throw
  *      BEFORE touching D1, so nothing is half-deleted and a retry is clean;
  *   3. run the D1 purge as one `batch()`.
  *
  * D1 has no FK cascades, so the preserve-vs-delete is explicit (mirrors the
- * old §22 table): seats and created_by are anonymized (SET NULL) to keep
+ * old table): seats and created_by are anonymized (SET NULL) to keep
  * finished-game history readable as "Deleted User"; ratings, history,
  * relationships, and device rows are deleted; the `users` row goes last.
  */
@@ -50,7 +50,7 @@ interface LiveSeat {
 }
 
 /** The user's live games (waiting/ready/active) with their seat — through the
- * participants index (§5.2). No limit: a deletion must clear every one. */
+ * participants index. No limit: a deletion must clear every one. */
 async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]> {
   const rows = await drizzle(d1)
     .select({ gameId: games.id, status: games.status, createdBy: games.createdBy, seat: participants.playerIndex })
@@ -62,7 +62,7 @@ async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]
 }
 
 /** Clear the user from one live game: forfeit an active game, cancel a lobby
- * they created, else leave it. Single attempt (§8) — a failure logs and the
+ * they created, else leave it. Single attempt — a failure logs and the
  * rest of the purge continues (an orphaned seat is caught by the cron reap /
  * timeout, never blocking the account deletion). */
 async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promise<void> {
@@ -76,7 +76,7 @@ async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promis
   }
 }
 
-/** The §22 preserve-vs-delete, as one D1 transaction. Anonymize the seats and
+/** The preserve-vs-delete, as one D1 transaction. Anonymize the seats and
  * created_by (history stays readable); delete the personal rows; the `users`
  * row last. */
 async function purgeD1(d1: D1Database, userId: string): Promise<void> {
@@ -92,7 +92,7 @@ async function purgeD1(d1: D1Database, userId: string): Promise<void> {
   ]);
 }
 
-/** Delete `userId` end to end (§4.7). Throws only if the Firebase delete
+/** Delete `userId` end to end. Throws only if the Firebase delete
  * fails — the D1 purge is then intentionally skipped so the account stays
  * fully retriable (never resurrectable). The caller decides what a throw
  * means: the route surfaces an error; the cron logs and moves on. */
@@ -105,13 +105,13 @@ export async function purgeUser(ops: EngineOps, userId: string): Promise<void> {
   } else {
     // No service account configured: we cannot delete the Firebase credential,
     // so the D1 row is reclaimed but the account could re-provision on the next
-    // request. A real deployment sets FIREBASE_* (§7); tests never re-request.
+    // request. A real deployment sets FIREBASE_*; tests never re-request.
     console.warn(`purge: FIREBASE_* not configured — deleting D1 data for ${userId} but not the Firebase account`);
   }
 
   await purgeD1(ops.d1, userId);
 
-  // Best-effort (§8): the avatar object outlives the D1 row otherwise. A
+  // Best-effort: the avatar object outlives the D1 row otherwise. A
   // failure just leaves an orphaned blob — harmless, no identity points at it.
   if (ops.avatarBucket !== null) {
     await ops.avatarBucket.delete(userId).catch((error) => console.error(`purge: deleting avatar for ${userId} failed`, error));

@@ -1,5 +1,5 @@
 /**
- * The game-history read seam (engine_stack.md §4.6, seam #2). Finished-game
+ * The game-history read seam (seam #2). Finished-game
  * replay fetches its projected transitions through this ~20-line interface, so
  * the source of history can change without touching the replay route.
  *

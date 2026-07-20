@@ -1,5 +1,5 @@
 /**
- * The D1 schema (engine_stack.md §5.2) — the global store: identity, social,
+ * The D1 schema — the global store: identity, social,
  * bots, ratings, and game summary rows. A read-model + registry, never an
  * arbiter: live game truth is each game's DO; D1 is what lists, lobbies,
  * leaderboards, and profiles read. Never wake a DO to serve a read.
@@ -40,8 +40,8 @@ export const users = sqliteTable(
   (t) => [index("idx_users_username").on(t.username)],
 );
 
-/** The game summary/read-model row (§4.1: created worker-direct, before the
- * DO exists; §4.2: updated post-commit from DO effects, accepted staleness). */
+/** The game summary/read-model row (created worker-direct, before the
+ * DO exists;: updated post-commit from DO effects, accepted staleness). */
 export const games = sqliteTable(
   "games",
   {
@@ -66,12 +66,12 @@ export const games = sqliteTable(
     turnDeadline: integer("turn_deadline"),
     /** Folded former game_outcomes table — written once by the finish apply. */
     outcomes: text("outcomes", { mode: "json" }).$type<OutcomeEntry[] | null>(),
-    /** §3.6: the D1 apply's idempotency key; set when the apply lands. */
+    /**: the D1 apply's idempotency key; set when the apply lands. */
     finishId: text("finish_id"),
     /** Stamped by the finish apply (and the future abort path) — history
      * lists sort by it, as the Supabase era did. */
     finishedAt: integer("finished_at"),
-    /** §4.6 seam: NULL = history lives in the game's DO. V1 never writes or
+    /** seam: NULL = history lives in the game's DO. V1 never writes or
      * reads it; the future cold-tier sweep starts stamping it. */
     archivedAt: integer("archived_at"),
     createdAt: integer("created_at").notNull(),
@@ -124,7 +124,7 @@ export const relationships = sqliteTable(
   (t) => [uniqueIndex("idx_relationships_pair").on(t.userId1, t.userId2), index("idx_relationships_user2").on(t.userId2)],
 );
 
-/** How a bot's moves are produced (§7) — the dispatch discriminator:
+/** How a bot's moves are produced — the dispatch discriminator:
  * - `engine`: the brain ships in the game's `GameModule` as
  *   `GameRules.botActions[username]`, run in-process by the DO;
  * - `external`: the bot is hosted elsewhere and woken over HMAC (`webhook_url`
@@ -134,7 +134,7 @@ export const relationships = sqliteTable(
  * Replaces the Supabase-era `is_local` boolean. */
 export type BotType = "engine" | "external" | "local";
 
-/** Bot registry (§7). `type` selects the dispatch path; `webhook_url` is
+/** Bot registry. `type` selects the dispatch path; `webhook_url` is
  * required for (and only for) `external`. `username` is the stable,
  * human-readable key the game's `botActions` map is keyed by for `engine`
  * bots. */
@@ -162,7 +162,7 @@ export const bots = sqliteTable(
 );
 
 /** Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
- * set. `revision` is the CAS counter (§4.5): the finish apply reads
+ * set. `revision` is the CAS counter: the finish apply reads
  * (mu, sigma, revision), computes in TS, updates WHERE revision matches, and
  * recomputes on conflict — the fix for the legacy concurrent-finish
  * lost-update bug. */

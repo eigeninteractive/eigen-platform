@@ -1,10 +1,10 @@
 /**
- * D1 user provisioning (engine_stack.md §6): a `users` row appears on first
+ * D1 user provisioning: a `users` row appears on first
  * sight of a verified token — the Cloudflare replacement for the Supabase-era
  * `handle_new_user` trigger, porting its username rules: derived from the
  * email local part (sanitised to the `^[a-z0-9_.]{3,20}$` charset the future
  * username-edit route will enforce), or a generated `player_NNNNN` handle for
- * guests. The §25 guest lifecycle carries over: `linkWithCredential`
+ * guests. The guest lifecycle carries over: `linkWithCredential`
  * preserves the uid, so conversion is an UPDATE backfill on the same row —
  * and per the old product decision, the provider's display name and avatar
  * OVERWRITE whatever the guest had, while the username stays the stable

@@ -67,13 +67,13 @@ const rules: GameRules = {
   computeObservation: ({ state, pending }) => ({ data: state as JsonObject, pending_players: pending }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
-  // In-DO brains (§7), keyed by bot username: the `test-engine-bot` always
+  // In-DO brains, keyed by bot username: the `test-engine-bot` always
   // adds 1, so a human-vs-bot race advances two versions per human move.
   // Deterministic — no rng needed.
   botActions: { "test-engine-bot": () => ({ add: 1 }) },
 };
 
-/** A second version with HIDDEN state (§5.3 leak test): `secret` rides the raw
+/** A second version with HIDDEN state (leak test): `secret` rides the raw
  * state through every transition but `computeObservation` never projects it —
  * not even in replay. `leak.spec.ts` asserts the sentinel escapes through no
  * response body or socket frame. */
@@ -130,7 +130,7 @@ export class GameDO extends BaseGameDO<TestEnv> {
   }
 }
 
-/** The deployed shape (§2.3), with the §6 test auth seam: the same verifier
+/** The deployed shape, with the test auth seam: the same verifier
  * code path production uses, against the checked-in local JWKS. */
 export default createEngine({
   gameModule: testGame,
@@ -138,7 +138,7 @@ export default createEngine({
   d1: (env: TestEnv) => env.DB,
   gameDO: (env: TestEnv) => env.GAME_DO,
   auth: testVerifier(),
-  // §2.4 deep linking + §5.4 avatars — exercised by web.spec.ts. Avatars use
+  // deep linking + avatars — exercised by web.spec.ts. Avatars use
   // the simulated AVATARS bucket; publicBaseUrl is left unset (the worker-serve
   // default), so avatar_url is the relative /avatars/{uid} route.
   deepLink: {

@@ -1,5 +1,5 @@
 /**
- * `@eigen/server` — everything that deploys (engine_stack.md §2.1): the
+ * `@eigen/server` — everything that deploys: the
  * `createEngine` API factory, the GameDO base class, the D1 applier +
  * schemas, and the protocol types.
  */

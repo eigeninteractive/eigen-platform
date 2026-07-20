@@ -1,5 +1,5 @@
 /**
- * Deep linking & share pages (engine_stack.md §2.4) — the game worker is the
+ * Deep linking & share pages — the game worker is the
  * link host. Three unauthed, non-OpenAPI routes, generated from the
  * `deepLink` config so there is one source of truth and no hand-maintained
  * JSON:
@@ -48,7 +48,7 @@ export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
     app.get("/.well-known/apple-app-site-association", (c) => c.body(body, 200, { "Content-Type": "application/json" }));
   }
 
-  // The share/landing page — the not-installed fallback (§2.4).
+  // The share/landing page — the not-installed fallback.
   app.get("/j/:shortCode", async (c) => {
     const stores: { label: string; url: string }[] = [];
     if (cfg.apple?.storeUrl !== undefined) stores.push({ label: "App Store", url: cfg.apple.storeUrl });

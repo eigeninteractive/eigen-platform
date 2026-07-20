@@ -198,7 +198,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
     return true;
   }
 
-  /** The in-DO brains (§7), keyed by bot username. RPS ships one engine bot,
+  /** The in-DO brains, keyed by bot username. RPS ships one engine bot,
    * `rps-random`, which throws a uniformly random move: seat a registry row
    * with `type: 'engine'` and `username: 'rps-random'` and the DO runs this
    * post-commit whenever that bot is due. A second personality would be

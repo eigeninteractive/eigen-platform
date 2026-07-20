@@ -1,5 +1,5 @@
 /**
- * Firebase ID-token verification (engine_stack.md §6) — jose against Google's
+ * Firebase ID-token verification — jose against Google's
  * securetoken JWKS, plus the Firebase claim checks. ~40 lines of our code, by
  * design: the user explicitly rejected `firebase-auth-cloudflare-workers`.
  * Only `FIREBASE_PROJECT_ID` is needed to verify; the service-account trio is

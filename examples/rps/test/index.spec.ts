@@ -1,6 +1,6 @@
 /**
  * End-to-end through the real API: create → join → start → simultaneous
- * commits (the §3.5 same-view acceptance, live through the whole stack) →
+ * commits (the same-view acceptance, live through the whole stack) →
  * finish → D1 summary → viewer replay with the post-game reveal.
  */
 
@@ -43,7 +43,7 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   expect((await joined.json()) as object).toMatchObject({ ok: true, roster: { status: "ready" } });
 
   // No mirror wait: the DO seats Bob on the join command and verifies the
-  // seat each client sends against its own roster (§4.2), so Bob can act the
+  // seat each client sends against its own roster, so Bob can act the
   // moment his join returns.
   const db = drizzle(env.rps_dev);
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
@@ -68,7 +68,7 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
     .toBe("finished");
 
   // A non-participant replays the finished public game as viewer: the
-  // post-game projection reveals the hidden commits (§4.6).
+  // post-game projection reveals the hidden commits.
   const replay = await api(VIEWER, "GET", `/games/${gameId}/frames?from=0&to=10`);
   const { frames } = (await replay.json()) as { frames: { version: number; data: { commits?: unknown } }[] };
   expect(frames.map((f) => f.version)).toEqual([0, 1, 2]);

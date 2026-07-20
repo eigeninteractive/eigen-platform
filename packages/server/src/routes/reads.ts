@@ -1,5 +1,5 @@
 /**
- * The read routes (engine_stack.md §5.2): worker → D1, never a DO — lobby,
+ * The read routes: worker → D1, never a DO — lobby,
  * my-games (through the participants index), the game summary, the batch
  * players endpoint, the bot catalog, and the caller's profile + ratings.
  */
@@ -61,7 +61,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}",
       operationId: "getGame",
       request: { params: z.object({ gameId: z.string().min(1) }) },
-      responses: okResponse(gameSummaryShape, "The game summary — never state (§5.3)"),
+      responses: okResponse(gameSummaryShape, "The game summary — never state"),
     }),
     async (c) => {
       const game = await readGame(ctx.d1(c.env), c.req.valid("param").gameId);

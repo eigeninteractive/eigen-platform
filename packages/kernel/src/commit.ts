@@ -1,5 +1,5 @@
 /**
- * `commit()` — the pure, serialized heart of the engine (§3.1 of
+ * `commit()` — the pure, serialized heart of the engine (of
  * `docs/engine_stack.md`). One state transition in, one {@link CommitPlan}
  * (or {@link Rejected}) out. Zero I/O, zero platform imports, injected clock:
  * the host (a Durable Object) loads the snapshot, calls this, and applies the
@@ -126,7 +126,7 @@ export interface CommitInput {
  * null for identity-less system actions (timeout, auto-forfeit).
  *
  * The `ratings` variant is engine-owned, never produced by `commit()`: the
- * host appends it as the post-finish ratings transition (§4.5 step 3) once
+ * host appends it as the post-finish ratings transition (step 3) once
  * the D1 apply returns the deltas. Game hooks never see it — its data is the
  * engine's, not the game's opaque payload. */
 export type TransitionAction = { type: "user" | "bot"; kind: "game"; data: JsonObject; player_index: number } | { type: ActionType; kind: "lifecycle"; data: LifecycleAction; player_index: number | null } | { type: "system"; kind: "ratings"; data: { deltas: RatingDelta[] }; player_index: null };
@@ -223,7 +223,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     return reject("state_updated", `Expected version ${intent.expectedVersion} is ahead of the game ` + `(current ${state.version})`);
   }
   if (intent.expectedVersion < state.version) {
-    // The same-view rule (§3.5): the stale intent transfers iff this seat's
+    // The same-view rule: the stale intent transfers iff this seat's
     // own projected view is unchanged between the two versions. Missing
     // frames (never stored, or already compacted) reject conservatively.
     const views = input.staleViews;

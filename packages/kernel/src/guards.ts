@@ -88,7 +88,7 @@ export interface SeatView {
   pending_players: number[];
 }
 
-/** The same-view rule (§3.5): a stale-`expectedVersion` action is accepted
+/** The same-view rule: a stale-`expectedVersion` action is accepted
  * iff the acting seat's own projected observation — slice `data` plus the
  * seat's *observed* pending set — is identical between the expected and
  * current versions, ignoring version/timing bookkeeping. Identical view ⇒ the

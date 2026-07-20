@@ -1,5 +1,5 @@
 /**
- * Device registration (engine_stack.md §7) — the FCM push-target ingress that
+ * Device registration — the FCM push-target ingress that
  * makes `notify/push.ts` deliverable. Verifies the upsert-on-FID reassignment
  * and the caller-scoped delete, the two behaviours the Supabase-era
  * `app_upsert_device_installation` / `app_delete_device_installation` RPCs had.
@@ -29,7 +29,7 @@ async function fidOwner(fid: string): Promise<string | undefined> {
   return row?.userId;
 }
 
-describe("device registration (§7)", () => {
+describe("device registration", () => {
   it("registers, then reassigns the FID to whoever last signed in", async () => {
     const a = uid("dev-a");
     const b = uid("dev-b");

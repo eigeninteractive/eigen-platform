@@ -4,7 +4,7 @@
  * convention, carried from the Supabase era); the OpenAPI document is
  * generated from exactly these schemas and vendored into the Dart repo.
  *
- * Leak-test discipline (§5.3): no projection here ever touches a state
+ * Leak-test discipline: no projection here ever touches a state
  * field — raw state never leaves the DO, and the games row carries none.
  */
 
@@ -80,7 +80,7 @@ export const rosterShape = z
   .openapi("Roster");
 
 /** An accepted state-transitioning command: the committed version, plus the
- * acting seat's own frame riding the response (§4.3). */
+ * acting seat's own frame riding the response. */
 export const commandAcceptedShape = z
   .object({
     ok: z.literal(true),
@@ -201,7 +201,7 @@ export const createGameBody = z
 
 export const createdShape = z.object({ game_id: z.string(), short_code: z.string() }).openapi("Created");
 
-/** Create-solo (§7): a private game seated with the caller plus one or more
+/** Create-solo: a private game seated with the caller plus one or more
  * bots, created and started in one call. Same timing/config fields as
  * `createGameBody` (no `access` — solo games are always private) plus the
  * bots to seat. */
@@ -226,13 +226,13 @@ export const createSoloBody = z
 export const soloStartedShape = z.object({ game_id: z.string(), short_code: z.string(), version: z.number().int(), frame: frameShape.nullable() }).openapi("SoloStarted");
 
 /** Client retries reuse the same command_id — the DO replays the stored
- * response instead of re-executing (§3.6). */
+ * response instead of re-executing. */
 const commandId = z.string().min(1).max(128).optional();
 
 export const joinBody = z
   .object({
     /** The newest schema_version this client build ships rules for — the
-     * §4.2 schema gate (an old app cannot join a newer game). */
+     * schema gate (an old app cannot join a newer game). */
     client_schema_version: z.number().int(),
     command_id: commandId,
   })
@@ -246,7 +246,7 @@ export const addBotBody = z.object({ bot_id: z.string(), command_id: commandId }
 
 export const actionBody = z
   .object({
-    /** The caller's own seat (§4.2) — verified against the roster at the DO;
+    /** The caller's own seat — verified against the roster at the DO;
      * a seat the caller doesn't hold is rejected. Carried uniformly with bots. */
     seat: z.number().int().min(0),
     /** Game-defined move payload; parsed by the version unit's action schema. */

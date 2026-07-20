@@ -1,9 +1,9 @@
 /**
- * Turn/finish push orchestration (engine_stack.md §7) — the DB-touching half
+ * Turn/finish push orchestration — the DB-touching half
  * of the FCM flow: resolve a user's device FIDs, send, and prune permanently
  * dead installations. The pure send lives in {@link ./fcm.js}.
  *
- * Best-effort and single-attempt (§8): every entry point catches its own
+ * Best-effort and single-attempt: every entry point catches its own
  * errors and logs, so a caller can fire them unawaited without an outer guard
  * (in the DO that's a bare post-commit call — no `waitUntil`). A human's
  * push has no retry — the game state is the truth and the app catches up on

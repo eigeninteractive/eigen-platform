@@ -1,5 +1,5 @@
 /**
- * Opt-in avatar uploads (engine_stack.md §5.4). R2 has no RLS and no
+ * Opt-in avatar uploads. R2 has no RLS and no
  * client-direct writes, so uploads go through the worker: a raw-binary
  * `PUT /api/engine/me/avatar` (authed) streams the image to R2 under key =
  * uid, and a public `GET /avatars/:uid` serves it with a long immutable cache.
@@ -54,7 +54,7 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
 
 export function registerAvatarServe(app: EngineApp, ctx: RouteContext): void {
   const avatars = ctx.avatars as ResolvedAvatars;
-  // Public, unauthed — avatars are world-readable (§5.4). The `?v` query is a
+  // Public, unauthed — avatars are world-readable. The `?v` query is a
   // client cache-buster; the object key is the uid alone.
   app.get("/avatars/:uid", async (c) => {
     const object = await avatars.bucket(c.env).get(c.req.param("uid"));

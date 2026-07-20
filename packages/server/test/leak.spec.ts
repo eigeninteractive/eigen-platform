@@ -1,5 +1,5 @@
 /**
- * The leak test (engine_stack.md §11, §5.3): with RLS gone, the kernel's
+ * The leak test: with RLS gone, the kernel's
  * per-seat projection is the ONLY thing keeping hidden state server-side. This
  * drives a full lifecycle of the hidden-info version-2 game (whose raw state
  * carries `LEAK_SENTINEL`, stripped by `computeObservation`) and asserts the
@@ -27,7 +27,7 @@ async function clean(res: Response, label: string): Promise<string> {
   return text;
 }
 
-describe("leak test (§11)", () => {
+describe("leak test", () => {
   it("never surfaces hidden state through any response body or socket frame", async () => {
     const a = `leak-a-${crypto.randomUUID()}`;
     const b = `leak-b-${crypto.randomUUID()}`;

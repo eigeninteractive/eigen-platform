@@ -1,7 +1,7 @@
 /**
- * Account deletion & the cron backstop (engine_stack.md §4.7): the
+ * Account deletion & the cron backstop: the
  * delete-account route, the stale-guest purge and abandoned-game reap run by
- * the `scheduled` handler, and the applyFinish purge guard (§4.5) that keeps a
+ * the `scheduled` handler, and the applyFinish purge guard that keeps a
  * deleted identity from being re-rated by a later finish.
  *
  * FIREBASE_* is unset in the test worker, so `purgeUser` skips the Firebase
@@ -48,7 +48,7 @@ async function runCron(): Promise<void> {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe("delete-account (§4.7)", () => {
+describe("delete-account", () => {
   it("cancels the creator's lobby and purges the user's D1 data", async () => {
     const a = uid("del-a");
     const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }));
@@ -80,7 +80,7 @@ describe("delete-account (§4.7)", () => {
   });
 });
 
-describe("cron: stale-guest purge (§4.7)", () => {
+describe("cron: stale-guest purge", () => {
   it("purges an old, inactive guest but keeps a fresh one and an active one", async () => {
     const stale = uid("guest-stale");
     const fresh = uid("guest-fresh");
@@ -103,7 +103,7 @@ describe("cron: stale-guest purge (§4.7)", () => {
   });
 });
 
-describe("cron: abandoned-game reap (§4.7)", () => {
+describe("cron: abandoned-game reap", () => {
   it("aborts a lobby nobody started in time", async () => {
     const a = uid("reap-a");
     const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }));
@@ -120,7 +120,7 @@ describe("cron: abandoned-game reap (§4.7)", () => {
   });
 });
 
-describe("applyFinish purge guard (§4.5)", () => {
+describe("applyFinish purge guard", () => {
   it("skips a rating write for a user who no longer exists, rating the rest", async () => {
     const present = uid("guard-present");
     const gone = uid("guard-gone"); // never inserted into `users`

@@ -9,7 +9,7 @@
   "main": "./worker.ts",
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["nodejs_compat"],
-  // §7 external-bot HMAC secret (a real deploy sets it with `wrangler secret`).
+  // external-bot HMAC secret (a real deploy sets it with `wrangler secret`).
   "vars": { "BOT_SIGNING_SECRET": "test-bot-signing-secret" },
   "exports": {
     "GameDO": {
@@ -32,7 +32,7 @@
       "database_id": "eigen-test"
     }
   ],
-  // §5.4 avatars — simulated R2 under vitest-pool-workers (.wrangler/state); no
+  // avatars — simulated R2 under vitest-pool-workers (.wrangler/state); no
   // real bucket, no card. Exercises the upload/serve/purge routes.
   "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "eigen-test-avatars" }],
   // The drizzle durable-sqlite migrations.js imports its .sql as text.

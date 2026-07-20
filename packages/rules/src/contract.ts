@@ -304,7 +304,7 @@ export interface GameRules<TState extends JsonObject = JsonObject, TAction exten
    * Return `true` to allow. */
   botSeatable(args: BotSeatableArgs<TConfig>): boolean;
 
-  /** Optional — the in-DO bot brains (§7), **keyed by bot username**. When a
+  /** Optional — the in-DO bot brains, **keyed by bot username**. When a
    * seated `engine`-type bot's turn starts, the engine resolves its registry
    * row's `username`, looks the move function up here, runs it post-commit,
    * and self-applies the returned move — so a bot game needs no external

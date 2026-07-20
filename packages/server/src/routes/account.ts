@@ -1,5 +1,5 @@
 /**
- * Account lifecycle (engine_stack.md §4.7) — the caller deleting their own
+ * Account lifecycle — the caller deleting their own
  * account. Runs the shared {@link purgeUser} path: forfeit/cancel/leave the
  * caller's live games, delete the Firebase account, then purge D1.
  *

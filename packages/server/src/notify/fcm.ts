@@ -1,11 +1,11 @@
 /**
- * FCM (HTTP v1) sender (engine_stack.md §7) — posts messages to the FCM
+ * FCM (HTTP v1) sender — posts messages to the FCM
  * endpoint with a bearer from the shared `google/oauth` token step. Pure FCM:
  * no database access (the FID lookup + stale-device pruning live in `push.ts`).
  *
  * If Firebase isn't configured (no `FIREBASE_*` service-account vars), callers
  * check {@link readServiceAccount} first and skip — pushes are best-effort by
- * nature (§8), so an unconfigured deployment simply sends none.
+ * nature, so an unconfigured deployment simply sends none.
  */
 
 import { accessToken, readServiceAccount, type ServiceAccount } from "../google/oauth.js";

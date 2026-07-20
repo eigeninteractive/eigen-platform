@@ -1,5 +1,5 @@
 /**
- * The worker ⇄ DO ⇄ client protocol types (engine_stack.md §3.3): commands
+ * The worker ⇄ DO ⇄ client protocol types: commands
  * are self-contained, pre-authenticated VALUES — loggable, replayable, and a
  * CI fixture is a JSON array of them. The worker verifies the Firebase token
  * and runs every policy check BEFORE minting a command; the DO enforces
@@ -18,7 +18,7 @@ export interface Principal {
   botId: string | null;
 }
 
-/** Everything that crosses the worker → DO boundary after creation (§4.1:
+/** Everything that crosses the worker → DO boundary after creation (
  * create itself is a worker-direct D1 write; the DO does not exist yet). */
 export type Command =
   | { kind: "join" | "leave"; gameId: string; commandId: string; actor: Principal }
@@ -30,14 +30,14 @@ export type Command =
       gameId: string;
       commandId: string;
       actor: Principal;
-      /** The acting seat — carried uniformly by humans and bots (§4.2). The
+      /** The acting seat — carried uniformly by humans and bots. The
        * DO verifies it belongs to the actor (user id from the token, bot id
        * from the HMAC claim) against its own roster and rejects otherwise, so
        * a client can never act on a seat it does not hold. Required because
        * one bot id may hold several seats, and uniform for one code path. */
       seat: number;
       /** The version the client computed the move against — a lower value is
-       * arbitrated by the same-view rule (§3.5). */
+       * arbitrated by the same-view rule. */
       expectedVersion: number;
       data: unknown;
     }
@@ -54,7 +54,7 @@ export type Command =
       seat?: number;
     };
 
-/** Why the DO refused a waiting-room command — the §4.2 integrity column.
+/** Why the DO refused a waiting-room command — the integrity column.
  * These are *expected* refusals (accepted lobby staleness: the lobby may show
  * a game that just filled), returned as values exactly like kernel
  * rejections; the worker maps them to HTTP. Genuine protocol violations
@@ -65,7 +65,7 @@ export type LobbyRejectCode =
   | "unknown_game"
   /** The game is no longer in a lobby status (`waiting`/`ready`). */
   | "not_joinable"
-  /** Every seat is taken — the §4.2 accepted lobby race. */
+  /** Every seat is taken — the accepted lobby race. */
   | "game_full"
   /** The actor already holds a seat. */
   | "already_joined"
@@ -73,10 +73,10 @@ export type LobbyRejectCode =
   | "not_participant"
   /** A creator-only command (`cancel`, `add-bot`, `start`) from a non-creator. */
   | "not_creator"
-  /** The creator cannot leave — they cancel instead (§4.2). */
+  /** The creator cannot leave — they cancel instead. */
   | "creator_cannot_leave";
 
-/** The unversioned pre-game snapshot (§4.2): pushed to every socket on any
+/** The unversioned pre-game snapshot: pushed to every socket on any
  * roster change, idempotent — a reconnect just gets the current one. Also the
  * response body of an accepted waiting-room command. */
 export interface RosterSnapshot {
@@ -101,7 +101,7 @@ export interface FrameMessage {
 }
 
 /** What `GameDO.handle()` returns; accepted results are stored for commandId
- * dedupe and replayed verbatim to a retry (§3.6). Rejections are computed
+ * dedupe and replayed verbatim to a retry. Rejections are computed
  * fresh each time — re-evaluating one is always sound. State-transitioning
  * commands answer with a version (+ the acting seat's frame); waiting-room
  * commands answer with the post-commit roster snapshot. */
@@ -115,7 +115,7 @@ export interface GameStub {
   handle(cmd: Command): Promise<CommandResult>;
   frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
   repokeFinish(): Promise<boolean>;
-  /** Unconditional teardown (§4.7): mark the game aborted, drop DO storage.
+  /** Unconditional teardown: mark the game aborted, drop DO storage.
    * Used by the cron reap for abandoned lobbies / untimed games — no creator
    * gate, unlike the `cancel` command. */
   abort(gameId: string): Promise<void>;

@@ -1,5 +1,5 @@
 /**
- * `@eigen/server/testing` — the §6 test-auth recipe, for the engine's own
+ * `@eigen/server/testing` — the test-auth recipe, for the engine's own
  * suite and for implementor test workers alike:
  *
  * ```ts

@@ -1,5 +1,5 @@
 /**
- * §6 auth suite: the jose verifier (unit, against the local JWKS) and the D1
+ * auth suite: the jose verifier (unit, against the local JWKS) and the D1
  * user provisioning through the live middleware (`/api/engine/me` over SELF).
  */
 
@@ -82,7 +82,7 @@ describe("middleware + provisioning", () => {
     const converted = (await (await SELF.fetch("https://x/api/engine/me", { headers: await bearer({ uid, email: "c@example.com", name: "Cara", picture: "https://p/c.png" }) })).json()) as { username: string; is_anonymous: boolean; email: string | null; display_name: string; avatar_url: string | null };
     expect(converted.is_anonymous).toBe(false);
     expect(converted.email).toBe("c@example.com");
-    // Product decision (§25): the provider's name and avatar overwrite.
+    // Product decision: the provider's name and avatar overwrite.
     expect(converted.display_name).toBe("Cara");
     expect(converted.avatar_url).toBe("https://p/c.png");
     // Same row: the guest's generated handle stays the stable username.

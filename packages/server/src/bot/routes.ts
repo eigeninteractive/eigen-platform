@@ -1,5 +1,5 @@
 /**
- * The external-bot webhook (engine_stack.md §7): `POST /api/bot/action`, where
+ * The external-bot webhook: `POST /api/bot/action`, where
  * an externally-hosted bot submits the move it decided after a wake.
  *
  * It shares the `/api` prefix with the client engine group but **not its auth**
@@ -64,7 +64,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       if (signature === undefined || signature.length === 0) throw new HttpError(401, "Missing signature");
       // Verify over the EXACT received bytes (Hono caches the body, so this is
       // the same text validation parsed), bound to the `action` domain, before
-      // trusting the claim (constant-time; §7). A bad signature is a flat 401 —
+      // trusting the claim (constant-time). A bad signature is a flat 401 —
       // no oracle about which field was wrong.
       const raw = await c.req.text();
       if (!(await verifyBotSignature(secret, claim.bot_id, "action", raw, signature))) {

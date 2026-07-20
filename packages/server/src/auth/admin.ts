@@ -1,11 +1,11 @@
 /**
  * Firebase Auth admin — the one privileged auth op the engine performs:
  * deleting a user's Firebase account during account deletion / guest purge
- * (engine_stack.md §4.7). Uses the Identity Toolkit admin REST endpoint with a
+ *. Uses the Identity Toolkit admin REST endpoint with a
  * service-account bearer (scope `identitytoolkit`), reusing the shared
  * `google/oauth` token step.
  *
- * Single attempt (§8): the caller decides what a failure means — the
+ * Single attempt: the caller decides what a failure means — the
  * delete-account route aborts before the D1 purge (so the account is never
  * left resurrectable), the cron guest-purge skips the guest and retries next
  * run. Verified against the Identity Platform reference (`accounts:delete`,

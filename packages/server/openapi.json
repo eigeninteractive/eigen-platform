@@ -3,7 +3,7 @@
   "info": {
     "title": "Eigen Engine API",
     "version": "1.0.0",
-    "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated (§7)."
+    "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."
   },
   "security": [
     {
@@ -22,7 +22,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "Eigen-Signature",
-        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain (§7). Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction."
+        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction."
       }
     },
     "schemas": {
@@ -1436,7 +1436,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The game summary — never state (§5.3)",
+            "description": "The game summary — never state",
             "content": {
               "application/json": {
                 "schema": {

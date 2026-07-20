@@ -1,5 +1,5 @@
 /**
- * GameDO skeleton suite — the folded-in §14 Phase 0 spike, minus the two
+ * GameDO skeleton suite — the folded-in Phase 0 spike, minus the two
  * checks only a real deploy can make (hibernation billing, forced eviction):
  * lazy init, the gated command loop, dedupe, the deadline alarm, hibernating
  * socket fan-out, and the finish sequence (compaction → outbox → D1 apply →
@@ -30,13 +30,13 @@ interface SeedOptions {
 
 let gameCounter = 0;
 
-/** Seed via the engine's own §4.1 create, with both seats already joined
+/** Seed via the engine's own create, with both seats already joined
  * (the waiting room is a later milestone). */
 async function seedGame(opts: SeedOptions = {}): Promise<string> {
   const gameId = `game-${++gameCounter}-${crypto.randomUUID()}`;
   const now = Date.now();
   // Both seats have real `users` rows, as any authed player would — the finish
-  // apply's purge guard (§4.5) only rates identities that still exist.
+  // apply's purge guard only rates identities that still exist.
   await db
     .insert(users)
     .values([
@@ -172,13 +172,13 @@ describe("actions & dedupe", () => {
 
   it("refuses a seat the actor does not own with a clean rejection", async () => {
     const { gameId, stub } = await startGame();
-    // user-b naming user-a's seat 0 is rejected as a value (§4.2), not thrown.
+    // user-b naming user-a's seat 0 is rejected as a value, not thrown.
     const res = await stub.handle(action(gameId, 0, 1, 0, "user-b"));
     expect(res).toMatchObject({ ok: false, code: "not_participant" });
   });
 });
 
-describe("deadline alarm (§4.4)", () => {
+describe("deadline alarm", () => {
   it("arms at deadline + grace and times the pending seat out", async () => {
     const { gameId, stub } = await startGame({ turnSeconds: 60 });
     const armed = await runInDurableObject(stub, async (_i, state) => {
@@ -209,7 +209,7 @@ describe("deadline alarm (§4.4)", () => {
   });
 });
 
-describe("finish sequence (§4.5)", () => {
+describe("finish sequence", () => {
   it("compacts, applies to D1, and clears the outbox (unrated: no ratings transition)", async () => {
     const { gameId, stub } = await startGame();
     await playToFinish(gameId, stub);
@@ -227,7 +227,7 @@ describe("finish sequence (§4.5)", () => {
       await vi.waitFor(() => {
         expect(sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(0);
       });
-      // Compaction rides the outbox clear (§4.5): live tables drained with it.
+      // Compaction rides the outbox clear: live tables drained with it.
       expect(sql.exec("SELECT COUNT(*) AS n FROM frames").one().n).toBe(0);
       expect(sql.exec("SELECT COUNT(*) AS n FROM commands").one().n).toBe(0);
       // Unrated: the chain ends at the finish version.
@@ -277,7 +277,7 @@ describe("finish sequence (§4.5)", () => {
 
     await playToFinish(gameId, stub);
     // The waitUntil apply fails (no games row); outbox must survive — and
-    // with it the uncompacted live tables (§4.5: they drain together).
+    // with it the uncompacted live tables (they drain together).
     await runInDurableObject(stub, async (_i, state) => {
       await vi.waitFor(() => {
         expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(1);

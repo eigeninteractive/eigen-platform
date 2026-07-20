@@ -1,5 +1,5 @@
 /**
- * Device registration (engine_stack.md §7) — the ingress that makes FCM pushes
+ * Device registration — the ingress that makes FCM pushes
  * deliverable. A client upserts its Firebase Installation ID (FID) here so the
  * turn/finish pushes (`notify/push.ts`) have somewhere to go, and deletes it on
  * sign-out. The send side reads and prunes this table; these two routes are the

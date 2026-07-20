@@ -1,5 +1,5 @@
 /**
- * `createEngine` — the deployable API (engine_stack.md §2.3). An implementor
+ * `createEngine` — the deployable API. An implementor
  * ships exactly:
  *
  * ```ts
@@ -19,8 +19,8 @@
  *
  * hono + @hono/zod-openapi. Two route groups share the `/api` prefix but not
  * their auth: the client-facing engine group (`/api/engine/*`, every route
- * gated by a verified Firebase ID token — §6) and the external-bot webhook
- * (`/api/bot/*`, self-authenticated by an HMAC signature — §7). They are
+ * gated by a verified Firebase ID token) and the external-bot webhook
+ * (`/api/bot/*`, self-authenticated by an HMAC signature). They are
  * separate sub-apps mounted on one `/api` root, so the engine's auth
  * middleware is scoped to the engine sub-app and never touches the bot group.
  * Handlers return only their declared 200 shape — every failure is an
@@ -51,7 +51,7 @@ import { registerSocialRoutes } from "./routes/social.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
 
-/** Deep-linking (§2.4). The worker generates the two `.well-known` files from
+/** Deep-linking. The worker generates the two `.well-known` files from
  * this and renders the `/j/:shortCode` share/landing page. Absent → none of
  * that group is mounted (the worker is API-only). Each platform block is
  * independent: supply only Android, only Apple, or both. */
@@ -72,7 +72,7 @@ export interface DeepLinkConfig {
   };
 }
 
-/** Opt-in avatar uploads (§5.4). Absent → the upload/serve routes are not
+/** Opt-in avatar uploads. Absent → the upload/serve routes are not
  * mounted and no R2 binding is needed. Built and tested entirely under local
  * R2 simulation; a real bucket (and thus a card) enters only at deploy. */
 export interface AvatarsConfig<TEnv> {
@@ -85,7 +85,7 @@ export interface AvatarsConfig<TEnv> {
    * serves avatars at `/avatars/{uid}` (the zoneless default). Set it and
    * stored `avatar_url`s point straight at the bucket, so reads never invoke
    * the worker. An `env` accessor so dev (unset) and prod (a var) differ with
-   * no code change — the §5.4 "the flip stays a config change" seam. */
+   * no code change — the "the flip stays a config change" seam. */
   publicBaseUrl?(env: TEnv): string | undefined;
 }
 
@@ -100,18 +100,18 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
    * `deepLink`, so there is one place to set it regardless of which optional
    * feature blocks are enabled. */
   appName: string;
-  /** The engine's D1 database (engine-private — §5.2). */
+  /** The engine's D1 database (engine-private). */
   d1(env: TEnv): D1Database;
   /** The GameDO namespace binding. */
   gameDO(env: TEnv): DurableObjectNamespace<TDO>;
   /** Firebase project id for token verification; defaults to the
-   * `FIREBASE_PROJECT_ID` var (§6 — the only secret verification needs). */
+   * `FIREBASE_PROJECT_ID` var (the only secret verification needs). */
   firebaseProjectId?(env: TEnv): string;
-  /** Deep linking + share pages (§2.4). Omit → not mounted. */
+  /** Deep linking + share pages. Omit → not mounted. */
   deepLink?: DeepLinkConfig;
-  /** Opt-in avatar uploads (§5.4). Omit → not mounted. */
+  /** Opt-in avatar uploads. Omit → not mounted. */
   avatars?: AvatarsConfig<TEnv>;
-  /** Cron-backstop tuning (§4.7) — guest-purge/reap windows and batch caps.
+  /** Cron-backstop tuning — guest-purge/reap windows and batch caps.
    * Omit for the defaults ({@link LIFECYCLE_DEFAULTS}); set any subset to
    * override just those. */
   lifecycle?: LifecycleOptions;
@@ -138,20 +138,20 @@ export interface RouteContext {
   d1(env: unknown): D1Database;
   stub(env: unknown, gameId: string): GameStub;
   verify(env: unknown, token: string): Promise<AuthClaims>;
-  /** The engine bot-signing master secret (§7), read from env by the
+  /** The engine bot-signing master secret, read from env by the
    * `BOT_SIGNING_SECRET` convention. Null when unset — the `/api/bot/action`
    * route then refuses every request (external bots are unsupported). */
   botSigningSecret(env: unknown): string | null;
-  /** The Firebase service account (§4.7 account deletion, §7 FCM), or null
+  /** The Firebase service account (account deletion FCM), or null
    * when the `FIREBASE_*` service-account vars are unset. */
   serviceAccount(env: unknown): ServiceAccount | null;
-  /** The §4.6 finished-game replay backend (seam #2). V1 is DO-backed; the
+  /** The finished-game replay backend (seam #2). V1 is DO-backed; the
    * cold tier swaps the implementation without touching the route. */
   history(env: unknown): HistoryStore;
-  /** Deep-link config (§2.4), or null when not configured — the well-known +
+  /** Deep-link config, or null when not configured — the well-known +
    * landing routes are then not mounted. */
   deepLink: DeepLinkConfig | null;
-  /** Avatar config (§5.4), or null when uploads are not enabled — the
+  /** Avatar config, or null when uploads are not enabled — the
    * upload/serve routes are then not mounted. */
   avatars: ResolvedAvatars | null;
 }
@@ -215,7 +215,7 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
 
 /** Assemble the whole worker: the Firebase-authed engine group
  * (`/api/engine/*`), the HMAC-authed external-bot group (`/api/bot/*`), and the
- * unauthed public web surface (§2.4/§5.4 — `/.well-known/*`, `/j/:code`,
+ * unauthed public web surface (`/.well-known/*`, `/j/:code`,
  * `/avatars/:uid`), all on one outer app.
  *
  * The engine and bot groups are separate `OpenAPIHono` instances, so the
@@ -252,9 +252,9 @@ export function buildApp(ctx: RouteContext) {
     type: "apiKey",
     in: "header",
     name: "Eigen-Signature",
-    description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain (§7). Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
+    description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
   });
-  // Public web surface (§2.4/§5.4): outside /api, unauthed, mounted only when
+  // Public web surface: outside /api, unauthed, mounted only when
   // configured. A distinct path space from /api, so mount order is immaterial.
   if (ctx.deepLink !== null) registerLinkRoutes(app, ctx);
   if (ctx.avatars !== null) registerAvatarServe(app, ctx);
@@ -308,7 +308,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   });
   return {
     fetch: (request, env, executionCtx) => app.fetch(request, env, executionCtx),
-    // The cron backstop (§4.7): stale-guest purge + abandoned-game reap. No
+    // The cron backstop: stale-guest purge + abandoned-game reap. No
     // timeout sweep — the DO deadline alarm owns every turn deadline. Runs
     // in-band; the platform keeps the invocation alive while the promise
     // pends, so no waitUntil is needed.
@@ -316,7 +316,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   };
 }
 
-// ── OpenAPI emission (§2.1: generated here, vendored into the Dart repo) ──────
+// ── OpenAPI emission (generated here, vendored into the Dart repo) ──────
 
 /** Build the API document from an inert app — route handlers never run, so
  * the context can refuse everything. `appName` is an unused placeholder here:
@@ -331,7 +331,7 @@ export function openApiDocument(): OpenAPIObject {
     info: {
       title: "Eigen Engine API",
       version: "1.0.0",
-      description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated (§7).",
+      description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated.",
     },
     // The default requirement is the client's Firebase token; the bot webhook
     // overrides it per-operation with `botHmac`.

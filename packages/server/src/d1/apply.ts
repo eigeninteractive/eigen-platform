@@ -1,6 +1,6 @@
 /**
- * The finish apply (engine_stack.md §4.5 step 3) and the fire-and-forget
- * summary upsert (§4.2). Called from the DO post-commit — never under the
+ * The finish apply (step 3) and the fire-and-forget
+ * summary upsert. Called from the DO post-commit — never under the
  * input gate.
  *
  * Rating deltas are computed HERE, not in the DO: they depend on global
@@ -14,7 +14,7 @@
  * player_ratings row via subselects filtered by the revision we computed
  * against; a concurrent finish bumps the revision, the subselect returns
  * NULL, the NOT NULL column rejects the row, and the whole batch rolls back —
- * then we re-read fresh priors and recompute (§4.5 step 5: recompute on
+ * then we re-read fresh priors and recompute (step 5: recompute on
  * conflict). Within one committed batch there is no concurrent writer, so a
  * validated revision guarantees the paired UPDATE lands.
  */
@@ -27,7 +27,7 @@ import { games, participants, playerRatings, ratingHistory, users } from "./sche
 
 export interface FinishApplyInput {
   gameId: string;
-  /** The DO-minted idempotency key (§3.6) — the apply is a no-op replay when
+  /** The DO-minted idempotency key — the apply is a no-op replay when
    * the games row already carries it. */
   finishId: string;
   outcomes: OutcomeEntry[];
@@ -41,7 +41,7 @@ const CAS_ATTEMPTS = 5;
 
 /** Apply one finished game to D1. Returns the rated deltas (null for an
  * unrated game) for the DO to deliver as the ratings transition. Throws on
- * failure — the caller logs and keeps the outbox row (§8: single attempt at
+ * failure — the caller logs and keeps the outbox row (single attempt at
  * the call site; the internal loop only absorbs CAS conflicts). */
 export async function applyFinish(d1: D1Database, input: FinishApplyInput): Promise<RatingDelta[] | null> {
   const db = drizzle(d1);
@@ -107,7 +107,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
       };
     });
 
-    // Purge guard (§4.7): a seat whose account was deleted since this game
+    // Purge guard: a seat whose account was deleted since this game
     // began still carries its user_id in the DO roster (the purge nulls only
     // the D1 mirror, never wakes the DO), so it survives into `players` and
     // shapes the OpenSkill field — but it must NOT get a rating row, or the
@@ -263,7 +263,7 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
   }));
 }
 
-/** The §4.2 display upsert after a non-finishing transition — fire-and-forget
+/** The display upsert after a non-finishing transition — fire-and-forget
  * post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
  * re-derivable from the DO at any time. */
 export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
@@ -279,11 +279,11 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
     .where(eq(games.id, args.gameId));
 }
 
-/** The §4.2 roster mirror after a committed waiting-room command — the DO's
+/** The roster mirror after a committed waiting-room command — the DO's
  * roster is the integrity copy; this rewrites the D1 display copy wholesale
  * (delete + reinsert), which is idempotent and immune to per-row drift.
  * Fire-and-forget post-commit (the DO leaves it unawaited; no `waitUntil`),
- * single attempt (§8). */
+ * single attempt. */
 export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
   const db = drizzle(d1);
   const statements = [db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)), db.delete(participants).where(eq(participants.gameId, args.gameId))] as const;
@@ -294,7 +294,7 @@ export async function mirrorRoster(d1: D1Database, args: { gameId: string; statu
   await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.user_id, botId: s.bot_id, playerIndex: s.player_index, type: s.type, createdAt: args.now })))]);
 }
 
-/** The §4.1 worker-direct create, engine-owned so implementors never touch
+/** The worker-direct create, engine-owned so implementors never touch
  * the D1 schema: seats already validated by worker policy. */
 export interface CreateGameInput {
   gameId: string;
@@ -317,7 +317,7 @@ export interface CreateGameInput {
 
 /** Write the games row + one participants row per seat, atomically. The DO
  * lazy-inits from exactly these rows on first contact. Callers own the
- * short_code retry (§4.1): a duplicate trips the UNIQUE index and throws. */
+ * short_code retry: a duplicate trips the UNIQUE index and throws. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = drizzle(d1);
   await db.batch([
@@ -343,7 +343,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
   ]);
 }
 
-/** Lazy-init read (§4.1): the D1 game + participants rows the DO copies into
+/** Lazy-init read: the D1 game + participants rows the DO copies into
  * its `meta`/`roster` on first contact — one batched round trip. */
 export async function readGameRow(d1: D1Database, gameId: string) {
   const db = drizzle(d1);

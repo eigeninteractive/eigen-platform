@@ -1,10 +1,10 @@
 /**
- * The cron backstop (engine_stack.md §4.7) — the worker's `scheduled` handler.
+ * The cron backstop — the worker's `scheduled` handler.
  *
  * Deliberately NOT a timeout sweep. The old Supabase stack ran a cron that
  * scanned `game_states.turn_deadline` and force-expired overdue turns, because
  * Postgres has no per-game timer. Our DO deadline alarm IS that timer —
- * durable, per-game, platform-retried (§4.4/§8) — so turn timeouts never need
+ * durable, per-game, platform-retried — so turn timeouts never need
  * a sweep. This handler does only what has no per-entity timer of its own:
  *
  *   1. **Stale-guest purge** — old, inactive anonymous accounts, torn down
@@ -15,7 +15,7 @@
  *
  * The windows and per-run batch caps are {@link LIFECYCLE_DEFAULTS}, each
  * overridable via the `lifecycle` block on `createEngine` ({@link LifecycleOptions}).
- * Everything is best-effort and single-attempt (§8): each unit is isolated so
+ * Everything is best-effort and single-attempt: each unit is isolated so
  * one failure never blocks the batch, and anything skipped is retried next run.
  */
 
@@ -48,7 +48,7 @@ export interface LifecycleOptions {
   reapBatch?: number;
 }
 
-/** The defaults (old §25: 7-day guest age, 2-day inactivity). An implementor's
+/** The defaults (old: 7-day guest age, 2-day inactivity). An implementor's
  * `lifecycle` block overlays these field by field. */
 export const LIFECYCLE_DEFAULTS: Required<LifecycleOptions> = {
   guestMaxAgeMs: 7 * DAY_MS,
@@ -90,7 +90,7 @@ async function purgeStaleGuests(ops: EngineOps, now: number, opts: Required<Life
     .all();
 
   for (const { id } of stale) {
-    // Single attempt (§8): a failed Firebase delete leaves the guest fully
+    // Single attempt: a failed Firebase delete leaves the guest fully
     // intact (purgeUser throws before the D1 purge) to retry next run.
     await purgeUser(ops, id).catch((error) => console.error(`cron: purging stale guest ${id} failed`, error));
   }

@@ -1,5 +1,5 @@
 /**
- * §7 FCM configuration seam: `readServiceAccount` reads the service account
+ * FCM configuration seam: `readServiceAccount` reads the service account
  * from env by the `FIREBASE_*` convention and is null (push skipped) unless
  * all three vars are present. The network send path needs real Google
  * credentials and is exercised in production, not here.

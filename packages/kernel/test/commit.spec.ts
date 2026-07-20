@@ -375,7 +375,7 @@ describe("commit: rated finish", () => {
   // Rating deltas are not the kernel's to compute at commit time — they need
   // global priors (D1-domain data). The plan carries outcomes only; the D1
   // applier computes deltas inside the rating CAS and the host delivers them
-  // as a follow-up versioned ratings transition (engine_stack.md §4.5).
+  // as a follow-up versioned ratings transition.
   it("finishes a rated game with outcomes and no rating material in the plan", () => {
     const plan = expectPlan(
       commit(

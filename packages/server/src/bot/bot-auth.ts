@@ -1,5 +1,5 @@
 /**
- * External-bot auth (engine_stack.md §7) — HMAC both directions (engine→bot
+ * External-bot auth — HMAC both directions (engine→bot
  * wake, bot→engine action) using a per-bot key **derived** from one engine
  * secret, so registering a bot needs no new secret and no redeploy:
  *

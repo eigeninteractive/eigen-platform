@@ -1,9 +1,9 @@
 /**
  * The createEngine HTTP drive — the deployed shape end to end over SELF:
- * §4.1 create (policy + short code), §4.2 waiting room (join/leave/cancel/
- * add-bot/start, roster snapshots over the socket, D1 mirror), §4.3 active
- * play (action with the own-frame ride-along, forfeit), §4.6 frames, and the
- * §5.2 read routes.
+ * create (policy + short code) waiting room (join/leave/cancel/
+ * add-bot/start, roster snapshots over the socket, D1 mirror) active
+ * play (action with the own-frame ride-along, forfeit) frames, and the
+ * read routes.
  */
 
 import { SELF } from "cloudflare:test";
@@ -59,7 +59,7 @@ async function createGame(uid: string, overrides: Record<string, unknown> = {}):
   return await json<Created>(await api(uid, "POST", "/games", { ...createBody, ...overrides }));
 }
 
-describe("create (§4.1)", () => {
+describe("create", () => {
   it("creates with creator seat 0 and a short code; detail reads back", async () => {
     const u = makeUsers();
     const created = await createGame(u.a, { rated: false });
@@ -90,7 +90,7 @@ describe("create (§4.1)", () => {
   });
 });
 
-describe("waiting room (§4.2)", () => {
+describe("waiting room", () => {
   it("join → ready; duplicate join and overflow reject cleanly", async () => {
     const u = makeUsers();
     const { game_id } = await createGame(u.a, { rated: false });
@@ -156,7 +156,7 @@ describe("waiting room (§4.2)", () => {
     expect(detail.status).toBe("aborted");
     expect(detail.participants).toEqual([]);
 
-    // A late join fails cleanly at the DO (§4.2 accepted staleness shape).
+    // A late join fails cleanly at the DO (accepted staleness shape).
     const late = await api(u.b, "POST", `/games/${game_id}/join`, { client_schema_version: 1 });
     expect(late.status).toBe(409);
   });
@@ -182,11 +182,11 @@ describe("waiting room (§4.2)", () => {
   });
 });
 
-describe("active play (§4.3) & frames (§4.6)", () => {
+describe("active play & frames", () => {
   async function readyGame(u: ReturnType<typeof makeUsers>, overrides: Record<string, unknown> = {}) {
     const { game_id } = await createGame(u.a, overrides);
     await json<LobbyOk>(await api(u.b, "POST", `/games/${game_id}/join`, { client_schema_version: 1 }));
-    // No mirror wait: the DO resolves seats from its own roster (§4.2) — the
+    // No mirror wait: the DO resolves seats from its own roster — the
     // joiner can act the moment the join response lands.
     await json<CommandOk>(await api(u.a, "POST", `/games/${game_id}/start`, {}));
     return game_id;
@@ -251,7 +251,7 @@ describe("active play (§4.3) & frames (§4.6)", () => {
   });
 });
 
-describe("socket (§4.2 roster snapshots → §4.3 frames)", () => {
+describe("socket (roster snapshots → frames)", () => {
   it("serves one socket across the lobby → active transition", async () => {
     const u = makeUsers();
     const { game_id } = await createGame(u.a, { rated: false });
@@ -286,7 +286,7 @@ describe("socket (§4.2 roster snapshots → §4.3 frames)", () => {
   });
 });
 
-describe("bots (§7)", () => {
+describe("bots", () => {
   // Fixed registry rows: engine brains are keyed by username, so the engine
   // bot's username must match the test game's `botActions`. Seeded once
   // (idempotent) — bots are global registry data, seatable across games.
@@ -373,7 +373,7 @@ describe("bots (§7)", () => {
     await json<CommandOk>(await api(u.a, "POST", `/games/${solo.game_id}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
 
     // The bot signs the EXACT body bytes it sends and carries the signature in
-    // the Eigen-Signature header (§7), bound to the `action` domain.
+    // the Eigen-Signature header, bound to the `action` domain.
     const body = JSON.stringify({ bot_id: EXTERNAL, game_id: solo.game_id, player_index: 1, version: 1, data: { add: 1 } });
     const good = await SELF.fetch("https://x/api/bot/action", {
       method: "POST",
@@ -396,7 +396,7 @@ describe("bots (§7)", () => {
   });
 });
 
-describe("reads (§5.2)", () => {
+describe("reads", () => {
   it("lobby lists public joinable games; my-games buckets by participants", async () => {
     const u = makeUsers();
     const { game_id } = await createGame(u.a, { rated: false });

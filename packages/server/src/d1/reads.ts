@@ -1,5 +1,5 @@
 /**
- * Worker → D1 reads (engine_stack.md §5.2): lobby, history lists, profiles,
+ * Worker → D1 reads: lobby, history lists, profiles,
  * players, bot catalog, and the per-route policy lookups. The rule they all
  * serve: **never wake a Durable Object to serve a read** — only commands, the
  * socket, and range fetches touch the DO.
@@ -13,7 +13,7 @@ import { bots, games, participants, playerRatings, ratingHistory, relationships,
 export type GameRow = typeof games.$inferSelect;
 export type BotRow = typeof bots.$inferSelect;
 
-/** The bot registry row as a discriminated union on `type` (§7). The two
+/** The bot registry row as a discriminated union on `type`. The two
  * `bots` CHECK constraints make these shapes exact at the storage layer —
  * `external` always has a `webhook_url`, the others never do — so narrowing a
  * loaded row is total. */
@@ -28,7 +28,7 @@ export function narrowBot(row: BotRow): Bot {
   return row as Bot;
 }
 
-/** A games row joined with its roster — the §4.1 create's inverse, and the
+/** A games row joined with its roster — the create's inverse, and the
  * shape every summary response projects from. */
 export interface GameWithRoster extends GameRow {
   participants: Seat[];
@@ -63,7 +63,7 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
   return (await withRosters(d1, [row]))[0];
 }
 
-/** Join-by-code resolution (§4.2 worker policy). */
+/** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
   const row = await drizzle(d1).select().from(games).where(eq(games.shortCode, shortCode)).get();
   if (row === undefined) return undefined;
@@ -83,7 +83,7 @@ export async function readLobby(d1: D1Database, limit: number): Promise<GameWith
   return await withRosters(d1, rows);
 }
 
-/** "My games" through the participants index (§5.2: THE access path for
+/** "My games" through the participants index (THE access path for
  * games-of-user). `active` = anything still alive; `finished` = the history
  * list, newest finish first (aborted rows carry no finished_at — they sort by
  * updated_at). */
@@ -121,7 +121,7 @@ export async function readBots(d1: D1Database, ids?: string[]): Promise<BotRow[]
 }
 
 /** One bot's registry row, narrowed on `type` — the DO's post-commit bot-turn
- * dispatch (§7) reads it to route (engine brain / external wake / local skip)
+ * dispatch reads it to route (engine brain / external wake / local skip)
  * and to feed the brain the bot's declared `config`. Off the hot path (a
  * post-commit effect), so a read here costs nothing the human's response
  * waits on. */
@@ -130,7 +130,7 @@ export async function readBot(d1: D1Database, id: string): Promise<Bot | undefin
   return row === undefined ? undefined : narrowBot(row);
 }
 
-/** Friends-access join gate (§4.2): an accepted relationship between the two
+/** Friends-access join gate: an accepted relationship between the two
  * users, in canonical pair order. */
 export async function isAcceptedFriend(d1: D1Database, userA: string, userB: string): Promise<boolean> {
   const [u1, u2] = userA < userB ? [userA, userB] : [userB, userA];

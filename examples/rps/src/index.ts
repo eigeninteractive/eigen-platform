@@ -1,5 +1,5 @@
 /**
- * The RPS example worker — the whole implementor surface (§2.3): the rules
+ * The RPS example worker — the whole implementor surface: the rules
  * module, a `GameDO` subclass binding it, and one `createEngine` call.
  * Deploys with `pnpm deploy` (engine D1 migrations apply, then the code).
  */
@@ -19,14 +19,14 @@ export default createEngine({
   appName: "RPS",
   d1: (env: Env) => env.rps_dev,
   gameDO: (env: Env) => env.GAME_DO,
-  // §2.4 deep linking: the worker generates the .well-known files + the
+  // deep linking: the worker generates the .well-known files + the
   // /j/:shortCode share page from this. Fingerprints/store URLs are
   // placeholders until a real app ships.
   deepLink: {
     android: { packageName: "com.eigeninteractive.rps", sha256CertFingerprints: [], storeUrl: "https://play.google.com/store" },
     apple: { appId: "TEAMID.com.eigeninteractive.rps", storeUrl: "https://apps.apple.com" },
   },
-  // §5.4 opt-in avatars: worker-served (no publicBaseUrl → the relative
+  // opt-in avatars: worker-served (no publicBaseUrl → the relative
   // /avatars/{uid} route). Local R2 simulation under `wrangler dev` — a real
   // bucket enters only at a deploy with uploads enabled.
   avatars: { bucket: (env: Env) => env.AVATARS },

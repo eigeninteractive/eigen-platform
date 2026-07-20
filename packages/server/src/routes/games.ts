@@ -1,8 +1,8 @@
 /**
- * The game lifecycle routes (engine_stack.md §4): the §4.1 worker-direct
- * create, the §4.2 waiting-room commands (worker policy BEFORE minting; the
+ * The game lifecycle routes: the worker-direct
+ * create, the waiting-room commands (worker policy BEFORE minting; the
  * DO enforces integrity under its gate), active-play action/forfeit, the
- * §4.6 range fetch, and the WebSocket upgrade.
+ * range fetch, and the WebSocket upgrade.
  */
 
 import { parseClientPayload, type Seat } from "@eigen/kernel";
@@ -56,7 +56,7 @@ function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
   return rules;
 }
 
-/** The bot-seating gates (§7), shared by `add-bot` and create-solo. `game` is
+/** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
  * anything with the game's timing/rated/schema/config — a stored row or a
  * to-be-created spec. Throws an `HttpError` on any failed gate. */
 interface BotSeatingGame {
@@ -68,7 +68,7 @@ interface BotSeatingGame {
 }
 
 function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow): void {
-  // bots ⇒ timed (§7): a brain that throws, or a DO evicted mid-turn, is
+  // bots ⇒ timed: a brain that throws, or a DO evicted mid-turn, is
   // resolved by the turn deadline — the one liveness backstop for every bot,
   // in-DO or external.
   if (game.turnSeconds === null && game.budgetSeconds === null) {
@@ -81,7 +81,7 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
     throw new HttpError(400, "This bot is not eligible for rated games");
   }
   const rules = rulesFor(ctx, game.schemaVersion);
-  // Dispatch discriminator (§7): an `engine` bot needs a `botActions` entry
+  // Dispatch discriminator: an `engine` bot needs a `botActions` entry
   // for its username in this version; an `external` bot needs a webhook (the
   // DB CHECK guarantees it, so this only guards a genuinely broken row); a
   // `local` bot is client-driven and not seatable online until transcript
@@ -111,7 +111,7 @@ async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promis
   return game;
 }
 
-// ── Short codes (§4.1: D1 UNIQUE + retry loop) ────────────────────────────────
+// ── Short codes (D1 UNIQUE + retry loop) ────────────────────────────────
 
 /** No 0/O/1/I/L — these codes are read aloud and typed. */
 const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
@@ -130,7 +130,7 @@ function isShortCodeCollision(error: unknown): boolean {
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
-  // §4.1 — the one worker-direct write. Policy ports verbatim from the
+  // — the one worker-direct write. Policy ports verbatim from the
   // Supabase-era handleCreate: guest gates, config parse, ratingPool, and
   // the client's `rated` assertion (validated, never coerced).
   app.openapi(
@@ -205,7 +205,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // §7 create-solo — create a private game seated with the caller plus bots,
+  // create-solo — create a private game seated with the caller plus bots,
   // and start it, in one call. Guests may play bots (unrated); the same
   // create policy and bot-seating gates apply, then an immediate `start`.
   app.openapi(
@@ -296,7 +296,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // §4.2 join — worker policy: guest-vs-rated, friends access, schema gate.
+  // join — worker policy: guest-vs-rated, friends access, schema gate.
   const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, commandId: string | undefined) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
@@ -375,7 +375,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // §4.2 add-bot — worker policy: registry gates (schema, rated eligibility,
+  // add-bot — worker policy: registry gates (schema, rated eligibility,
   // timed invariant, brain-or-webhook) and botSeatable. Guests may add bots
   // (unrated only, enforced at create/join); the timed invariant and rated
   // gate are shared with create-solo via `assertBotSeatable`.
@@ -415,7 +415,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // §4.3 — a player's move. The client sends its own seat (uniform with bots);
+  // — a player's move. The client sends its own seat (uniform with bots);
   // the DO verifies it belongs to the caller against its own roster (the
   // authoritative copy — the D1 participants mirror only displays) and the
   // caller's committed frame rides the response. No D1 read on this path.
@@ -466,7 +466,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // §4.6 — the range fetch: live gap recovery AND finished-game replay, one
+  // — the range fetch: live gap recovery AND finished-game replay, one
   // path. Participants read their own seat; a finished PUBLIC game is
   // replayable by anyone as the null-seat viewer projection.
   app.openapi(
@@ -495,14 +495,14 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       }
       const page = 1000;
       const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);
-      // Finished games replay through the HistoryStore seam (§4.6) — DO-backed
+      // Finished games replay through the HistoryStore seam — DO-backed
       // in v1, R2-backed later; live gap recovery stays a direct DO fetch.
       const frames = finished ? await ctx.history(c.env).replay(gameId, { seat: mySeat, from, to: cappedTo }) : await ctx.stub(c.env, gameId).frames({ seat: mySeat, from, to: cappedTo, isReplay: false });
       return c.json({ frames }, 200);
     },
   );
 
-  // The WebSocket (§4.2/§4.3) — one socket for the game's whole lifetime.
+  // The WebSocket — one socket for the game's whole lifetime.
   // Not an OpenAPI route (documents can't describe the upgrade); auth rides
   // the `?token=` query. The worker stamps the principal header itself —
   // inbound x-eigen-* headers are dropped wholesale.

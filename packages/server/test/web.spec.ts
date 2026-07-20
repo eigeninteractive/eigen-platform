@@ -1,5 +1,5 @@
 /**
- * The public web surface (engine_stack.md §2.4 deep links, §5.4 avatars): the
+ * The public web surface (deep links avatars): the
  * generated `.well-known` files, the `/j/:shortCode` share page, and the
  * avatar upload/serve/purge round trip against a locally-simulated R2 bucket.
  */
@@ -20,7 +20,7 @@ async function api(id: string, method: string, path: string, body?: unknown): Pr
 
 const createBody = { schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false };
 
-describe("deep-link well-known (§2.4)", () => {
+describe("deep-link well-known", () => {
   it("generates assetlinks.json from config, as JSON", async () => {
     const res = await SELF.fetch("https://x/.well-known/assetlinks.json");
     expect(res.status).toBe(200);
@@ -40,7 +40,7 @@ describe("deep-link well-known (§2.4)", () => {
   });
 });
 
-describe("share/landing page (§2.4)", () => {
+describe("share/landing page", () => {
   it("renders OG tags + store links for a real invite code", async () => {
     const a = uid("host");
     const { short_code } = (await (await api(a, "POST", "/games", createBody)).json()) as { short_code: string };
@@ -62,7 +62,7 @@ describe("share/landing page (§2.4)", () => {
   });
 });
 
-describe("avatars (§5.4)", () => {
+describe("avatars", () => {
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 
   async function upload(id: string, contentType: string, body: BodyInit): Promise<Response> {

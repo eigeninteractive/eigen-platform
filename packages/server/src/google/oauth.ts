@@ -1,7 +1,7 @@
 /**
- * Google service-account OAuth (engine_stack.md §7) — the shared token step
+ * Google service-account OAuth — the shared token step
  * for every Google API the engine calls: FCM (`notify/fcm.ts`) and the
- * Firebase Auth admin delete (`auth/admin.ts`, §4.7). We sign the
+ * Firebase Auth admin delete (`auth/admin.ts`). We sign the
  * service-account JWT (RS256) with `jose` and exchange it at Google's token
  * endpoint, caching the bearer per (client email, scope) in isolate memory
  * until shortly before expiry.
@@ -9,7 +9,7 @@
  * Ported from the Supabase-era `_engine/fcm.ts`, adapted off Deno +
  * `google-auth-library` to Workers-native `jose`. If Firebase isn't
  * configured (no `FIREBASE_*` vars), {@link readServiceAccount} returns null
- * and callers skip — every Google-backed effect is best-effort (§8).
+ * and callers skip — every Google-backed effect is best-effort.
  */
 
 import { importPKCS8, SignJWT } from "jose";

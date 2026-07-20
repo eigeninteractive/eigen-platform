@@ -1,5 +1,5 @@
 /**
- * The game DO's SQLite schema (engine_stack.md §5.1) — one database per game,
+ * The game DO's SQLite schema — one database per game,
  * live *and* finished: after the finish compaction this IS the game's
  * permanent history, field-for-field the future cold-tier blob.
  *
@@ -17,7 +17,7 @@ import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { CommandResult } from "../protocol.js";
 
-/** The game row snapshot from lazy init (§4.1) + status + rng_seed. Exactly
+/** The game row snapshot from lazy init + status + rng_seed. Exactly
  * one row, `id = 1`. The DO copies this from D1 once and owns `status` and
  * `rng_seed` from then on; D1's copy becomes the display read-model. */
 export const meta = sqliteTable("meta", {
@@ -48,7 +48,7 @@ export const roster = sqliteTable("roster", {
   type: text("type").$type<"human" | "bot">().notNull(),
 });
 
-/** One row per version — the §3.2 single-row transition shape, and it is
+/** One row per version — the single-row transition shape, and it is
  * **append-only immutable**: no transition row is ever updated after commit,
  * which is what makes this table the game's permanent history verbatim.
  * The engine-owned envelope is the row's typed columns; `state` is the
@@ -68,8 +68,8 @@ export const transitions = sqliteTable("transitions", {
 });
 
 /** Per-seat projected frames, identified seats only — LIVE-ONLY: serves
- * socket gap recovery and the §3.5 same-view compare, then the finish
- * compaction (§4.5) empties the whole table (replay re-projects instead).
+ * socket gap recovery and the same-view compare, then the finish
+ * compaction empties the whole table (replay re-projects instead).
  * A separate table so compaction never touches `transitions`. */
 export const frames = sqliteTable(
   "frames",
@@ -83,7 +83,7 @@ export const frames = sqliteTable(
   (t) => [primaryKey({ columns: [t.version, t.playerIndex] })],
 );
 
-/** `commandId → response` dedupe (§3.6): a duplicate replays the stored
+/** `commandId → response` dedupe: a duplicate replays the stored
  * response instead of double-applying. Deleted by the finish compaction. */
 export const commands = sqliteTable("commands", {
   commandId: text("command_id").primaryKey(),
@@ -91,7 +91,7 @@ export const commands = sqliteTable("commands", {
   createdAt: integer("created_at").notNull(),
 });
 
-/** What the D1 apply needs, written atomically with the finish (§4.5) and
+/** What the D1 apply needs, written atomically with the finish and
  * cleared only AFTER the apply succeeds — a surviving row is the recovery
  * signal for the gated admin re-poke. */
 export const outbox = sqliteTable("outbox", {

@@ -1,5 +1,5 @@
 /**
- * The canonical same-view scenario pair (engine_stack.md §3.5), driven
+ * The canonical same-view scenario pair, driven
  * through the real kernel `commit()` with the real RPS rules:
  *
  * - ACCEPT: an opponent's hidden commit doesn't change your projected view,
