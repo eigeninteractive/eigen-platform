@@ -395,12 +395,45 @@ exactly one timing mode:
 also override the deadline for a single action via the envelope's `turn_seconds`,
 without touching any player's bank.
 
+### The deadline computation
+
+After every transition the kernel computes the next `deadline` and
+`turnStartedAt` by a fixed precedence chain (all instants are injected epoch
+milliseconds — the kernel never reads a clock):
+
+1. **Game over** → both `null` (no deadline).
+2. **Hook per-action override** (`envelope.turn_seconds = N`) → `now + N·1000`,
+   banks untouched.
+3. **Budget mode** → `now + min(remaining bank over the new pending seats)`. A
+   budget-timed game allows at most one pending seat (enforced upstream), so this
+   min is normally just that seat's bank; the min is a safe degradation if a
+   multi-pending state ever arrives.
+4. **Per-turn mode** → `now + turn_seconds·1000`.
+5. **Untimed** → both `null`.
+
+In budget mode the acting seat's bank is charged on each move:
+`bank[seat] = max(0, bank[seat] − (now − turnStartedAt)) + increment·1000`.
+The deduction floors at 0 (an overrun lands at 0, never negative), and the
+Fischer increment is added after.
+
+### Grace, and why it's a single constant
+
 The enforcement mechanism is the **DO's durable alarm**, and this is a key
-simplification over a database-backed engine. There is one grace constant in the
-kernel (`DEADLINE_GRACE_MS = 750ms`): a late submission is accepted while `now ≤
-deadline + grace`, and the alarm is armed at `deadline + grace`. When it fires,
-the DO commits a `timeout` lifecycle with a deterministic `commandId` (so a
-double-fire dedupes, and a real move that arrives first simply wins the race).
+simplification over a database-backed engine. Server time is measured when the
+request *arrives*, not when the player tapped, so a move made on time can land
+just past the deadline through pure network latency. One grace constant in the
+kernel (`DEADLINE_GRACE_MS = 750ms`) compensates, with exactly two call sites: the
+kernel accepts an action while `now ≤ deadline + grace`, and the DO arms its alarm
+at `deadline + grace`. Whichever arrives first — the latent action or the alarm —
+commits; the loser sees already-advanced state and no-ops. When the alarm fires it
+commits a `timeout` lifecycle with a deterministic `commandId` (so a double-fire
+dedupes, and a real move that arrived first simply wins).
+
+The grace forgives **acceptance, not time charged**: in budget mode the elapsed
+deduction still runs, so flag-fall is honoured — a player whose bank hits 0 can
+overrun by at most the grace and still have that final move counted (bounded and
+self-limiting). This replaced an older three-place race symmetry with one
+constant.
 
 Because the alarm is a durable, per-game, platform-retried timer, **there is no
 timeout-sweep cron.** A database-backed engine needs a periodic scan for overdue
@@ -532,6 +565,46 @@ and avatar overwrite the guest's, while the stable username handle survives.
 Guest capability is deliberately narrowed: guests may play (including vs bots,
 unrated) but cannot create friends-access games or join rated games. Inactive
 guests are swept by the cron (§14).
+
+The **username** is the stable, editable handle (distinct from the provider
+display name, which the engine never lets a user edit). `PUT /me/username`
+validates the same `[a-z0-9_.]{3,20}` charset and returns a clean 409 on a
+collision (the column is UNIQUE). The **display name** and **avatar** come from
+the auth provider (or an uploaded avatar, §14); `PUT /me/avatar` is the only way
+a user changes their picture.
+
+### 10.3 The social graph
+
+Friendships, search, and blocking are **cross-game and D1-only** — they never
+touch a Durable Object. The `relationships` table stores one row per unordered
+pair in canonical order (`user_id_1 < user_id_2`) with a `status`
+(`pending` / `accepted` / `blocked`) and an `initiated_by` actor, so a single
+shared row encodes the relationship and the direction of a request or block is
+recovered from `initiated_by`.
+
+- **Requests.** `POST /friends/requests {target_user_id}` inserts a `pending`
+  row — unless the target already has a pending request out to the caller, in
+  which case it **auto-accepts** (sending back is accepting). `accept`
+  transitions the request the *other* party initiated. `DELETE /friends/{id}`
+  is the single idempotent unfriend / withdraw / decline. All writes require a
+  **registered** caller, and a friend target must be registered too (a guest is a
+  throwaway identity).
+- **Blocking.** `POST /friends/{id}/block` overwrites any pending/accepted row
+  (or creates one) as `blocked`, recording the blocker in `initiated_by`. A block
+  in *either* direction refuses new requests; only the blocker can `unblock`.
+- **Search.** `GET /users/search?q=` is a case-insensitive substring match on
+  username or display name, excluding the caller, guests, and anyone in a blocked
+  relationship with the caller, ranked exact → prefix → substring. `LIKE` today,
+  D1 FTS5 later; the `%` wildcard is stripped so a caller can't force a scan.
+- **Discovery.** `GET /friends/games` lists joinable games created by the
+  caller's accepted friends — the lobby that makes `friends`-access games
+  reachable.
+
+Friend-event pushes (`friend_request`, `friend_accepted`) fire from the route
+through the shared FCM path when a service account is configured. Because these
+run in a **stateless Worker** (not the always-alive DO), they ride
+`executionCtx.waitUntil` so a slow FCM call never delays the response — the one
+place the engine uses `waitUntil` deliberately.
 
 ---
 
@@ -792,3 +865,83 @@ it is the seam two languages meet at.
 
 For how to actually write a game against that contract, see
 [`building_a_game.md`](./building_a_game.md).
+
+---
+
+## 19. The HTTP surface
+
+The full request surface, grouped by the three spaces of §3.2. Every
+`/api/engine/*` route requires a Firebase bearer; `/api/bot/action` is
+HMAC-authenticated; the web routes are public. The OpenAPI document
+(`openapi.json`) is generated from these and is the client's codegen source.
+
+### Client API — `/api/engine`
+
+**Reads** (D1-only, never wake a DO):
+
+| Method + path | Purpose |
+|---|---|
+| `GET /lobby` | Public joinable games, newest first |
+| `GET /games/mine?bucket=active\|finished` | The caller's games |
+| `GET /games/{id}` | One game's summary (capability read; never state) |
+| `GET /games/{id}/frames?from=&to=` | Version-range frames — live gap recovery **and** finished-game replay |
+| `GET /players?ids=` | Batch public identity (≤ 50), never email |
+| `GET /bots` | The bot catalog |
+| `GET /me` · `GET /me/ratings` · `GET /me/rating-history` | The caller's own profile / ratings |
+| `GET /friends` · `GET /friends/requests` · `GET /friends/games` | Social lists |
+| `GET /users/search?q=` | Friend-picker search (registered only) |
+
+**Game lifecycle** (Commands to the DO; policy at the edge, integrity in the DO):
+
+| Method + path | Purpose |
+|---|---|
+| `POST /games` · `POST /games/solo` | Create (Worker-direct D1) · create-and-start vs bots |
+| `POST /games/{id}/join` · `POST /games/join-by-code` | Join |
+| `POST /games/{id}/leave` · `/cancel` · `/add-bot` · `/start` | Waiting-room commands |
+| `POST /games/{id}/action` · `/forfeit` | Active play (carry the caller's `seat`) |
+| `GET /games/{id}/socket` | WebSocket upgrade (`?token=` auth); frames + roster snapshots |
+
+**Profile / account / devices / social writes:**
+
+| Method + path | Purpose |
+|---|---|
+| `PUT /me/username` · `PUT /me/avatar` · `DELETE /me` | Rename · upload avatar · delete account |
+| `PUT /me/devices` · `DELETE /me/devices/{fid}` | FCM device register / deregister |
+| `POST /friends/requests` · `/requests/{id}/accept` · `DELETE /friends/{id}` | Friend request / accept / remove |
+| `POST` + `DELETE /friends/{id}/block` | Block / unblock |
+
+### Bot webhook — `/api/bot`
+
+`POST /api/bot/action` — an external bot submits a move, authenticated by the
+`Eigen-Signature` HMAC over the exact body (§11.1).
+
+### Public web
+
+`GET /.well-known/assetlinks.json` · `apple-app-site-association` ·
+`GET /j/:shortCode` (share/landing) · `GET /avatars/:uid` (when avatars enabled).
+
+### The error model
+
+Every failure is one JSON shape — `{ error, code? }` — with the HTTP status
+carrying the coarse class and the optional stable `code` carrying the machine
+reason a client keys retry/resync UX off. Handlers only ever return their
+declared 200 shape; a failure is an `HttpError` throw (or a kernel/lobby
+rejection converted to one) rendered by the app-level error handler.
+
+| Status | Meaning | Representative `code`s |
+|---|---|---|
+| 400 | Client mistake | `invalid_payload`, `illegal_move` |
+| 401 | Missing/invalid token | — |
+| 403 | Ownership/permission refusal | `not_creator`, `not_participant` |
+| 404 | No such game/user | `unknown_game` |
+| 409 | State conflict — resync and retry | `state_updated`, `not_active`, `not_ready`, `expired`, `not_pending`, `game_full`, `already_joined`, `not_joinable`, `creator_cannot_leave`, `schema_unsupported` |
+| 413 / 415 | Avatar too big / wrong type | — |
+| 422 | Assertion mismatch (e.g. `rated`) | — |
+| 500 | Server fault (game-hook bug, storage) | — |
+| 502 | Account deletion upstream failure (intact; retry) | — |
+
+Two reject codes are **not** errors and never reach the client as failures:
+`abstain` (a system `timeout` that lost its race — a clean no-op) and the
+accepted-lobby-staleness codes, which a client resolves by resyncing. Kernel
+rejections are *values*, not exceptions — recomputing one is always sound, so
+they are never cached the way accepted commands are.

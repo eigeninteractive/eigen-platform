@@ -505,5 +505,92 @@ reimplement:
 Your entire job is the pure rules in `@eigen/rules` plus the ~15-line Worker glue.
 If you find yourself reaching for a database, a socket, a clock, or a lock inside
 a hook — stop; the engine already did it, and doing it in a hook would break
-determinism. For how any of the above actually works under the hood, read
+determinism.
+
+---
+
+## 14. Recipes — common game shapes
+
+The whole game is expressed through `pending_players` and what
+`computeObservation` reveals. A few canonical shapes:
+
+**Sequential (perfect information)** — checkers, Connect Four. One seat pending
+at a time; each move hands the turn to the next seat. Use
+`passthroughObservation` (everyone sees everything). The same-view rule is
+automatically strict — no stale move survives an opponent's turn.
+
+```ts
+applyAction({ state, playerIndex, data }) {
+  const next = applyMove(state, playerIndex, data);
+  return next.won
+    ? { state: next, pending_players: [], outcome: win(playerIndex) }
+    : { state: next, pending_players: [(playerIndex + 1) % playerCount] };
+}
+computeObservation: passthroughObservation,
+```
+
+**Simultaneous (hidden commitment)** — RPS, blind bidding. *All* actors pending
+each round; store each commit in the state and hide the opponents' commits in
+`computeObservation`, also masking their pending status so a hidden commit
+doesn't change anyone else's view (that's what lets both submissions land in
+either order — §6). Resolve when the last commit arrives.
+
+**Team games** — set `team_index` on outcome entries to the team, not the seat,
+so OpenSkill rates teammates together. `placement` is the team's finish.
+
+**Elimination / multiplayer** — shrink `pending_players` as seats bust out; give
+an eliminated seat `result: "eliminated"` with its `placement`. The game ends
+when `pending_players` empties; the final `outcome` ranks everyone by placement.
+
+**Reveal for animation** — carry a "what just happened" field (RPS's `lastRound`)
+in the projected `data` so clients can animate the transition. Decide per seat
+what that reveal shows using `cause` and `playerIndex` (§7).
+
+**Phased turns / variable clocks** — a phase that needs longer returns
+`turn_seconds: N` on its envelope to widen just that action's deadline, leaving
+every player's bank untouched.
+
+---
+
+## 15. Reference — the Envelope, determinism, and errors
+
+### The Envelope
+
+Every hook returns `Envelope<State>`:
+
+| Field | Meaning |
+|---|---|
+| `state` | The new pure game payload — validated against your `state` schema before commit. Never carries whose-turn or winner metadata. |
+| `pending_players` | 0-based seats that may act next. **Empty ⇒ the game is over** (with `outcome`). |
+| `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `team_index`, optional `score`). |
+| `turn_seconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
+
+### Determinism — the RNG contract
+
+State must be a pure function of `(base seed, ordered action log)`. The engine
+gives each transition a seeded `rng` (`rng.next()` → `[0, 1)`), derived from the
+game's stored seed and the committing version, so replaying a transition
+reproduces the identical sequence. The rules:
+
+- **Draw only from `args.rng`** — never `Math.random()`, `Date.now()`,
+  `crypto`, or any external read inside a hook.
+- **Draw in deterministic code order** — the same number of draws in the same
+  order every time, so a replay lines up.
+- **Bot brains may be impure** — a bot's `rng` is deterministic too, but the
+  *chosen move* is what gets logged; replay reads the recorded action and never
+  re-runs the brain, so a brain that peeks at the clock only affects live play.
+
+### Errors — what to throw
+
+- `throw new IllegalMoveError("…")` from `applyAction` for a move that breaks the
+  rules (a mis-tap, a buggy client). The engine renders it as the **caller's**
+  error (a 400 `illegal_move`) — this is an *expected* outcome, not a fault.
+- **Any other throw** from a hook is treated as a **game bug** and surfaces as a
+  server 500. Don't use exceptions for control flow; return the right envelope
+  instead.
+- You never validate turn order, versions, seat ownership, or timing — the engine
+  has already enforced all of it before your hook runs. Validate only move
+  *legality*.
+
+For how any of this works under the hood, read
 [`architecture.md`](./architecture.md).

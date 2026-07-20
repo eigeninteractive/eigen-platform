@@ -12,17 +12,19 @@
 |---|---|
 | [`architecture.md`](./architecture.md) | **How the server works, end to end** — the as-built reference for maintainers and implementors. Start here. |
 | [`building_a_game.md`](./building_a_game.md) | **How to build a game on the engine** — the implementor's guide (the `GameRules`/`GameModule` contract, the hooks, wiring, testing, deploying). |
-| [`engine_stack.md`](./engine_stack.md) | **The decision record** — every architectural decision with its rationale and date. Source-file comments cite its section numbers (`§4.5`, `§7`, …), so it is retained as the canonical anchor for those references. Read `architecture.md` for the clean narrative; read this when you need *why*. |
-| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_client` changes each server change implies — the tracker for the (still pending) client migration + big-bang cutover. |
+| [`client_reference.md`](./client_reference.md) | **The client (Flutter) reference** — transport, the frame/animation model, identity, offline UX, persistence, timing, push, navigation, platform integration. |
+| [`engine_stack.md`](./engine_stack.md) | **The roadmap** — what remains (client migration + cutover, deferred features, paid-tier items) and the standing constraints. |
+| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_client` changes each server change implies — retires once the client migration lands. |
 
 ## State of the world
 
 - **The server is complete.** All engine functionality is built, tested, and
-  documented in the two reference docs above.
-- **Remaining work is not in this repo:** the Flutter client migration
-  (tracked in `client_changes.md`) and the eventual big-bang cutover, plus a few
-  deferred, seam-held items (a real R2 avatars bucket at a card-enabled deploy;
-  the R2 cold-tier history sweep; the social/friends routes milestone).
+  documented in the reference docs above.
+- **Remaining work** is the roadmap in `engine_stack.md`: the Flutter client
+  migration (tracked in `client_changes.md`, targeted by `client_reference.md`)
+  and the big-bang cutover, plus deferred, seam-held items (a real R2 avatars
+  bucket and the R2 cold-tier history sweep at a card-enabled deploy; D1 FTS5
+  search; offline-solo transcript import).
 
 ## Standing constraints (still in force)
 
@@ -34,5 +36,6 @@ These shaped the build and remain the rules of the road:
   endpoint + the client's persisted cache cover it).
 - Versions strictly serial, no gaps, ever.
 - No real R2 bucket / no payment method until explicitly enabled for a deploy.
-- Keep `engine_stack.md` (the decision record) and the two reference docs
-  current when the architecture changes.
+- Docstrings are self-sufficient — no section-number cross-references in code.
+- Keep the reference docs (`architecture.md`, `building_a_game.md`,
+  `client_reference.md`) current when the architecture changes.
