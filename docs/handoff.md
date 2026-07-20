@@ -13,8 +13,9 @@
 | [`architecture.md`](./architecture.md) | **How the server works, end to end** — the as-built reference for maintainers and implementors. Start here. |
 | [`building_a_game.md`](./building_a_game.md) | **How to build a game on the engine** — the implementor's guide (the `GameRules`/`GameModule` contract, the hooks, wiring, testing, deploying). |
 | [`client_reference.md`](./client_reference.md) | **The client (Flutter) reference** — transport, the frame/animation model, identity, offline UX, persistence, timing, push, navigation, platform integration. |
+| [`client_migration.md`](./client_migration.md) | **The client migration plan** — topology, tooling, keep/rewrite inventory, and the ordered stages to move the Flutter client onto the new server. |
 | [`engine_stack.md`](./engine_stack.md) | **The roadmap** — what remains (client migration + cutover, deferred features, paid-tier items) and the standing constraints. |
-| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_client` changes each server change implies — retires once the client migration lands. |
+| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_sdk` changes each server change implies — retires once the client migration lands. |
 
 ## State of the world
 

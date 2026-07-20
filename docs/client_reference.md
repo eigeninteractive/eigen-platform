@@ -16,9 +16,10 @@ and the transport that talks to the server. Its companions are
 > design and the contracts.
 
 The client is split into two layers, mirroring the server's rules/runtime split:
-**`eigen_client`** (transport — auth, the generated API client, the frame stream)
-and **`eigen_flutter`** (the shell — screens, navigation, widgets), with a
-per-game **Dart `GameRules` twin** for optimistic preview and rendering.
+**`eigen_sdk`** (pure-Dart transport — auth plumbing, the generated API client,
+the frame stream) and **`eigen_flutter`** (the shell — screens, navigation,
+widgets), with a per-game **Dart `GameRules` twin** for optimistic preview and
+rendering.
 
 ---
 

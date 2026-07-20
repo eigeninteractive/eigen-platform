@@ -1,6 +1,6 @@
 # Client changes — running list
 
-The server (`eigen-server`) and the Flutter client (`eigen_client` transport +
+The server (`eigen-server`) and the Flutter client (`eigen_sdk` transport +
 `eigen_flutter` shell) evolve in lockstep across a big-bang cutover. This file
 is the **running list of client-side work each server change implies**, so the
 client migration never has to reverse-engineer the diff. Add an entry whenever a
@@ -19,7 +19,7 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   Firebase ID token as `Authorization: Bearer <token>`; WebSocket upgrades send
   it as `?token=` (browsers can't set headers on upgrades).
 - **Generated API client from `openapi.json`.** `todo`
-  `eigen_client` is generated from the vendored `packages/server/openapi.json`
+  `eigen_sdk` is generated from the vendored `packages/server/openapi.json`
   (dio, or a hand-written thin client). The frame stream (WebSocket, version
   ordering, gap recovery by range fetch, reconnect resync, pre-start roster
   snapshots) is hand-written.

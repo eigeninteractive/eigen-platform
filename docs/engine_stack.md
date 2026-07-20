@@ -9,6 +9,7 @@ govern how it gets done. For how the system works today, read the reference docs
 | [`architecture.md`](./architecture.md) | How the server works, end to end — the primary reference. |
 | [`building_a_game.md`](./building_a_game.md) | How to build a game on the engine (the `GameRules` contract, hooks, testing, deploying). |
 | [`client_reference.md`](./client_reference.md) | The client (Flutter) reference — transport, frame/animation model, shell, platform integration. |
+| [`client_migration.md`](./client_migration.md) | The client migration plan — topology, tooling, keep/rewrite inventory, ordered stages. |
 | [`client_changes.md`](./client_changes.md) | The running tracker of client changes the server migration implies (retires once the client migration lands). |
 
 > The detailed decision history that used to live here (every architectural
@@ -21,7 +22,7 @@ govern how it gets done. For how the system works today, read the reference docs
 ## 1. The critical path — client migration & cutover
 
 The whole server is done; the only path to production is the **client**. The
-Flutter app (`eigen_client` transport + `eigen_flutter` shell, with the per-game
+Flutter app (`eigen_sdk` transport + `eigen_flutter` shell, with the per-game
 Dart `GameRules` twin) must catch up to the new server:
 
 - Firebase Auth replacing Supabase; the generated API client from `openapi.json`;
@@ -33,7 +34,9 @@ Dart `GameRules` twin) must catch up to the new server:
   client-direct DB reads.
 
 `client_changes.md` enumerates every delta; `client_reference.md` is the target
-state. **Cutover is big-bang** — no dual-running. There are no production users,
+state; **`client_migration.md` is the sequenced plan** (pub-workspace topology,
+generated REST client + hand-written socket layer, staged steps). **Cutover is
+big-bang** — no dual-running. There are no production users,
 so there is no data migration: freeze Supabase, apply the D1 migrations, deploy
 the Worker, ship the client. The cutover is what first requires a real R2 bucket
 and a payment method (see §3).
