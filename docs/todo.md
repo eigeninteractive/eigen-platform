@@ -5,3 +5,4 @@
 - Do we need GameStub?
 - Make single attemps retry based (where all does it make sense)
 - Can anything be optimizied - unnecessary network call, N + 1 patterns, batch simplifications, etc.?
+- How and what to remove in eigen interactive web repo?
