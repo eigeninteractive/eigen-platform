@@ -134,6 +134,28 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   reassigned to another account is left alone). Account deletion already removes
   the caller's device rows server-side, so this is only for sign-out.
 
+## Social — friends, search, blocking (review pass)
+
+- **Friend graph moves to `/api/engine/friends/*`.** `todo`
+  Replaces the Supabase `/social/*` edge routes and `app_*` social RPCs. The
+  surface: `GET /friends` (accepted), `GET /friends/requests` (pending, each
+  tagged `incoming`/`outgoing`), `POST /friends/requests {target_user_id}`
+  (send — auto-accepts a reverse-pending request, returns `{status}`),
+  `POST /friends/requests/{userId}/accept`, `DELETE /friends/{userId}`
+  (unfriend / withdraw / decline — one idempotent call),
+  `POST` + `DELETE /friends/{userId}/block`. All require a registered caller;
+  friend targets must be registered (a guest can't be friended). The client
+  drops any client-direct relationship reads.
+- **User search: `GET /api/engine/users/search?q=`.** `todo`
+  Replaces `app_search_users`. Registered-only; excludes self, guests, and
+  blocked users; returns the standard player shape. Debounce client-side.
+- **Friends' open games: `GET /api/engine/friends/games`.** `todo`
+  Replaces `app_friends_games` — joinable games created by the caller's friends.
+- **Username edit: `PUT /api/engine/me/username {username}`.** `todo`
+  Replaces `app_update_username`. Charset `[a-z0-9_.]{3,20}` (server lowercases
+  and validates); a clash is a **409**. The display name still comes from the
+  auth provider and isn't user-editable.
+
 ## Offline solo — transcript import (future)
 
 - **`future`** The replacement for the deleted local-bot "offline" story. The

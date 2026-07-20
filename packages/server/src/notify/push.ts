@@ -54,4 +54,14 @@ export function finishPush(gameId: string): NotificationMessage {
   return { title: "Game over", body: "Your game has finished.", data: { category: "game_finished", deep_link: `/game/${gameId}` } };
 }
 
+/** The "someone wants to be friends" push, addressed to the request's recipient. */
+export function friendRequestPush(actorName: string): NotificationMessage {
+  return { title: `${actorName} wants to be friends`, body: "Tap to respond.", data: { category: "friend_request", deep_link: "/social" } };
+}
+
+/** The "your request was accepted" push, addressed to the original requester. */
+export function friendAcceptedPush(actorName: string): NotificationMessage {
+  return { title: `${actorName} accepted your friend request`, body: "Tap to view.", data: { category: "friend_accepted", deep_link: "/social" } };
+}
+
 export { readServiceAccount };

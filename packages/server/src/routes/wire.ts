@@ -140,6 +140,23 @@ export const profileShape = playerShape
   })
   .openapi("Profile");
 
+/** One entry in a friends / pending-requests list: the other user's public
+ * identity plus relationship metadata (`direction` only on pending lists). */
+export const relationshipShape = playerShape
+  .extend({
+    user_id: z.string(),
+    direction: z.enum(["incoming", "outgoing"]).optional(),
+    since: z.number(),
+  })
+  .omit({ id: true })
+  .openapi("Relationship");
+
+/** The target of a friend write. */
+export const friendTargetBody = z.object({ target_user_id: z.string().min(1) }).openapi("FriendTarget");
+
+/** A username change. Charset is validated in the handler for a precise error. */
+export const usernameBody = z.object({ username: z.string().min(3).max(20) }).openapi("UsernameUpdate");
+
 export const botShape = z
   .object({
     id: z.string(),

@@ -47,6 +47,7 @@ import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerGameRoutes } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
+import { registerSocialRoutes } from "./routes/social.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
 
@@ -232,6 +233,7 @@ export function buildApp(ctx: RouteContext) {
   registerGameRoutes(engine, ctx);
   registerAccountRoutes(engine, ctx);
   registerDeviceRoutes(engine, ctx);
+  registerSocialRoutes(engine, ctx);
   if (ctx.avatars !== null) registerAvatarUpload(engine, ctx);
 
   const bot = newOpenApiApp();

@@ -34,7 +34,7 @@ export interface GameWithRoster extends GameRow {
   participants: Seat[];
 }
 
-async function withRosters(d1: D1Database, rows: GameRow[]): Promise<GameWithRoster[]> {
+export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<GameWithRoster[]> {
   if (rows.length === 0) return [];
   const db = drizzle(d1);
   const seatRows = await db
