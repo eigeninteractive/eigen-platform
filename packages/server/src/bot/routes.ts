@@ -28,7 +28,7 @@ import { verifyBotSignature } from "./bot-auth.js";
 
 /** What an external bot signs and sends as the request body: its claimed
  * identity/seat, the version it acted against, and the move. Every field is
- * trusted only after the `X-Bot-Signature` HMAC over the exact bytes verifies. */
+ * trusted only after the `Eigen-Signature` HMAC over the exact bytes verifies. */
 const botActionBody = z
   .object({
     bot_id: z.string().min(1),

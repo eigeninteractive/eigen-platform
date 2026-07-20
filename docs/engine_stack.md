@@ -1,31 +1,25 @@
-# Eigen Engine — Architecture of Record (Cloudflare-native)
+# Eigen Engine — Decision Record (Cloudflare-native)
 
-> **Decision (2026-07-14, design locked 2026-07-15).** The engine runs **Cloudflare-only**:
-> Workers at the edge, one **Durable Object per game** owning that game's state — live
-> *and finished*: the DO's SQLite **is** the game's history (§4.6) — **D1** for global
-> data, **Firebase Auth** for identity. **R2** is opt-in (avatar uploads — v1 code,
-> simulated free in local dev) or later (history cold tier) — §5.4. No Postgres. No
-> Supabase.
->
-> **Two sets of keys: a Cloudflare account and a Firebase project.** Nothing else.
->
-> **The constraints that drove it:** fast time-to-first-game, **scale to zero** when idle,
-> **~$10/month** at real traffic. We start on the **Workers free plan** — everything the
-> design needs (SQLite-backed DOs, alarms, hibernation, D1, cron) is on it, **with no
-> payment method on file** (which R2 would require even for free use — §5.4) — and
-> upgrade to paid ($5/mo) at the traffic trigger defined in §10. The upgrade is one click,
-> zero code change.
->
-> **Cutover is big-bang.** The Supabase stack (documented in `engine_architecture.md` in
-> the `eigen_engine` repo, now the *legacy* reference) is frozen bugfix-only; `supabase/`
-> is deleted from that repo at parity. There are no production users, so there is no data
-> migration.
+> **This is the decision record, not the primary reference.** For the clean,
+> as-built description of how the server works, read
+> [`architecture.md`](./architecture.md); to build a game on the engine, read
+> [`building_a_game.md`](./building_a_game.md). This document is retained for two
+> reasons: it captures **why** each architectural choice was made (with dates and
+> rationale the as-built docs deliberately omit), and its **section numbers
+> (`§4.5`, `§7`, …) are cited by comments throughout the source**, so it remains
+> the canonical anchor for those cross-references. When the two differ on
+> *current* behaviour, `architecture.md` wins; this document is the history of the
+> reasoning.
 
-This document is the **final architecture**: every design decision below is settled, not
-proposed. `engine_architecture.md` (in `eigen_engine`, the sibling Dart repo) remains the
-reference for the frozen Supabase system —
-useful because most *semantics* (hooks, timing, ratings, bots, guests, deletion) carry over
-verbatim; only the *host machinery* changes.
+> **Original framing (2026-07-14, design locked 2026-07-15).** The engine runs
+> **Cloudflare-only**: Workers at the edge, one **Durable Object per game** owning that
+> game's state — live *and finished*: the DO's SQLite **is** the game's history (§4.6) —
+> **D1** for global data, **Firebase Auth** for identity. **R2** is opt-in (avatar uploads
+> — §5.4) or later (history cold tier). No Postgres, no Supabase. The constraints that drove
+> it: fast time-to-first-game, scale to zero when idle, ~$10/month at real traffic, and a
+> **free-tier day-0 path with no payment method** (the upgrade at the §10 trigger is one
+> click, zero code change). Cutover from the frozen Supabase stack is big-bang; there are no
+> production users, so there is no data migration.
 
 **Contents.** §1 stack · §2 repos & packages · §3 the core (kernel, DO, commands, same-view
 rule) · §4 game lifecycle end to end · §5 data · §6 identity · §7 push & bots · §8 failure

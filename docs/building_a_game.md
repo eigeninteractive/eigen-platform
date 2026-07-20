@@ -1,0 +1,509 @@
+# Building a Game on Eigen
+
+This is the guide for writing a game **on** the Eigen engine. Its companion,
+[`architecture.md`](./architecture.md), describes the engine itself; read this
+one to ship a game.
+
+The promise of the engine is a sharp division of labour: **you write pure game
+rules; the engine owns everything else** — persistence, serialization, timing,
+sockets, reconnection, ratings, bots, auth, history, and the API. You never
+touch a database, a Durable Object, a migration, or a socket. You implement one
+small, precisely-typed contract, wire it into a Worker, and deploy.
+
+Everything you write lives behind one interface, `GameModule`, from the
+`@eigen/rules` package. That package is pure types plus two tiny helpers, and it
+has zero engine dependencies — you can read it top to bottom in ten minutes.
+
+---
+
+## 1. The mental model
+
+An Eigen game is a **sequence of server-authoritative transitions**. The engine
+holds an opaque blob of *your* state per game; each move calls one of your hooks
+to produce the next blob, plus who may move next and (eventually) the outcome.
+Four facts define the shape of everything you write:
+
+1. **Your state is pure and opaque.** The engine stores and versions it but never
+   looks inside. It holds *only* your game payload (board, deck, scores, fog) —
+   never whose-turn or winner metadata; those are engine-owned. Your hooks are
+   pure functions from `(state, input)` to a new state.
+
+2. **The engine is authoritative; the client is a proposer.** A player's move is
+   validated by *your* `applyAction` on the server. If it's illegal you throw;
+   the engine rejects it. The client also runs a Dart twin of your rules for
+   optimistic preview, but the server's answer is the truth.
+
+3. **You never branch on version.** Rules are organized one unit per
+   `schema_version`. The engine resolves a game's version once and calls the
+   right unit's hooks — your hook bodies only ever see their own version's shapes.
+
+4. **Determinism is required.** State must be a pure function of `(seed, ordered
+   moves)`. Any randomness comes from an engine-provided, replay-stable `rng`.
+   This is what makes history, reconnection, and preview all work — so no
+   `Date.now()`, no `Math.random()`, no external reads inside a hook.
+
+---
+
+## 2. What you implement: `GameModule` and `GameRules`
+
+A `GameModule` is just a map from `schema_version` to a `GameRules` unit:
+
+```ts
+import type { GameModule } from "@eigen/rules";
+import { rulesV1 } from "./v1.js";
+
+export const gameModule: GameModule = {
+  versions: { 1: rulesV1 },
+};
+```
+
+A `GameRules` unit is one version's **payload schemas + six hooks** (plus an
+optional seventh for bots). The whole contract:
+
+```ts
+interface GameRules<TState, TAction, TConfig> {
+  schemas: { state; action; config };                        // Standard Schema each
+
+  initialState(args): Envelope<TState>;                      // seed a new game
+  applyAction(args): Envelope<TState>;                       // a player's move
+  applyLifecycle(args): Envelope<TState>;                    // timeout / forfeit
+  computeObservation(args): ObservationSlice;                // per-seat view (fog)
+  ratingPool(args): string | null;                           // rated? which pool?
+  botSeatable(args): boolean;                                // may this bot sit?
+
+  botActions?: Record<string, BotAction<TAction, TConfig>>;  // in-engine bot brains
+}
+```
+
+Author each unit as a class `implements GameRules<State, Action, Config>` (or a
+literal typed `: GameRules<…>`) so you get full type-checking, then register it
+in the `versions` map. That's it — no base class to extend, no lifecycle to
+manage.
+
+---
+
+## 3. Schemas & payload types — schema-first
+
+Every payload that crosses the JSON boundary (`state`, `action`, `config`) is
+declared as a **Standard Schema** — bring Zod, Valibot, ArkType, anything that
+implements the spec. The engine parses each payload with your schema *before*
+your hook sees it, and re-validates the state your hook returns before
+committing. So your hook bodies never touch unvalidated JSON.
+
+Derive your TypeScript types from the schemas, and follow two rules:
+
+- **Use `type` aliases via `z.infer`, not `interface`s.** The engine's
+  `JsonObject` constraint needs the implicit index signature that a `type` gets
+  and an `interface` doesn't.
+- **Keep schemas transform-free.** What parses is what persists — don't reshape
+  in the schema. And schemas must validate **synchronously** (the engine rejects
+  an async schema as a game bug; every mainstream library is sync unless you opt
+  into async refinements).
+
+```ts
+import { z } from "zod";
+
+const moveSchema   = z.enum(["rock", "paper", "scissors"]);
+const actionSchema = z.object({ move: moveSchema });
+const configSchema = z.object({ targetWins: z.int().min(1).max(10) });
+const stateSchema  = z.object({ /* your board */ });
+
+type Action = z.infer<typeof actionSchema>;
+type Config = z.infer<typeof configSchema>;
+type State  = z.infer<typeof stateSchema>;
+```
+
+---
+
+## 4. The hooks, in detail
+
+Everything returns an **`Envelope<State>`**: the new `state`, the
+`pending_players` who may act next (empty ⇒ game over), an optional `outcome`
+(present **only** when the game ends), and an optional `turn_seconds` override
+for this one action.
+
+### `initialState({ config, rng, playerCount }) → Envelope`
+
+The starting position. Draw any setup randomness (shuffle, first player) from
+`rng`. Set `pending_players` to whoever moves first.
+
+### `applyAction({ state, pending, data, playerIndex, config, rng }) → Envelope`
+
+A player's move. **The engine has already confirmed it is this seat's turn at the
+expected version** — do not re-check turn order. Validate move *legality* only;
+if it fails, `throw new IllegalMoveError("…")` and the engine renders it as the
+caller's error. Any *other* throw is treated as a game bug (a server 500). Return
+the next envelope: advance the state, set the next `pending_players`, and include
+`outcome` if this move ended the game.
+
+### `applyLifecycle({ state, pending, type, data, rng }) → Envelope`
+
+Resolve an out-of-rules event. Unlike `applyAction` it can never be "illegal" —
+it always resolves. Three triggers:
+
+- **`timeout`** — the seats in `pending` ran out of time. Resolve the whole set
+  in one envelope (you decide the consequence — often a loss for the idle seat,
+  or a draw if everyone stalled).
+- **`forfeit`** — a voluntary resign; the seat is in `data.player_index`.
+- **`auto_forfeit`** — the engine-driven variant (an account was deleted). Same
+  shape as forfeit; you *may* choose a gentler consequence (e.g. a draw rather
+  than a loss) since the seat didn't choose to quit.
+
+### `computeObservation({ state, pending, playerIndex, cause, isReplay, … }) → ObservationSlice`
+
+Project the state into **one seat's view** — this is where hidden information
+lives. Return `{ data, pending_players }`:
+
+- `data` is exactly what this seat may see. Strip anything hidden (opponents'
+  hands, face-down cards, un-revealed simultaneous commits).
+- `pending_players` may be *narrowed* from the true set to avoid leaking
+  information (e.g. hiding that an opponent has secretly moved) — but it must
+  stay truthful about the seat *itself*, and the engine enforces that.
+- `playerIndex` is `null` for a public viewer (only ever with `isReplay: true` —
+  a finished public game), where you can reveal everything.
+- `cause` tells the seat *what just happened* (see §7). `isReplay` is true only
+  for finished-game replay, where hidden-info games may reveal opponent state.
+
+For a **perfect-information game**, use the shipped `passthroughObservation`
+helper — every seat sees the full state and the true pending set.
+
+**This hook silently sets your simultaneous-move policy** — see §6.
+
+### `ratingPool({ access, turnSeconds, budgetSeconds, config, … }) → string | null`
+
+Decide whether — and in which pool — a game with these settings is rated. Return
+a pool name (`"standard"`, `"rapid"`, …) or `null` for unrated. The engine
+computes `canBeRated = pool !== null && !guest` and validates the client's
+concrete `rated` flag against it. (The Dart twin computes the same value so the
+create dialog can gate the Rated/Casual toggle.)
+
+### `botSeatable({ gameConfig, botConfig }) → boolean`
+
+Whether a bot's declared capabilities support this game config. Return `true` to
+allow the seating.
+
+---
+
+## 5. A complete example — Rock-Paper-Scissors
+
+RPS is the engine's *hardest-case-first* example: simultaneous commitment with
+hidden information. Both seats are pending each round; a commit is stored in the
+state but hidden from the opponent by `computeObservation`. Here is the whole
+game (see `examples/rps/src/rules/v1.ts` for the file with comments):
+
+```ts
+class RpsRulesV1 implements GameRules<State, Action, Config> {
+  readonly schemas = { state: stateSchema, action: actionSchema, config: configSchema };
+
+  initialState(): Envelope<State> {
+    return { state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
+             pending_players: [0, 1] };
+  }
+
+  applyAction({ state, data, playerIndex }: ApplyActionArgs<State, Action, Config>): Envelope<State> {
+    const seat = playerIndex as 0 | 1;
+    const other = (1 - seat) as 0 | 1;
+    const otherMove = state.commits[other];
+
+    if (otherMove === null) {
+      // First commit: record it, wait for the opponent.
+      const commits: State["commits"] = [null, null];
+      commits[seat] = data.move;
+      return { state: { ...state, commits }, pending_players: [other] };
+    }
+    // Second commit: resolve the round (and maybe the match).
+    const moves = seat === 0 ? [data.move, otherMove] : [otherMove, data.move];
+    const winner = beats(moves[0], moves[1]) ? 0 : beats(moves[1], moves[0]) ? 1 : null;
+    const wins = [...state.wins]; if (winner !== null) wins[winner] += 1;
+
+    if (winner !== null && wins[winner] >= config.targetWins) {
+      return { state: { ...state, wins, commits: [null, null], lastRound: { moves, winner } },
+               pending_players: [], outcome: matchOutcome(winner) };
+    }
+    return { state: { round: state.round + 1, wins, commits: [null, null], lastRound: { moves, winner } },
+             pending_players: [0, 1] };
+  }
+
+  computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<…>): ObservationSlice {
+    if (isReplay || playerIndex === null) {
+      return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, commits: state.commits },
+               pending_players: pending };
+    }
+    const seat = playerIndex as 0 | 1;
+    // Two deliberate omissions that ARE the game:
+    //  - the opponent's commit is hidden (only your own move comes back);
+    //  - the opponent's pending status is masked (you see only your own).
+    return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, yourMove: state.commits[seat] },
+             pending_players: pending.filter((s) => s === seat) };
+  }
+
+  ratingPool({ access }: RatingPoolArgs<Config>): string | null {
+    return access === "public" ? "standard" : null;
+  }
+  botSeatable(): boolean { return true; }
+}
+```
+
+Notice what the engine did for you: RPS never mentions turns, deadlines,
+sockets, versions, persistence, or ratings. It stores commits in its own state
+and hides them in `computeObservation` — and that single choice makes both the
+hidden information *and* the simultaneous-move correctness fall out for free (§6).
+
+---
+
+## 6. Hidden information & the same-view rule
+
+Simultaneous moves are the classic source of turn-based race bugs. Eigen resolves
+them with a rule that needs **zero game code**, driven entirely by what your
+`computeObservation` reveals:
+
+> A stale-version action (one computed against an older version) is accepted **if
+> and only if** the acting seat's projected observation is byte-identical between
+> the version it expected and the current version. Otherwise it's rejected with
+> `board_updated` and the client resyncs.
+
+Work through RPS. Both players commit "simultaneously":
+
+- Player 0 commits. The state changes (version bumps), but because
+  `computeObservation` **hides player 1's commit and masks player 1's pending
+  status**, *player 1's projected view is unchanged*. So player 1's in-flight
+  commit — computed against the older version — still lands. Order doesn't
+  matter.
+- When the *second* commit resolves the round, the reveal (`lastRound`, the new
+  `wins`) changes *every* seat's view — so any submission still computed against
+  the pre-resolution round is correctly rejected.
+
+You never wrote a lock, a "both players ready" check, or a retry. You chose what
+each seat sees, and the acceptance policy followed. A perfect-information game
+using `passthroughObservation` gets the *strict* policy automatically: any
+opponent move changes everyone's view, so no stale submission survives.
+
+Two invariants to rely on: versions stay strictly serial (the rule governs
+*acceptance*, never ordering — every accepted move is still the next version),
+and a seat's projection must stay truthful about itself (the engine enforces it).
+
+---
+
+## 7. Transitions & animation — the `cause`
+
+Pure frame-diffing can't always recover *what happened* (identical footprints,
+hidden moves, composite resolutions). So `computeObservation` receives a
+`cause` — the action that produced the state being projected (`{ kind: "game",
+data, playerIndex }`, a `lifecycle`, or `null` for the initial frame).
+
+To let a client animate, embed whatever cues a seat is *permitted* to see into
+that seat's `data` (e.g. a `lastMove` field, or RPS's `lastRound` reveal).
+Because the embedding happens inside `computeObservation`, visibility stays
+game-controlled. Cues describe a *transition*: a client renders them as animation
+when it holds the predecessor frame, and as static "last move" info otherwise.
+
+---
+
+## 8. Timing
+
+You mostly get timing for free — a game is created in one of three modes (per-turn
+budget, chess-clock bank + optional increment, or untimed), the client picks the
+values, and the engine enforces the deadline with a durable per-game alarm. Your
+only timing touchpoints:
+
+- **`applyLifecycle` on `timeout`** — decide the consequence when a seat's clock
+  runs out (§4).
+- **The envelope's `turn_seconds`** — override the deadline for *one* action
+  only (e.g. a longer window for a special phase), without touching any player's
+  bank. Omit it to use the game's configured timing.
+
+If a game seats a bot, it **must** be timed — the deadline is the backstop for a
+bot that never moves. The engine enforces this at seating; your `botSeatable`
+doesn't need to.
+
+---
+
+## 9. Bots
+
+A bot is a registry row (an operator inserts it) whose `type` decides how it
+moves. The one you write in your game module is the **`engine`** bot — a brain
+that runs *inside* the engine, no external service:
+
+```ts
+readonly botActions: Record<string, BotAction<Action, Config>> = {
+  // keyed by the bot's registry `username`
+  "rps-random": ({ rng }) => {
+    const moves: Move[] = ["rock", "paper", "scissors"];
+    return { move: moves[Math.floor(rng.next() * moves.length)] };
+  },
+};
+```
+
+When a seated engine bot is due, the engine resolves its row → `username` → this
+function, runs it post-commit, and self-applies the returned move as that seat's
+action — validated against `schemas.action` exactly like a human's (an illegal
+bot move fails that seat's turn and the deadline backstops it; it can't corrupt
+the game). The brain sees only its seat's observation — the same fog a human
+gets, so a bot can't read hidden state.
+
+Notes:
+- **Several bots, one brain.** Personalities that share behaviour point their
+  usernames at the same function and differ by their per-row `botConfig`
+  (difficulty, style). Distinct behaviour is a distinct entry.
+- **`rng` is deterministic** per (game, version, seat) for reproducible tests,
+  but replay uses the *recorded* move, so the brain needn't be pure.
+- **External and local bots** are engine concepts, not things you code in the
+  game module: `external` bots are hosted elsewhere and woken over a signed
+  webhook; `local` bots are reserved for future offline play. You only write
+  `engine` brains here.
+
+---
+
+## 10. Wiring it into a Worker
+
+Two small pieces of glue, both from `@eigen/server`:
+
+```ts
+// src/index.ts
+import { BaseGameDO, createEngine } from "@eigen/server";
+import { gameModule } from "./rules/index.js";
+
+// 1. Bind the game's Durable Object to your game module + D1.
+export class GameDO extends BaseGameDO<Env> {
+  protected readonly gameModule = gameModule;
+  protected d1(env: Env) { return env.MY_D1; }
+}
+
+// 2. Export the Worker.
+export default createEngine({
+  gameModule,
+  appName: "Rock Paper Scissors",
+  d1:     (env: Env) => env.MY_D1,
+  gameDO: (env: Env) => env.GAME_DO,
+  // Optional feature blocks — omit to leave a feature off:
+  // deepLink:  { android: {...}, apple: {...} },
+  // avatars:   { bucket: (env) => env.AVATARS },
+  // lifecycle: { guestMaxAgeMs: … },
+});
+```
+
+You pass **accessors**, not binding names — the engine reads each binding off
+*your* `Env`, so you can call them whatever you like in `wrangler.jsonc`. The
+config's type parameters infer from these accessors.
+
+Your `wrangler.jsonc` declares: the `GameDO` Durable Object (SQLite storage, via
+the `exports` field), your D1 database, a daily `cron` trigger (the lifecycle
+backstop), `nodejs_compat`, and — if you use them — an R2 bucket for avatars and
+a `public/` assets directory. Set `FIREBASE_PROJECT_ID` (required for auth); add
+the `FIREBASE_*` service-account trio to enable push, and `BOT_SIGNING_SECRET`
+to enable external bots.
+
+You do **not** write D1 migrations — the engine owns its schema and ships the
+migrations; you apply them with `wrangler d1 migrations apply` at deploy. The
+per-game DO schema self-applies. (If you need your own app-specific tables, that
+is a *separate* D1 database with its own migrations — never the engine's.)
+
+---
+
+## 11. Testing your game
+
+Two layers, both fast and offline.
+
+### Twin fixtures (the drift net)
+
+Your rules exist twice — TS here, Dart in the client repo. **Shared JSON
+fixtures** record expected behaviour once and run against both, so a divergence
+fails a test on both sides. A fixture file is a list of cases:
+
+```json
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "kind": "action",
+      "name": "first commit of a round is recorded and hidden",
+      "config": { "targetWins": 1 },
+      "state":  { "round": 1, "wins": [0,0], "commits": [null,null], "lastRound": null },
+      "pending": [0, 1],
+      "playerIndex": 0,
+      "action": { "move": "rock" },
+      "expected": {
+        "valid": true,
+        "state": { "round": 1, "wins": [0,0], "commits": ["rock",null], "lastRound": null },
+        "pending": [1],
+        "outcome": null,
+        "observation": { "round": 1, "wins": [0,0], "lastRound": null, "yourMove": "rock" }
+      }
+    }
+  ]
+}
+```
+
+`kind` can be `action` (drives `applyAction` + `computeObservation`),
+`ratingPool`, or `botSeatable`. Wire them into a test with one line from the
+testkit:
+
+```ts
+import { twinFixtureTests } from "@eigen/testkit";
+import { gameModule } from "../../src/rules/index.js";
+
+twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
+```
+
+Write fixtures for the interesting states — especially hidden-info reveals and
+`computeObservation` masking — because those are exactly where the TS and Dart
+twins drift. Copy the observation your hook *should* produce for each seat into
+`expected.observation`; the runner checks it byte-for-byte.
+
+### Integration tests
+
+Drive the real Worker (routes + DO + D1) with `@cloudflare/vitest-pool-workers`,
+using `@eigen/server/testing` to mint local test tokens. The engine's own suites
+cover the plumbing (lobby, sockets, timing, finish, ratings, purge); your job is
+to test *your game's* behaviour end-to-end where it matters — a full match, a
+timeout resolution, a bot game.
+
+---
+
+## 12. Evolving your game — versions
+
+When rules or payload shapes change **incompatibly**, do not edit a shipped
+unit's semantics — that would break games (and replays) already running under it.
+Instead:
+
+1. Copy `v1.ts` to `v2.ts`, importing whatever didn't change.
+2. Make the change in `v2`.
+3. Register it: `versions: { 1: rulesV1, 2: rulesV2 }`.
+
+New games are created at the latest version your build ships; existing games keep
+running against their own version's unit until they drain, at which point you can
+retire it by deleting the entry. The engine handles all dispatch — your hooks
+never branch on version, and the schema gate makes an old client politely refuse
+a newer game rather than mis-parsing it. Compatible tweaks (a bug fix that
+doesn't change stored shapes or recorded behaviour) can edit the unit in place;
+update the fixtures alongside.
+
+---
+
+## 13. What the engine owns (and you never touch)
+
+To keep the boundary crisp, here is everything you get for free and must not
+reimplement:
+
+- **Persistence & serialization** — the per-game Durable Object, its SQLite, the
+  input gate, versioning, and idempotent retries.
+- **The waiting room** — create, join (by id or code), leave, cancel, add-bot,
+  start; short codes; guest and friends-access gating.
+- **Sockets & reconnection** — one socket per game, pre-game roster snapshots,
+  versioned frames, gap recovery by range fetch.
+- **Timing** — deadlines, the chess-clock bank, the grace window, the durable
+  alarm.
+- **Ratings** — OpenSkill, the concurrency-safe CAS, pools, history (you only
+  choose the pool via `ratingPool`).
+- **Identity & auth** — Firebase token verification, user provisioning, guests,
+  account deletion.
+- **History & replay** — the immutable transition log, compaction, and the replay
+  path (your `computeObservation` is reused to project it).
+- **Bots infrastructure**, **push**, **deep links**, **avatars**, and the whole
+  **HTTP/OpenAPI surface**.
+
+Your entire job is the pure rules in `@eigen/rules` plus the ~15-line Worker glue.
+If you find yourself reaching for a database, a socket, a clock, or a lock inside
+a hook — stop; the engine already did it, and doing it in a hook would break
+determinism. For how any of the above actually works under the hood, read
+[`architecture.md`](./architecture.md).

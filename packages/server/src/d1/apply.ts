@@ -264,7 +264,8 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
 }
 
 /** The §4.2 display upsert after a non-finishing transition — fire-and-forget
- * from `waitUntil`, single attempt, re-derivable from the DO at any time. */
+ * post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
+ * re-derivable from the DO at any time. */
 export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
   const db = drizzle(d1);
   await db
@@ -281,7 +282,8 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
 /** The §4.2 roster mirror after a committed waiting-room command — the DO's
  * roster is the integrity copy; this rewrites the D1 display copy wholesale
  * (delete + reinsert), which is idempotent and immune to per-row drift.
- * Fire-and-forget from `waitUntil`, single attempt (§8). */
+ * Fire-and-forget post-commit (the DO leaves it unawaited; no `waitUntil`),
+ * single attempt (§8). */
 export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
   const db = drizzle(d1);
   const statements = [db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)), db.delete(participants).where(eq(participants.gameId, args.gameId))] as const;

@@ -43,6 +43,7 @@ import type { EngineOps } from "./lifecycle/purge.js";
 import type { GameStub } from "./protocol.js";
 import { registerAccountRoutes } from "./routes/account.js";
 import { registerAvatarServe, registerAvatarUpload } from "./routes/avatars.js";
+import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerGameRoutes } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
@@ -230,6 +231,7 @@ export function buildApp(ctx: RouteContext) {
   registerReadRoutes(engine, ctx);
   registerGameRoutes(engine, ctx);
   registerAccountRoutes(engine, ctx);
+  registerDeviceRoutes(engine, ctx);
   if (ctx.avatars !== null) registerAvatarUpload(engine, ctx);
 
   const bot = newOpenApiApp();

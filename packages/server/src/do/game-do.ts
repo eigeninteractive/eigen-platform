@@ -402,7 +402,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   /** Deliver the kernel's named effects for a committed transition: a seated
    * bot's turn (in-DO brain self-apply, or an external HMAC wake) and human
    * turn/finish pushes. Single attempt + log throughout (§8) — a bot that
-   * never moves rides the turn deadline (bots ⇒ timed). Runs in `waitUntil`. */
+   * never moves rides the turn deadline (bots ⇒ timed). Runs post-commit as an
+   * unawaited, self-catching promise (no `waitUntil` — see `#apply`). */
   async #dispatchEffects(meta: MetaRow, roster: Seat[], plan: CommitPlan, next: StateRow): Promise<void> {
     for (const effect of plan.effects) {
       if (effect.kind === "wake_bot") {

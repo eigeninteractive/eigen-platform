@@ -1,292 +1,38 @@
-# Handoff — Eigen Engine → Cloudflare-native (`eigen-server`)
+# Handoff — Eigen Server
 
-Context document for starting a Claude Code session in this repo. It carries
-everything decided in the `eigen_engine` sessions that led here. Read this
-first, then the architecture of record.
+> **This was the migration handoff.** It carried the plan and running progress
+> for moving the Eigen Engine from Supabase to Cloudflare-native. That migration
+> is complete (the whole server — Phase 2 — shipped), so this file is now a
+> short pointer to the docs that replaced it. It is kept (and loaded as project
+> context) as the map, not the territory.
 
-## 0. The one source of truth
+## Where the current documentation lives
 
-**`docs/engine_stack.md`** (this repo) is the architecture of record.
-Every decision below is written up there in full, with rationale. When this
-handoff and that doc disagree, the doc wins. Read it end-to-end before
-writing engine code; it is long but it IS the spec.
+| Doc | What it is |
+|---|---|
+| [`architecture.md`](./architecture.md) | **How the server works, end to end** — the as-built reference for maintainers and implementors. Start here. |
+| [`building_a_game.md`](./building_a_game.md) | **How to build a game on the engine** — the implementor's guide (the `GameRules`/`GameModule` contract, the hooks, wiring, testing, deploying). |
+| [`engine_stack.md`](./engine_stack.md) | **The decision record** — every architectural decision with its rationale and date. Source-file comments cite its section numbers (`§4.5`, `§7`, …), so it is retained as the canonical anchor for those references. Read `architecture.md` for the clean narrative; read this when you need *why*. |
+| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_client` changes each server change implies — the tracker for the (still pending) client migration + big-bang cutover. |
 
-The old Supabase implementation lives in `../eigen_engine` (Dart/Flutter
-engine) and its TS edge functions. It is the *behavioral* reference — the
-game rules contract, same-view semantics, rating math, and bot/FCM/short-code
-logic all port from there — but the Supabase stack itself is frozen and will
-be retired at cutover (big-bang, no dual-running).
+## State of the world
 
-## 1. Mission
+- **The server is complete.** All engine functionality is built, tested, and
+  documented in the two reference docs above.
+- **Remaining work is not in this repo:** the Flutter client migration
+  (tracked in `client_changes.md`) and the eventual big-bang cutover, plus a few
+  deferred, seam-held items (a real R2 avatars bucket at a card-enabled deploy;
+  the R2 cold-tier history sweep; the social/friends routes milestone).
 
-Migrate the **Eigen Engine** — a whitelabel, server-authoritative, turn-based
-multiplayer game engine (Flutter client, TypeScript game rules) — from
-Supabase to Cloudflare-native:
+## Standing constraints (still in force)
 
-- **Workers** (hono + @hono/zod-openapi) for the API,
-- **one Durable Object per game** (SQLite storage) as the authoritative
-  serialized game session — live *and finished*: the DO's SQLite **is** the
-  game's permanent history,
-- **D1** for cross-game data (users, summaries, ratings, relationships),
-- **Firebase Auth** verified in-worker via **jose** (user explicitly rejected
-  `firebase-auth-cloudflare-workers` — low downloads, unofficial),
-- **R2** only as opt-in (avatar uploads, v1, developed under free local
-  simulation) or later (history cold tier) — because R2 requires a payment
-  method even for its free tier, and the day-0 design requires **no card**.
+These shaped the build and remain the rules of the road:
 
-Two repos: this one (`eigen-server`, TS pnpm monorepo) and `eigen_engine`
-(stays Dart; later splits into `eigen_client` transport + `eigen_flutter`
-shell). The OpenAPI spec is generated here and vendored into the Dart side
-for codegen. First example game: RPS (`examples/rps`), then Bravado.
-
-## 2. Division of labor (standing agreement)
-
-- **The user builds the repo skeleton themselves**, CLI-first per doc §15 —
-  they want to learn the CF flow, and CLIs postdate the model's knowledge
-  cutoff. **CLI/scaffold output beats doc snippets** (one known exception:
-  C3 scaffolds the legacy DO `migrations` array — we use the `exports` field
-  instead, already applied in `examples/rps/wrangler.jsonc`).
-- **Claude takes over code once hello-world serves under `wrangler dev`**,
-  starting with `@eigen/rules` + `@eigen/kernel` (twin fixtures;
-  timing/grace/same-view under unit test), then the §14 build plan:
-  Spike → Kernel → Runtime → Conformance → Client → Cutover.
-
-## 3. Repo state at handoff (2026-07-16)
-
-Done (verify with `git log` — it may have moved on):
-
-- Root: `package.json` (pnpm 11 via `devEngines`, dev deps installed:
-  wrangler 4, vitest 4 + `@cloudflare/vitest-pool-workers`, tsup, biome 2,
-  changesets, typescript 5.9), `pnpm-workspace.yaml` (`packages/*` +
-  `examples/*`, `allowBuilds` for esbuild/workerd/sharp), one root lockfile,
-  `tsconfig.base.json`, `biome.json`, `.nvmrc` (Node 24), `AGENTS.md`
-  (CF docs discipline — **follow it**: verify Workers APIs/limits against
-  live docs, the docs MCP server is configured), `CLAUDE.md` → `@AGENTS.md`.
-- `packages/{rules,kernel,testkit}`: manifests only, no src yet.
-  `@eigen/rules` deps: `@standard-schema/spec`. `@eigen/kernel` deps:
-  `openskill`, `rand-seed`. **`packages/server` does not exist yet** (4th
-  package: DO + routes + D1 as folders in one package, since DO classes
-  export from the same worker bundle).
-- `examples/rps`: C3-scaffolded worker with `GameDO`/`GAME_DO` (rename from
-  `MyDurableObject` already done), `exports: { GameDO: { type:
-  "durable-object", storage: "sqlite" } }`, static assets dir, D1 binding
-  `rps_dev` → database `rps-dev` (real ID — `d1 create` has been run), R2
-  binding `AVATARS` → `eigeninteractive-rps-avatars-dev` (works under local
-  simulation; **no real bucket created — do not create one**, that is the
-  moment a card is required), cron trigger `0 3 * * *`, `nodejs_compat`,
-  ES2024 tsconfig. `src/index.ts` is still the hello-world DO template.
-- `examples/temp/`: untracked C3 scaffold kept for reference — **deleted
-  2026-07-20** (no longer needed).
-
-Not done yet: vitest-pool-workers wiring, package src stubs,
-`packages/server`, hono/zod/jose/drizzle installs, any engine code.
-
-## 4. Locked design decisions
-
-All dated, all final unless the user reopens them. Full write-ups in the
-architecture doc (section refs given).
-
-### Platform & cost
-- **Free tier from day 0, no payment method anywhere in the required path.**
-  Day-0 inventory is exactly DO SQLite + D1. Binder: DO 100k rows
-  written/day ≈ 1,400 games/day. Upgrade trigger: sustained ~900 games/day
-  or first cap error — one click, zero code change. (§10)
-- **KV rejected twice** (once for authoritative data, once as a card-free
-  history store): its design center is edge-cached hot reads — the opposite
-  of write-once cold replay blobs. Don't relitigate. (Appendix)
-
-### Game session core
-- **Grace**: one constant in the kernel — accept while
-  `now <= deadline + grace`; alarm armed at `deadline + grace`. DO
-  serialization removed the old 3-place race symmetry. Client expiry nudge
-  and `internal/*` route group are deleted. (§4)
-- **Alarms are deadline-only, no multiplexer.** Bot wakes and finish outbox
-  get ONE attempt + error log — **no retry machinery in v1** (user
-  constraint). Timeout backstops lost bot wakes.
-- **Idempotency**: `commandId` (client→DO dedupe, stored response replayed)
-  and `finish_id` (DO→D1 apply dedupe). Serialization orders commands but
-  can't identify duplicates.
-- **Same-view rule (simultaneous moves)**: a stale-`expectedVersion` action
-  is accepted iff that seat's projected observation (data + observed
-  pending) is byte-identical between expectedVersion and current (compare
-  stored frames, canonical JSON); else reject "board updated". Implementors
-  control policy implicitly via what `computeObservation` reveals.
-  **Versions stay strictly serial** — the rule governs acceptance only;
-  every accepted action commits as the next version in arrival order.
-  Lifecycle commands skip version checks. Testkit ships the canonical
-  accept/reject scenario pair.
-
-### History & storage (§4.5, §4.6, §5)
-- **Game history is retained in the game's DO** (supersedes
-  R2-write-at-finish; "archive" renamed → "game history"). **Compaction
-  rides the outbox clear** (2026-07-17; supersedes compact-at-finish): the
-  pipeline-completing transaction empties the live-only `frames` and
-  `commands` tables; ~20–40 KB retained/game.
-  Outbox row cleared only AFTER the D1 apply succeeds (it is the recovery
-  signal; failed apply → manual re-poke, idempotent via `finish_id`). DO
-  storage is never dropped at finish — only at cancel/abort.
-- **Replay = the live range-fetch path** against the finished DO, projected
-  via `computeObservation(…, isReplay: true)` with the caller's seat
-  (null = viewer), version-range paged. History *lists* read D1 summaries.
-- **V1 ships the hot path only**, held open by four seams:
-  1. store-agnostic replay contract (client never learns where history
-     lives; range paging);
-  2. the ~20-line **`HistoryStore` interface SHIPS in v1** (user's explicit
-     call) with exactly ONE implementation (DO range fetch) and no dispatch
-     logic;
-  3. compaction leaves field-for-field the future cold blob
-     `{game, roster, transitions[{version,state,action,pending,timing}],
-     outcomes, ratingDeltas}` (raw, no frames);
-  4. nullable **`archived_at` on the D1 games row ships in the v1 schema**
-     (user's call) — NULL = history in the DO; v1 never reads/writes it.
-- **R2 cold tier later, on paid**: age-based sweep writes the frozen blob to
-  a private `GAME_HISTORY` bucket, drops DO storage, stamps `archived_at`;
-  replay reads DO-if-present-else-R2 behind the same interface. Free runway
-  ≈ 125k–250k finished games in the 5 GB account-wide DO SQLite quota.
-- **Avatars = opt-in R2, built in v1** (§5.4): default `avatar_url` is the
-  Firebase provider photo (Google supplies one, Apple doesn't, guests none →
-  client renders initials) — zero storage. Uploads enabled via an `avatars`
-  config block on `createEngine` (absent → route not mounted). Developed and
-  tested entirely under **local R2 simulation** (`wrangler dev` /
-  vitest-pool-workers use `.wrangler/state` — no card, no bucket, no account
-  call). A card enters only at `r2 bucket create` for a deploy with uploads
-  enabled. If `GAME_HISTORY` exists later, two buckets stay forced (R2
-  public access is bucket-level; history is private forever). v1 serves
-  avatars via a worker route with `Cache-Control`.
-
-### D1 & waiting room
-- **D1 simplifications**: users + user_profiles merged into one table;
-  game_outcomes folded as JSON into the game_summaries row; only
-  rating_history stays a per-user-indexed table besides player_ratings.
-  **NO app_players denormalization** (user constraint) — keep the batch
-  `players?ids=` endpoint; the client's SQLite-persisted playerInfo cache
-  makes it warm.
-- **Waiting room**: D1 never arbitrates, only displays. Create =
-  worker→D1 direct (game + summary row, creator seat 0, short_code retry);
-  DO lazy-inits via `blockConcurrencyWhile` on first command/socket.
-  join/leave/cancel/add-bot/start = Commands to the DO (policy checks at the
-  worker BEFORE minting — no D1 reads inside the gate; integrity in the DO).
-  D1 summary updated post-commit. Client opens the socket pre-start: DO
-  pushes unversioned idempotent roster SNAPSHOTS pre-game; versioned frames
-  begin at v0. Cancel/abort = no history object, drop DO storage. Lobby
-  staleness accepted (join fails cleanly at the DO).
-- **Keep from Supabase era**: rating CAS loop (fixes the documented
-  concurrent-rated-finish lost-update bug), short_code + retry, bot HMAC,
-  FCM, OpenSkill ported as-is, LIKE search first (D1 FTS5 later).
-
-### Web & deep linking (§2.4)
-- The game worker IS the link host: static assets binding on the same
-  wrangler.jsonc; engine generates both `.well-known` files
-  (assetlinks.json + AASA) from `deepLink` config on `createEngine`, plus a
-  `/j/:shortCode` OG landing page reading D1. `run_worker_first:
-  ["/api/*", "/.well-known/*", "/j/*"]`. Implementors: own domain via
-  custom_domain, else free workers.dev — links work day 0.
-
-### Tooling
-- hono + @hono/zod-openapi + zod; jose; **drizzle for both stores** —
-  D1: `drizzle-kit generate` → `wrangler d1 migrations apply` (never
-  runtime migrate/push); DO SQLite: `durable-sqlite` driver, bundled
-  `migrations.js`, `migrate()` inside `blockConcurrencyWhile` (user chose
-  this over raw DDL). vitest-pool-workers for tests; tsup for builds;
-  biome; changesets + GitHub Packages private npm. ES2024, Node 24, one
-  root pnpm lockfile.
-
-## 5. Cross-repo contracts
-
-- **Twin implementations**: game rules exist as TS (server-authoritative)
-  and Dart (client-side optimism/preview). Shared **JSON fixtures per
-  version unit** are run by both TS and Dart test runners to catch drift —
-  this pattern already exists in the Supabase-era code and carries forward.
-- **Versions-first GameRules**: one rules unit per `schema_version`
-  (`v1/` folder convention, versions map, sparse keys); never branch on
-  version inside logic.
-- **Observations**: append-only observation history per (game, seat,
-  version); cause-aware `computeObservation` cues; game-owned optimism
-  (`previewAction` + `ActionSubmitResult`); actions taxonomy: game vs
-  lifecycle actions.
-
-## 6. Immediate next steps
-
-Progress (verify with `git log` — this list dates fast): Phase 1
-(rules/kernel/testkit + RPS twin fixtures) shipped 2026-07-16; Phase 2
-milestone 1 (BaseGameDO + finish apply) and **Milestone A — `createEngine`**
-(jose Firebase auth + `@eigen/server/testing`, hono/zod-openapi routes:
-create/waiting room/action/forfeit/frames/socket + reads, OpenAPI emission
-via `pnpm openapi`, rps flipped to the production shape, dev harness and
-deploy runbook deleted) landed 2026-07-17.
-
-Remaining in Phase 2, in order:
-
-1. ~~**Milestone B**~~ **SHIPPED + REFINED 2026-07-18** (bots redesigned,
-   engine_stack §7): in-DO engine bots — brains keyed by **bot username** in
-   `GameRules.botActions`, DO resolves `bot_id → row → username → fn` and
-   self-applies post-commit via the kernel's `wake_bot` effect (deterministic
-   commandId, chains for consecutive turns) — plus external webhook bots (HMAC
-   wake single attempt + the **`POST /api/bot/action`** route with the HMAC in
-   the `Eigen-Signature` header, same header both directions) + create-solo
-   (`POST /api/engine/games/solo`)
-   + a `type` enum (`engine`/`external`/`local`, CHECK-enforced) replacing
-   `is_local` + **uniform seat** (humans and bots both send `seat`, DO
-   verifies → clean 403) + FCM (jose service-account JWT → OAuth bearer → FID
-   push, skipped when unconfigured). **Local bots deleted**; offline solo =
-   documented transcript-import seam, not built. New: `docs/client_changes.md`
-   (running list of client-side changes). **Two route groups under `/api`:**
-   `/api/engine/*` (client, Firebase) and `/api/bot/*` (HMAC) as separate hono
-   sub-apps — auth scoped per sub-app, both in one OpenAPI doc (2026-07-19).
-   132 tests green (kernel 73 /
-   server 45 / rps 2+12).
-2. ~~**Milestone C**~~ **SHIPPED 2026-07-20** (engine_stack §4.7): lifecycle edges,
-   CF-native rather than a port of the Supabase transaction —
-   - **account deletion** (`DELETE /api/engine/me`) + **stale-guest purge** share one
-     `purgeUser` core (`lifecycle/purge.ts`), ordered **games → Firebase → D1** (our auth
-     middleware re-provisions on any valid token, so the D1 row must never outlive the
-     Firebase account — a failed Firebase delete throws before D1, leaving the account
-     retriable, never resurrectable). D1 has no cascades, so the §22 preserve-vs-delete is an
-     explicit `batch()`; Firebase admin delete is the Identity-Toolkit `accounts:delete` via
-     the shared `google/oauth` service-account JWT (`auth/admin.ts`).
-   - **`applyFinish` purge guard** — a later rated finish skips the rating write for a seat
-     whose account is gone (the DO roster is never nulled); closes the 3+ player hole.
-   - **cron `scheduled` handler** (`lifecycle/cron.ts`): guest purge + **abandoned-game reap**
-     (never-started lobbies, untimed-active games) via a new unconditional `BaseGameDO.abort()`.
-     **No timeout sweep** — the whole point: the DO deadline alarm is the per-game timer
-     Postgres lacked, so the old `internal/expire` cron simply evaporates. `createEngine` now
-     returns `{ fetch, scheduled }`.
-   - **`HistoryStore` seam** (`history/store.ts`) — replay reads through it; one DO-backed impl.
-   - **Leak test** (`test/leak.spec.ts`) — hidden-info canary game, sentinel never escapes.
-   - Also: `google/oauth.ts` extracted from `fcm.ts` (scope-parameterized token, shared by FCM
-     + admin delete); `HttpError` gains `502`. **164 tests green** (kernel 73 / server 51 /
-     rps 2+12); `openapi.json` regenerated with `deleteAccount`.
-3. ~~**Milestone D**~~ **SHIPPED 2026-07-20 — Phase 2 COMPLETE** (engine_stack §2.4/§5.4):
-   - **Deep-link group** (`routes/links.ts`, `deepLink` on `createEngine`): worker-generated
-     `/.well-known/assetlinks.json` + `apple-app-site-association` (AASA served extensionless as
-     `application/json`) + `/j/:shortCode` OG share/landing page (D1 read, not-installed
-     fallback). `buildApp` refactored to a no-basePath **outer app** hosting `/api/engine` +
-     `/api/bot` + the public web routes; rps wrangler gained `assets: { directory: ./public,
-     run_worker_first: [/api/*, /.well-known/*, /j/*, /avatars/*] }` + a `public/` dir.
-   - **Opt-in avatars** (`routes/avatars.ts`, `avatars` on `createEngine`): raw-binary
-     `PUT /api/engine/me/avatar` → R2 (key = uid, type/size-validated), public worker-served
-     `GET /avatars/:uid` (immutable cache), `avatar_url` = `/avatars/{uid}?v=ts`. Optional
-     `avatars.publicBaseUrl(env)` points reads straight at a bucket custom domain / r2.dev (the
-     §5.4 flip, now a config value). `purgeUser` deletes the object. Built + tested under local
-     R2 simulation (no bucket, no card) — new `AVATARS` binding in the test + rps wrangler.
-   - `HttpError` gained `413`/`415`. **172 tests green** (kernel 73 / server 58 / rps 2+12);
-     `openapi.json` unchanged in shape (web/avatar routes are plain, non-OpenAPI).
-4. ~~Deferred small items: delete `examples/temp/` when done with it.~~ **Done 2026-07-20.**
-
-**Phase 2 is done.** What remains is the client migration (the Flutter/`eigen_client` side —
-see `docs/client_changes.md`) and the eventual cutover, plus the deferred paid-tier items
-(R2 cold-tier history sweep §4.6; a real avatars bucket at deploy) which are all held open by
-shipped seams and need no engine rework to land.
-
-## 7. Standing user constraints (do not violate)
-
-- jose, not `firebase-auth-cloudflare-workers`.
-- No retry machinery in v1 — single attempt + error log everywhere
-  (bot wakes, outbox, FCM).
-- No app_players denormalization.
+- jose for Firebase verification (not a bundled Firebase SDK).
+- No retry machinery in v1 — single attempt + error log everywhere.
+- No identity denormalization onto games rows (the batch `players?ids=`
+  endpoint + the client's persisted cache cover it).
 - Versions strictly serial, no gaps, ever.
-- CLI-first: real CLI output beats doc snippets in §15 (exception:
-  `exports` over the legacy DO `migrations` array).
-- No real R2 bucket creation, no payment method, until the user says so.
-- Keep `docs/engine_stack.md` and its decisions current
-  when anything here changes — it is the record.
+- No real R2 bucket / no payment method until explicitly enabled for a deploy.
+- Keep `engine_stack.md` (the decision record) and the two reference docs
+  current when the architecture changes.

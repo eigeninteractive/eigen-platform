@@ -120,6 +120,20 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   client does nothing for that case. Share sheets should emit the `/j/<code>`
   URL (the `short_code` is already in create/summary responses).
 
+## Push notifications — device registration (review pass)
+
+- **Register the FCM device on sign-in: `PUT /api/engine/me/devices`.** `todo`
+  Replaces the Supabase `app_upsert_device_installation` RPC. After auth, the
+  client sends `{ fid, platform }` (`platform` ∈ `ios`/`android`/`web`; `fid` =
+  the Firebase Installation ID) so turn/finish pushes can reach the install. The
+  server upserts on the FID, so signing in on a device reassigns it to the
+  current user — call it on every sign-in / FID refresh.
+- **Deregister on sign-out: `DELETE /api/engine/me/devices/{fid}`.** `todo`
+  Replaces `app_delete_device_installation`. Call it before dropping the
+  Firebase session (the delete is scoped to the caller, so a device already
+  reassigned to another account is left alone). Account deletion already removes
+  the caller's device rows server-side, so this is only for sign-out.
+
 ## Offline solo — transcript import (future)
 
 - **`future`** The replacement for the deleted local-bot "offline" story. The
