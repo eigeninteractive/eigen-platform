@@ -185,7 +185,7 @@ config for `vitest-pool-workers`. Client: depend on `eigen_flutter`, register th
 board widget, and an optional Dart twin** — nothing else. Packages are consumed from a
 private GitHub Packages npm registry (OSS-shaped, private-first).
 
-### 2.4 Web & deep linking — the game worker is the link host
+### 2.4 Web & deep linking — the game worker is the link host (SHIPPED — Milestone D, 2026-07-20)
 
 The deployed game worker carries a **static assets binding** and serves three things from
 one host:
@@ -202,8 +202,10 @@ one host:
 
 So **deep-link host == API host**: one custom domain, one cert, one deploy, and the share
 URL users see is the host the app already talks to. Free-tier synergy: static-asset
-requests are **unmetered** (they don't count toward the 100k req/day cap); only the
-`run_worker_first` paths (`/api/*`, `/.well-known/*`, `/j/*`) invoke the worker.
+requests are **unmetered** (they don't count toward the 100k req/day cap); a request that
+matches no static file falls through to the worker on its own — so the dynamic paths
+(`/api/*`, `/.well-known/*`, `/j/*`, `/avatars/*`) reach it without any `run_worker_first`
+listing. The only discipline is not to add a `public/` file that shadows one of them.
 
 Host story for implementors: bought a domain → zone + `custom_domain` on the worker; no
 domain → the free `<name>.<account>.workers.dev` subdomain. App Links and Universal Links
@@ -221,6 +223,22 @@ both platforms from the start.
 
 Implementation cost: a route group + config fields in `@eigen/server`
 (`src/routes/links.ts`, `deepLink` on `createEngine`) — the four-package layout holds.
+
+**As built:** `createEngine` grew a `deepLink` block (`{ android?: {packageName,
+sha256CertFingerprints, storeUrl?}, apple?: {appId, storeUrl?} }`); absent → the group isn't
+mounted (API-only worker). The app's display name is **not** in this block — it lives in a
+required top-level `appName` on `createEngine` (the single source of truth for engine-owned
+identity: the `/j` title + OG tags today, FCM titles / share copy later), so it's set once
+regardless of which optional blocks are on. The two `.well-known` files are **generated** from
+the config (the AASA is served extensionless as `application/json` — the gotcha a static file
+gets wrong), and `/j/:shortCode` reads the D1 summary for real OG tags + store-link fallback
+(an installed app opens the https URL directly via App/Universal Links, so the page is only
+reached when the app isn't installed). These are plain unauthed routes on the **outer app**:
+`buildApp` now returns a no-basePath app that mounts `/api/engine` + `/api/bot` and, when
+configured, the public `/.well-known/*`, `/j/*`, and `/avatars/*` (§5.4) routes. The
+implementor's wrangler adds an `assets` binding (`directory: ./public`) with **no**
+`run_worker_first` — a non-matching request already falls through to the worker; everything
+else is served unmetered from `./public`.
 
 ---
 
@@ -562,6 +580,12 @@ single attempt with a safety net**:
    §8) rather than porting it. And because the delta is computed at the same place it is
    committed, the displayed delta always equals the stored one — the old "CAS conflict
    revises a delta already displayed" seam is gone, not merely rare.
+6. **The rating write carries a purge guard.** Before writing, the apply reads which of the
+   seats' user-ids still exist and **skips the rating write (and the returned delta) for any
+   that don't** — a seat whose account was deleted mid-game still carries its id in the DO
+   roster (the purge never wakes the DO), and a later rated finish must not resurrect a
+   `player_ratings` row for it. The purged seat still shapes the OpenSkill field; only its own
+   write is skipped. Mirrors the old `apply_rating_updates` existence guard (§4.7).
 
 (Decided 2026-07-16, superseding "deltas ship in the final frame": start-time priors are
 guaranteed stale for long games, per-action D1 prior reads tax every rated move to serve
@@ -629,11 +653,12 @@ four seams v1 *does* build:
 1. **The replay contract is store-agnostic.** The client asks the worker for a version
    range and gets projected frames; nothing in the API says where history lives. The
    source can change without a client release.
-2. **The read seam is a named interface.** The replay route fetches raw transitions
-   through the ~20-line `HistoryStore` interface, which v1 ships with exactly **one**
-   implementation (the DO range fetch) and no dispatch logic. The cold tier later adds
-   the R2 implementation and a DO-if-present-else-R2 composition behind the same
-   interface — the route never changes.
+2. **The read seam is a named interface (SHIPPED — Milestone C).** The replay route fetches
+   through the ~20-line `HistoryStore` interface (`history/store.ts`), which v1 ships with
+   exactly **one** implementation (`doHistoryStore`, the DO range fetch) and no dispatch
+   logic. `getFrames` routes finished-game reads through it; live gap recovery stays a direct
+   `stub.frames()`. The cold tier later adds the R2 implementation and a DO-if-present-else-R2
+   composition behind the same interface — the route never changes.
 3. **Compaction leaves exactly the blob.** The post-finish DO rows are field-for-field
    the cold-tier object above, so the sweep is a straight serialization — no transform,
    no schema reconciliation at archive time.
@@ -642,14 +667,68 @@ four seams v1 *does* build:
    which is every row until the sweep exists. V1 never writes or reads it; the sweep
    just starts stamping it. Being data rather than code, it costs nothing to carry.
 
-### 4.7 Account deletion & guest purge
+### 4.7 Account deletion & guest purge (SHIPPED — Milestone C, 2026-07-20)
 
-Same semantics as `engine_architecture.md` §22/§25, re-hosted: the worker forfeits the
-user's active games via `lifecycle` commands to each DO (rated forfeits apply ratings while
-the user row exists), then one D1 `batch()` does cancel/leave cleanup + preserve-vs-delete
-exactly per today's table (seat rows kept with null identity → "Deleted User"), then the
-Firebase account is deleted via the service-account REST API. The stale-guest purge is a
-Cron Trigger running the same path in-band — no HTTP hop, no shared secret.
+Same *outcome* as `engine_architecture.md` §22/§25 — but the ordering is CF-native, not a
+port of the Supabase transaction. The one shared path is `purgeUser` (`lifecycle/purge.ts`),
+run by the `DELETE /api/engine/me` route and the cron alike.
+
+**Order is games → Firebase → D1, and that order is load-bearing.** The old stack deleted
+`auth.users` *inside* the SQL transaction. Here Firebase is a separate system, and our auth
+middleware **re-provisions a `users` row on any valid token** — so deleting the D1 row while
+the Firebase account still lives would let the very next request resurrect the user. So:
+
+1. **Clear the user's live games.** Read them through the participants index and, per game,
+   forfeit (active), cancel (a lobby they created), or leave (a lobby they joined) — a
+   `lifecycle`/`cancel`/`leave` command to each DO. A rated forfeit applies its ratings here,
+   while the user row still exists. Single attempt each (§8); a refusal/failure logs and the
+   purge continues (an orphaned seat is caught by the reap/timeout, never blocks the delete).
+2. **Delete the Firebase account** via the Identity-Toolkit admin REST endpoint
+   (`accounts:delete`, `{ localId, targetProjectId }`, scope `identitytoolkit`), signed with
+   the same service-account JWT machinery FCM uses (`google/oauth.ts`). Single attempt. On
+   failure `purgeUser` **throws before touching D1** — nothing is half-deleted, the account
+   stays fully retriable (the route returns 502; the cron logs and retries next run).
+   `USER_NOT_FOUND` counts as success (idempotent re-run).
+3. **Purge D1** as one `batch()`. D1 has no FK cascades, so the §22 preserve-vs-delete is
+   explicit: `participants.user_id` and `games.created_by` are SET NULL (finished-game
+   history stays readable as "Deleted User"); `player_ratings`, `rating_history`,
+   `relationships` (both sides), and `device_installations` are deleted; the `users` row goes
+   last.
+
+The DO roster's `user_id` is deliberately **not** nulled (that would mean waking every
+still-active game). A seat is identified by `player_index` in every projection path, so a
+lingering roster `user_id` is server-only and harmless — with one exception the finish apply
+closes: a 3+ player game the purged user forfeited may keep playing and later finish rated,
+at which point `applyFinish` would write a `player_ratings` row for the deleted user. So the
+finish apply carries a **purge guard** (§4.5): it reads which seat user-ids still exist and
+skips the rating write (and the returned delta) for any that don't — the surviving players
+are still rated against the full OpenSkill field. Mirrors the old `apply_rating_updates`
+existence guard.
+
+If `FIREBASE_*` is unset, step 2 is skipped with a warning (the D1 data is reclaimed but the
+credential is not — configure the service account for full deletion; tests never re-request).
+
+**The cron backstop is a `scheduled` handler, and it is NOT a timeout sweep.** The old stack
+ran a cron scanning `game_states.turn_deadline` to force-expire overdue turns, purely because
+Postgres has no per-game timer. Our **DO deadline alarm is that timer** — durable, per-game,
+platform-retried (§4.4/§8) — so turn timeouts never need a sweep, and none is built. The
+handler (`lifecycle/cron.ts`) does only what has no per-entity timer of its own:
+
+- **Stale-guest purge** — anonymous accounts older than 7 days with no game activity in the
+  last 2 days (old §25 windows), torn down through `purgeUser` in-band (no HTTP hop, no shared
+  secret). "Activity" is the newest `updated_at` among the guest's participated games (one
+  correlated `NOT EXISTS`), since there is no per-request last-seen column.
+- **Abandoned-game reap** — never-started lobbies past 7 days, and **untimed** active games
+  (which have no alarm at all) idle past 30 days, `abort()`-ed. `BaseGameDO.abort(gameId)` is
+  an unconditional teardown (no creator gate, works pre-init): mirror `aborted` to D1, drop
+  the DO's storage. The only backstop that ever ends an abandoned untimed game.
+
+Both jobs are best-effort, isolated (one failure never blocks the other), and batch-capped
+(200 guests / 500 games per run) so a backlog drains over days rather than in one invocation.
+The windows and batch caps are `LIFECYCLE_DEFAULTS` in `lifecycle/cron.ts`, each overridable
+via an optional `lifecycle` block on `createEngine` (`{ guestMaxAgeMs?, guestInactivityMs?,
+lobbyTtlMs?, untimedActiveTtlMs?, guestBatch?, reapBatch? }`) — set any subset, inherit the
+rest.
 
 ---
 
@@ -710,8 +789,9 @@ table, `games.finished_at`, the partial lobby index, and `blocked` in the relati
 status type (Dart-twin parity; still logic-free). Knowingly dropped: `users.payment_tier`
 (modeled but never read by any server logic — reinstate only with a real billing
 feature) and the trigram search indexes (the LIKE decision above). The old
-`game_states.turn_deadline` index is noted for the cron milestone if the backstop
-sweep queries `games.turn_deadline`.
+`game_states.turn_deadline` sweep index was **not** ported: Milestone C's cron builds no
+timeout sweep (the DO alarm owns turn deadlines — §4.7), and its abandoned-game reap filters
+on `status`/`created_at`/`updated_at`, already indexed.
 
 **Migrations are engine-owned; the engine's D1 is engine-private** (decided 2026-07-17,
 superseding a briefly-adopted app-owned layout the same day). The product principle wins:
@@ -768,12 +848,22 @@ sit at opposite ends of it. Disambiguation: a user's game-history **list** is D1
 rows (§5.2); a game's full raw history lives in its DO (§4.6) until the sweep freezes it
 into R2, read only by replay either way.
 
-**Avatar serving** (deferred to the client phase): a bucket custom domain requires a CF
-zone, which free-`workers.dev` implementors don't have, and the r2.dev URL is
-rate-limited / non-production. So v1 serves avatars through a worker route with strong
-`Cache-Control`; public-bucket-on-custom-domain is the later optimization for hosts with
-a zone. The private/public *split* is decided now precisely so that flip stays a
-config change.
+**Avatar upload & serving (SHIPPED — Milestone D, 2026-07-20).** R2 has no RLS and no
+client-direct writes (unlike the Supabase-era client-direct-to-Storage flow), so uploads go
+through the worker: a **raw-binary `PUT /api/engine/me/avatar`** (authed; `Content-Type`
+`image/jpeg|png|webp`, ~2 MiB cap) streams the image to R2 under key = uid, then stores
+`avatar_url`. Serving: a bucket custom domain requires a CF zone free-`workers.dev`
+implementors lack, and r2.dev is rate-limited / non-production — so the default is a **worker
+route `GET /avatars/:uid`** (public, `Cache-Control: immutable, 1yr`). The stored `avatar_url`
+carries `?v={ts}` (the R2 key is overwritten on re-upload, so the URL must change for clients
+to refetch). An optional **`avatars.publicBaseUrl(env)`** points `avatar_url` straight at a
+bucket custom domain (or r2.dev) so reads never touch the worker — an `env` accessor, so dev
+(unset → worker route) and prod (a var → direct) differ with no code change. **This is the
+promised flip, now a config value from day one, not a later rewrite.** The private/public
+split still stands: `GAME_HISTORY` is private forever. Account deletion (§4.7) deletes the
+avatar object best-effort. Config: `avatars: { bucket(env), maxBytes?, publicBaseUrl?(env) }`;
+absent → the routes aren't mounted and no R2 binding is needed. Built and tested entirely
+under local R2 simulation.
 
 ---
 
@@ -1005,7 +1095,9 @@ free duration budget).
   against locally-simulated R2).
 - **Hibernation assertion** — the DO holds no non-hibernatable state while idle (no
   `setTimeout`, no un-awaited fetches). The one bug that is expensive rather than wrong.
-- **The leak test** — no response body ever carries an unprojected state field.
+- **The leak test** — no response body ever carries an unprojected state field. *(v1:
+  `server/test/leak.spec.ts` — drives a hidden-info game through create/join/start/action/
+  finish/replay + the socket fan-out and asserts a state sentinel escapes through none of them.)*
 - **Idempotency** — replaying any command or re-running the finish apply changes nothing.
 
 ---

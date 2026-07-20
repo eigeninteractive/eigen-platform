@@ -9,7 +9,7 @@ import type { RejectCode } from "@eigen/kernel";
 import type { CommandResult, LobbyRejectCode } from "./protocol.js";
 
 export class HttpError extends Error {
-  readonly status: 400 | 401 | 403 | 404 | 409 | 422 | 500;
+  readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 500 | 502;
   readonly code: string | undefined;
 
   constructor(status: HttpError["status"], message: string, code?: string) {

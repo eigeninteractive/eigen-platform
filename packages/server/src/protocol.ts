@@ -106,3 +106,18 @@ export interface FrameMessage {
  * commands answer with a version (+ the acting seat's frame); waiting-room
  * commands answer with the post-commit roster snapshot. */
 export type CommandResult = { ok: true; version: number; frame: FrameMessage | null } | { ok: true; roster: RosterSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
+
+/** The DO surface the worker calls — structurally the RPC stub of any
+ * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
+ * paths (purge, cron reap) can depend on it without importing the app
+ * factory. */
+export interface GameStub {
+  handle(cmd: Command): Promise<CommandResult>;
+  frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
+  repokeFinish(): Promise<boolean>;
+  /** Unconditional teardown (§4.7): mark the game aborted, drop DO storage.
+   * Used by the cron reap for abandoned lobbies / untimed games — no creator
+   * gate, unlike the `cancel` command. */
+  abort(gameId: string): Promise<void>;
+  fetch(request: Request): Promise<Response>;
+}

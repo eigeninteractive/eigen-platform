@@ -35,18 +35,69 @@ import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier 
 import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
 import type { BaseGameDO } from "./do/game-do.js";
+import { readServiceAccount, type ServiceAccount } from "./google/oauth.js";
+import { doHistoryStore, type HistoryStore } from "./history/store.js";
 import { HttpError } from "./http.js";
-import type { Command, CommandResult, FrameMessage } from "./protocol.js";
+import { type LifecycleOptions, runScheduled } from "./lifecycle/cron.js";
+import type { EngineOps } from "./lifecycle/purge.js";
+import type { GameStub } from "./protocol.js";
+import { registerAccountRoutes } from "./routes/account.js";
+import { registerAvatarServe, registerAvatarUpload } from "./routes/avatars.js";
 import { registerGameRoutes } from "./routes/games.js";
+import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
+
+/** Deep-linking (§2.4). The worker generates the two `.well-known` files from
+ * this and renders the `/j/:shortCode` share/landing page. Absent → none of
+ * that group is mounted (the worker is API-only). Each platform block is
+ * independent: supply only Android, only Apple, or both. */
+export interface DeepLinkConfig {
+  android?: {
+    /** e.g. `com.eigen.rps`. */
+    packageName: string;
+    /** The signing certs' SHA-256 fingerprints (colon-hex), for App Links. */
+    sha256CertFingerprints: string[];
+    /** Play Store URL for the "not installed" fallback. */
+    storeUrl?: string;
+  };
+  apple?: {
+    /** `TEAMID.BUNDLEID` — the Universal Links `appID`. */
+    appId: string;
+    /** App Store URL for the "not installed" fallback. */
+    storeUrl?: string;
+  };
+}
+
+/** Opt-in avatar uploads (§5.4). Absent → the upload/serve routes are not
+ * mounted and no R2 binding is needed. Built and tested entirely under local
+ * R2 simulation; a real bucket (and thus a card) enters only at deploy. */
+export interface AvatarsConfig<TEnv> {
+  /** The R2 bucket for avatar objects (key = uid). */
+  bucket(env: TEnv): R2Bucket;
+  /** Max upload size in bytes; defaults to 2 MiB. */
+  maxBytes?: number;
+  /** Public base URL for direct-from-bucket reads — a bucket custom domain
+   * (`https://avatars.game.com`) or an r2.dev URL. Absent/empty → the worker
+   * serves avatars at `/avatars/{uid}` (the zoneless default). Set it and
+   * stored `avatar_url`s point straight at the bucket, so reads never invoke
+   * the worker. An `env` accessor so dev (unset) and prod (a var) differ with
+   * no code change — the §5.4 "the flip stays a config change" seam. */
+  publicBaseUrl?(env: TEnv): string | undefined;
+}
 
 /** The EngineConfig seam: the engine never assumes binding names — the
  * implementor picks bindings off their own Env. Annotate the accessors' `env`
  * parameter and both type arguments infer. */
 export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   gameModule: GameModule;
+  /** The whitelabel app's display name — the single source of truth for the
+   * engine's own identity (the `/j` share/landing page title + OG tags today;
+   * FCM titles and share copy later). Deliberately top-level, not nested under
+   * `deepLink`, so there is one place to set it regardless of which optional
+   * feature blocks are enabled. */
+  appName: string;
   /** The engine's D1 database (engine-private — §5.2). */
   d1(env: TEnv): D1Database;
   /** The GameDO namespace binding. */
@@ -54,24 +105,34 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   /** Firebase project id for token verification; defaults to the
    * `FIREBASE_PROJECT_ID` var (§6 — the only secret verification needs). */
   firebaseProjectId?(env: TEnv): string;
+  /** Deep linking + share pages (§2.4). Omit → not mounted. */
+  deepLink?: DeepLinkConfig;
+  /** Opt-in avatar uploads (§5.4). Omit → not mounted. */
+  avatars?: AvatarsConfig<TEnv>;
+  /** Cron-backstop tuning (§4.7) — guest-purge/reap windows and batch caps.
+   * Omit for the defaults ({@link LIFECYCLE_DEFAULTS}); set any subset to
+   * override just those. */
+  lifecycle?: LifecycleOptions;
   /** Test seam only: replace the token verifier (tests mint their own RS256
    * tokens against a local JWKS). Leave unset in production. */
   auth?: TokenVerifier;
 }
 
-// ── Internal route context (erases the implementor's Env generics) ────────────
-
-/** The DO surface routes call — structurally the RPC stub of any
- * `BaseGameDO` subclass. */
-export interface GameStub {
-  handle(cmd: Command): Promise<CommandResult>;
-  frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
-  repokeFinish(): Promise<boolean>;
-  fetch(request: Request): Promise<Response>;
+/** {@link AvatarsConfig} with the implementor's Env generic erased — what the
+ * routes see. `maxBytes` is resolved to its default here. */
+export interface ResolvedAvatars {
+  bucket(env: unknown): R2Bucket;
+  maxBytes: number;
+  publicBaseUrl(env: unknown): string | undefined;
 }
+
+// ── Internal route context (erases the implementor's Env generics) ────────────
 
 export interface RouteContext {
   gameModule: GameModule;
+  /** The whitelabel app name (see {@link EngineConfig.appName}) — read by the
+   * `/j` landing page and any future engine-owned copy. */
+  appName: string;
   d1(env: unknown): D1Database;
   stub(env: unknown, gameId: string): GameStub;
   verify(env: unknown, token: string): Promise<AuthClaims>;
@@ -79,6 +140,18 @@ export interface RouteContext {
    * `BOT_SIGNING_SECRET` convention. Null when unset — the `/api/bot/action`
    * route then refuses every request (external bots are unsupported). */
   botSigningSecret(env: unknown): string | null;
+  /** The Firebase service account (§4.7 account deletion, §7 FCM), or null
+   * when the `FIREBASE_*` service-account vars are unset. */
+  serviceAccount(env: unknown): ServiceAccount | null;
+  /** The §4.6 finished-game replay backend (seam #2). V1 is DO-backed; the
+   * cold tier swaps the implementation without touching the route. */
+  history(env: unknown): HistoryStore;
+  /** Deep-link config (§2.4), or null when not configured — the well-known +
+   * landing routes are then not mounted. */
+  deepLink: DeepLinkConfig | null;
+  /** Avatar config (§5.4), or null when uploads are not enabled — the
+   * upload/serve routes are then not mounted. */
+  avatars: ResolvedAvatars | null;
 }
 
 /** What the auth middleware resolves for every request. */
@@ -138,44 +211,52 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
   };
 }
 
-/** Assemble the whole API: the Firebase-authed engine group and the
- * HMAC-authed external-bot group, mounted as two sub-apps on one `/api` root.
+/** Assemble the whole worker: the Firebase-authed engine group
+ * (`/api/engine/*`), the HMAC-authed external-bot group (`/api/bot/*`), and the
+ * unauthed public web surface (§2.4/§5.4 — `/.well-known/*`, `/j/:code`,
+ * `/avatars/:uid`), all on one outer app.
  *
- * The two groups share the `/api` prefix but are separate `OpenAPIHono`
- * instances, so the engine's `use("*", auth)` is scoped to the engine sub-app
- * (its matcher becomes `/api/engine/*` once mounted) and never runs for
- * `/api/bot/*` — the bot webhook carries no Firebase token and authenticates
- * itself. Mounting also merges each sub-app's OpenAPI operations into the
- * root's document, so a single spec describes both groups, each with its own
- * security scheme (`firebase` vs `botHmac`). */
+ * The engine and bot groups are separate `OpenAPIHono` instances, so the
+ * engine's `use("*", auth)` is scoped to it and never runs for `/api/bot/*` or
+ * the web routes — those authenticate themselves (HMAC) or are public.
+ * Mounting merges each group's OpenAPI operations into the outer document, so a
+ * single spec describes both API groups, each with its own security scheme
+ * (`firebase` vs `botHmac`). The web routes are plain (non-OpenAPI) handlers
+ * and mounted only when their config block is present. */
 export function buildApp(ctx: RouteContext) {
   const engine = newOpenApiApp();
   engine.onError(errorHandler);
   engine.use("*", authMiddleware(ctx));
   registerReadRoutes(engine, ctx);
   registerGameRoutes(engine, ctx);
+  registerAccountRoutes(engine, ctx);
+  if (ctx.avatars !== null) registerAvatarUpload(engine, ctx);
 
   const bot = newOpenApiApp();
   bot.onError(errorHandler);
   registerBotRoutes(bot, ctx);
 
-  const root = newOpenApiApp().basePath("/api");
-  root.onError(errorHandler);
-  root.openAPIRegistry.registerComponent("securitySchemes", "firebase", {
+  const app = newOpenApiApp();
+  app.onError(errorHandler);
+  app.openAPIRegistry.registerComponent("securitySchemes", "firebase", {
     type: "http",
     scheme: "bearer",
     bearerFormat: "JWT",
     description: "A Firebase ID token, sent as `Authorization: Bearer <token>` (or `?token=` on WebSocket upgrades).",
   });
-  root.openAPIRegistry.registerComponent("securitySchemes", "botHmac", {
+  app.openAPIRegistry.registerComponent("securitySchemes", "botHmac", {
     type: "apiKey",
     in: "header",
     name: "Eigen-Signature",
     description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain (§7). Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
   });
-  root.route("/engine", engine);
-  root.route("/bot", bot);
-  return root;
+  // Public web surface (§2.4/§5.4): outside /api, unauthed, mounted only when
+  // configured. A distinct path space from /api, so mount order is immaterial.
+  if (ctx.deepLink !== null) registerLinkRoutes(app, ctx);
+  if (ctx.avatars !== null) registerAvatarServe(app, ctx);
+  app.route("/api/engine", engine);
+  app.route("/api/bot", bot);
+  return app;
 }
 
 // ── The factory ───────────────────────────────────────────────────────────────
@@ -191,6 +272,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   };
   const ctx: RouteContext = {
     gameModule: cfg.gameModule,
+    appName: cfg.appName,
     d1: (env) => cfg.d1(env as TEnv),
     stub: (env, gameId) => {
       const ns = cfg.gameDO(env as TEnv);
@@ -201,22 +283,45 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
       const secret = (env as Record<string, unknown>).BOT_SIGNING_SECRET;
       return typeof secret === "string" && secret.length > 0 ? secret : null;
     },
+    serviceAccount: (env) => readServiceAccount(env),
+    history: (env) => doHistoryStore((gameId) => ctx.stub(env, gameId)),
+    deepLink: cfg.deepLink ?? null,
+    avatars:
+      cfg.avatars === undefined
+        ? null
+        : {
+            bucket: (env) => (cfg.avatars as AvatarsConfig<TEnv>).bucket(env as TEnv),
+            maxBytes: cfg.avatars.maxBytes ?? 2 * 1024 * 1024,
+            publicBaseUrl: (env) => (cfg.avatars as AvatarsConfig<TEnv>).publicBaseUrl?.(env as TEnv),
+          },
   };
   const app = buildApp(ctx);
+  const ops = (env: TEnv): EngineOps => ({
+    d1: ctx.d1(env),
+    stub: (gameId) => ctx.stub(env, gameId),
+    serviceAccount: ctx.serviceAccount(env),
+    avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(env),
+  });
   return {
     fetch: (request, env, executionCtx) => app.fetch(request, env, executionCtx),
+    // The cron backstop (§4.7): stale-guest purge + abandoned-game reap. No
+    // timeout sweep — the DO deadline alarm owns every turn deadline. Runs
+    // in-band; the platform keeps the invocation alive while the promise
+    // pends, so no waitUntil is needed.
+    scheduled: (_controller, env) => runScheduled(ops(env), cfg.lifecycle),
   };
 }
 
 // ── OpenAPI emission (§2.1: generated here, vendored into the Dart repo) ──────
 
 /** Build the API document from an inert app — route handlers never run, so
- * the context can refuse everything. */
+ * the context can refuse everything. `appName` is an unused placeholder here:
+ * with `deepLink: null` the landing route (its only reader) is never mounted. */
 export function openApiDocument(): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
-  const app = buildApp({ gameModule: { versions: {} }, d1: inert, stub: inert, verify: inert, botSigningSecret: () => null });
+  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null });
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {

@@ -13,6 +13,7 @@ export { GameDO } from "../src/index";
 
 export default createEngine({
   gameModule: rpsGame,
+  appName: "RPS",
   d1: (env: Env) => env.rps_dev,
   gameDO: (env: Env) => env.GAME_DO,
   auth: testVerifier(),

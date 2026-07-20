@@ -13,8 +13,16 @@
       "storage": "sqlite"
     }
   },
-  // Static assets return at the §2.4 deep-link milestone (landing page +
-  // engine-generated .well-known files, with run_worker_first for /api etc.).
+  // §2.4: the worker is the link host. Static files live in ./public and are
+  // served UNMETERED by the asset server. No `run_worker_first` is needed: a
+  // request that matches no static file already falls through to the Worker, so
+  // the dynamic paths (the API, the generated .well-known files, the /j share
+  // page, worker-served avatars) reach it on their own. The one rule is
+  // discipline — never add a file under ./public whose path shadows one of
+  // those prefixes.
+  "assets": {
+    "directory": "./public"
+  },
   "durable_objects": {
     "bindings": [
       {

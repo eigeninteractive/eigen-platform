@@ -13,6 +13,7 @@ declare global {
     interface Env {
       DB: D1Database;
       GAME_DO: DurableObjectNamespace<import("./worker.js").GameDO>;
+      AVATARS: R2Bucket;
       TEST_MIGRATIONS: D1Migration[];
     }
   }

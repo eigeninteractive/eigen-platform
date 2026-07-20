@@ -75,8 +75,8 @@ Done (verify with `git log` — it may have moved on):
   simulation; **no real bucket created — do not create one**, that is the
   moment a card is required), cron trigger `0 3 * * *`, `nodejs_compat`,
   ES2024 tsconfig. `src/index.ts` is still the hello-world DO template.
-- `examples/temp/`: untracked C3 scaffold kept for reference — delete when
-  no longer needed.
+- `examples/temp/`: untracked C3 scaffold kept for reference — **deleted
+  2026-07-20** (no longer needed).
 
 Not done yet: vitest-pool-workers wiring, package src stubs,
 `packages/server`, hono/zod/jose/drizzle installs, any engine code.
@@ -235,12 +235,48 @@ Remaining in Phase 2, in order:
    sub-apps — auth scoped per sub-app, both in one OpenAPI doc (2026-07-19).
    132 tests green (kernel 73 /
    server 45 / rps 2+12).
-2. **Milestone C** — lifecycle edges: account deletion, cron backstop,
-   `HistoryStore` interface extraction, the §11 leak test.
-3. **Milestone D** — deep-link group (`.well-known`, `/j/:shortCode`,
-   `run_worker_first`, assets return) + opt-in avatars (local R2 simulation
-   only — no bucket, no card).
-4. Deferred small items: delete `examples/temp/` when done with it.
+2. ~~**Milestone C**~~ **SHIPPED 2026-07-20** (engine_stack §4.7): lifecycle edges,
+   CF-native rather than a port of the Supabase transaction —
+   - **account deletion** (`DELETE /api/engine/me`) + **stale-guest purge** share one
+     `purgeUser` core (`lifecycle/purge.ts`), ordered **games → Firebase → D1** (our auth
+     middleware re-provisions on any valid token, so the D1 row must never outlive the
+     Firebase account — a failed Firebase delete throws before D1, leaving the account
+     retriable, never resurrectable). D1 has no cascades, so the §22 preserve-vs-delete is an
+     explicit `batch()`; Firebase admin delete is the Identity-Toolkit `accounts:delete` via
+     the shared `google/oauth` service-account JWT (`auth/admin.ts`).
+   - **`applyFinish` purge guard** — a later rated finish skips the rating write for a seat
+     whose account is gone (the DO roster is never nulled); closes the 3+ player hole.
+   - **cron `scheduled` handler** (`lifecycle/cron.ts`): guest purge + **abandoned-game reap**
+     (never-started lobbies, untimed-active games) via a new unconditional `BaseGameDO.abort()`.
+     **No timeout sweep** — the whole point: the DO deadline alarm is the per-game timer
+     Postgres lacked, so the old `internal/expire` cron simply evaporates. `createEngine` now
+     returns `{ fetch, scheduled }`.
+   - **`HistoryStore` seam** (`history/store.ts`) — replay reads through it; one DO-backed impl.
+   - **Leak test** (`test/leak.spec.ts`) — hidden-info canary game, sentinel never escapes.
+   - Also: `google/oauth.ts` extracted from `fcm.ts` (scope-parameterized token, shared by FCM
+     + admin delete); `HttpError` gains `502`. **164 tests green** (kernel 73 / server 51 /
+     rps 2+12); `openapi.json` regenerated with `deleteAccount`.
+3. ~~**Milestone D**~~ **SHIPPED 2026-07-20 — Phase 2 COMPLETE** (engine_stack §2.4/§5.4):
+   - **Deep-link group** (`routes/links.ts`, `deepLink` on `createEngine`): worker-generated
+     `/.well-known/assetlinks.json` + `apple-app-site-association` (AASA served extensionless as
+     `application/json`) + `/j/:shortCode` OG share/landing page (D1 read, not-installed
+     fallback). `buildApp` refactored to a no-basePath **outer app** hosting `/api/engine` +
+     `/api/bot` + the public web routes; rps wrangler gained `assets: { directory: ./public,
+     run_worker_first: [/api/*, /.well-known/*, /j/*, /avatars/*] }` + a `public/` dir.
+   - **Opt-in avatars** (`routes/avatars.ts`, `avatars` on `createEngine`): raw-binary
+     `PUT /api/engine/me/avatar` → R2 (key = uid, type/size-validated), public worker-served
+     `GET /avatars/:uid` (immutable cache), `avatar_url` = `/avatars/{uid}?v=ts`. Optional
+     `avatars.publicBaseUrl(env)` points reads straight at a bucket custom domain / r2.dev (the
+     §5.4 flip, now a config value). `purgeUser` deletes the object. Built + tested under local
+     R2 simulation (no bucket, no card) — new `AVATARS` binding in the test + rps wrangler.
+   - `HttpError` gained `413`/`415`. **172 tests green** (kernel 73 / server 58 / rps 2+12);
+     `openapi.json` unchanged in shape (web/avatar routes are plain, non-OpenAPI).
+4. ~~Deferred small items: delete `examples/temp/` when done with it.~~ **Done 2026-07-20.**
+
+**Phase 2 is done.** What remains is the client migration (the Flutter/`eigen_client` side —
+see `docs/client_changes.md`) and the eventual cutover, plus the deferred paid-tier items
+(R2 cold-tier history sweep §4.6; a real avatars bucket at deploy) which are all held open by
+shipped seams and need no engine rework to land.
 
 ## 7. Standing user constraints (do not violate)
 

@@ -495,7 +495,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       }
       const page = 1000;
       const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);
-      const frames = await ctx.stub(c.env, gameId).frames({ seat: mySeat, from, to: cappedTo, isReplay: finished });
+      // Finished games replay through the HistoryStore seam (§4.6) — DO-backed
+      // in v1, R2-backed later; live gap recovery stays a direct DO fetch.
+      const frames = finished ? await ctx.history(c.env).replay(gameId, { seat: mySeat, from, to: cappedTo }) : await ctx.stub(c.env, gameId).frames({ seat: mySeat, from, to: cappedTo, isReplay: false });
       return c.json({ frames }, 200);
     },
   );

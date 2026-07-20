@@ -37,7 +37,7 @@ import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { finishPush, pushToUser, readServiceAccount, turnPush } from "../notify/push.js";
-import type { Command, CommandResult, FrameMessage, Principal, RosterSnapshot } from "../protocol.js";
+import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
@@ -58,7 +58,11 @@ interface SocketAttachment {
   userId: string | null;
 }
 
-export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
+// `implements GameStub` is the drift guard: the worker calls the DO through the
+// hand-written `GameStub` surface (§3.3), which the generic-erased RouteContext
+// needs in place of `DurableObjectStub<this>`. This clause makes the compiler
+// reject any signature here that diverges from what the callers expect.
+export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements GameStub {
   /** The implementor's game — the `versions` map the engine dispatches on. */
   protected abstract readonly gameModule: GameModule;
   /** The EngineConfig seam: the engine never assumes binding names — the
@@ -196,23 +200,42 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> {
     if (meta.status !== "aborted") {
       this.#db.update(t.meta).set({ status: "aborted" }).where(eq(t.meta.id, 1)).run();
     }
-    await mirrorRoster(this.d1(this.env), { gameId: meta.gameId, status: "aborted", seats: [], now: Date.now() });
+    await this.#tearDownAborted(meta.gameId, "Game cancelled");
+    return { ok: true, roster: { type: "roster", status: "aborted", players: [] } };
+  }
 
-    const snapshot: RosterSnapshot = { type: "roster", status: "aborted", players: [] };
-    this.#broadcast(snapshot);
+  /** Unconditional teardown (§4.7 cron reap): mark the game aborted in D1 and
+   * drop the DO's storage — no creator gate, no init requirement. A
+   * never-touched lobby's DO has no `meta` row, so the caller passes the
+   * gameId. Idempotent: a re-run re-aborts a game whose storage is already
+   * gone. Used by the cron; `cancel` shares the teardown for its live path. */
+  async abort(gameId: string): Promise<void> {
+    // If this DO is live, flip its status synchronously first (gate-held) so a
+    // command interleaving with the teardown's awaits sees an aborted game.
+    const meta = this.#loadMeta();
+    if (meta !== undefined && meta.status !== "aborted") {
+      this.#db.update(t.meta).set({ status: "aborted" }).where(eq(t.meta.id, 1)).run();
+    }
+    await this.#tearDownAborted(gameId, "Game aborted");
+  }
+
+  /** The shared abort teardown: mirror the aborted status to D1 (the only
+   * survivor — awaited, so a failure surfaces), notify and close any sockets,
+   * then drop the alarm and all storage. The schema goes with the storage, so
+   * restore it — a later poke lazy-re-inits from the aborted D1 row. */
+  async #tearDownAborted(gameId: string, closeReason: string): Promise<void> {
+    await mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() });
+    this.#broadcast({ type: "roster", status: "aborted", players: [] });
     for (const ws of this.ctx.getWebSockets()) {
       try {
-        ws.close(1000, "Game cancelled");
+        ws.close(1000, closeReason);
       } catch {
         // Already closing — nothing to do.
       }
     }
     await this.ctx.storage.deleteAlarm();
     await this.ctx.storage.deleteAll();
-    // The schema went with the storage; restore it so this live instance can
-    // keep serving (a later poke lazy-re-inits from the aborted D1 row).
     await migrate(this.#db, migrations);
-    return { ok: true, roster: snapshot };
   }
 
   async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>): Promise<CommandResult> {

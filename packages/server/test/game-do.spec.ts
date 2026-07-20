@@ -14,7 +14,7 @@ import type { GameStatus } from "@eigen/kernel";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it, vi } from "vitest";
-import { games, playerRatings, ratingHistory } from "../src/d1/schema.js";
+import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame, type FrameMessage } from "../src/index.js";
 
 /** Typed D1 access for seeds and assertions — the DO's own SQLite is
@@ -34,6 +34,17 @@ let gameCounter = 0;
  * (the waiting room is a later milestone). */
 async function seedGame(opts: SeedOptions = {}): Promise<string> {
   const gameId = `game-${++gameCounter}-${crypto.randomUUID()}`;
+  const now = Date.now();
+  // Both seats have real `users` rows, as any authed player would — the finish
+  // apply's purge guard (§4.5) only rates identities that still exist.
+  await db
+    .insert(users)
+    .values([
+      { id: "user-a", username: "user-a", email: null, displayName: "A", avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now },
+      { id: "user-b", username: "user-b", email: null, displayName: "B", avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now },
+    ])
+    .onConflictDoNothing()
+    .run();
   await createGame(env.DB, {
     gameId,
     createdBy: "user-a",

@@ -68,6 +68,58 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   solo-vs-bot is a guest's first-run experience. The client offers it to
   anonymous users (unrated).
 
+## Account deletion (Milestone C)
+
+- **Account deletion is one call: `DELETE /api/engine/me`.** `todo`
+  Replaces the Supabase `game/delete-account` edge-function invoke. The
+  Settings destructive action calls `DELETE /api/engine/me` with the Firebase
+  bearer, then signs out of Firebase (`firebase_auth.signOut()`; swallow the
+  error — the token may already be dead). The server forfeits/cancels/leaves
+  the caller's live games, deletes the Firebase account, and purges the user's
+  data server-side, so the client no longer orchestrates any of that. Handle
+  **502** as "deletion failed, the account is intact — retry" (the account is
+  never half-deleted). Client-side cleanup that still belongs on the device:
+  clear the SQLite profile/friends cache and the FCM installation *before* the
+  call (as `signOut` does today), since after deletion the credentials are gone.
+  Avatar-file removal is deferred to the avatars milestone (D) — nothing to do
+  until uploads exist.
+- **Guests can be purged out from under a stale session.** `future`
+  A guest inactive for a week is swept server-side (forfeit-then-delete). If a
+  long-dormant guest returns and the server has purged them, their token no
+  longer resolves to data — the client should treat "my games/profile empty +
+  token still valid" gracefully (re-provision is automatic on the next request,
+  as a fresh guest). No proactive client work; just don't assume a guest's
+  server data is permanent.
+
+## Web, deep links & avatars (Milestone D)
+
+- **Avatar upload is a raw-binary `PUT /api/engine/me/avatar`.** `todo`
+  Replaces the Supabase client-direct-to-Storage upload (R2 has no RLS / no
+  client-direct writes). The client sends the image bytes as the request body
+  with `Content-Type: image/jpeg|png|webp` (not multipart) and the Firebase
+  bearer; max ~2 MiB (server returns **415** wrong type, **413** too big, **400**
+  empty). The 200 response is `{ avatar_url }` — store/display it directly; it
+  already carries a `?v=<ts>` cache-buster, so `cached_network_image` refreshes
+  on re-upload with no manual invalidation.
+- **`avatar_url` may be relative.** `todo`
+  With the default (worker-served) setup it's `/avatars/{uid}?v=<ts>` — resolve
+  it against the API base URL. If the deployment sets a public bucket domain
+  it's absolute. Treat `avatar_url` as "use as-is if absolute, else prefix with
+  the API host." (The Firebase provider photo is still an absolute URL; guests
+  still have none → initials.)
+- **Account deletion no longer removes the avatar client-side.** `todo`
+  Drop the old §22 "best-effort avatar removal before delete" step —
+  `DELETE /api/engine/me` (Milestone C) deletes the R2 object server-side.
+- **Share links are `https://<host>/j/<shortCode>`; wire App/Universal Links.** `todo`
+  The server hosts `/.well-known/assetlinks.json` (Android) and
+  `/.well-known/apple-app-site-association` (iOS), generated from `deepLink`
+  config. The client app must declare the deep-link host + `/j/*` path in its
+  Android intent-filters and iOS associated-domains so an installed app opens
+  `/j/<code>` directly (no custom URL scheme needed). When the app isn't
+  installed the URL renders a server OG/landing page with store links — the
+  client does nothing for that case. Share sheets should emit the `/j/<code>`
+  URL (the `short_code` is already in create/summary responses).
+
 ## Offline solo — transcript import (future)
 
 - **`future`** The replacement for the deleted local-bot "offline" story. The

@@ -23,7 +23,7 @@ import { computeRatings, defaultRating, displayRating, GameBugError, type GameSt
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
-import { games, participants, playerRatings, ratingHistory } from "./schema.js";
+import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -91,7 +91,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     });
 
     const results = computeRatings(players);
-    const deltas: RatingDelta[] = results.map((r) => {
+    const allDeltas: RatingDelta[] = results.map((r) => {
       const key = identityKey("user_id" in r.identity ? r.identity.user_id : null, "bot_id" in r.identity ? r.identity.bot_id : null);
       const prior = priors.get(key) ?? { ...defaultRating(), revision: null };
       return {
@@ -106,6 +106,19 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         display_change: displayRating(r.mu, r.sigma) - displayRating(prior.mu, prior.sigma),
       };
     });
+
+    // Purge guard (§4.7): a seat whose account was deleted since this game
+    // began still carries its user_id in the DO roster (the purge nulls only
+    // the D1 mirror, never wakes the DO), so it survives into `players` and
+    // shapes the OpenSkill field — but it must NOT get a rating row, or the
+    // purge would resurrect a player_ratings entry for a non-existent user.
+    // Skip the write (and the returned delta) for any user identity no longer
+    // in `users`; bots are never purged. Mirrors the old
+    // `apply_rating_updates` existence guard. Recovery agrees by construction:
+    // `recoverDeltas` reads history rows, which likewise lack the skipped seat.
+    const deltaUserIds = allDeltas.flatMap((d) => ("user_id" in d.identity ? [d.identity.user_id] : []));
+    const existingUsers = await readExistingUsers(d1, deltaUserIds);
+    const deltas = allDeltas.filter((d) => !("user_id" in d.identity) || existingUsers.has(d.identity.user_id));
 
     const statements = [summaryUpdate, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
@@ -129,6 +142,14 @@ interface PriorRow {
 
 function identityKey(userId: string | null, botId: string | null): string {
   return userId !== null ? `u:${userId}` : `b:${botId}`;
+}
+
+/** Which of these user ids still exist — the purge guard's read (see the
+ * call site). Empty in ⇒ empty out, no round trip. */
+async function readExistingUsers(d1: D1Database, userIds: string[]): Promise<Set<string>> {
+  if (userIds.length === 0) return new Set();
+  const rows = await drizzle(d1).select({ id: users.id }).from(users).where(inArray(users.id, userIds)).all();
+  return new Set(rows.map((r) => r.id));
 }
 
 /** One round trip for the whole roster (this runs inside the CAS loop):

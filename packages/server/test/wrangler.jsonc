@@ -32,6 +32,9 @@
       "database_id": "eigen-test"
     }
   ],
+  // §5.4 avatars — simulated R2 under vitest-pool-workers (.wrangler/state); no
+  // real bucket, no card. Exercises the upload/serve/purge routes.
+  "r2_buckets": [{ "binding": "AVATARS", "bucket_name": "eigen-test-avatars" }],
   // The drizzle durable-sqlite migrations.js imports its .sql as text.
   "rules": [{ "type": "Text", "globs": ["**/*.sql"], "fallthrough": true }]
 }
