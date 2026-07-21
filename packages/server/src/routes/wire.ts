@@ -82,6 +82,11 @@ export const seatShape = z
 
 export const gameStatusShape = z.enum(["waiting", "ready", "active", "finished", "aborted"]).openapi("GameStatus");
 
+/** Who may join a game. Named (not inlined at each use) so the create body and
+ * the game summary generate against ONE client enum rather than two unrelated
+ * ones for the same concept. */
+export const gameAccessShape = z.enum(["public", "private", "friends"]).openapi("GameAccess");
+
 export const outcomeShape = z
   .object({
     player_index: z.number().int(),
@@ -150,7 +155,7 @@ export const gameSummaryShape = z
     id: z.string(),
     created_by: z.string().nullable(),
     status: gameStatusShape,
-    access: z.enum(["public", "private", "friends"]),
+    access: gameAccessShape,
     schema_version: z.number().int(),
     config: jsonObjectShape,
     turn_seconds: z.number().nullable(),
@@ -236,7 +241,7 @@ const incrementNeedsBudget = (v: TimingBody) => v.increment_seconds === null || 
 
 export const createGameBody = z
   .object({
-    access: z.enum(["public", "private", "friends"]),
+    access: gameAccessShape,
     schema_version: z.number().int(),
     /** Game-defined; parsed by the version unit's config schema. Uses the
      * shared free-form-object shape so every JSON payload on the wire
