@@ -105,6 +105,28 @@ export async function readMyGames(d1: D1Database, userId: string, bucket: "activ
   );
 }
 
+/** Another player's finished PUBLIC games — the replay list on a profile.
+ *
+ * Public-only is the access rule that makes this safe to expose for an
+ * arbitrary id: a private or friends-only game is nobody else's business, and
+ * a finished public game is already replayable by anyone who has its id. Same
+ * participants index as `readMyGames`, matching either identity column so a
+ * bot's game history works too. */
+export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number): Promise<GameWithRoster[]> {
+  const rows = await drizzle(d1)
+    .select({ games })
+    .from(participants)
+    .innerJoin(games, eq(participants.gameId, games.id))
+    .where(and(or(eq(participants.userId, playerId), eq(participants.botId, playerId)), eq(games.status, "finished"), eq(games.access, "public")))
+    .orderBy(desc(sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`))
+    .limit(limit)
+    .all();
+  return await withRosters(
+    d1,
+    rows.map((r) => r.games),
+  );
+}
+
 /** The batch identity endpoint (`players?ids=`) — the decided alternative to
  * denormalizing identity onto games rows; the client's persisted player cache
  * keeps it warm. */

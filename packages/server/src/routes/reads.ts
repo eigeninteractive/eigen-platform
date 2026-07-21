@@ -5,7 +5,7 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
-import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
+import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape } from "./wire.js";
@@ -144,6 +144,24 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.var.auth.user.id);
       return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, display_rating: r.displayRating, updated_at: r.updatedAt })) }, 200);
+    },
+  );
+
+  // Any player's finished public games — the replay list on a profile. Public
+  // and finished only, so this exposes nothing about someone that was not
+  // already replayable by anyone holding the game's id.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/players/{playerId}/games",
+      operationId: "getPlayerGames",
+      tags: ["Players"],
+      request: { params: z.object({ playerId: z.string().min(1) }), query: z.object({ limit: limitQuery }) },
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("PlayerGames"), "That player's finished public games, newest first"),
+    }),
+    async (c) => {
+      const games = await readPlayerPublicGames(ctx.d1(c.env), c.req.valid("param").playerId, c.req.valid("query").limit);
+      return c.json({ games: games.map(gameSummaryOf) }, 200);
     },
   );
 
