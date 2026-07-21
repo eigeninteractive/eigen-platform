@@ -38,6 +38,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "put",
       path: "/me/username",
       operationId: "updateUsername",
+      tags: ["Me"],
       request: { body: { content: { "application/json": { schema: usernameBody } }, required: true } },
       responses: {
         200: { content: { "application/json": { schema: z.object({ username: z.string() }).openapi("UsernameUpdated") } }, description: "The new username" },
@@ -67,6 +68,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "delete",
       path: "/me",
       operationId: "deleteAccount",
+      tags: ["Me"],
       responses: {
         204: { description: "The account and its data were deleted" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },

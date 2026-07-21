@@ -179,7 +179,7 @@ describe("applyFinish purge guard", () => {
     ).toBeDefined();
     expect(await db.select().from(playerRatings).where(eq(playerRatings.userId, gone)).get()).toBeUndefined();
     expect(await db.select().from(ratingHistory).where(eq(ratingHistory.userId, gone)).get()).toBeUndefined();
-    expect(deltas?.some((d) => "user_id" in d.identity && d.identity.user_id === gone)).toBe(false);
-    expect(deltas?.some((d) => "user_id" in d.identity && d.identity.user_id === present)).toBe(true);
+    expect(deltas?.some((d) => d.identity.user_id === gone)).toBe(false);
+    expect(deltas?.some((d) => d.identity.user_id === present)).toBe(true);
   });
 });

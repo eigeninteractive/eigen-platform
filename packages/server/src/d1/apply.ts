@@ -92,7 +92,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
 
     const results = computeRatings(players);
     const allDeltas: RatingDelta[] = results.map((r) => {
-      const key = identityKey("user_id" in r.identity ? r.identity.user_id : null, "bot_id" in r.identity ? r.identity.bot_id : null);
+      const key = identityKey(r.identity.user_id, r.identity.bot_id);
       const prior = priors.get(key) ?? { ...defaultRating(), revision: null };
       return {
         identity: r.identity,
@@ -116,9 +116,9 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     // in `users`; bots are never purged. Mirrors the old
     // `apply_rating_updates` existence guard. Recovery agrees by construction:
     // `recoverDeltas` reads history rows, which likewise lack the skipped seat.
-    const deltaUserIds = allDeltas.flatMap((d) => ("user_id" in d.identity ? [d.identity.user_id] : []));
+    const deltaUserIds = allDeltas.flatMap((d) => (d.identity.user_id !== null ? [d.identity.user_id] : []));
     const existingUsers = await readExistingUsers(d1, deltaUserIds);
-    const deltas = allDeltas.filter((d) => !("user_id" in d.identity) || existingUsers.has(d.identity.user_id));
+    const deltas = allDeltas.filter((d) => d.identity.user_id === null || existingUsers.has(d.identity.user_id));
 
     const statements = [summaryUpdate, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
@@ -178,8 +178,7 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
 function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
   const statements = [];
   for (const delta of deltas) {
-    const userId = "user_id" in delta.identity ? delta.identity.user_id : null;
-    const botId = "bot_id" in delta.identity ? delta.identity.bot_id : null;
+    const { user_id: userId, bot_id: botId } = delta.identity;
     const prior = priors.get(identityKey(userId, botId));
     const identityWhere = userId !== null ? and(eq(playerRatings.userId, userId), eq(playerRatings.pool, pool)) : and(eq(playerRatings.botId, botId as string), eq(playerRatings.pool, pool));
 
@@ -251,7 +250,7 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
   const db = drizzle(d1);
   const rows = await db.select().from(ratingHistory).where(eq(ratingHistory.finishId, finishId)).all();
   return rows.map((row) => ({
-    identity: row.userId !== null ? { user_id: row.userId } : { bot_id: row.botId as string },
+    identity: { user_id: row.userId, bot_id: row.botId },
     pool: row.pool,
     mu_before: row.muBefore,
     sigma_before: row.sigmaBefore,

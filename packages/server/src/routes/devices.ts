@@ -33,6 +33,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "put",
       path: "/me/devices",
       operationId: "registerDevice",
+      tags: ["Me"],
       request: { body: { content: { "application/json": { schema: deviceBody } }, required: true } },
       responses: {
         204: { description: "Registered — the caller's pushes will reach this install" },
@@ -59,6 +60,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "delete",
       path: "/me/devices/{fid}",
       operationId: "unregisterDevice",
+      tags: ["Me"],
       request: { params: z.object({ fid: z.string().min(1) }) },
       responses: {
         204: { description: "Deregistered (idempotent)" },

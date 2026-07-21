@@ -35,10 +35,18 @@ export interface PlayerInput extends Rating {
   team_index: number;
 }
 
+/** Who a rating belongs to. Exactly one id is set — the same nullable-pair
+ * shape as the server's `Principal` and the wire's `Seat`, so the three read
+ * alike and the wire projection is the identity function. */
+export interface RatingIdentity {
+  user_id: string | null;
+  bot_id: string | null;
+}
+
 /** One identity's newly computed rating — the pure OpenSkill posterior,
  * before the store-owned CAS revision is attached by the applier. */
 export interface RatingResult extends Rating {
-  identity: { user_id: string } | { bot_id: string };
+  identity: RatingIdentity;
 }
 
 /** One rated identity's before → after, exactly the rating_history row minus
@@ -82,11 +90,11 @@ function hasIdentity(player: PlayerInput): boolean {
   return player.user_id !== null || player.bot_id !== null;
 }
 
-/** The discriminated identity payload written to the update. Only called for
- * seats that passed {@link hasIdentity} — anything else is a bug here. */
-function identityOf(player: PlayerInput): RatingResult["identity"] {
-  if (player.user_id) return { user_id: player.user_id };
-  if (player.bot_id) return { bot_id: player.bot_id };
+/** The identity payload written to the update. Only called for seats that
+ * passed {@link hasIdentity} — anything else is a bug here. */
+function identityOf(player: PlayerInput): RatingIdentity {
+  if (player.user_id) return { user_id: player.user_id, bot_id: null };
+  if (player.bot_id) return { user_id: null, bot_id: player.bot_id };
   throw new Error(`Player ${player.player_index} has no identity`);
 }
 

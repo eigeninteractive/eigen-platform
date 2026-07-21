@@ -12,6 +12,7 @@ import type { JsonObject } from "@eigen/rules";
 import { z } from "@hono/zod-openapi";
 import type { UserRow } from "../auth/provision.js";
 import type { GameWithRoster } from "../d1/reads.js";
+import type { ErrorCode } from "../http.js";
 
 /** A game-defined JSON object payload (an observation's `data`, a config).
  * Typed as the engine's `JsonObject` so the wire types line up with the
@@ -20,11 +21,49 @@ const jsonObjectShape = z.custom<JsonObject>((v) => typeof v === "object" && v !
 
 // ── Shared shapes ─────────────────────────────────────────────────────────────
 
+/**
+ * Every machine code an error body can carry, with what it means. Keyed by
+ * `ErrorCode`, so the compiler forces this map to stay exhaustive in both
+ * directions: a new kernel or lobby rejection code that is not listed here
+ * fails to compile, and a code listed here that no longer exists does too.
+ */
+const errorCodeDocs: Record<ErrorCode, string> = {
+  // Kernel rejections — the command reached the game and it refused.
+  not_active: "The game is not in a status that accepts this intent",
+  not_ready: "Start was requested but the game is not ready",
+  expired: "The turn deadline (plus grace) had already passed",
+  not_pending: "The acting seat is not in the pending set",
+  state_updated: "The board advanced past the version acted against — resync and retry",
+  invalid_payload: "The action payload failed the version unit's action schema",
+  illegal_move: "The game's applyAction refused the move",
+  // Lobby rejections — the waiting-room commands.
+  unknown_game: "No game with this id exists",
+  not_joinable: "The game is no longer in a lobby status",
+  game_full: "Every seat is taken",
+  already_joined: "The caller already holds a seat",
+  not_participant: "The caller holds no seat in this game",
+  not_creator: "A creator-only command from a non-creator",
+  creator_cannot_leave: "The creator cancels the game instead of leaving it",
+  // Raised by a route before the command reaches the game.
+  schema_unsupported: "The game's schema version is newer than this client build supports",
+};
+
+/** The closed set of stable error codes, published as an enum so a client can
+ * `switch` on it exhaustively rather than string-matching. Adding a member is
+ * a wire change and needs a schema-version bump, like any enum on the wire. */
+export const errorCodeShape = z.enum(Object.keys(errorCodeDocs) as [ErrorCode, ...ErrorCode[]]).openapi("ErrorCode", {
+  // Deliberately a single short line: the generator stamps this description
+  // onto every enum member, so the per-code meanings live in `errorCodeDocs`
+  // above (and the reference docs) rather than 15 times over in the client.
+  description: "A stable machine code identifying why a request failed.",
+});
+
 /** The one error envelope for every non-2xx response: a human message plus an
  * optional stable `code` the client keys typed handling off. Named
  * `ErrorResponse` (not `Error`) to avoid colliding with Dart's `dart:core.Error`
- * in the generated client. */
-export const errorShape = z.object({ error: z.string(), code: z.string().optional() }).openapi("ErrorResponse");
+ * in the generated client. The message is display copy and may be reworded —
+ * dispatch on `code`, never on `error`. */
+export const errorShape = z.object({ error: z.string(), code: errorCodeShape.optional() }).openapi("ErrorResponse");
 
 export const seatShape = z
   .object({
@@ -49,7 +88,8 @@ export const outcomeShape = z
 
 export const ratingDeltaShape = z
   .object({
-    identity: z.union([z.object({ user_id: z.string() }), z.object({ bot_id: z.string() })]),
+    /** Exactly one id is set — the same nullable-pair shape as `Seat`. */
+    identity: z.object({ user_id: z.string().nullable(), bot_id: z.string().nullable() }).openapi("RatingIdentity"),
     pool: z.string(),
     mu_before: z.number(),
     sigma_before: z.number(),

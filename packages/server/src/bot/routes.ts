@@ -46,6 +46,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "post",
       path: "/action",
       operationId: "botAction",
+      tags: ["BotWebhook"],
       security: [{ botHmac: [] }],
       request: {
         body: { content: { "application/json": { schema: botActionBody } }, required: true },

@@ -20,8 +20,8 @@ describe("computeRatings", () => {
   it("moves the winner up and the loser down", () => {
     const results = computeRatings([seat(0, 1), seat(1, 2)]);
     expect(results).toHaveLength(2);
-    const winner = results.find((r) => "user_id" in r.identity && r.identity.user_id === "user-0");
-    const loser = results.find((r) => "user_id" in r.identity && r.identity.user_id === "user-1");
+    const winner = results.find((r) => r.identity.user_id === "user-0");
+    const loser = results.find((r) => r.identity.user_id === "user-1");
     expect(winner?.mu).toBeGreaterThan(base.mu);
     expect(loser?.mu).toBeLessThan(base.mu);
     expect(winner?.sigma).toBeLessThan(base.sigma);
@@ -41,7 +41,7 @@ describe("computeRatings", () => {
   it("collapses a multi-seat bot into exactly one result", () => {
     const results = computeRatings([seat(0, 1), seat(1, 2, { user_id: null, bot_id: "bot-x" }), seat(2, 3, { user_id: null, bot_id: "bot-x" })]);
     expect(results).toHaveLength(2);
-    const botResults = results.filter((r) => "bot_id" in r.identity && r.identity.bot_id === "bot-x");
+    const botResults = results.filter((r) => r.identity.bot_id === "bot-x");
     expect(botResults).toHaveLength(1);
     // Both of the bot's placements were losses to the human: the single net
     // update must land below the prior.
@@ -51,7 +51,7 @@ describe("computeRatings", () => {
   it("a purged seat shapes the field but yields no result", () => {
     const results = computeRatings([seat(0, 1), seat(1, 2, { user_id: null, bot_id: null })]);
     expect(results).toHaveLength(1);
-    expect(results[0].identity).toEqual({ user_id: "user-0" });
+    expect(results[0].identity).toEqual({ user_id: "user-0", bot_id: null });
     expect(results[0].mu).toBeGreaterThan(base.mu);
   });
 

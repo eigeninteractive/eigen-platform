@@ -51,9 +51,11 @@ function pushFriendEvent(ctx: RouteContext, env: unknown, waitUntil: (p: Promise
 
 export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
   // ── Lists ──────────────────────────────────────────────────────────────────
-  app.openapi(createRoute({ method: "get", path: "/friends", operationId: "listFriends", responses: okResponse(z.object({ friends: z.array(friendShape) }).openapi("Friends"), "The caller's accepted friends") }), async (c) => c.json({ friends: await listFriends(ctx.d1(c.env), c.var.auth.user.id) }, 200));
+  app.openapi(createRoute({ method: "get", path: "/friends", operationId: "listFriends", tags: ["Social"], responses: okResponse(z.object({ friends: z.array(friendShape) }).openapi("Friends"), "The caller's accepted friends") }), async (c) =>
+    c.json({ friends: await listFriends(ctx.d1(c.env), c.var.auth.user.id) }, 200),
+  );
 
-  app.openapi(createRoute({ method: "get", path: "/friends/requests", operationId: "listFriendRequests", responses: okResponse(z.object({ requests: z.array(friendRequestShape) }).openapi("FriendRequests"), "Pending requests, incoming and outgoing") }), async (c) =>
+  app.openapi(createRoute({ method: "get", path: "/friends/requests", operationId: "listFriendRequests", tags: ["Social"], responses: okResponse(z.object({ requests: z.array(friendRequestShape) }).openapi("FriendRequests"), "Pending requests, incoming and outgoing") }), async (c) =>
     c.json({ requests: await listPendingRequests(ctx.d1(c.env), c.var.auth.user.id) }, 200),
   );
 
@@ -62,6 +64,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "get",
       path: "/friends/games",
       operationId: "getFriendsGames",
+      tags: ["Social"],
       request: { query: z.object({ limit: z.coerce.number().int().min(1).max(50).default(20) }) },
       responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("FriendsGames"), "Joinable games created by the caller's friends"),
     }),
@@ -77,6 +80,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "get",
       path: "/users/search",
       operationId: "searchUsers",
+      tags: ["Social"],
       request: { query: z.object({ q: z.string().min(1), limit: z.coerce.number().int().min(1).max(50).default(20) }) },
       responses: okResponse(z.object({ users: z.array(playerShape) }).openapi("UserSearch"), "Matching registered users, best match first"),
     }),
@@ -94,6 +98,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       method: "post",
       path: "/friends/requests",
       operationId: "sendFriendRequest",
+      tags: ["Social"],
       request: { body: { content: { "application/json": { schema: friendTargetBody } }, required: true } },
       responses: okResponse(z.object({ status: z.enum(["requested", "accepted"]) }).openapi("FriendRequestResult"), "Request sent, or auto-accepted"),
     }),
@@ -124,7 +129,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  app.openapi(createRoute({ method: "post", path: "/friends/requests/{userId}/accept", operationId: "acceptFriendRequest", request: { params: userIdParam }, responses: noContentResponse("The request was accepted") }), async (c) => {
+  app.openapi(createRoute({ method: "post", path: "/friends/requests/{userId}/accept", operationId: "acceptFriendRequest", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("The request was accepted") }), async (c) => {
     requireRegistered(c.var.auth);
     const caller = c.var.auth.user;
     const requester = c.req.valid("param").userId;
@@ -135,14 +140,14 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
   });
 
   // ── Remove / block ───────────────────────────────────────────────────────────
-  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}", operationId: "removeFriend", request: { params: userIdParam }, responses: noContentResponse("Unfriended / request withdrawn / declined (idempotent)") }), async (c) => {
+  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}", operationId: "removeFriend", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Unfriended / request withdrawn / declined (idempotent)") }), async (c) => {
     // No registered gate: removing/declining is always allowed, and a
     // relationship can only exist if it was created by a registered caller.
     await removeRelationship(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("param").userId);
     return c.body(null, 204);
   });
 
-  app.openapi(createRoute({ method: "post", path: "/friends/{userId}/block", operationId: "blockUser", request: { params: userIdParam }, responses: noContentResponse("Blocked (idempotent)") }), async (c) => {
+  app.openapi(createRoute({ method: "post", path: "/friends/{userId}/block", operationId: "blockUser", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Blocked (idempotent)") }), async (c) => {
     requireRegistered(c.var.auth);
     const target = c.req.valid("param").userId;
     if (target === c.var.auth.user.id) throw new HttpError(400, "You cannot block yourself");
@@ -150,7 +155,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
     return c.body(null, 204);
   });
 
-  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}/block", operationId: "unblockUser", request: { params: userIdParam }, responses: noContentResponse("Unblocked (idempotent)") }), async (c) => {
+  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}/block", operationId: "unblockUser", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Unblocked (idempotent)") }), async (c) => {
     await unblockUser(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("param").userId);
     return c.body(null, 204);
   });

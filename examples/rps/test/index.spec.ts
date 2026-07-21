@@ -30,33 +30,34 @@ it("requires a token on every route", async () => {
 
 it("plays a full game: waiting room, same-view simultaneous commits, finish, replay reveal", async () => {
   const created = await api(ALICE, "POST", "/games", {
+    access: "public",
     schema_version: 1,
     config: { targetWins: 1 },
     min_players: 2,
     max_players: 2,
     rated: false,
   });
-  expect(created.status).toBe(200);
+  expect(created.status).toBe(201);
   const { game_id: gameId } = (await created.json()) as { game_id: string };
 
   const joined = await api(BOB, "POST", `/games/${gameId}/join`, { client_schema_version: 1 });
-  expect((await joined.json()) as object).toMatchObject({ ok: true, roster: { status: "ready" } });
+  expect((await joined.json()) as object).toMatchObject({ roster: { status: "ready" } });
 
   // No mirror wait: the DO seats Bob on the join command and verifies the
   // seat each client sends against its own roster, so Bob can act the
   // moment his join returns.
   const db = drizzle(env.rps_dev);
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
-  expect(await started.json()).toMatchObject({ ok: true, version: 0 });
+  expect(await started.json()).toMatchObject({ version: 0 });
 
   // Both seats commit against v0. The second arrives stale — and lands,
   // because RPS masks the opponent's hidden commit (same-view rule).
   const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expected_version: 0 });
-  expect(await rock.json()).toMatchObject({ ok: true, version: 1 });
+  expect(await rock.json()).toMatchObject({ version: 1 });
 
   const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { seat: 1, data: { move: "scissors" }, expected_version: 0 });
-  const resolved = (await scissors.json()) as { ok: boolean; version: number; frame: { outcomes?: unknown[] } };
-  expect(resolved).toMatchObject({ ok: true, version: 2 });
+  const resolved = (await scissors.json()) as { version: number; frame: { outcomes?: unknown[] } };
+  expect(resolved).toMatchObject({ version: 2 });
   expect(resolved.frame.outcomes).toHaveLength(2);
 
   // The finish apply lands in D1 (single attempt, post-commit).
