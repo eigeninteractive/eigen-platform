@@ -13,7 +13,7 @@ import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame,
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
 import type { Command, CommandResult } from "../protocol.js";
-import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
+import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, joinedShape, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
 
@@ -77,11 +77,18 @@ interface BotSeatingGame {
 }
 
 function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow): void {
-  // bots ⇒ timed: a brain that throws, or a DO evicted mid-turn, is
-  // resolved by the turn deadline — the one liveness backstop for every bot,
-  // in-DO or external.
+  // SERVER-seated bots ⇒ timed. Dispatch is single-attempt, so a brain that
+  // throws, an external webhook that never answers, or a DO evicted mid-turn is
+  // resolved only by the turn deadline firing the alarm — the one liveness
+  // backstop. Untimed means no deadline, no alarm, and a game wedged forever.
+  //
+  // Scoped to *server* seating on purpose: a client-driven bot has no dispatch
+  // to fail and needs no backstop, so the deferred offline-solo path (a game
+  // simulated on-device and uploaded as a transcript) is free to be untimed.
+  // That partition is why this lives here, on the seating path, rather than as
+  // a blanket rule on game creation.
   if (game.turnSeconds === null && game.budgetSeconds === null) {
-    throw new HttpError(400, "A game with a bot must be timed");
+    throw new HttpError(400, "A game with a server-seated bot must be timed");
   }
   if (game.schemaVersion > bot.schemaVersion) {
     throw new HttpError(400, `Bot does not support schema_version ${game.schemaVersion}`);
@@ -332,12 +339,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(joinBody) },
-      responses: responses(lobbyAcceptedShape, "Seated — the post-join roster"),
+      responses: responses(joinedShape, "Seated — the game's id and the post-join roster"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
-      return c.json(await join(c, game, body.client_schema_version, body.command_id), 200);
+      const seated = await join(c, game, body.client_schema_version, body.command_id);
+      return c.json({ game_id: game.id, ...seated }, 200);
     },
   );
 
@@ -348,13 +356,14 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGameByCode",
       tags: ["Games"],
       request: { body: jsonBody(joinByCodeBody) },
-      responses: responses(lobbyAcceptedShape, "Seated — the post-join roster"),
+      responses: responses(joinedShape, "Seated — the game's id and the post-join roster"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.short_code.toUpperCase());
       if (game === undefined) throw new HttpError(404, "No game with that code", "unknown_game");
-      return c.json(await join(c, game, body.client_schema_version, body.command_id), 200);
+      const seated = await join(c, game, body.client_schema_version, body.command_id);
+      return c.json({ game_id: game.id, ...seated }, 200);
     },
   );
 

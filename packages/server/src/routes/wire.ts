@@ -150,6 +150,20 @@ export const lobbyAcceptedShape = z
   })
   .openapi("LobbyAccepted");
 
+/** An accepted join, by id or by short code.
+ *
+ * Both forms answer identically — they are the same operation from the caller's
+ * side ("seat me in this game"), and only differ in how the game was named. The
+ * id is echoed rather than assumed because the by-code caller never had it, and
+ * a single shape means one client path from either entry point instead of two
+ * that happen to agree. */
+export const joinedShape = z
+  .object({
+    game_id: z.string(),
+    roster: rosterShape,
+  })
+  .openapi("Joined");
+
 export const gameSummaryShape = z
   .object({
     id: z.string(),
@@ -169,6 +183,10 @@ export const gameSummaryShape = z
     pending_players: z.array(z.number().int()).nullable(),
     turn_deadline: z.number().int().nullable(),
     outcomes: z.array(outcomeShape).nullable(),
+    /** Every identity's rating change, present only on a finished rated game.
+     * Per-game like `outcomes`, not per-viewer: a client picks out its own seat
+     * the same way it does there. */
+    ratings: z.array(ratingDeltaShape).optional(),
     finished_at: z.number().int().nullable(),
     created_at: z.number().int(),
     updated_at: z.number().int(),
@@ -346,6 +364,7 @@ export function gameSummaryOf(g: GameWithRoster): z.infer<typeof gameSummaryShap
     pending_players: g.pendingPlayers,
     turn_deadline: g.turnDeadline,
     outcomes: g.outcomes,
+    ...(g.ratings !== undefined ? { ratings: g.ratings } : {}),
     finished_at: g.finishedAt,
     created_at: g.createdAt,
     updated_at: g.updatedAt,

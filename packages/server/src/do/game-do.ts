@@ -37,7 +37,7 @@ import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { finishPush, pushToUser, readServiceAccount, turnPush } from "../notify/push.js";
-import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot } from "../protocol.js";
+import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot, SyncMessage } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
@@ -670,11 +670,19 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const pair = new WebSocketPair();
     pair[1].serializeAttachment(attachment);
     this.ctx.acceptWebSocket(pair[1]);
-    // Pre-game the current snapshot rides the open (idempotent — a reconnect
-    // just gets it again); mid-game the client resyncs by range fetch.
+    // Either way the open says where the game is, so a client never has to
+    // guess. Pre-game that is the roster snapshot (idempotent — a reconnect
+    // just gets it again); from v0 the roster is frozen and what moves is the
+    // version, so that is what a sync carries. Both are cheap and neither
+    // replays history: the client decides what, if anything, to fetch.
     const meta = this.#meta();
     if (meta.status === "waiting" || meta.status === "ready") {
       pair[1].send(JSON.stringify({ type: "roster", status: meta.status, players: this.#roster() } satisfies RosterSnapshot));
+    } else {
+      const latest = this.#latestTransition();
+      if (latest !== null) {
+        pair[1].send(JSON.stringify({ type: "sync", version: latest.version } satisfies SyncMessage));
+      }
     }
     return new Response(null, { status: 101, webSocket: pair[0] });
   }

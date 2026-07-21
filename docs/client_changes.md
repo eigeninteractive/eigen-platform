@@ -204,6 +204,37 @@ All of them are already reflected in the regenerated `eigen_api`.
   Adding a value server-side is a breaking change needing a schema-version bump;
   `test/shared/api_contract_test.dart` pins the sets so drift fails loudly.
 
+- **The socket states where the game is on open.** `done`
+  A mid-game open now sends `{ type: "sync", version }` before anything else;
+  pre-game it still sends the roster snapshot. The client reconciles from that
+  rather than guessing: a **cold mid-game open** fetches only that one version
+  (previously it rendered nothing until the next move), a reconnect that missed
+  nothing issues **no request at all**, and one that fell behind fetches exactly
+  the missing span. Socket-only, so it has no generated type — hand-parsed
+  alongside the `type` discriminator the client already reads.
+
+- **Server-seated bots require a timed game.** `done`
+  `POST /games/{id}/add-bot` and create-solo refuse an untimed game, because bot
+  dispatch is single-attempt and only the turn deadline's alarm resolves a bot
+  that never moves. Scoped deliberately to *server* seating: a client-driven bot
+  has no dispatch to fail, so the deferred offline-solo path stays free to be
+  untimed. Clients should offer solo play only when a timed mode exists.
+
+- **Integer wire fields are declared as integers.** `done`
+  `deadline`, `turn_seconds`, `budget_seconds`, `increment_seconds`,
+  `turn_deadline`, `finished_at`, `created_at`, `updated_at`, `player_times`
+  and `since` were plain `number`, generating Dart `num`. Now `int`.
+  Timestamps are epoch milliseconds, not `DateTime`.
+
+- **`GameAccess` is one enum.** `done`
+  It was inlined at both the create body and the game summary, generating two
+  unrelated client enums for one concept. Named once, so an access value now
+  round-trips from a read into a create.
+
+- **`GameStatus` and `OutcomeResult` come from the server.** `done`
+  The client's hand-written copies (which carried `unknown` sentinels) are
+  deleted in favour of the generated enums. Switches over them are total.
+
 ## Not a client change
 
 - **Registering external bots** is an operator task (`wrangler d1 execute` /

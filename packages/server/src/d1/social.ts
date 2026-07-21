@@ -12,7 +12,7 @@
  * reusing the batch player projection.
  */
 
-import { type AnyColumn, and, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
+import { type AnyColumn, and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { type GameWithRoster, withRosters } from "./reads.js";
 import { games, relationships, users } from "./schema.js";
@@ -205,7 +205,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
 
 /** Joinable games created by the caller's accepted friends — the "friends'
  * open games" lobby. Waiting/ready games only, newest first. */
-export async function friendsOpenGames(d1: D1Database, caller: string, limit: number): Promise<GameWithRoster[]> {
+export async function friendsOpenGames(d1: D1Database, caller: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const db = drizzle(d1);
   const friends = await db
     .select()
@@ -217,7 +217,7 @@ export async function friendsOpenGames(d1: D1Database, caller: string, limit: nu
   const rows = await db
     .select()
     .from(games)
-    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"])))
+    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), cursor === null ? undefined : lt(games.createdAt, cursor)))
     .orderBy(desc(games.createdAt))
     .limit(limit)
     .all();

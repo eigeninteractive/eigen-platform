@@ -100,6 +100,22 @@ export interface FrameMessage {
   ratings?: RatingDelta[];
 }
 
+/** Sent once, on a mid-game socket open, saying where the game currently is.
+ *
+ * The pre-game equivalent is the {@link RosterSnapshot} that rides the open;
+ * from v0 onward the roster is frozen, so this carries the one thing that does
+ * still move — the newest committed version.
+ *
+ * It exists so a client can reconcile in one step instead of guessing. A cold
+ * open learns which version to load without replaying the whole game, and a
+ * reconnect can compare against its own cursor and skip the catch-up fetch
+ * entirely when nothing was missed — the common case on a flaky connection,
+ * where reconnects are frequent but usually miss nothing. */
+export interface SyncMessage {
+  type: "sync";
+  version: number;
+}
+
 /** What `GameDO.handle()` returns; accepted results are stored for commandId
  * dedupe and replayed verbatim to a retry. Rejections are computed
  * fresh each time — re-evaluating one is always sound. State-transitioning

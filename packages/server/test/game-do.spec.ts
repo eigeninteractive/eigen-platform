@@ -16,6 +16,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it, vi } from "vitest";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame, type FrameMessage } from "../src/index.js";
+import type { SyncMessage } from "../src/protocol.js";
 
 /** Typed D1 access for seeds and assertions — the DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
@@ -310,14 +311,39 @@ describe("hibernating sockets", () => {
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on 101 response");
     ws.accept();
-    const messages: FrameMessage[] = [];
+    const messages: (FrameMessage | SyncMessage)[] = [];
     ws.addEventListener("message", (event: MessageEvent) => {
-      messages.push(JSON.parse(event.data as string) as FrameMessage);
+      messages.push(JSON.parse(event.data as string) as FrameMessage | SyncMessage);
     });
 
-    await stub.handle(action(gameId, 0, 1, 0, "user-a"));
+    // A mid-game open states where the game is, so a client knows what (if
+    // anything) to fetch rather than waiting for the next transition.
     await vi.waitFor(() => expect(messages).toHaveLength(1));
-    expect(messages[0]).toMatchObject({ type: "frame", version: 1, data: { count: 1 } });
+    expect(messages[0]).toEqual({ type: "sync", version: 0 });
+
+    await stub.handle(action(gameId, 0, 1, 0, "user-a"));
+    await vi.waitFor(() => expect(messages).toHaveLength(2));
+    expect(messages[1]).toMatchObject({ type: "frame", version: 1, data: { count: 1 } });
+    ws.close();
+  });
+
+  it("sends the roster, not a sync, while the game is still in the lobby", async () => {
+    // Pre-game there is no version to report; what moves is the roster.
+    const gameId = await seedGame();
+    const stub = stubFor(gameId);
+    const res = await stub.fetch("https://do/socket", {
+      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-user": "user-a" },
+    });
+    const ws = res.webSocket;
+    if (!ws) throw new Error("no websocket on 101 response");
+    ws.accept();
+    const messages: { type: string }[] = [];
+    ws.addEventListener("message", (event: MessageEvent) => {
+      messages.push(JSON.parse(event.data as string) as { type: string });
+    });
+
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+    expect(messages[0]).toMatchObject({ type: "roster" });
     ws.close();
   });
 

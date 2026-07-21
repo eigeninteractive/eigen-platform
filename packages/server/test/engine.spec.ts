@@ -233,6 +233,12 @@ describe("active play & frames", () => {
     expect(history.history[0]?.pool).toBe("test-pool");
     const ratings = await json<{ ratings: { pool: string }[] }>(await api(u.b, "GET", "/me/ratings"));
     expect(ratings.ratings).toHaveLength(1);
+
+    // The summary carries every identity's delta, so a history list needs no
+    // second read to annotate a row — and the same projection is correct when
+    // viewing someone else's games, since this is per-game not per-viewer.
+    const summary = await json<{ ratings?: { identity: { user_id: string | null }; display_change: number }[] }>(await api(u.c, "GET", `/games/${gameId}`));
+    expect((summary.ratings ?? []).map((r) => r.identity.user_id).sort()).toEqual([u.a, u.b].sort());
   });
 
   it("forfeit resolves through the same command path", async () => {

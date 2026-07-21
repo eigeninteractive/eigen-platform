@@ -5,8 +5,8 @@
  * socket, and range fetches touch the DO.
  */
 
-import type { Seat } from "@eigen/kernel";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import type { RatingDelta, Seat } from "@eigen/kernel";
+import { and, desc, eq, inArray, lt, or, type SQLWrapper, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { bots, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
 
@@ -29,9 +29,59 @@ export function narrowBot(row: BotRow): Bot {
 }
 
 /** A games row joined with its roster — the create's inverse, and the
- * shape every summary response projects from. */
+ * shape every summary response projects from.
+ *
+ * `ratings` mirrors `outcomes`: every identity's change, not just the caller's.
+ * That keeps the summary per-game rather than viewer-relative, so the same
+ * projection is correct on the lobby, another player's history, and the
+ * caller's own — and a client picks out its own seat the same way it already
+ * does for outcomes. Only populated for finished rated games; absent
+ * everywhere else. */
 export interface GameWithRoster extends GameRow {
   participants: Seat[];
+  ratings?: RatingDelta[];
+}
+
+/** Batch-load the rating changes for a page of games.
+ *
+ * One query for the whole page, like the roster join above — per-game reads
+ * would turn a history page into N+1 round trips. Unrated and unfinished games
+ * simply have no rows, so they cost nothing beyond the filter. */
+async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<GameWithRoster[]> {
+  const finished = rows.filter((r) => r.status === "finished" && r.rated);
+  if (finished.length === 0) return rows;
+  const deltaRows = await drizzle(d1)
+    .select()
+    .from(ratingHistory)
+    .where(
+      inArray(
+        ratingHistory.gameId,
+        finished.map((r) => r.id),
+      ),
+    )
+    .all();
+
+  const byGame = new Map<string, RatingDelta[]>();
+  for (const row of deltaRows) {
+    const delta: RatingDelta = {
+      identity: { user_id: row.userId, bot_id: row.botId },
+      pool: row.pool,
+      mu_before: row.muBefore,
+      sigma_before: row.sigmaBefore,
+      display_before: row.displayBefore,
+      mu_after: row.muAfter,
+      sigma_after: row.sigmaAfter,
+      display_after: row.displayAfter,
+      display_change: row.displayChange,
+    };
+    const list = byGame.get(row.gameId);
+    if (list === undefined) byGame.set(row.gameId, [delta]);
+    else list.push(delta);
+  }
+  return rows.map((row) => {
+    const deltas = byGame.get(row.id);
+    return deltas === undefined ? row : { ...row, ratings: deltas };
+  });
 }
 
 export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<GameWithRoster[]> {
@@ -54,7 +104,10 @@ export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<Game
     if (list === undefined) byGame.set(gameId, [seat]);
     else list.push(seat);
   }
-  return rows.map((row) => ({ ...row, participants: byGame.get(row.id) ?? [] }));
+  return await withRatings(
+    d1,
+    rows.map((row) => ({ ...row, participants: byGame.get(row.id) ?? [] })),
+  );
 }
 
 export async function readGame(d1: D1Database, gameId: string): Promise<GameWithRoster | undefined> {
@@ -70,13 +123,29 @@ export async function readGameByCode(d1: D1Database, shortCode: string): Promise
   return (await withRosters(d1, [row]))[0];
 }
 
+/** Keyset pagination: fetch strictly older than the caller's last row.
+ *
+ * A cursor rather than an offset because these lists change underneath the
+ * reader — a new lobby game shifts every OFFSET by one and makes a scroll show
+ * the same row twice. The cursor is the previous page's last sort value, so a
+ * page is stable no matter what was inserted since. It also stays index-served
+ * at any depth, where OFFSET degrades linearly.
+ *
+ * Ties are possible (two games created in the same millisecond) and would drop
+ * a row; in practice the epoch-ms resolution plus `limit` makes that vanishing,
+ * and the alternative — a compound (timestamp, id) cursor — is not worth the
+ * wire complexity for a game list. */
+function olderThan(column: SQLWrapper, cursor: number | null) {
+  return cursor === null ? undefined : lt(column, cursor);
+}
+
 /** The lobby page: public joinable games, newest first — exactly the shape
  * `idx_games_lobby` (the ported partial index) serves. */
-export async function readLobby(d1: D1Database, limit: number): Promise<GameWithRoster[]> {
+export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const rows = await drizzle(d1)
     .select()
     .from(games)
-    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"])))
+    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), olderThan(games.createdAt, cursor)))
     .orderBy(desc(games.createdAt))
     .limit(limit)
     .all();
@@ -87,15 +156,16 @@ export async function readLobby(d1: D1Database, limit: number): Promise<GameWith
  * games-of-user). `active` = anything still alive; `finished` = the history
  * list, newest finish first (aborted rows carry no finished_at — they sort by
  * updated_at). */
-export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number): Promise<GameWithRoster[]> {
+export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const db = drizzle(d1);
   const statuses: GameRow["status"][] = bucket === "active" ? ["waiting", "ready", "active"] : ["finished", "aborted"];
-  const order = bucket === "active" ? desc(games.updatedAt) : desc(sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`);
+  const sortKey = bucket === "active" ? games.updatedAt : sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
+  const order = desc(sortKey);
   const rows = await db
     .select({ games })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
-    .where(and(eq(participants.userId, userId), inArray(games.status, statuses)))
+    .where(and(eq(participants.userId, userId), inArray(games.status, statuses), olderThan(sortKey, cursor)))
     .orderBy(order)
     .limit(limit)
     .all();
@@ -112,13 +182,14 @@ export async function readMyGames(d1: D1Database, userId: string, bucket: "activ
  * a finished public game is already replayable by anyone who has its id. Same
  * participants index as `readMyGames`, matching either identity column so a
  * bot's game history works too. */
-export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number): Promise<GameWithRoster[]> {
+export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
+  const sortKey = sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
   const rows = await drizzle(d1)
     .select({ games })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
-    .where(and(or(eq(participants.userId, playerId), eq(participants.botId, playerId)), eq(games.status, "finished"), eq(games.access, "public")))
-    .orderBy(desc(sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`))
+    .where(and(or(eq(participants.userId, playerId), eq(participants.botId, playerId)), eq(games.status, "finished"), eq(games.access, "public"), olderThan(sortKey, cursor)))
+    .orderBy(desc(sortKey))
     .limit(limit)
     .all();
   return await withRosters(

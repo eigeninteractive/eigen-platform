@@ -158,6 +158,30 @@ describe("username edit", () => {
   });
 });
 
+describe("keyset pagination", () => {
+  it("pages my games by cursor without repeating or skipping a row", async () => {
+    const a = await user("a");
+    const created: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const game = await json<{ game_id: string }>(await api(a, "POST", "/games", { access: "public", schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false }), 201);
+      created.push(game.game_id);
+    }
+
+    const first = await json<{ games: { id: string; updated_at: number }[] }>(await api(a, "GET", "/games/mine?limit=2"));
+    expect(first.games).toHaveLength(2);
+
+    const cursor = first.games[1].updated_at;
+    const second = await json<{ games: { id: string }[] }>(await api(a, "GET", `/games/mine?limit=2&cursor=${cursor}`));
+
+    // Strictly older than the cursor: no overlap with the first page, and the
+    // remaining game is present rather than skipped.
+    const firstIds = first.games.map((g) => g.id);
+    const secondIds = second.games.map((g) => g.id);
+    expect(secondIds.some((id) => firstIds.includes(id))).toBe(false);
+    expect(new Set([...firstIds, ...secondIds]).size).toBe(created.length);
+  });
+});
+
 describe("display name edit", () => {
   it("changes the display name, trims it, and does not require uniqueness", async () => {
     const a = await user("a");

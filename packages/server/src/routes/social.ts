@@ -65,11 +65,11 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/friends/games",
       operationId: "getFriendsGames",
       tags: ["Social"],
-      request: { query: z.object({ limit: z.coerce.number().int().min(1).max(50).default(20) }) },
+      request: { query: z.object({ limit: z.coerce.number().int().min(1).max(50).default(20), cursor: z.coerce.number().int().optional() }) },
       responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("FriendsGames"), "Joinable games created by the caller's friends"),
     }),
     async (c) => {
-      const rows = await friendsOpenGames(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("query").limit);
+      const rows = await friendsOpenGames(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("query").limit, c.req.valid("query").cursor ?? null);
       return c.json({ games: rows.map(gameSummaryOf) }, 200);
     },
   );
