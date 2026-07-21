@@ -6,7 +6,7 @@
  */
 
 import type { Seat } from "@eigen/kernel";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { bots, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
 
@@ -142,9 +142,16 @@ export async function isAcceptedFriend(d1: D1Database, userA: string, userB: str
   return row !== undefined;
 }
 
-/** Current ratings across pools for one identity (profile screen). */
-export async function readRatings(d1: D1Database, userId: string) {
-  return await drizzle(d1).select({ pool: playerRatings.pool, mu: playerRatings.mu, sigma: playerRatings.sigma, displayRating: playerRatings.displayRating, updatedAt: playerRatings.updatedAt }).from(playerRatings).where(eq(playerRatings.userId, userId)).all();
+/** Current ratings across pools for one identity (profile screen, profile
+ * sheet). Matches either identity column: a rating row is keyed by a user OR a
+ * bot, never both, so an id can be looked up without knowing which it is. */
+export async function readRatings(d1: D1Database, playerId: string) {
+  return await drizzle(d1)
+    .select({ pool: playerRatings.pool, mu: playerRatings.mu, sigma: playerRatings.sigma, displayRating: playerRatings.displayRating, updatedAt: playerRatings.updatedAt })
+    .from(playerRatings)
+    .where(or(eq(playerRatings.userId, playerId), eq(playerRatings.botId, playerId)))
+    .orderBy(desc(playerRatings.displayRating))
+    .all();
 }
 
 /** The per-user rating history screen, newest first, optionally one pool —

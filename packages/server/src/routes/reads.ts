@@ -147,6 +147,27 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
+  // Any player's ratings, human or bot — the profile sheet shown for an
+  // opponent, and the rating line on a bot in the picker. Display ratings are
+  // public (they are visible on every finished game), so this needs no
+  // relationship check; it is tagged `Players` alongside the batch identity
+  // read because it answers "tell me about someone else", not "tell me about
+  // me".
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/players/{playerId}/ratings",
+      operationId: "getPlayerRatings",
+      tags: ["Players"],
+      request: { params: z.object({ playerId: z.string().min(1) }) },
+      responses: okResponse(z.object({ ratings: z.array(ratingShape) }).openapi("Ratings"), "That player's current rating per pool"),
+    }),
+    async (c) => {
+      const rows = await readRatings(ctx.d1(c.env), c.req.valid("param").playerId);
+      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, display_rating: r.displayRating, updated_at: r.updatedAt })) }, 200);
+    },
+  );
+
   const historyShape = z
     .object({
       game_id: z.string(),

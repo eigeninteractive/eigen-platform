@@ -205,6 +205,11 @@ export const friendTargetBody = z.object({ target_user_id: z.string().min(1) }).
 /** A username change. Charset is validated in the handler for a precise error. */
 export const usernameBody = z.object({ username: z.string().min(3).max(20) }).openapi("UsernameUpdate");
 
+/** A display-name change. Free-form (it seeds from the identity provider's
+ * name), so only length is constrained; uniqueness is deliberately not — two
+ * players may share a display name, which is what the username disambiguates. */
+export const displayNameBody = z.object({ display_name: z.string().trim().min(1).max(40) }).openapi("DisplayNameUpdate");
+
 export const botShape = z
   .object({
     id: z.string(),

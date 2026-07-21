@@ -15,7 +15,7 @@ import { users } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { purgeUser } from "../lifecycle/purge.js";
-import { errorShape, usernameBody } from "./wire.js";
+import { displayNameBody, errorShape, usernameBody } from "./wire.js";
 
 /** The username charset — the same one provisioning sanitizes to: lowercase
  * letters, digits, underscore, and dot, 3–20 chars. */
@@ -60,6 +60,30 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
         throw error;
       }
       return c.json({ username }, 200);
+    },
+  );
+
+  // The caller changes their own display name — the free-form label shown
+  // beside their moves, seeded from the identity provider at provisioning.
+  // Unlike the username it is neither unique nor charset-constrained, so there
+  // is no failure here beyond the length bound the schema already enforces.
+  app.openapi(
+    createRoute({
+      method: "put",
+      path: "/me/display-name",
+      operationId: "updateDisplayName",
+      tags: ["Me"],
+      request: { body: { content: { "application/json": { schema: displayNameBody } }, required: true } },
+      responses: {
+        200: { content: { "application/json": { schema: z.object({ display_name: z.string() }).openapi("DisplayNameUpdated") } }, description: "The new display name" },
+        400: { content: { "application/json": { schema: errorShape } }, description: "Invalid display name" },
+        401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
+      },
+    }),
+    async (c) => {
+      const displayName = c.req.valid("json").display_name.trim();
+      await drizzle(ctx.d1(c.env)).update(users).set({ displayName, updatedAt: Date.now() }).where(eq(users.id, c.var.auth.user.id));
+      return c.json({ display_name: displayName }, 200);
     },
   );
 

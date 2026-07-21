@@ -157,3 +157,19 @@ describe("username edit", () => {
     expect((await api(b, "PUT", "/me/username", { username: good })).status).toBe(409);
   });
 });
+
+describe("display name edit", () => {
+  it("changes the display name, trims it, and does not require uniqueness", async () => {
+    const a = await user("a");
+    const updated = await json<{ display_name: string }>(await api(a, "PUT", "/me/display-name", { display_name: "  Ada Lovelace  " }));
+    expect(updated.display_name).toBe("Ada Lovelace");
+    expect((await json<{ display_name: string }>(await api(a, "GET", "/me"))).display_name).toBe("Ada Lovelace");
+
+    // Unlike the username, a display name is deliberately not unique.
+    const b = await user("b");
+    expect((await api(b, "PUT", "/me/display-name", { display_name: "Ada Lovelace" })).status).toBe(200);
+
+    // Empty (or whitespace-only) is rejected by the body schema.
+    expect((await api(a, "PUT", "/me/display-name", { display_name: "   " })).status).toBe(400);
+  });
+});
