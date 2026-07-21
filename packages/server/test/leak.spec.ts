@@ -33,7 +33,7 @@ describe("leak test", () => {
     const b = `leak-b-${crypto.randomUUID()}`;
 
     // A hidden-info (schema_version 2) 2-player game, so `secret` is live state.
-    const create = await api(a, "POST", "/games", { schema_version: 2, config: { target: 3 }, min_players: 2, max_players: 2, rated: false });
+    const create = await api(a, "POST", "/games", { access: "public", schema_version: 2, config: { target: 3 }, min_players: 2, max_players: 2, rated: false });
     const { game_id } = JSON.parse(await clean(create, "create")) as { game_id: string };
 
     // Open B's socket before the game starts and collect every frame it fans out.

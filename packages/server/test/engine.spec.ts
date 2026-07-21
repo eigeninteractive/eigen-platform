@@ -44,19 +44,17 @@ interface Created {
   short_code: string;
 }
 interface LobbyOk {
-  ok: true;
   roster: { type: "roster"; status: string; players: { player_index: number; user_id: string | null; bot_id: string | null; type: string }[] };
 }
 interface CommandOk {
-  ok: true;
   version: number;
   frame: { version: number; data: Record<string, unknown>; pending_players: number[]; outcomes?: unknown[] } | null;
 }
 
-const createBody = { schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2 };
+const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2 };
 
 async function createGame(uid: string, overrides: Record<string, unknown> = {}): Promise<Created> {
-  return await json<Created>(await api(uid, "POST", "/games", { ...createBody, ...overrides }));
+  return await json<Created>(await api(uid, "POST", "/games", { ...createBody, ...overrides }), 201);
 }
 
 describe("create", () => {
@@ -330,7 +328,7 @@ describe("bots", () => {
 
   it("plays a human-vs-bot solo game through the in-DO brain", async () => {
     const u = makeUsers();
-    const solo = await json<{ game_id: string; version: number; frame: { data: { count: number } } | null }>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)));
+    const solo = await json<{ game_id: string; version: number; frame: { data: { count: number } } | null }>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
     expect(solo.version).toBe(0);
     expect(solo.frame?.data.count).toBe(0);
 
@@ -360,7 +358,7 @@ describe("bots", () => {
   it("guests may create a solo bot game (unrated)", async () => {
     const u = makeUsers();
     const solo = await api(u.a, "POST", "/games/solo", soloBody(ENGINE), true);
-    expect(solo.status).toBe(200);
+    expect(solo.status).toBe(201);
   });
 
   it("accepts an external bot's HMAC-signed move on bot/action; rejects a forged one", async () => {
@@ -368,7 +366,7 @@ describe("bots", () => {
     // An external bot: its webhook_url means the DO wakes it instead of running
     // an in-DO brain. The wake is intercepted (202) in beforeAll; the move
     // arrives here on bot/action.
-    const solo = await json<{ game_id: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)));
+    const solo = await json<{ game_id: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
     // Human opens (v1); now seat 1 (the external bot) is due.
     await json<CommandOk>(await api(u.a, "POST", `/games/${solo.game_id}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
 
@@ -380,7 +378,7 @@ describe("bots", () => {
       headers: { "content-type": "application/json", "eigen-signature": await signForBot(BOT_SECRET, EXTERNAL, "action", body) },
       body,
     });
-    expect(good.status).toBe(200);
+    expect(good.status).toBe(204);
     await vi.waitFor(async () => {
       const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.game_id}/frames?from=0&to=10`));
       expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);

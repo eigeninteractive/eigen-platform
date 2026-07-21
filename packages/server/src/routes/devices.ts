@@ -17,9 +17,7 @@ import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { deviceInstallations } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
-
-const okShape = z.object({ ok: z.literal(true) });
-const errorShape = z.object({ error: z.string() });
+import { errorShape } from "./wire.js";
 
 const deviceBody = z
   .object({
@@ -37,7 +35,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "registerDevice",
       request: { body: { content: { "application/json": { schema: deviceBody } }, required: true } },
       responses: {
-        200: { content: { "application/json": { schema: okShape.openapi("DeviceRegistered") } }, description: "Registered — the caller's pushes will reach this install" },
+        204: { description: "Registered — the caller's pushes will reach this install" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Invalid request" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
       },
@@ -52,7 +50,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
         .insert(deviceInstallations)
         .values({ fid, userId, platform, updatedAt: now })
         .onConflictDoUpdate({ target: deviceInstallations.fid, set: { userId, platform, updatedAt: now } });
-      return c.json({ ok: true } as const, 200);
+      return c.body(null, 204);
     },
   );
 
@@ -63,7 +61,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "unregisterDevice",
       request: { params: z.object({ fid: z.string().min(1) }) },
       responses: {
-        200: { content: { "application/json": { schema: okShape.openapi("DeviceUnregistered") } }, description: "Deregistered (idempotent)" },
+        204: { description: "Deregistered (idempotent)" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
       },
     }),
@@ -74,7 +72,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       await drizzle(ctx.d1(c.env))
         .delete(deviceInstallations)
         .where(and(eq(deviceInstallations.fid, c.req.param("fid")), eq(deviceInstallations.userId, userId)));
-      return c.json({ ok: true } as const, 200);
+      return c.body(null, 204);
     },
   );
 }

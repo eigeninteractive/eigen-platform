@@ -108,66 +108,66 @@ export async function unblockUser(d1: D1Database, caller: string, target: string
   await db.delete(relationships).where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), eq(relationships.status, "blocked"), eq(relationships.initiatedBy, caller)));
 }
 
-/** One entry in a friends / pending list — the other user's public identity
- * plus the relationship metadata. */
-export interface RelationshipEntry {
+/** The other user's public identity — the shared core of a friend and a
+ * pending-request entry. */
+interface IdentityFields {
   user_id: string;
   username: string;
   display_name: string;
   avatar_url: string | null;
   is_anonymous: boolean;
-  /** Present on pending lists: did the caller send it (`outgoing`) or receive
-   * it (`incoming`). */
-  direction?: "incoming" | "outgoing";
-  since: number;
 }
 
-async function withIdentities(d1: D1Database, rows: { otherId: string; direction?: "incoming" | "outgoing"; since: number }[]): Promise<RelationshipEntry[]> {
-  if (rows.length === 0) return [];
-  const people = await drizzle(d1)
-    .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous })
-    .from(users)
-    .where(
-      inArray(
-        users.id,
-        rows.map((r) => r.otherId),
-      ),
-    )
-    .all();
-  const byId = new Map(people.map((p) => [p.id, p]));
-  return rows.flatMap((r) => {
-    const p = byId.get(r.otherId);
-    if (p === undefined) return []; // identity vanished (e.g. purged) — drop it
-    return [{ user_id: p.id, username: p.username, display_name: p.displayName, avatar_url: p.avatarUrl, is_anonymous: p.isAnonymous, ...(r.direction !== undefined ? { direction: r.direction } : {}), since: r.since }];
-  });
+/** One accepted friend. */
+export type FriendEntry = IdentityFields & { since: number };
+
+/** One pending request: a friend entry plus the request's direction relative to
+ * the caller (`outgoing` = sent, `incoming` = received). */
+export type FriendRequestEntry = FriendEntry & { direction: "incoming" | "outgoing" };
+
+/** Resolve public identities for a batch of user ids, keyed by id. Ids whose
+ * identity has vanished (e.g. purged) are simply absent from the map. */
+async function resolveIdentities(d1: D1Database, ids: string[]): Promise<Map<string, IdentityFields>> {
+  if (ids.length === 0) return new Map();
+  const people = await drizzle(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
+  return new Map(people.map((p) => [p.id, { user_id: p.id, username: p.username, display_name: p.displayName, avatar_url: p.avatarUrl, is_anonymous: p.isAnonymous }]));
 }
 
 /** The caller's accepted friends, newest first. */
-export async function listFriends(d1: D1Database, caller: string): Promise<RelationshipEntry[]> {
+export async function listFriends(d1: D1Database, caller: string): Promise<FriendEntry[]> {
   const rows = await drizzle(d1)
     .select()
     .from(relationships)
     .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "accepted")))
     .orderBy(desc(relationships.updatedAt))
     .all();
-  return withIdentities(
+  const idents = await resolveIdentities(
     d1,
-    rows.map((r) => ({ otherId: r.userId1 === caller ? r.userId2 : r.userId1, since: r.updatedAt })),
+    rows.map((r) => (r.userId1 === caller ? r.userId2 : r.userId1)),
   );
+  return rows.flatMap((r) => {
+    const ident = idents.get(r.userId1 === caller ? r.userId2 : r.userId1);
+    return ident === undefined ? [] : [{ ...ident, since: r.updatedAt }];
+  });
 }
 
 /** The caller's pending requests (both incoming and outgoing), newest first. */
-export async function listPendingRequests(d1: D1Database, caller: string): Promise<RelationshipEntry[]> {
+export async function listPendingRequests(d1: D1Database, caller: string): Promise<FriendRequestEntry[]> {
   const rows = await drizzle(d1)
     .select()
     .from(relationships)
     .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "pending")))
     .orderBy(desc(relationships.updatedAt))
     .all();
-  return withIdentities(
+  const idents = await resolveIdentities(
     d1,
-    rows.map((r) => ({ otherId: r.userId1 === caller ? r.userId2 : r.userId1, direction: r.initiatedBy === caller ? ("outgoing" as const) : ("incoming" as const), since: r.updatedAt })),
+    rows.map((r) => (r.userId1 === caller ? r.userId2 : r.userId1)),
   );
+  return rows.flatMap((r) => {
+    const ident = idents.get(r.userId1 === caller ? r.userId2 : r.userId1);
+    if (ident === undefined) return [];
+    return [{ ...ident, direction: (r.initiatedBy === caller ? "outgoing" : "incoming") as "incoming" | "outgoing", since: r.updatedAt }];
+  });
 }
 
 /** User search for the friend picker: a case-insensitive substring match on
@@ -175,7 +175,7 @@ export async function listPendingRequests(d1: D1Database, caller: string): Promi
  * blocked relationship with the caller. Prefix and exact matches rank first.
  * `LIKE` for v1 (FTS5 later); the `%` wildcard is stripped from the query so a
  * caller can't force an unbounded scan. */
-export async function searchUsers(d1: D1Database, caller: string, query: string, limit: number): Promise<Omit<RelationshipEntry, "direction" | "since">[]> {
+export async function searchUsers(d1: D1Database, caller: string, query: string, limit: number): Promise<IdentityFields[]> {
   const cleaned = query.replace(/%/g, "").trim();
   if (cleaned === "") return [];
   const like = `%${cleaned}%`;

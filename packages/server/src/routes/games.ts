@@ -21,33 +21,42 @@ function jsonBody<T extends z.ZodType>(schema: T) {
   return { content: { "application/json": { schema } }, required: true } as const;
 }
 
+const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
+const errorResponses = {
+  400: error("Invalid request"),
+  401: error("Missing or invalid token"),
+  403: error("Not allowed"),
+  404: error("Not found"),
+  409: error("State conflict — resync and retry"),
+  422: error("Assertion mismatch"),
+} as const;
+
+/** A 200 OK carrying `schema`, plus the shared error responses. */
 function responses<T extends z.ZodType>(schema: T, description: string) {
-  const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
-  return {
-    200: { content: { "application/json": { schema } }, description },
-    400: error("Invalid request"),
-    401: error("Missing or invalid token"),
-    403: error("Not allowed"),
-    404: error("Not found"),
-    409: error("State conflict — resync and retry"),
-    422: error("Assertion mismatch"),
-  } as const;
+  return { 200: { content: { "application/json": { schema } }, description }, ...errorResponses } as const;
+}
+
+/** A 201 Created carrying `schema` — for the endpoints that create a resource. */
+function createdResponses<T extends z.ZodType>(schema: T, description: string) {
+  return { 201: { content: { "application/json": { schema } }, description }, ...errorResponses } as const;
 }
 
 const gameIdParam = z.object({ gameId: z.string().min(1) });
 
-/** Narrow an accepted result to the lobby (roster) variant. */
+/** Narrow an accepted result to the lobby (roster) variant, stripping the
+ * internal `ok` discriminator — success is the HTTP 200, not a body field. */
 function lobbyResult(result: CommandResult) {
-  const ok = unwrap(result);
-  if (!("roster" in ok)) throw new HttpError(500, "engine bug: expected a roster response");
-  return ok;
+  const value = unwrap(result);
+  if (!("roster" in value)) throw new HttpError(500, "engine bug: expected a roster response");
+  return { roster: value.roster };
 }
 
-/** Narrow an accepted result to the versioned (frame) variant. */
+/** Narrow an accepted result to the versioned (frame) variant, stripping the
+ * internal `ok` discriminator — success is the HTTP 200, not a body field. */
 function commandResult(result: CommandResult) {
-  const ok = unwrap(result);
-  if (!("version" in ok)) throw new HttpError(500, "engine bug: expected a versioned response");
-  return ok;
+  const value = unwrap(result);
+  if (!("version" in value)) throw new HttpError(500, "engine bug: expected a versioned response");
+  return { version: value.version, frame: value.frame };
 }
 
 function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
@@ -139,7 +148,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games",
       operationId: "createGame",
       request: { body: jsonBody(createGameBody) },
-      responses: responses(createdShape, "The created game"),
+      responses: createdResponses(createdShape, "The created game"),
     }),
     async (c) => {
       const auth = c.var.auth;
@@ -197,7 +206,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
             seats,
             now,
           });
-          return c.json({ game_id: gameId, short_code: shortCode }, 200);
+          return c.json({ game_id: gameId, short_code: shortCode }, 201);
         } catch (error) {
           if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
         }
@@ -214,7 +223,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/solo",
       operationId: "createSoloGame",
       request: { body: jsonBody(createSoloBody) },
-      responses: responses(soloStartedShape, "The created-and-started solo game"),
+      responses: createdResponses(soloStartedShape, "The created-and-started solo game"),
     }),
     async (c) => {
       const auth = c.var.auth;
@@ -292,7 +301,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const stub = ctx.stub(c.env, gameId);
       const started = commandResult(await stub.handle(mint(auth, "start", gameId, undefined)));
       const [frame] = await stub.frames({ seat: 0, from: started.version, to: started.version });
-      return c.json({ game_id: gameId, short_code: shortCode, version: started.version, frame: frame ?? null }, 200);
+      return c.json({ game_id: gameId, short_code: shortCode, version: started.version, frame: frame ?? null }, 201);
     },
   );
 

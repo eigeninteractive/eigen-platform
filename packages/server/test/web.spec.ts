@@ -18,7 +18,7 @@ async function api(id: string, method: string, path: string, body?: unknown): Pr
   });
 }
 
-const createBody = { schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false };
+const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false };
 
 describe("deep-link well-known", () => {
   it("generates assetlinks.json from config, as JSON", async () => {
@@ -100,7 +100,7 @@ describe("avatars", () => {
     const { avatar_url } = (await (await upload(a, "image/png", png)).json()) as { avatar_url: string };
     expect((await SELF.fetch(`https://x${avatar_url}`)).status).toBe(200);
 
-    expect((await api(a, "DELETE", "/me")).status).toBe(200);
+    expect((await api(a, "DELETE", "/me")).status).toBe(204);
     expect((await SELF.fetch(`https://x${avatar_url}`)).status).toBe(404);
   });
 });

@@ -45,7 +45,7 @@ describe("friend requests", () => {
     expect(bPending.requests).toEqual([expect.objectContaining({ user_id: a.uid, direction: "incoming" })]);
 
     // B accepts.
-    expect((await api(b, "POST", `/friends/requests/${a.uid}/accept`)).status).toBe(200);
+    expect((await api(b, "POST", `/friends/requests/${a.uid}/accept`)).status).toBe(204);
     const aFriends = await json<{ friends: { user_id: string }[] }>(await api(a, "GET", "/friends"));
     expect(aFriends.friends.map((f) => f.user_id)).toContain(b.uid);
     const bFriends = await json<{ friends: { user_id: string }[] }>(await api(b, "GET", "/friends"));
@@ -66,11 +66,11 @@ describe("friend requests", () => {
     const a = await user("a");
     const b = await user("b");
     await api(a, "POST", "/friends/requests", { target_user_id: b.uid });
-    expect((await api(a, "DELETE", `/friends/${b.uid}`)).status).toBe(200);
+    expect((await api(a, "DELETE", `/friends/${b.uid}`)).status).toBe(204);
     const bPending = await json<{ requests: unknown[] }>(await api(b, "GET", "/friends/requests"));
     expect(bPending.requests).toEqual([]);
     // idempotent
-    expect((await api(a, "DELETE", `/friends/${b.uid}`)).status).toBe(200);
+    expect((await api(a, "DELETE", `/friends/${b.uid}`)).status).toBe(204);
   });
 
   it("accepting a non-existent request is a 404", async () => {
@@ -96,14 +96,14 @@ describe("blocking", () => {
   it("a block refuses new requests until unblocked", async () => {
     const a = await user("a");
     const b = await user("b");
-    expect((await api(a, "POST", `/friends/${b.uid}/block`)).status).toBe(200);
+    expect((await api(a, "POST", `/friends/${b.uid}/block`)).status).toBe(204);
     // Neither direction can request while the block stands.
     expect((await api(b, "POST", "/friends/requests", { target_user_id: a.uid })).status).toBe(403);
     expect((await api(a, "POST", "/friends/requests", { target_user_id: b.uid })).status).toBe(403);
     // Only the blocker can lift it.
-    expect((await api(b, "DELETE", `/friends/${a.uid}/block`)).status).toBe(200); // no-op
+    expect((await api(b, "DELETE", `/friends/${a.uid}/block`)).status).toBe(204); // no-op
     expect((await api(a, "POST", "/friends/requests", { target_user_id: b.uid })).status).toBe(403);
-    expect((await api(a, "DELETE", `/friends/${b.uid}/block`)).status).toBe(200);
+    expect((await api(a, "DELETE", `/friends/${b.uid}/block`)).status).toBe(204);
     expect((await json<{ status: string }>(await api(a, "POST", "/friends/requests", { target_user_id: b.uid }))).status).toBe("requested");
   });
 });
@@ -136,7 +136,7 @@ describe("friends' open games", () => {
     await api(a, "POST", "/friends/requests", { target_user_id: b.uid });
     await api(b, "POST", `/friends/requests/${a.uid}/accept`);
 
-    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false }));
+    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { access: "public", schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false }), 201);
     const list = await json<{ games: { id: string }[] }>(await api(b, "GET", "/friends/games"));
     expect(list.games.map((g) => g.id)).toContain(created.game_id);
   });

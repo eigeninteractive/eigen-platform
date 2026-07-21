@@ -20,7 +20,11 @@ const jsonObjectShape = z.custom<JsonObject>((v) => typeof v === "object" && v !
 
 // ── Shared shapes ─────────────────────────────────────────────────────────────
 
-export const errorShape = z.object({ error: z.string(), code: z.string().optional() }).openapi("Error");
+/** The one error envelope for every non-2xx response: a human message plus an
+ * optional stable `code` the client keys typed handling off. Named
+ * `ErrorResponse` (not `Error`) to avoid colliding with Dart's `dart:core.Error`
+ * in the generated client. */
+export const errorShape = z.object({ error: z.string(), code: z.string().optional() }).openapi("ErrorResponse");
 
 export const seatShape = z
   .object({
@@ -83,7 +87,6 @@ export const rosterShape = z
  * acting seat's own frame riding the response. */
 export const commandAcceptedShape = z
   .object({
-    ok: z.literal(true),
     version: z.number().int(),
     frame: frameShape.nullable(),
   })
@@ -92,7 +95,6 @@ export const commandAcceptedShape = z
 /** An accepted waiting-room command: the post-commit roster snapshot. */
 export const lobbyAcceptedShape = z
   .object({
-    ok: z.literal(true),
     roster: rosterShape,
   })
   .openapi("LobbyAccepted");
@@ -140,16 +142,16 @@ export const profileShape = playerShape
   })
   .openapi("Profile");
 
-/** One entry in a friends / pending-requests list: the other user's public
- * identity plus relationship metadata (`direction` only on pending lists). */
-export const relationshipShape = playerShape
-  .extend({
-    user_id: z.string(),
-    direction: z.enum(["incoming", "outgoing"]).optional(),
-    since: z.number(),
-  })
-  .omit({ id: true })
-  .openapi("Relationship");
+/** The other user's public identity plus when the relationship formed — the
+ * shared base of an accepted friend and a pending request. */
+const friendBase = playerShape.extend({ user_id: z.string(), since: z.number() }).omit({ id: true });
+
+/** One accepted friend. */
+export const friendShape = friendBase.openapi("Friend");
+
+/** One pending friend request: a friend shape plus the request's direction
+ * relative to the caller (`incoming` = received, `outgoing` = sent). */
+export const friendRequestShape = friendBase.extend({ direction: z.enum(["incoming", "outgoing"]) }).openapi("FriendRequest");
 
 /** The target of a friend write. */
 export const friendTargetBody = z.object({ target_user_id: z.string().min(1) }).openapi("FriendTarget");
@@ -183,10 +185,10 @@ const incrementNeedsBudget = (v: TimingBody) => v.increment_seconds === null || 
 
 export const createGameBody = z
   .object({
-    access: z.enum(["public", "private", "friends"]).default("public"),
+    access: z.enum(["public", "private", "friends"]),
     schema_version: z.number().int(),
     /** Game-defined; parsed by the version unit's config schema. */
-    config: z.record(z.string(), z.unknown()).default({}),
+    config: z.record(z.string(), z.unknown()),
     min_players: z.number().int().min(1),
     max_players: z.number().int().min(1),
     /** The client's concrete rated assertion (Dart twin of `ratingPool`) —
@@ -208,7 +210,7 @@ export const createdShape = z.object({ game_id: z.string(), short_code: z.string
 export const createSoloBody = z
   .object({
     schema_version: z.number().int(),
-    config: z.record(z.string(), z.unknown()).default({}),
+    config: z.record(z.string(), z.unknown()),
     min_players: z.number().int().min(1),
     max_players: z.number().int().min(1),
     rated: z.boolean().optional(),

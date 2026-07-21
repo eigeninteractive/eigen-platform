@@ -15,7 +15,7 @@ import { users } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { purgeUser } from "../lifecycle/purge.js";
-import { usernameBody } from "./wire.js";
+import { errorShape, usernameBody } from "./wire.js";
 
 /** The username charset — the same one provisioning sanitizes to: lowercase
  * letters, digits, underscore, and dot, 3–20 chars. */
@@ -41,9 +41,9 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       request: { body: { content: { "application/json": { schema: usernameBody } }, required: true } },
       responses: {
         200: { content: { "application/json": { schema: z.object({ username: z.string() }).openapi("UsernameUpdated") } }, description: "The new username" },
-        400: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Invalid username" },
-        401: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Missing or invalid token" },
-        409: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Username already taken" },
+        400: { content: { "application/json": { schema: errorShape } }, description: "Invalid username" },
+        401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
+        409: { content: { "application/json": { schema: errorShape } }, description: "Username already taken" },
       },
     }),
     async (c) => {
@@ -68,9 +68,9 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/me",
       operationId: "deleteAccount",
       responses: {
-        200: { content: { "application/json": { schema: z.object({ ok: z.literal(true) }).openapi("AccountDeleted") } }, description: "The account and its data were deleted" },
-        401: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Missing or invalid token" },
-        502: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Deletion failed — the account is intact; retry" },
+        204: { description: "The account and its data were deleted" },
+        401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
+        502: { content: { "application/json": { schema: errorShape } }, description: "Deletion failed — the account is intact; retry" },
       },
     }),
     async (c) => {
@@ -81,7 +81,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
         console.error(`delete-account for ${userId} failed`, error);
         throw new HttpError(502, "Account deletion failed — please try again");
       }
-      return c.json({ ok: true } as const, 200);
+      return c.body(null, 204);
     },
   );
 }

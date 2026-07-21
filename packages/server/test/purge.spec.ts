@@ -33,7 +33,7 @@ async function json<T>(res: Response, status = 200): Promise<T> {
   return (await res.json()) as T;
 }
 
-const createBody = { schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2 };
+const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2 };
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 /** Provision a user (guest or not) by making one authed request. */
@@ -51,9 +51,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("delete-account", () => {
   it("cancels the creator's lobby and purges the user's D1 data", async () => {
     const a = uid("del-a");
-    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }));
+    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
 
-    expect((await api(a, "DELETE", "/me")).status).toBe(200);
+    expect((await api(a, "DELETE", "/me")).status).toBe(204);
 
     expect(await db.select().from(users).where(eq(users.id, a)).get()).toBeUndefined();
     const game = await db.select().from(games).where(eq(games.id, created.game_id)).get();
@@ -64,12 +64,12 @@ describe("delete-account", () => {
   it("forfeits an active game — the seat is anonymized, the opponent plays on", async () => {
     const a = uid("del-a");
     const b = uid("del-b");
-    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }));
+    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
     await json(await api(b, "POST", `/games/${game_id}/join`, { client_schema_version: 1 }));
     await json(await api(a, "POST", `/games/${game_id}/start`, {}));
     await json(await api(a, "POST", `/games/${game_id}/action`, { seat: 0, expected_version: 0, data: { add: 2 } }));
 
-    expect((await api(a, "DELETE", "/me")).status).toBe(200);
+    expect((await api(a, "DELETE", "/me")).status).toBe(204);
 
     // The forfeit finishes the game (async on the DO); wait for it to land.
     await vi.waitFor(async () => expect((await db.select().from(games).where(eq(games.id, game_id)).get())?.status).toBe("finished"));
@@ -90,7 +90,7 @@ describe("cron: stale-guest purge", () => {
     await provision(active, true);
 
     // `active` has a game touched just now; `stale` has none. Age both out.
-    await json<{ game_id: string }>(await api(active, "POST", "/games", { ...createBody, rated: false }, true));
+    await json<{ game_id: string }>(await api(active, "POST", "/games", { ...createBody, rated: false }, true), 201);
     const eightDaysAgo = Date.now() - 8 * 24 * 60 * 60 * 1000;
     await db.update(users).set({ createdAt: eightDaysAgo }).where(eq(users.id, stale)).run();
     await db.update(users).set({ createdAt: eightDaysAgo }).where(eq(users.id, active)).run();
@@ -106,7 +106,7 @@ describe("cron: stale-guest purge", () => {
 describe("cron: abandoned-game reap", () => {
   it("aborts a lobby nobody started in time", async () => {
     const a = uid("reap-a");
-    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }));
+    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
     await db
       .update(games)
       .set({ createdAt: Date.now() - 8 * 24 * 60 * 60 * 1000 })

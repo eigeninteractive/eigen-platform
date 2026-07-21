@@ -24,6 +24,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
 import type { Command } from "../protocol.js";
+import { errorShape } from "../routes/wire.js";
 import { verifyBotSignature } from "./bot-auth.js";
 
 /** What an external bot signs and sends as the request body: its claimed
@@ -50,9 +51,9 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
         body: { content: { "application/json": { schema: botActionBody } }, required: true },
       },
       responses: {
-        200: { content: { "application/json": { schema: z.object({ ok: z.literal(true) }).openapi("BotActionAccepted") } }, description: "The move was accepted and applied" },
-        400: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Malformed body" },
-        401: { content: { "application/json": { schema: z.object({ error: z.string() }) } }, description: "Invalid signature" },
+        204: { description: "The move was accepted and applied" },
+        400: { content: { "application/json": { schema: errorShape } }, description: "Malformed body" },
+        401: { content: { "application/json": { schema: errorShape } }, description: "Invalid signature" },
       },
     }),
     async (c) => {
@@ -84,7 +85,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
         data: claim.data,
       };
       unwrap(await ctx.stub(c.env, claim.game_id).handle(cmd));
-      return c.json({ ok: true } as const, 200);
+      return c.body(null, 204);
     },
   );
 }

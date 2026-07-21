@@ -35,11 +35,11 @@ describe("device registration", () => {
     const b = uid("dev-b");
     const fid = `fid-${crypto.randomUUID()}`;
 
-    expect((await api(a, "PUT", "/me/devices", { fid, platform: "ios" })).status).toBe(200);
+    expect((await api(a, "PUT", "/me/devices", { fid, platform: "ios" })).status).toBe(204);
     expect(await fidOwner(fid)).toBe(a);
 
     // Same device, new user signs in: the FID row reassigns (one FID → one user).
-    expect((await api(b, "PUT", "/me/devices", { fid, platform: "android" })).status).toBe(200);
+    expect((await api(b, "PUT", "/me/devices", { fid, platform: "android" })).status).toBe(204);
     expect(await fidOwner(fid)).toBe(b);
   });
 
@@ -52,11 +52,11 @@ describe("device registration", () => {
     await api(b, "PUT", "/me/devices", { fid, platform: "ios" }); // reassigned to b
 
     // a signs out late: scoped delete is a no-op, b keeps the registration.
-    expect((await api(a, "DELETE", `/me/devices/${fid}`)).status).toBe(200);
+    expect((await api(a, "DELETE", `/me/devices/${fid}`)).status).toBe(204);
     expect(await fidOwner(fid)).toBe(b);
 
     // b signs out: the row goes.
-    expect((await api(b, "DELETE", `/me/devices/${fid}`)).status).toBe(200);
+    expect((await api(b, "DELETE", `/me/devices/${fid}`)).status).toBe(204);
     expect(await fidOwner(fid)).toBeUndefined();
   });
 
