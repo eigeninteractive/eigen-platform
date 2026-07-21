@@ -15,7 +15,7 @@
 | [`client_reference.md`](./client_reference.md) | **The client (Flutter) reference** — transport, the frame/animation model, identity, offline UX, persistence, timing, push, navigation, platform integration. |
 | [`client_migration.md`](./client_migration.md) | **The client migration plan** — topology, tooling, keep/rewrite inventory, and the ordered stages to move the Flutter client onto the new server. |
 | [`engine_stack.md`](./engine_stack.md) | **The roadmap** — what remains (client migration + cutover, deferred features, paid-tier items) and the standing constraints. |
-| [`client_changes.md`](./client_changes.md) | The running list of Flutter/`eigen_sdk` changes each server change implies — retires once the client migration lands. |
+| [`client_changes.md`](./client_changes.md) | The running list of Flutter client changes each server change implies — retires once the client migration lands. |
 
 ## State of the world
 
@@ -36,6 +36,14 @@ These shaped the build and remain the rules of the road:
 - No identity denormalization onto games rows (the batch `players?ids=`
   endpoint + the client's persisted cache cover it).
 - Versions strictly serial, no gaps, ever.
+- **Wire enums are closed sets.** The Dart client generates enums with no
+  `unknown` sentinel and parses with `checked: true`, so an unrecognised value
+  throws. Adding a member to any enum on the wire — `GameStatus`, `ErrorCode`,
+  access, seat type — is a breaking change that needs a schema-version bump.
+- **Fix wire awkwardness at the source.** A shape the generated client consumes
+  badly gets fixed in the zod schemas and regenerated, never patched around in
+  Dart. Re-emit `openapi.json` and rerun the client's `tool/generate_api.sh`
+  in the same change.
 - No real R2 bucket / no payment method until explicitly enabled for a deploy.
 - Docstrings are self-sufficient — no section-number cross-references in code.
 - Keep the reference docs (`architecture.md`, `building_a_game.md`,

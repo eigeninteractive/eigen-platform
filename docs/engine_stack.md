@@ -22,7 +22,7 @@ govern how it gets done. For how the system works today, read the reference docs
 ## 1. The critical path — client migration & cutover
 
 The whole server is done; the only path to production is the **client**. The
-Flutter app (`eigen_sdk` transport + `eigen_flutter` shell, with the per-game
+Flutter app (`eigen_flutter`, with the generated `eigen_api` client and the per-game
 Dart `GameRules` twin) must catch up to the new server:
 
 - Firebase Auth replacing Supabase; the generated API client from `openapi.json`;

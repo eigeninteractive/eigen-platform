@@ -15,11 +15,12 @@ and the transport that talks to the server. Its companions are
 > retires. Exact widget/provider APIs live in the client code; this captures the
 > design and the contracts.
 
-The client is split into two layers, mirroring the server's rules/runtime split:
-**`eigen_sdk`** (pure-Dart transport — auth plumbing, the generated API client,
-the frame stream) and **`eigen_flutter`** (the shell — screens, navigation,
-widgets), with a per-game **Dart `GameRules` twin** for optimistic preview and
-rendering.
+The client is one Flutter package, **`eigen_flutter`** — transport (auth
+plumbing, the frame stream), state, and presentation — layered by directory
+rather than by pubspec. It consumes **`eigen_api`**, the REST client generated
+from the server's `openapi.json`, as a path dependency; those generated types
+are the data model directly, with no hand-written mirrors. Each game supplies a
+Dart **`GameRules` twin** for optimistic preview and rendering.
 
 ---
 

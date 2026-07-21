@@ -1,7 +1,7 @@
 # Client changes — running list
 
-The server (`eigen-server`) and the Flutter client (`eigen_sdk` transport +
-`eigen_flutter` shell) evolve in lockstep across a big-bang cutover. This file
+The server (`eigen-server`) and the Flutter client (`eigen_flutter`, with its
+generated `eigen_api`) evolve in lockstep across a big-bang cutover. This file
 is the **running list of client-side work each server change implies**, so the
 client migration never has to reverse-engineer the diff. Add an entry whenever a
 server change needs a client change; mark it `done` when the client lands it.
@@ -19,7 +19,7 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   Firebase ID token as `Authorization: Bearer <token>`; WebSocket upgrades send
   it as `?token=` (browsers can't set headers on upgrades).
 - **Generated API client from `openapi.json`.** `todo`
-  `eigen_sdk` is generated from the vendored `packages/server/openapi.json`
+  `eigen_api` is generated from the vendored `packages/server/openapi.json`
   (dio, or a hand-written thin client). The frame stream (WebSocket, version
   ordering, gap recovery by range fetch, reconnect resync, pre-start roster
   snapshots) is hand-written.
@@ -166,6 +166,43 @@ do**, and a status (`todo` / `in progress` / `done` / `future`).
   transcript, drive the on-device game loop, upload on finish/reconnect. The
   bot in such a game is a registry row of `type: local` (server never dispatches
   it). Nothing is required in the client for this yet.
+
+## API shape (client-migration pass)
+
+Changes made *because* the generated Dart client consumed the old shapes badly.
+All of them are already reflected in the regenerated `eigen_api`.
+
+- **Success is the HTTP status, not a body field.** `done`
+  The eight bare-ack routes (device register/unregister, account delete, bot
+  action, friend accept/remove/block/unblock) return **204 No Content**, and
+  `CommandAccepted`/`LobbyAccepted` dropped their `ok: true` discriminator.
+  `POST /games` and `POST /games/solo` return **201 Created**. Read the status;
+  there is no `ok` to check.
+- **One error model, with a typed code.** `done`
+  The three fragmented error schemas collapsed into a single `ErrorResponse`
+  (renamed from `Error`, which collided with `dart:core.Error`). Its `code` is
+  now the **`ErrorCode` enum** — a closed set of 15 values, so the client
+  `switch`es exhaustively instead of string-matching. The Supabase-era
+  `EIG01`–`EIG16` registry is dead; the vocabulary is semantic
+  (`state_updated`, `game_full`, `illegal_move`, `schema_unsupported`, …).
+  `abstain` is deliberately **not** in the enum — it is an engine-internal
+  no-op the server converts to a 500.
+- **`RatingDelta.identity` is a flat nullable pair.** `done`
+  Was a `oneOf` union that generated three junk Dart types; now
+  `{ user_id, bot_id }` with exactly one set — the same shape as `Seat` and the
+  server's `Principal`.
+- **`access` and `config` are required on create.** `done`
+  Their schema defaults are gone (the generator can't express a non-const map
+  default). Send both explicitly.
+- **`Relationship` split into `Friend` + `FriendRequest`.** `done`
+  `direction` is required on a request rather than optional on a shared model.
+- **Routes are tagged.** `done`
+  The single 33-operation `DefaultApi` is now six classes by resource:
+  `GamesApi`, `SocialApi`, `MeApi`, `PlayersApi`, `BotsApi`, `BotWebhookApi`.
+- **Wire enums are closed sets.** `done`
+  Generated enums carry no `unknown` sentinel and parse with `checked: true`.
+  Adding a value server-side is a breaking change needing a schema-version bump;
+  `test/shared/api_contract_test.dart` pins the sets so drift fails loudly.
 
 ## Not a client change
 

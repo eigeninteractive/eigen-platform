@@ -17,85 +17,123 @@ other two client docs:
 > **Naming.** The client repo `eigen_engine` is renamed **`eigen-flutter`** (repos
 > use hyphens; the old underscore name predates the server split). Inside it, two
 > pub packages (underscores — pub forbids hyphens): **`eigen_flutter`** (the
-> Flutter shell) and **`eigen_sdk`** (the pure-Dart transport SDK). The bare-Dart
-> package takes the plain suffix-free style (`_sdk`, not `_dart` — pure Dart is
-> the default); the Flutter binding carries `_flutter`, mirroring
-> `supabase` / `supabase_flutter`.
+> Flutter package — everything hand-written) and **`eigen_api`** (the generated
+> REST client, a build artifact consumed as a path dependency).
 
 ---
 
-## 1. The core reframe: a data-layer swap, not a rewrite
+## 1. The core reframe: re-architect against the server, don't port
 
-`eigen_flutter` (the renamed `eigen_engine` shell) is already layered
-presentation / domain / data, and the Supabase coupling is contained to the
-**data layer + auth + config**. The migration re-implements that layer against
-the new server behind the same interfaces; the UI shell, the frame/animation
-model, the Riverpod graph, theming, navigation, and the `core/game` contract are
-transport-agnostic and stay.
+The Supabase coupling is narrow — 24 files, concentrated in
+`game_repository.dart` (893 lines), `auth_service.dart`, `app_config.dart`, and
+six small repositories. But narrow coupling is not the same as a correct shape:
+the client's data and presentation layers were designed against Postgres rows,
+RLS, Realtime channels, and Edge Functions. Where a layer only *looks* the way
+it does because of Supabase, it is rebuilt to fit the new server rather than
+adapted to it. **Do not** `flutter create` a new app; do treat any Supabase-era
+shape as up for revision.
 
-**Do not** `flutter create` a new app. **Do** carve transport into its own
-package (`eigen_sdk`) so the swap is a clean seam, not a diffuse edit.
+Four rules govern the rewrite:
+
+1. **No invented interfaces.** Firebase Auth, `sqflite`, and `shared_preferences`
+   are the only implementations there will ever be. Call them directly; do not
+   abstract a seam for a single implementor.
+2. **No mapping layers.** The generated `eigen_api` types *are* the data model.
+   The hand-written freezed mirrors (`Game`, `Observation`, `Participant`,
+   `PlayerInfo`, `BotInfo`, `RatingChange`) are deleted, not adapted — they
+   correspond nearly 1:1 to `GameSummary`, `Frame`, `Seat`, `Player`, `Bot`, and
+   `RatingDelta`. Behaviour that hung off them moves to extension methods on the
+   generated types.
+3. **Reuse what exists.** The Riverpod graph, the persistence patterns, theming,
+   and navigation stay as patterns even where their contents change.
+4. **Fix the wire at the source.** A shape that is awkward to consume is fixed
+   in the server's zod schemas and regenerated — never patched around in Dart.
+   (Established practice: the `ok` fields, `Error` → `ErrorResponse`, the 204/201
+   statuses, the `ErrorCode` enum, the `RatingIdentity` flattening, and the
+   OpenAPI tags all came from this loop.)
 
 ### Keep / rewrite inventory
 
 | Area | Files (indicative) | Disposition |
 |---|---|---|
 | Auth | `features/auth/data/auth_service.dart`, `auth_providers.dart` | **Rewrite** — Supabase → Firebase Auth (Google + Apple + Anonymous, `linkWithCredential` for guest→permanent). |
-| Transport client | `shared/providers/supabase_client_provider.dart` | **Delete** — replaced by the `eigen_sdk` package. |
-| Game data | `features/game/data/game_repository.dart`, realtime bits in `game_providers.dart` | **Rewrite** — REST calls via generated client; realtime → hand-written WebSocket frame stream. |
-| Reads/repos | `player_repository`, `profile_repository`, `rating_repository`, `social_repository`, `device_installation_repository`, `avatar_storage_service` | **Rewrite** — thin adapters over `eigen_sdk`, same domain models out. |
+| Transport client | `shared/providers/supabase_client_provider.dart` | **Delete** — replaced by a configured `Dio` + the generated `eigen_api` classes. |
+| Wire models | `features/game/data/models/*`, `shared/data/models/player_info.dart`, `features/rating/data/models/rating_change.dart` | **Delete** — the generated types replace them 1:1; no adapters. |
+| Game data | `features/game/data/game_repository.dart`, realtime bits in `game_providers.dart` | **Rewrite** — REST via `GamesApi`; realtime → hand-written WebSocket frame stream. |
+| Reads/repos | `player_repository`, `profile_repository`, `rating_repository`, `social_repository`, `device_installation_repository`, `avatar_storage_service` | **Rewrite** — thin call sites on `MeApi`/`SocialApi`/`PlayersApi`/`BotsApi`, returning generated types. |
+| Error handling | `core/errors/engine_exception.dart` | **Rewrite** — the `EIG01`–`EIG16` registry is dead; the server now publishes a typed `ErrorCode` enum to switch on. |
+| Turn/budget clocks | `features/game/presentation/widgets/{budget_clock,turn_countdown,timer_builders}.dart` | **Rewrite** — `Frame` carries an absolute `deadline`; the old `turn_started_at` mirror is gone. |
 | Config | `core/config/app_config.dart` | **Rewrite** — API base URL + Firebase config replace Supabase URL/anon key. |
 | Local bots | `features/game/providers/local_bot_driver.dart`, `core/game/local_bot.dart` | **Delete** — bots run server-side now (offline-solo import is a separate future feature). |
-| Presentation | everything in `features/*/presentation/` | **Keep** — repository interfaces hold their shape. |
+| Presentation | everything in `features/*/presentation/` | **Revise** — kept where transport-agnostic, reworked where it encodes a Supabase-era shape. |
 | Game contract | `core/game/*` (module, frame, players_context, timing) | **Keep** — transport-agnostic. |
 | Frame/animation, theming, navigation, Riverpod graph | `features/game/providers/game_frame_provider.dart`, `core/theme`, `core/navigation`, `shared/` | **Keep**, lightly rewired to new providers. |
 | Twin fixtures | `lib/testing/twin_fixtures.dart` | **Rewire** — drop the Supabase import; the fixtures themselves are shared JSON. |
 
 ---
 
-## 2. Target topology — pub workspace + `eigen_sdk`
+## 2. Target topology — one Flutter package + a generated client
 
-One repo (`eigen-flutter`), a **Dart pub workspace** (SDK ≥ 3.6; the repo is on
-3.9), two members:
+One repo (`eigen-flutter`), one hand-written package, one generated one:
 
 ```
-eigen-flutter/                (repo root — the workspace root)
-├── pubspec.yaml              # name: eigen_flutter; workspace: [ ., packages/eigen_sdk ]
-├── lib/                      # Flutter shell (eigen_flutter) — depends on eigen_sdk
+eigen-flutter/
+├── pubspec.yaml              # name: eigen_flutter; eigen_api as a path dependency
+├── openapi/openapi.json      # vendored snapshot of the server spec
+├── tool/generate_api.sh      # regenerates eigen_api from that snapshot
+├── lib/                      # everything hand-written (transport included)
 └── packages/
-    └── eigen_sdk/            # pure Dart, NO Flutter
-        ├── lib/src/api/      # generated from openapi.json (committed)
-        ├── lib/src/socket/   # hand-written frame stream + gap recovery
-        └── lib/eigen_sdk.dart
+    └── eigen_api/            # GENERATED — never hand-edited
 ```
 
-**Why a separate pure-Dart package (not in-place):** the generated REST client,
-the WebSocket protocol layer, and token plumbing are pure Dart — no Flutter — so
-they're independently testable, reusable by tooling and the future offline-solo
-replay path, and mirror the server's clean separation. **Why same repo (not a
-second git repo):** one thing to version and branch through the heavy churn; a
-path/workspace dependency, not a published one.
+An earlier draft carved transport into a third, pure-Dart `eigen_sdk` package.
+**That was folded into `eigen_flutter`.** The argument for it was a
+compile-enforced Flutter-free boundary, but it only pays if something consumes
+transport without Flutter — and nothing ever will: `GameModule` is
+Flutter-bound, `strategy` is a Flutter app, and its Dart rules twins already run
+under `flutter test`. Keeping it would have forced injected seams for
+`firebase_auth` and `sqflite` purely to preserve a boundary with one consumer,
+which is exactly the invented-interface tax rule 1 forbids. Transport lives in
+`lib/` under its own directory; separation is by layer, not by pubspec.
 
-`eigen_sdk` **does not own Firebase.** It exposes a token-provider seam
-(`Future<String> Function()`) that the Flutter shell fills from `firebase_auth`.
-Transport stays Flutter-free.
+`eigen_api` is **not** a workspace member — it is a build artifact with a
+pubspec, consumed by path. It resolves standalone so its own `build_runner` can
+run, and `tool/generate_api.sh` blows away and rewrites `lib/` and `doc/` on
+every regeneration. Its `pubspec.yaml` is the one hand-owned file, protected by
+`.openapi-generator-ignore` (see §3).
 
 ---
 
 ## 3. Tooling decisions
 
-- **REST client — generate, don't hand-write.** Generate from the server's
-  vendored `packages/server/openapi.json` into `eigen_sdk/lib/src/api`, as a
-  **committed CLI step** (reviewable, regenerated on spec change) — *not*
-  build_runner-in-app that regenerates every build. The paths already carry the
-  `/api/engine` prefix, so they come for free. **Generator: bake-off then
-  decide** — prototype both against the real spec:
-  - `openapi_generator_cli` (dart-dio) — mature, dio-based, widely used.
-  - `openapi_flutter_gen` — 2026, standalone CLI, zero build_runner, immutable
-    models + sealed exhaustive responses (fits the `{ error, code? }` model).
+- **REST client — generated, via `dart-dio` + `json_serializable`.** *(Decided —
+  bake-off complete.)* `tool/generate_api.sh` regenerates `packages/eigen_api`
+  from the vendored spec as a committed CLI step, not build_runner-in-app. The
+  paths already carry the `/api/engine` prefix, so they come for free.
 
-  Judge on: fidelity to `openapi.json` (enums, nullable, the error envelope),
-  web compatibility, generated-code ergonomics, and regen friction.
+  The rejected candidates: `openapi_flutter_gen` emitted code that did not
+  analyze (a missing barrel export, three nullable-`toJson` errors) and leaked
+  hardcoded strings from its own sample spec; the plain `dart` generator imports
+  `dart:io`, which breaks web. `serializationLibrary=json_serializable` (over the
+  `built_value` default) puts the generated models in the same family as the
+  shell's own freezed/`json_serializable` code, so there is one serialization
+  idiom in the repo.
+
+  Server tags map to one API class per resource: `GamesApi`, `SocialApi`,
+  `MeApi`, `PlayersApi`, `BotsApi`, `BotWebhookApi`.
+
+  **Known wart:** the generator stamps `sdk: >=3.5.0` while its own
+  `json_serializable` output uses Dart 3.8 null-aware elements
+  ([#21815](https://github.com/OpenAPITools/openapi-generator/issues/21815)),
+  and no CLI flag overrides it. So `eigen_api/pubspec.yaml` is hand-owned and
+  listed in `.openapi-generator-ignore`. To unwind once the fix lands: delete
+  both files and restore `rm -rf "$OUT"` in `tool/generate_api.sh`.
+
+- **Wire enums are closed sets.** Generated enums carry no `unknown` sentinel and
+  the models use `checked: true`, so an unrecognised value throws. Adding a
+  member to any wire enum — `GameStatus`, `ErrorCode`, access, seat type — is a
+  breaking change requiring a schema-version bump. `test/shared/api_contract_test.dart`
+  pins the sets so drift fails loudly.
 
 - **WebSocket — `web_socket_channel` primitive + a bespoke protocol layer.**
   OpenAPI covers REST only; the frame stream is hand-written. Use
@@ -128,22 +166,17 @@ workspace diffs to paste; you run the CLIs.
 This is a mechanical but wide rename (every import). Land it isolated so the
 transport work diffs cleanly on top.
 
-**Stage 0b — workspace + SDK package skeleton**
-```
-# repo root
-mkdir -p packages/eigen_sdk
-cd packages/eigen_sdk && dart create -t package . --force
-# add `workspace:` to the root pubspec and eigen_sdk as a workspace member,
-# then declare eigen_sdk as a dependency of eigen_flutter (path/workspace)
-dart pub get
-```
+**Stage 0b — package skeleton** *(done; superseded)* — a pub workspace with an
+`eigen_sdk` member was set up here, then folded back into `eigen_flutter` (§2).
+The repo is a single Flutter package again, with `eigen_api` by path.
 
-**Stage 1 — codegen bake-off**
+**Stage 1 — codegen** *(done)*
 ```
-dart pub global activate openapi_generator_cli      # option A
-# and/or add openapi_flutter_gen as a dev tool       # option B
-# generate from packages/server/openapi.json into eigen_sdk/lib/src/api
+dart pub global activate openapi_generator_cli
+./tool/generate_api.sh          # refreshes the vendored spec + regenerates eigen_api
 ```
+Rerun `tool/generate_api.sh` after **every** server wire change; it re-vendors
+`openapi/openapi.json` from the sibling `eigen-server` checkout automatically.
 
 **Stage 2 — Firebase (interactive)**
 ```
@@ -169,10 +202,10 @@ snippets per stage.
 Ordered so the app compiles and runs against the new server as early as
 possible, feature by feature. Each maps to `client_changes.md` entries.
 
-1. **`eigen_sdk` foundation** — generated REST client + typed error envelope;
-   the token-provider seam; a `Dio`/http interceptor that attaches the bearer
-   and maps `{ error, code? }` to a typed `EngineException` (preserving the
-   stable `code`).
+1. **Transport foundation** (`lib/core/api/`) — a configured `Dio` with an
+   interceptor that attaches the Firebase bearer token and converts a non-2xx
+   `ErrorResponse` into `EngineException` carrying the typed `ErrorCode`. The
+   six generated API classes are exposed as `keepAlive` Riverpod providers.
 2. **Auth cutover** — Firebase replaces Supabase in `auth_service` + providers;
    guest anonymous sign-in + `linkWithCredential`; device registration
    (`PUT /me/devices` on sign-in, `DELETE` on sign-out).
@@ -195,9 +228,13 @@ possible, feature by feature. Each maps to `client_changes.md` entries.
 
 ## 6. Testing & cutover
 
-- **`eigen_sdk` is unit-testable without Flutter** — fake the token provider
-  and the socket transport; assert frame ordering, gap recovery, reconnect, and
-  error-envelope mapping in pure Dart.
+- **Transport is tested through Dio's own seam** — `DioAdapter`/a stub adapter
+  replaces the network, so frame ordering, gap recovery, reconnect, and
+  error-envelope mapping are all assertable under `flutter test` without a
+  server and without an injected abstraction of our own.
+- **The generated surface is pinned** — `test/shared/api_contract_test.dart`
+  asserts the wire enums and reshaped payloads, so a server change that
+  regenerates cleanly but breaks assumptions still fails the build.
 - **Twin fixtures still bind TS ↔ Dart** — the shared JSON fixtures keep the
   Dart rules twin honest against the kernel; only the Supabase import in the
   runner goes away.
