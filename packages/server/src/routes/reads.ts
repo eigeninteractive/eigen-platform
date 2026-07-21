@@ -68,7 +68,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const game = await readGame(ctx.d1(c.env), c.req.valid("param").gameId);
-      if (game === undefined) throw new HttpError(404, "Unknown game");
+      if (game === undefined) throw new HttpError(404, "Unknown game", "unknown_game");
       return c.json(gameSummaryOf(game), 200);
     },
   );

@@ -37,11 +37,11 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   engine.put("/me/avatar", async (c) => {
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {
-      throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`);
+      throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupported_image_type");
     }
     const body = await c.req.arrayBuffer();
     if (body.byteLength === 0) throw new HttpError(400, "Empty upload");
-    if (body.byteLength > avatars.maxBytes) throw new HttpError(413, `Image exceeds the ${avatars.maxBytes}-byte limit`);
+    if (body.byteLength > avatars.maxBytes) throw new HttpError(413, `Image exceeds the ${avatars.maxBytes}-byte limit`, "image_too_large");
 
     const uid = c.var.auth.user.id;
     const now = Date.now();

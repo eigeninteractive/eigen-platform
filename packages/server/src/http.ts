@@ -19,7 +19,20 @@ import type { CommandResult, LobbyRejectCode } from "./protocol.js";
  * answer to a client command, so {@link unwrap} converts one into a 500 rather
  * than making every client handle a case it cannot act on.
  */
-export type ErrorCode = Exclude<RejectCode, "abstain"> | LobbyRejectCode | "schema_unsupported";
+export type ErrorCode =
+  | Exclude<RejectCode, "abstain">
+  | LobbyRejectCode
+  /** Raised by a route before the command reaches the game. Each one exists
+   * because the client renders a distinct response to it — a field-level form
+   * error, a "create an account" prompt, a retry with a different file. A
+   * failure the client can only report generically stays uncoded. */
+  | "schema_unsupported"
+  | "username_invalid"
+  | "username_taken"
+  | "friends_only"
+  | "registration_required"
+  | "image_too_large"
+  | "unsupported_image_type";
 
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 500 | 502;

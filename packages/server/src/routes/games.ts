@@ -116,7 +116,7 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
 
 async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promise<GameWithRoster> {
   const game = await readGame(ctx.d1(env), gameId);
-  if (game === undefined) throw new HttpError(404, "Unknown game");
+  if (game === undefined) throw new HttpError(404, "Unknown game", "unknown_game");
   return game;
 }
 
@@ -157,7 +157,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
       if (body.access === "friends" && auth.claims.isAnonymous) {
-        throw new HttpError(403, "Friends-access games require a registered account");
+        throw new HttpError(403, "Friends-access games require a registered account", "registration_required");
       }
       const rules = rulesFor(ctx, body.schema_version);
       const parsed = parseClientPayload(rules.schemas.config, body.config, "config");
@@ -311,15 +311,15 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, commandId: string | undefined) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
-      throw new HttpError(403, "Guests cannot join rated games");
+      throw new HttpError(403, "Guests cannot join rated games", "registration_required");
     }
     if (game.schemaVersion > clientSchemaVersion) {
       throw new HttpError(409, "This game requires a newer app version", "schema_unsupported");
     }
     if (game.access === "friends") {
-      if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account");
+      if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registration_required");
       if (game.createdBy === null || !(await isAcceptedFriend(ctx.d1(c.env), auth.user.id, game.createdBy))) {
-        throw new HttpError(403, "This game is limited to the creator's friends");
+        throw new HttpError(403, "This game is limited to the creator's friends", "friends_only");
       }
     }
     return lobbyResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
@@ -353,7 +353,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.short_code.toUpperCase());
-      if (game === undefined) throw new HttpError(404, "No game with that code");
+      if (game === undefined) throw new HttpError(404, "No game with that code", "unknown_game");
       return c.json(await join(c, game, body.client_schema_version, body.command_id), 200);
     },
   );

@@ -37,7 +37,7 @@ const userIdParam = z.object({ userId: z.string().min(1) });
 
 /** Friend writes are for registered accounts only. */
 function requireRegistered(auth: Authed): void {
-  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account");
+  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account", "registration_required");
 }
 
 /** Best-effort friend-event push, off the response path. `waitUntil` keeps the

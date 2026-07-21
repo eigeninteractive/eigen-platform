@@ -50,13 +50,13 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const username = c.req.valid("json").username.toLowerCase();
       if (!USERNAME_RE.test(username)) {
-        throw new HttpError(400, "A username is 3–20 characters of lowercase letters, digits, '_' or '.'");
+        throw new HttpError(400, "A username is 3–20 characters of lowercase letters, digits, '_' or '.'", "username_invalid");
       }
       const userId = c.var.auth.user.id;
       try {
         await drizzle(ctx.d1(c.env)).update(users).set({ username, updatedAt: Date.now() }).where(eq(users.id, userId));
       } catch (error) {
-        if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken");
+        if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken", "username_taken");
         throw error;
       }
       return c.json({ username }, 200);

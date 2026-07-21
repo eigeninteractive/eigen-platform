@@ -46,6 +46,12 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   creator_cannot_leave: "The creator cancels the game instead of leaving it",
   // Raised by a route before the command reaches the game.
   schema_unsupported: "The game's schema version is newer than this client build supports",
+  username_invalid: "The submitted username fails the format rules",
+  username_taken: "The submitted username is already in use",
+  friends_only: "The game is limited to the creator's friends",
+  registration_required: "The action needs a registered account; the caller is a guest",
+  image_too_large: "The uploaded avatar exceeds the size limit",
+  unsupported_image_type: "The uploaded avatar is not an accepted image type",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can
