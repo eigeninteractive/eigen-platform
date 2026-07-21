@@ -542,8 +542,7 @@
             "type": "integer"
           },
           "config": {
-            "type": "object",
-            "additionalProperties": {}
+            "type": "object"
           },
           "min_players": {
             "type": "integer",
@@ -744,8 +743,7 @@
             "type": "integer"
           },
           "config": {
-            "type": "object",
-            "additionalProperties": {}
+            "type": "object"
           },
           "min_players": {
             "type": "integer",

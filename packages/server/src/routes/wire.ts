@@ -238,8 +238,11 @@ export const createGameBody = z
   .object({
     access: z.enum(["public", "private", "friends"]),
     schema_version: z.number().int(),
-    /** Game-defined; parsed by the version unit's config schema. */
-    config: z.record(z.string(), z.unknown()),
+    /** Game-defined; parsed by the version unit's config schema. Uses the
+     * shared free-form-object shape so every JSON payload on the wire
+     * (config, observation data) generates as one Dart type and a config can
+     * round-trip from a read straight back into a create. */
+    config: jsonObjectShape,
     min_players: z.number().int().min(1),
     max_players: z.number().int().min(1),
     /** The client's concrete rated assertion (Dart twin of `ratingPool`) —
@@ -261,7 +264,11 @@ export const createdShape = z.object({ game_id: z.string(), short_code: z.string
 export const createSoloBody = z
   .object({
     schema_version: z.number().int(),
-    config: z.record(z.string(), z.unknown()),
+    /** Game-defined; parsed by the version unit's config schema. Uses the
+     * shared free-form-object shape so every JSON payload on the wire
+     * (config, observation data) generates as one Dart type and a config can
+     * round-trip from a read straight back into a create. */
+    config: jsonObjectShape,
     min_players: z.number().int().min(1),
     max_players: z.number().int().min(1),
     rated: z.boolean().optional(),
