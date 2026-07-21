@@ -119,8 +119,8 @@ export const frameShape = z
     /** The seat's projected observation — game-defined, never raw state. */
     data: jsonObjectShape,
     pending_players: z.array(z.number().int()),
-    deadline: z.number().nullable(),
-    player_times: z.array(z.number()).nullable(),
+    deadline: z.number().int().nullable(),
+    player_times: z.array(z.number().int()).nullable(),
     outcomes: z.array(outcomeShape).optional(),
     ratings: z.array(ratingDeltaShape).optional(),
   })
@@ -158,20 +158,20 @@ export const gameSummaryShape = z
     access: gameAccessShape,
     schema_version: z.number().int(),
     config: jsonObjectShape,
-    turn_seconds: z.number().nullable(),
-    budget_seconds: z.number().nullable(),
-    increment_seconds: z.number().nullable(),
+    turn_seconds: z.number().int().nullable(),
+    budget_seconds: z.number().int().nullable(),
+    increment_seconds: z.number().int().nullable(),
     rated: z.boolean(),
     rating_pool: z.string().nullable(),
     min_players: z.number().int(),
     max_players: z.number().int(),
     short_code: z.string(),
     pending_players: z.array(z.number().int()).nullable(),
-    turn_deadline: z.number().nullable(),
+    turn_deadline: z.number().int().nullable(),
     outcomes: z.array(outcomeShape).nullable(),
-    finished_at: z.number().nullable(),
-    created_at: z.number(),
-    updated_at: z.number(),
+    finished_at: z.number().int().nullable(),
+    created_at: z.number().int(),
+    updated_at: z.number().int(),
     participants: z.array(seatShape),
   })
   .openapi("GameSummary");
@@ -189,13 +189,13 @@ export const playerShape = z
 export const profileShape = playerShape
   .extend({
     email: z.string().nullable(),
-    created_at: z.number(),
+    created_at: z.number().int(),
   })
   .openapi("Profile");
 
 /** The other user's public identity plus when the relationship formed — the
  * shared base of an accepted friend and a pending request. */
-const friendBase = playerShape.extend({ user_id: z.string(), since: z.number() }).omit({ id: true });
+const friendBase = playerShape.extend({ user_id: z.string(), since: z.number().int() }).omit({ id: true });
 
 /** One accepted friend. */
 export const friendShape = friendBase.openapi("Friend");

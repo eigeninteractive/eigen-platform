@@ -132,7 +132,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), display_rating: z.number().int(), updated_at: z.number() }).openapi("Rating");
+  const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), display_rating: z.number().int(), updated_at: z.number().int() }).openapi("Rating");
   app.openapi(
     createRoute({
       method: "get",
@@ -193,7 +193,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       display_before: z.number().int(),
       display_after: z.number().int(),
       display_change: z.number().int(),
-      created_at: z.number(),
+      created_at: z.number().int(),
     })
     .openapi("RatingHistoryEntry");
   app.openapi(

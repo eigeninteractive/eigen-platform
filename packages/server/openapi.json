@@ -66,19 +66,19 @@
           },
           "turn_seconds": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
           "budget_seconds": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
           "increment_seconds": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
@@ -111,7 +111,7 @@
           },
           "turn_deadline": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
@@ -126,15 +126,15 @@
           },
           "finished_at": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
           "created_at": {
-            "type": "number"
+            "type": "integer"
           },
           "updated_at": {
-            "type": "number"
+            "type": "integer"
           },
           "participants": {
             "type": "array",
@@ -419,7 +419,7 @@
                 ]
               },
               "created_at": {
-                "type": "number"
+                "type": "integer"
               }
             },
             "required": [
@@ -459,7 +459,7 @@
             "type": "integer"
           },
           "updated_at": {
-            "type": "number"
+            "type": "integer"
           }
         },
         "required": [
@@ -517,7 +517,7 @@
             "type": "integer"
           },
           "created_at": {
-            "type": "number"
+            "type": "integer"
           }
         },
         "required": [
@@ -649,7 +649,7 @@
           },
           "deadline": {
             "type": [
-              "number",
+              "integer",
               "null"
             ]
           },
@@ -659,7 +659,7 @@
               "null"
             ],
             "items": {
-              "type": "number"
+              "type": "integer"
             }
           },
           "outcomes": {
@@ -1080,7 +1080,7 @@
             "type": "string"
           },
           "since": {
-            "type": "number"
+            "type": "integer"
           }
         },
         "required": [
@@ -1128,7 +1128,7 @@
             "type": "string"
           },
           "since": {
-            "type": "number"
+            "type": "integer"
           },
           "direction": {
             "type": "string",
