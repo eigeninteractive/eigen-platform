@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Correctness only — this workflow never deploys and needs no Cloudflare
+# credentials. Deploying is a deliberate `pnpm --filter <worker> deploy` from a
+# machine with `wrangler login`, because it applies D1 migrations against a real
+# database. Nothing here talks to the network beyond the package registry.
+#
+# The Workers tests run under @cloudflare/vitest-pool-workers, which boots the
+# real `workerd` runtime with local D1/R2/DO simulation — no account, no
+# bindings to provision, and the same runtime semantics as production. That is
+# why `pnpm -r test` is the whole story and there is no separate integration job.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Format + lint in one pass, in CI mode (never writes).
+      - name: Biome
+        run: pnpm exec biome ci .
+
+      # Workspace packages resolve through their `exports` → `dist`, so the
+      # libraries must be built before anything that consumes them can be
+      # type-checked. rps depends on @eigen/server and @eigen/rules this way.
+      - name: Build
+        run: pnpm -r build
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      # The generated spec is the contract the Dart client is generated from, so
+      # it is committed and must never lag the routes. Re-emitting it from the
+      # freshly built worker and diffing catches a route or zod schema change
+      # that skipped `pnpm --filter @eigen/server openapi`.
+      - name: OpenAPI spec is in sync with the routes
+        run: |
+          pnpm --filter @eigen/server openapi
+          git diff --exit-code -- packages/server/openapi.json \
+            || { echo "::error file=packages/server/openapi.json::openapi.json is stale. Run 'pnpm --filter @eigen/server openapi', then regenerate the Dart client with eigen-flutter's tool/generate_api.sh, and commit both."; exit 1; }

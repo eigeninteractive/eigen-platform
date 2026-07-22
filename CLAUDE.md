@@ -1,2 +1,2 @@
 @AGENTS.md
-@docs/handoff.md
+@docs/todo.md

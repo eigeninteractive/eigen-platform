@@ -33,7 +33,9 @@ function avatarUrl(publicBase: string | undefined, uid: string, version: number)
 export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void {
   const avatars = ctx.avatars as ResolvedAvatars;
   // Plain route (not OpenAPI): a raw binary body doesn't model cleanly in the
-  // spec. Documented in client_changes.md alongside the socket.
+  // spec, so — like the game socket — it is hand-written on the client rather
+  // than generated. Clients PUT the image bytes directly with an image/*
+  // content-type (never multipart) and read `{ avatar_url }` off the 200.
   engine.put("/me/avatar", async (c) => {
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {

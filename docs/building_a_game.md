@@ -80,6 +80,13 @@ literal typed `: GameRules<…>`) so you get full type-checking, then register i
 in the `versions` map. That's it — no base class to extend, no lifecycle to
 manage.
 
+> **The other half of your game is Dart.** Every game also ships a same-keyed
+> Dart `GameModule` in the client repo — the payload codec, `isValidAction`,
+> `previewAction`, the board rendering, and display-only twins of `ratingPool`
+> and `botSeatable`. That contract is documented in **`docs/client_reference.md`
+> in the `eigen-flutter` repo** (Part II); this guide covers the authoritative
+> TypeScript half. The two are kept honest by shared fixtures (§11).
+
 ---
 
 ## 3. Schemas & payload types — schema-first

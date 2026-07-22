@@ -1,18 +1,18 @@
 /**
- * `commit()` — the pure, serialized heart of the engine (of
- * `docs/engine_stack.md`). One state transition in, one {@link CommitPlan}
+ * `commit()` — the pure, serialized heart of the engine. One state transition
+ * in, one {@link CommitPlan}
  * (or {@link Rejected}) out. Zero I/O, zero platform imports, injected clock:
  * the host (a Durable Object) loads the snapshot, calls this, and applies the
  * plan in one storage transaction.
  *
- * Semantics are the Supabase-era `engine_commit_start`/`engine_commit_action`
- * pipeline (status/pending/deadline guards, bank deduction, timeout
- * abstain-and-zero, the deadline precedence chain), with the two CF-design
- * deltas: the grace window is the one {@link DEADLINE_GRACE_MS} constant, and
- * a stale `expectedVersion` is arbitrated by the same-view rule instead of a
- * flat reject. Versions stay strictly serial — the rule governs acceptance
- * only; every accepted action commits as `state.version + 1` in arrival
- * order.
+ * The pipeline is: status/pending/deadline guards, bank deduction, timeout
+ * abstain-and-zero, then the deadline precedence chain. Two rules are worth
+ * knowing before reading further — the grace window is the single
+ * {@link DEADLINE_GRACE_MS} constant applied in one place, and a stale
+ * `expectedVersion` is arbitrated by the same-view rule rather than flatly
+ * rejected. Versions stay strictly serial: the same-view rule governs
+ * acceptance only, and every accepted action commits as `state.version + 1`
+ * in arrival order.
  */
 
 import { type ActionType, type Envelope, type GameRules, IllegalMoveError, type JsonObject, type LifecycleAction, type OutcomeEntry, type TransitionCause } from "@eigen/rules";
