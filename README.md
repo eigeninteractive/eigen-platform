@@ -134,7 +134,10 @@ pnpm deploy                    # migrations apply --remote, then wrangler deploy
 ```
 
 Migrations apply **before** the code goes out, so new code never meets an old
-schema. `docs/architecture.md` §17 has the full bindings/vars/secrets table, the
+schema. `curl https://your-worker/health` is the first post-deploy check — it is
+public, does no I/O, and confirms the Worker is deployed and routable (and only
+that; an empty `FIREBASE_PROJECT_ID` leaves it green while every authed request
+500s). `docs/architecture.md` §17 has the full bindings/vars/secrets table, the
 bot-registration SQL, and a first-deploy checklist.
 
 Day 0 runs entirely on the **Workers free plan with no payment method**. A card

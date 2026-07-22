@@ -16,5 +16,14 @@ declare global {
       AVATARS: R2Bucket;
       TEST_MIGRATIONS: D1Migration[];
     }
+    /** Types `exports` from `cloudflare:workers` — the loopback bindings for
+     * the main module's top-level exports. `exports.default.fetch()` is the
+     * supported replacement for the deprecated `SELF` fetcher, and without
+     * this declaration it would be typed `{}`. Same hand-rolled approach as
+     * `Env` above (`wrangler types` generates this for a deployable worker). */
+    interface GlobalProps {
+      mainModule: typeof import("./worker.js");
+      durableNamespaces: "GameDO";
+    }
   }
 }

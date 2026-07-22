@@ -8,8 +8,7 @@
  * call and purges D1 directly — exactly the documented no-service-account path.
  */
 
-import { SELF } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -21,7 +20,7 @@ import worker from "./worker.js";
 const db = drizzle(env.DB);
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

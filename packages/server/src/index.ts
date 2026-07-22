@@ -7,6 +7,9 @@
 export { displayRating, type RatingDelta } from "@eigen/kernel";
 export { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 export { ensureUser, type UserRow } from "./auth/provision.js";
+// The operator utility for onboarding an external bot: derive the key you hand
+// its owner. The signing/verifying halves stay internal — the engine does that.
+export { deriveBotKey } from "./bot/bot-auth.js";
 export { applyFinish, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readGameRow, updateSummary } from "./d1/apply.js";
 export * as d1Schema from "./d1/schema.js";
 export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";

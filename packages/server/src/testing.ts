@@ -6,8 +6,14 @@
  * // test/worker.ts — your production entry, with the test verifier:
  * export default createEngine({ ...same config, auth: testVerifier() });
  * // a spec:
- * await SELF.fetch(url, { headers: await testBearer({ uid: "alice" }) });
+ * import { exports } from "cloudflare:workers";
+ * await exports.default.fetch(url, { headers: await testBearer({ uid: "alice" }) });
  * ```
+ *
+ * (`exports.default` is the loopback binding to the test worker's default
+ * export — the supported replacement for the deprecated `SELF` fetcher. It
+ * needs `Cloudflare.GlobalProps` to declare `mainModule`; see the engine's
+ * own `test/env.d.ts` for the hand-rolled version, or use `wrangler types`.)
  *
  * Tokens are verified through the SAME jose code path production uses — only
  * the JWKS is local. The RS256 keypair below is a public fixture (checked in,

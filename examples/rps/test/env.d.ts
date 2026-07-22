@@ -11,5 +11,14 @@ declare global {
     interface Env {
       TEST_MIGRATIONS: D1Migration[];
     }
+    /** Types `exports` from `cloudflare:workers` — the loopback bindings for
+     * the test worker's top-level exports, so `exports.default.fetch()` (the
+     * supported replacement for the deprecated `SELF` fetcher) resolves.
+     * `wrangler types` generates this for a deployable worker; the test
+     * worker is never deployed, so it is declared by hand here. */
+    interface GlobalProps {
+      mainModule: typeof import("./worker.js");
+      durableNamespaces: "GameDO";
+    }
   }
 }

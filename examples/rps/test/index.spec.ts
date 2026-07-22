@@ -4,8 +4,7 @@
  * finish → D1 summary → viewer replay with the post-game reveal.
  */
 
-import { SELF } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { d1Schema } from "@eigen/server";
 import { testBearer } from "@eigen/server/testing";
 import { eq } from "drizzle-orm";
@@ -17,7 +16,7 @@ const BOB = "rps-bob";
 const VIEWER = "rps-viewer";
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://rps.test/api/engine${path}`, {
+  return await exports.default.fetch(`https://rps.test/api/engine${path}`, {
     method,
     headers: { ...(await testBearer({ uid })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -25,7 +24,7 @@ async function api(uid: string, method: string, path: string, body?: unknown): P
 }
 
 it("requires a token on every route", async () => {
-  expect((await SELF.fetch("https://rps.test/api/engine/lobby")).status).toBe(401);
+  expect((await exports.default.fetch("https://rps.test/api/engine/lobby")).status).toBe(401);
 });
 
 it("plays a full game: waiting room, same-view simultaneous commits, finish, replay reveal", async () => {

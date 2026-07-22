@@ -1,17 +1,16 @@
 /**
- * The createEngine HTTP drive — the deployed shape end to end over SELF:
+ * The createEngine HTTP drive — the deployed shape end to end over the worker:
  * create (policy + short code) waiting room (join/leave/cancel/
  * add-bot/start, roster snapshots over the socket, D1 mirror) active
  * play (action with the own-frame ride-along, forfeit) frames, and the
  * read routes.
  */
 
-import { SELF } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { signForBot } from "../src/bot/bot-auth.js";
+import { deriveBotKey, signForBot } from "../src/bot/bot-auth.js";
 import { bots, participants } from "../src/d1/schema.js";
 import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
 
@@ -27,7 +26,7 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -261,7 +260,7 @@ describe("socket (roster snapshots → frames)", () => {
     const { game_id } = await createGame(u.a, { rated: false });
 
     const token = await mintToken({ uid: u.b });
-    const res = await SELF.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const res = await exports.default.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
     expect(res.status).toBe(101);
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
@@ -379,7 +378,7 @@ describe("bots", () => {
     // The bot signs the EXACT body bytes it sends and carries the signature in
     // the Eigen-Signature header, bound to the `action` domain.
     const body = JSON.stringify({ bot_id: EXTERNAL, game_id: solo.game_id, player_index: 1, version: 1, data: { add: 1 } });
-    const good = await SELF.fetch("https://x/api/bot/action", {
+    const good = await exports.default.fetch("https://x/api/bot/action", {
       method: "POST",
       headers: { "content-type": "application/json", "eigen-signature": await signForBot(BOT_SECRET, EXTERNAL, "action", body) },
       body,
@@ -391,12 +390,42 @@ describe("bots", () => {
     });
 
     // A forged signature (wrong secret) is rejected before the claim is trusted.
-    const forged = await SELF.fetch("https://x/api/bot/action", {
+    const forged = await exports.default.fetch("https://x/api/bot/action", {
       method: "POST",
       headers: { "content-type": "application/json", "eigen-signature": await signForBot("wrong-secret", EXTERNAL, "action", body) },
       body,
     });
     expect(forged.status).toBe(401);
+  });
+
+  it("deriveBotKey yields exactly the key a bot owner signs with", async () => {
+    // The operator utility: what you hand a bot's owner at registration. This
+    // asserts the contract from the OWNER's side — sign with nothing but the
+    // derived key, using plain WebCrypto the way their own code would, and the
+    // engine must accept it. If this passes, the documented onboarding works.
+    const derived = await deriveBotKey(BOT_SECRET, EXTERNAL);
+
+    // It is HMAC-SHA256(master, bot_id), base64 — the same bytes the documented
+    // `openssl dgst -sha256 -hmac` one-liner produces.
+    const master = await crypto.subtle.importKey("raw", new TextEncoder().encode(BOT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const expected = new Uint8Array(await crypto.subtle.sign("HMAC", master, new TextEncoder().encode(EXTERNAL))).toBase64();
+    expect(derived).toBe(expected);
+
+    // Sign a body with the derived key alone — no master secret in sight.
+    const u = makeUsers();
+    const solo = await json<{ game_id: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.game_id}/action`, { seat: 0, data: { add: 1 }, expected_version: 0 }));
+
+    const body = JSON.stringify({ bot_id: EXTERNAL, game_id: solo.game_id, player_index: 1, version: 1, data: { add: 1 } });
+    const ownerKey = await crypto.subtle.importKey("raw", Uint8Array.fromBase64(derived) as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = new Uint8Array(await crypto.subtle.sign("HMAC", ownerKey, new TextEncoder().encode(`action:${body}`))).toBase64();
+
+    const res = await exports.default.fetch("https://x/api/bot/action", {
+      method: "POST",
+      headers: { "content-type": "application/json", "eigen-signature": `v1,${sig}` },
+      body,
+    });
+    expect(res.status).toBe(204);
   });
 });
 

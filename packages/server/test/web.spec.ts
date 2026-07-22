@@ -4,14 +4,14 @@
  * avatar upload/serve/purge round trip against a locally-simulated R2 bucket.
  */
 
-import { SELF } from "cloudflare:test";
+import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { testBearer as bearer } from "../src/testing.js";
 
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid: id })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -22,7 +22,7 @@ const createBody = { access: "public" as const, schema_version: 1, config: { tar
 
 describe("deep-link well-known", () => {
   it("generates assetlinks.json from config, as JSON", async () => {
-    const res = await SELF.fetch("https://x/.well-known/assetlinks.json");
+    const res = await exports.default.fetch("https://x/.well-known/assetlinks.json");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
     const body = (await res.json()) as { target: { package_name: string; sha256_cert_fingerprints: string[] } }[];
@@ -31,7 +31,7 @@ describe("deep-link well-known", () => {
   });
 
   it("generates the (extensionless) AASA as JSON with the appID and /j path", async () => {
-    const res = await SELF.fetch("https://x/.well-known/apple-app-site-association");
+    const res = await exports.default.fetch("https://x/.well-known/apple-app-site-association");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
     const body = (await res.json()) as { applinks: { details: { appID: string; paths: string[] }[] } };
@@ -45,7 +45,7 @@ describe("share/landing page", () => {
     const a = uid("host");
     const { short_code } = (await (await api(a, "POST", "/games", createBody)).json()) as { short_code: string };
 
-    const res = await SELF.fetch(`https://x/j/${short_code}`);
+    const res = await exports.default.fetch(`https://x/j/${short_code}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -56,7 +56,7 @@ describe("share/landing page", () => {
   });
 
   it("returns a 404 page for an unknown code", async () => {
-    const res = await SELF.fetch("https://x/j/ZZZZZZ");
+    const res = await exports.default.fetch("https://x/j/ZZZZZZ");
     expect(res.status).toBe(404);
     expect(res.headers.get("content-type")).toContain("text/html");
   });
@@ -66,7 +66,7 @@ describe("avatars", () => {
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
 
   async function upload(id: string, contentType: string, body: BodyInit): Promise<Response> {
-    return await SELF.fetch("https://x/api/engine/me/avatar", { method: "PUT", headers: { ...(await bearer({ uid: id })), "content-type": contentType }, body });
+    return await exports.default.fetch("https://x/api/engine/me/avatar", { method: "PUT", headers: { ...(await bearer({ uid: id })), "content-type": contentType }, body });
   }
 
   it("uploads, records a versioned URL, and serves the bytes publicly", async () => {
@@ -81,7 +81,7 @@ describe("avatars", () => {
     expect(me.avatar_url).toBe(avatar_url);
 
     // Public serve — no auth, right content type, immutable cache.
-    const served = await SELF.fetch(`https://x${avatar_url}`);
+    const served = await exports.default.fetch(`https://x${avatar_url}`);
     expect(served.status).toBe(200);
     expect(served.headers.get("content-type")).toBe("image/png");
     expect(served.headers.get("cache-control")).toContain("immutable");
@@ -98,9 +98,34 @@ describe("avatars", () => {
   it("deletes the avatar object when the account is deleted", async () => {
     const a = uid("av");
     const { avatar_url } = (await (await upload(a, "image/png", png)).json()) as { avatar_url: string };
-    expect((await SELF.fetch(`https://x${avatar_url}`)).status).toBe(200);
+    expect((await exports.default.fetch(`https://x${avatar_url}`)).status).toBe(200);
 
     expect((await api(a, "DELETE", "/me")).status).toBe(204);
-    expect((await SELF.fetch(`https://x${avatar_url}`)).status).toBe(404);
+    expect((await exports.default.fetch(`https://x${avatar_url}`)).status).toBe(404);
+  });
+});
+
+describe("health", () => {
+  it("answers 200 with no auth and no caching", async () => {
+    const res = await exports.default.fetch("https://x/health");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "ok" });
+    // Must not be cacheable — a cached 200 would keep reporting healthy after
+    // the worker stopped being able to serve.
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("discloses nothing about configuration", async () => {
+    const body = await (await exports.default.fetch("https://x/health")).text();
+    // The whole body is the literal status. No project id, no feature flags,
+    // no version — anything more is a config leak on an unauthed route.
+    expect(body).toBe('{"status":"ok"}');
+  });
+
+  it("needs no auth header at all", async () => {
+    // Explicitly not just "unauthenticated works" — a bad token must not turn
+    // liveness into a 401, or a monitor reports an outage that isn't one.
+    const res = await exports.default.fetch("https://x/health", { headers: { authorization: "Bearer garbage" } });
+    expect(res.status).toBe(200);
   });
 });

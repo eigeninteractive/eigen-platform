@@ -7,13 +7,13 @@
  * command responses, the summary read, and post-finish replay alike.
  */
 
-import { SELF } from "cloudflare:test";
+import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
 import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
 import { LEAK_SENTINEL } from "./worker.js";
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -38,7 +38,7 @@ describe("leak test", () => {
 
     // Open B's socket before the game starts and collect every frame it fans out.
     const token = await mintToken({ uid: b });
-    const sockRes = await SELF.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const sockRes = await exports.default.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
     const ws = sockRes.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
     const socketFrames: string[] = [];

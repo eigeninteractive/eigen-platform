@@ -28,7 +28,7 @@
  */
 
 import type { GameModule } from "@eigen/rules";
-import { OpenAPIHono } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { ErrorHandler, MiddlewareHandler } from "hono";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
@@ -215,7 +215,7 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
 
 /** Assemble the whole worker: the Firebase-authed engine group
  * (`/api/engine/*`), the HMAC-authed external-bot group (`/api/bot/*`), and the
- * unauthed public web surface (`/.well-known/*`, `/j/:code`,
+ * unauthed public web surface (`/health`, `/.well-known/*`, `/j/:code`,
  * `/avatars/:uid`), all on one outer app.
  *
  * The engine and bot groups are separate `OpenAPIHono` instances, so the
@@ -254,6 +254,47 @@ export function buildApp(ctx: RouteContext) {
     name: "Eigen-Signature",
     description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
   });
+  // Liveness. Unconditional, unauthed, and deliberately does NO I/O — no D1,
+  // no DO, no config disclosure. That is what makes it safe to leave open: it
+  // costs exactly one worker invocation, the same as the 404 every unknown
+  // path already returns, so it adds no amplification surface and needs no
+  // rate limiting. A check that touched D1 would be both a cost multiplier and
+  // a config leak, and belongs behind a secret instead.
+  //
+  // In the OpenAPI document (unlike the rest of the public surface) so the
+  // generated client can reach it: it is the one call that distinguishes "the
+  // device is offline" from "the server is unreachable", which is a real
+  // thing for an app to show. `security: []` opts it out of the document-wide
+  // bearer requirement.
+  //
+  // `no-store` matters — a cached 200 at the edge would keep reporting healthy
+  // after the worker stopped being able to serve.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/health",
+      operationId: "getHealth",
+      tags: ["Health"],
+      security: [],
+      summary: "Liveness probe",
+      description:
+        "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.",
+      responses: {
+        200: {
+          // `status` is a plain string, NOT a literal/enum. A single-member
+          // enum would generate a closed Dart enum, and closed enums are a
+          // breaking change to extend — so a later "degraded" would need a
+          // schema-version bump and a coordinated client release. The status
+          // of a liveness probe is exactly the kind of field that grows, and
+          // clients should treat the 200 itself as the signal anyway.
+          content: { "application/json": { schema: z.object({ status: z.string() }).openapi("Health") } },
+          description: "The worker is deployed and serving",
+        },
+      },
+    }),
+    (c) => c.json({ status: "ok" }, 200, { "Cache-Control": "no-store" }),
+  );
+
   // Public web surface: outside /api, unauthed, mounted only when
   // configured. A distinct path space from /api, so mount order is immaterial.
   if (ctx.deepLink !== null) registerLinkRoutes(app, ctx);

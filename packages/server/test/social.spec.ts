@@ -4,14 +4,14 @@
  * requires a registered caller and friend targets must be registered too.
  */
 
-import { SELF } from "cloudflare:test";
+import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { testBearer as bearer, type TestTokenOptions } from "../src/testing.js";
 
 const rnd = () => crypto.randomUUID().slice(0, 8);
 
 async function api(opts: TestTokenOptions, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer(opts)), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

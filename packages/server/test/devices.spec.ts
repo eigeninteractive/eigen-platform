@@ -5,8 +5,7 @@
  * `app_upsert_device_installation` / `app_delete_device_installation` RPCs had.
  */
 
-import { SELF } from "cloudflare:test";
-import { env } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
@@ -17,7 +16,7 @@ const db = drizzle(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
-  return await SELF.fetch(`https://x/api/engine${path}`, {
+  return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: { ...(await bearer({ uid: id })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),

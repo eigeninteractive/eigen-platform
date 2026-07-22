@@ -139,7 +139,8 @@ request surface is three cleanly separated spaces on one host:
 /api/bot/*      External-bot webhook. Authenticated per-request by an HMAC
                 signature (no user token). Just POST /api/bot/action today.
 
-/ (public)      Unauthed web surface, mounted only when configured:
+/ (public)      Unauthed web surface. /health (always on; zero I/O liveness)
+                plus, mounted only when configured:
                 /.well-known/assetlinks.json + apple-app-site-association
                 (deep-link verification), /j/:shortCode (share/landing page),
                 /avatars/:uid (opt-in avatar serving). Plus static assets.
@@ -649,9 +650,31 @@ signature  = "v1," + base64(HMAC-SHA256(derivedKey, "<domain>:<message>"))
 The `domain` tag (`wake` vs `action`) is *inside* the signed bytes, so a
 signature captured in one direction can never verify in the other — no
 reflection. The signature travels in the `Eigen-Signature` header both ways.
-Registering a bot needs no new secret and no redeploy: the operator is handed
-`deriveBotKey(bot_id)` and never sees the master secret. Verification is
-constant-time (`crypto.subtle.verify`).
+Registering a bot needs no new secret and no redeploy. **Onboarding an external
+bot** is therefore: insert the row (§17.5), derive that bot's key, and hand it
+to whoever runs the bot — which may well be you. The bot's owner gets only the
+derived key and never sees `BOT_SIGNING_SECRET`.
+
+`@eigen/server` exports the derivation as an operator utility:
+
+```ts
+import { deriveBotKey } from "@eigen/server";
+const key = await deriveBotKey(BOT_SIGNING_SECRET, botId); // base64
+```
+
+or, with no code at all:
+
+```bash
+echo -n "<bot_id>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
+```
+
+That key is a **credential** — it authenticates that bot to the engine for as
+long as it is registered. Note the rotation property this design trades away:
+because every key is derived from the one master secret, rotating a single bot's
+key means rotating the master, which rotates *every* bot's key. Issue a key only
+to an owner you would be willing to re-issue all of them for.
+
+Verification is constant-time (`crypto.subtle.verify`).
 
 ---
 
@@ -949,9 +972,10 @@ version, mirroring the human join gate. `rated_eligible` is required for a rated
 game. `config` is **public read-only reference data** consumed by the
 `botSeatable` hook and the client's pickers — never put a secret in it.
 
-An external bot's operator is handed **one derived key**,
-`HMAC-SHA256(BOT_SIGNING_SECRET, bot_id)`, and never the master secret. Adding
-a bot therefore needs no new secret and no redeploy.
+Then hand the bot's owner **one derived key** —
+`await deriveBotKey(BOT_SIGNING_SECRET, botId)` from `@eigen/server`, or the
+`openssl` one-liner in §11.1 — and never the master secret. Adding a bot
+therefore needs no new secret and no redeploy.
 
 ### 17.6 Deploying
 
@@ -965,6 +989,32 @@ pnpm deploy              # = wrangler d1 migrations apply --remote && wrangler d
 
 Migrations apply **before** the code goes out, so the new code never meets an old
 schema. Secrets persist across deploys and do not need re-setting.
+
+`GET /health` is public, unauthed and returns `{"status":"ok"}` — the one thing
+to curl after a deploy, and the endpoint to point an uptime monitor at:
+
+```bash
+curl https://your-worker.example.com/health
+```
+
+Be clear about what it proves: **the Worker is deployed and routable, nothing
+more.** It performs no I/O by design — no D1 query, no DO wake, no config
+disclosure — which is exactly what makes it safe to leave open. It costs one
+Worker invocation, the same as the 404 that any unknown path already returns, so
+it adds no amplification surface and needs no rate limiting. It answers 200 even
+with a garbage `Authorization` header, so a monitor never mistakes an auth
+problem for an outage, and it is served `no-store` so a cached 200 cannot keep
+reporting healthy after the Worker stops being able to serve.
+
+What it therefore does **not** catch is the most common misconfiguration — an
+empty `FIREBASE_PROJECT_ID`, which 500s every authed request while `/health`
+stays green. Verifying that needs a real authed call, which is why the checklist
+below leads with it. A deeper readiness check that pinged D1 and asserted config
+would be both a cost multiplier and a config leak on an unauthed route; if you
+want one, put it behind a secret rather than opening it.
+
+It is deliberately absent from `openapi.json`: it is an operator and monitoring
+endpoint, and including it would generate a Dart client method no app ever calls.
 
 Checklist for a first real deploy:
 
