@@ -65,3 +65,33 @@ jobs:
           pnpm --filter @eigen/server openapi
           git diff --exit-code -- packages/server/openapi.json \
             || { echo "::error file=packages/server/openapi.json::openapi.json is stale. Run 'pnpm --filter @eigen/server openapi', then regenerate the Dart client with eigen-flutter's tool/generate_api.sh, and commit both."; exit 1; }
+
+      # Same shape of guard, higher stakes: migrations are generated from the
+      # drizzle schemas and applied at deploy, so a schema edit that skipped
+      # `db:generate` ships code expecting columns the database does not have.
+      # Nothing else catches it — the tests run against migrations, so schema
+      # and migrations drift together silently until a real deploy.
+      #
+      # `< /dev/null` matters: drizzle-kit prompts when a change is ambiguous
+      # (a rename vs a drop+add). Without it an ambiguous change hangs the job
+      # until the timeout; with it, drizzle-kit fails and you regenerate
+      # locally where you can answer the prompt.
+      - name: D1 and DO migrations are in sync with the schemas
+        run: |
+          pnpm --filter @eigen/server db:generate:d1 < /dev/null
+          pnpm --filter @eigen/server db:generate:do < /dev/null
+          git diff --exit-code --stat -- packages/server/migrations packages/server/src/do/migrations \
+            || { echo "::error::A drizzle schema changed without a migration. Run 'pnpm --filter @eigen/server db:generate:d1' and/or ':do' and commit the result."; exit 1; }
+          # A brand-new migration is an untracked file, which `git diff` alone
+          # would not see.
+          test -z "$(git status --porcelain -- packages/server/migrations packages/server/src/do/migrations)" \
+            || { echo "::error::db:generate produced a new migration file — commit it."; git status --short -- packages/server/migrations packages/server/src/do/migrations; exit 1; }
+
+      # worker-configuration.d.ts is generated from wrangler.jsonc bindings and
+      # committed. Typecheck only catches a binding that is *used* and missing;
+      # a renamed or removed binding stays green until runtime.
+      - name: Worker types are in sync with wrangler.jsonc
+        run: |
+          pnpm --filter rps exec wrangler types < /dev/null
+          git diff --exit-code -- examples/rps/worker-configuration.d.ts \
+            || { echo "::error file=examples/rps/worker-configuration.d.ts::Stale worker types. Run 'wrangler types' in the worker directory and commit."; exit 1; }

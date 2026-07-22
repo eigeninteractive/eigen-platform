@@ -1,6 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 
-/** DO SQLite schema (§5.1). The `durable-sqlite` driver emits a bundled
+/** The per-game Durable Object's SQLite schema. The `durable-sqlite` driver emits a bundled
  * `migrations.js` that compiles into the worker — each game DO migrates
  * itself inside `blockConcurrencyWhile` on activation (no deploy step). */
 export default defineConfig({
