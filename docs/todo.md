@@ -1,13 +1,5 @@
-# Manually Tracked
+# Migration
 
-- Why do we need engineCall and separate api definitions in engine_api_providers
-  instead of eigenApi? Cant we just add the middleware to eigenApi instead? Is
-  this the idiomatic way to handle errors?
-- **Web as a first-class target** — `web_socket_channel` over `wss` with the
-  `?token=` upgrade, web Firebase auth, `cached_network_image` against the
-  worker-served avatar URL, and the FCM service worker + VAPID key. Add web to
-  the CI matrix.
-- Rate limiting (especially /avatars/:uid:)
 - **No identity denormalization** onto game rows — the batch `players?ids=`
   endpoint plus the client's persisted cache cover it.
 - **Social depth.** The friend graph, search, blocking and friends' games are
@@ -24,16 +16,23 @@
   compare-and-swap in D1. Worth checking whether the same guarantee falls out of
   a simpler formulation before it grows.
 - **Do we need `GameStub`?** Question the indirection.
+- Make single attemps retry based (where all does it make sense)
+- Can anything be optimizied - unnecessary network call, N + 1 patterns, batch simplifications, etc.?
+
+# P0
+
+- **Web as a first-class target** — `web_socket_channel` over `wss` with the
+  `?token=` upgrade, web Firebase auth, `cached_network_image` against the
+  worker-served avatar URL, and the FCM service worker + VAPID key. Add web to
+  the CI matrix.
+- Docs
+- Rate limiting (especially /avatars/:uid:)
 - **The `eigeninteractive` web repo.** The Cloudflare Worker that used to own the
   per-game subdomain map and serve the deep-link verification files is now
   redundant: the game Worker generates `.well-known` itself and serves `/j/`.
   Decide what to remove there, and how the apex domain and legal pages are hosted
   going forward
 - Client Monorepo suggestion doc
-- Compare to old structure end to end
-- Make single attemps retry based (where all does it make sense)
-- Can anything be optimizied - unnecessary network call, N + 1 patterns, batch simplifications, etc.?
-- Docs
 
 # P1
 
