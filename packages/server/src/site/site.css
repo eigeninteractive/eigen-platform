@@ -1,0 +1,148 @@
+/*
+ * The stylesheet for every engine-rendered public page — the landing page, the
+ * legal documents, and the `/j` share page.
+ *
+ * A real .css file rather than a template literal in TypeScript: it highlights,
+ * formats, and diffs like the CSS it is. tsup inlines it as text (see the
+ * `.css` entry in `tsup.config.ts`) and it is emitted in a single <style> tag,
+ * because an external stylesheet would add a blocking round trip to a page
+ * whose whole job is to render instantly for someone who followed a link.
+ *
+ * `--primary` is set on the root element from `site.primaryColor`; the value
+ * here is the fallback for pages rendered without site config.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --primary: #4f46e5;
+  --bg: #fffbfe;
+  --surface: #f3edf7;
+  --fg: #1c1b1f;
+  --muted: #49454f;
+  --outline: #cac4d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141218;
+    --surface: #211f26;
+    --fg: #e6e0e9;
+    --muted: #cac4d0;
+    --outline: #49454f;
+  }
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  padding: 3rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 44rem;
+}
+
+h1 {
+  font-size: clamp(2rem, 7vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 2rem 0 0.5rem;
+}
+
+p,
+ul,
+ol {
+  margin-bottom: 1rem;
+  color: var(--muted);
+}
+
+ul,
+ol {
+  padding-left: 1.25rem;
+}
+
+li {
+  margin-bottom: 0.35rem;
+}
+
+a {
+  color: var(--primary);
+}
+
+strong {
+  color: var(--fg);
+}
+
+.lead {
+  font-size: 1.05rem;
+  margin-bottom: 2rem;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+  padding: 0.8rem 1.75rem;
+  border-radius: 100px;
+  font-weight: 500;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+.shots {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1rem;
+  scroll-snap-type: x mandatory;
+}
+
+.shots img {
+  height: 16rem;
+  width: auto;
+  border-radius: 1rem;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border: 1px solid var(--outline);
+}
+
+footer {
+  margin-top: 3.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--outline);
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+footer a {
+  color: var(--muted);
+}

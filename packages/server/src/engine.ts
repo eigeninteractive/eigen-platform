@@ -47,12 +47,15 @@ import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerGameRoutes } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
+import { registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
+import type { ResolvedSite, SiteConfig } from "./site/config.js";
+import { renderLegal } from "./site/legal/index.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
 
 /** Deep-linking. The worker generates the two `.well-known` files from
- * this and renders the `/j/:shortCode` share/landing page. Absent → none of
+ * this and renders the `/join/:shortCode` share/landing page. Absent → none of
  * that group is mounted (the worker is API-only). Each platform block is
  * independent: supply only Android, only Apple, or both. */
 export interface DeepLinkConfig {
@@ -111,6 +114,9 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   deepLink?: DeepLinkConfig;
   /** Opt-in avatar uploads. Omit → not mounted. */
   avatars?: AvatarsConfig<TEnv>;
+  /** The public web surface — landing page, legal documents, crawler files.
+   * Omit → not mounted (the worker is API-only). */
+  site?: SiteConfig;
   /** Cron-backstop tuning — guest-purge/reap windows and batch caps.
    * Omit for the defaults ({@link LIFECYCLE_DEFAULTS}); set any subset to
    * override just those. */
@@ -127,6 +133,8 @@ export interface ResolvedAvatars {
   maxBytes: number;
   publicBaseUrl(env: unknown): string | undefined;
 }
+
+export type { LegalConfig, OperatorConfig, ResolvedSite, SiteConfig } from "./site/config.js";
 
 // ── Internal route context (erases the implementor's Env generics) ────────────
 
@@ -154,6 +162,9 @@ export interface RouteContext {
   /** Avatar config, or null when uploads are not enabled — the
    * upload/serve routes are then not mounted. */
   avatars: ResolvedAvatars | null;
+  /** Site config, or null when the public web surface is not configured — the
+   * landing/legal/crawler routes are then not mounted. */
+  site: ResolvedSite | null;
 }
 
 /** What the auth middleware resolves for every request. */
@@ -216,7 +227,7 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
 
 /** Assemble the whole worker: the Firebase-authed engine group
  * (`/api/engine/*`), the HMAC-authed external-bot group (`/api/bot/*`), and the
- * unauthed public web surface (`/health`, `/.well-known/*`, `/j/:code`,
+ * unauthed public web surface (`/health`, `/.well-known/*`, `/join/:code`,
  * `/avatars/:uid`), all on one outer app.
  *
  * The engine and bot groups are separate `OpenAPIHono` instances, so the
@@ -300,12 +311,32 @@ export function buildApp(ctx: RouteContext) {
   // configured. A distinct path space from /api, so mount order is immaterial.
   if (ctx.deepLink !== null) registerLinkRoutes(app, ctx);
   if (ctx.avatars !== null) registerAvatarServe(app, ctx);
+  if (ctx.site !== null) registerSiteRoutes(app, ctx);
   app.route("/api/engine", engine);
   app.route("/api/bot", bot);
   return app;
 }
 
 // ── The factory ───────────────────────────────────────────────────────────────
+
+/** Apply {@link SiteConfig} defaults and render the legal documents once, at
+ * startup. Rendering here rather than per-request keeps prose off the request
+ * path entirely. */
+function resolveSite(cfg: SiteConfig, appName: string): ResolvedSite {
+  const name = cfg.name ?? appName;
+  const ogImage = cfg.ogImage ?? "/og-image.png";
+  return {
+    name,
+    tagline: cfg.tagline,
+    description: cfg.description ?? cfg.tagline,
+    primaryColor: cfg.primaryColor,
+    canonicalOrigin: cfg.canonicalOrigin.replace(/\/+$/, ""),
+    screenshots: cfg.screenshots ?? [],
+    ogImage: ogImage.startsWith("/") ? ogImage : `/${ogImage}`,
+    operator: cfg.operator,
+    legal: renderLegal(cfg.legal, { appName: name, operator: cfg.operator }),
+  };
+}
 
 export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(cfg: EngineConfig<TEnv, TDO>): ExportedHandler<TEnv> {
   const projectId = (env: TEnv): string => {
@@ -340,6 +371,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
             maxBytes: cfg.avatars.maxBytes ?? 2 * 1024 * 1024,
             publicBaseUrl: (env) => (cfg.avatars as AvatarsConfig<TEnv>).publicBaseUrl?.(env as TEnv),
           },
+    site: cfg.site === undefined ? null : resolveSite(cfg.site, cfg.appName),
   };
   const app = buildApp(ctx);
   const ops = (env: TEnv): EngineOps => ({
@@ -367,7 +399,7 @@ export function openApiDocument(): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
-  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null });
+  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null, site: null });
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {

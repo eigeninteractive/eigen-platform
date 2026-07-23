@@ -146,4 +146,14 @@ export default createEngine({
     apple: { appId: "TEAMID1234.com.eigen.test", storeUrl: "https://apps.apple.com/app/id000000000" },
   },
   avatars: { bucket: (env: TestEnv) => env.AVATARS, maxBytes: 4096 },
+  // The public web surface — exercised by site.spec.ts. Legal documents are
+  // left at the engine defaults so the tests assert the shipped prose and its
+  // token substitution, not a fixture.
+  site: {
+    tagline: "Race an opponent to the target.",
+    primaryColor: "#1a237e",
+    canonicalOrigin: "https://test.example.com",
+    screenshots: ["one.png", "two.png"],
+    operator: { name: "Eigen Test & Co", jurisdiction: "Testland", contactEmail: "legal@test.example.com", effectiveDate: "1 January 2026" },
+  },
 });

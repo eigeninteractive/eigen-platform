@@ -385,6 +385,7 @@ export default createEngine({
   // Optional feature blocks — omit to leave a feature off:
   // deepLink:  { android: {...}, apple: {...} },
   // avatars:   { bucket: (env) => env.AVATARS },
+  // site:      { tagline: "…", primaryColor: "#…", canonicalOrigin: "…", operator: {…} },
   // lifecycle: { guestMaxAgeMs: … },
 });
 ```
@@ -404,6 +405,102 @@ You do **not** write D1 migrations — the engine owns its schema and ships the
 migrations; you apply them with `wrangler d1 migrations apply` at deploy. The
 per-game DO schema self-applies. (If you need your own app-specific tables, that
 is a *separate* D1 database with its own migrations — never the engine's.)
+
+### Your game's website (optional)
+
+Point a domain at your Worker and the `site` block gives you the whole public web
+surface — no templates to copy, no routes to register:
+
+| Route | What it is |
+|---|---|
+| `GET /` | Landing page: name, tagline, screenshots, store buttons |
+| `GET /terms`, `/privacy`, `/delete-account` | The legal documents |
+| `GET /sitemap.xml`, `GET /robots.txt` | Crawler directives |
+| `GET /site.webmanifest` | Web app manifest |
+
+```ts
+site: {
+  tagline: "A hidden-information battle of wits for two players.",
+  primaryColor: "#1a237e",
+  canonicalOrigin: "https://strategy.example.com",  // no trailing slash
+  screenshots: ["1.png", "2.png"],                  // under public/screenshots/
+  operator: {
+    name: "Your Company Ltd",
+    jurisdiction: "India",
+    contactEmail: "hello@example.com",
+    effectiveDate: "1 July 2026",
+  },
+},
+```
+
+`canonicalOrigin` is required and not inferred: sitemap entries, canonical links
+and OG URLs must be absolute, and a proxied request does not reliably carry the
+public origin. Store buttons come from your `deepLink` block, so store URLs are
+configured once. The landing page emits `SoftwareApplication` JSON-LD with
+`applicationCategory: "GameApplication"`.
+
+**Assets: your Flutter app already made them.** The engine never generates
+images, but it doesn't ask you to draw any either — its default paths are
+exactly the filenames `flutter_launcher_icons` emits into the app's `web/`
+directory, all derived from the same `assets/icon/icon.png` the app icon uses.
+Copy that output into `public/`:
+
+```
+public/
+  favicon.png                      # web/favicon.png
+  og-image.png                     # web/og-image.png (1200×630, override with `ogImage`)
+  icons/Icon-192.png               # web/icons/…
+  icons/Icon-512.png
+  icons/Icon-maskable-192.png
+  icons/Icon-maskable-512.png
+  screenshots/                     # optional, whatever you list in `screenshots`
+```
+
+`og-image.png` is the only hand-made file, and `client_reference.md` §22 already
+asks for it for the app's own share card. Nothing here needs authoring twice.
+
+> **Android App Links must be scoped.** Because these pages sit on the same host
+> as the app's deep links (`/join/:code`, `/game/:id`), the app's
+> `<intent-filter>` needs an `android:pathPrefix` for each of `/join` and
+> `/game` — `assetlinks.json` verifies the whole host, so without the prefixes
+> Android claims `/terms` too and hands it to a router that has no such route.
+> iOS is already scoped by the generated AASA.
+
+**Legal documents.** All three default to generic templates the engine ships.
+They take your `operator` block as typed props — there are no placeholders to
+fill in and nothing to keep in sync. They describe **only what the engine itself
+collects**: accounts, display names, optional avatars, game history, ratings,
+friend connections, push tokens and crash diagnostics.
+
+> **Read them before you publish.** They are a starting template, not legal
+> advice, and you are the one on the hook for what they say. If you add
+> analytics, advertising, payments, or any other processing, you must edit them.
+> Two lines in particular assume things about your app: the privacy policy's
+> "Diagnostics" bullet assumes crash reporting, and the delete-account steps
+> describe the reference Flutter shell's Settings screen.
+
+To supply your own prose, pass an HTML **fragment** — body content only, since
+the engine supplies the shell, styling and footer:
+
+```jsonc
+// wrangler.jsonc — lets you import .html files as strings
+"rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }]
+```
+
+```ts
+import terms from "./legal/terms.html";
+// …
+site: { /* … */ legal: { terms } },
+```
+
+Your fragment is inserted as-is, so write your own values into it directly.
+
+**Overriding a whole page takes no config at all.** Cloudflare serves a matching
+static asset *before* invoking your Worker, and the default `html_handling`
+resolves `/terms` to `public/terms.html`. So shipping the file replaces the
+generated page — same format as the config path. The flip side: never add a file
+under `public/` whose path shadows a route you did not mean to replace
+(`public/index.html` will silently replace your landing page).
 
 ### Rate limiting (optional)
 

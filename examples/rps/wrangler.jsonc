@@ -17,9 +17,15 @@
   // served UNMETERED by the asset server. No `run_worker_first` is needed: a
   // request that matches no static file already falls through to the Worker, so
   // the dynamic paths (the API, the generated .well-known files, the /j share
-  // page, worker-served avatars) reach it on their own. The one rule is
-  // discipline — never add a file under ./public whose path shadows one of
-  // those prefixes.
+  // page, worker-served avatars, and the generated site pages) reach it on
+  // their own.
+  //
+  // That precedence cuts both ways, and is the override mechanism for the
+  // engine's generated pages: a `public/terms.html` would be served at /terms
+  // instead of the engine's, and a `public/index.html` would replace the
+  // generated landing page. Deliberate here — ./public is empty so this example
+  // shows the engine's own pages — but it means never adding a file under
+  // ./public whose path shadows one you did not mean to replace.
   "assets": {
     "directory": "./public"
   },

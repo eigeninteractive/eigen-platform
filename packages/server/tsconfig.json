@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    // The public web pages are hono/jsx components: JSX escapes interpolated
+    // values automatically, so there is no hand-rolled escaper to forget to
+    // call. hono is already a dependency — no new runtime is added.
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
   },
   "include": ["src"]
 }

@@ -1,6 +1,6 @@
 /**
  * The public web surface (deep links avatars): the
- * generated `.well-known` files, the `/j/:shortCode` share page, and the
+ * generated `.well-known` files, the `/join/:shortCode` share page, and the
  * avatar upload/serve/purge round trip against a locally-simulated R2 bucket.
  */
 
@@ -30,13 +30,16 @@ describe("deep-link well-known", () => {
     expect(body[0]?.target.sha256_cert_fingerprints).toContain("AA:BB:CC");
   });
 
-  it("generates the (extensionless) AASA as JSON with the appID and /j path", async () => {
+  it("generates the (extensionless) AASA as JSON with the appID and app paths", async () => {
     const res = await exports.default.fetch("https://x/.well-known/apple-app-site-association");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/json");
     const body = (await res.json()) as { applinks: { details: { appID: string; paths: string[] }[] } };
     expect(body.applinks.details[0]?.appID).toBe("TEAMID1234.com.eigen.test");
-    expect(body.applinks.details[0]?.paths).toContain("/j/*");
+    expect(body.applinks.details[0]?.paths).toContain("/join/*");
+    // The app also claims `/game/*` (replay + push deep links); legal paths are
+    // deliberately absent so the OS never intercepts them.
+    expect(body.applinks.details[0]?.paths).toContain("/game/*");
   });
 });
 
@@ -45,7 +48,7 @@ describe("share/landing page", () => {
     const a = uid("host");
     const { short_code } = (await (await api(a, "POST", "/games", createBody)).json()) as { short_code: string };
 
-    const res = await exports.default.fetch(`https://x/j/${short_code}`);
+    const res = await exports.default.fetch(`https://x/join/${short_code}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -56,7 +59,41 @@ describe("share/landing page", () => {
   });
 
   it("returns a 404 page for an unknown code", async () => {
-    const res = await exports.default.fetch("https://x/j/ZZZZZZ");
+    const res = await exports.default.fetch("https://x/join/ZZZZZZ");
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toContain("text/html");
+  });
+});
+
+describe("game landing page", () => {
+  it("renders OG tags, the roster, and store links for a public game", async () => {
+    const a = uid("gh");
+    const { game_id } = (await (await api(a, "POST", "/games", createBody)).json()) as { game_id: string };
+
+    const res = await exports.default.fetch(`https://x/game/${game_id}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/html");
+    const html = await res.text();
+    expect(html).toContain('property="og:title"');
+    // A public game names its roster (the single seated human so far).
+    expect(html).toContain("Watch this game");
+    expect(html).toContain("https://apps.apple.com/app/id000000000");
+  });
+
+  it("does not leak the roster of a private game", async () => {
+    const a = uid("gp");
+    const displayName = (await (await api(a, "GET", "/me")).json()) as { display_name?: string };
+    const { game_id } = (await (await api(a, "POST", "/games", { ...createBody, access: "private" })).json()) as { game_id: string };
+
+    const html = await (await exports.default.fetch(`https://x/game/${game_id}`)).text();
+    expect(html).toContain("Open this game in"); // the generic card
+    expect(html).not.toContain("Watch this game"); // no roster description
+    // The seated player's name must not appear on an unauthenticated page.
+    if (displayName.display_name !== undefined) expect(html).not.toContain(displayName.display_name);
+  });
+
+  it("returns a 404 page for an unknown game id", async () => {
+    const res = await exports.default.fetch("https://x/game/does-not-exist");
     expect(res.status).toBe(404);
     expect(res.headers.get("content-type")).toContain("text/html");
   });

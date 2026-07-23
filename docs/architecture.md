@@ -142,8 +142,10 @@ request surface is three cleanly separated spaces on one host:
 / (public)      Unauthed web surface. /health (always on; zero I/O liveness)
                 plus, mounted only when configured:
                 /.well-known/assetlinks.json + apple-app-site-association
-                (deep-link verification), /j/:shortCode (share/landing page),
-                /avatars/:uid (opt-in avatar serving). Plus static assets.
+                (deep-link verification), /join/:shortCode (share/landing),
+                /avatars/:uid (opt-in avatar serving), and the `site` group —
+                / (landing), /terms, /privacy, /delete-account, /sitemap.xml,
+                /robots.txt, /site.webmanifest. Plus static assets.
 ```
 
 The two API groups are **separate hono sub-apps** so their auth never mixes: the
@@ -741,7 +743,7 @@ overridable via a `lifecycle` block on `createEngine`** (`guestMaxAgeMs`,
 
 ---
 
-## 14. The web surface — deep links & avatars
+## 14. The web surface — the game's website, deep links & avatars
 
 The game Worker *is* the deep-link host, so app-link verification and the API
 share one domain, one cert, one deploy.
@@ -751,10 +753,13 @@ share one domain, one cert, one deploy.
   `apple-app-site-association` (iOS Universal Links, served extensionless as
   `application/json` — the content-type a static file gets wrong). One source of
   truth.
-- **`/j/:shortCode`** is the share/landing page: it reads the D1 summary for real
-  OG tags (host, open seats) so a shared link unfurls richly, and it is the
+- **`/join/:shortCode`** and **`/game/:gameId`** are the two share/landing pages:
+  they read the D1 summary for real OG tags (host + open seats for an invite; the
+  roster and status for a game) so a shared link unfurls richly, and both are the
   *not-installed* fallback — an installed app opens the https URL directly via
-  App/Universal Links, so this page is only reached when the app is absent.
+  App/Universal Links, so these are only reached when the app is absent.
+  `/game/:gameId` shows the roster for a **public** game only; a private game
+  gets a generic card, since an unauthenticated page cannot authorize the viewer.
 - **Avatars** are opt-in R2. Uploads go through the Worker (R2 has no per-user
   access control): a raw-binary `PUT /api/engine/me/avatar` (type/size-validated)
   stores the image under key = uid, and a public `GET /avatars/:uid` serves it
@@ -765,10 +770,41 @@ share one domain, one cert, one deploy.
   config value, not a code change. The default (worker-served) path is the only
   one that works on a zoneless `workers.dev` deploy.
 
+- **The `site` block** generates the rest of the game's website: the landing page
+  (`/`), the three legal documents (`/terms`, `/privacy`, `/delete-account`), and
+  the crawler files (`/sitemap.xml`, `/robots.txt`, `/site.webmanifest`). The
+  point is that an implementor gets a complete, indexable, app-store-compliant
+  site by configuration — the alternative is every game hand-rolling the same
+  four pages and getting the store requirements subtly wrong.
+
+**The pages are hono/jsx components.** hono is already a dependency, so this
+adds no runtime — and it buys three things that were previously hand-rolled.
+Interpolated values are escaped by the renderer rather than by an `esc()` helper
+somebody can forget to call, which matters because user-controlled display names
+reach the `/j` page's OG tags. The stylesheet is a real `.css` file inlined at
+build time, so it highlights and formats like CSS. And the default legal
+documents take the required `operator` block as **typed props**, which replaced
+an earlier `{{token}}` substitution scheme: a mistyped placeholder is now a
+compile error, and the regex, the known-token set, and the fail-fast guard that
+scheme needed are all gone.
+
+An implementor overriding a legal document supplies an **HTML fragment**, not a
+component — it is inserted as-is, with their own values already written in, so
+they need no JSX and no props. HTML because the *other* override path — dropping
+`public/terms.html`, which static-asset precedence makes win over the route — is
+already HTML, so one format covers both. Documents render once at startup, never
+per request.
+
+Every generated page is replaceable with **no configuration at all**: Cloudflare
+serves a matching static asset before invoking the Worker, and default
+`html_handling` resolves the extensionless `/terms` to `public/terms.html`.
+Batteries included, batteries removable — at the cost that a `public/` file can
+shadow a route by accident.
+
 The whitelabel app's display name is a single required top-level `appName` on
 `createEngine` — the one source of truth for engine-owned identity (the `/j`
-title and OG tags today; push copy later), independent of which optional feature
-blocks are enabled.
+title and OG tags, and the `site` landing page's default name; push copy later),
+independent of which optional feature blocks are enabled.
 
 ---
 
@@ -1103,7 +1139,11 @@ HMAC-authenticated; the web routes are public. The OpenAPI document
 ### Public web
 
 `GET /.well-known/assetlinks.json` · `apple-app-site-association` ·
-`GET /j/:shortCode` (share/landing) · `GET /avatars/:uid` (when avatars enabled).
+`GET /join/:shortCode` · `GET /game/:gameId` (share/landing) · `GET /avatars/:uid` (when avatars enabled).
+
+When `site` is configured: `GET /` (landing) · `GET /terms` · `GET /privacy` ·
+`GET /delete-account` · `GET /sitemap.xml` · `GET /robots.txt` ·
+`GET /site.webmanifest`. Each is overridden by a matching `public/` file.
 
 ### The error model
 

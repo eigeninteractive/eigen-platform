@@ -30,6 +30,36 @@ export default createEngine({
   // /avatars/{uid} route). Local R2 simulation under `wrangler dev` — a real
   // bucket enters only at a deploy with uploads enabled.
   avatars: { bucket: (env: Env) => env.AVATARS },
+  // The public web surface. This block is the entire setup for the landing
+  // page, the three legal documents, and the crawler files (`/sitemap.xml`,
+  // `/robots.txt`, `/site.webmanifest`) — no templates to copy, no routes to
+  // register. `canonicalOrigin` is a placeholder here, like the deep-link
+  // fingerprints, until a real domain is pointed at this worker.
+  //
+  // Any generated page can be replaced by shipping the matching file under
+  // `public/` (`public/terms.html` beats `GET /terms`), because Cloudflare
+  // serves matching static assets before invoking the worker. `legal` is
+  // omitted, so all three documents use the engine's generic templates —
+  // review them before publishing a real app; they are a starting point, and
+  // the operator carries the liability for what they say.
+  //
+  // The engine never generates images — but the Flutter app already produces
+  // every one it needs. `flutter_launcher_icons` emits `web/favicon.png` and
+  // `web/icons/Icon-{192,512}.png` (+ maskable) from the same 1024x1024 source
+  // the app icon uses, and `web/og-image.png` is the app's own share card. Copy
+  // those into `public/` and the landing page, manifest and OG tags are done;
+  // the engine's default paths are exactly those names.
+  site: {
+    tagline: "Rock, paper, scissors — the smallest complete game on the Eigen engine.",
+    primaryColor: "#3f51b5",
+    canonicalOrigin: "https://rps.eigeninteractive.com",
+    operator: {
+      name: "Eigen Interactive",
+      jurisdiction: "India",
+      contactEmail: "hello@eigeninteractive.com",
+      effectiveDate: "1 July 2026",
+    },
+  },
   // Per-user write rate limits need NO wiring here: the engine resolves each
   // limiter by its conventional `EIGEN_RATE_LIMIT_*` binding name, so the
   // `ratelimits` block in wrangler.jsonc is the whole setup.
