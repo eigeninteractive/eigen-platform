@@ -38,7 +38,7 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   // than generated. Clients PUT the image bytes directly with an image/*
   // content-type (never multipart) and read `{ avatar_url }` off the 200.
   engine.put("/me/avatar", async (c) => {
-    await enforceRateLimit(ctx, c.env, "avatar_upload", c.var.auth.user.id);
+    await enforceRateLimit(c.env, "avatar_upload", c.var.auth.user.id);
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {
       throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupported_image_type");

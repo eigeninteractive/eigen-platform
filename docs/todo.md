@@ -9,6 +9,7 @@
   redundant: the game Worker generates `.well-known` itself and serves `/j/`.
   Decide what to remove there, and how the apex domain and legal pages are hosted
   going forward
+- changelog maintenance for both, release instructions, etc.
 - Docs
 - Scaffolding and implementor Monorepo suggestions
 

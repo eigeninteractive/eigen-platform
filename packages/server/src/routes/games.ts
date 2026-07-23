@@ -162,7 +162,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const auth = c.var.auth;
-      await enforceRateLimit(ctx, c.env, "game_create", auth.user.id);
+      await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
@@ -239,7 +239,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const auth = c.var.auth;
-      await enforceRateLimit(ctx, c.env, "game_create", auth.user.id);
+      await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
       const rules = rulesFor(ctx, body.schema_version);
       const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");

@@ -18,4 +18,3 @@ export * as doSchema from "./do/schema.js";
 export { createEngine, type EngineConfig, openApiDocument } from "./engine.js";
 export { HttpError } from "./http.js";
 export type { Command, CommandResult, FrameMessage, LobbyRejectCode, Principal, RosterSnapshot } from "./protocol.js";
-export { defaultRateLimitsConfig, RATE_LIMIT_BINDING, RATE_LIMIT_DEFAULTS, type RateLimiter, type RateLimitName, type RateLimitRule, type WranglerRateLimit } from "./rate-limit.js";
