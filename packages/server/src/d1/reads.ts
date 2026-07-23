@@ -8,6 +8,7 @@
 import type { RatingDelta, Seat } from "@eigen/kernel";
 import { and, desc, eq, inArray, lt, or, type SQLWrapper, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { noBlockedParticipant } from "./blocks.js";
 import { bots, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
 
 export type GameRow = typeof games.$inferSelect;
@@ -162,12 +163,15 @@ function olderThan(column: SQLWrapper, cursor: number | null) {
 }
 
 /** The lobby page: public joinable games, newest first — exactly the shape
- * `idx_games_lobby` (the ported partial index) serves. */
-export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
+ * `idx_games_lobby` (the ported partial index) serves. When `caller` is given,
+ * games seating anyone they have blocked (either direction) are hidden — the
+ * creator counts as a participant, so this covers both games a blocked user
+ * created and games they joined. */
+export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null, caller?: string): Promise<GameWithRoster[]> {
   const rows = await drizzle(d1)
     .select()
     .from(games)
-    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), olderThan(games.createdAt, cursor)))
+    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), caller === undefined ? undefined : noBlockedParticipant(d1, caller), olderThan(games.createdAt, cursor)))
     .orderBy(desc(games.createdAt))
     .limit(limit)
     .all();

@@ -40,7 +40,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { limit, cursor } = c.req.valid("query");
-      const games = await readLobby(ctx.d1(c.env), limit, cursor ?? null);
+      const games = await readLobby(ctx.d1(c.env), limit, cursor ?? null, c.var.auth.user.id);
       return c.json({ games: games.map(gameSummaryOf) }, 200);
     },
   );

@@ -9,6 +9,7 @@ import { parseClientPayload, type Seat } from "@eigen/kernel";
 import type { GameRules, JsonObject } from "@eigen/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { createGame } from "../d1/apply.js";
+import { isBlockedAmong } from "../d1/blocks.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
@@ -328,6 +329,15 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (game.createdBy === null || !(await isAcceptedFriend(ctx.d1(c.env), auth.user.id, game.createdBy))) {
         throw new HttpError(403, "This game is limited to the creator's friends", "friends_only");
       }
+    }
+    // The seating boundary: the caller and anyone they have blocked (either
+    // direction) must never share a game. Answered as `unknown_game`, not a
+    // "blocked" code — the lobby already hides this game from the pair, so a
+    // direct attempt (a shared code, a deep link) sees the same "no such game"
+    // a genuine miss would, leaking nothing and needing no new wire code.
+    const seatedUserIds = game.participants.flatMap((p) => (p.user_id !== null ? [p.user_id] : []));
+    if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
+      throw new HttpError(404, "Unknown game", "unknown_game");
     }
     return lobbyResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
   };

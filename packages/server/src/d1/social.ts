@@ -12,21 +12,11 @@
  * reusing the batch player projection.
  */
 
-import { type AnyColumn, and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
+import { noBlockedParticipant, pair, samePair } from "./blocks.js";
 import { type GameWithRoster, withRosters } from "./reads.js";
 import { games, relationships, users } from "./schema.js";
-
-/** The canonical pair order the `relationships` unique index is keyed on. */
-function pair(a: string, b: string): { u1: string; u2: string } {
-  return a < b ? { u1: a, u2: b } : { u1: b, u2: a };
-}
-
-/** A pair-matching predicate that works regardless of which argument is
- * smaller — for the search/read paths where the candidate id is a column. */
-function samePair(colA: AnyColumn, colB: AnyColumn, x: string | AnyColumn, y: string | AnyColumn) {
-  return or(and(eq(colA, x), eq(colB, y)), and(eq(colA, y), eq(colB, x)));
-}
 
 /** The outcome of `sendFriendRequest`, telling the route what (if anything) to
  * push and what to report. */
@@ -217,7 +207,9 @@ export async function friendsOpenGames(d1: D1Database, caller: string, limit: nu
   const rows = await db
     .select()
     .from(games)
-    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), cursor === null ? undefined : lt(games.createdAt, cursor)))
+    // A friend's game can still seat someone the caller has blocked — filter
+    // those out here too, not just in the plain lobby.
+    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), noBlockedParticipant(d1, caller), cursor === null ? undefined : lt(games.createdAt, cursor)))
     .orderBy(desc(games.createdAt))
     .limit(limit)
     .all();

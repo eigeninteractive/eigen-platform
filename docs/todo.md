@@ -4,15 +4,13 @@
   `?token=` upgrade, web Firebase auth, `cached_network_image` against the
   worker-served avatar URL, and the FCM service worker + VAPID key. Add web to
   the CI matrix.
-- Docs
-- Rate limiting (especially /avatars/:uid:)
 - **The `eigeninteractive` web repo.** The Cloudflare Worker that used to own the
   per-game subdomain map and serve the deep-link verification files is now
   redundant: the game Worker generates `.well-known` itself and serves `/j/`.
   Decide what to remove there, and how the apex domain and legal pages are hosted
   going forward
+- Docs
 - Client Monorepo suggestion doc
-- Client Retries?
 
 # P1
 
