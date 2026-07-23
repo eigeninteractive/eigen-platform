@@ -1,47 +1,43 @@
 ---
 sidebar_position: 1
+title: Introduction
+description: What the Eigen engine is and how its documentation is organised.
 ---
 
-# Tutorial Intro
+# Introduction
 
-Let's discover **Docusaurus in less than 5 minutes**.
+**Eigen** is an open-source, server-authoritative engine for **turn-based
+multiplayer games**. One codebase runs many games; each deployment is a single
+Cloudflare Worker that owns its own domain, database, and players.
 
-## Getting Started
+The rules run on the server, so a client's move is always a proposal the server
+validates — hidden information never leaves the server except as a per-seat
+projection, clocks are authoritative, and finished games are replayable from an
+immutable log.
 
-Get started by **creating a new site**.
+## Where things live
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+The project spans a few repositories, and this documentation is drawn from them:
 
-### What you'll need
+- **Engine** — the TypeScript packages you deploy as a Worker.
+- **Flutter client** — the app shell and transport that talk to the engine.
+- **Games** — rules modules built on the engine (for example, the games we ship
+  ourselves).
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+## How to read these docs
 
-## Generate a new site
+The documentation follows four shapes:
 
-Generate a new Docusaurus site using the **classic template**.
+- **Getting started** — build and deploy your first game.
+- **How-to guides** — task-focused recipes (rules, bots, deep links, avatars,
+  push, the game website).
+- **Explanation** — how the engine works and why it is built this way.
+- **Reference** — the HTTP API, the TypeScript and Dart APIs, and the wire
+  contract.
 
-The classic template will automatically be added to your project after you run the command:
+:::note
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+This site is being built out. Sections will fill in as the guides are synced
+from the engine and client repositories.
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+:::

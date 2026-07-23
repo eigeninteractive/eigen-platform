@@ -5,25 +5,26 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
-  favicon: 'img/favicon.ico',
+  title: 'Eigen Interactive',
+  tagline: 'The open-source engine for turn-based multiplayer games',
+  favicon: 'favicon.ico',
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
+  // The production URL — drives canonical tags and the generated sitemap, so it
+  // must be the real host.
+  url: 'https://eigeninteractive.com',
   baseUrl: '/',
+  // Emit URLs without a trailing slash, matching the worker-served game pages.
+  trailingSlash: false,
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  // Repo coordinates. `projectName` is a best guess — set it to the actual
+  // eigen-web repository name.
+  organizationName: 'eigeninteractive',
+  projectName: 'eigen-web',
 
   onBrokenLinks: 'throw',
 
@@ -41,21 +42,17 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          // No editUrl: guides are synced in from the code repos at build
+          // time, so "edit this page" has no single source here.
         },
         blog: {
           showReadingTime: true,
+          blogTitle: 'Changelog',
+          blogDescription: 'Releases and notable changes to the Eigen engine.',
           feedOptions: {
             type: ['rss', 'atom'],
             xslt: true,
           },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -69,15 +66,22 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    // Default social/OG card (1200x630), emitted as og:image + twitter:image.
+    image: 'home.og.png',
+    metadata: [
+      {
+        name: 'description',
+        content:
+          'Eigen Interactive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.',
+      },
+    ],
     colorMode: {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'My Site',
+      title: 'Eigen Interactive',
       logo: {
-        alt: 'My Site Logo',
+        alt: 'Eigen Interactive',
         src: 'img/logo.svg',
       },
       items: [
@@ -85,11 +89,11 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Tutorial',
+          label: 'Docs',
         },
-        {to: '/blog', label: 'Blog', position: 'left'},
+        {to: '/blog', label: 'Changelog', position: 'left'},
         {
-          href: 'https://github.com/facebook/docusaurus',
+          href: 'https://github.com/eigeninteractive/eigen-server',
           label: 'GitHub',
           position: 'right',
         },
@@ -102,43 +106,35 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Tutorial',
+              label: 'Introduction',
               to: '/docs/intro',
             },
           ],
         },
         {
-          title: 'Community',
+          title: 'Project',
           items: [
             {
-              label: 'Stack Overflow',
-              href: 'https://stackoverflow.com/questions/tagged/docusaurus',
+              label: 'GitHub',
+              href: 'https://github.com/seenu-k/eigen-server',
             },
             {
-              label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/docusaurus',
+              label: 'License (MIT)',
+              href: 'https://github.com/seenu-k/eigen-server/blob/main/LICENSE',
             },
           ],
         },
         {
-          title: 'More',
+          title: 'Legal',
           items: [
             {
-              label: 'Blog',
-              to: '/blog',
-            },
-            {
-              label: 'GitHub',
-              href: 'https://github.com/facebook/docusaurus',
+              label: 'Privacy Policy',
+              to: '/privacy',
             },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Eigen Interactive. MIT-licensed. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

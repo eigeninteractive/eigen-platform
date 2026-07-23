@@ -11,32 +11,32 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
+    title: 'Server-authoritative',
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        The rules run on the server. Every move is validated against the true
+        state, hidden information stays hidden, and clocks are authoritative.
       </>
     ),
   },
   {
-    title: 'Focus on What Matters',
+    title: 'One Worker per game',
     Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Each game deploys as a single Cloudflare Worker that owns its own domain,
+        database, and players — no shared infrastructure to operate.
       </>
     ),
   },
   {
-    title: 'Powered by React',
+    title: 'Bring your own game',
     Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Implement a small rules module and deploy. The engine handles identity,
+        matchmaking, ratings, history, and the game&apos;s website for you.
       </>
     ),
   },
