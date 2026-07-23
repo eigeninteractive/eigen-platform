@@ -1,13 +1,13 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
+import type * as Preset from "@docusaurus/preset-classic";
+import type { Config } from "@docusaurus/types";
+import { themes as prismThemes } from "prism-react-renderer";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'Eigen Interactive',
-  tagline: 'The open-source engine for turn-based multiplayer games',
-  favicon: 'favicon.ico',
+  title: "Eigen Interactive",
+  tagline: "The open-source engine for turn-based multiplayer games",
+  favicon: "favicon.ico",
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
@@ -16,50 +16,50 @@ const config: Config = {
 
   // The production URL — drives canonical tags and the generated sitemap, so it
   // must be the real host.
-  url: 'https://eigeninteractive.com',
-  baseUrl: '/',
+  url: "https://eigeninteractive.com",
+  baseUrl: "/",
   // Emit URLs without a trailing slash, matching the worker-served game pages.
   trailingSlash: false,
 
   // Repo coordinates. `projectName` is a best guess — set it to the actual
   // eigen-web repository name.
-  organizationName: 'eigeninteractive',
-  projectName: 'eigen-web',
+  organizationName: "eigeninteractive",
+  projectName: "eigen-web",
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: "throw",
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
   // may want to replace "en" with "zh-Hans".
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
+    defaultLocale: "en",
+    locales: ["en"],
   },
 
   presets: [
     [
-      'classic',
+      "classic",
       {
         docs: {
-          sidebarPath: './sidebars.ts',
+          sidebarPath: "./sidebars.ts",
           // No editUrl: guides are synced in from the code repos at build
           // time, so "edit this page" has no single source here.
         },
         blog: {
           showReadingTime: true,
-          blogTitle: 'Changelog',
-          blogDescription: 'Releases and notable changes to the Eigen engine.',
+          blogTitle: "Changelog",
+          blogDescription: "Releases and notable changes to the Eigen engine.",
           feedOptions: {
-            type: ['rss', 'atom'],
+            type: ["rss", "atom"],
             xslt: true,
           },
           // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
+          onInlineTags: "warn",
+          onInlineAuthors: "warn",
+          onUntruncatedBlogPosts: "warn",
         },
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
     ],
@@ -67,69 +67,68 @@ const config: Config = {
 
   themeConfig: {
     // Default social/OG card (1200x630), emitted as og:image + twitter:image.
-    image: 'home.og.png',
+    image: "home.og.png",
     metadata: [
       {
-        name: 'description',
-        content:
-          'Eigen Interactive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.',
+        name: "description",
+        content: "Eigen Interactive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.",
       },
     ],
     colorMode: {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Eigen Interactive',
+      title: "Eigen Interactive",
       logo: {
-        alt: 'Eigen Interactive',
-        src: 'img/logo.svg',
+        alt: "Eigen Interactive",
+        src: "img/logo.svg",
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'Docs',
+          type: "docSidebar",
+          sidebarId: "tutorialSidebar",
+          position: "left",
+          label: "Docs",
         },
-        {to: '/blog', label: 'Changelog', position: 'left'},
+        { to: "/blog", label: "Changelog", position: "left" },
         {
-          href: 'https://github.com/eigeninteractive/eigen-server',
-          label: 'GitHub',
-          position: 'right',
+          href: "https://github.com/eigeninteractive/eigen-server",
+          label: "GitHub",
+          position: "right",
         },
       ],
     },
     footer: {
-      style: 'dark',
+      style: "dark",
       links: [
         {
-          title: 'Docs',
+          title: "Docs",
           items: [
             {
-              label: 'Introduction',
-              to: '/docs/intro',
+              label: "Introduction",
+              to: "/docs/intro",
             },
           ],
         },
         {
-          title: 'Project',
+          title: "Project",
           items: [
             {
-              label: 'GitHub',
-              href: 'https://github.com/seenu-k/eigen-server',
+              label: "GitHub",
+              href: "https://github.com/seenu-k/eigen-server",
             },
             {
-              label: 'License (MIT)',
-              href: 'https://github.com/seenu-k/eigen-server/blob/main/LICENSE',
+              label: "License (MIT)",
+              href: "https://github.com/seenu-k/eigen-server/blob/main/LICENSE",
             },
           ],
         },
         {
-          title: 'Legal',
+          title: "Legal",
           items: [
             {
-              label: 'Privacy Policy',
-              to: '/privacy',
+              label: "Privacy Policy",
+              to: "/privacy",
             },
           ],
         },
