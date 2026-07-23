@@ -163,9 +163,10 @@ export const bots = sqliteTable(
 
 /** Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
  * set. `revision` is the CAS counter: the finish apply reads
- * (mu, sigma, revision), computes in TS, updates WHERE revision matches, and
- * recomputes on conflict — the fix for the legacy concurrent-finish
- * lost-update bug. */
+ * (mu, sigma, revision), computes in TS, and writes a `rating_history` row
+ * stamped with the revision it read — whose UNIQUE index is what rejects a
+ * concurrent finish (see `rating_history.revision_before`). The fix for the
+ * legacy concurrent-finish lost-update bug. */
 export const playerRatings = sqliteTable(
   "player_ratings",
   {
@@ -184,8 +185,25 @@ export const playerRatings = sqliteTable(
   (t) => [uniqueIndex("idx_player_ratings_user_pool").on(t.userId, t.pool).where(sql`user_id IS NOT NULL`), uniqueIndex("idx_player_ratings_bot_pool").on(t.botId, t.pool).where(sql`bot_id IS NOT NULL`)],
 );
 
-/** Immutable per-game rating log for the profile history screen. Unique per
- * (game, identity) and carrying finish_id, so a re-poked apply is a no-op. */
+/** Immutable per-game rating log for the profile history screen — and the
+ * concurrency control for rating writes.
+ *
+ * Two unique indexes, guarding two different races:
+ *
+ * - `(game_id, identity)` — idempotence. A re-poked apply for the SAME game
+ *   cannot double-write. Paired with `finish_id`.
+ * - `(identity, pool, revision_before)` — the CAS. Two finishes of DIFFERENT
+ *   games sharing a player both read revision 7 and both try to log
+ *   `revision_before = 7`; the second violates this index, its batch rolls
+ *   back, and the apply recomputes against fresh priors. This is what makes
+ *   the lost update impossible.
+ *
+ * The CAS lives here rather than on the `player_ratings` UPDATE because
+ * SQLite has no in-transaction abort primitive to reach for: an
+ * `UPDATE ... WHERE revision = ?` that matches nothing silently succeeds,
+ * so a guard there would let the other statements in the batch commit
+ * against stale priors. A unique-index violation is an error, and an error
+ * is what rolls a `batch()` back. */
 export const ratingHistory = sqliteTable(
   "rating_history",
   {
@@ -195,6 +213,11 @@ export const ratingHistory = sqliteTable(
     gameId: text("game_id").notNull(),
     pool: text("pool").notNull(),
     finishId: text("finish_id").notNull(),
+    /** The `player_ratings.revision` this delta was computed against — 0 for
+     * an identity that had no rating row yet. The post-write revision is
+     * always this + 1, so the column doubles as the per-identity ordering of
+     * the log. */
+    revisionBefore: integer("revision_before").notNull(),
     muBefore: real("mu_before").notNull(),
     sigmaBefore: real("sigma_before").notNull(),
     displayBefore: integer("display_before").notNull(),
@@ -204,7 +227,15 @@ export const ratingHistory = sqliteTable(
     displayChange: integer("display_change").notNull(),
     createdAt: integer("created_at").notNull(),
   },
-  (t) => [uniqueIndex("idx_rating_history_game_user").on(t.gameId, t.userId).where(sql`user_id IS NOT NULL`), uniqueIndex("idx_rating_history_game_bot").on(t.gameId, t.botId).where(sql`bot_id IS NOT NULL`), index("idx_rating_history_user_pool").on(t.userId, t.pool, t.createdAt)],
+  (t) => [
+    uniqueIndex("idx_rating_history_game_user").on(t.gameId, t.userId).where(sql`user_id IS NOT NULL`),
+    uniqueIndex("idx_rating_history_game_bot").on(t.gameId, t.botId).where(sql`bot_id IS NOT NULL`),
+    // The CAS (see the table docstring). Partial, because exactly one
+    // identity column is set per row.
+    uniqueIndex("idx_rating_history_user_cas").on(t.userId, t.pool, t.revisionBefore).where(sql`user_id IS NOT NULL`),
+    uniqueIndex("idx_rating_history_bot_cas").on(t.botId, t.pool, t.revisionBefore).where(sql`bot_id IS NOT NULL`),
+    index("idx_rating_history_user_pool").on(t.userId, t.pool, t.createdAt),
+  ],
 );
 
 /** FCM push targets, keyed by Firebase Installation ID — unchanged. */

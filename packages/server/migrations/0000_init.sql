@@ -87,6 +87,7 @@ CREATE TABLE `rating_history` (
 	`game_id` text NOT NULL,
 	`pool` text NOT NULL,
 	`finish_id` text NOT NULL,
+	`revision_before` integer NOT NULL,
 	`mu_before` real NOT NULL,
 	`sigma_before` real NOT NULL,
 	`display_before` integer NOT NULL,
@@ -99,6 +100,8 @@ CREATE TABLE `rating_history` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `idx_rating_history_game_user` ON `rating_history` (`game_id`,`user_id`) WHERE user_id IS NOT NULL;--> statement-breakpoint
 CREATE UNIQUE INDEX `idx_rating_history_game_bot` ON `rating_history` (`game_id`,`bot_id`) WHERE bot_id IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_rating_history_user_cas` ON `rating_history` (`user_id`,`pool`,`revision_before`) WHERE user_id IS NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_rating_history_bot_cas` ON `rating_history` (`bot_id`,`pool`,`revision_before`) WHERE bot_id IS NOT NULL;--> statement-breakpoint
 CREATE INDEX `idx_rating_history_user_pool` ON `rating_history` (`user_id`,`pool`,`created_at`);--> statement-breakpoint
 CREATE TABLE `relationships` (
 	`id` text PRIMARY KEY NOT NULL,

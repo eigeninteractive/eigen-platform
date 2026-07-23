@@ -11,6 +11,7 @@ export { ensureUser, type UserRow } from "./auth/provision.js";
 // its owner. The signing/verifying halves stay internal — the engine does that.
 export { deriveBotKey } from "./bot/bot-auth.js";
 export { applyFinish, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readGameRow, updateSummary } from "./d1/apply.js";
+export { isTransientD1Error, type RetryOptions, withRetry } from "./d1/retry.js";
 export * as d1Schema from "./d1/schema.js";
 export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";
 export * as doSchema from "./do/schema.js";

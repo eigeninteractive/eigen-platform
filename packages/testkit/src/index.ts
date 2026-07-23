@@ -22,6 +22,7 @@ export {
   type BotSeatableCase,
   deepEquals,
   evaluateTwinCase,
+  parseTwinFixtureFile,
   type RatingPoolCase,
   type TwinFixtureCase,
   type TwinFixtureFile,

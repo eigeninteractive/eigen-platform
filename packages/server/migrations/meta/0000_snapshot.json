@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "62d138d5-643c-467f-9d3f-5ed86724c4cd",
+  "id": "c8167a61-8399-466c-abae-e9710ddce564",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -577,6 +577,13 @@
           "notNull": true,
           "autoincrement": false
         },
+        "revision_before": {
+          "name": "revision_before",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "mu_before": {
           "name": "mu_before",
           "type": "real",
@@ -649,6 +656,26 @@
           "columns": [
             "game_id",
             "bot_id"
+          ],
+          "isUnique": true,
+          "where": "bot_id IS NOT NULL"
+        },
+        "idx_rating_history_user_cas": {
+          "name": "idx_rating_history_user_cas",
+          "columns": [
+            "user_id",
+            "pool",
+            "revision_before"
+          ],
+          "isUnique": true,
+          "where": "user_id IS NOT NULL"
+        },
+        "idx_rating_history_bot_cas": {
+          "name": "idx_rating_history_bot_cas",
+          "columns": [
+            "bot_id",
+            "pool",
+            "revision_before"
           ],
           "isUnique": true,
           "where": "bot_id IS NOT NULL"

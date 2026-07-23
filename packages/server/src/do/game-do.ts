@@ -36,6 +36,7 @@ import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
 import { type Bot, readBot } from "../d1/reads.js";
+import { withRetry } from "../d1/retry.js";
 import { finishPush, pushToUser, readServiceAccount, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot, SyncMessage } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
@@ -177,7 +178,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Object stays alive while a promise is pending, so an unawaited (but
     // .catch-guarded) promise runs to completion on its own — waitUntil is a
     // stateless-Worker idiom that's redundant here.
-    void mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }).catch((error) => console.error(`roster mirror failed for game ${gameId}`, error));
+    this.#mirrorD1(`roster mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }));
     return response;
   }
 
@@ -382,19 +383,36 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (finish !== null) {
       void this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next).catch((error) => console.error(`finish effects failed for game ${gameId}`, error));
     } else {
-      void updateSummary(this.d1(this.env), {
-        gameId,
-        ...(cmd.kind === "start" ? { status: "active" as const } : {}),
-        pendingPlayers: next.pending,
-        turnDeadline: next.deadline,
-        now,
-      }).catch((error) => console.error(`summary upsert failed for game ${gameId}`, error));
+      this.#mirrorD1(`summary upsert for game ${gameId}`, () =>
+        updateSummary(this.d1(this.env), {
+          gameId,
+          ...(cmd.kind === "start" ? { status: "active" as const } : {}),
+          pendingPlayers: next.pending,
+          turnDeadline: next.deadline,
+          now,
+        }),
+      );
     }
     // Named post-commit effects: bot turns and human turn/finish pushes.
     if (plan.effects.length > 0) {
       void this.#dispatchEffects(meta, roster, plan, next).catch((error) => console.error(`effect dispatch failed for game ${gameId}`, error));
     }
     return response;
+  }
+
+  /** Fire a background D1 mirror write (roster / summary) off the response
+   * path, retrying transient D1 failures.
+   *
+   * These rows are display-only and re-derivable, but they have no
+   * reconciliation sweep, so a lost write stays stale until the next
+   * transition. A bounded jittered retry recovers the common case — a
+   * transient reset or network blip — while a deterministic failure still
+   * surfaces once. Unawaited and self-catching: the DO stays alive for the
+   * pending promise, so the backoff runs to completion without `waitUntil`. */
+  #mirrorD1(label: string, write: () => Promise<void>): void {
+    void withRetry(write, {
+      onRetry: (error, attempt) => console.warn(`${label} failed (attempt ${attempt}), retrying`, error),
+    }).catch((error) => console.error(`${label} failed after retries`, error));
   }
 
   // ── Post-commit effects — bot turns, and turn/finish pushes ──────────

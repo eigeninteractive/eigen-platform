@@ -111,16 +111,38 @@ export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<Game
 }
 
 export async function readGame(d1: D1Database, gameId: string): Promise<GameWithRoster | undefined> {
-  const row = await drizzle(d1).select().from(games).where(eq(games.id, gameId)).get();
+  const db = drizzle(d1);
+  // The games row and its roster are both keyed by the known id, so they go
+  // in ONE round trip (mirrors readGameRow's batch in apply.ts). This matters
+  // because readGame is on the socket-upgrade path — the "404 without waking a
+  // DO for garbage ids" guard — where every connect otherwise pays two
+  // sequential D1 trips. withRatings below adds no trip for a live game (it
+  // returns early when nothing is finished+rated).
+  const [gameRows, seatRows] = await db.batch([
+    db.select().from(games).where(eq(games.id, gameId)),
+    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
+  ]);
+  const row = gameRows[0];
   if (row === undefined) return undefined;
-  return (await withRosters(d1, [row]))[0];
+  return (await withRatings(d1, [{ ...row, participants: seatRows }]))[0];
 }
 
 /** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
-  const row = await drizzle(d1).select().from(games).where(eq(games.shortCode, shortCode)).get();
+  const db = drizzle(d1);
+  // One round trip, like readGame — but the roster is keyed by game_id, which
+  // a code lookup does not yield until it resolves. A subquery bridges the gap:
+  // participants are filtered by "the id of the row with this short_code", so
+  // both statements still go in a single batch instead of a sequential id
+  // lookup. (readGame needs no subquery — it already holds the id.)
+  const idForCode = db.select({ id: games.id }).from(games).where(eq(games.shortCode, shortCode));
+  const [gameRows, seatRows] = await db.batch([
+    db.select().from(games).where(eq(games.shortCode, shortCode)),
+    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(inArray(participants.gameId, idForCode)).orderBy(participants.playerIndex),
+  ]);
+  const row = gameRows[0];
   if (row === undefined) return undefined;
-  return (await withRosters(d1, [row]))[0];
+  return (await withRatings(d1, [{ ...row, participants: seatRows }]))[0];
 }
 
 /** Keyset pagination: fetch strictly older than the caller's last row.

@@ -126,6 +126,149 @@ export interface BotSeatableCase {
 
 export type TwinFixtureCase = ActionCase | RatingPoolCase | BotSeatableCase;
 
+// ── Fixture validation ────────────────────────────────────────────────────────
+//
+// The case types above are compile-time only; the JSON they describe arrives
+// at runtime from a hand-written file. Asserting `JSON.parse(...) as
+// TwinFixtureFile` would make every field a lie the moment a fixture is
+// mistyped — and because most fields flow straight into a comparison, the
+// symptom would be a confusing `undefined` diff attributed to the game's
+// rules rather than to the fixture. These parsers close that gap: a
+// malformed fixture fails at LOAD, naming the file, the case, and the field.
+//
+// Hand-written rather than schema-library-backed on purpose: `@eigen/rules`
+// describes an implementor's schemas with `StandardSchemaV1` precisely so the
+// engine never mandates a validation library, and the Dart twin runner is
+// deliberately framework-free. This is ~80 lines and keeps both true.
+
+function describe(value: unknown): string {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "an array";
+  return typeof value;
+}
+
+function fail(where: string, expected: string, got: unknown): never {
+  throw new Error(`${where}: expected ${expected}, got ${describe(got)}`);
+}
+
+function asObject(where: string, v: unknown): JsonObject {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) fail(where, "an object", v);
+  return v as JsonObject;
+}
+
+function asString(where: string, v: unknown): string {
+  if (typeof v !== "string") fail(where, "a string", v);
+  return v;
+}
+
+function asNumber(where: string, v: unknown): number {
+  if (typeof v !== "number" || !Number.isFinite(v)) fail(where, "a finite number", v);
+  return v;
+}
+
+function asBoolean(where: string, v: unknown): boolean {
+  if (typeof v !== "boolean") fail(where, "a boolean", v);
+  return v;
+}
+
+function asNumberArray(where: string, v: unknown): number[] {
+  if (!Array.isArray(v)) fail(where, "an array of numbers", v);
+  return v.map((n, i) => asNumber(`${where}[${i}]`, n));
+}
+
+/** Applies `read` only when the key is present and non-null; absent and
+ * explicit null both mean "not specified" for every optional fixture field. */
+function optional<T>(where: string, v: unknown, read: (where: string, v: unknown) => T): T | undefined {
+  return v === undefined || v === null ? undefined : read(where, v);
+}
+
+function parseActionCase(where: string, raw: JsonObject): ActionCase {
+  const expectedRaw = asObject(`${where}.expected`, raw.expected);
+  const expected: ActionCase["expected"] = {
+    valid: asBoolean(`${where}.expected.valid`, expectedRaw.valid),
+    state: optional(`${where}.expected.state`, expectedRaw.state, asObject),
+    pending: optional(`${where}.expected.pending`, expectedRaw.pending, asNumberArray),
+    observation: optional(`${where}.expected.observation`, expectedRaw.observation, asObject),
+  };
+  // `outcome` is three-valued: absent (unchecked), null (asserts the game is
+  // ongoing), or a list. `checkEnvelope` distinguishes absent from null with
+  // an `in` test, so the key must only be set when the fixture set it.
+  if ("outcome" in expectedRaw) {
+    const outcome = expectedRaw.outcome;
+    if (outcome !== null && !Array.isArray(outcome)) fail(`${where}.expected.outcome`, "an array or null", outcome);
+    expected.outcome = outcome as OutcomeEntry[] | null;
+  }
+  return {
+    kind: "action",
+    name: asString(`${where}.name`, raw.name),
+    config: asObject(`${where}.config`, raw.config),
+    state: asObject(`${where}.state`, raw.state),
+    obs: optional(`${where}.obs`, raw.obs, asObject),
+    pending: asNumberArray(`${where}.pending`, raw.pending),
+    playerIndex: asNumber(`${where}.playerIndex`, raw.playerIndex),
+    participantCount: optional(`${where}.participantCount`, raw.participantCount, asNumber),
+    rngSeed: optional(`${where}.rngSeed`, raw.rngSeed, asString),
+    action: asObject(`${where}.action`, raw.action),
+    expected,
+  };
+}
+
+function parseRatingPoolCase(where: string, raw: JsonObject): RatingPoolCase {
+  const access = asString(`${where}.access`, raw.access);
+  if (access !== "public" && access !== "private" && access !== "friends") {
+    throw new Error(`${where}.access: expected one of public | private | friends, got ${JSON.stringify(access)}`);
+  }
+  return {
+    kind: "ratingPool",
+    name: asString(`${where}.name`, raw.name),
+    access,
+    turnSeconds: optional(`${where}.turnSeconds`, raw.turnSeconds, asNumber) ?? null,
+    budgetSeconds: optional(`${where}.budgetSeconds`, raw.budgetSeconds, asNumber) ?? null,
+    incrementSeconds: optional(`${where}.incrementSeconds`, raw.incrementSeconds, asNumber) ?? null,
+    minPlayers: asNumber(`${where}.minPlayers`, raw.minPlayers),
+    maxPlayers: asNumber(`${where}.maxPlayers`, raw.maxPlayers),
+    config: asObject(`${where}.config`, raw.config),
+    expected: raw.expected === null ? null : asString(`${where}.expected`, raw.expected),
+  };
+}
+
+function parseBotSeatableCase(where: string, raw: JsonObject): BotSeatableCase {
+  return {
+    kind: "botSeatable",
+    name: asString(`${where}.name`, raw.name),
+    gameConfig: asObject(`${where}.gameConfig`, raw.gameConfig),
+    botConfig: asObject(`${where}.botConfig`, raw.botConfig),
+    expected: asBoolean(`${where}.expected`, raw.expected),
+  };
+}
+
+/** Validate one fixture file's parsed JSON, or throw naming the offending
+ * file, case, and field. Exported so a repo can lint its fixtures without
+ * running them. */
+export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFile {
+  const root = asObject(path, json);
+  const schemaVersion = asNumber(`${path}.schemaVersion`, root.schemaVersion);
+  if (!Array.isArray(root.cases)) fail(`${path}.cases`, "an array", root.cases);
+  const cases = root.cases.map((raw, i) => {
+    // Prefer the case's own name in the location once we can read it — a
+    // fixture author finds "cases[3] (seat 0 wins)" faster than an index.
+    const indexed = `${path}.cases[${i}]`;
+    const obj = asObject(indexed, raw);
+    const where = typeof obj.name === "string" ? `${indexed} (${obj.name})` : indexed;
+    switch (obj.kind) {
+      case "action":
+        return parseActionCase(where, obj);
+      case "ratingPool":
+        return parseRatingPoolCase(where, obj);
+      case "botSeatable":
+        return parseBotSeatableCase(where, obj);
+      default:
+        throw new Error(`${where}.kind: expected one of action | ratingPool | botSeatable, got ${JSON.stringify(obj.kind)}`);
+    }
+  });
+  return { schemaVersion, cases };
+}
+
 /** Run one fixture case against a rules unit, returning failure descriptions
  * (empty ⇒ the case passes). Pure — the file-reading test registrar is
  * {@link twinFixtureTests}. */
@@ -147,7 +290,7 @@ export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): strin
  * running in a Node environment. */
 export function twinFixtureTests(gameModule: GameModule, fixturesRoot: string | URL): void {
   for (const filePath of fixtureFiles(fixturesRoot)) {
-    const fixture = JSON.parse(readFileSync(filePath, "utf8")) as TwinFixtureFile;
+    const fixture = parseTwinFixtureFile(filePath, JSON.parse(readFileSync(filePath, "utf8")));
     const rules = gameModule.versions[fixture.schemaVersion];
     for (const kase of fixture.cases) {
       it(`twin v${fixture.schemaVersion}: ${kase.name}`, () => {

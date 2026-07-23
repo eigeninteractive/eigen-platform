@@ -10,13 +10,13 @@
  * transaction, so the dedupe marker and the effects it guards can never
  * disagree.
  *
- * The CAS: each history INSERT reads its before-values from the live
- * player_ratings row via subselects filtered by the revision we computed
- * against; a concurrent finish bumps the revision, the subselect returns
- * NULL, the NOT NULL column rejects the row, and the whole batch rolls back —
- * then we re-read fresh priors and recompute (step 5: recompute on
- * conflict). Within one committed batch there is no concurrent writer, so a
- * validated revision guarantees the paired UPDATE lands.
+ * The CAS: each history INSERT is stamped with the `player_ratings.revision`
+ * its delta was computed against, and `idx_rating_history_{user,bot}_cas`
+ * makes (identity, pool, revision_before) unique. A concurrent finish that
+ * read the same revision therefore collides on that index, its batch rolls
+ * back, and we re-read fresh priors and recompute. Within one committed
+ * batch there is no concurrent writer, so a history row that landed
+ * guarantees its paired rating write did too.
  */
 
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigen/kernel";
@@ -78,7 +78,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     const players = input.outcomes.map((entry) => {
       const seat = input.roster.find((s) => s.player_index === entry.player_index);
       if (!seat) throw new GameBugError(`Outcome for unknown seat ${entry.player_index}`);
-      const prior = priors.get(identityKey(seat.user_id, seat.bot_id)) ?? { ...defaultRating(), revision: null };
+      const prior = priors.get(identityKey(seat.user_id, seat.bot_id)) ?? { ...defaultRating(), revision: 0 };
       return {
         player_index: entry.player_index,
         user_id: seat.user_id,
@@ -93,7 +93,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     const results = computeRatings(players);
     const allDeltas: RatingDelta[] = results.map((r) => {
       const key = identityKey(r.identity.user_id, r.identity.bot_id);
-      const prior = priors.get(key) ?? { ...defaultRating(), revision: null };
+      const prior = priors.get(key) ?? { ...defaultRating(), revision: 0 };
       return {
         identity: r.identity,
         pool,
@@ -125,19 +125,43 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
       await db.batch(statements as [typeof summaryUpdate, ...typeof statements]);
       return deltas;
     } catch (error) {
-      // A CAS conflict (revision moved / row appeared) aborts the batch by
-      // design; anything is retried with fresh priors up to the bound.
-      if (attempt === CAS_ATTEMPTS) throw error;
+      // Only a CAS conflict is retryable, and it is the ONLY error this batch
+      // is expected to produce: a concurrent finish collided on
+      // idx_rating_history_*_cas. Anything else (a schema mistake, a D1
+      // outage) is deterministic or needs a different remedy, and retrying it
+      // four more times just delays the report — so it propagates now.
+      if (!isUniqueViolation(error) || attempt === CAS_ATTEMPTS) throw error;
     }
   }
   throw new GameBugError("unreachable: CAS loop exit");
 }
 
+/** A SQLite UNIQUE-index rejection.
+ *
+ * Matched on text because neither D1 nor drizzle exposes a structured error
+ * code — and matched down the `cause` chain because drizzle rethrows with its
+ * own "Failed query: ..." message, which does NOT contain the constraint
+ * text. Testing only the top-level message silently classifies every CAS
+ * conflict as fatal, disabling the retry this function exists to enable
+ * (`ratings-cas.spec.ts` covers it). The real chain is:
+ *
+ *   Error: Failed query: insert into "rating_history" ...
+ *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.user_id, ...
+ *          └─ Error: UNIQUE constraint failed: rating_history.user_id, ...
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  for (let e: unknown = error, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
+    if (/UNIQUE constraint failed/i.test(e.message)) return true;
+  }
+  return false;
+}
+
 interface PriorRow {
   mu: number;
   sigma: number;
-  /** Null ⇒ no player_ratings row yet (never-rated identity). */
-  revision: number | null;
+  /** The row's CAS counter. Absent from the map ⇒ no player_ratings row yet,
+   * which the apply reads as revision 0. */
+  revision: number;
 }
 
 function identityKey(userId: string | null, botId: string | null): string {
@@ -171,18 +195,41 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
   return priors;
 }
 
-/** Per identity: the history INSERT (whose revision-guarded subselects are
- * the CAS check) followed by the rating UPDATE, or a plain INSERT for a
- * first-time identity (a concurrent creation trips the unique index and
- * rolls the batch back — same retry path). */
+/** Per identity: the history INSERT — stamped with the revision this delta
+ * was computed against, which is the CAS (see the module docstring) — then
+ * the paired rating write. A never-rated identity has `revision_before = 0`
+ * and gets an INSERT; everyone else gets an UPDATE to `revision_before + 1`.
+ *
+ * Both paths are guarded by the same index, so a first-time identity racing
+ * another first-time write and an established identity racing a concurrent
+ * finish fail identically and take the same retry. */
 function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
   const statements = [];
   for (const delta of deltas) {
     const { user_id: userId, bot_id: botId } = delta.identity;
-    const prior = priors.get(identityKey(userId, botId));
-    const identityWhere = userId !== null ? and(eq(playerRatings.userId, userId), eq(playerRatings.pool, pool)) : and(eq(playerRatings.botId, botId as string), eq(playerRatings.pool, pool));
+    const revisionBefore = priors.get(identityKey(userId, botId))?.revision ?? 0;
 
-    if (prior === undefined || prior.revision === null) {
+    statements.push(
+      db.insert(ratingHistory).values({
+        id: crypto.randomUUID(),
+        userId,
+        botId,
+        gameId: input.gameId,
+        pool,
+        finishId: input.finishId,
+        revisionBefore,
+        muBefore: delta.mu_before,
+        sigmaBefore: delta.sigma_before,
+        displayBefore: delta.display_before,
+        muAfter: delta.mu_after,
+        sigmaAfter: delta.sigma_after,
+        displayAfter: delta.display_after,
+        displayChange: delta.display_change,
+        createdAt: input.now,
+      }),
+    );
+
+    if (revisionBefore === 0) {
       statements.push(
         db.insert(playerRatings).values({
           id: crypto.randomUUID(),
@@ -197,17 +244,8 @@ function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInpu
           updatedAt: input.now,
         }),
       );
-      statements.push(db.insert(ratingHistory).values(historyValues(input, pool, delta, userId, botId)));
     } else {
-      const guard = and(identityWhere, eq(playerRatings.revision, prior.revision));
-      statements.push(
-        db.insert(ratingHistory).values({
-          ...historyValues(input, pool, delta, userId, botId),
-          // The CAS: NULL (revision moved) violates NOT NULL → batch rollback.
-          muBefore: sql`(SELECT mu FROM player_ratings WHERE ${guard})`,
-          sigmaBefore: sql`(SELECT sigma FROM player_ratings WHERE ${guard})`,
-        }),
-      );
+      const identityWhere = userId !== null ? and(eq(playerRatings.userId, userId), eq(playerRatings.pool, pool)) : and(eq(playerRatings.botId, botId as string), eq(playerRatings.pool, pool));
       statements.push(
         db
           .update(playerRatings)
@@ -215,33 +253,17 @@ function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInpu
             mu: delta.mu_after,
             sigma: delta.sigma_after,
             displayRating: delta.display_after,
-            revision: prior.revision + 1,
+            revision: revisionBefore + 1,
             updatedAt: input.now,
           })
-          .where(guard),
+          // Redundant given the history index above — a silent no-op here
+          // is unreachable once that INSERT committed. Kept as a cheap
+          // assertion, not as the guard.
+          .where(and(identityWhere, eq(playerRatings.revision, revisionBefore))),
       );
     }
   }
   return statements;
-}
-
-function historyValues(input: FinishApplyInput, pool: string, delta: RatingDelta, userId: string | null, botId: string | null) {
-  return {
-    id: crypto.randomUUID(),
-    userId,
-    botId,
-    gameId: input.gameId,
-    pool,
-    finishId: input.finishId,
-    muBefore: delta.mu_before,
-    sigmaBefore: delta.sigma_before,
-    displayBefore: delta.display_before,
-    muAfter: delta.mu_after,
-    sigmaAfter: delta.sigma_after,
-    displayAfter: delta.display_after,
-    displayChange: delta.display_change,
-    createdAt: input.now,
-  };
 }
 
 /** A crashed-then-re-poked apply already landed: rebuild the deltas the DO
