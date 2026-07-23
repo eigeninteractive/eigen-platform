@@ -30,4 +30,8 @@ export default createEngine({
   // /avatars/{uid} route). Local R2 simulation under `wrangler dev` — a real
   // bucket enters only at a deploy with uploads enabled.
   avatars: { bucket: (env: Env) => env.AVATARS },
+  // Per-user write rate limits need NO wiring here: the engine resolves each
+  // limiter by the conventional binding name, and the `ratelimits` block in
+  // wrangler.jsonc is the pasted `defaultRateLimitsConfig()`. Supply `rateLimit`
+  // only to back a limiter differently.
 });

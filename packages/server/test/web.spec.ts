@@ -4,7 +4,7 @@
  * avatar upload/serve/purge round trip against a locally-simulated R2 bucket.
  */
 
-import { exports } from "cloudflare:workers";
+import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { testBearer as bearer } from "../src/testing.js";
 
@@ -93,6 +93,28 @@ describe("avatars", () => {
     expect((await upload(a, "application/pdf", png)).status).toBe(415);
     expect((await upload(a, "image/png", new Uint8Array(0))).status).toBe(400);
     expect((await upload(a, "image/png", new Uint8Array(5000))).status).toBe(413); // maxBytes 4096
+  });
+
+  it("serves a repeat read from the edge cache, surviving the underlying object", async () => {
+    const a = uid("cache");
+    const { avatar_url } = (await (await upload(a, "image/png", png)).json()) as { avatar_url: string };
+
+    // First read populates the Worker's edge cache (via waitUntil).
+    const first = await exports.default.fetch(`https://x${avatar_url}`);
+    expect(first.status).toBe(200);
+    expect(new Uint8Array(await first.arrayBuffer())).toEqual(png);
+
+    // Remove the object out of band. A read of a DIFFERENT (uncached) URL for
+    // the same uid now 404s — proof R2 is genuinely empty...
+    await env.AVATARS.delete(a);
+    expect((await exports.default.fetch(`https://x/avatars/${a}?v=0`)).status).toBe(404);
+
+    // ...yet the original versioned URL still serves the bytes: it came from
+    // the cache, never R2. (This is exactly why account deletion must
+    // invalidate the entry — see the next test.)
+    const second = await exports.default.fetch(`https://x${avatar_url}`);
+    expect(second.status).toBe(200);
+    expect(new Uint8Array(await second.arrayBuffer())).toEqual(png);
   });
 
   it("deletes the avatar object when the account is deleted", async () => {

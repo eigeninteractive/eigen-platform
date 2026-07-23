@@ -10,7 +10,7 @@
   Decide what to remove there, and how the apex domain and legal pages are hosted
   going forward
 - Docs
-- Client Monorepo suggestion doc
+- Scaffolding and implementor Monorepo suggestions
 
 # P1
 

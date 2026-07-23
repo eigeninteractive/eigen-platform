@@ -41,6 +41,7 @@ import { HttpError } from "./http.js";
 import { type LifecycleOptions, runScheduled } from "./lifecycle/cron.js";
 import type { EngineOps } from "./lifecycle/purge.js";
 import type { GameStub } from "./protocol.js";
+import { isRateLimiter, RATE_LIMIT_BINDING, type RateLimiter, type RateLimitName } from "./rate-limit.js";
 import { registerAccountRoutes } from "./routes/account.js";
 import { registerAvatarServe, registerAvatarUpload } from "./routes/avatars.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
@@ -111,6 +112,14 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   deepLink?: DeepLinkConfig;
   /** Opt-in avatar uploads. Omit → not mounted. */
   avatars?: AvatarsConfig<TEnv>;
+  /** Per-user write rate limiting — an OVERRIDE of the default wiring. Omit and
+   * the engine resolves each limiter by the conventional binding name
+   * (`RATE_LIMIT_BINDING`): paste the `defaultRateLimitsConfig()` block into
+   * Wrangler and limiting is on, with nothing to wire here. Supply this only to
+   * back a limiter differently (share one binding, vary by env); return
+   * `undefined` for a name to leave it unlimited. A name bound nowhere is
+   * unlimited — the local/dev default. */
+  rateLimit?(env: TEnv, name: RateLimitName): RateLimiter | undefined;
   /** Cron-backstop tuning — guest-purge/reap windows and batch caps.
    * Omit for the defaults ({@link LIFECYCLE_DEFAULTS}); set any subset to
    * override just those. */
@@ -154,6 +163,9 @@ export interface RouteContext {
   /** Avatar config, or null when uploads are not enabled — the
    * upload/serve routes are then not mounted. */
   avatars: ResolvedAvatars | null;
+  /** Resolve the rate limiter for a logical name, or null when limiting is not
+   * configured (dev/local) or that name is left unlimited. */
+  rateLimit(env: unknown, name: RateLimitName): RateLimiter | null;
 }
 
 /** What the auth middleware resolves for every request. */
@@ -187,7 +199,8 @@ export type EngineApp = ReturnType<typeof newOpenApiApp>;
 
 const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof HttpError) {
-    return c.json({ error: error.message, ...(error.code !== undefined ? { code: error.code } : {}) }, error.status);
+    const headers = error.retryAfterSeconds !== undefined ? { "Retry-After": String(error.retryAfterSeconds) } : undefined;
+    return c.json({ error: error.message, ...(error.code !== undefined ? { code: error.code } : {}) }, error.status, headers);
   }
   if (error instanceof AuthError) {
     return c.json({ error: error.message }, 401);
@@ -339,6 +352,13 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
             maxBytes: cfg.avatars.maxBytes ?? 2 * 1024 * 1024,
             publicBaseUrl: (env) => (cfg.avatars as AvatarsConfig<TEnv>).publicBaseUrl?.(env as TEnv),
           },
+    // App-supplied wiring wins; otherwise resolve the conventional binding name
+    // off env, so pasting the default `ratelimits` block is the whole setup.
+    rateLimit: (env, name) => {
+      if (cfg.rateLimit !== undefined) return cfg.rateLimit(env as TEnv, name) ?? null;
+      const binding = (env as Record<string, unknown>)[RATE_LIMIT_BINDING[name]];
+      return isRateLimiter(binding) ? binding : null;
+    },
   };
   const app = buildApp(ctx);
   const ops = (env: TEnv): EngineOps => ({
@@ -366,7 +386,7 @@ export function openApiDocument(): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
-  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null });
+  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null, rateLimit: () => null });
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {

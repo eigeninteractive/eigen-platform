@@ -59,6 +59,17 @@
       "bucket_name": "eigeninteractive-rps-avatars-dev"
     }
   ],
+  // Per-user write rate limits — this block is exactly `defaultRateLimitsConfig()`
+  // from @eigen/server (the engine owns the default values). The engine wires
+  // each entry by its conventional name, so no code is needed in index.ts. Edit
+  // a `simple` value to override a limiter; `period` is 10 or 60 only. Per-colo
+  // and eventually consistent — an abuse dampener, not a hard quota.
+  "ratelimits": [
+    { "name": "RATE_LIMIT_AVATAR_UPLOAD", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "RATE_LIMIT_GAME_CREATE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
+    { "name": "RATE_LIMIT_FRIEND_REQUEST", "namespace_id": "1003", "simple": { "limit": 20, "period": 60 } },
+    { "name": "RATE_LIMIT_USER_SEARCH", "namespace_id": "1004", "simple": { "limit": 20, "period": 10 } }
+  ],
   "triggers": {
     "crons": ["0 3 * * *"]
   }

@@ -15,6 +15,7 @@ import { users } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { purgeUser } from "../lifecycle/purge.js";
+import { invalidateAvatarCache } from "./avatars.js";
 import { displayNameBody, errorShape, usernameBody } from "./wire.js";
 
 /** The username charset — the same one provisioning sanitizes to: lowercase
@@ -101,12 +102,16 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const userId = c.var.auth.user.id;
+      const avatarUrl = c.var.auth.user.avatarUrl;
       try {
         await purgeUser({ d1: ctx.d1(c.env), stub: (gameId) => ctx.stub(c.env, gameId), serviceAccount: ctx.serviceAccount(c.env), avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(c.env) }, userId);
       } catch (error) {
         console.error(`delete-account for ${userId} failed`, error);
         throw new HttpError(502, "Account deletion failed — please try again");
       }
+      // The R2 object is gone; drop any edge-cached copy so the (immutable)
+      // versioned URL stops serving it. Awaited so deletion completes fully.
+      if (ctx.avatars !== null) await invalidateAvatarCache(c.req.url, avatarUrl);
       return c.body(null, 204);
     },
   );

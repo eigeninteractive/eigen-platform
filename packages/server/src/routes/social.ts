@@ -18,6 +18,7 @@ import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPend
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { friendAcceptedPush, friendRequestPush, pushToUser } from "../notify/push.js";
+import { enforceRateLimit } from "../rate-limit.js";
 import { errorShape, friendRequestShape, friendShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
 
 const err = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -86,6 +87,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       requireRegistered(c.var.auth);
+      await enforceRateLimit(ctx, c.env, "user_search", c.var.auth.user.id);
       const { q, limit } = c.req.valid("query");
       const rows = await searchUsers(ctx.d1(c.env), c.var.auth.user.id, q, limit);
       return c.json({ users: rows.map((r) => ({ id: r.user_id, username: r.username, display_name: r.display_name, avatar_url: r.avatar_url, is_anonymous: r.is_anonymous })) }, 200);
@@ -105,6 +107,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       requireRegistered(c.var.auth);
       const caller = c.var.auth.user;
+      await enforceRateLimit(ctx, c.env, "friend_request", caller.id);
       const target = c.req.valid("json").target_user_id;
       if (target === caller.id) throw new HttpError(400, "You cannot friend yourself");
       const [targetRow] = await readPlayers(ctx.d1(c.env), [target]);

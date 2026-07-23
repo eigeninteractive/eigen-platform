@@ -17,6 +17,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { users } from "../d1/schema.js";
 import type { EngineApp, ResolvedAvatars, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
+import { enforceRateLimit } from "../rate-limit.js";
 
 /** Content types we accept and store. */
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -37,6 +38,7 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   // than generated. Clients PUT the image bytes directly with an image/*
   // content-type (never multipart) and read `{ avatar_url }` off the 200.
   engine.put("/me/avatar", async (c) => {
+    await enforceRateLimit(ctx, c.env, "avatar_upload", c.var.auth.user.id);
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {
       throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupported_image_type");
@@ -54,17 +56,55 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   });
 }
 
+/**
+ * Drop a served avatar from the Worker's edge cache so a cached 200 does not
+ * outlive the object. The serve route below treats a versioned URL as immutable
+ * (the `?v` only changes on re-upload, which mints a new key), so deletion —
+ * which removes the bytes without changing the URL — is the one case the cache
+ * must be told about. A no-op when the stored URL is absolute (a bucket custom
+ * domain serves those reads, so the Worker never cached them) or absent.
+ * Per-colo, like every Cache API write: it clears the colo that handled the
+ * deletion; production serves avatars from the bucket domain, where R2 deletion
+ * is authoritative and this path is unused.
+ */
+export async function invalidateAvatarCache(requestUrl: string, avatarUrl: string | null): Promise<void> {
+  if (avatarUrl === null || avatarUrl === "" || /^https?:\/\//i.test(avatarUrl)) return;
+  await caches.default.delete(new Request(new URL(avatarUrl, requestUrl).toString()));
+}
+
 export function registerAvatarServe(app: EngineApp, ctx: RouteContext): void {
   const avatars = ctx.avatars as ResolvedAvatars;
   // Public, unauthed — avatars are world-readable. The `?v` query is a
   // client cache-buster; the object key is the uid alone.
+  //
+  // Fronted by the Worker's own edge cache (`caches.default`): a Worker
+  // response is NOT edge-cached automatically — the immutable `Cache-Control`
+  // below only reaches the device and any downstream CDN, so without this every
+  // cold viewer would run the Worker and read R2. The full request URL is the
+  // cache key, so the `?v={ts}` bumped on each upload makes a re-upload a
+  // natural miss and ages old versions out; the stored object is overwritten in
+  // place under the uid, so there is never a stale hit to invalidate. (When
+  // `avatars.publicBaseUrl` points at a bucket custom domain, reads bypass the
+  // Worker entirely and this route is unused — the production fast path.)
   app.get("/avatars/:uid", async (c) => {
+    const cache = caches.default;
+    // A GET Request over the exact URL — the cache key. `Request` defaults to GET.
+    const cacheKey = new Request(c.req.url);
+    const hit = await cache.match(cacheKey);
+    if (hit !== undefined) return hit;
+
     const object = await avatars.bucket(c.env).get(c.req.param("uid"));
-    if (object === null) return c.notFound();
-    return c.body(object.body, 200, {
-      "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
-      "Cache-Control": "public, max-age=31536000, immutable",
-      ETag: object.httpEtag,
+    if (object === null) return c.notFound(); // A miss is left uncached so a later upload appears.
+    const response = new Response(object.body, {
+      status: 200,
+      headers: {
+        "Content-Type": object.httpMetadata?.contentType ?? "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+        ETag: object.httpEtag,
+      },
     });
+    // Store a clone for the next viewer without blocking this response.
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+    return response;
   });
 }

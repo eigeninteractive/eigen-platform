@@ -52,6 +52,7 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   registration_required: "The action needs a registered account; the caller is a guest",
   image_too_large: "The uploaded avatar exceeds the size limit",
   unsupported_image_type: "The uploaded avatar is not an accepted image type",
+  rate_limited: "Too many requests in a short window — retry after the interval in the Retry-After header",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can

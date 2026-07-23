@@ -32,16 +32,22 @@ export type ErrorCode =
   | "friends_only"
   | "registration_required"
   | "image_too_large"
-  | "unsupported_image_type";
+  | "unsupported_image_type"
+  | "rate_limited";
 
 export class HttpError extends Error {
-  readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 500 | 502;
+  readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
   readonly code: ErrorCode | undefined;
+  /** Seconds the caller should wait before retrying — rendered as the
+   * `Retry-After` header. Set only on a 429 (see {@link ErrorCode.rate_limited});
+   * `undefined` everywhere else. */
+  readonly retryAfterSeconds: number | undefined;
 
-  constructor(status: HttpError["status"], message: string, code?: ErrorCode) {
+  constructor(status: HttpError["status"], message: string, code?: ErrorCode, retryAfterSeconds?: number) {
     super(message);
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 

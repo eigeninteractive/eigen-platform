@@ -5,8 +5,32 @@
  */
 
 import type { GameModule, GameRules, JsonObject } from "@eigen/rules";
-import { BaseGameDO, createEngine } from "../src/index.js";
+import { BaseGameDO, createEngine, type RateLimiter } from "../src/index.js";
 import { testVerifier } from "../src/testing.js";
+
+/**
+ * A deterministic in-memory rate limiter for the suite. Real deployments use
+ * the Workers `ratelimit` binding (see `examples/rps`), which is per-colo and
+ * eventually consistent — too loose to assert against. This fake enforces a
+ * hard count so the 429 path is testable, but ONLY for keys containing the
+ * sentinel `ratelimit`: every other caller is unlimited, so the fake never
+ * perturbs the rest of the suite (which creates games, sends requests, and
+ * searches freely). The dedicated `rate-limit.spec.ts` mints users whose id
+ * carries the sentinel; the 3rd call to any limiter then fails.
+ */
+const TEST_RATE_LIMIT = 2;
+const rateCounts = new Map<string, number>();
+function testRateLimiter(name: string): RateLimiter {
+  return {
+    limit: async ({ key }) => {
+      if (!key.includes("ratelimit")) return { success: true };
+      const slot = `${name}:${key}`;
+      const seen = (rateCounts.get(slot) ?? 0) + 1;
+      rateCounts.set(slot, seen);
+      return { success: seen <= TEST_RATE_LIMIT };
+    },
+  };
+}
 
 /** The worker-side Env — the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
@@ -146,4 +170,6 @@ export default createEngine({
     apple: { appId: "TEAMID1234.com.eigen.test", storeUrl: "https://apps.apple.com/app/id000000000" },
   },
   avatars: { bucket: (env: TestEnv) => env.AVATARS, maxBytes: 4096 },
+  // The in-memory fake above — enforces only for sentinel keys (see its note).
+  rateLimit: (_env, name) => testRateLimiter(name),
 });

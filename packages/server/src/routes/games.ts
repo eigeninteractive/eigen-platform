@@ -14,6 +14,7 @@ import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame,
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
 import type { Command, CommandResult } from "../protocol.js";
+import { enforceRateLimit } from "../rate-limit.js";
 import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, joinedShape, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
@@ -161,6 +162,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const auth = c.var.auth;
+      await enforceRateLimit(ctx, c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
@@ -237,6 +239,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const auth = c.var.auth;
+      await enforceRateLimit(ctx, c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
       const rules = rulesFor(ctx, body.schema_version);
       const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");
