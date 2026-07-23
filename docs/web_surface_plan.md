@@ -111,12 +111,9 @@ export interface SiteConfig {
   description?: string;
   /** Hex accent driving the landing page and `theme-color`, e.g. "#1a237e". */
   primaryColor: string;
-  /**
-   * Canonical origin, e.g. "https://strategy.eigeninteractive.com". Required:
-   * sitemap entries, canonical links and OG URLs must be absolute, and the
-   * worker cannot infer the public origin from a proxied request.
-   */
-  canonicalOrigin: string;
+  // No canonicalOrigin field: absolute URLs (canonical/OG/sitemap) are built
+  // from the request origin. Disable the workers.dev route in prod so the
+  // custom domain is the only host.
   /** Filenames under `public/screenshots/`, rendered as a scroll carousel. */
   screenshots?: string[];
   /** Path under `public/` to the 1200x630 OG image. Default "/og.png". */

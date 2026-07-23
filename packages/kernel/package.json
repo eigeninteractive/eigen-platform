@@ -1,6 +1,7 @@
 {
   "name": "@eigen/kernel",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Kernel for the Eigen Server",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

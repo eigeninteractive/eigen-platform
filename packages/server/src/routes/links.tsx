@@ -37,10 +37,13 @@ import { Page, renderDocument } from "../site/page.js";
 
 /** The share/landing page: the not-installed fallback, and the source of the
  * OG tags a chat client unfurls. `noindex` because it is ephemeral and
- * per-game — unfurl scrapers still read the OG tags, which is what matters. */
-function SharePage({ appName, title, description, stores, ctx }: { appName: string; title: string; description: string; stores: { label: string; url: string }[]; ctx: RouteContext }) {
+ * per-game — unfurl scrapers still read the OG tags, which is what matters.
+ *
+ * `origin` is the request origin, so the OG image URL is absolute — which
+ * unfurl scrapers require. */
+function SharePage({ appName, title, description, stores, ctx, origin }: { appName: string; title: string; description: string; stores: { label: string; url: string }[]; ctx: RouteContext; origin: string }) {
   return (
-    <Page title={title} description={description} siteName={appName} noindex primaryColor={ctx.site?.primaryColor} operatorName={ctx.site?.operator.name} ogImage={ctx.site === null ? undefined : `${ctx.site.canonicalOrigin}${ctx.site.ogImage}`}>
+    <Page title={title} description={description} siteName={appName} noindex primaryColor={ctx.site?.primaryColor} operatorName={ctx.site?.operator.name} ogImage={ctx.site === null ? undefined : `${origin}${ctx.site.ogImage}`}>
       <h1>{title}</h1>
       <p class="lead">{description}</p>
       <div>
@@ -93,38 +96,42 @@ export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
   }
 
   const stores = storesFor(cfg);
+  // The OG image URL must be absolute; build it from the request origin.
+  const originOf = (url: string): string => new URL(url).origin;
 
   // The invite/share landing — the not-installed fallback for a `/join/:code`.
   app.get("/join/:shortCode", async (c) => {
+    const origin = originOf(c.req.url);
     const game = await readGameByCode(ctx.d1(c.env), c.req.param("shortCode").toUpperCase());
     if (game === undefined) {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This invite link is no longer valid." stores={stores} ctx={ctx} />), 404);
+      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This invite link is no longer valid." stores={stores} ctx={ctx} origin={origin} />), 404);
     }
     const joinable = game.status === "waiting" || game.status === "ready";
     const [host] = game.createdBy === null ? [] : await readPlayers(ctx.d1(c.env), [game.createdBy]);
     const hostName = host?.displayName ?? "Someone";
     const openSeats = Math.max(0, game.maxPlayers - game.participants.length);
     const description = joinable ? `${hostName} invited you${openSeats > 0 ? ` · ${openSeats} seat${openSeats === 1 ? "" : "s"} open` : ""}.` : `This game is ${game.status}.`;
-    return c.html(renderDocument(<SharePage appName={appName} title={`Join ${hostName} in ${appName}`} description={description} stores={stores} ctx={ctx} />), 200);
+    return c.html(renderDocument(<SharePage appName={appName} title={`Join ${hostName} in ${appName}`} description={description} stores={stores} ctx={ctx} origin={origin} />), 200);
   });
 
   // A specific game's landing — the not-installed fallback for a `/game/:id`
   // replay/spectate link, and the push-notification deep link's target when the
   // app is absent. Keyed by game id (not the short code).
   app.get("/game/:gameId", async (c) => {
+    const origin = originOf(c.req.url);
     const game = await readGame(ctx.d1(c.env), c.req.param("gameId"));
     if (game === undefined) {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This game link is no longer valid." stores={stores} ctx={ctx} />), 404);
+      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This game link is no longer valid." stores={stores} ctx={ctx} origin={origin} />), 404);
     }
     // A private game's roster must not leak to an unauthenticated visitor — the
     // app authorizes the viewer before showing a replay, this page cannot. Show
     // a generic card and let the app do the gating.
     if (game.access !== "public") {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description={`Open this game in ${appName}.`} stores={stores} ctx={ctx} />), 200);
+      return c.html(renderDocument(<SharePage appName={appName} title={appName} description={`Open this game in ${appName}.`} stores={stores} ctx={ctx} origin={origin} />), 200);
     }
     const vs = await versusLine(ctx.d1(c.env), game);
     const suffix = vs === null ? "" : ` — ${vs}`;
     const description = game.status === "finished" ? `See how this game of ${appName} played out${suffix}.` : `Watch this game of ${appName}${suffix}.`;
-    return c.html(renderDocument(<SharePage appName={appName} title={vs === null ? appName : `${vs} · ${appName}`} description={description} stores={stores} ctx={ctx} />), 200);
+    return c.html(renderDocument(<SharePage appName={appName} title={vs === null ? appName : `${vs} · ${appName}`} description={description} stores={stores} ctx={ctx} origin={origin} />), 200);
   });
 }

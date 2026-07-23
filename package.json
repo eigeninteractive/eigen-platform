@@ -1,6 +1,7 @@
 {
   "name": "eigen-server",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Monorepo and workspace for the EigenInteractive Backend",
   "scripts": {

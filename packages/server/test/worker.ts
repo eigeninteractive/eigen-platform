@@ -152,7 +152,9 @@ export default createEngine({
   site: {
     tagline: "Race an opponent to the target.",
     primaryColor: "#1a237e",
-    canonicalOrigin: "https://test.example.com",
+    // canonicalOrigin deliberately omitted — the suite exercises the inferred
+    // origin (the single-custom-domain default), so absolute URLs read as the
+    // request origin (`https://x`).
     screenshots: ["one.png", "two.png"],
     operator: { name: "Eigen Test & Co", jurisdiction: "Testland", contactEmail: "legal@test.example.com", effectiveDate: "1 January 2026" },
   },

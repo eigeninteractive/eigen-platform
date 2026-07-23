@@ -1,6 +1,7 @@
 {
   "name": "@eigen/rules",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Rules Definition for the Eigen Server",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

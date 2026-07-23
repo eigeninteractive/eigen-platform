@@ -1,6 +1,7 @@
 {
   "name": "@eigen/server",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Deployable engine host for the Eigen Server: GameDO + routes + D1",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

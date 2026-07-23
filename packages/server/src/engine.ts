@@ -330,7 +330,6 @@ function resolveSite(cfg: SiteConfig, appName: string): ResolvedSite {
     tagline: cfg.tagline,
     description: cfg.description ?? cfg.tagline,
     primaryColor: cfg.primaryColor,
-    canonicalOrigin: cfg.canonicalOrigin.replace(/\/+$/, ""),
     screenshots: cfg.screenshots ?? [],
     ogImage: ogImage.startsWith("/") ? ogImage : `/${ogImage}`,
     operator: cfg.operator,

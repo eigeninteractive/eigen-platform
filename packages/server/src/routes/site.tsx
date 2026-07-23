@@ -69,7 +69,7 @@ function Screenshots({ site }: { site: ResolvedSite }) {
 
 /** `SoftwareApplication`/`GameApplication` rather than `Organization` — this
  * page is a game, and that is what a search engine should understand it to be. */
-function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, ogImage: string): string {
+function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, origin: string, ogImage: string): string {
   const os = [deepLink?.android !== undefined ? "Android" : null, deepLink?.apple !== undefined ? "iOS" : null].filter((v) => v !== null);
   return JSON.stringify({
     "@context": "https://schema.org",
@@ -77,7 +77,7 @@ function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, ogImage:
     applicationCategory: "GameApplication",
     name: site.name,
     description: site.tagline,
-    url: `${site.canonicalOrigin}/`,
+    url: `${origin}/`,
     image: ogImage,
     ...(os.length > 0 ? { operatingSystem: os.join(", ") } : {}),
     publisher: { "@type": "Organization", name: site.operator.name },
@@ -88,14 +88,18 @@ const LEGAL_TITLES = { "/terms": "Terms of Service", "/privacy": "Privacy Policy
 
 export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
   const site = ctx.site as ResolvedSite;
-  const origin = site.canonicalOrigin;
-  const ogImage = `${origin}${site.ogImage}`;
   const stores = storeLinks(ctx.deepLink);
+  // Absolute URLs (canonical, OG, sitemap) are built from the request origin.
+  // Correct for a worker on a single host; disable the workers.dev route in
+  // production so that host is the canonical one.
+  const originOf = (url: string): string => new URL(url).origin;
 
-  app.get("/", (c) =>
-    c.html(
+  app.get("/", (c) => {
+    const origin = originOf(c.req.url);
+    const ogImage = `${origin}${site.ogImage}`;
+    return c.html(
       renderDocument(
-        <Page title={`${site.name} — ${site.tagline}`} description={site.tagline} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${origin}/`} ogImage={ogImage} operatorName={site.operator.name} jsonLd={jsonLdFor(site, ctx.deepLink, ogImage)}>
+        <Page title={`${site.name} — ${site.tagline}`} description={site.tagline} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${origin}/`} ogImage={ogImage} operatorName={site.operator.name} jsonLd={jsonLdFor(site, ctx.deepLink, origin, ogImage)}>
           <h1>{site.name}</h1>
           <p class="lead">{site.tagline}</p>
           {site.description !== site.tagline && <p>{site.description}</p>}
@@ -105,8 +109,8 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
       ),
       200,
       { "Cache-Control": PAGE_CACHE },
-    ),
-  );
+    );
+  });
 
   for (const [path, fragment] of [
     ["/terms", site.legal.terms],
@@ -117,7 +121,7 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
     app.get(path, (c) =>
       c.html(
         renderDocument(
-          <Page title={`${title} — ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${origin}${path}`} operatorName={site.operator.name}>
+          <Page title={`${title} — ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name}>
             <RawHtml html={fragment} />
           </Page>,
         ),
@@ -130,14 +134,19 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
   // Only the durable, indexable pages. Share links are ephemeral, already carry
   // `noindex`, and would churn the sitemap on every game created.
   const urls = ["/", "/terms", "/privacy", "/delete-account"];
-  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}${u}</loc><changefreq>monthly</changefreq></url>`).join("\n")}\n</urlset>`;
-  app.get("/sitemap.xml", (c) => c.body(sitemap, 200, { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": CRAWLER_CACHE }));
+  app.get("/sitemap.xml", (c) => {
+    const origin = originOf(c.req.url);
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}${u}</loc><changefreq>monthly</changefreq></url>`).join("\n")}\n</urlset>`;
+    return c.body(sitemap, 200, { "Content-Type": "application/xml; charset=utf-8", "Cache-Control": CRAWLER_CACHE });
+  });
 
   // `/api/` is disallowed because it is authenticated and useless to a crawler,
   // not because it is secret. `/join/` and `/game/` are per-game app-link paths,
   // transient and not content.
-  const robots = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /join/\nDisallow: /game/\n\nSitemap: ${origin}/sitemap.xml\n`;
-  app.get("/robots.txt", (c) => c.body(robots, 200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": CRAWLER_CACHE }));
+  app.get("/robots.txt", (c) => {
+    const robots = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /join/\nDisallow: /game/\n\nSitemap: ${originOf(c.req.url)}/sitemap.xml\n`;
+    return c.body(robots, 200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": CRAWLER_CACHE });
+  });
 
   // Icon paths match what `flutter_launcher_icons` emits into a Flutter app's
   // `web/` directory, so an implementor copies that folder into `public/`

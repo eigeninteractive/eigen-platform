@@ -33,8 +33,8 @@ export default createEngine({
   // The public web surface. This block is the entire setup for the landing
   // page, the three legal documents, and the crawler files (`/sitemap.xml`,
   // `/robots.txt`, `/site.webmanifest`) — no templates to copy, no routes to
-  // register. `canonicalOrigin` is a placeholder here, like the deep-link
-  // fingerprints, until a real domain is pointed at this worker.
+  // register. Absolute URLs (canonical/OG/sitemap) come from the request
+  // origin, so nothing about the domain is configured here.
   //
   // Any generated page can be replaced by shipping the matching file under
   // `public/` (`public/terms.html` beats `GET /terms`), because Cloudflare
@@ -52,7 +52,6 @@ export default createEngine({
   site: {
     tagline: "Rock, paper, scissors — the smallest complete game on the Eigen engine.",
     primaryColor: "#3f51b5",
-    canonicalOrigin: "https://rps.eigeninteractive.com",
     operator: {
       name: "Eigen Interactive",
       jurisdiction: "India",

@@ -1,6 +1,7 @@
 {
   "name": "@eigen/testkit",
   "version": "1.0.0",
+  "license": "MIT",
   "description": "Testing Kit for the Eigen Server",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -31,13 +31,15 @@ describe("landing page", () => {
     expect(html).toContain('src="/screenshots/two.png"');
   });
 
-  it("carries canonical, OG and Twitter tags built on the configured origin", async () => {
+  it("carries canonical, OG and Twitter tags built on the inferred request origin", async () => {
+    // The test worker omits `canonicalOrigin`, so absolute URLs are inferred
+    // from the request — here `https://x`.
     const html = await (await get("/")).text();
-    expect(html).toContain('<link rel="canonical" href="https://test.example.com/"/>');
-    expect(html).toContain('<meta property="og:url" content="https://test.example.com/"/>');
+    expect(html).toContain('<link rel="canonical" href="https://x/"/>');
+    expect(html).toContain('<meta property="og:url" content="https://x/"/>');
     // Defaults to the name client_reference.md §22 already prescribes for the
     // Flutter app's own share card — one image, both surfaces.
-    expect(html).toContain('<meta property="og:image" content="https://test.example.com/og-image.png"/>');
+    expect(html).toContain('<meta property="og:image" content="https://x/og-image.png"/>');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"/>');
     expect(html).toContain('<meta charset="utf-8"/>');
   });
@@ -115,7 +117,7 @@ describe("crawler files", () => {
     expect(res.headers.get("content-type")).toContain("application/xml");
     const xml = await res.text();
     for (const path of ["/", "/terms", "/privacy", "/delete-account"]) {
-      expect(xml).toContain(`<loc>https://test.example.com${path === "/" ? "/" : path}</loc>`);
+      expect(xml).toContain(`<loc>https://x${path === "/" ? "/" : path}</loc>`);
     }
     expect(xml).not.toContain("/join/");
   });
@@ -125,7 +127,7 @@ describe("crawler files", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/plain");
     const txt = await res.text();
-    expect(txt).toContain("Sitemap: https://test.example.com/sitemap.xml");
+    expect(txt).toContain("Sitemap: https://x/sitemap.xml");
     expect(txt).toContain("Disallow: /api/");
     expect(txt).toContain("Disallow: /join/");
     expect(txt).toContain("Disallow: /game/");

@@ -422,8 +422,7 @@ surface — no templates to copy, no routes to register:
 site: {
   tagline: "A hidden-information battle of wits for two players.",
   primaryColor: "#1a237e",
-  canonicalOrigin: "https://strategy.example.com",  // no trailing slash
-  screenshots: ["1.png", "2.png"],                  // under public/screenshots/
+  screenshots: ["1.png", "2.png"],   // under public/screenshots/
   operator: {
     name: "Your Company Ltd",
     jurisdiction: "India",
@@ -433,11 +432,12 @@ site: {
 },
 ```
 
-`canonicalOrigin` is required and not inferred: sitemap entries, canonical links
-and OG URLs must be absolute, and a proxied request does not reliably carry the
-public origin. Store buttons come from your `deepLink` block, so store URLs are
-configured once. The landing page emits `SoftwareApplication` JSON-LD with
-`applicationCategory: "GameApplication"`.
+The absolute URLs in canonical links, OG tags and the sitemap are built from the
+**request origin** — no domain to configure. So that this stays the one canonical
+host, disable the `workers.dev` route in production; the custom domain is then
+the only host the worker answers on. Store buttons come from your `deepLink`
+block, so store URLs are configured once. The landing page emits
+`SoftwareApplication` JSON-LD with `applicationCategory: "GameApplication"`.
 
 **Assets: your Flutter app already made them.** The engine never generates
 images, but it doesn't ask you to draw any either — its default paths are

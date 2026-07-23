@@ -48,11 +48,6 @@ export interface SiteConfig {
   description?: string;
   /** Hex accent colour, e.g. `#1a237e`. Also the `theme-color`. */
   primaryColor: string;
-  /** The canonical origin, e.g. `https://strategy.example.com`, without a
-   * trailing slash. Required, and not inferred from the request: sitemap
-   * entries, canonical links and OG URLs must be absolute, and a proxied
-   * request does not reliably carry the public origin. */
-  canonicalOrigin: string;
   /** Filenames under `public/screenshots/`, shown as a scrolling strip. */
   screenshots?: string[];
   /** Path under `public/` to the 1200x630 OG image. Defaults to
@@ -72,8 +67,6 @@ export interface ResolvedSite {
   tagline: string;
   description: string;
   primaryColor: string;
-  /** Normalised: no trailing slash. */
-  canonicalOrigin: string;
   screenshots: string[];
   ogImage: string;
   operator: OperatorConfig;
