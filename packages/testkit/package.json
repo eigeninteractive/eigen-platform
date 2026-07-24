@@ -2,7 +2,7 @@
   "name": "@eigen/testkit",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "Testing Kit for the Eigen Server",
+  "description": "Test helpers for games built on the Eigen engine: drive rules through the real kernel and run shared twin fixtures, with no Worker, database or network.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,8 +19,15 @@
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "eigen",
+    "game-engine",
+    "turn-based",
+    "multiplayer",
+    "cloudflare-workers",
+    "durable-objects"
+  ],
+  "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
     "@eigen/kernel": "workspace:*",
@@ -33,5 +40,17 @@
   },
   "peerDependencies": {
     "vitest": "^4.1.0"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
+    "directory": "packages/testkit"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

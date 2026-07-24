@@ -51,7 +51,11 @@
     {
       "binding": "rps_dev",
       "database_name": "rps-dev",
-      "database_id": "4f5e2940-1262-4b4b-9551-c19364e86509",
+      // Placeholder. Local development and the test suite never read this —
+      // `wrangler dev` and vitest-pool-workers simulate D1 locally against the
+      // binding name. Replace it with your own before deploying:
+      //     wrangler d1 create rps-dev
+      "database_id": "00000000-0000-0000-0000-000000000000",
       // Engine-owned schema, like the DO's: migrations ship inside
       // @eigen/server and `deploy` applies them before the code goes out.
       // App-custom data belongs in a SEPARATE second d1_databases entry with

@@ -385,7 +385,7 @@ export default createEngine({
   // Optional feature blocks — omit to leave a feature off:
   // deepLink:  { android: {...}, apple: {...} },
   // avatars:   { bucket: (env) => env.AVATARS },
-  // site:      { tagline: "…", primaryColor: "#…", canonicalOrigin: "…", operator: {…} },
+  // site:      { tagline: "…", primaryColor: "#…", operator: {…} },
   // lifecycle: { guestMaxAgeMs: … },
 });
 ```

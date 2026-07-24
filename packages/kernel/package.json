@@ -2,7 +2,7 @@
   "name": "@eigen/kernel",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "Kernel for the Eigen Server",
+  "description": "The pure decision core of the Eigen engine: given a game, state, roster and intent it returns a commit plan or a rejection. No I/O, no platform APIs.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -19,13 +19,32 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "eigen",
+    "game-engine",
+    "turn-based",
+    "multiplayer",
+    "cloudflare-workers",
+    "durable-objects"
+  ],
+  "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
     "@eigen/rules": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "openskill": "^5.0.1",
     "rand-seed": "^3.0.0"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
+    "directory": "packages/kernel"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

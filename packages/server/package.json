@@ -2,7 +2,7 @@
   "name": "@eigen/server",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "Deployable engine host for the Eigen Server: GameDO + routes + D1",
+  "description": "The deployable half of the Eigen engine: the createEngine Worker factory, the BaseGameDO Durable Object base class, the D1 schema and appliers, auth, bots and push.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,7 +17,8 @@
   },
   "files": [
     "dist",
-    "migrations"
+    "migrations",
+    "openapi.json"
   ],
   "scripts": {
     "build": "tsup",
@@ -27,8 +28,15 @@
     "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
     "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "eigen",
+    "game-engine",
+    "turn-based",
+    "multiplayer",
+    "cloudflare-workers",
+    "durable-objects"
+  ],
+  "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
     "@eigen/kernel": "workspace:*",
@@ -43,5 +51,17 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260715.1",
     "drizzle-kit": "^0.31.10"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

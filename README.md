@@ -5,7 +5,7 @@ multiplayer games, running on Cloudflare Workers. Identity, lobbies, the
 authoritative game loop, timing, ratings, social, bots, push and deep links are
 all built in. A game plugs in as a single TypeScript `GameModule`.
 
-The **client half** lives in the sibling [`eigen-flutter`](https://github.com/seenu-k/eigen-flutter)
+The **client half** lives in the sibling [`eigen-flutter`](https://github.com/eigeninteractive/eigen-flutter)
 repo — a Flutter package that talks to this Worker over a generated REST client
 plus one WebSocket per game.
 
@@ -53,7 +53,7 @@ Nothing else. No Docker, no database to install, no cloud account, no payment
 method.
 
 ```bash
-git clone git@github.com:seenu-k/eigen-server.git
+git clone git@github.com:eigeninteractive/eigen-server.git
 cd eigen-server
 corepack enable          # once per machine, if pnpm isn't already installed
 pnpm install

@@ -185,7 +185,7 @@ function multiSeatUpdate(seats: PlayerInput[], field: PlayerInput[]): RatingResu
  * rating row per (game, identity) the store keeps. The field is rated once;
  * single-seat identities read their posterior straight from that rating,
  * while a multi-seat identity is re-rated seat-by-seat into a single net
- * result (see {@link multiSeatUpdate}). The single full-field `rate()` is
+ * result (see `multiSeatUpdate`). The single full-field `rate()` is
  * what every single-seat player is scored against, so a human who faced a
  * two-seat bot is correctly rated against two distinct opponents.
  *

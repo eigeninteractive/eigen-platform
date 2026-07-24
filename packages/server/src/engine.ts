@@ -118,7 +118,7 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
    * Omit → not mounted (the worker is API-only). */
   site?: SiteConfig;
   /** Cron-backstop tuning — guest-purge/reap windows and batch caps.
-   * Omit for the defaults ({@link LIFECYCLE_DEFAULTS}); set any subset to
+   * Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
    * override just those. */
   lifecycle?: LifecycleOptions;
   /** Test seam only: replace the token verifier (tests mint their own RS256
