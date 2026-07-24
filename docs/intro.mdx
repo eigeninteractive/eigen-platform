@@ -2,50 +2,62 @@
 sidebar_position: 1
 slug: /intro
 title: Introduction
-description: What the Eigen engine is and how its documentation is organised.
+description: What the Eigen engine is, what building a game on it actually involves, and how these docs are organised around that.
 ---
 
 # Introduction
 
 **Eigen** is an open-source, server-authoritative engine for **turn-based
 multiplayer games**. One codebase runs many games; each deployment is a single
-Cloudflare Worker that owns its own domain, database, and players.
+Cloudflare Worker that owns its own domain, database and players, plus a Flutter
+app that is almost entirely the engine's.
 
 The rules run on the server, so a client's move is always a proposal the server
 validates — hidden information never leaves the server except as a per-seat
 projection, clocks are authoritative, and finished games are replayable from an
 immutable log.
 
-You write pure game rules. The engine owns persistence, serialization, timing,
-sockets, reconnection, ratings, bots, auth, history, the API, and the game's
-website.
+## What you actually write
+
+A game is **two same-keyed registries**: TypeScript rules that decide, and a Dart
+codec and screen that draw. That is the whole surface.
+
+| You write | The engine owns |
+|---|---|
+| The rules — six hooks, on the server | Persistence, sockets, reconnection, timing, ratings, history, replay |
+| The payload codec and the board, in Dart | Sign-in, home, lobby, friends, profile, settings, push, deep links |
+| A creation dialog's declaration | The dialog, the countdown, the finished banner, the whole app shell |
+
+For scale: Rock–Paper–Scissors, the reference game, is about 220 lines of
+TypeScript and 500 of Dart — and none of it mentions turns, deadlines, sockets,
+versions, persistence or ratings.
 
 ## Start here
 
 | If you want to… | Go to |
 |---|---|
-| Run something in the next five minutes | [Quickstart](./getting-started/quickstart.md) |
-| See a whole game in one file | [Rock-Paper-Scissors](./getting-started/your-first-game.md) |
-| Write your own game's rules | [Build a game](./build-a-game/game-module.md) |
-| Build the Flutter half | [The Flutter client](./client/overview.md) |
-| Deploy and run a game | [Operate](./operate/configuration.md) |
-| Understand why it's built this way | [How it works](./concepts/overview.md) |
+| Run both halves in the next five minutes | [Quickstart](./getting-started/quickstart.md) |
+| See a whole game, both languages | [Your first game](./getting-started/your-first-game.md) |
+| Write your own game | [Build a game](./build-a-game/the-contract.md) |
+| Get it in front of players | [Ship it](./ship-it/deploy-the-worker.md) |
+| Understand why it is built this way | [How it works](./how-it-works/overview.md) |
 | Look something up | [Reference](./reference/http-surface.md) |
 
 ## How these docs are organised
 
-The documentation is **audience-first**: the top-level sections match who you
-are, and each one runs from tutorial through how-to to explanation.
+**Task-first, and each page carries both halves.** A page is a thing you are
+trying to do — model your payloads, render the board, handle hidden information,
+ship to a store — and it covers the server *and* the client side of that task
+together, because they are one change.
 
-- **Getting started** — run the reference game, then read it.
-- **Build a game** — the `GameRules` contract, hook by hook, plus testing, CI
-  and versioning.
-- **The Flutter client** — the transport, the Dart rules twin, the app shell,
-  and everything involved in shipping to a store.
-- **Operate** — configuration, local development, deploying, the generated web
-  surface, and the account lifecycle.
+- **Getting started** — run it, then read it.
+- **Build a game** — the contract, and each task within it, from payload types
+  through to changing a game that has already shipped.
+- **Ship it** — deploying the Worker, configuring both halves, deep links,
+  branding, push, and the store.
 - **How it works** — the engine itself: the kernel, Durable Objects, storage,
-  identity, security and the failure model.
+  identity, security, the failure model, the client transport and the app shell.
+  Explanation only; you can build a game without reading any of it.
 - **Reference** — the HTTP API (generated from `openapi.json`), the TypeScript
   API (generated from source), the Envelope contract and the error model.
 

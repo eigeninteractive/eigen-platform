@@ -6,7 +6,7 @@ description: Every route grouped by the three request spaces, plus the error mod
 
 # The HTTP surface at a glance
 
-The full request surface, grouped by the [three request spaces](../concepts/system-shape.md).
+The full request surface, grouped by the [three request spaces](../how-it-works/system-shape.md).
 Every `/api/engine/*` route requires a Firebase bearer; `/api/bot/action` is
 HMAC-authenticated; the web routes are public.
 
@@ -53,7 +53,7 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 
 `POST /api/bot/action` — an external bot submits a move, authenticated by the
 `Eigen-Signature` HMAC over the exact body. See
-[External-bot HMAC](../concepts/bots.md#external-bot-hmac).
+[External-bot HMAC](../how-it-works/bots.md#external-bot-hmac).
 
 ## Public web
 
@@ -66,7 +66,7 @@ When `site` is configured: `GET /` (landing) · `GET /terms` · `GET /privacy` �
 `GET /site.webmanifest`. Each is overridden by a matching `public/` file.
 
 `GET /health` is always mounted and is deliberately absent from `openapi.json`;
-see [Deploying](../operate/deploy.md#what-health-proves).
+see [Deploying](../ship-it/deploy-the-worker.md#what-health-proves).
 
 ## The error model
 

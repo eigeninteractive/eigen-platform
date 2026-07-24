@@ -6,9 +6,14 @@ import apiSidebar from "./docs/reference/http-api/sidebar";
 /**
  * Two sidebars, matching the two navbar entries.
  *
- * `docsSidebar` is audience-first — you arrive knowing whether you are building
- * a game, building its client, or operating a deployment — and each section is
- * ordered tutorial → how-to → explanation within itself.
+ * `docsSidebar` is task-first: a section is a thing you are trying to do, and
+ * each page inside it carries BOTH halves of that task — the TypeScript rules
+ * and the Dart client — because they are one change. There is deliberately no
+ * "client" section; splitting by repo made a single task (hidden information,
+ * say) live on two pages that never referenced each other.
+ *
+ * "How it works" is explanation only, and sits below the doing sections
+ * because a game can be built without reading any of it.
  *
  * `referenceSidebar` is the lookup half, and is mostly generated: `sync-api`
  * writes `reference/typescript/` (typedoc) and `reference/http-api/` (from
@@ -30,36 +35,34 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Build a game",
-      items: [
-        "build-a-game/game-module",
-        "build-a-game/schemas",
-        "build-a-game/hooks",
-        "build-a-game/hidden-information",
-        "build-a-game/transitions",
-        "build-a-game/timing",
-        "build-a-game/bots",
-        "build-a-game/wiring",
-        "build-a-game/testing",
-        "build-a-game/ci",
-        "build-a-game/versions",
-        "build-a-game/recipes",
-        "build-a-game/engine-owned",
-      ],
+      collapsed: false,
+      items: ["build-a-game/the-contract", "build-a-game/schemas", "build-a-game/hooks", "build-a-game/hidden-information", "build-a-game/rendering", "build-a-game/timing", "build-a-game/bots", "build-a-game/creation-ui", "build-a-game/testing", "build-a-game/versions", "build-a-game/recipes"],
     },
     {
       type: "category",
-      label: "The Flutter client",
-      items: ["client/overview", "client/transport", "client/frames", "client/identity-and-timing", "client/game-ui", "client/app-shell", "client/push", "client/shipping"],
-    },
-    {
-      type: "category",
-      label: "Operate",
-      items: ["operate/configuration", "operate/local-development", "operate/deploy", "operate/web-surface", "operate/account-lifecycle"],
+      label: "Ship it",
+      items: ["ship-it/deploy-the-worker", "ship-it/configure", "ship-it/deep-links", "ship-it/branding", "ship-it/push", "ship-it/store-release"],
     },
     {
       type: "category",
       label: "How it works",
-      items: ["concepts/overview", "concepts/system-shape", "concepts/kernel", "concepts/game-sessions", "concepts/lifecycle", "concepts/timing", "concepts/storage", "concepts/identity", "concepts/bots", "concepts/notifications", "concepts/security", "concepts/failure-model"],
+      items: [
+        "how-it-works/overview",
+        "how-it-works/system-shape",
+        "how-it-works/kernel",
+        "how-it-works/game-sessions",
+        "how-it-works/lifecycle",
+        "how-it-works/timing",
+        "how-it-works/storage",
+        "how-it-works/identity",
+        "how-it-works/bots",
+        "how-it-works/notifications",
+        "how-it-works/security",
+        "how-it-works/failure-model",
+        "how-it-works/the-client-app",
+        "how-it-works/transport",
+        "how-it-works/account-lifecycle",
+      ],
     },
   ],
 

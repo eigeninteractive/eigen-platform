@@ -1,5 +1,5 @@
 ---
-sidebar_position: 6
+sidebar_position: 12
 title: The app shell
 description: Package layout, startup order, local persistence, offline UX, navigation, analytics, guests and haptics — all infra-owned.
 ---
@@ -198,7 +198,7 @@ anything Back should undo, `pushReplacement` for transient screens.
 
 Terms/privacy links open with `LaunchMode.inAppBrowserView` (Safari View
 Controller / Custom Tabs) specifically to bypass Universal Links interception —
-see [Deep links & domain configuration](./shipping.md#deep-links--domain-configuration).
+see [Deep links & domain configuration](../ship-it/deep-links.md).
 
 ## Analytics & crash reporting
 

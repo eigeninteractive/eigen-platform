@@ -32,6 +32,6 @@ dart doc .
 
 For the hand-written client documentation — the contracts, the design and the
 setup that isn't discoverable from the source — start at
-[the client overview](../client/overview.md). The type-level contract a game
+[the client overview](../build-a-game/the-contract.md). The type-level contract a game
 implements on the Dart side is in
-[Building a game's client half](../client/game-ui.md).
+[Building a game's client half](../build-a-game/rendering.md).

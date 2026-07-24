@@ -30,6 +30,16 @@ seam two languages meet at.
           openapi.json ──────► tool/generate_api.sh ──────► typed Dart client
 ```
 
+For the reference game the two twins and their fixtures are:
+
+| | Server | Client |
+|---|---|---|
+| Rules | `eigen-server/examples/rps/src/rules/v1.ts` | `eigen-flutter/example/lib/src/v1/rules.dart` |
+| Fixtures | `examples/rps/src/rules/fixtures/v1/rps.json` | `example/fixtures/v1/rps.json` |
+
+Those two fixture files are byte-identical copies maintained by hand — **no
+mechanism syncs them**, which is the one coupling neither repo's CI can see.
+
 Two rules follow from this and are not negotiable:
 
 - **Fix the wire, not the client.** A shape the generated Dart client consumes
@@ -43,5 +53,5 @@ Two rules follow from this and are not negotiable:
   client release.
 
 For how to write a game against that contract, see
-[Build a game](../build-a-game/game-module.md). For the twin-fixture mechanics,
+[Build a game](../build-a-game/the-contract.md). For the twin-fixture mechanics,
 see [Testing your game](../build-a-game/testing.md).

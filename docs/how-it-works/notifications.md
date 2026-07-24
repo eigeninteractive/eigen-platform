@@ -27,4 +27,4 @@ path is skipped.
 
 The client side of this — requesting permission, registering the FID, and
 handling a tapped notification — is covered in
-[Push notifications (client)](../client/push.md).
+[Push notifications (client)](../ship-it/push.md).

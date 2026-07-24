@@ -70,4 +70,4 @@ The deadline alarm is the **only** code that sets an alarm on the DO. A stray
 :::
 
 Untimed games have no alarm at all; their only backstop is the abandoned-game
-reap, described in [Account lifecycle & the cron](../operate/account-lifecycle.md).
+reap, described in [Account lifecycle & the cron](./account-lifecycle.md).

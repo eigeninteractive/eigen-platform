@@ -39,6 +39,23 @@ Notes:
   webhook; `local` bots are reserved for future offline play. You only write
   `engine` brains here.
 
+## The client half
+
+There is almost none, and that is the point: **client-side bots do not exist**.
+Every bot is seated by the server, so a game screen renders a bot seat exactly
+like a human one — same `PlayersContext` entry, same avatar (with a bot badge),
+same frames arriving over the same socket. Do not branch on seat type to decide
+whether to show identity.
+
+The one member that participates is the Dart `botSeatable` twin, which filters
+the bot picker locally with no network call. It is display-only; the server
+enforces the same rule before seating.
+
+The one constraint that reaches the creation UI is that **a game seating a bot
+must be timed** — bot dispatch is single-attempt, so the turn deadline is the
+only thing that resolves a bot which never moves. See
+[Creation UI](./creation-ui.md).
+
 Registering the bot row is an operator task — see
-[Registering bots](../operate/configuration.md#registering-bots). For the
-transport and HMAC details of external bots, see [Bots (concepts)](../concepts/bots.md).
+[Registering bots](../ship-it/configure.md#registering-bots). For the
+transport and HMAC details of external bots, see [Bots](../how-it-works/bots.md).

@@ -118,7 +118,7 @@ const config: Config = {
         },
         // Reading order for llms-full.txt: orient, then build, then the
         // details. Matches the sidebar.
-        includeOrder: ["intro.mdx", "getting-started/**", "build-a-game/**", "client/**", "operate/**", "concepts/**", "reference/**"],
+        includeOrder: ["intro.mdx", "getting-started/**", "build-a-game/**", "ship-it/**", "how-it-works/**", "reference/**"],
         includeUnmatchedLast: true,
       },
     ],
@@ -191,8 +191,8 @@ const config: Config = {
           items: [
             { label: "Introduction", to: "/docs/intro" },
             { label: "Quickstart", to: "/docs/getting-started/quickstart" },
-            { label: "Build a game", to: "/docs/build-a-game/game-module" },
-            { label: "Concepts", to: "/docs/concepts/overview" },
+            { label: "Build a game", to: "/docs/build-a-game/the-contract" },
+            { label: "Ship it", to: "/docs/ship-it/deploy-the-worker" },
           ],
         },
         {

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 7
+sidebar_position: 5
 title: Push notifications (FCM)
 description: Three notification channels, FID registration, the strict category field, and the monochrome Android icon nobody generates for you.
 ---
@@ -55,7 +55,7 @@ server-side send until a user reported missing notifications.
 
 Delivery is best-effort and there is no retry — the game state is the truth and
 the app catches up on open, so the client must never depend on a push arriving.
-The server half is [Push notifications](../concepts/notifications.md).
+The server half is [Push notifications](../how-it-works/notifications.md).
 
 ## The Android notification icon
 

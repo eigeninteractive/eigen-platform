@@ -1,31 +1,97 @@
 ---
-sidebar_position: 11
-title: Evolving your game — versions
-description: One GameRules unit per schema_version — copy, change, register, and let old games drain.
+sidebar_position: 10
+title: Changing a shipped game
+description: What to do when the rules change after players are using them — a new unit on both sides, why draining and replay retire at different times, and the checklist.
 ---
 
-# Evolving your game — versions
+# Changing a shipped game
 
-When rules or payload shapes change **incompatibly**, do not edit a shipped
-unit's semantics — that would break games (and replays) already running under it.
-Instead:
+Once players are using your game, the two halves **stop moving together**. A
+shipped app binary keeps calling a newer backend for weeks, and a daily-timed
+game can outlive several releases. So every change has to answer one question:
 
-1. Copy `v1.ts` to `v2.ts`, importing whatever didn't change.
+> What does an old client — and an in-flight game started under the old rules —
+> do when it meets the new code?
+
+## The mechanism: a new unit, not an edit
+
+When rules or payload shapes change **incompatibly**, never edit a shipped unit's
+semantics. That would break games and replays already running under it. Instead:
+
+1. Copy `v1.ts` to `v2.ts`, importing whatever did not change.
 2. Make the change in `v2`.
 3. Register it: `versions: { 1: rulesV1, 2: rulesV2 }`.
+4. **Do the same on the Dart side**, under the same key.
 
-New games are created at the latest version your build ships; existing games keep
-running against their own version's unit until they drain, at which point you can
-retire it by deleting the entry. The engine handles all dispatch — your hooks
-never branch on version, and the schema gate makes an old client politely refuse
-a newer game rather than mis-parsing it. Compatible tweaks (a bug fix that
-doesn't change stored shapes or recorded behaviour) can edit the unit in place;
-update the fixtures alongside.
+Every game row is stamped with the `schema_version` it was created under, and
+that is honoured for its whole life. New games are created at the newest version
+your build ships; existing games keep running against their own unit until they
+drain. Neither side branches on version — the engine resolves it once and calls
+the right unit.
 
-:::warning Wire enums are closed sets
+Compatible tweaks — a bug fix that changes neither stored shapes nor recorded
+behaviour — can edit the unit in place. Update the fixtures alongside.
 
-A schema-version bump is also what a wire-enum change requires — the generated
-Dart client parses strictly, with no `unknown` sentinel. See
-[The cross-repo contract](../reference/cross-repo.md).
+## Two gates, and one is longer than you think
 
-:::
+Retiring an old unit splits into two lifetimes, and conflating them is how
+replays break:
+
+- **The write path** — anything that advances state (`applyAction`,
+  `applyLifecycle`) — can go once active games at that version have drained.
+- **The read path** — `computeObservation` on the server, `parseObservation` and
+  rendering on the client — must survive **as long as you want to replay games
+  created under that schema.** Replay re-projects historic transitions at the
+  game's own version, so this is not bounded by draining at all.
+
+> **Draining gates the write path; replay gates the read path, and replay
+> outlives draining.**
+
+Only delete a `versions` entry once both are satisfied.
+
+## How an old client is protected
+
+Two gates, deliberately redundant:
+
+- **The client** looks the game's version up in `GameModule.versions` and raises
+  `UnsupportedGameSchemaException` rather than mis-parsing with old code.
+  `supportsSchema` is key membership, not `<= latest`, so a retired old version
+  is correctly unsupported.
+- **The server** refuses the join, so an unsupported game is rejected *before* a
+  seat is created — not only when the screen later fails to render. The lobby
+  additionally greys out the Join button as immediate feedback.
+
+## What counts as breaking
+
+**Adding a member to a wire enum is breaking**, even though it looks purely
+additive. Generated Dart enums parse strictly with no `unknown` sentinel, so a
+new value throws.
+
+That is a deliberate trade. Tolerant decoding buys graceful degradation, and
+graceful degradation buys *silence* — which is exactly wrong when the two halves
+are two repos with one generated seam between them. With closed enums, adding a
+value server-side breaks the client **build**, loudly, in CI, before release,
+rather than producing a screen that renders nothing at runtime.
+
+Within a version, additive change is still fine: new fields must be nullable or
+carry a default, never `required`. Changing a field's type or meaning, or
+removing it, is breaking.
+
+## The checklist
+
+| The change | What it needs |
+|---|---|
+| Alters the observation / action / config shape, or makes in-flight games inconsistent | **Breaking** — new `GameRules` unit on both sides, new fixtures, drain before retiring the write path |
+| Purely additive (a new optional field) | Nullable or defaulted, **no bump** |
+| Server-only rule logic, same shapes | Change `applyAction` only, **no bump** |
+| A new wire enum value | **Breaking** — bump, and ship both sides together |
+| A persisted client model's shape changed | Bump that provider's `destroyKey` — a stale cached row must be a cache *miss*, never a crash |
+
+Three version axes move independently, and it helps to name which one you are
+touching:
+
+| Axis | Granularity | Where it lives |
+|---|---|---|
+| Package version | per release | `pubspec.yaml` / `package.json`, git tag |
+| **Game schema version** | per game-type revision | `schema_version` on the game row — selects the unit on both sides |
+| Cache schema version | per persisted model | each provider's `destroyKey` |

@@ -18,7 +18,7 @@ self-healing:
 - A **duplicate command** replays its stored response (`commandId`); a
   **duplicate finish-apply** is a no-op (`finish_id`).
 - A **crashed deletion** never half-deletes (the games→Firebase→D1 order; see
-  [Account lifecycle](../operate/account-lifecycle.md)).
+  [Account lifecycle](./account-lifecycle.md)).
 - **D1 mirror staleness** is accepted by design — the DO is the truth, and a
   stale summary only ever costs a lobby a clean late rejection.
 

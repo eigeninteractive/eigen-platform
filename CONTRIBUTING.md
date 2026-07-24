@@ -19,17 +19,28 @@ The site builds standalone: the generated API reference under
 
 ## Where content lives
 
-The documentation is **audience-first**, with each section running from tutorial
-through how-to to explanation:
+The documentation is **task-first**, and this is the rule that matters most:
 
-| Directory | Audience |
+> **A page is a task, and it carries both halves of that task.**
+
+A game is a TypeScript module and a Dart module, and changing one almost always
+means changing the other. Splitting the docs by repository — a "server" section
+and a "client" section — put a single task like *handle hidden information* on
+two pages that never referenced each other's code, and made the server look like
+the product and the client like an appendix. Do not reintroduce that split.
+
+| Directory | What it is |
 |---|---|
-| `docs/getting-started/` | Anyone, first contact |
-| `docs/build-a-game/` | Someone writing game rules |
-| `docs/client/` | Someone building the Flutter half |
-| `docs/operate/` | Someone deploying and running a game |
-| `docs/concepts/` | Anyone wanting to know how the engine works |
+| `docs/getting-started/` | Run both halves, then read both halves |
+| `docs/build-a-game/` | One page per task, TypeScript **and** Dart on each |
+| `docs/ship-it/` | Getting it in front of players: deploy, configure, links, branding, push, store |
+| `docs/how-it-works/` | Explanation only — a game can be built without reading any of it |
 | `docs/reference/` | Lookup — mostly generated |
+
+When a page needs only one language, say so explicitly rather than leaving the
+reader to wonder whether the other half was forgotten. The hooks page ends each
+hook with *what reaches the client*; the bots page states outright that
+client-side bots do not exist.
 
 Two things this repo is deliberately **not** for: the release process of the
 Eigen repositories themselves (each repo's own `CONTRIBUTING.md` covers that),

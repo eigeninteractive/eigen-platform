@@ -1,5 +1,5 @@
 ---
-sidebar_position: 5
+sidebar_position: 14
 title: Account lifecycle & the cron
 description: Why deletion is ordered games → Firebase → D1, and what the daily cron backstops.
 ---
@@ -28,7 +28,7 @@ next request resurrect the user. So:
 ## The cron backstop
 
 The `scheduled` handler does only what has no per-entity timer of its own —
-notably **not** a timeout sweep (the [DO alarm](../concepts/timing.md) owns that):
+notably **not** a timeout sweep (the [DO alarm](./timing.md) owns that):
 
 - **Stale-guest purge**: anonymous accounts past an age with no recent game
   activity, torn down through `purgeUser`.

@@ -34,7 +34,7 @@ lives only in the DO.
 
 D1 has **no foreign-key cascades**: relationships between tables are maintained
 explicitly (for example, account deletion is an explicit preserve-vs-delete
-batch — see [Account lifecycle](../operate/account-lifecycle.md)). This is
+batch — see [Account lifecycle](./account-lifecycle.md)). This is
 deliberate — it keeps every multi-table effect visible in application code rather
 than hidden in schema triggers.
 

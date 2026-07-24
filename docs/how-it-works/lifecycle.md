@@ -90,7 +90,7 @@ history.
 ## Cancel & abort
 
 Cancel (creator, pre-start) and abort (the cron reap of abandoned games; see
-[Account lifecycle & the cron](../operate/account-lifecycle.md)) mark the D1 row
+[Account lifecycle & the cron](./account-lifecycle.md)) mark the D1 row
 `aborted` and drop the DO's storage entirely — there is no history object for a
 game that never really happened. Abort is unconditional (no creator gate, works
 even on a never-initialized DO).

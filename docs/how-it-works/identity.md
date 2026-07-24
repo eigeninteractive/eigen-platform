@@ -33,7 +33,7 @@ conversion is an in-place backfill on the same row — the provider's display na
 and avatar overwrite the guest's, while the stable username handle survives.
 Guest capability is deliberately narrowed: guests may play (including vs bots,
 unrated) but cannot create friends-access games or join rated games. Inactive
-guests are swept by the cron; see [Account lifecycle](../operate/account-lifecycle.md).
+guests are swept by the cron; see [Account lifecycle](./account-lifecycle.md).
 
 The **username** is the stable, editable handle (distinct from the provider
 display name, which the engine never lets a user edit). `PUT /me/username`

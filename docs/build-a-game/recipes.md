@@ -1,5 +1,5 @@
 ---
-sidebar_position: 12
+sidebar_position: 11
 title: Recipes — common game shapes
 description: Sequential, simultaneous, team, elimination and phased games — all expressed through pending_players and computeObservation.
 ---
@@ -50,7 +50,7 @@ Shrink `pending_players` as seats bust out; give an eliminated seat
 
 Carry a "what just happened" field (RPS's `lastRound`) in the projected `data` so
 clients can animate the transition. Decide per seat what that reveal shows using
-`cause` and `playerIndex` — see [Transitions & animation](./transitions.md).
+`cause` and `playerIndex` — see [Rendering](./rendering.md).
 
 ## Phased turns / variable clocks
 
