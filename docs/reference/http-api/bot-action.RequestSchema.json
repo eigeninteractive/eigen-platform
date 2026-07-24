@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"bot_id":{"type":"string","minLength":1},"game_id":{"type":"string","minLength":1},"player_index":{"type":"integer","minimum":0},"version":{"type":"integer","minimum":0},"data":{}},"required":["bot_id","game_id","player_index","version"],"title":"BotAction"}}}}}

@@ -1,5 +1,6 @@
 ---
 sidebar_position: 1
+slug: /intro
 title: Introduction
 description: What the Eigen engine is and how its documentation is organised.
 ---
@@ -15,29 +16,45 @@ validates — hidden information never leaves the server except as a per-seat
 projection, clocks are authoritative, and finished games are replayable from an
 immutable log.
 
-## Where things live
+You write pure game rules. The engine owns persistence, serialization, timing,
+sockets, reconnection, ratings, bots, auth, history, the API, and the game's
+website.
 
-The project spans a few repositories, and this documentation is drawn from them:
+## Start here
 
-- **Engine** — the TypeScript packages you deploy as a Worker.
-- **Flutter client** — the app shell and transport that talk to the engine.
-- **Games** — rules modules built on the engine (for example, the games we ship
-  ourselves).
+| If you want to… | Go to |
+|---|---|
+| Run something in the next five minutes | [Quickstart](./getting-started/quickstart.md) |
+| See a whole game in one file | [Rock-Paper-Scissors](./getting-started/your-first-game.md) |
+| Write your own game's rules | [Build a game](./build-a-game/game-module.md) |
+| Build the Flutter half | [The Flutter client](./client/overview.md) |
+| Deploy and run a game | [Operate](./operate/configuration.md) |
+| Understand why it's built this way | [How it works](./concepts/overview.md) |
+| Look something up | [Reference](./reference/http-surface.md) |
 
-## How to read these docs
+## How these docs are organised
 
-The documentation follows four shapes:
+The documentation is **audience-first**: the top-level sections match who you
+are, and each one runs from tutorial through how-to to explanation.
 
-- **Getting started** — build and deploy your first game.
-- **How-to guides** — task-focused recipes (rules, bots, deep links, avatars,
-  push, the game website).
-- **Explanation** — how the engine works and why it is built this way.
-- **Reference** — the HTTP API, the TypeScript and Dart APIs, and the wire
-  contract.
+- **Getting started** — run the reference game, then read it.
+- **Build a game** — the `GameRules` contract, hook by hook, plus testing, CI
+  and versioning.
+- **The Flutter client** — the transport, the Dart rules twin, the app shell,
+  and everything involved in shipping to a store.
+- **Operate** — configuration, local development, deploying, the generated web
+  surface, and the account lifecycle.
+- **How it works** — the engine itself: the kernel, Durable Objects, storage,
+  identity, security and the failure model.
+- **Reference** — the HTTP API (generated from `openapi.json`), the TypeScript
+  API (generated from source), the Envelope contract and the error model.
 
-:::note
+:::tip Reading this with an agent
 
-This site is being built out. Sections will fill in as the guides are synced
-from the engine and client repositories.
+Every page is also served as plain Markdown — append `.md` to any doc URL. There
+is an [`/llms.txt`](pathname:///llms.txt) index and an
+[`/llms-full.txt`](pathname:///llms-full.txt) single-file bundle, and the HTTP
+contract is available as a raw spec at
+[`/openapi.json`](pathname:///openapi.json).
 
 :::

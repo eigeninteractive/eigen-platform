@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"display_name":{"type":"string","minLength":1,"maxLength":40}},"required":["display_name"],"title":"DisplayNameUpdate"}}}}}

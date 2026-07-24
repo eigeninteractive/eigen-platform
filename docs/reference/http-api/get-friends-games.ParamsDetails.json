@@ -1,0 +1,1 @@
+{"parameters":[{"schema":{"type":"integer","minimum":1,"maximum":50,"default":20},"required":false,"name":"limit","in":"query"},{"schema":{"type":["integer","null"]},"required":false,"name":"cursor","in":"query"}]}

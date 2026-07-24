@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"client_schema_version":{"type":"integer"},"command_id":{"type":"string","minLength":1,"maxLength":128}},"required":["client_schema_version"],"title":"Join"}}}}}

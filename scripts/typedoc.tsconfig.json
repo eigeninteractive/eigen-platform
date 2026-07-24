@@ -1,0 +1,23 @@
+// TypeDoc reads the engine's sources from the sibling checkout, so it needs
+// the engine's compiler settings — not this site's. The `include` is
+// deliberately wide: TypeDoc starts at the package barrels but has to resolve
+// every module they re-export from.
+//
+// This file exists only for `pnpm sync-api`. The committed markdown it
+// produces is what `docusaurus build` consumes, so a normal build never needs
+// the sibling checkout at all.
+{
+  "extends": "../../eigen-server/tsconfig.base.json",
+  "compilerOptions": {
+    // `@eigen/server` renders its public web pages with hono/jsx and targets
+    // the Workers runtime; both settings come from packages/server/tsconfig.json.
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
+    "types": ["@cloudflare/workers-types"],
+    "typeRoots": ["../../eigen-server/node_modules/@types"],
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["../../eigen-server/packages/*/src/**/*"]
+}

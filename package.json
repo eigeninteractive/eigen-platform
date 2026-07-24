@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "sync-api": "node scripts/sync-api.mjs",
     "start": "docusaurus start",
     "build": "docusaurus build",
     "swizzle": "docusaurus swizzle",
@@ -22,11 +23,18 @@
     "@docusaurus/core": "3.10.2",
     "@docusaurus/faster": "3.10.2",
     "@docusaurus/preset-classic": "3.10.2",
+    "@docusaurus/theme-common": "3.10.2",
+    "@easyops-cn/docusaurus-search-local": "^0.55.2",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
+    "docusaurus-plugin-llms": "^0.5.1",
+    "docusaurus-plugin-openapi-docs": "^5.1.2",
+    "docusaurus-plugin-sass": "^0.2.6",
+    "docusaurus-theme-openapi-docs": "^5.1.2",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sass": "^1.101.6"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.3",
@@ -34,6 +42,8 @@
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
     "@types/react": "^19.0.0",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "~6.0.2",
     "wrangler": "^4.113.0"
   },

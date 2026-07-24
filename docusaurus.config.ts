@@ -4,6 +4,8 @@ import { themes as prismThemes } from "prism-react-renderer";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
+const GITHUB = "https://github.com/eigeninteractive/eigen-server";
+
 const config: Config = {
   title: "Eigen Interactive",
   tagline: "The open-source engine for turn-based multiplayer games",
@@ -21,8 +23,6 @@ const config: Config = {
   // Emit URLs without a trailing slash, matching the worker-served game pages.
   trailingSlash: false,
 
-  // Repo coordinates. `projectName` is a best guess — set it to the actual
-  // eigen-web repository name.
   organizationName: "eigeninteractive",
   projectName: "eigen-web",
 
@@ -42,8 +42,12 @@ const config: Config = {
       {
         docs: {
           sidebarPath: "./sidebars.ts",
-          // No editUrl: guides are synced in from the code repos at build
-          // time, so "edit this page" has no single source here.
+          // Every doc page is authored here — this site is the source of
+          // truth for the documentation, so "edit this page" points at it.
+          editUrl: "https://github.com/eigeninteractive/eigen-web/tree/main/",
+          // The OpenAPI theme swizzles the doc item to render request/response
+          // panels. Non-API pages render exactly as before.
+          docItemComponent: "@theme/ApiItem",
         },
         blog: {
           showReadingTime: true,
@@ -65,6 +69,80 @@ const config: Config = {
     ],
   ],
 
+  plugins: [
+    // Required by docusaurus-theme-openapi-docs, which ships Sass.
+    "docusaurus-plugin-sass",
+
+    // Turns the engine's emitted spec into MDX. This does not run during
+    // `build` — it runs on demand via `pnpm sync-api`, and its output is
+    // committed, so the site builds without the sibling checkout.
+    [
+      "docusaurus-plugin-openapi-docs",
+      {
+        id: "openapi",
+        docsPluginId: "classic",
+        config: {
+          engine: {
+            specPath: "api/openapi.json",
+            outputDir: "docs/reference/http-api",
+            downloadUrl: "/openapi.json",
+            sidebarOptions: {
+              groupPathsBy: "tag",
+              categoryLinkSource: "tag",
+            },
+          },
+        },
+      },
+    ],
+
+    // Agent-facing output: /llms.txt (the index), /llms-full.txt (everything
+    // in one file) and a .md twin of every page.
+    //
+    // The generated HTTP reference is deliberately excluded. Those pages are
+    // <ApiTabs>/<SchemaItem> component trees, so their markdown source is
+    // JSX scaffolding rather than prose — and an agent is better served by
+    // the real spec at /openapi.json, which llms.txt links to instead.
+    [
+      "docusaurus-plugin-llms",
+      {
+        title: "Eigen",
+        description: "An open-source, server-authoritative engine for turn-based multiplayer games. One codebase runs many games; each deployment is a single Cloudflare Worker that owns its own domain, database and players.",
+        generateLLMsTxt: true,
+        generateLLMsFullTxt: true,
+        generateMarkdownFiles: true,
+        excludeImports: true,
+        removeDuplicateHeadings: true,
+        ignoreFiles: ["reference/http-api/**"],
+        pathTransformation: {
+          ignorePaths: ["docs"],
+        },
+        // Reading order for llms-full.txt: orient, then build, then the
+        // details. Matches the sidebar.
+        includeOrder: ["intro.mdx", "getting-started/**", "build-a-game/**", "client/**", "operate/**", "concepts/**", "reference/**"],
+        includeUnmatchedLast: true,
+      },
+    ],
+  ],
+
+  themes: [
+    "docusaurus-theme-openapi-docs",
+    [
+      // Local search: no Algolia account, no third-party request from the
+      // browser, and it indexes at build time. Keeps the site free of
+      // external dependencies, which is also why analytics is Cloudflare's
+      // cookieless beacon rather than gtag.
+      "@easyops-cn/docusaurus-search-local",
+      {
+        hashed: true,
+        indexBlog: true,
+        docsRouteBasePath: "/docs",
+        blogRouteBasePath: "/blog",
+        highlightSearchTermsOnTargetPage: true,
+        explicitSearchResultPath: true,
+      },
+    ],
+  ],
+
   themeConfig: {
     // Default social/OG card (1200x630), emitted as og:image + twitter:image.
     image: "home.og.png",
@@ -81,18 +159,25 @@ const config: Config = {
       title: "Eigen Interactive",
       logo: {
         alt: "Eigen Interactive",
-        src: "img/logo.svg",
+        src: "android-chrome-192x192.png",
       },
       items: [
         {
           type: "docSidebar",
-          sidebarId: "tutorialSidebar",
+          sidebarId: "docsSidebar",
           position: "left",
           label: "Docs",
         },
+        {
+          type: "docSidebar",
+          sidebarId: "referenceSidebar",
+          position: "left",
+          label: "Reference",
+        },
+        { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
         {
-          href: "https://github.com/eigeninteractive/eigen-server",
+          href: GITHUB,
           label: "GitHub",
           position: "right",
         },
@@ -104,33 +189,34 @@ const config: Config = {
         {
           title: "Docs",
           items: [
-            {
-              label: "Introduction",
-              to: "/docs/intro",
-            },
+            { label: "Introduction", to: "/docs/intro" },
+            { label: "Quickstart", to: "/docs/getting-started/quickstart" },
+            { label: "Build a game", to: "/docs/build-a-game/game-module" },
+            { label: "Concepts", to: "/docs/concepts/overview" },
+          ],
+        },
+        {
+          title: "Reference",
+          items: [
+            { label: "HTTP API", to: "/docs/reference/http-api/eigen-engine-api" },
+            { label: "TypeScript API", to: "/docs/reference/typescript" },
+            // `pathname://` opts out of the SPA router *and* the broken-link
+            // check — these are static/post-build artifacts, not routes.
+            { label: "OpenAPI spec", to: "pathname:///openapi.json" },
+            { label: "llms.txt", to: "pathname:///llms.txt" },
           ],
         },
         {
           title: "Project",
           items: [
-            {
-              label: "GitHub",
-              href: "https://github.com/seenu-k/eigen-server",
-            },
-            {
-              label: "License (MIT)",
-              href: "https://github.com/seenu-k/eigen-server/blob/main/LICENSE",
-            },
+            { label: "GitHub", href: GITHUB },
+            { label: "Changelog", to: "/blog" },
+            { label: "License (MIT)", href: `${GITHUB}/blob/main/LICENSE` },
           ],
         },
         {
           title: "Legal",
-          items: [
-            {
-              label: "Privacy Policy",
-              to: "/privacy",
-            },
-          ],
+          items: [{ label: "Privacy Policy", to: "/privacy" }],
         },
       ],
       copyright: `Copyright © ${new Date().getFullYear()} Eigen Interactive. MIT-licensed. Built with Docusaurus.`,
@@ -138,6 +224,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ["bash", "json", "dart", "yaml", "sql"],
     },
   } satisfies Preset.ThemeConfig,
 };

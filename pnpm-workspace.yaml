@@ -8,3 +8,8 @@ allowBuilds:
   sharp: true
   '@swc/core': true
   core-js: true
+  # Docusaurus' dev-server file watcher (native binding; falls back to
+  # polling without it) and the code-sample generator behind the OpenAPI
+  # theme's per-language request snippets.
+  '@parcel/watcher': true
+  postman-code-generators: true

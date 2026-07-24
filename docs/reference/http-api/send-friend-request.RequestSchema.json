@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"target_user_id":{"type":"string","minLength":1}},"required":["target_user_id"],"title":"FriendTarget"}}}}}

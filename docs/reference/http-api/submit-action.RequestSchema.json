@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"seat":{"type":"integer","minimum":0},"data":{},"expected_version":{"type":"integer","minimum":0},"command_id":{"type":"string","minLength":1,"maxLength":128}},"required":["seat","expected_version"],"title":"Action"}}}}}

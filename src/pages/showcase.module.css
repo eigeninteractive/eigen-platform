@@ -1,0 +1,56 @@
+.intro {
+  max-width: 46rem;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  margin: 2rem 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: var(--ifm-card-border-radius, 0.5rem);
+  padding: 1.5rem;
+  background: var(--ifm-card-background-color, var(--ifm-background-surface-color));
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.cardTitle {
+  margin-bottom: 0.25rem;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--ifm-color-emphasis-600);
+  font-size: 0.9rem;
+}
+
+.description {
+  flex: 1;
+  margin-top: 1rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.outro {
+  color: var(--ifm-color-emphasis-700);
+}
