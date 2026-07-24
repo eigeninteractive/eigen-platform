@@ -7,19 +7,10 @@
     }
   ],
   "commit": false,
-  "fixed": [
-    [
-      "@eigen/kernel",
-      "@eigen/rules",
-      "@eigen/server",
-      "@eigen/testkit"
-    ]
-  ],
+  "fixed": [["@eigen/kernel", "@eigen/rules", "@eigen/server", "@eigen/testkit"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "rps"
-  ]
+  "ignore": ["rps"]
 }

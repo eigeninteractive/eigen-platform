@@ -11,6 +11,12 @@
         "commits": [null, null],
         "lastRound": null
       },
+      "obs": {
+        "round": 1,
+        "wins": [0, 0],
+        "lastRound": null,
+        "yourMove": null
+      },
       "pending": [0, 1],
       "playerIndex": 0,
       "action": { "move": "rock" },
@@ -41,6 +47,12 @@
         "wins": [0, 0],
         "commits": ["rock", null],
         "lastRound": null
+      },
+      "obs": {
+        "round": 1,
+        "wins": [0, 0],
+        "lastRound": null,
+        "yourMove": null
       },
       "pending": [1],
       "playerIndex": 1,
@@ -73,6 +85,12 @@
         "commits": ["paper", null],
         "lastRound": null
       },
+      "obs": {
+        "round": 1,
+        "wins": [0, 0],
+        "lastRound": null,
+        "yourMove": null
+      },
       "pending": [1],
       "playerIndex": 1,
       "action": { "move": "paper" },
@@ -104,6 +122,12 @@
         "commits": [null, "paper"],
         "lastRound": null
       },
+      "obs": {
+        "round": 1,
+        "wins": [0, 0],
+        "lastRound": null,
+        "yourMove": null
+      },
       "pending": [0],
       "playerIndex": 0,
       "action": { "move": "scissors" },
@@ -128,6 +152,12 @@
         "wins": [0, 0],
         "commits": ["rock", null],
         "lastRound": null
+      },
+      "obs": {
+        "round": 1,
+        "wins": [0, 0],
+        "lastRound": null,
+        "yourMove": "rock"
       },
       "pending": [1],
       "playerIndex": 0,

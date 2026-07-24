@@ -104,6 +104,19 @@ openapi.json    →  eigen-flutter  (regenerates its typed Dart client)
 package barrels →  eigen-web      (regenerates the TypeDoc reference)
 ```
 
+There is a third coupling that **nothing dispatches**, because it is a hand
+edit on both sides: the RPS twin fixtures.
+`examples/rps/src/rules/fixtures/v1/rps.json` here and
+`example/fixtures/v1/rps.json` in `eigen-flutter` are the same file, run against
+the TypeScript unit here and the Dart twin there. Editing one leaves that repo
+green while the other holds a stale copy, and nothing fails until the other
+repo's CI next runs. **A rules change is a two-repo change**, and the fixture
+edit is the part that must land in both.
+
+A case's `obs` field is read only by the Dart runner — it is the acting seat's
+observation, which for a hidden-information game is not the state. Omitting it
+means "the two coincide", which is true only for perfect-information games.
+
 `.github/workflows/notify-consumers.yml` dispatches an `engine-api-changed`
 event to both when one of those inputs lands on `main`. Each consumer
 regenerates and **opens a pull request** — the PR is the notification, a
