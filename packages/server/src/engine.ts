@@ -406,6 +406,18 @@ export function openApiDocument(): OpenAPIObject {
       version: "1.0.0",
       description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated.",
     },
+    // Every operation carries a tag; declaring them at the top level gives
+    // each one a description, and fixes their order in generated reference
+    // documentation (otherwise they appear in first-route-seen order).
+    tags: [
+      { name: "Games", description: "Create, join, start, play and finish games. The heart of the API: every move is a proposal the server validates against authoritative state." },
+      { name: "Me", description: "The signed-in player — profile, username, ratings, rating history and registered devices." },
+      { name: "Players", description: "Other players: their public profile, their finished games and their ratings." },
+      { name: "Social", description: "Friends, friend requests, blocking and user search." },
+      { name: "Bots", description: "The bots this deployment offers as opponents." },
+      { name: "BotWebhook", description: "The HMAC-authenticated callback an external bot answers on. Not for clients." },
+      { name: "Health", description: "Liveness probe." },
+    ],
     // The default requirement is the client's Firebase token; the bot webhook
     // overrides it per-operation with `botHmac`.
     security: [{ firebase: [] }],

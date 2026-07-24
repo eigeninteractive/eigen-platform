@@ -2,6 +2,8 @@
  * `@eigen/server` — everything that deploys: the
  * `createEngine` API factory, the GameDO base class, the D1 applier +
  * schemas, and the protocol types.
+ *
+ * @module @eigen/server
  */
 
 export { displayRating, type RatingDelta } from "@eigen/kernel";

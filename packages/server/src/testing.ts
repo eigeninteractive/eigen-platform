@@ -19,6 +19,8 @@
  * the JWKS is local. The RS256 keypair below is a public fixture (checked in,
  * shipped in the package); it protects nothing and must never reach a
  * production config: pass `auth` ONLY in test workers.
+ *
+ * @module @eigen/server/testing
  */
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";

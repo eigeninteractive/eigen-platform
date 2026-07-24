@@ -1,3 +1,11 @@
+/**
+ * `@eigen/testkit` — drive a game's rules through the real kernel without a
+ * Worker, a database or a network. Build a table, submit actions as seats,
+ * assert on the resulting transitions and per-seat observations.
+ *
+ * @module @eigen/testkit
+ */
+
 export {
   type CommitInput,
   type CommitPlan,
