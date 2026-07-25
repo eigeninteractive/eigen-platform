@@ -15,6 +15,7 @@ import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
 import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { testBearer as bearer } from "../src/testing.js";
+import { userRow } from "./factories.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
@@ -126,7 +127,7 @@ describe("applyFinish purge guard", () => {
     const now = Date.now();
     await db
       .insert(users)
-      .values({ id: present, username: uid("u"), email: null, displayName: "Present", avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now })
+      .values(userRow(present, { username: uid("u"), displayName: "Present" }))
       .run();
 
     const gameId = crypto.randomUUID();

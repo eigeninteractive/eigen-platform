@@ -17,6 +17,7 @@ import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame, type FrameMessage } from "../src/index.js";
 import type { SyncMessage } from "../src/protocol.js";
+import { userRow } from "./factories.js";
 
 /** Typed D1 access for seeds and assertions — the DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
@@ -35,15 +36,11 @@ let gameCounter = 0;
  * (the waiting room is a later milestone). */
 async function seedGame(opts: SeedOptions = {}): Promise<string> {
   const gameId = `game-${++gameCounter}-${crypto.randomUUID()}`;
-  const now = Date.now();
   // Both seats have real `users` rows, as any authed player would — the finish
   // apply's purge guard only rates identities that still exist.
   await db
     .insert(users)
-    .values([
-      { id: "user-a", username: "user-a", email: null, displayName: "A", avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now },
-      { id: "user-b", username: "user-b", email: null, displayName: "B", avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now },
-    ])
+    .values([userRow("user-a", { displayName: "A" }), userRow("user-b", { displayName: "B" })])
     .onConflictDoNothing()
     .run();
   await createGame(env.DB, {

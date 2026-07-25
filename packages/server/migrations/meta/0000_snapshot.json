@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "34666d22-62b1-487b-9127-8d3ecf2b11cf",
+  "id": "e4681b45-fd5f-47f0-a698-588fb5dfdc57",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -705,15 +705,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "user_id_1": {
-          "name": "user_id_1",
+        "user_id1": {
+          "name": "user_id1",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "user_id_2": {
-          "name": "user_id_2",
+        "user_id2": {
+          "name": "user_id2",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -752,15 +752,15 @@
         "idx_relationships_pair": {
           "name": "idx_relationships_pair",
           "columns": [
-            "user_id_1",
-            "user_id_2"
+            "user_id1",
+            "user_id2"
           ],
           "isUnique": true
         },
         "idx_relationships_user2": {
           "name": "idx_relationships_user2",
           "columns": [
-            "user_id_2"
+            "user_id2"
           ],
           "isUnique": false
         }

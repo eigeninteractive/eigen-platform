@@ -112,8 +112,8 @@ export const relationships = sqliteTable(
   "relationships",
   {
     id: text().primaryKey(),
-    userId1: text("user_id_1").notNull(),
-    userId2: text("user_id_2").notNull(),
+    userId1: text().notNull(),
+    userId2: text().notNull(),
     initiatedBy: text().notNull(),
     /** `blocked` is declared for Dart-twin parity (the old enum had it);
      * no engine logic acts on it yet — the social routes milestone decides. */

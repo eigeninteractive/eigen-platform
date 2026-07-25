@@ -14,6 +14,7 @@ import { orm } from "../src/d1/orm.js";
 import { readGame, readGameByCode } from "../src/d1/reads.js";
 import { users } from "../src/d1/schema.js";
 import { createGame } from "../src/index.js";
+import { userRow } from "./factories.js";
 
 const db = orm(env.DB);
 
@@ -27,7 +28,7 @@ async function seedTwoSeatGame(): Promise<{ gameId: string; shortCode: string; a
   const now = Date.now();
   await db
     .insert(users)
-    .values([a, b].map((id) => ({ id, username: id, email: null, displayName: id, avatarUrl: null, isAnonymous: false, createdAt: now, updatedAt: now })))
+    .values([a, b].map((id) => userRow(id)))
     .run();
   await createGame(env.DB, {
     gameId,

@@ -105,16 +105,16 @@ CREATE UNIQUE INDEX `idx_rating_history_bot_cas` ON `rating_history` (`bot_id`,`
 CREATE INDEX `idx_rating_history_user_pool` ON `rating_history` (`user_id`,`pool`,`created_at`);--> statement-breakpoint
 CREATE TABLE `relationships` (
 	`id` text PRIMARY KEY NOT NULL,
-	`user_id_1` text NOT NULL,
-	`user_id_2` text NOT NULL,
+	`user_id1` text NOT NULL,
+	`user_id2` text NOT NULL,
 	`initiated_by` text NOT NULL,
 	`status` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `idx_relationships_pair` ON `relationships` (`user_id_1`,`user_id_2`);--> statement-breakpoint
-CREATE INDEX `idx_relationships_user2` ON `relationships` (`user_id_2`);--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_relationships_pair` ON `relationships` (`user_id1`,`user_id2`);--> statement-breakpoint
+CREATE INDEX `idx_relationships_user2` ON `relationships` (`user_id2`);--> statement-breakpoint
 CREATE TABLE `users` (
 	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
