@@ -22,7 +22,7 @@
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "./orm.js";
 import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
@@ -44,7 +44,7 @@ const CAS_ATTEMPTS = 5;
  * failure — the caller logs and keeps the outbox row (single attempt at
  * the call site; the internal loop only absorbs CAS conflicts). */
 export async function applyFinish(d1: D1Database, input: FinishApplyInput): Promise<RatingDelta[] | null> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   /** Non-null exactly when this finish is rated — the sole rated/pool gate. */
   const pool = input.rated ? input.ratingPool : null;
 
@@ -172,7 +172,7 @@ function identityKey(userId: string | null, botId: string | null): string {
  * call site). Empty in ⇒ empty out, no round trip. */
 async function readExistingUsers(d1: D1Database, userIds: string[]): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();
-  const rows = await drizzle(d1).select({ id: users.id }).from(users).where(inArray(users.id, userIds)).all();
+  const rows = await orm(d1).select({ id: users.id }).from(users).where(inArray(users.id, userIds)).all();
   return new Set(rows.map((r) => r.id));
 }
 
@@ -184,7 +184,7 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
   const botIds = roster.flatMap((s) => (s.user_id === null && s.bot_id !== null ? [s.bot_id] : []));
   const identities = [...(userIds.length > 0 ? [inArray(playerRatings.userId, userIds)] : []), ...(botIds.length > 0 ? [inArray(playerRatings.botId, botIds)] : [])];
   if (identities.length === 0) return priors; // every seat purged: defaults
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select({ userId: playerRatings.userId, botId: playerRatings.botId, mu: playerRatings.mu, sigma: playerRatings.sigma, revision: playerRatings.revision })
     .from(playerRatings)
     .where(and(eq(playerRatings.pool, pool), or(...identities)))
@@ -203,7 +203,7 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
  * Both paths are guarded by the same index, so a first-time identity racing
  * another first-time write and an established identity racing a concurrent
  * finish fail identically and take the same retry. */
-function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
+function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
   const statements = [];
   for (const delta of deltas) {
     const { user_id: userId, bot_id: botId } = delta.identity;
@@ -269,7 +269,7 @@ function ratingStatements(db: ReturnType<typeof drizzle>, input: FinishApplyInpu
 /** A crashed-then-re-poked apply already landed: rebuild the deltas the DO
  * still needs (for the ratings transition) from the history rows. */
 async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDelta[]> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const rows = await db.select().from(ratingHistory).where(eq(ratingHistory.finishId, finishId)).all();
   return rows.map((row) => ({
     identity: { user_id: row.userId, bot_id: row.botId },
@@ -288,7 +288,7 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
  * post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
  * re-derivable from the DO at any time. */
 export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   await db
     .update(games)
     .set({
@@ -306,7 +306,7 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
  * Fire-and-forget post-commit (the DO leaves it unawaited; no `waitUntil`),
  * single attempt. */
 export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const statements = [db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)), db.delete(participants).where(eq(participants.gameId, args.gameId))] as const;
   if (args.seats.length === 0) {
     await db.batch([...statements]);
@@ -340,7 +340,7 @@ export interface CreateGameInput {
  * lazy-inits from exactly these rows on first contact. Callers own the
  * short_code retry: a duplicate trips the UNIQUE index and throws. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   await db.batch([
     db.insert(games).values({
       id: input.gameId,
@@ -367,7 +367,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
 /** Lazy-init read: the D1 game + participants rows the DO copies into
  * its `meta`/`roster` on first contact — one batched round trip. */
 export async function readGameRow(d1: D1Database, gameId: string) {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const [gameRows, seatRows] = await db.batch([
     db.select().from(games).where(eq(games.id, gameId)),
     db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),

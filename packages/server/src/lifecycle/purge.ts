@@ -22,8 +22,8 @@
  */
 
 import { and, eq, inArray, or } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { deleteFirebaseAccount } from "../auth/admin.js";
+import { orm } from "../d1/orm.js";
 import { deviceInstallations, games, participants, playerRatings, ratingHistory, relationships, users } from "../d1/schema.js";
 import type { ServiceAccount } from "../google/oauth.js";
 import type { Command, GameStub } from "../protocol.js";
@@ -52,7 +52,7 @@ interface LiveSeat {
 /** The user's live games (waiting/ready/active) with their seat — through the
  * participants index. No limit: a deletion must clear every one. */
 async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]> {
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select({ gameId: games.id, status: games.status, createdBy: games.createdBy, seat: participants.playerIndex })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
@@ -80,7 +80,7 @@ async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promis
  * created_by (history stays readable); delete the personal rows; the `users`
  * row last. */
 async function purgeD1(d1: D1Database, userId: string): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   await db.batch([
     db.update(participants).set({ userId: null }).where(eq(participants.userId, userId)),
     db.update(games).set({ createdBy: null }).where(eq(games.createdBy, userId)),

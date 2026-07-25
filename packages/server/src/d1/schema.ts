@@ -27,15 +27,15 @@ export const users = sqliteTable(
   "users",
   {
     /** The Firebase uid — stable across guest → permanent upgrades. */
-    id: text("id").primaryKey(),
-    username: text("username").notNull().unique(),
+    id: text().primaryKey(),
+    username: text().notNull().unique(),
     /** Null for guests until they convert; UNIQUE tolerates multiple NULLs. */
-    email: text("email").unique(),
-    displayName: text("display_name").notNull(),
-    avatarUrl: text("avatar_url"),
-    isAnonymous: integer("is_anonymous", { mode: "boolean" }).notNull(),
-    createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    email: text().unique(),
+    displayName: text().notNull(),
+    avatarUrl: text(),
+    isAnonymous: integer({ mode: "boolean" }).notNull(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
   },
   (t) => [index("idx_users_username").on(t.username)],
 );
@@ -45,37 +45,37 @@ export const users = sqliteTable(
 export const games = sqliteTable(
   "games",
   {
-    id: text("id").primaryKey(),
-    createdBy: text("created_by"),
-    status: text("status").$type<GameStatus>().notNull(),
-    access: text("access").$type<GameAccess>().notNull(),
-    schemaVersion: integer("schema_version").notNull(),
-    config: text("config", { mode: "json" }).$type<JsonObject>().notNull(),
+    id: text().primaryKey(),
+    createdBy: text(),
+    status: text().$type<GameStatus>().notNull(),
+    access: text().$type<GameAccess>().notNull(),
+    schemaVersion: integer().notNull(),
+    config: text({ mode: "json" }).$type<JsonObject>().notNull(),
     /** Exactly one timing mode: turn XOR budget XOR untimed (worker policy
      * validates; no CHECK — D1 is display, the DO is integrity). */
-    turnSeconds: integer("turn_seconds"),
-    budgetSeconds: integer("budget_seconds"),
-    incrementSeconds: integer("increment_seconds"),
-    rated: integer("rated", { mode: "boolean" }).notNull(),
-    ratingPool: text("rating_pool"),
-    minPlayers: integer("min_players").notNull(),
-    maxPlayers: integer("max_players").notNull(),
-    shortCode: text("short_code").notNull().unique(),
+    turnSeconds: integer(),
+    budgetSeconds: integer(),
+    incrementSeconds: integer(),
+    rated: integer({ mode: "boolean" }).notNull(),
+    ratingPool: text(),
+    minPlayers: integer().notNull(),
+    maxPlayers: integer().notNull(),
+    shortCode: text().notNull().unique(),
     /** Dashboard hints ("your turn", countdowns) — display-only staleness OK. */
-    pendingPlayers: text("pending_players", { mode: "json" }).$type<number[] | null>(),
-    turnDeadline: integer("turn_deadline"),
+    pendingPlayers: text({ mode: "json" }).$type<number[] | null>(),
+    turnDeadline: integer(),
     /** Folded former game_outcomes table — written once by the finish apply. */
-    outcomes: text("outcomes", { mode: "json" }).$type<OutcomeEntry[] | null>(),
+    outcomes: text({ mode: "json" }).$type<OutcomeEntry[] | null>(),
     /**: the D1 apply's idempotency key; set when the apply lands. */
-    finishId: text("finish_id"),
+    finishId: text(),
     /** Stamped by the finish apply (and the future abort path) — history
      * lists sort by it, as the Supabase era did. */
-    finishedAt: integer("finished_at"),
+    finishedAt: integer(),
     /** seam: NULL = history lives in the game's DO. V1 never writes or
      * reads it; the future cold-tier sweep starts stamping it. */
-    archivedAt: integer("archived_at"),
-    createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    archivedAt: integer(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
   },
   (t) => [
     index("idx_games_status_access").on(t.status, t.access),
@@ -93,15 +93,15 @@ export const games = sqliteTable(
 export const participants = sqliteTable(
   "participants",
   {
-    id: text("id").primaryKey(),
-    gameId: text("game_id").notNull(),
+    id: text().primaryKey(),
+    gameId: text().notNull(),
     /** Exactly one of user_id/bot_id for a live identity; both may be NULL
      * after an account purge (worker-enforced — D1 carries no CHECKs). */
-    userId: text("user_id"),
-    botId: text("bot_id"),
-    playerIndex: integer("player_index").notNull(),
-    type: text("type").$type<Seat["type"]>().notNull(),
-    createdAt: integer("created_at").notNull(),
+    userId: text(),
+    botId: text(),
+    playerIndex: integer().notNull(),
+    type: text().$type<Seat["type"]>().notNull(),
+    createdAt: integer().notNull(),
   },
   (t) => [uniqueIndex("idx_participants_unique").on(t.gameId, t.userId).where(sql`user_id IS NOT NULL`), uniqueIndex("idx_participants_player_index").on(t.gameId, t.playerIndex), index("idx_participants_user_id").on(t.userId), index("idx_participants_game_id").on(t.gameId)],
 );
@@ -111,15 +111,15 @@ export const participants = sqliteTable(
 export const relationships = sqliteTable(
   "relationships",
   {
-    id: text("id").primaryKey(),
+    id: text().primaryKey(),
     userId1: text("user_id_1").notNull(),
     userId2: text("user_id_2").notNull(),
-    initiatedBy: text("initiated_by").notNull(),
+    initiatedBy: text().notNull(),
     /** `blocked` is declared for Dart-twin parity (the old enum had it);
      * no engine logic acts on it yet — the social routes milestone decides. */
-    status: text("status").$type<"pending" | "accepted" | "blocked">().notNull(),
-    createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    status: text().$type<"pending" | "accepted" | "blocked">().notNull(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
   },
   (t) => [uniqueIndex("idx_relationships_pair").on(t.userId1, t.userId2), index("idx_relationships_user2").on(t.userId2)],
 );
@@ -141,17 +141,17 @@ export type BotType = "engine" | "external" | "local";
 export const bots = sqliteTable(
   "bots",
   {
-    id: text("id").primaryKey(),
-    username: text("username").notNull().unique(),
-    displayName: text("display_name").notNull(),
-    avatarUrl: text("avatar_url"),
+    id: text().primaryKey(),
+    username: text().notNull().unique(),
+    displayName: text().notNull(),
+    avatarUrl: text(),
     /** Highest game schema this bot supports — the seating gate. */
-    schemaVersion: integer("schema_version").notNull(),
-    type: text("type").$type<BotType>().notNull(),
-    webhookUrl: text("webhook_url"),
-    ratedEligible: integer("rated_eligible", { mode: "boolean" }).notNull(),
-    config: text("config", { mode: "json" }).$type<JsonObject>().notNull(),
-    createdAt: integer("created_at").notNull(),
+    schemaVersion: integer().notNull(),
+    type: text().$type<BotType>().notNull(),
+    webhookUrl: text(),
+    ratedEligible: integer({ mode: "boolean" }).notNull(),
+    config: text({ mode: "json" }).$type<JsonObject>().notNull(),
+    createdAt: integer().notNull(),
   },
   (t) => [
     // A webhook is present iff the bot is external — the type/columns stay a
@@ -170,17 +170,17 @@ export const bots = sqliteTable(
 export const playerRatings = sqliteTable(
   "player_ratings",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id"),
-    botId: text("bot_id"),
-    pool: text("pool").notNull(),
-    mu: real("mu").notNull(),
-    sigma: real("sigma").notNull(),
+    id: text().primaryKey(),
+    userId: text(),
+    botId: text(),
+    pool: text().notNull(),
+    mu: real().notNull(),
+    sigma: real().notNull(),
     /** max(0, round((mu − 3σ) · 40)) — denormalized for leaderboards. */
-    displayRating: integer("display_rating").notNull(),
-    revision: integer("revision").notNull(),
-    createdAt: integer("created_at").notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    displayRating: integer().notNull(),
+    revision: integer().notNull(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
   },
   (t) => [uniqueIndex("idx_player_ratings_user_pool").on(t.userId, t.pool).where(sql`user_id IS NOT NULL`), uniqueIndex("idx_player_ratings_bot_pool").on(t.botId, t.pool).where(sql`bot_id IS NOT NULL`)],
 );
@@ -207,25 +207,25 @@ export const playerRatings = sqliteTable(
 export const ratingHistory = sqliteTable(
   "rating_history",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id"),
-    botId: text("bot_id"),
-    gameId: text("game_id").notNull(),
-    pool: text("pool").notNull(),
-    finishId: text("finish_id").notNull(),
+    id: text().primaryKey(),
+    userId: text(),
+    botId: text(),
+    gameId: text().notNull(),
+    pool: text().notNull(),
+    finishId: text().notNull(),
     /** The `player_ratings.revision` this delta was computed against — 0 for
      * an identity that had no rating row yet. The post-write revision is
      * always this + 1, so the column doubles as the per-identity ordering of
      * the log. */
-    revisionBefore: integer("revision_before").notNull(),
-    muBefore: real("mu_before").notNull(),
-    sigmaBefore: real("sigma_before").notNull(),
-    displayBefore: integer("display_before").notNull(),
-    muAfter: real("mu_after").notNull(),
-    sigmaAfter: real("sigma_after").notNull(),
-    displayAfter: integer("display_after").notNull(),
-    displayChange: integer("display_change").notNull(),
-    createdAt: integer("created_at").notNull(),
+    revisionBefore: integer().notNull(),
+    muBefore: real().notNull(),
+    sigmaBefore: real().notNull(),
+    displayBefore: integer().notNull(),
+    muAfter: real().notNull(),
+    sigmaAfter: real().notNull(),
+    displayAfter: integer().notNull(),
+    displayChange: integer().notNull(),
+    createdAt: integer().notNull(),
   },
   (t) => [
     uniqueIndex("idx_rating_history_game_user").on(t.gameId, t.userId).where(sql`user_id IS NOT NULL`),
@@ -242,10 +242,10 @@ export const ratingHistory = sqliteTable(
 export const deviceInstallations = sqliteTable(
   "device_installations",
   {
-    fid: text("fid").primaryKey(),
-    userId: text("user_id").notNull(),
-    platform: text("platform").$type<"ios" | "android" | "web">().notNull(),
-    updatedAt: integer("updated_at").notNull(),
+    fid: text().primaryKey(),
+    userId: text().notNull(),
+    platform: text().$type<"ios" | "android" | "web">().notNull(),
+    updatedAt: integer().notNull(),
   },
   (t) => [index("idx_device_installations_user").on(t.userId)],
 );

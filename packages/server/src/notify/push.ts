@@ -12,18 +12,18 @@
  */
 
 import { and, eq, inArray } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { deviceInstallations } from "../d1/schema.js";
 import { type NotificationMessage, readServiceAccount, type ServiceAccount, sendNotifications } from "./fcm.js";
 
 async function readUserFids(d1: D1Database, userId: string): Promise<string[]> {
-  const rows = await drizzle(d1).select({ fid: deviceInstallations.fid }).from(deviceInstallations).where(eq(deviceInstallations.userId, userId)).all();
+  const rows = await orm(d1).select({ fid: deviceInstallations.fid }).from(deviceInstallations).where(eq(deviceInstallations.userId, userId)).all();
   return rows.map((r) => r.fid);
 }
 
 async function pruneFids(d1: D1Database, userId: string, fids: string[]): Promise<void> {
   if (fids.length === 0) return;
-  await drizzle(d1)
+  await orm(d1)
     .delete(deviceInstallations)
     .where(and(eq(deviceInstallations.userId, userId), inArray(deviceInstallations.fid, fids)))
     .run();

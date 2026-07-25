@@ -47,7 +47,7 @@ CREATE TABLE `games` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `games_short_code_unique` ON `games` (`short_code`);--> statement-breakpoint
+CREATE UNIQUE INDEX `games_shortCode_unique` ON `games` (`short_code`);--> statement-breakpoint
 CREATE INDEX `idx_games_status_access` ON `games` (`status`,`access`);--> statement-breakpoint
 CREATE INDEX `idx_games_created_by` ON `games` (`created_by`);--> statement-breakpoint
 CREATE INDEX `idx_games_lobby` ON `games` (`created_at`) WHERE access = 'public' AND status IN ('waiting', 'ready');--> statement-breakpoint

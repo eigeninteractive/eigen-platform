@@ -15,13 +15,13 @@
 
 import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
 import { isUniqueViolation } from "../src/d1/apply.js";
+import { orm } from "../src/d1/orm.js";
 import { playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { applyFinish, createGame } from "../src/index.js";
 
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 const POOL = "cas-pool";
 
 let seq = 0;

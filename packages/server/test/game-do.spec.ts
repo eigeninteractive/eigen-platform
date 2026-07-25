@@ -12,8 +12,8 @@ import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
 import type { GameStatus } from "@eigeninteractive/kernel";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it, vi } from "vitest";
+import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame, type FrameMessage } from "../src/index.js";
 import type { SyncMessage } from "../src/protocol.js";
@@ -21,7 +21,7 @@ import type { SyncMessage } from "../src/protocol.js";
 /** Typed D1 access for seeds and assertions — the DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
  * what is physically on disk beneath the ORM. */
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 
 interface SeedOptions {
   rated?: boolean;

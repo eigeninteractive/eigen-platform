@@ -7,12 +7,12 @@
 
 import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
+import { orm } from "../src/d1/orm.js";
 import { deviceInstallations } from "../src/d1/schema.js";
 import { testBearer as bearer } from "../src/testing.js";
 
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {

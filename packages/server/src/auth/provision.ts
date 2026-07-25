@@ -12,7 +12,7 @@
  */
 
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { users } from "../d1/schema.js";
 import type { AuthClaims } from "./firebase.js";
 
@@ -49,7 +49,7 @@ function firstAttempt(email: string | null): string {
  * One read on the hot path; writes only on first sight and on guest →
  * permanent conversion. */
 export async function ensureUser(d1: D1Database, claims: AuthClaims, now: number): Promise<UserRow> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const existing = await db.select().from(users).where(eq(users.id, claims.uid)).get();
 
   if (existing !== undefined) {

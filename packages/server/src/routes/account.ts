@@ -10,7 +10,7 @@
 
 import { createRoute, z } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { users } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
@@ -55,7 +55,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       }
       const userId = c.var.auth.user.id;
       try {
-        await drizzle(ctx.d1(c.env)).update(users).set({ username, updatedAt: Date.now() }).where(eq(users.id, userId));
+        await orm(ctx.d1(c.env)).update(users).set({ username, updatedAt: Date.now() }).where(eq(users.id, userId));
       } catch (error) {
         if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken", "username_taken");
         throw error;
@@ -83,7 +83,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const displayName = c.req.valid("json").display_name.trim();
-      await drizzle(ctx.d1(c.env)).update(users).set({ displayName, updatedAt: Date.now() }).where(eq(users.id, c.var.auth.user.id));
+      await orm(ctx.d1(c.env)).update(users).set({ displayName, updatedAt: Date.now() }).where(eq(users.id, c.var.auth.user.id));
       return c.json({ display_name: displayName }, 200);
     },
   );

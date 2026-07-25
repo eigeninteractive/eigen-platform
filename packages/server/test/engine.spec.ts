@@ -8,15 +8,15 @@
 
 import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { deriveBotKey, signForBot } from "../src/bot/bot-auth.js";
+import { orm } from "../src/d1/orm.js";
 import { bots, participants } from "../src/d1/schema.js";
 import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
 
 const BOT_SECRET = "test-bot-signing-secret";
 
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 
 let userCounter = 0;
 /** Fresh identities per test — provisioning is exercised implicitly. */

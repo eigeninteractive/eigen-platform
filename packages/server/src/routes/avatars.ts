@@ -13,7 +13,7 @@
  */
 
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { users } from "../d1/schema.js";
 import type { EngineApp, ResolvedAvatars, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
@@ -51,7 +51,7 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
     const now = Date.now();
     await avatars.bucket(c.env).put(uid, body, { httpMetadata: { contentType } });
     const url = avatarUrl(avatars.publicBaseUrl(c.env), uid, now);
-    await drizzle(ctx.d1(c.env)).update(users).set({ avatarUrl: url, updatedAt: now }).where(eq(users.id, uid));
+    await orm(ctx.d1(c.env)).update(users).set({ avatarUrl: url, updatedAt: now }).where(eq(users.id, uid));
     return c.json({ avatar_url: url }, 200);
   });
 }

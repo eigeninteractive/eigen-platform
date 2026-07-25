@@ -9,13 +9,13 @@
  */
 
 import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it } from "vitest";
+import { orm } from "../src/d1/orm.js";
 import { readGame, readGameByCode } from "../src/d1/reads.js";
 import { users } from "../src/d1/schema.js";
 import { createGame } from "../src/index.js";
 
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 
 let seq = 0;
 

@@ -19,7 +19,7 @@
  */
 
 import { type AnyColumn, and, eq, inArray, notExists, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "./orm.js";
 import { games, participants, relationships } from "./schema.js";
 
 /** The canonical pair order the `relationships` unique index is keyed on. */
@@ -40,7 +40,7 @@ export function samePair(colA: AnyColumn, colB: AnyColumn, x: string | AnyColumn
 export async function isBlockedAmong(d1: D1Database, caller: string, ids: string[]): Promise<boolean> {
   const others = ids.filter((id) => id !== caller);
   if (others.length === 0) return false;
-  const row = await drizzle(d1)
+  const row = await orm(d1)
     .select({ one: sql`1` })
     .from(relationships)
     .where(and(eq(relationships.status, "blocked"), or(and(eq(relationships.userId1, caller), inArray(relationships.userId2, others)), and(eq(relationships.userId2, caller), inArray(relationships.userId1, others)))))
@@ -60,7 +60,7 @@ export async function isBlockedAmong(d1: D1Database, caller: string, ids: string
  * blocked. */
 export function noBlockedParticipant(d1: D1Database, caller: string) {
   return notExists(
-    drizzle(d1)
+    orm(d1)
       .select({ one: sql`1` })
       .from(participants)
       .innerJoin(relationships, and(eq(relationships.status, "blocked"), samePair(relationships.userId1, relationships.userId2, caller, participants.userId)))

@@ -10,14 +10,14 @@
 
 import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFinish, createGame } from "../src/d1/apply.js";
+import { orm } from "../src/d1/orm.js";
 import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { testBearer as bearer } from "../src/testing.js";
 import worker from "./worker.js";
 
-const db = drizzle(env.DB);
+const db = orm(env.DB);
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {

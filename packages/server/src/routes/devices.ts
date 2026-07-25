@@ -14,7 +14,7 @@
 
 import { createRoute, z } from "@hono/zod-openapi";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { deviceInstallations } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { errorShape } from "./wire.js";
@@ -47,7 +47,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       const now = Date.now();
       // Upsert on the FID: a device previously signed in as another user is
       // reassigned to this caller (one FID → one user).
-      await drizzle(ctx.d1(c.env))
+      await orm(ctx.d1(c.env))
         .insert(deviceInstallations)
         .values({ fid, userId, platform, updatedAt: now })
         .onConflictDoUpdate({ target: deviceInstallations.fid, set: { userId, platform, updatedAt: now } });
@@ -71,7 +71,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       const userId = c.var.auth.user.id;
       // Scoped to the caller: a FID already reassigned to another account is
       // left untouched, so a late sign-out can't unregister the new owner.
-      await drizzle(ctx.d1(c.env))
+      await orm(ctx.d1(c.env))
         .delete(deviceInstallations)
         .where(and(eq(deviceInstallations.fid, c.req.param("fid")), eq(deviceInstallations.userId, userId)));
       return c.body(null, 204);

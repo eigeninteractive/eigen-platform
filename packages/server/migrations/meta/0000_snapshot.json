@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c8167a61-8399-466c-abae-e9710ddce564",
+  "id": "34666d22-62b1-487b-9127-8d3ecf2b11cf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -306,8 +306,8 @@
         }
       },
       "indexes": {
-        "games_short_code_unique": {
-          "name": "games_short_code_unique",
+        "games_shortCode_unique": {
+          "name": "games_shortCode_unique",
           "columns": [
             "short_code"
           ],

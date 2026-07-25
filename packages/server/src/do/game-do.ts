@@ -74,7 +74,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   constructor(ctx: DurableObjectState, env: TEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage);
+    this.#db = drizzle(ctx.storage, { casing: "snake_case" });
     // Schema is engine-owned and self-applying: every activation (including
     // a finished game woken years later) migrates itself before any event.
     ctx.blockConcurrencyWhile(async () => {

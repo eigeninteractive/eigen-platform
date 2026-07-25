@@ -20,7 +20,7 @@
  */
 
 import { and, eq, gte, inArray, isNull, lt, notExists, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
+import { orm } from "../d1/orm.js";
 import { games, participants, users } from "../d1/schema.js";
 import { type EngineOps, purgeUser } from "./purge.js";
 
@@ -74,7 +74,7 @@ function definedOnly(options: LifecycleOptions): Partial<LifecycleOptions> {
 }
 
 async function purgeStaleGuests(ops: EngineOps, now: number, opts: Required<LifecycleOptions>): Promise<void> {
-  const db = drizzle(ops.d1);
+  const db = orm(ops.d1);
   const activityCutoff = now - opts.guestInactivityMs;
   // Correlated: keep any guest with a game touched since the activity cutoff.
   const recentActivity = db
@@ -98,7 +98,7 @@ async function purgeStaleGuests(ops: EngineOps, now: number, opts: Required<Life
 }
 
 async function reapAbandonedGames(ops: EngineOps, now: number, opts: Required<LifecycleOptions>): Promise<void> {
-  const db = drizzle(ops.d1);
+  const db = orm(ops.d1);
   const abandoned = await db
     .select({ id: games.id })
     .from(games)

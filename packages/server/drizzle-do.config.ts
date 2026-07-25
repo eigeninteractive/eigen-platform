@@ -5,6 +5,7 @@ import { defineConfig } from "drizzle-kit";
  * itself inside `blockConcurrencyWhile` on activation (no deploy step). */
 export default defineConfig({
   dialect: "sqlite",
+  casing: "snake_case",
   driver: "durable-sqlite",
   schema: "./src/do/schema.ts",
   out: "./src/do/migrations",

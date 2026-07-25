@@ -13,8 +13,8 @@
  */
 
 import { and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { noBlockedParticipant, pair, samePair } from "./blocks.js";
+import { orm } from "./orm.js";
 import { type GameWithRoster, withRosters } from "./reads.js";
 import { games, relationships, users } from "./schema.js";
 
@@ -31,7 +31,7 @@ export type SendResult =
  * the caller, this accepts it instead (auto-accept). A block in either
  * direction refuses. Canonical-order upsert; idempotent on a repeat. */
 export async function sendFriendRequest(d1: D1Database, caller: string, target: string): Promise<SendResult> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   const existing = await db
     .select()
@@ -59,7 +59,7 @@ export async function sendFriendRequest(d1: D1Database, caller: string, target: 
 /** Accept the pending request the target sent the caller. Returns true when a
  * request was actually transitioned (so the route pushes the requester). */
 export async function acceptFriendRequest(d1: D1Database, caller: string, target: string): Promise<boolean> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   const res = await db
     .update(relationships)
@@ -74,7 +74,7 @@ export async function acceptFriendRequest(d1: D1Database, caller: string, target
  * one — all the same delete. Never touches a `blocked` row (that is `unblock`'s
  * job). Idempotent. */
 export async function removeRelationship(d1: D1Database, caller: string, target: string): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   await db.delete(relationships).where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), inArray(relationships.status, ["pending", "accepted"])));
 }
@@ -82,7 +82,7 @@ export async function removeRelationship(d1: D1Database, caller: string, target:
 /** Block a user: overwrite any pending/accepted row (or create one) as
  * `blocked`, recording the caller as the blocker. */
 export async function blockUser(d1: D1Database, caller: string, target: string): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   const now = Date.now();
   await db
@@ -93,7 +93,7 @@ export async function blockUser(d1: D1Database, caller: string, target: string):
 
 /** Unblock — only the user who created the block may lift it. Idempotent. */
 export async function unblockUser(d1: D1Database, caller: string, target: string): Promise<void> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   await db.delete(relationships).where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), eq(relationships.status, "blocked"), eq(relationships.initiatedBy, caller)));
 }
@@ -119,13 +119,13 @@ export type FriendRequestEntry = FriendEntry & { direction: "incoming" | "outgoi
  * identity has vanished (e.g. purged) are simply absent from the map. */
 async function resolveIdentities(d1: D1Database, ids: string[]): Promise<Map<string, IdentityFields>> {
   if (ids.length === 0) return new Map();
-  const people = await drizzle(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
+  const people = await orm(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
   return new Map(people.map((p) => [p.id, { user_id: p.id, username: p.username, display_name: p.displayName, avatar_url: p.avatarUrl, is_anonymous: p.isAnonymous }]));
 }
 
 /** The caller's accepted friends, newest first. */
 export async function listFriends(d1: D1Database, caller: string): Promise<FriendEntry[]> {
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select()
     .from(relationships)
     .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "accepted")))
@@ -143,7 +143,7 @@ export async function listFriends(d1: D1Database, caller: string): Promise<Frien
 
 /** The caller's pending requests (both incoming and outgoing), newest first. */
 export async function listPendingRequests(d1: D1Database, caller: string): Promise<FriendRequestEntry[]> {
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select()
     .from(relationships)
     .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "pending")))
@@ -169,7 +169,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
   const cleaned = query.replace(/%/g, "").trim();
   if (cleaned === "") return [];
   const like = `%${cleaned}%`;
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous })
     .from(users)
     .where(
@@ -179,7 +179,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
         or(sql`${users.username} LIKE ${like}`, sql`${users.displayName} LIKE ${like}`),
         // Hide anyone the caller has blocked or been blocked by.
         notExists(
-          drizzle(d1)
+          orm(d1)
             .select({ one: sql`1` })
             .from(relationships)
             .where(and(samePair(relationships.userId1, relationships.userId2, caller, users.id), eq(relationships.status, "blocked"))),
@@ -196,7 +196,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
 /** Joinable games created by the caller's accepted friends — the "friends'
  * open games" lobby. Waiting/ready games only, newest first. */
 export async function friendsOpenGames(d1: D1Database, caller: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const friends = await db
     .select()
     .from(relationships)

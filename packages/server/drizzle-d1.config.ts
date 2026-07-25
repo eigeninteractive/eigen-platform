@@ -6,6 +6,7 @@ import { defineConfig } from "drizzle-kit";
  * and never seen by implementors (app-custom data lives in a separate D1). */
 export default defineConfig({
   dialect: "sqlite",
+  casing: "snake_case",
   schema: "./src/d1/schema.ts",
   out: "./migrations",
 });

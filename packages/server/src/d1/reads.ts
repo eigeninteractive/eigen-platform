@@ -7,8 +7,8 @@
 
 import type { RatingDelta, Seat } from "@eigeninteractive/kernel";
 import { and, desc, eq, inArray, lt, or, type SQLWrapper, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { noBlockedParticipant } from "./blocks.js";
+import { orm } from "./orm.js";
 import { bots, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
 
 export type GameRow = typeof games.$inferSelect;
@@ -51,7 +51,7 @@ export interface GameWithRoster extends GameRow {
 async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<GameWithRoster[]> {
   const finished = rows.filter((r) => r.status === "finished" && r.rated);
   if (finished.length === 0) return rows;
-  const deltaRows = await drizzle(d1)
+  const deltaRows = await orm(d1)
     .select()
     .from(ratingHistory)
     .where(
@@ -87,7 +87,7 @@ async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<Game
 
 export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<GameWithRoster[]> {
   if (rows.length === 0) return [];
-  const db = drizzle(d1);
+  const db = orm(d1);
   const seatRows = await db
     .select({ gameId: participants.gameId, player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type })
     .from(participants)
@@ -112,7 +112,7 @@ export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<Game
 }
 
 export async function readGame(d1: D1Database, gameId: string): Promise<GameWithRoster | undefined> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   // The games row and its roster are both keyed by the known id, so they go
   // in ONE round trip (mirrors readGameRow's batch in apply.ts). This matters
   // because readGame is on the socket-upgrade path — the "404 without waking a
@@ -130,7 +130,7 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
 
 /** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   // One round trip, like readGame — but the roster is keyed by game_id, which
   // a code lookup does not yield until it resolves. A subquery bridges the gap:
   // participants are filtered by "the id of the row with this short_code", so
@@ -168,7 +168,7 @@ function olderThan(column: SQLWrapper, cursor: number | null) {
  * creator counts as a participant, so this covers both games a blocked user
  * created and games they joined. */
 export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null, caller?: string): Promise<GameWithRoster[]> {
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select()
     .from(games)
     .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), caller === undefined ? undefined : noBlockedParticipant(d1, caller), olderThan(games.createdAt, cursor)))
@@ -183,7 +183,7 @@ export async function readLobby(d1: D1Database, limit: number, cursor: number | 
  * list, newest finish first (aborted rows carry no finished_at — they sort by
  * updated_at). */
 export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   const statuses: GameRow["status"][] = bucket === "active" ? ["waiting", "ready", "active"] : ["finished", "aborted"];
   const sortKey = bucket === "active" ? games.updatedAt : sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
   const order = desc(sortKey);
@@ -210,7 +210,7 @@ export async function readMyGames(d1: D1Database, userId: string, bucket: "activ
  * bot's game history works too. */
 export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const sortKey = sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
-  const rows = await drizzle(d1)
+  const rows = await orm(d1)
     .select({ games })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
@@ -229,11 +229,11 @@ export async function readPlayerPublicGames(d1: D1Database, playerId: string, li
  * keeps it warm. */
 export async function readPlayers(d1: D1Database, ids: string[]) {
   if (ids.length === 0) return [];
-  return await drizzle(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
+  return await orm(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
 }
 
 export async function readBots(d1: D1Database, ids?: string[]): Promise<BotRow[]> {
-  const db = drizzle(d1);
+  const db = orm(d1);
   if (ids === undefined) return await db.select().from(bots).all();
   if (ids.length === 0) return [];
   return await db.select().from(bots).where(inArray(bots.id, ids)).all();
@@ -245,7 +245,7 @@ export async function readBots(d1: D1Database, ids?: string[]): Promise<BotRow[]
  * post-commit effect), so a read here costs nothing the human's response
  * waits on. */
 export async function readBot(d1: D1Database, id: string): Promise<Bot | undefined> {
-  const row = await drizzle(d1).select().from(bots).where(eq(bots.id, id)).get();
+  const row = await orm(d1).select().from(bots).where(eq(bots.id, id)).get();
   return row === undefined ? undefined : narrowBot(row);
 }
 
@@ -253,7 +253,7 @@ export async function readBot(d1: D1Database, id: string): Promise<Bot | undefin
  * users, in canonical pair order. */
 export async function isAcceptedFriend(d1: D1Database, userA: string, userB: string): Promise<boolean> {
   const [u1, u2] = userA < userB ? [userA, userB] : [userB, userA];
-  const row = await drizzle(d1)
+  const row = await orm(d1)
     .select({ id: relationships.id })
     .from(relationships)
     .where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), eq(relationships.status, "accepted")))
@@ -265,7 +265,7 @@ export async function isAcceptedFriend(d1: D1Database, userA: string, userB: str
  * sheet). Matches either identity column: a rating row is keyed by a user OR a
  * bot, never both, so an id can be looked up without knowing which it is. */
 export async function readRatings(d1: D1Database, playerId: string) {
-  return await drizzle(d1)
+  return await orm(d1)
     .select({ pool: playerRatings.pool, mu: playerRatings.mu, sigma: playerRatings.sigma, displayRating: playerRatings.displayRating, updatedAt: playerRatings.updatedAt })
     .from(playerRatings)
     .where(or(eq(playerRatings.userId, playerId), eq(playerRatings.botId, playerId)))
@@ -277,7 +277,7 @@ export async function readRatings(d1: D1Database, playerId: string) {
  * served by `idx_rating_history_user_pool`. */
 export async function readRatingHistory(d1: D1Database, userId: string, pool: string | null, limit: number) {
   const where = pool === null ? eq(ratingHistory.userId, userId) : and(eq(ratingHistory.userId, userId), eq(ratingHistory.pool, pool));
-  return await drizzle(d1)
+  return await orm(d1)
     .select({
       gameId: ratingHistory.gameId,
       pool: ratingHistory.pool,
