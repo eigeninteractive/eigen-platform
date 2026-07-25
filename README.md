@@ -1,43 +1,35 @@
-# Website
+# eigen-web
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+Source of truth for the documentation at <https://eigeninteractive.com>, plus
+the company landing page and games showcase. Built with
+[Docusaurus](https://docusaurus.io/).
 
-## Installation
-
-```bash
-npm install
-```
-
-**Note**: feel free to use the package manager of your choice.
-
-## Local Development
+## Getting set up
 
 ```bash
-npm run start
+pnpm install
+pnpm start       # dev server
+pnpm build       # production build — this is also the link checker
+pnpm lint
+pnpm typecheck
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-## Build
-
-```bash
-npm run build
-```
-
-This command generates static content into the `build` directory and can be served using any static contents hosting service.
+The site builds standalone: the generated API reference under
+`docs/reference/` is committed, so no sibling checkout is required. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for how the docs are organized and how that
+reference is regenerated.
 
 ## Deployment
 
-Using SSH:
+Cloudflare Workers Builds watches `main` directly and deploys on every push —
+there's no deploy step to run from here. The site is a static-assets-only
+Worker (see `wrangler.jsonc`), served entirely by Cloudflare's asset server.
 
 ```bash
-USE_SSH=true npm run deploy
+pnpm deploy      # build + `wrangler deploy`, for a one-off deploy from a
+                 # machine with `wrangler login`
+pnpm preview     # build + `wrangler dev`, to preview the Worker locally
 ```
 
-Not using SSH:
-
-```bash
-GIT_USER=<Your GitHub username> npm run deploy
-```
-
-If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+Full details, including the Cloudflare build settings, are in
+[CONTRIBUTING.md](CONTRIBUTING.md#deploying).
