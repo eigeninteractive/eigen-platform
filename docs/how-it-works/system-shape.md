@@ -60,7 +60,8 @@ The two API groups are **separate hono sub-apps** so their auth never mixes: the
 engine group's Firebase middleware is scoped to `/api/engine/*` and never runs
 for a bot or a public request. Both groups emit into one OpenAPI document (each
 with its own security scheme) — the [HTTP API reference](../reference/http-api/eigen-engine-api.info.mdx)
-is generated from it, and it is vendored into the Dart client repo for codegen.
+is generated from it, and the typed Dart client is generated from it in this
+same repository and published to pub.dev.
 
 Static assets are served **unmetered** by Cloudflare's asset server. A request
 that matches no static file falls through to the Worker on its own, so the

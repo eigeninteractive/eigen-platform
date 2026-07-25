@@ -26,7 +26,9 @@ None of it is game code — a game never opens a socket or resolves an identity.
 
   :::
 
-- **The API client is generated** from the vendored `openapi.json`. Client routes
+- **The API client is generated** from `openapi.json` — in the engine repo, and
+  published to pub.dev as `eigen_api`, so the client repo depends on a version
+  rather than holding a copy of the spec. Client routes
   live under `/api/engine/*`; the configured base URL is an **origin only**
   (scheme + host, no path, no trailing slash) because every generated route
   already carries its own prefix. The one non-generated piece is the frame

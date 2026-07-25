@@ -8,8 +8,6 @@ description: Package layout, startup order, local persistence, offline UX, navig
 
 ```text
 eigen-flutter/
-├── openapi/openapi.json     # vendored snapshot of the server spec
-├── tool/generate_api.sh     # regenerates the REST client from that snapshot
 └── lib/
     ├── eigen_flutter.dart   # the public barrel
     ├── app_runner.dart      # runEngineApp(...) — the entry point

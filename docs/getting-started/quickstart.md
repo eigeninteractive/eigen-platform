@@ -47,13 +47,11 @@ and nothing more. See
 git clone https://github.com/eigeninteractive/eigen-flutter
 cd eigen-flutter
 flutter pub get
-# The generated REST client is a separate package; the root build does not
-# reach into a path dependency.
-(cd packages/eigen_api && dart pub get && dart run build_runner build)
 dart run build_runner build
 
 cd example           # Rock–Paper–Scissors, the client half of the same game
 flutter pub get
+dart run build_runner build   # its payload types are Freezed, like a real game's
 flutter test
 ```
 

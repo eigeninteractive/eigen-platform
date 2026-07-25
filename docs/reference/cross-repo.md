@@ -12,9 +12,15 @@ client repo). The two are kept honest by **shared JSON fixtures per version
 unit**, run by both the TS and Dart test runners — a drift between the twins
 fails a test on both sides.
 
-The engine generates the OpenAPI spec that the client's transport is generated
-from. This is why the contract in `@eigen/rules` is small and precise: it is the
-seam two languages meet at.
+The engine generates the OpenAPI spec, generates the typed Dart client from it
+**in the same repository**, and publishes that client to pub.dev at the engine's
+own version. So the transport half is not a cross-repo contract at all any more —
+it is an ordinary versioned dependency, and `eigen_api: ^1.2.0` in an app states
+exactly the compatibility it means.
+
+The *rules* half is the part that genuinely spans two repos, and it is why the
+contract in `@eigen/rules` is small and precise: it is the seam two languages
+meet at.
 
 ```text
           ┌──────────────────── @eigen/rules ────────────────────┐
@@ -27,7 +33,7 @@ seam two languages meet at.
                     └────── shared JSON fixtures ──┘
                             run by both runners
 
-          openapi.json ──────► tool/generate_api.sh ──────► typed Dart client
+          openapi.json ──────► generated in-repo ──────► eigen_api on pub.dev
 ```
 
 For the reference game the two twins and their fixtures are:
@@ -43,10 +49,9 @@ mechanism syncs them**, which is the one coupling neither repo's CI can see.
 Two rules follow from this and are not negotiable:
 
 - **Fix the wire, not the client.** A shape the generated Dart client consumes
-  badly gets fixed in the zod schemas in the engine and regenerated — never
-  patched around in Dart. Re-emit `openapi.json` and rerun the client's
-  generator **in the same change**, because the two repos have no other coupling
-  that would catch the drift.
+  badly gets fixed in the zod schemas and regenerated — never patched around in
+  Dart. Both happen in the engine repo, in the same change, and CI regenerates
+  and diffs the client so a stale one cannot merge.
 - **Wire enums are closed sets.** The Dart client generates enums with no
   `unknown` sentinel and parses strictly, so adding a member to any enum on the
   wire is a breaking change needing a schema-version bump and a coordinated

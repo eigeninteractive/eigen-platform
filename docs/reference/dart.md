@@ -11,7 +11,7 @@ The Flutter client ships two Dart packages:
 | Package | What it is |
 |---|---|
 | **`eigen_flutter`** | The app shell, transport, state and presentation — the only package a game app depends on, imported through its single barrel. |
-| **`eigen_api`** | The REST client generated from the server's `openapi.json`. A **build artifact**: `tool/generate_api.sh` deletes and rewrites it wholesale, and a game app never depends on it directly. |
+| **`eigen_api`** | The REST client generated from the server's `openapi.json`. A **build artifact**, generated and published by the engine repo and rewritten wholesale on every wire change. A game app never depends on it directly. |
 
 :::info Not yet published
 
