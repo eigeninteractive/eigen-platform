@@ -85,7 +85,11 @@ is byte-identical between the version it expected and the current version. So:
 
 **Schemas:** derive types with `z.infer` and `type` aliases, never `interface`
 (the engine's `JsonObject` constraint needs the implicit index signature).
-Transform-free and synchronous.
+Transform-free and synchronous. **Name payload keys in `camelCase`** — the house
+convention. Your zod keys *are* the wire keys, and the Dart twin then sets
+`field_rename: none`, so the two codecs match one-to-one with no rename layer to
+get wrong. (Engine-owned structures like the rating `outcome` carry their own
+keys; the convention is about the payloads you define.)
 
 **Versions:** a breaking change is a new unit (`v2`), never an edit to a shipped
 one. Old games keep running on their own unit. Retiring splits in two — the
@@ -102,9 +106,12 @@ import { twinFixtureTests } from "@eigeninteractive/testkit";
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
 ```
 
-Fixtures use the **wire shape** (snake_case), not Dart field names. Cover at
-minimum: one legal move with its expected observation, one illegal move, one
-game-ending move, and one case per `ratingPool` / `botSeatable` branch.
+Fixtures use the **wire shape** — the JSON keys as serialized, not Dart field
+names. Payload keys are `camelCase` (the schema fields verbatim); only engine-
+owned fields such as the rating `outcome` (`player_index`, `team_index`) carry
+their own keys. Cover at minimum: one legal move with its expected observation,
+one illegal move, one game-ending move, and one case per `ratingPool` /
+`botSeatable` branch.
 
 **A rules change is a two-repo change.** The fixture JSON is duplicated in the
 client repo with no sharing mechanism, so editing it here leaves the other repo

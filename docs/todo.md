@@ -38,10 +38,7 @@
   as they ship; add screenshots/logos to the showcase.
 - changelog maintenance for both, release instructions, etc. (the changelog is
   now `eigen-web`'s `/blog`).
-- **Pick a house convention for game payload wire keys.** RPS's TypeScript
-  schemas use camelCase; `strategy` used snake_case with `field_rename: snake`.
-  Game payloads are game-owned so neither is wrong, but the two halves' codecs
-  must agree, and choosing now is cheaper than migrating games later.
+- Remove supabase markers, comments, etc. not just from prose, but understand the context, code, etc. and suggest if there's any meaningful refactor for the good
 
 # P1
 
