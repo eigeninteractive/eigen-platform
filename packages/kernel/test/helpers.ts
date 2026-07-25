@@ -51,18 +51,18 @@ export const turnRules: GameRules = {
     action: schemaOf<TurnAction>((v) => isObject(v) && typeof v.add === "number"),
     config: schemaOf<TurnConfig>((v) => isObject(v) && typeof v.target === "number"),
   },
-  initialState: () => ({ state: { count: 0 }, pending_players: [0] }),
+  initialState: () => ({ state: { count: 0 }, pendingPlayers: [0] }),
   applyAction: ({ state, data, playerIndex, pending }) => {
     const { add, boost } = data as TurnAction;
     if (add < 1 || add > 3) throw new IllegalMoveError("add must be 1-3");
     const count = (state as TurnState).count + add;
     const envelope: Envelope = {
       state: { count },
-      pending_players: [(playerIndex + 1) % 2],
+      pendingPlayers: [(playerIndex + 1) % 2],
     };
-    if (boost) envelope.turn_seconds = 5;
+    if (boost) envelope.turnSeconds = 5;
     if (count >= 10) {
-      envelope.pending_players = [];
+      envelope.pendingPlayers = [];
       envelope.outcome = winLoss(playerIndex, (playerIndex + 1) % 2);
     }
     void pending;
@@ -73,16 +73,16 @@ export const turnRules: GameRules = {
       const outcome: OutcomeEntry[] =
         pending.length === 2
           ? [
-              { player_index: 0, result: "draw", placement: 1, team_index: 0 },
-              { player_index: 1, result: "draw", placement: 1, team_index: 1 },
+              { playerIndex: 0, result: "draw", placement: 1, teamIndex: 0 },
+              { playerIndex: 1, result: "draw", placement: 1, teamIndex: 1 },
             ]
           : winLoss((pending[0] + 1) % 2, pending[0]);
-      return { state, pending_players: [], outcome };
+      return { state, pendingPlayers: [], outcome };
     }
-    const loser = (data as { player_index: number }).player_index;
+    const loser = (data as { playerIndex: number }).playerIndex;
     return {
       state,
-      pending_players: [],
+      pendingPlayers: [],
       outcome: winLoss((loser + 1) % 2, loser),
     };
   },
@@ -93,8 +93,8 @@ export const turnRules: GameRules = {
 
 function winLoss(winner: number, loser: number): OutcomeEntry[] {
   return [
-    { player_index: winner, result: "win", placement: 1, team_index: winner },
-    { player_index: loser, result: "loss", placement: 2, team_index: loser },
+    { playerIndex: winner, result: "win", placement: 1, teamIndex: winner },
+    { playerIndex: loser, result: "loss", placement: 2, teamIndex: loser },
   ];
 }
 
@@ -129,7 +129,7 @@ export function makeState(overrides: Partial<StateRow> = {}): StateRow {
 
 export function makeRoster(): Seat[] {
   return [
-    { player_index: 0, user_id: "user-a", bot_id: null, type: "human" },
-    { player_index: 1, user_id: "user-b", bot_id: null, type: "human" },
+    { playerIndex: 0, userId: "user-a", botId: null, type: "human" },
+    { playerIndex: 1, userId: "user-b", botId: null, type: "human" },
   ];
 }

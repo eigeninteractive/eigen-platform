@@ -22,25 +22,25 @@ export type { Rating };
 
 /** A player seat to be rated. Self-contained: each seat's current
  * `mu`/`sigma` is bundled, so this module never reads a store.
- * `display_rating` is intentionally NOT carried — it is derived from
+ * `displayRating` is intentionally NOT carried — it is derived from
  * `mu`/`sigma` so the formula lives in one place per side of the wire. */
 export interface PlayerInput extends Rating {
-  player_index: number;
-  user_id: string | null;
-  bot_id: string | null;
+  playerIndex: number;
+  userId: string | null;
+  botId: string | null;
   /** Ordinal finish rank (1 = best); ties share the same value. */
   placement: number;
-  /** Players sharing a team_index are rated as one team. For individual
-   * games this equals player_index. */
-  team_index: number;
+  /** Players sharing a teamIndex are rated as one team. For individual
+   * games this equals playerIndex. */
+  teamIndex: number;
 }
 
 /** Who a rating belongs to. Exactly one id is set — the same nullable-pair
  * shape as the server's `Principal` and the wire's `Seat`, so the three read
  * alike and the wire projection is the identity function. */
 export interface RatingIdentity {
-  user_id: string | null;
-  bot_id: string | null;
+  userId: string | null;
+  botId: string | null;
 }
 
 /** One identity's newly computed rating — the pure OpenSkill posterior,
@@ -55,13 +55,13 @@ export interface RatingResult extends Rating {
 export interface RatingDelta {
   identity: RatingResult["identity"];
   pool: string;
-  mu_before: number;
-  sigma_before: number;
-  display_before: number;
-  mu_after: number;
-  sigma_after: number;
-  display_after: number;
-  display_change: number;
+  muBefore: number;
+  sigmaBefore: number;
+  displayBefore: number;
+  muAfter: number;
+  sigmaAfter: number;
+  displayAfter: number;
+  displayChange: number;
 }
 
 /** max(0, round((mu − 3σ) · 40)) — the one server-side home of the display
@@ -79,23 +79,23 @@ export function defaultRating(): Rating {
  * id (its account was purged mid-game) keys by seat, so two purged players in
  * one game are never lumped into a single identity. */
 function keyOf(player: PlayerInput): string {
-  if (player.user_id) return `u:${player.user_id}`;
-  if (player.bot_id) return `b:${player.bot_id}`;
-  return `x:${player.player_index}`;
+  if (player.userId) return `u:${player.userId}`;
+  if (player.botId) return `b:${player.botId}`;
+  return `x:${player.playerIndex}`;
 }
 
 /** Whether the seat still has a ratable identity — a purged seat shapes the
  * field's posteriors but gets no {@link RatingResult} of its own. */
 function hasIdentity(player: PlayerInput): boolean {
-  return player.user_id !== null || player.bot_id !== null;
+  return player.userId !== null || player.botId !== null;
 }
 
 /** The identity payload written to the update. Only called for seats that
  * passed {@link hasIdentity} — anything else is a bug here. */
 function identityOf(player: PlayerInput): RatingIdentity {
-  if (player.user_id) return { user_id: player.user_id, bot_id: null };
-  if (player.bot_id) return { user_id: null, bot_id: player.bot_id };
-  throw new Error(`Player ${player.player_index} has no identity`);
+  if (player.userId) return { userId: player.userId, botId: null };
+  if (player.botId) return { userId: null, botId: player.botId };
+  throw new Error(`Player ${player.playerIndex} has no identity`);
 }
 
 /** Group items into buckets sharing the same key, preserving first-seen
@@ -110,10 +110,10 @@ function groupBy<T>(items: T[], keyOf: (item: T) => string | number): T[][] {
   return [...groups.values()];
 }
 
-/** Rate one field of seats and return each seat's posterior by player_index.
- * Seats sharing a team_index are rated as a single team. */
+/** Rate one field of seats and return each seat's posterior by playerIndex.
+ * Seats sharing a teamIndex are rated as a single team. */
 function rateField(field: PlayerInput[]) {
-  const teams = groupBy(field, (p) => p.team_index);
+  const teams = groupBy(field, (p) => p.teamIndex);
   const posteriors = rate(
     teams.map((team) => team.map((p) => rating({ mu: p.mu, sigma: p.sigma }))),
     { rank: teams.map((team) => team[0].placement) },
@@ -121,7 +121,7 @@ function rateField(field: PlayerInput[]) {
   const bySeat = new Map<number, Rating>();
   teams.forEach((team, t) => {
     team.forEach((p, s) => {
-      bySeat.set(p.player_index, posteriors[t][s]);
+      bySeat.set(p.playerIndex, posteriors[t][s]);
     });
   });
   return bySeat;
@@ -140,7 +140,7 @@ function posteriorFor(posteriors: Map<number, Rating>, index: number) {
 /** The result for an identity that holds exactly one seat (every human, every
  * single-seat bot): rated once against the true field they actually faced. */
 function singleSeatUpdate(seat: PlayerInput, fieldPosteriors: Map<number, Rating>): RatingResult {
-  const after = posteriorFor(fieldPosteriors, seat.player_index);
+  const after = posteriorFor(fieldPosteriors, seat.playerIndex);
   return {
     identity: identityOf(seat),
     mu: after.mu,
@@ -165,12 +165,12 @@ function singleSeatUpdate(seat: PlayerInput, fieldPosteriors: Map<number, Rating
 function multiSeatUpdate(seats: PlayerInput[], field: PlayerInput[]): RatingResult {
   const ownKey = keyOf(seats[0]);
   const opponents = field.filter((p) => keyOf(p) !== ownKey);
-  const ordered = [...seats].sort((a, b) => a.player_index - b.player_index);
+  const ordered = [...seats].sort((a, b) => a.playerIndex - b.playerIndex);
 
   const prior: Rating = { mu: ordered[0].mu, sigma: ordered[0].sigma };
   let running: Rating = prior;
   for (const seat of ordered) {
-    running = posteriorFor(rateField([{ ...seat, ...running }, ...opponents]), seat.player_index);
+    running = posteriorFor(rateField([{ ...seat, ...running }, ...opponents]), seat.playerIndex);
   }
   return {
     identity: identityOf(seats[0]),

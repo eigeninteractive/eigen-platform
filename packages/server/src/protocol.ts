@@ -45,11 +45,11 @@ export type Command =
       kind: "lifecycle";
       gameId: string;
       commandId: string;
-      /** Null for identity-less system lifecycles (timeout, auto_forfeit). */
+      /** Null for identity-less system lifecycles (timeout, autoForfeit). */
       actor: Principal | null;
       type: LifecycleType;
       /** The affected seat: `forfeit` carries the resigning seat (verified
-       * against the actor, like an action); `auto_forfeit` the purged seat;
+       * against the actor, like an action); `autoForfeit` the purged seat;
        * `timeout` carries none (it resolves all pending). */
       seat?: number;
     };
@@ -62,19 +62,19 @@ export type Command =
 export type LobbyRejectCode =
   /** No game with this id exists — the DO is authoritative, so commands
    * skip the worker-side D1 existence read entirely. */
-  | "unknown_game"
+  | "unknownGame"
   /** The game is no longer in a lobby status (`waiting`/`ready`). */
-  | "not_joinable"
+  | "notJoinable"
   /** Every seat is taken — the accepted lobby race. */
-  | "game_full"
+  | "gameFull"
   /** The actor already holds a seat. */
-  | "already_joined"
+  | "alreadyJoined"
   /** The actor holds no seat (leave), or may not view (frames). */
-  | "not_participant"
+  | "notParticipant"
   /** A creator-only command (`cancel`, `add-bot`, `start`) from a non-creator. */
-  | "not_creator"
+  | "notCreator"
   /** The creator cannot leave — they cancel instead. */
-  | "creator_cannot_leave";
+  | "creatorCannotLeave";
 
 /** The unversioned pre-game snapshot: pushed to every socket on any
  * roster change, idempotent — a reconnect just gets the current one. Also the
@@ -92,10 +92,10 @@ export interface FrameMessage {
   type: "frame";
   version: number;
   data: JsonObject;
-  pending_players: number[];
+  pendingPlayers: number[];
   /** The true client-facing deadline (grace is display-only there). */
   deadline: number | null;
-  player_times: number[] | null;
+  playerTimes: number[] | null;
   outcomes?: OutcomeEntry[];
   ratings?: RatingDelta[];
 }

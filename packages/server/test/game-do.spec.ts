@@ -59,8 +59,8 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     maxPlayers: 2,
     shortCode: gameId.slice(0, 6) + gameCounter,
     seats: [
-      { player_index: 0, user_id: "user-a", bot_id: null, type: "human" },
-      { player_index: 1, user_id: "user-b", bot_id: null, type: "human" },
+      { playerIndex: 0, userId: "user-a", botId: null, type: "human" },
+      { playerIndex: 1, userId: "user-b", botId: null, type: "human" },
     ],
     now: Date.now(),
   });
@@ -126,7 +126,7 @@ describe("lazy init & start", () => {
     const gameId = await seedGame();
     const stub = stubFor(gameId);
     const result = await stub.handle({ ...cmd("start", gameId), actor: { userId: "user-b", botId: null } });
-    expect(result).toMatchObject({ ok: false, code: "not_creator" });
+    expect(result).toMatchObject({ ok: false, code: "notCreator" });
   });
 
   it("updates the D1 summary post-commit", async () => {
@@ -146,7 +146,7 @@ describe("actions & dedupe", () => {
     expect(a1).toMatchObject({ ok: true, version: 1 });
     if (!a1.ok || !("frame" in a1)) throw new Error("unreachable");
     expect(a1.frame?.data).toEqual({ count: 1 });
-    expect(a1.frame?.pending_players).toEqual([1]);
+    expect(a1.frame?.pendingPlayers).toEqual([1]);
   });
 
   it("replays the stored response for a duplicate commandId instead of double-applying", async () => {
@@ -165,14 +165,14 @@ describe("actions & dedupe", () => {
     const { gameId, stub } = await startGame();
     await stub.handle(action(gameId, 0, 1, 0, "user-a"));
     const stale = await stub.handle(action(gameId, 1, 1, 0, "user-b"));
-    expect(stale).toMatchObject({ ok: false, code: "state_updated" });
+    expect(stale).toMatchObject({ ok: false, code: "stateUpdated" });
   });
 
   it("refuses a seat the actor does not own with a clean rejection", async () => {
     const { gameId, stub } = await startGame();
     // user-b naming user-a's seat 0 is rejected as a value, not thrown.
     const res = await stub.handle(action(gameId, 0, 1, 0, "user-b"));
-    expect(res).toMatchObject({ ok: false, code: "not_participant" });
+    expect(res).toMatchObject({ ok: false, code: "notParticipant" });
   });
 });
 
@@ -256,7 +256,7 @@ describe("finish sequence", () => {
       const last = state.storage.sql.exec("SELECT version, action FROM transitions ORDER BY version DESC LIMIT 1").one();
       expect(last.version).toBe(3); // finish at 2, ratings transition at 3
       const actionRow = JSON.parse(last.action as string);
-      expect(actionRow).toMatchObject({ type: "system", kind: "ratings", player_index: null });
+      expect(actionRow).toMatchObject({ type: "system", kind: "ratings", playerIndex: null });
       expect(actionRow.data.deltas).toHaveLength(2);
     });
 

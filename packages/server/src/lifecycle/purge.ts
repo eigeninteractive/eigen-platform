@@ -16,7 +16,7 @@
  *   3. run the D1 purge as one `batch()`.
  *
  * D1 has no FK cascades, so the preserve-vs-delete is explicit (mirrors the
- * old table): seats and created_by are anonymized (SET NULL) to keep
+ * old table): seats and createdBy are anonymized (SET NULL) to keep
  * finished-game history readable as "Deleted User"; ratings, history,
  * relationships, and device rows are deleted; the `users` row goes last.
  */
@@ -77,7 +77,7 @@ async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promis
 }
 
 /** The preserve-vs-delete, as one D1 transaction. Anonymize the seats and
- * created_by (history stays readable); delete the personal rows; the `users`
+ * createdBy (history stays readable); delete the personal rows; the `users`
  * row last. */
 async function purgeD1(d1: D1Database, userId: string): Promise<void> {
   const db = orm(d1);

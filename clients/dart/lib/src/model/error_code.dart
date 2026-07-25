@@ -8,92 +8,92 @@ import 'package:json_annotation/json_annotation.dart';
 /// A stable machine code identifying why a request failed.
 enum ErrorCode {
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_active')
-  notActive(r'not_active'),
+  @JsonValue(r'notActive')
+  notActive(r'notActive'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_ready')
-  notReady(r'not_ready'),
+  @JsonValue(r'notReady')
+  notReady(r'notReady'),
 
   /// A stable machine code identifying why a request failed.
   @JsonValue(r'expired')
   expired(r'expired'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_pending')
-  notPending(r'not_pending'),
+  @JsonValue(r'notPending')
+  notPending(r'notPending'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'state_updated')
-  stateUpdated(r'state_updated'),
+  @JsonValue(r'stateUpdated')
+  stateUpdated(r'stateUpdated'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'invalid_payload')
-  invalidPayload(r'invalid_payload'),
+  @JsonValue(r'invalidPayload')
+  invalidPayload(r'invalidPayload'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'illegal_move')
-  illegalMove(r'illegal_move'),
+  @JsonValue(r'illegalMove')
+  illegalMove(r'illegalMove'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'unknown_game')
-  unknownGame(r'unknown_game'),
+  @JsonValue(r'unknownGame')
+  unknownGame(r'unknownGame'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_joinable')
-  notJoinable(r'not_joinable'),
+  @JsonValue(r'notJoinable')
+  notJoinable(r'notJoinable'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'game_full')
-  gameFull(r'game_full'),
+  @JsonValue(r'gameFull')
+  gameFull(r'gameFull'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'already_joined')
-  alreadyJoined(r'already_joined'),
+  @JsonValue(r'alreadyJoined')
+  alreadyJoined(r'alreadyJoined'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_participant')
-  notParticipant(r'not_participant'),
+  @JsonValue(r'notParticipant')
+  notParticipant(r'notParticipant'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'not_creator')
-  notCreator(r'not_creator'),
+  @JsonValue(r'notCreator')
+  notCreator(r'notCreator'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'creator_cannot_leave')
-  creatorCannotLeave(r'creator_cannot_leave'),
+  @JsonValue(r'creatorCannotLeave')
+  creatorCannotLeave(r'creatorCannotLeave'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'schema_unsupported')
-  schemaUnsupported(r'schema_unsupported'),
+  @JsonValue(r'schemaUnsupported')
+  schemaUnsupported(r'schemaUnsupported'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'username_invalid')
-  usernameInvalid(r'username_invalid'),
+  @JsonValue(r'usernameInvalid')
+  usernameInvalid(r'usernameInvalid'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'username_taken')
-  usernameTaken(r'username_taken'),
+  @JsonValue(r'usernameTaken')
+  usernameTaken(r'usernameTaken'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'friends_only')
-  friendsOnly(r'friends_only'),
+  @JsonValue(r'friendsOnly')
+  friendsOnly(r'friendsOnly'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'registration_required')
-  registrationRequired(r'registration_required'),
+  @JsonValue(r'registrationRequired')
+  registrationRequired(r'registrationRequired'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'image_too_large')
-  imageTooLarge(r'image_too_large'),
+  @JsonValue(r'imageTooLarge')
+  imageTooLarge(r'imageTooLarge'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'unsupported_image_type')
-  unsupportedImageType(r'unsupported_image_type'),
+  @JsonValue(r'unsupportedImageType')
+  unsupportedImageType(r'unsupportedImageType'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'rate_limited')
-  rateLimited(r'rate_limited');
+  @JsonValue(r'rateLimited')
+  rateLimited(r'rateLimited');
 
   const ErrorCode(this.value);
 

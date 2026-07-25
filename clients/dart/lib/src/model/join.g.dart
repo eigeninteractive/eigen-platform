@@ -6,27 +6,20 @@ part of 'join.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Join _$JoinFromJson(Map<String, dynamic> json) => $checkedCreate(
-  'Join',
-  json,
-  ($checkedConvert) {
-    $checkKeys(json, requiredKeys: const ['client_schema_version']);
-    final val = Join(
-      clientSchemaVersion: $checkedConvert(
-        'client_schema_version',
-        (v) => (v as num).toInt(),
-      ),
-      commandId: $checkedConvert('command_id', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'clientSchemaVersion': 'client_schema_version',
-    'commandId': 'command_id',
-  },
-);
+Join _$JoinFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('Join', json, ($checkedConvert) {
+      $checkKeys(json, requiredKeys: const ['clientSchemaVersion']);
+      final val = Join(
+        clientSchemaVersion: $checkedConvert(
+          'clientSchemaVersion',
+          (v) => (v as num).toInt(),
+        ),
+        commandId: $checkedConvert('commandId', (v) => v as String?),
+      );
+      return val;
+    });
 
 Map<String, dynamic> _$JoinToJson(Join instance) => <String, dynamic>{
-  'client_schema_version': instance.clientSchemaVersion,
-  'command_id': ?instance.commandId,
+  'clientSchemaVersion': instance.clientSchemaVersion,
+  'commandId': ?instance.commandId,
 };

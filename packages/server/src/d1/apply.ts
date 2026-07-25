@@ -76,39 +76,39 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
 
     const priors = await readPriors(d1, pool, input.roster);
     const players = input.outcomes.map((entry) => {
-      const seat = input.roster.find((s) => s.player_index === entry.player_index);
-      if (!seat) throw new GameBugError(`Outcome for unknown seat ${entry.player_index}`);
-      const prior = priors.get(identityKey(seat.user_id, seat.bot_id)) ?? { ...defaultRating(), revision: 0 };
+      const seat = input.roster.find((s) => s.playerIndex === entry.playerIndex);
+      if (!seat) throw new GameBugError(`Outcome for unknown seat ${entry.playerIndex}`);
+      const prior = priors.get(identityKey(seat.userId, seat.botId)) ?? { ...defaultRating(), revision: 0 };
       return {
-        player_index: entry.player_index,
-        user_id: seat.user_id,
-        bot_id: seat.bot_id,
+        playerIndex: entry.playerIndex,
+        userId: seat.userId,
+        botId: seat.botId,
         mu: prior.mu,
         sigma: prior.sigma,
         placement: entry.placement,
-        team_index: entry.team_index,
+        teamIndex: entry.teamIndex,
       };
     });
 
     const results = computeRatings(players);
     const allDeltas: RatingDelta[] = results.map((r) => {
-      const key = identityKey(r.identity.user_id, r.identity.bot_id);
+      const key = identityKey(r.identity.userId, r.identity.botId);
       const prior = priors.get(key) ?? { ...defaultRating(), revision: 0 };
       return {
         identity: r.identity,
         pool,
-        mu_before: prior.mu,
-        sigma_before: prior.sigma,
-        display_before: displayRating(prior.mu, prior.sigma),
-        mu_after: r.mu,
-        sigma_after: r.sigma,
-        display_after: displayRating(r.mu, r.sigma),
-        display_change: displayRating(r.mu, r.sigma) - displayRating(prior.mu, prior.sigma),
+        muBefore: prior.mu,
+        sigmaBefore: prior.sigma,
+        displayBefore: displayRating(prior.mu, prior.sigma),
+        muAfter: r.mu,
+        sigmaAfter: r.sigma,
+        displayAfter: displayRating(r.mu, r.sigma),
+        displayChange: displayRating(r.mu, r.sigma) - displayRating(prior.mu, prior.sigma),
       };
     });
 
     // Purge guard: a seat whose account was deleted since this game
-    // began still carries its user_id in the DO roster (the purge nulls only
+    // began still carries its userId in the DO roster (the purge nulls only
     // the D1 mirror, never wakes the DO), so it survives into `players` and
     // shapes the OpenSkill field — but it must NOT get a rating row, or the
     // purge would resurrect a player_ratings entry for a non-existent user.
@@ -116,9 +116,9 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     // in `users`; bots are never purged. Mirrors the old
     // `apply_rating_updates` existence guard. Recovery agrees by construction:
     // `recoverDeltas` reads history rows, which likewise lack the skipped seat.
-    const deltaUserIds = allDeltas.flatMap((d) => (d.identity.user_id !== null ? [d.identity.user_id] : []));
+    const deltaUserIds = allDeltas.flatMap((d) => (d.identity.userId !== null ? [d.identity.userId] : []));
     const existingUsers = await readExistingUsers(d1, deltaUserIds);
-    const deltas = allDeltas.filter((d) => d.identity.user_id === null || existingUsers.has(d.identity.user_id));
+    const deltas = allDeltas.filter((d) => d.identity.userId === null || existingUsers.has(d.identity.userId));
 
     const statements = [summaryUpdate, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
@@ -146,8 +146,8 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
  * (`ratings-cas.spec.ts` covers it). The real chain is:
  *
  *   Error: Failed query: insert into "rating_history" ...
- *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.user_id, ...
- *          └─ Error: UNIQUE constraint failed: rating_history.user_id, ...
+ *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.userId, ...
+ *          └─ Error: UNIQUE constraint failed: rating_history.userId, ...
  */
 export function isUniqueViolation(error: unknown): boolean {
   for (let e: unknown = error, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
@@ -180,8 +180,8 @@ async function readExistingUsers(d1: D1Database, userIds: string[]): Promise<Set
  * every identified seat's rating row in the pool, keyed for the recompute. */
 async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise<Map<string, PriorRow>> {
   const priors = new Map<string, PriorRow>();
-  const userIds = roster.flatMap((s) => (s.user_id !== null ? [s.user_id] : []));
-  const botIds = roster.flatMap((s) => (s.user_id === null && s.bot_id !== null ? [s.bot_id] : []));
+  const userIds = roster.flatMap((s) => (s.userId !== null ? [s.userId] : []));
+  const botIds = roster.flatMap((s) => (s.userId === null && s.botId !== null ? [s.botId] : []));
   const identities = [...(userIds.length > 0 ? [inArray(playerRatings.userId, userIds)] : []), ...(botIds.length > 0 ? [inArray(playerRatings.botId, botIds)] : [])];
   if (identities.length === 0) return priors; // every seat purged: defaults
   const rows = await orm(d1)
@@ -206,7 +206,7 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
 function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, pool: string, deltas: RatingDelta[], priors: Map<string, PriorRow>) {
   const statements = [];
   for (const delta of deltas) {
-    const { user_id: userId, bot_id: botId } = delta.identity;
+    const { userId, botId } = delta.identity;
     const revisionBefore = priors.get(identityKey(userId, botId))?.revision ?? 0;
 
     statements.push(
@@ -218,13 +218,13 @@ function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, p
         pool,
         finishId: input.finishId,
         revisionBefore,
-        muBefore: delta.mu_before,
-        sigmaBefore: delta.sigma_before,
-        displayBefore: delta.display_before,
-        muAfter: delta.mu_after,
-        sigmaAfter: delta.sigma_after,
-        displayAfter: delta.display_after,
-        displayChange: delta.display_change,
+        muBefore: delta.muBefore,
+        sigmaBefore: delta.sigmaBefore,
+        displayBefore: delta.displayBefore,
+        muAfter: delta.muAfter,
+        sigmaAfter: delta.sigmaAfter,
+        displayAfter: delta.displayAfter,
+        displayChange: delta.displayChange,
         createdAt: input.now,
       }),
     );
@@ -236,9 +236,9 @@ function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, p
           userId,
           botId,
           pool,
-          mu: delta.mu_after,
-          sigma: delta.sigma_after,
-          displayRating: delta.display_after,
+          mu: delta.muAfter,
+          sigma: delta.sigmaAfter,
+          displayRating: delta.displayAfter,
           revision: 1,
           createdAt: input.now,
           updatedAt: input.now,
@@ -250,9 +250,9 @@ function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, p
         db
           .update(playerRatings)
           .set({
-            mu: delta.mu_after,
-            sigma: delta.sigma_after,
-            displayRating: delta.display_after,
+            mu: delta.muAfter,
+            sigma: delta.sigmaAfter,
+            displayRating: delta.displayAfter,
             revision: revisionBefore + 1,
             updatedAt: input.now,
           })
@@ -272,15 +272,15 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
   const db = orm(d1);
   const rows = await db.select().from(ratingHistory).where(eq(ratingHistory.finishId, finishId)).all();
   return rows.map((row) => ({
-    identity: { user_id: row.userId, bot_id: row.botId },
+    identity: { userId: row.userId, botId: row.botId },
     pool: row.pool,
-    mu_before: row.muBefore,
-    sigma_before: row.sigmaBefore,
-    display_before: row.displayBefore,
-    mu_after: row.muAfter,
-    sigma_after: row.sigmaAfter,
-    display_after: row.displayAfter,
-    display_change: row.displayChange,
+    muBefore: row.muBefore,
+    sigmaBefore: row.sigmaBefore,
+    displayBefore: row.displayBefore,
+    muAfter: row.muAfter,
+    sigmaAfter: row.sigmaAfter,
+    displayAfter: row.displayAfter,
+    displayChange: row.displayChange,
   }));
 }
 
@@ -312,7 +312,7 @@ export async function mirrorRoster(d1: D1Database, args: { gameId: string; statu
     await db.batch([...statements]);
     return;
   }
-  await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.user_id, botId: s.bot_id, playerIndex: s.player_index, type: s.type, createdAt: args.now })))]);
+  await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now })))]);
 }
 
 /** The worker-direct create, engine-owned so implementors never touch
@@ -338,7 +338,7 @@ export interface CreateGameInput {
 
 /** Write the games row + one participants row per seat, atomically. The DO
  * lazy-inits from exactly these rows on first contact. Callers own the
- * short_code retry: a duplicate trips the UNIQUE index and throws. */
+ * shortCode retry: a duplicate trips the UNIQUE index and throws. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = orm(d1);
   await db.batch([
@@ -360,7 +360,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       createdAt: input.now,
       updatedAt: input.now,
     }),
-    db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.user_id, botId: s.bot_id, playerIndex: s.player_index, type: s.type, createdAt: input.now }))),
+    db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: input.now }))),
   ]);
 }
 
@@ -370,7 +370,7 @@ export async function readGameRow(d1: D1Database, gameId: string) {
   const db = orm(d1);
   const [gameRows, seatRows] = await db.batch([
     db.select().from(games).where(eq(games.id, gameId)),
-    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
+    db.select({ playerIndex: participants.playerIndex, userId: participants.userId, botId: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
   ]);
   const game = gameRows[0];
   if (game === undefined) return undefined;

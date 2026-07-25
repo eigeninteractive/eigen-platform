@@ -3,7 +3,7 @@
  * wake, bot→engine action) using a per-bot key **derived** from one engine
  * secret, so registering a bot needs no new secret and no redeploy:
  *
- *   derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, bot_id)
+ *   derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, botId)
  *   signature  = "v1," + base64(HMAC-SHA256(derivedKey, "<domain>:<message>"))
  *
  * The `domain` tag (`wake` = engine→bot, `action` = bot→engine) is signed, so
@@ -36,7 +36,7 @@ function importHmacKey(keyBytes: Uint8Array, usages: ("sign" | "verify")[]): Pro
   return crypto.subtle.importKey("raw", keyBytes as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, usages);
 }
 
-/** The per-bot signing key: HMAC(master, bot_id) raw bytes. */
+/** The per-bot signing key: HMAC(master, botId) raw bytes. */
 async function deriveBotKeyBytes(masterSecret: string, botId: string): Promise<Uint8Array> {
   const master = await importHmacKey(encoder.encode(masterSecret), ["sign"]);
   return new Uint8Array(await crypto.subtle.sign("HMAC", master, encoder.encode(botId)));
@@ -51,7 +51,7 @@ async function deriveBotKeyBytes(masterSecret: string, botId: string): Promise<U
  * Base64 to match the signature transport encoding. Equivalent to:
  *
  * ```
- * echo -n "<bot_id>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
+ * echo -n "<botId>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
  * ```
  *
  * Treat the result as a credential: it authenticates that bot to the engine

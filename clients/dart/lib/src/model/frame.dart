@@ -44,13 +44,13 @@ class Frame {
   @JsonKey(name: r'data', required: true, includeIfNull: false)
   final Object data;
 
-  @JsonKey(name: r'pending_players', required: true, includeIfNull: false)
+  @JsonKey(name: r'pendingPlayers', required: true, includeIfNull: false)
   final List<int> pendingPlayers;
 
   @JsonKey(name: r'deadline', required: true, includeIfNull: true)
   final int? deadline;
 
-  @JsonKey(name: r'player_times', required: true, includeIfNull: true)
+  @JsonKey(name: r'playerTimes', required: true, includeIfNull: true)
   final List<int>? playerTimes;
 
   @JsonKey(name: r'outcomes', required: false, includeIfNull: false)

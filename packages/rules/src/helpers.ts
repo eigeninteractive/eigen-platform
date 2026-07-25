@@ -23,5 +23,5 @@ export class IllegalMoveError extends Error {}
  */
 export const passthroughObservation = <TState extends JsonObject, TAction extends JsonObject, TConfig extends JsonObject>(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice => ({
   data: args.state,
-  pending_players: args.pending,
+  pendingPlayers: args.pending,
 });

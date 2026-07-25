@@ -3,13 +3,13 @@ import { computeRatings, defaultRating, type PlayerInput } from "../src/ratings.
 
 const base = defaultRating();
 
-function seat(player_index: number, placement: number, overrides: Partial<PlayerInput> = {}): PlayerInput {
+function seat(playerIndex: number, placement: number, overrides: Partial<PlayerInput> = {}): PlayerInput {
   return {
-    player_index,
-    user_id: `user-${player_index}`,
-    bot_id: null,
+    playerIndex,
+    userId: `user-${playerIndex}`,
+    botId: null,
     placement,
-    team_index: player_index,
+    teamIndex: playerIndex,
     mu: base.mu,
     sigma: base.sigma,
     ...overrides,
@@ -20,8 +20,8 @@ describe("computeRatings", () => {
   it("moves the winner up and the loser down", () => {
     const results = computeRatings([seat(0, 1), seat(1, 2)]);
     expect(results).toHaveLength(2);
-    const winner = results.find((r) => r.identity.user_id === "user-0");
-    const loser = results.find((r) => r.identity.user_id === "user-1");
+    const winner = results.find((r) => r.identity.userId === "user-0");
+    const loser = results.find((r) => r.identity.userId === "user-1");
     expect(winner?.mu).toBeGreaterThan(base.mu);
     expect(loser?.mu).toBeLessThan(base.mu);
     expect(winner?.sigma).toBeLessThan(base.sigma);
@@ -39,9 +39,9 @@ describe("computeRatings", () => {
   });
 
   it("collapses a multi-seat bot into exactly one result", () => {
-    const results = computeRatings([seat(0, 1), seat(1, 2, { user_id: null, bot_id: "bot-x" }), seat(2, 3, { user_id: null, bot_id: "bot-x" })]);
+    const results = computeRatings([seat(0, 1), seat(1, 2, { userId: null, botId: "bot-x" }), seat(2, 3, { userId: null, botId: "bot-x" })]);
     expect(results).toHaveLength(2);
-    const botResults = results.filter((r) => r.identity.bot_id === "bot-x");
+    const botResults = results.filter((r) => r.identity.botId === "bot-x");
     expect(botResults).toHaveLength(1);
     // Both of the bot's placements were losses to the human: the single net
     // update must land below the prior.
@@ -49,14 +49,14 @@ describe("computeRatings", () => {
   });
 
   it("a purged seat shapes the field but yields no result", () => {
-    const results = computeRatings([seat(0, 1), seat(1, 2, { user_id: null, bot_id: null })]);
+    const results = computeRatings([seat(0, 1), seat(1, 2, { userId: null, botId: null })]);
     expect(results).toHaveLength(1);
-    expect(results[0].identity).toEqual({ user_id: "user-0", bot_id: null });
+    expect(results[0].identity).toEqual({ userId: "user-0", botId: null });
     expect(results[0].mu).toBeGreaterThan(base.mu);
   });
 
-  it("rates seats sharing a team_index as one team", () => {
-    const results = computeRatings([seat(0, 1, { team_index: 0 }), seat(1, 1, { team_index: 0 }), seat(2, 2, { team_index: 1 }), seat(3, 2, { team_index: 1 })]);
+  it("rates seats sharing a teamIndex as one team", () => {
+    const results = computeRatings([seat(0, 1, { teamIndex: 0 }), seat(1, 1, { teamIndex: 0 }), seat(2, 2, { teamIndex: 1 }), seat(3, 2, { teamIndex: 1 })]);
     expect(results).toHaveLength(4);
     const [w0, w1, l0, l1] = results.map((r) => r.mu);
     expect(w0).toBeGreaterThan(base.mu);

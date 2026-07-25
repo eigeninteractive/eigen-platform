@@ -47,7 +47,7 @@ describe("commit: start", () => {
     expect(plan.nextState.pending).toEqual([0]);
     expect(plan.nextState.rngSeed).toBe("base-seed");
     expect(plan.action).toBeNull();
-    expect(plan.frames.map((f) => f.player_index)).toEqual([0, 1]);
+    expect(plan.frames.map((f) => f.playerIndex)).toEqual([0, 1]);
     expect(plan.outcomes).toBeNull();
   });
 
@@ -56,7 +56,7 @@ describe("commit: start", () => {
   });
 
   it("rejects starting a game that is not ready", () => {
-    expectRejection(commit(startInput("waiting")), "not_ready");
+    expectRejection(commit(startInput("waiting")), "notReady");
   });
 
   it("initializes budget banks for every seat", () => {
@@ -86,14 +86,14 @@ describe("commit: game action", () => {
       type: "user",
       kind: "game",
       data: { add: 1 },
-      player_index: 0,
+      playerIndex: 0,
     });
     expect(plan.outcomes).toBeNull();
     expect(plan.frames).toHaveLength(2);
   });
 
   it("rejects when the game is not active", () => {
-    expectRejection(commit(input({ game: makeGame({ status: "finished" }) })), "not_active");
+    expectRejection(commit(input({ game: makeGame({ status: "finished" }) })), "notActive");
   });
 
   it("rejects a seat that is not pending", () => {
@@ -103,7 +103,7 @@ describe("commit: game action", () => {
           intent: { kind: "action", seat: 1, expectedVersion: 4, data: { add: 1 }, actor: "user" },
         }),
       ),
-      "not_pending",
+      "notPending",
     );
   });
 
@@ -114,7 +114,7 @@ describe("commit: game action", () => {
           intent: { kind: "action", seat: 0, expectedVersion: 4, data: { add: "x" }, actor: "user" },
         }),
       ),
-      "invalid_payload",
+      "invalidPayload",
     );
   });
 
@@ -125,7 +125,7 @@ describe("commit: game action", () => {
           intent: { kind: "action", seat: 0, expectedVersion: 4, data: { add: 7 }, actor: "user" },
         }),
       ),
-      "illegal_move",
+      "illegalMove",
     );
     expect(rejection.message).toBe("add must be 1-3");
   });
@@ -140,10 +140,10 @@ describe("commit: game action", () => {
       ),
     );
     expect(plan.outcomes).not.toBeNull();
-    expect(plan.outcomes?.[0]).toMatchObject({ player_index: 0, result: "win" });
+    expect(plan.outcomes?.[0]).toMatchObject({ playerIndex: 0, result: "win" });
     expect(plan.nextState.deadline).toBeNull();
     expect(plan.alarm).toBeNull();
-    expect(plan.effects).toEqual([{ kind: "notify_finished", user_ids: ["user-a", "user-b"] }]);
+    expect(plan.effects).toEqual([{ kind: "notifyFinished", userIds: ["user-a", "user-b"] }]);
   });
 });
 
@@ -177,7 +177,7 @@ describe("commit: same-view rule", () => {
       staleViews,
     });
 
-  const view = { data: { count: 4 }, pending_players: [0] };
+  const view = { data: { count: 4 }, pendingPlayers: [0] };
 
   it("accepts a stale action when the seat's view is unchanged — as the next serial version", () => {
     const plan = expectPlan(commit(stale({ expected: view, current: { ...view } })));
@@ -189,10 +189,10 @@ describe("commit: same-view rule", () => {
       commit(
         stale({
           expected: view,
-          current: { data: { count: 5 }, pending_players: [0] },
+          current: { data: { count: 5 }, pendingPlayers: [0] },
         }),
       ),
-      "state_updated",
+      "stateUpdated",
     );
   });
 
@@ -201,16 +201,16 @@ describe("commit: same-view rule", () => {
       commit(
         stale({
           expected: view,
-          current: { data: { count: 4 }, pending_players: [0, 1] },
+          current: { data: { count: 4 }, pendingPlayers: [0, 1] },
         }),
       ),
-      "state_updated",
+      "stateUpdated",
     );
   });
 
   it("rejects conservatively when frames are missing", () => {
-    expectRejection(commit(stale(undefined)), "state_updated");
-    expectRejection(commit(stale({ expected: null, current: view })), "state_updated");
+    expectRejection(commit(stale(undefined)), "stateUpdated");
+    expectRejection(commit(stale({ expected: null, current: view })), "stateUpdated");
   });
 
   it("rejects an expectedVersion ahead of the game", () => {
@@ -220,7 +220,7 @@ describe("commit: same-view rule", () => {
           intent: { kind: "action", seat: 0, expectedVersion: 9, data: { add: 1 }, actor: "user" },
         }),
       ),
-      "state_updated",
+      "stateUpdated",
     );
   });
 });
@@ -244,7 +244,7 @@ describe("commit: budget banks", () => {
     expect(plan.nextState.turnStartedAt).toBe(NOW);
   });
 
-  it("leaves banks untouched when the hook overrides turn_seconds", () => {
+  it("leaves banks untouched when the hook overrides turnSeconds", () => {
     const base = budgetInput();
     const plan = expectPlan(
       commit({
@@ -296,11 +296,11 @@ describe("commit: timeout", () => {
       type: "system",
       kind: "lifecycle",
       data: { type: "timeout" },
-      player_index: null,
+      playerIndex: null,
     });
     // Test rules: the sole pending seat (0) loses on timeout.
     expect(plan.outcomes).not.toBeNull();
-    expect(plan.outcomes?.find((o) => o.player_index === 0)?.result).toBe("loss");
+    expect(plan.outcomes?.find((o) => o.playerIndex === 0)?.result).toBe("loss");
   });
 
   it("zeroes every pending seat's bank in budget mode", () => {
@@ -321,25 +321,25 @@ describe("commit: timeout", () => {
   });
 });
 
-describe("commit: forfeit / auto_forfeit", () => {
+describe("commit: forfeit / autoForfeit", () => {
   it("records a resign as the user's own lifecycle action", () => {
     const plan = expectPlan(commit(input({ intent: { kind: "lifecycle", type: "forfeit", seat: 0 } })));
     expect(plan.action).toEqual({
       type: "user",
       kind: "lifecycle",
-      data: { type: "forfeit", player_index: 0 },
-      player_index: 0,
+      data: { type: "forfeit", playerIndex: 0 },
+      playerIndex: 0,
     });
-    expect(plan.outcomes?.find((o) => o.player_index === 0)?.result).toBe("loss");
+    expect(plan.outcomes?.find((o) => o.playerIndex === 0)?.result).toBe("loss");
   });
 
   it("records an auto-forfeit as an identity-less system action", () => {
-    const plan = expectPlan(commit(input({ intent: { kind: "lifecycle", type: "auto_forfeit", seat: 1 } })));
+    const plan = expectPlan(commit(input({ intent: { kind: "lifecycle", type: "autoForfeit", seat: 1 } })));
     expect(plan.action).toEqual({
       type: "system",
       kind: "lifecycle",
-      data: { type: "auto_forfeit", player_index: 1 },
-      player_index: null,
+      data: { type: "autoForfeit", playerIndex: 1 },
+      playerIndex: null,
     });
   });
 
@@ -351,14 +351,14 @@ describe("commit: forfeit / auto_forfeit", () => {
           intent: { kind: "lifecycle", type: "forfeit", seat: 0 },
         }),
       ),
-      "not_active",
+      "notActive",
     );
   });
 
   it("throws when the hook leaves the forfeited seat pending", () => {
     const badRules = {
       ...turnRules,
-      applyLifecycle: () => ({ state: { count: 1 }, pending_players: [0] }),
+      applyLifecycle: () => ({ state: { count: 1 }, pendingPlayers: [0] }),
     };
     expect(() =>
       commit(
@@ -393,14 +393,14 @@ describe("commit: rated finish", () => {
 describe("commit: effects", () => {
   it("wakes a pending bot and notifies a pending human, skipping the actor", () => {
     const roster = makeRoster();
-    roster[1] = { player_index: 1, user_id: null, bot_id: "bot-1", type: "bot" };
+    roster[1] = { playerIndex: 1, userId: null, botId: "bot-1", type: "bot" };
     const plan = expectPlan(commit(input({ roster })));
-    expect(plan.effects).toEqual([{ kind: "wake_bot", seat: 1, bot_id: "bot-1" }]);
+    expect(plan.effects).toEqual([{ kind: "wakeBot", seat: 1, botId: "bot-1" }]);
   });
 
   it("emits no frame for a purged seat", () => {
     const roster = makeRoster();
-    roster[1] = { player_index: 1, user_id: null, bot_id: null, type: "human" };
+    roster[1] = { playerIndex: 1, userId: null, botId: null, type: "human" };
     const plan = expectPlan(
       commit(
         input({
@@ -410,7 +410,7 @@ describe("commit: effects", () => {
         }),
       ),
     );
-    expect(plan.frames.map((f) => f.player_index)).toEqual([0]);
+    expect(plan.frames.map((f) => f.playerIndex)).toEqual([0]);
   });
 });
 

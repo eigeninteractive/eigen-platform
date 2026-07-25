@@ -17,10 +17,10 @@ class AddBot {
   /// Returns a new [AddBot] instance.
   AddBot({required this.botId, this.commandId});
 
-  @JsonKey(name: r'bot_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'botId', required: true, includeIfNull: false)
   final String botId;
 
-  @JsonKey(name: r'command_id', required: false, includeIfNull: false)
+  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
   final String? commandId;
 
   @override

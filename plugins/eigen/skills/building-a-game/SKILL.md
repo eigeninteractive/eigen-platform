@@ -1,6 +1,6 @@
 ---
 name: building-a-game
-description: Write or review a game on the Eigen engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegal_move, board_updated, state_updated), or reviewing a game module for determinism and observation-projection mistakes.
+description: Write or review a game on the Eigen engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
 ---
 
 # Building a game on Eigen
@@ -25,7 +25,7 @@ Every mistake in a game module traces back to breaking one of these.
    which are engine-owned. Hooks are pure `(state, input) → state`.
 2. **The server is authoritative.** A client move is a proposal. `applyAction`
    on the server decides. The Dart twin exists only for optimistic preview.
-3. **Never branch on version.** Rules are one unit per `schema_version`; the
+3. **Never branch on version.** Rules are one unit per `schemaVersion`; the
    engine resolves the unit before calling any hook. `if (version === …)` in a
    hook body is always a bug.
 4. **Determinism is required.** State must be a pure function of
@@ -35,7 +35,7 @@ Every mistake in a game module traces back to breaking one of these.
 
 ## What to implement
 
-A `GameModule` maps `schema_version` → a `GameRules` unit:
+A `GameModule` maps `schemaVersion` → a `GameRules` unit:
 
 ```ts
 export const gameModule: GameModule = { versions: { 1: rulesV1 } };
@@ -49,7 +49,7 @@ interface GameRules<TState, TAction, TConfig> {
 
   initialState(args): Envelope<TState>;
   applyAction(args): Envelope<TState>;
-  applyLifecycle(args): Envelope<TState>;      // timeout / forfeit / auto_forfeit
+  applyLifecycle(args): Envelope<TState>;      // timeout / forfeit / autoForfeit
   computeObservation(args): ObservationSlice;  // per-seat projection
   ratingPool(args): string | null;
   botSeatable(args): boolean;
@@ -58,9 +58,9 @@ interface GameRules<TState, TAction, TConfig> {
 }
 ```
 
-Every hook returns an **`Envelope`**: `state`, `pending_players` (empty ⇒ game
+Every hook returns an **`Envelope`**: `state`, `pendingPlayers` (empty ⇒ game
 over), optional `outcome` (only on the ending transition), optional
-`turn_seconds` (overrides the deadline for this one action).
+`turnSeconds` (overrides the deadline for this one action).
 
 ## Rules that are easy to get wrong
 
@@ -70,7 +70,7 @@ within the deadline, by a player who holds that seat. Validate *move legality*
 only.
 
 **Throw precisely.** `throw new IllegalMoveError("…")` is the caller's error
-(400 `illegal_move`) and an expected outcome. Any *other* throw is treated as a
+(400 `illegalMove`) and an expected outcome. Any *other* throw is treated as a
 game bug and surfaces as a 500. Never use exceptions for control flow.
 
 **`computeObservation` silently sets the simultaneous-move policy.** A
@@ -108,7 +108,7 @@ twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.ur
 
 Fixtures use the **wire shape** — the JSON keys as serialized, not Dart field
 names. Payload keys are `camelCase` (the schema fields verbatim); only engine-
-owned fields such as the rating `outcome` (`player_index`, `team_index`) carry
+owned fields such as the rating `outcome` (`playerIndex`, `teamIndex`) carry
 their own keys. Cover at minimum: one legal move with its expected observation,
 one illegal move, one game-ending move, and one case per `ratingPool` /
 `botSeatable` branch.
@@ -149,7 +149,7 @@ When reviewing a game module, check in this order:
 - [ ] `IllegalMoveError` for illegal moves; nothing else thrown deliberately
 - [ ] `computeObservation` strips every hidden field, and masks pending status
       where a hidden commit would otherwise leak
-- [ ] `outcome` present **only** on the transition where `pending_players` is empty
+- [ ] `outcome` present **only** on the transition where `pendingPlayers` is empty
 - [ ] State carries no whose-turn / winner metadata
 - [ ] Schemas are `type` + `z.infer`, transform-free, synchronous
 - [ ] Fixtures exist for hidden-info reveals and masking, and match the client repo

@@ -69,7 +69,7 @@ class GameSummary {
   @JsonKey(name: r'id', required: true, includeIfNull: false)
   final String id;
 
-  @JsonKey(name: r'created_by', required: true, includeIfNull: true)
+  @JsonKey(name: r'createdBy', required: true, includeIfNull: true)
   final String? createdBy;
 
   @JsonKey(name: r'status', required: true, includeIfNull: false)
@@ -78,40 +78,40 @@ class GameSummary {
   @JsonKey(name: r'access', required: true, includeIfNull: false)
   final GameAccess access;
 
-  @JsonKey(name: r'schema_version', required: true, includeIfNull: false)
+  @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
 
   @JsonKey(name: r'config', required: true, includeIfNull: false)
   final Object config;
 
-  @JsonKey(name: r'turn_seconds', required: true, includeIfNull: true)
+  @JsonKey(name: r'turnSeconds', required: true, includeIfNull: true)
   final int? turnSeconds;
 
-  @JsonKey(name: r'budget_seconds', required: true, includeIfNull: true)
+  @JsonKey(name: r'budgetSeconds', required: true, includeIfNull: true)
   final int? budgetSeconds;
 
-  @JsonKey(name: r'increment_seconds', required: true, includeIfNull: true)
+  @JsonKey(name: r'incrementSeconds', required: true, includeIfNull: true)
   final int? incrementSeconds;
 
   @JsonKey(name: r'rated', required: true, includeIfNull: false)
   final bool rated;
 
-  @JsonKey(name: r'rating_pool', required: true, includeIfNull: true)
+  @JsonKey(name: r'ratingPool', required: true, includeIfNull: true)
   final String? ratingPool;
 
-  @JsonKey(name: r'min_players', required: true, includeIfNull: false)
+  @JsonKey(name: r'minPlayers', required: true, includeIfNull: false)
   final int minPlayers;
 
-  @JsonKey(name: r'max_players', required: true, includeIfNull: false)
+  @JsonKey(name: r'maxPlayers', required: true, includeIfNull: false)
   final int maxPlayers;
 
-  @JsonKey(name: r'short_code', required: true, includeIfNull: false)
+  @JsonKey(name: r'shortCode', required: true, includeIfNull: false)
   final String shortCode;
 
-  @JsonKey(name: r'pending_players', required: true, includeIfNull: true)
+  @JsonKey(name: r'pendingPlayers', required: true, includeIfNull: true)
   final List<int>? pendingPlayers;
 
-  @JsonKey(name: r'turn_deadline', required: true, includeIfNull: true)
+  @JsonKey(name: r'turnDeadline', required: true, includeIfNull: true)
   final int? turnDeadline;
 
   @JsonKey(name: r'outcomes', required: true, includeIfNull: true)
@@ -120,13 +120,13 @@ class GameSummary {
   @JsonKey(name: r'ratings', required: false, includeIfNull: false)
   final List<RatingDelta>? ratings;
 
-  @JsonKey(name: r'finished_at', required: true, includeIfNull: true)
+  @JsonKey(name: r'finishedAt', required: true, includeIfNull: true)
   final int? finishedAt;
 
-  @JsonKey(name: r'created_at', required: true, includeIfNull: false)
+  @JsonKey(name: r'createdAt', required: true, includeIfNull: false)
   final int createdAt;
 
-  @JsonKey(name: r'updated_at', required: true, includeIfNull: false)
+  @JsonKey(name: r'updatedAt', required: true, includeIfNull: false)
   final int updatedAt;
 
   @JsonKey(name: r'participants', required: true, includeIfNull: false)

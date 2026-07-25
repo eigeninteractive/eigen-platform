@@ -19,20 +19,20 @@ export class GameBugError extends Error {}
  * breaking. */
 export type RejectCode =
   /** The game is not in a status that accepts this intent. */
-  | "not_active"
+  | "notActive"
   /** Start requested but the game is not ready. */
-  | "not_ready"
+  | "notReady"
   /** The turn deadline (plus grace) had genuinely passed at arrival. */
   | "expired"
   /** The acting seat is not in the pending set. */
-  | "not_pending"
+  | "notPending"
   /** Stale `expectedVersion` and the seat's view changed in between —
    * "state updated, try again". */
-  | "state_updated"
+  | "stateUpdated"
   /** The action payload failed the version unit's action schema. */
-  | "invalid_payload"
+  | "invalidPayload"
   /** The game's `applyAction` refused the move (IllegalMoveError). */
-  | "illegal_move"
+  | "illegalMove"
   /** A system intent (timeout) lost its race — already resolved, or not
    * actually expired. Not an error: the host treats it as a clean no-op. */
   | "abstain";

@@ -71,9 +71,9 @@ function storesFor(cfg: DeepLinkConfig): { label: string; url: string }[] {
  * when there is nothing nameable to show. */
 async function versusLine(d1: D1Database, game: GameWithRoster): Promise<string | null> {
   if (game.participants.length === 0) return null;
-  const humanIds = game.participants.filter((p) => p.user_id !== null).map((p) => p.user_id as string);
+  const humanIds = game.participants.filter((p) => p.userId !== null).map((p) => p.userId as string);
   const names = new Map((await readPlayers(d1, humanIds)).map((u) => [u.id, u.displayName]));
-  const parts = game.participants.map((p) => (p.type === "bot" ? "Bot" : (names.get(p.user_id ?? "") ?? "Someone")));
+  const parts = game.participants.map((p) => (p.type === "bot" ? "Bot" : (names.get(p.userId ?? "") ?? "Someone")));
   return parts.join(" vs ");
 }
 

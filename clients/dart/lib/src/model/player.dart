@@ -33,13 +33,13 @@ class Player {
   @JsonKey(name: r'username', required: true, includeIfNull: false)
   final String username;
 
-  @JsonKey(name: r'display_name', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
-  @JsonKey(name: r'avatar_url', required: true, includeIfNull: true)
+  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: true)
   final String? avatarUrl;
 
-  @JsonKey(name: r'is_anonymous', required: true, includeIfNull: false)
+  @JsonKey(name: r'isAnonymous', required: true, includeIfNull: false)
   final bool isAnonymous;
 
   @override

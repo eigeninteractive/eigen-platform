@@ -21,7 +21,7 @@ class Forfeit {
   @JsonKey(name: r'seat', required: true, includeIfNull: false)
   final int seat;
 
-  @JsonKey(name: r'command_id', required: false, includeIfNull: false)
+  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
   final String? commandId;
 
   @override

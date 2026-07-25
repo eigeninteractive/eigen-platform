@@ -52,7 +52,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "Eigen-Signature",
-        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction."
+        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, botId)`. The engine signs wakes with the same header in the other direction."
       }
     },
     "schemas": {
@@ -87,7 +87,7 @@
           "id": {
             "type": "string"
           },
-          "created_by": {
+          "createdBy": {
             "type": [
               "string",
               "null"
@@ -99,25 +99,25 @@
           "access": {
             "$ref": "#/components/schemas/GameAccess"
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "turn_seconds": {
+          "turnSeconds": {
             "type": [
               "integer",
               "null"
             ]
           },
-          "budget_seconds": {
+          "budgetSeconds": {
             "type": [
               "integer",
               "null"
             ]
           },
-          "increment_seconds": {
+          "incrementSeconds": {
             "type": [
               "integer",
               "null"
@@ -126,22 +126,22 @@
           "rated": {
             "type": "boolean"
           },
-          "rating_pool": {
+          "ratingPool": {
             "type": [
               "string",
               "null"
             ]
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer"
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           },
-          "pending_players": {
+          "pendingPlayers": {
             "type": [
               "array",
               "null"
@@ -150,7 +150,7 @@
               "type": "integer"
             }
           },
-          "turn_deadline": {
+          "turnDeadline": {
             "type": [
               "integer",
               "null"
@@ -171,16 +171,16 @@
               "$ref": "#/components/schemas/RatingDelta"
             }
           },
-          "finished_at": {
+          "finishedAt": {
             "type": [
               "integer",
               "null"
             ]
           },
-          "created_at": {
+          "createdAt": {
             "type": "integer"
           },
-          "updated_at": {
+          "updatedAt": {
             "type": "integer"
           },
           "participants": {
@@ -192,25 +192,25 @@
         },
         "required": [
           "id",
-          "created_by",
+          "createdBy",
           "status",
           "access",
-          "schema_version",
+          "schemaVersion",
           "config",
-          "turn_seconds",
-          "budget_seconds",
-          "increment_seconds",
+          "turnSeconds",
+          "budgetSeconds",
+          "incrementSeconds",
           "rated",
-          "rating_pool",
-          "min_players",
-          "max_players",
-          "short_code",
-          "pending_players",
-          "turn_deadline",
+          "ratingPool",
+          "minPlayers",
+          "maxPlayers",
+          "shortCode",
+          "pendingPlayers",
+          "turnDeadline",
           "outcomes",
-          "finished_at",
-          "created_at",
-          "updated_at",
+          "finishedAt",
+          "createdAt",
+          "updatedAt",
           "participants"
         ]
       },
@@ -235,7 +235,7 @@
       "Outcome": {
         "type": "object",
         "properties": {
-          "player_index": {
+          "playerIndex": {
             "type": "integer"
           },
           "result": {
@@ -250,7 +250,7 @@
           "placement": {
             "type": "integer"
           },
-          "team_index": {
+          "teamIndex": {
             "type": "integer"
           },
           "score": {
@@ -261,10 +261,10 @@
           }
         },
         "required": [
-          "player_index",
+          "playerIndex",
           "result",
           "placement",
-          "team_index"
+          "teamIndex"
         ]
       },
       "RatingDelta": {
@@ -276,50 +276,50 @@
           "pool": {
             "type": "string"
           },
-          "mu_before": {
+          "muBefore": {
             "type": "number"
           },
-          "sigma_before": {
+          "sigmaBefore": {
             "type": "number"
           },
-          "display_before": {
+          "displayBefore": {
             "type": "integer"
           },
-          "mu_after": {
+          "muAfter": {
             "type": "number"
           },
-          "sigma_after": {
+          "sigmaAfter": {
             "type": "number"
           },
-          "display_after": {
+          "displayAfter": {
             "type": "integer"
           },
-          "display_change": {
+          "displayChange": {
             "type": "integer"
           }
         },
         "required": [
           "identity",
           "pool",
-          "mu_before",
-          "sigma_before",
-          "display_before",
-          "mu_after",
-          "sigma_after",
-          "display_after",
-          "display_change"
+          "muBefore",
+          "sigmaBefore",
+          "displayBefore",
+          "muAfter",
+          "sigmaAfter",
+          "displayAfter",
+          "displayChange"
         ]
       },
       "RatingIdentity": {
         "type": "object",
         "properties": {
-          "user_id": {
+          "userId": {
             "type": [
               "string",
               "null"
             ]
           },
-          "bot_id": {
+          "botId": {
             "type": [
               "string",
               "null"
@@ -327,23 +327,23 @@
           }
         },
         "required": [
-          "user_id",
-          "bot_id"
+          "userId",
+          "botId"
         ]
       },
       "Seat": {
         "type": "object",
         "properties": {
-          "player_index": {
+          "playerIndex": {
             "type": "integer"
           },
-          "user_id": {
+          "userId": {
             "type": [
               "string",
               "null"
             ]
           },
-          "bot_id": {
+          "botId": {
             "type": [
               "string",
               "null"
@@ -358,9 +358,9 @@
           }
         },
         "required": [
-          "player_index",
-          "user_id",
-          "bot_id",
+          "playerIndex",
+          "userId",
+          "botId",
           "type"
         ]
       },
@@ -381,28 +381,28 @@
       "ErrorCode": {
         "type": "string",
         "enum": [
-          "not_active",
-          "not_ready",
+          "notActive",
+          "notReady",
           "expired",
-          "not_pending",
-          "state_updated",
-          "invalid_payload",
-          "illegal_move",
-          "unknown_game",
-          "not_joinable",
-          "game_full",
-          "already_joined",
-          "not_participant",
-          "not_creator",
-          "creator_cannot_leave",
-          "schema_unsupported",
-          "username_invalid",
-          "username_taken",
-          "friends_only",
-          "registration_required",
-          "image_too_large",
-          "unsupported_image_type",
-          "rate_limited"
+          "notPending",
+          "stateUpdated",
+          "invalidPayload",
+          "illegalMove",
+          "unknownGame",
+          "notJoinable",
+          "gameFull",
+          "alreadyJoined",
+          "notParticipant",
+          "notCreator",
+          "creatorCannotLeave",
+          "schemaUnsupported",
+          "usernameInvalid",
+          "usernameTaken",
+          "friendsOnly",
+          "registrationRequired",
+          "imageTooLarge",
+          "unsupportedImageType",
+          "rateLimited"
         ],
         "description": "A stable machine code identifying why a request failed."
       },
@@ -443,25 +443,25 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
+          "avatarUrl": {
             "type": [
               "string",
               "null"
             ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           }
         },
         "required": [
           "id",
           "username",
-          "display_name",
-          "avatar_url",
-          "is_anonymous"
+          "displayName",
+          "avatarUrl",
+          "isAnonymous"
         ]
       },
       "Bots": {
@@ -487,19 +487,19 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
+          "avatarUrl": {
             "type": [
               "string",
               "null"
             ]
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
-          "rated_eligible": {
+          "ratedEligible": {
             "type": "boolean"
           },
           "config": {
@@ -509,10 +509,10 @@
         "required": [
           "id",
           "username",
-          "display_name",
-          "avatar_url",
-          "schema_version",
-          "rated_eligible",
+          "displayName",
+          "avatarUrl",
+          "schemaVersion",
+          "ratedEligible",
           "config"
         ]
       },
@@ -530,13 +530,13 @@
                   "null"
                 ]
               },
-              "created_at": {
+              "createdAt": {
                 "type": "integer"
               }
             },
             "required": [
               "email",
-              "created_at"
+              "createdAt"
             ]
           }
         ]
@@ -567,10 +567,10 @@
           "sigma": {
             "type": "number"
           },
-          "display_rating": {
+          "displayRating": {
             "type": "integer"
           },
-          "updated_at": {
+          "updatedAt": {
             "type": "integer"
           }
         },
@@ -578,8 +578,8 @@
           "pool",
           "mu",
           "sigma",
-          "display_rating",
-          "updated_at"
+          "displayRating",
+          "updatedAt"
         ]
       },
       "PlayerGames": {
@@ -613,47 +613,47 @@
       "RatingHistoryEntry": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
           "pool": {
             "type": "string"
           },
-          "display_before": {
+          "displayBefore": {
             "type": "integer"
           },
-          "display_after": {
+          "displayAfter": {
             "type": "integer"
           },
-          "display_change": {
+          "displayChange": {
             "type": "integer"
           },
-          "created_at": {
+          "createdAt": {
             "type": "integer"
           }
         },
         "required": [
-          "game_id",
+          "gameId",
           "pool",
-          "display_before",
-          "display_after",
-          "display_change",
-          "created_at"
+          "displayBefore",
+          "displayAfter",
+          "displayChange",
+          "createdAt"
         ]
       },
       "Created": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           }
         },
         "required": [
-          "game_id",
-          "short_code"
+          "gameId",
+          "shortCode"
         ]
       },
       "CreateGame": {
@@ -662,24 +662,24 @@
           "access": {
             "$ref": "#/components/schemas/GameAccess"
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer",
             "minimum": 1
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer",
             "minimum": 1
           },
           "rated": {
             "type": "boolean"
           },
-          "turn_seconds": {
+          "turnSeconds": {
             "type": [
               "integer",
               "null"
@@ -687,7 +687,7 @@
             "exclusiveMinimum": 0,
             "default": null
           },
-          "budget_seconds": {
+          "budgetSeconds": {
             "type": [
               "integer",
               "null"
@@ -695,7 +695,7 @@
             "exclusiveMinimum": 0,
             "default": null
           },
-          "increment_seconds": {
+          "incrementSeconds": {
             "type": [
               "integer",
               "null"
@@ -706,19 +706,19 @@
         },
         "required": [
           "access",
-          "schema_version",
+          "schemaVersion",
           "config",
-          "min_players",
-          "max_players"
+          "minPlayers",
+          "maxPlayers"
         ]
       },
       "SoloStarted": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           },
           "version": {
@@ -729,8 +729,8 @@
           }
         },
         "required": [
-          "game_id",
-          "short_code",
+          "gameId",
+          "shortCode",
           "version",
           "frame"
         ]
@@ -753,7 +753,7 @@
           "data": {
             "type": "object"
           },
-          "pending_players": {
+          "pendingPlayers": {
             "type": "array",
             "items": {
               "type": "integer"
@@ -765,7 +765,7 @@
               "null"
             ]
           },
-          "player_times": {
+          "playerTimes": {
             "type": [
               "array",
               "null"
@@ -791,39 +791,39 @@
           "type",
           "version",
           "data",
-          "pending_players",
+          "pendingPlayers",
           "deadline",
-          "player_times"
+          "playerTimes"
         ]
       },
       "CreateSolo": {
         "type": "object",
         "properties": {
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer",
             "minimum": 1
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer",
             "minimum": 1
           },
           "rated": {
             "type": "boolean"
           },
-          "bot_ids": {
+          "botIds": {
             "type": "array",
             "items": {
               "type": "string"
             },
             "minItems": 1
           },
-          "turn_seconds": {
+          "turnSeconds": {
             "type": [
               "integer",
               "null"
@@ -831,7 +831,7 @@
             "exclusiveMinimum": 0,
             "default": null
           },
-          "budget_seconds": {
+          "budgetSeconds": {
             "type": [
               "integer",
               "null"
@@ -839,7 +839,7 @@
             "exclusiveMinimum": 0,
             "default": null
           },
-          "increment_seconds": {
+          "incrementSeconds": {
             "type": [
               "integer",
               "null"
@@ -849,17 +849,17 @@
           }
         },
         "required": [
-          "schema_version",
+          "schemaVersion",
           "config",
-          "min_players",
-          "max_players",
-          "bot_ids"
+          "minPlayers",
+          "maxPlayers",
+          "botIds"
         ]
       },
       "Joined": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
           "roster": {
@@ -867,7 +867,7 @@
           }
         },
         "required": [
-          "game_id",
+          "gameId",
           "roster"
         ]
       },
@@ -899,17 +899,17 @@
       "Join": {
         "type": "object",
         "properties": {
-          "client_schema_version": {
+          "clientSchemaVersion": {
             "type": "integer"
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
         "required": [
-          "client_schema_version"
+          "clientSchemaVersion"
         ]
       },
       "JoinByCode": {
@@ -920,13 +920,13 @@
           {
             "type": "object",
             "properties": {
-              "short_code": {
+              "shortCode": {
                 "type": "string",
                 "minLength": 1
               }
             },
             "required": [
-              "short_code"
+              "shortCode"
             ]
           }
         ]
@@ -945,7 +945,7 @@
       "LobbyCommand": {
         "type": "object",
         "properties": {
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
@@ -955,17 +955,17 @@
       "AddBot": {
         "type": "object",
         "properties": {
-          "bot_id": {
+          "botId": {
             "type": "string"
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
         "required": [
-          "bot_id"
+          "botId"
         ]
       },
       "CommandAccepted": {
@@ -991,11 +991,11 @@
             "minimum": 0
           },
           "data": {},
-          "expected_version": {
+          "expectedVersion": {
             "type": "integer",
             "minimum": 0
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
@@ -1003,7 +1003,7 @@
         },
         "required": [
           "seat",
-          "expected_version"
+          "expectedVersion"
         ]
       },
       "Forfeit": {
@@ -1013,7 +1013,7 @@
             "type": "integer",
             "minimum": 0
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
@@ -1064,25 +1064,25 @@
       "DisplayNameUpdated": {
         "type": "object",
         "properties": {
-          "display_name": {
+          "displayName": {
             "type": "string"
           }
         },
         "required": [
-          "display_name"
+          "displayName"
         ]
       },
       "DisplayNameUpdate": {
         "type": "object",
         "properties": {
-          "display_name": {
+          "displayName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 40
           }
         },
         "required": [
-          "display_name"
+          "displayName"
         ]
       },
       "DeviceRegistration": {
@@ -1127,19 +1127,19 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
+          "avatarUrl": {
             "type": [
               "string",
               "null"
             ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           },
-          "user_id": {
+          "userId": {
             "type": "string"
           },
           "since": {
@@ -1148,10 +1148,10 @@
         },
         "required": [
           "username",
-          "display_name",
-          "avatar_url",
-          "is_anonymous",
-          "user_id",
+          "displayName",
+          "avatarUrl",
+          "isAnonymous",
+          "userId",
           "since"
         ]
       },
@@ -1175,19 +1175,19 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
+          "avatarUrl": {
             "type": [
               "string",
               "null"
             ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           },
-          "user_id": {
+          "userId": {
             "type": "string"
           },
           "since": {
@@ -1203,10 +1203,10 @@
         },
         "required": [
           "username",
-          "display_name",
-          "avatar_url",
-          "is_anonymous",
-          "user_id",
+          "displayName",
+          "avatarUrl",
+          "isAnonymous",
+          "userId",
           "since",
           "direction"
         ]
@@ -1257,27 +1257,27 @@
       "FriendTarget": {
         "type": "object",
         "properties": {
-          "target_user_id": {
+          "targetUserId": {
             "type": "string",
             "minLength": 1
           }
         },
         "required": [
-          "target_user_id"
+          "targetUserId"
         ]
       },
       "BotAction": {
         "type": "object",
         "properties": {
-          "bot_id": {
+          "botId": {
             "type": "string",
             "minLength": 1
           },
-          "game_id": {
+          "gameId": {
             "type": "string",
             "minLength": 1
           },
-          "player_index": {
+          "playerIndex": {
             "type": "integer",
             "minimum": 0
           },
@@ -1288,9 +1288,9 @@
           "data": {}
         },
         "required": [
-          "bot_id",
-          "game_id",
-          "player_index",
+          "botId",
+          "gameId",
+          "playerIndex",
           "version"
         ]
       }

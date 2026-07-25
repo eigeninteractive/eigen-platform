@@ -42,25 +42,25 @@ class RatingDelta {
   @JsonKey(name: r'pool', required: true, includeIfNull: false)
   final String pool;
 
-  @JsonKey(name: r'mu_before', required: true, includeIfNull: false)
+  @JsonKey(name: r'muBefore', required: true, includeIfNull: false)
   final num muBefore;
 
-  @JsonKey(name: r'sigma_before', required: true, includeIfNull: false)
+  @JsonKey(name: r'sigmaBefore', required: true, includeIfNull: false)
   final num sigmaBefore;
 
-  @JsonKey(name: r'display_before', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayBefore', required: true, includeIfNull: false)
   final int displayBefore;
 
-  @JsonKey(name: r'mu_after', required: true, includeIfNull: false)
+  @JsonKey(name: r'muAfter', required: true, includeIfNull: false)
   final num muAfter;
 
-  @JsonKey(name: r'sigma_after', required: true, includeIfNull: false)
+  @JsonKey(name: r'sigmaAfter', required: true, includeIfNull: false)
   final num sigmaAfter;
 
-  @JsonKey(name: r'display_after', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayAfter', required: true, includeIfNull: false)
   final int displayAfter;
 
-  @JsonKey(name: r'display_change', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayChange', required: true, includeIfNull: false)
   final int displayChange;
 
   @override

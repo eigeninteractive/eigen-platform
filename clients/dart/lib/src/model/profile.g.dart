@@ -6,47 +6,38 @@ part of 'profile.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Profile _$ProfileFromJson(Map<String, dynamic> json) => $checkedCreate(
-  'Profile',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      requiredKeys: const [
-        'id',
-        'username',
-        'display_name',
-        'avatar_url',
-        'is_anonymous',
-        'email',
-        'created_at',
-      ],
-    );
-    final val = Profile(
-      id: $checkedConvert('id', (v) => v as String),
-      username: $checkedConvert('username', (v) => v as String),
-      displayName: $checkedConvert('display_name', (v) => v as String),
-      avatarUrl: $checkedConvert('avatar_url', (v) => v as String),
-      isAnonymous: $checkedConvert('is_anonymous', (v) => v as bool),
-      email: $checkedConvert('email', (v) => v as String?),
-      createdAt: $checkedConvert('created_at', (v) => (v as num).toInt()),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'displayName': 'display_name',
-    'avatarUrl': 'avatar_url',
-    'isAnonymous': 'is_anonymous',
-    'createdAt': 'created_at',
-  },
-);
+Profile _$ProfileFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('Profile', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        requiredKeys: const [
+          'id',
+          'username',
+          'displayName',
+          'avatarUrl',
+          'isAnonymous',
+          'email',
+          'createdAt',
+        ],
+      );
+      final val = Profile(
+        id: $checkedConvert('id', (v) => v as String),
+        username: $checkedConvert('username', (v) => v as String),
+        displayName: $checkedConvert('displayName', (v) => v as String),
+        avatarUrl: $checkedConvert('avatarUrl', (v) => v as String),
+        isAnonymous: $checkedConvert('isAnonymous', (v) => v as bool),
+        email: $checkedConvert('email', (v) => v as String?),
+        createdAt: $checkedConvert('createdAt', (v) => (v as num).toInt()),
+      );
+      return val;
+    });
 
 Map<String, dynamic> _$ProfileToJson(Profile instance) => <String, dynamic>{
   'id': instance.id,
   'username': instance.username,
-  'display_name': instance.displayName,
-  'avatar_url': instance.avatarUrl,
-  'is_anonymous': instance.isAnonymous,
+  'displayName': instance.displayName,
+  'avatarUrl': instance.avatarUrl,
+  'isAnonymous': instance.isAnonymous,
   'email': instance.email,
-  'created_at': instance.createdAt,
+  'createdAt': instance.createdAt,
 };

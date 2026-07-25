@@ -22,7 +22,7 @@ import { GameBugError } from "./errors.js";
 
 /** Grace window (ms) added to every deadline comparison so a player who
  * submits on time is not rejected because network latency carried the request
- * past the deadline. Keep it small relative to per-action `turn_seconds`
+ * past the deadline. Keep it small relative to per-action `turnSeconds`
  * windows. The client's display-only `kServerDeadlineGrace` mirrors this. */
 export const DEADLINE_GRACE_MS = 750;
 
@@ -57,9 +57,9 @@ export interface NextDeadline {
  * `gameOver = true` when the transition ends the game.
  *
  * 1. game over → both null
- * 2. hook returned `turn_seconds` N → now + N s (banks untouched)
+ * 2. hook returned `turnSeconds` N → now + N s (banks untouched)
  * 3. budget mode → now + MIN remaining bank over the new pending set
- * 4. per-action mode → now + configured `turn_seconds`
+ * 4. per-action mode → now + configured `turnSeconds`
  * 5. untimed → both null
  *
  * Budget mode allows at most one pending seat — enforced at the source by
@@ -69,7 +69,7 @@ export interface NextDeadline {
 export function computeNextDeadline(input: {
   now: number;
   gameOver: boolean;
-  /** The hook's per-action override (envelope `turn_seconds`), else null. */
+  /** The hook's per-action override (envelope `turnSeconds`), else null. */
   actionSeconds: number | null;
   budgetSeconds: number | null;
   turnSeconds: number | null;

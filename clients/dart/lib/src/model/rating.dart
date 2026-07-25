@@ -36,10 +36,10 @@ class Rating {
   @JsonKey(name: r'sigma', required: true, includeIfNull: false)
   final num sigma;
 
-  @JsonKey(name: r'display_rating', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayRating', required: true, includeIfNull: false)
   final int displayRating;
 
-  @JsonKey(name: r'updated_at', required: true, includeIfNull: false)
+  @JsonKey(name: r'updatedAt', required: true, includeIfNull: false)
   final int updatedAt;
 
   @override

@@ -34,7 +34,7 @@ Four facts define the shape of everything you write:
    optimistic preview, but the server's answer is the truth.
 
 3. **You never branch on version.** Rules are organized one unit per
-   `schema_version`. The engine resolves a game's version once and calls the
+   `schemaVersion`. The engine resolves a game's version once and calls the
    right unit's hooks — your hook bodies only ever see their own version's shapes.
 
 4. **Determinism is required.** State must be a pure function of `(seed, ordered
@@ -46,7 +46,7 @@ Four facts define the shape of everything you write:
 
 ## 2. What you implement: `GameModule` and `GameRules`
 
-A `GameModule` is just a map from `schema_version` to a `GameRules` unit:
+A `GameModule` is just a map from `schemaVersion` to a `GameRules` unit:
 
 ```ts
 import type { GameModule } from "@eigeninteractive/rules";
@@ -125,14 +125,14 @@ type State  = z.infer<typeof stateSchema>;
 ## 4. The hooks, in detail
 
 Everything returns an **`Envelope<State>`**: the new `state`, the
-`pending_players` who may act next (empty ⇒ game over), an optional `outcome`
-(present **only** when the game ends), and an optional `turn_seconds` override
+`pendingPlayers` who may act next (empty ⇒ game over), an optional `outcome`
+(present **only** when the game ends), and an optional `turnSeconds` override
 for this one action.
 
 ### `initialState({ config, rng, playerCount }) → Envelope`
 
 The starting position. Draw any setup randomness (shuffle, first player) from
-`rng`. Set `pending_players` to whoever moves first.
+`rng`. Set `pendingPlayers` to whoever moves first.
 
 ### `applyAction({ state, pending, data, playerIndex, config, rng }) → Envelope`
 
@@ -140,7 +140,7 @@ A player's move. **The engine has already confirmed it is this seat's turn at th
 expected version** — do not re-check turn order. Validate move *legality* only;
 if it fails, `throw new IllegalMoveError("…")` and the engine renders it as the
 caller's error. Any *other* throw is treated as a game bug (a server 500). Return
-the next envelope: advance the state, set the next `pending_players`, and include
+the next envelope: advance the state, set the next `pendingPlayers`, and include
 `outcome` if this move ended the game.
 
 ### `applyLifecycle({ state, pending, type, data, rng }) → Envelope`
@@ -151,19 +151,19 @@ it always resolves. Three triggers:
 - **`timeout`** — the seats in `pending` ran out of time. Resolve the whole set
   in one envelope (you decide the consequence — often a loss for the idle seat,
   or a draw if everyone stalled).
-- **`forfeit`** — a voluntary resign; the seat is in `data.player_index`.
-- **`auto_forfeit`** — the engine-driven variant (an account was deleted). Same
+- **`forfeit`** — a voluntary resign; the seat is in `data.playerIndex`.
+- **`autoForfeit`** — the engine-driven variant (an account was deleted). Same
   shape as forfeit; you *may* choose a gentler consequence (e.g. a draw rather
   than a loss) since the seat didn't choose to quit.
 
 ### `computeObservation({ state, pending, playerIndex, cause, isReplay, … }) → ObservationSlice`
 
 Project the state into **one seat's view** — this is where hidden information
-lives. Return `{ data, pending_players }`:
+lives. Return `{ data, pendingPlayers }`:
 
 - `data` is exactly what this seat may see. Strip anything hidden (opponents'
   hands, face-down cards, un-revealed simultaneous commits).
-- `pending_players` may be *narrowed* from the true set to avoid leaking
+- `pendingPlayers` may be *narrowed* from the true set to avoid leaking
   information (e.g. hiding that an opponent has secretly moved) — but it must
   stay truthful about the seat *itself*, and the engine enforces that.
 - `playerIndex` is `null` for a public viewer (only ever with `isReplay: true` —
@@ -204,7 +204,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
 
   initialState(): Envelope<State> {
     return { state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
-             pending_players: [0, 1] };
+             pendingPlayers: [0, 1] };
   }
 
   applyAction({ state, data, playerIndex }: ApplyActionArgs<State, Action, Config>): Envelope<State> {
@@ -216,7 +216,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
       // First commit: record it, wait for the opponent.
       const commits: State["commits"] = [null, null];
       commits[seat] = data.move;
-      return { state: { ...state, commits }, pending_players: [other] };
+      return { state: { ...state, commits }, pendingPlayers: [other] };
     }
     // Second commit: resolve the round (and maybe the match).
     const moves = seat === 0 ? [data.move, otherMove] : [otherMove, data.move];
@@ -225,23 +225,23 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
 
     if (winner !== null && wins[winner] >= config.targetWins) {
       return { state: { ...state, wins, commits: [null, null], lastRound: { moves, winner } },
-               pending_players: [], outcome: matchOutcome(winner) };
+               pendingPlayers: [], outcome: matchOutcome(winner) };
     }
     return { state: { round: state.round + 1, wins, commits: [null, null], lastRound: { moves, winner } },
-             pending_players: [0, 1] };
+             pendingPlayers: [0, 1] };
   }
 
   computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<…>): ObservationSlice {
     if (isReplay || playerIndex === null) {
       return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, commits: state.commits },
-               pending_players: pending };
+               pendingPlayers: pending };
     }
     const seat = playerIndex as 0 | 1;
     // Two deliberate omissions that ARE the game:
     //  - the opponent's commit is hidden (only your own move comes back);
     //  - the opponent's pending status is masked (you see only your own).
     return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, yourMove: state.commits[seat] },
-             pending_players: pending.filter((s) => s === seat) };
+             pendingPlayers: pending.filter((s) => s === seat) };
   }
 
   ratingPool({ access }: RatingPoolArgs<Config>): string | null {
@@ -315,7 +315,7 @@ only timing touchpoints:
 
 - **`applyLifecycle` on `timeout`** — decide the consequence when a seat's clock
   runs out (§4).
-- **The envelope's `turn_seconds`** — override the deadline for *one* action
+- **The envelope's `turnSeconds`** — override the deadline for *one* action
   only (e.g. a longer window for a special phase), without touching any player's
   bank. Omit it to use the game's configured timing.
 
@@ -528,7 +528,7 @@ platform enforces them, and `period` may only be `10` or `60`. Each
 **`namespace_id`** is a positive integer that **must be unique within your
 Cloudflare account**: ids are account-scoped, so reusing one across two Workers
 makes them share counters. A limited caller gets `429` with `code:
-"rate_limited"` and a `Retry-After` header. The binding is per-colo and
+"rateLimited"` and a `Retry-After` header. The binding is per-colo and
 eventually consistent — an abuse dampener, not a hard quota.
 
 ---
@@ -718,7 +718,7 @@ determinism.
 
 ## 15. Recipes — common game shapes
 
-The whole game is expressed through `pending_players` and what
+The whole game is expressed through `pendingPlayers` and what
 `computeObservation` reveals. A few canonical shapes:
 
 **Sequential (perfect information)** — checkers, Connect Four. One seat pending
@@ -730,8 +730,8 @@ automatically strict — no stale move survives an opponent's turn.
 applyAction({ state, playerIndex, data }) {
   const next = applyMove(state, playerIndex, data);
   return next.won
-    ? { state: next, pending_players: [], outcome: win(playerIndex) }
-    : { state: next, pending_players: [(playerIndex + 1) % playerCount] };
+    ? { state: next, pendingPlayers: [], outcome: win(playerIndex) }
+    : { state: next, pendingPlayers: [(playerIndex + 1) % playerCount] };
 }
 computeObservation: passthroughObservation,
 ```
@@ -742,19 +742,19 @@ each round; store each commit in the state and hide the opponents' commits in
 doesn't change anyone else's view (that's what lets both submissions land in
 either order — §6). Resolve when the last commit arrives.
 
-**Team games** — set `team_index` on outcome entries to the team, not the seat,
+**Team games** — set `teamIndex` on outcome entries to the team, not the seat,
 so OpenSkill rates teammates together. `placement` is the team's finish.
 
-**Elimination / multiplayer** — shrink `pending_players` as seats bust out; give
+**Elimination / multiplayer** — shrink `pendingPlayers` as seats bust out; give
 an eliminated seat `result: "eliminated"` with its `placement`. The game ends
-when `pending_players` empties; the final `outcome` ranks everyone by placement.
+when `pendingPlayers` empties; the final `outcome` ranks everyone by placement.
 
 **Reveal for animation** — carry a "what just happened" field (RPS's `lastRound`)
 in the projected `data` so clients can animate the transition. Decide per seat
 what that reveal shows using `cause` and `playerIndex` (§7).
 
 **Phased turns / variable clocks** — a phase that needs longer returns
-`turn_seconds: N` on its envelope to widen just that action's deadline, leaving
+`turnSeconds: N` on its envelope to widen just that action's deadline, leaving
 every player's bank untouched.
 
 ---
@@ -768,9 +768,9 @@ Every hook returns `Envelope<State>`:
 | Field | Meaning |
 |---|---|
 | `state` | The new pure game payload — validated against your `state` schema before commit. Never carries whose-turn or winner metadata. |
-| `pending_players` | 0-based seats that may act next. **Empty ⇒ the game is over** (with `outcome`). |
-| `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `team_index`, optional `score`). |
-| `turn_seconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
+| `pendingPlayers` | 0-based seats that may act next. **Empty ⇒ the game is over** (with `outcome`). |
+| `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `teamIndex`, optional `score`). |
+| `turnSeconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
 
 ### Determinism — the RNG contract
 
@@ -791,7 +791,7 @@ reproduces the identical sequence. The rules:
 
 - `throw new IllegalMoveError("…")` from `applyAction` for a move that breaks the
   rules (a mis-tap, a buggy client). The engine renders it as the **caller's**
-  error (a 400 `illegal_move`) — this is an *expected* outcome, not a fault.
+  error (a 400 `illegalMove`) — this is an *expected* outcome, not a fault.
 - **Any other throw** from a hook is treated as a **game bug** and surfaces as a
   server 500. Don't use exceptions for control flow; return the right envelope
   instead.

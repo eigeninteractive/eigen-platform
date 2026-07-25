@@ -34,7 +34,7 @@
  *         "valid": true,             // false ⇒ TS IllegalMoveError,
  *                                    //         Dart isValidAction false
  *         "state": { ... },          // optional, TS envelope.state
- *         "pending": [1],            // optional, TS envelope.pending_players
+ *         "pending": [1],            // optional, TS envelope.pendingPlayers
  *         "outcome": [ ... ],        // optional, TS envelope.outcome
  *                                    //   (null asserts the game is ongoing)
  *         "observation": { ... }     // optional, the actor's post-action
@@ -72,7 +72,7 @@ import { type Envelope, type GameAccess, type GameModule, type GameRules, Illega
 import Rand from "rand-seed";
 import { it } from "vitest";
 
-/** One fixture file: cases targeting one `schema_version` unit. */
+/** One fixture file: cases targeting one `schemaVersion` unit. */
 export interface TwinFixtureFile {
   schemaVersion: number;
   cases: TwinFixtureCase[];
@@ -295,7 +295,7 @@ export function twinFixtureTests(gameModule: GameModule, fixturesRoot: string | 
     for (const kase of fixture.cases) {
       it(`twin v${fixture.schemaVersion}: ${kase.name}`, () => {
         if (!rules) {
-          throw new Error(`gameModule ships no rules unit for schema_version ${fixture.schemaVersion} (fixture: ${filePath})`);
+          throw new Error(`gameModule ships no rules unit for schemaVersion ${fixture.schemaVersion} (fixture: ${filePath})`);
         }
         const failures = evaluateTwinCase(rules, kase);
         if (failures.length) throw new Error(`\n${failures.join("\n")}`);
@@ -378,8 +378,8 @@ function checkEnvelope(rules: GameRules, kase: ActionCase, envelope: Envelope, f
   if (expected.state !== undefined && !deepEquals(envelope.state, expected.state)) {
     failures.push(`envelope.state mismatch — got ${JSON.stringify(envelope.state)}`);
   }
-  if (expected.pending !== undefined && !deepEquals(envelope.pending_players, expected.pending)) {
-    failures.push(`envelope.pending_players mismatch — got ${JSON.stringify(envelope.pending_players)}`);
+  if (expected.pending !== undefined && !deepEquals(envelope.pendingPlayers, expected.pending)) {
+    failures.push(`envelope.pendingPlayers mismatch — got ${JSON.stringify(envelope.pendingPlayers)}`);
   }
   if ("outcome" in expected && !deepEquals(envelope.outcome ?? null, expected.outcome ?? null)) {
     failures.push(`envelope.outcome mismatch — got ${JSON.stringify(envelope.outcome ?? null)}`);
@@ -391,7 +391,7 @@ function checkObservation(rules: GameRules, kase: ActionCase, envelope: Envelope
   try {
     slice = rules.computeObservation({
       state: envelope.state,
-      pending: envelope.pending_players,
+      pending: envelope.pendingPlayers,
       playerIndex: kase.playerIndex,
       participantCount: kase.participantCount ?? 2,
       config,

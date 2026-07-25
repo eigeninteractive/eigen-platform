@@ -18,7 +18,7 @@ class Joined {
   /// Returns a new [Joined] instance.
   Joined({required this.gameId, required this.roster});
 
-  @JsonKey(name: r'game_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
   final String gameId;
 
   @JsonKey(name: r'roster', required: true, includeIfNull: false)

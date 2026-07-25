@@ -71,15 +71,15 @@ function beats(a: Move, b: Move): boolean {
 function matchOutcome(winner: 0 | 1): OutcomeEntry[] {
   const loser = winner === 0 ? 1 : 0;
   return [
-    { player_index: winner, result: "win", placement: 1, team_index: winner },
-    { player_index: loser, result: "loss", placement: 2, team_index: loser },
+    { playerIndex: winner, result: "win", placement: 1, teamIndex: winner },
+    { playerIndex: loser, result: "loss", placement: 2, teamIndex: loser },
   ];
 }
 
 function drawOutcome(): OutcomeEntry[] {
   return [
-    { player_index: 0, result: "draw", placement: 1, team_index: 0 },
-    { player_index: 1, result: "draw", placement: 1, team_index: 1 },
+    { playerIndex: 0, result: "draw", placement: 1, teamIndex: 0 },
+    { playerIndex: 1, result: "draw", placement: 1, teamIndex: 1 },
   ];
 }
 
@@ -93,7 +93,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
   initialState(_args: InitialStateArgs<Config>): Envelope<State> {
     return {
       state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
-      pending_players: [0, 1],
+      pendingPlayers: [0, 1],
     };
   }
 
@@ -113,7 +113,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
       commits[seat] = data.move;
       return {
         state: { ...state, commits },
-        pending_players: [other],
+        pendingPlayers: [other],
       };
     }
 
@@ -127,7 +127,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
     if (winner !== null && wins[winner] >= config.targetWins) {
       return {
         state: { ...state, wins, commits: [null, null], lastRound },
-        pending_players: [],
+        pendingPlayers: [],
         outcome: matchOutcome(winner),
       };
     }
@@ -138,7 +138,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
         commits: [null, null],
         lastRound,
       },
-      pending_players: [0, 1],
+      pendingPlayers: [0, 1],
     };
   }
 
@@ -147,15 +147,15 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
       // Every pending seat failed to commit in time. Both idle ⇒ a drawn
       // match; one idle ⇒ the seat that did commit takes the match.
       if (pending.length === 2) {
-        return { state, pending_players: [], outcome: drawOutcome() };
+        return { state, pendingPlayers: [], outcome: drawOutcome() };
       }
       const winner = (1 - pending[0]) as 0 | 1;
-      return { state, pending_players: [], outcome: matchOutcome(winner) };
+      return { state, pendingPlayers: [], outcome: matchOutcome(winner) };
     }
-    const loser = (data as { player_index: number }).player_index as 0 | 1;
+    const loser = (data as { playerIndex: number }).playerIndex as 0 | 1;
     return {
       state,
-      pending_players: [],
+      pendingPlayers: [],
       outcome: matchOutcome((1 - loser) as 0 | 1),
     };
   }
@@ -170,7 +170,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
           lastRound: state.lastRound,
           commits: state.commits,
         },
-        pending_players: pending,
+        pendingPlayers: pending,
       };
     }
     const seat = playerIndex as 0 | 1;
@@ -186,7 +186,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
         lastRound: state.lastRound,
         yourMove: state.commits[seat],
       },
-      pending_players: pending.filter((s) => s === seat),
+      pendingPlayers: pending.filter((s) => s === seat),
     };
   }
 

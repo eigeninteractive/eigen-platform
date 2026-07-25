@@ -56,7 +56,7 @@ export async function isBlockedAmong(d1: D1Database, caller: string, ids: string
  * filter hides both games a blocked user *created* and games they merely
  * *joined*. Correlated on the outer `games.id`, so it drops into any query
  * selecting from `games` (the lobby, friends' open games). A purged seat
- * (`user_id IS NULL`) matches no relationship, so it is never treated as
+ * (`userId IS NULL`) matches no relationship, so it is never treated as
  * blocked. */
 export function noBlockedParticipant(d1: D1Database, caller: string) {
   return notExists(

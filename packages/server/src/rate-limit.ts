@@ -66,13 +66,13 @@ export function resolveRateLimiter(env: unknown, name: RateLimitName): RateLimit
 }
 
 /** Enforce a limiter if one is bound, else do nothing. On rejection, throws the
- * 429 `rate_limited` the app's error handler renders, with a `Retry-After`.
+ * 429 `rateLimited` the app's error handler renders, with a `Retry-After`.
  * Call before doing the endpoint's real work. */
 export async function enforceRateLimit(env: unknown, name: RateLimitName, key: string): Promise<void> {
   const limiter = resolveRateLimiter(env, name);
   if (limiter === null) return;
   const { success } = await limiter.limit({ key });
   if (!success) {
-    throw new HttpError(429, "Too many requests in a short window — slow down and try again.", "rate_limited", RATE_LIMIT_RETRY_AFTER_SECONDS);
+    throw new HttpError(429, "Too many requests in a short window — slow down and try again.", "rateLimited", RATE_LIMIT_RETRY_AFTER_SECONDS);
   }
 }

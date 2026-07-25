@@ -34,7 +34,7 @@ const rules: GameRules = {
     action: schemaOf((v): v is Action => isObject(v) && (v.add === 1 || v.add === 2)),
     config: schemaOf((v): v is Config => isObject(v) && typeof v.target === "number"),
   },
-  initialState: () => ({ state: { count: 0 }, pending_players: [0] }),
+  initialState: () => ({ state: { count: 0 }, pendingPlayers: [0] }),
   applyAction: ({ state, data, playerIndex, config }) => {
     const count = (state as State).count + (data as Action).add;
     const target = (config as Config).target;
@@ -42,29 +42,29 @@ const rules: GameRules = {
       const other = 1 - playerIndex;
       return {
         state: { count },
-        pending_players: [],
+        pendingPlayers: [],
         outcome: [
-          { player_index: playerIndex, result: "win", placement: 1, team_index: playerIndex },
-          { player_index: other, result: "loss", placement: 2, team_index: other },
+          { playerIndex: playerIndex, result: "win", placement: 1, teamIndex: playerIndex },
+          { playerIndex: other, result: "loss", placement: 2, teamIndex: other },
         ],
       };
     }
-    return { state: { count }, pending_players: [1 - playerIndex] };
+    return { state: { count }, pendingPlayers: [1 - playerIndex] };
   },
   applyLifecycle: ({ state, pending, type, data }) => {
-    const loser = type === "timeout" ? pending[0] : ((data as { player_index: number }).player_index as number);
+    const loser = type === "timeout" ? pending[0] : ((data as { playerIndex: number }).playerIndex as number);
     const winner = 1 - loser;
     return {
       state: state as JsonObject,
-      pending_players: [],
+      pendingPlayers: [],
       outcome: [
-        { player_index: winner, result: "win", placement: 1, team_index: winner },
-        { player_index: loser, result: "loss", placement: 2, team_index: loser },
+        { playerIndex: winner, result: "win", placement: 1, teamIndex: winner },
+        { playerIndex: loser, result: "loss", placement: 2, teamIndex: loser },
       ],
     };
   },
   // Full-reveal observation: every seat (and viewers) sees the raw state.
-  computeObservation: ({ state, pending }) => ({ data: state as JsonObject, pending_players: pending }),
+  computeObservation: ({ state, pending }) => ({ data: state as JsonObject, pendingPlayers: pending }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
   // In-DO brains, keyed by bot username: the `test-engine-bot` always
@@ -86,7 +86,7 @@ const hiddenRules: GameRules = {
     action: schemaOf((v): v is Action => isObject(v) && (v.add === 1 || v.add === 2)),
     config: schemaOf((v): v is Config => isObject(v) && typeof v.target === "number"),
   },
-  initialState: () => ({ state: { count: 0, secret: LEAK_SENTINEL }, pending_players: [0] }),
+  initialState: () => ({ state: { count: 0, secret: LEAK_SENTINEL }, pendingPlayers: [0] }),
   applyAction: ({ state, data, playerIndex, config }) => {
     const s = state as HiddenState;
     const count = s.count + (data as Action).add;
@@ -94,29 +94,29 @@ const hiddenRules: GameRules = {
       const other = 1 - playerIndex;
       return {
         state: { count, secret: s.secret },
-        pending_players: [],
+        pendingPlayers: [],
         outcome: [
-          { player_index: playerIndex, result: "win", placement: 1, team_index: playerIndex },
-          { player_index: other, result: "loss", placement: 2, team_index: other },
+          { playerIndex: playerIndex, result: "win", placement: 1, teamIndex: playerIndex },
+          { playerIndex: other, result: "loss", placement: 2, teamIndex: other },
         ],
       };
     }
-    return { state: { count, secret: s.secret }, pending_players: [1 - playerIndex] };
+    return { state: { count, secret: s.secret }, pendingPlayers: [1 - playerIndex] };
   },
   applyLifecycle: ({ state, pending, type, data }) => {
-    const loser = type === "timeout" ? pending[0] : (data as { player_index: number }).player_index;
+    const loser = type === "timeout" ? pending[0] : (data as { playerIndex: number }).playerIndex;
     const winner = 1 - loser;
     return {
       state: state as JsonObject,
-      pending_players: [],
+      pendingPlayers: [],
       outcome: [
-        { player_index: winner, result: "win", placement: 1, team_index: winner },
-        { player_index: loser, result: "loss", placement: 2, team_index: loser },
+        { playerIndex: winner, result: "win", placement: 1, teamIndex: winner },
+        { playerIndex: loser, result: "loss", placement: 2, teamIndex: loser },
       ],
     };
   },
   // Hidden-info projection: only `count` is ever revealed — `secret` never is.
-  computeObservation: ({ state, pending }) => ({ data: { count: (state as HiddenState).count }, pending_players: pending }),
+  computeObservation: ({ state, pending }) => ({ data: { count: (state as HiddenState).count }, pendingPlayers: pending }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
 };
@@ -140,7 +140,7 @@ export default createEngine({
   auth: testVerifier(),
   // deep linking + avatars — exercised by web.spec.ts. Avatars use
   // the simulated AVATARS bucket; publicBaseUrl is left unset (the worker-serve
-  // default), so avatar_url is the relative /avatars/{uid} route.
+  // default), so avatarUrl is the relative /avatars/{uid} route.
   deepLink: {
     android: { packageName: "com.eigen.test", sha256CertFingerprints: ["AA:BB:CC"], storeUrl: "https://play.google.com/store/apps/details?id=com.eigen.test" },
     apple: { appId: "TEAMID1234.com.eigen.test", storeUrl: "https://apps.apple.com/app/id000000000" },

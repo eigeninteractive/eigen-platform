@@ -26,20 +26,20 @@ export type ErrorCode =
    * because the client renders a distinct response to it — a field-level form
    * error, a "create an account" prompt, a retry with a different file. A
    * failure the client can only report generically stays uncoded. */
-  | "schema_unsupported"
-  | "username_invalid"
-  | "username_taken"
-  | "friends_only"
-  | "registration_required"
-  | "image_too_large"
-  | "unsupported_image_type"
-  | "rate_limited";
+  | "schemaUnsupported"
+  | "usernameInvalid"
+  | "usernameTaken"
+  | "friendsOnly"
+  | "registrationRequired"
+  | "imageTooLarge"
+  | "unsupportedImageType"
+  | "rateLimited";
 
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
   readonly code: ErrorCode | undefined;
   /** Seconds the caller should wait before retrying — rendered as the
-   * `Retry-After` header. Set only on a 429 (see `ErrorCode.rate_limited`);
+   * `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
    * `undefined` everywhere else. */
   readonly retryAfterSeconds: number | undefined;
 
@@ -56,13 +56,13 @@ export class HttpError extends Error {
  * else is a state conflict a client resolves by resyncing (409). */
 export function rejectStatus(code: RejectCode | LobbyRejectCode): 400 | 403 | 404 | 409 {
   switch (code) {
-    case "invalid_payload":
-    case "illegal_move":
+    case "invalidPayload":
+    case "illegalMove":
       return 400;
-    case "not_creator":
-    case "not_participant":
+    case "notCreator":
+    case "notParticipant":
       return 403;
-    case "unknown_game":
+    case "unknownGame":
       return 404;
     default:
       return 409;

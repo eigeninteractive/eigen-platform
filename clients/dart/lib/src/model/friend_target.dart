@@ -17,7 +17,7 @@ class FriendTarget {
   /// Returns a new [FriendTarget] instance.
   FriendTarget({required this.targetUserId});
 
-  @JsonKey(name: r'target_user_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'targetUserId', required: true, includeIfNull: false)
   final String targetUserId;
 
   @override

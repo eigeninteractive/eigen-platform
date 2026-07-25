@@ -4,7 +4,7 @@
  * `PUT /api/engine/me/avatar` (authed) streams the image to R2 under key =
  * uid, and a public `GET /avatars/:uid` serves it with a long immutable cache.
  *
- * `avatar_url` carries a `?v={ts}` cache-buster (the R2 key is overwritten on
+ * `avatarUrl` carries a `?v={ts}` cache-buster (the R2 key is overwritten on
  * re-upload, so the URL must change for clients to refetch). When
  * `avatars.publicBaseUrl` is set (a bucket custom domain, or r2.dev), the URL
  * points straight at the bucket and reads never touch the worker; unset → the
@@ -22,7 +22,7 @@ import { enforceRateLimit } from "../rate-limit.js";
 /** Content types we accept and store. */
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
-/** Build the stored `avatar_url`: absolute (direct-to-bucket) when a public
+/** Build the stored `avatarUrl`: absolute (direct-to-bucket) when a public
  * base URL is configured, else the relative worker route. `?v` busts caches on
  * re-upload. */
 function avatarUrl(publicBase: string | undefined, uid: string, version: number): string {
@@ -36,23 +36,23 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   // Plain route (not OpenAPI): a raw binary body doesn't model cleanly in the
   // spec, so — like the game socket — it is hand-written on the client rather
   // than generated. Clients PUT the image bytes directly with an image/*
-  // content-type (never multipart) and read `{ avatar_url }` off the 200.
+  // content-type (never multipart) and read `{ avatarUrl }` off the 200.
   engine.put("/me/avatar", async (c) => {
     await enforceRateLimit(c.env, "avatar_upload", c.var.auth.user.id);
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {
-      throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupported_image_type");
+      throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupportedImageType");
     }
     const body = await c.req.arrayBuffer();
     if (body.byteLength === 0) throw new HttpError(400, "Empty upload");
-    if (body.byteLength > avatars.maxBytes) throw new HttpError(413, `Image exceeds the ${avatars.maxBytes}-byte limit`, "image_too_large");
+    if (body.byteLength > avatars.maxBytes) throw new HttpError(413, `Image exceeds the ${avatars.maxBytes}-byte limit`, "imageTooLarge");
 
     const uid = c.var.auth.user.id;
     const now = Date.now();
     await avatars.bucket(c.env).put(uid, body, { httpMetadata: { contentType } });
     const url = avatarUrl(avatars.publicBaseUrl(c.env), uid, now);
     await orm(ctx.d1(c.env)).update(users).set({ avatarUrl: url, updatedAt: now }).where(eq(users.id, uid));
-    return c.json({ avatar_url: url }, 200);
+    return c.json({ avatarUrl: url }, 200);
   });
 }
 

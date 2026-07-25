@@ -30,16 +30,16 @@ it("requires a token on every route", async () => {
 it("plays a full game: waiting room, same-view simultaneous commits, finish, replay reveal", async () => {
   const created = await api(ALICE, "POST", "/games", {
     access: "public",
-    schema_version: 1,
+    schemaVersion: 1,
     config: { targetWins: 1 },
-    min_players: 2,
-    max_players: 2,
+    minPlayers: 2,
+    maxPlayers: 2,
     rated: false,
   });
   expect(created.status).toBe(201);
-  const { game_id: gameId } = (await created.json()) as { game_id: string };
+  const { gameId } = (await created.json()) as { gameId: string };
 
-  const joined = await api(BOB, "POST", `/games/${gameId}/join`, { client_schema_version: 1 });
+  const joined = await api(BOB, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
   expect((await joined.json()) as object).toMatchObject({ roster: { status: "ready" } });
 
   // No mirror wait: the DO seats Bob on the join command and verifies the
@@ -51,10 +51,10 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
 
   // Both seats commit against v0. The second arrives stale — and lands,
   // because RPS masks the opponent's hidden commit (same-view rule).
-  const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expected_version: 0 });
+  const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expectedVersion: 0 });
   expect(await rock.json()).toMatchObject({ version: 1 });
 
-  const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { seat: 1, data: { move: "scissors" }, expected_version: 0 });
+  const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { seat: 1, data: { move: "scissors" }, expectedVersion: 0 });
   const resolved = (await scissors.json()) as { version: number; frame: { outcomes?: unknown[] } };
   expect(resolved).toMatchObject({ version: 2 });
   expect(resolved.frame.outcomes).toHaveLength(2);

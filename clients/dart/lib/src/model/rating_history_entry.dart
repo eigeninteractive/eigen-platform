@@ -29,22 +29,22 @@ class RatingHistoryEntry {
     required this.createdAt,
   });
 
-  @JsonKey(name: r'game_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
   final String gameId;
 
   @JsonKey(name: r'pool', required: true, includeIfNull: false)
   final String pool;
 
-  @JsonKey(name: r'display_before', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayBefore', required: true, includeIfNull: false)
   final int displayBefore;
 
-  @JsonKey(name: r'display_after', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayAfter', required: true, includeIfNull: false)
   final int displayAfter;
 
-  @JsonKey(name: r'display_change', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayChange', required: true, includeIfNull: false)
   final int displayChange;
 
-  @JsonKey(name: r'created_at', required: true, includeIfNull: false)
+  @JsonKey(name: r'createdAt', required: true, includeIfNull: false)
   final int createdAt;
 
   @override

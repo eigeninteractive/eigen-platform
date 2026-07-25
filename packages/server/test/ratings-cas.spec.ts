@@ -52,8 +52,8 @@ async function seedRatedGame(a: string, b: string): Promise<string> {
     maxPlayers: 2,
     shortCode: `${gameId.slice(0, 6)}${seq}`,
     seats: [
-      { player_index: 0, user_id: a, bot_id: null, type: "human" },
-      { player_index: 1, user_id: b, bot_id: null, type: "human" },
+      { playerIndex: 0, userId: a, botId: null, type: "human" },
+      { playerIndex: 1, userId: b, botId: null, type: "human" },
     ],
     now,
   });
@@ -66,12 +66,12 @@ function finish(gameId: string, a: string, b: string) {
     gameId,
     finishId: `finish-${gameId}`,
     outcomes: [
-      { player_index: 0, result: "win", placement: 1, team_index: 0 },
-      { player_index: 1, result: "loss", placement: 2, team_index: 1 },
+      { playerIndex: 0, result: "win", placement: 1, teamIndex: 0 },
+      { playerIndex: 1, result: "loss", placement: 2, teamIndex: 1 },
     ],
     roster: [
-      { player_index: 0, user_id: a, bot_id: null, type: "human" },
-      { player_index: 1, user_id: b, bot_id: null, type: "human" },
+      { playerIndex: 0, userId: a, botId: null, type: "human" },
+      { playerIndex: 1, userId: b, botId: null, type: "human" },
     ],
     rated: true,
     ratingPool: POOL,

@@ -63,7 +63,7 @@ function commandResult(result: CommandResult) {
 
 function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
   const rules = ctx.gameModule.versions[schemaVersion];
-  if (rules === undefined) throw new HttpError(400, `This deployment ships no rules for schema_version ${schemaVersion}`);
+  if (rules === undefined) throw new HttpError(400, `This deployment ships no rules for schemaVersion ${schemaVersion}`);
   return rules;
 }
 
@@ -93,7 +93,7 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
     throw new HttpError(400, "A game with a server-seated bot must be timed");
   }
   if (game.schemaVersion > bot.schemaVersion) {
-    throw new HttpError(400, `Bot does not support schema_version ${game.schemaVersion}`);
+    throw new HttpError(400, `Bot does not support schemaVersion ${game.schemaVersion}`);
   }
   if (game.rated && !bot.ratedEligible) {
     throw new HttpError(400, "This bot is not eligible for rated games");
@@ -107,7 +107,7 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
   switch (bot.type) {
     case "engine":
       if (rules.botActions?.[bot.username] === undefined) {
-        throw new HttpError(400, `The game ships no bot brain named '${bot.username}' for schema_version ${game.schemaVersion}`);
+        throw new HttpError(400, `The game ships no bot brain named '${bot.username}' for schemaVersion ${game.schemaVersion}`);
       }
       break;
     case "external":
@@ -125,7 +125,7 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
 
 async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promise<GameWithRoster> {
   const game = await readGame(ctx.d1(env), gameId);
-  if (game === undefined) throw new HttpError(404, "Unknown game", "unknown_game");
+  if (game === undefined) throw new HttpError(404, "Unknown game", "unknownGame");
   return game;
 }
 
@@ -142,7 +142,7 @@ function generateShortCode(): string {
 }
 
 function isShortCodeCollision(error: unknown): boolean {
-  return error instanceof Error && /UNIQUE constraint failed.*short_code/.test(error.message);
+  return error instanceof Error && /UNIQUE constraint failed.*shortCode/.test(error.message);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -167,20 +167,20 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
       if (body.access === "friends" && auth.claims.isAnonymous) {
-        throw new HttpError(403, "Friends-access games require a registered account", "registration_required");
+        throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
       }
-      const rules = rulesFor(ctx, body.schema_version);
+      const rules = rulesFor(ctx, body.schemaVersion);
       const parsed = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsed.ok) throw new HttpError(400, parsed.message);
       const config = parsed.value as JsonObject;
 
       const pool = rules.ratingPool({
         access: body.access,
-        turnSeconds: body.turn_seconds,
-        budgetSeconds: body.budget_seconds,
-        incrementSeconds: body.increment_seconds,
-        minPlayers: body.min_players,
-        maxPlayers: body.max_players,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+        minPlayers: body.minPlayers,
+        maxPlayers: body.maxPlayers,
         config,
       });
       // `rated` is a concrete assertion the client also computes (the Dart
@@ -194,7 +194,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const rated = canBeRated && (body.rated ?? true);
 
       const gameId = crypto.randomUUID();
-      const seats: Seat[] = [{ player_index: 0, user_id: auth.user.id, bot_id: null, type: "human" }];
+      const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
       const now = Date.now();
       for (let attempt = 1; ; attempt++) {
         const shortCode = generateShortCode();
@@ -202,22 +202,22 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           await createGame(ctx.d1(c.env), {
             gameId,
             createdBy: auth.user.id,
-            status: seats.length >= body.min_players ? "ready" : "waiting",
+            status: seats.length >= body.minPlayers ? "ready" : "waiting",
             access: body.access,
-            schemaVersion: body.schema_version,
+            schemaVersion: body.schemaVersion,
             config,
-            turnSeconds: body.turn_seconds,
-            budgetSeconds: body.budget_seconds,
-            incrementSeconds: body.increment_seconds,
+            turnSeconds: body.turnSeconds,
+            budgetSeconds: body.budgetSeconds,
+            incrementSeconds: body.incrementSeconds,
             rated,
             ratingPool: pool,
-            minPlayers: body.min_players,
-            maxPlayers: body.max_players,
+            minPlayers: body.minPlayers,
+            maxPlayers: body.maxPlayers,
             shortCode,
             seats,
             now,
           });
-          return c.json({ game_id: gameId, short_code: shortCode }, 201);
+          return c.json({ gameId: gameId, shortCode: shortCode }, 201);
         } catch (error) {
           if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
         }
@@ -241,7 +241,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const auth = c.var.auth;
       await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
-      const rules = rulesFor(ctx, body.schema_version);
+      const rules = rulesFor(ctx, body.schemaVersion);
       const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
       const config = parsedConfig.value as JsonObject;
@@ -249,11 +249,11 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // Solo games are always private — no lobby, no invites.
       const pool = rules.ratingPool({
         access: "private",
-        turnSeconds: body.turn_seconds,
-        budgetSeconds: body.budget_seconds,
-        incrementSeconds: body.increment_seconds,
-        minPlayers: body.min_players,
-        maxPlayers: body.max_players,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+        minPlayers: body.minPlayers,
+        maxPlayers: body.maxPlayers,
         config,
       });
       const canBeRated = pool !== null && !auth.claims.isAnonymous;
@@ -264,17 +264,17 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
 
       // Resolve and gate every bot before writing anything: a bad bot id or a
       // failed seating gate must abort with nothing created.
-      const bots = await readBots(ctx.d1(c.env), body.bot_ids);
-      const spec: BotSeatingGame = { schemaVersion: body.schema_version, turnSeconds: body.turn_seconds, budgetSeconds: body.budget_seconds, rated, config };
-      const seats: Seat[] = [{ player_index: 0, user_id: auth.user.id, bot_id: null, type: "human" }];
-      for (const botId of body.bot_ids) {
+      const bots = await readBots(ctx.d1(c.env), body.botIds);
+      const spec: BotSeatingGame = { schemaVersion: body.schemaVersion, turnSeconds: body.turnSeconds, budgetSeconds: body.budgetSeconds, rated, config };
+      const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
+      for (const botId of body.botIds) {
         const bot = bots.find((b) => b.id === botId);
         if (bot === undefined) throw new HttpError(404, `Bot not found: ${botId}`);
         assertBotSeatable(ctx, spec, bot);
-        seats.push({ player_index: seats.length, user_id: null, bot_id: bot.id, type: "bot" });
+        seats.push({ playerIndex: seats.length, userId: null, botId: bot.id, type: "bot" });
       }
-      if (seats.length < body.min_players) throw new HttpError(400, "Not enough seats to start the game");
-      if (seats.length > body.max_players) throw new HttpError(400, "More bots than max_players allows");
+      if (seats.length < body.minPlayers) throw new HttpError(400, "Not enough seats to start the game");
+      if (seats.length > body.maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
       const gameId = crypto.randomUUID();
       const now = Date.now();
@@ -287,15 +287,15 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
             createdBy: auth.user.id,
             status: "ready",
             access: "private",
-            schemaVersion: body.schema_version,
+            schemaVersion: body.schemaVersion,
             config,
-            turnSeconds: body.turn_seconds,
-            budgetSeconds: body.budget_seconds,
-            incrementSeconds: body.increment_seconds,
+            turnSeconds: body.turnSeconds,
+            budgetSeconds: body.budgetSeconds,
+            incrementSeconds: body.incrementSeconds,
             rated,
             ratingPool: pool,
-            minPlayers: body.min_players,
-            maxPlayers: body.max_players,
+            minPlayers: body.minPlayers,
+            maxPlayers: body.maxPlayers,
             shortCode,
             seats,
             now,
@@ -314,7 +314,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const stub = ctx.stub(c.env, gameId);
       const started = commandResult(await stub.handle(mint(auth, "start", gameId, undefined)));
       const [frame] = await stub.frames({ seat: 0, from: started.version, to: started.version });
-      return c.json({ game_id: gameId, short_code: shortCode, version: started.version, frame: frame ?? null }, 201);
+      return c.json({ gameId: gameId, shortCode: shortCode, version: started.version, frame: frame ?? null }, 201);
     },
   );
 
@@ -322,25 +322,25 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, commandId: string | undefined) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
-      throw new HttpError(403, "Guests cannot join rated games", "registration_required");
+      throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
     }
     if (game.schemaVersion > clientSchemaVersion) {
-      throw new HttpError(409, "This game requires a newer app version", "schema_unsupported");
+      throw new HttpError(409, "This game requires a newer app version", "schemaUnsupported");
     }
     if (game.access === "friends") {
-      if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registration_required");
+      if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
       if (game.createdBy === null || !(await isAcceptedFriend(ctx.d1(c.env), auth.user.id, game.createdBy))) {
-        throw new HttpError(403, "This game is limited to the creator's friends", "friends_only");
+        throw new HttpError(403, "This game is limited to the creator's friends", "friendsOnly");
       }
     }
     // The seating boundary: the caller and anyone they have blocked (either
-    // direction) must never share a game. Answered as `unknown_game`, not a
+    // direction) must never share a game. Answered as `unknownGame`, not a
     // "blocked" code — the lobby already hides this game from the pair, so a
     // direct attempt (a shared code, a deep link) sees the same "no such game"
     // a genuine miss would, leaking nothing and needing no new wire code.
-    const seatedUserIds = game.participants.flatMap((p) => (p.user_id !== null ? [p.user_id] : []));
+    const seatedUserIds = game.participants.flatMap((p) => (p.userId !== null ? [p.userId] : []));
     if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
-      throw new HttpError(404, "Unknown game", "unknown_game");
+      throw new HttpError(404, "Unknown game", "unknownGame");
     }
     return lobbyResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
   };
@@ -357,8 +357,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
-      const seated = await join(c, game, body.client_schema_version, body.command_id);
-      return c.json({ game_id: game.id, ...seated }, 200);
+      const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
+      return c.json({ gameId: game.id, ...seated }, 200);
     },
   );
 
@@ -373,10 +373,10 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const body = c.req.valid("json");
-      const game = await readGameByCode(ctx.d1(c.env), body.short_code.toUpperCase());
-      if (game === undefined) throw new HttpError(404, "No game with that code", "unknown_game");
-      const seated = await join(c, game, body.client_schema_version, body.command_id);
-      return c.json({ game_id: game.id, ...seated }, 200);
+      const game = await readGameByCode(ctx.d1(c.env), body.shortCode.toUpperCase());
+      if (game === undefined) throw new HttpError(404, "No game with that code", "unknownGame");
+      const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
+      return c.json({ gameId: game.id, ...seated }, 200);
     },
   );
 
@@ -391,7 +391,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, c.req.valid("json").command_id));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, c.req.valid("json").commandId));
       return c.json(lobbyResult(result), 200);
     },
   );
@@ -407,7 +407,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, c.req.valid("json").command_id));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, c.req.valid("json").commandId));
       return c.json(lobbyResult(result), 200);
     },
   );
@@ -429,11 +429,11 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const auth = c.var.auth;
       const body = c.req.valid("json");
       const { gameId } = c.req.valid("param");
-      const [game, bots] = await Promise.all([loadGame(ctx, c.env, gameId), readBots(ctx.d1(c.env), [body.bot_id])]);
+      const [game, bots] = await Promise.all([loadGame(ctx, c.env, gameId), readBots(ctx.d1(c.env), [body.botId])]);
       const bot = bots[0];
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
-      const cmd: Command = { kind: "add-bot", gameId, commandId: body.command_id ?? crypto.randomUUID(), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
+      const cmd: Command = { kind: "add-bot", gameId, commandId: body.commandId ?? crypto.randomUUID(), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(lobbyResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
   );
@@ -449,7 +449,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId, c.req.valid("json").command_id));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId, c.req.valid("json").commandId));
       return c.json(commandResult(result), 200);
     },
   );
@@ -473,10 +473,10 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "action",
         gameId,
-        commandId: body.command_id ?? crypto.randomUUID(),
+        commandId: body.commandId ?? crypto.randomUUID(),
         actor: { userId: c.var.auth.user.id, botId: null },
         seat: body.seat,
-        expectedVersion: body.expected_version,
+        expectedVersion: body.expectedVersion,
         data: body.data,
       };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
@@ -498,7 +498,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "lifecycle",
         gameId,
-        commandId: body.command_id ?? crypto.randomUUID(),
+        commandId: body.commandId ?? crypto.randomUUID(),
         actor: { userId: c.var.auth.user.id, botId: null },
         type: "forfeit",
         seat: body.seat,
@@ -530,10 +530,10 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const { gameId } = c.req.valid("param");
       const { from, to } = c.req.valid("query");
       const game = await loadGame(ctx, c.env, gameId);
-      const mySeat = game.participants.find((s) => s.user_id === auth.user.id)?.player_index ?? null;
+      const mySeat = game.participants.find((s) => s.userId === auth.user.id)?.playerIndex ?? null;
       const finished = game.status === "finished";
       if (mySeat === null && !(finished && game.access === "public")) {
-        throw new HttpError(403, "Not a participant in this game", "not_participant");
+        throw new HttpError(403, "Not a participant in this game", "notParticipant");
       }
       const page = 1000;
       const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);

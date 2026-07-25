@@ -45,9 +45,9 @@ export interface GameRow {
 /** One seat of the roster. Both ids null ⇒ the account was purged mid-game
  * (the seat plays on as "Deleted User" for display, but can never act). */
 export interface Seat {
-  player_index: number;
-  user_id: string | null;
-  bot_id: string | null;
+  playerIndex: number;
+  userId: string | null;
+  botId: string | null;
   type: "human" | "bot";
 }
 
@@ -89,9 +89,9 @@ export type Intent =
       actor: "user" | "bot";
     }
   | { kind: "lifecycle"; type: "timeout" }
-  /** `forfeit` = a voluntary resign (a user action); `auto_forfeit` = the
+  /** `forfeit` = a voluntary resign (a user action); `autoForfeit` = the
    * engine-driven variant (account purge; identity-less system action). */
-  | { kind: "lifecycle"; type: "forfeit" | "auto_forfeit"; seat: number };
+  | { kind: "lifecycle"; type: "forfeit" | "autoForfeit"; seat: number };
 
 export interface CommitInput {
   game: GameRow;
@@ -103,7 +103,7 @@ export interface CommitInput {
   /** The commit instant (epoch ms) — sampled once by the host, never read
    * here. */
   now: number;
-  /** The version unit for the game's `schema_version`, already resolved by
+  /** The version unit for the game's `schemaVersion`, already resolved by
    * the host from the `GameModule.versions` map. */
   rules: GameRules;
   /**
@@ -122,19 +122,19 @@ export interface CommitInput {
 // ── Plan (what the host applies) ──────────────────────────────────────────────
 
 /** The action-log entry for a transition. Null only for the start transition
- * (v0), which no action produced. `player_index` is the performer's seat —
+ * (v0), which no action produced. `playerIndex` is the performer's seat —
  * null for identity-less system actions (timeout, auto-forfeit).
  *
  * The `ratings` variant is engine-owned, never produced by `commit()`: the
  * host appends it as the post-finish ratings transition (step 3) once
  * the D1 apply returns the deltas. Game hooks never see it — its data is the
  * engine's, not the game's opaque payload. */
-export type TransitionAction = { type: "user" | "bot"; kind: "game"; data: JsonObject; player_index: number } | { type: ActionType; kind: "lifecycle"; data: LifecycleAction; player_index: number | null } | { type: "system"; kind: "ratings"; data: { deltas: RatingDelta[] }; player_index: null };
+export type TransitionAction = { type: "user" | "bot"; kind: "game"; data: JsonObject; playerIndex: number } | { type: ActionType; kind: "lifecycle"; data: LifecycleAction; playerIndex: number | null } | { type: "system"; kind: "ratings"; data: { deltas: RatingDelta[] }; playerIndex: null };
 
 /** A push/wake the host should attempt post-commit (single attempt + error
  * log — no retry machinery in v1). The kernel names seats; the host resolves
  * delivery (FCM targets, bot webhook vs local bot). */
-export type Effect = { kind: "wake_bot"; seat: number; bot_id: string } | { kind: "notify_turn"; seat: number; user_id: string } | { kind: "notify_finished"; user_ids: string[] };
+export type Effect = { kind: "wakeBot"; seat: number; botId: string } | { kind: "notifyTurn"; seat: number; userId: string } | { kind: "notifyFinished"; userIds: string[] };
 
 export interface CommitPlan {
   /** The next transition row, already versioned (`v+1`, or 0 for start). */
@@ -182,7 +182,7 @@ function commitStart(input: CommitInput, intent: Extract<Intent, { kind: "start"
     return reject("abstain", "Game is already active");
   }
   if (game.status !== "ready") {
-    return reject("not_ready", "Game is not ready to start");
+    return reject("notReady", "Game is not ready to start");
   }
   if (!intent.seed) {
     throw new GameBugError("start intent carries an empty rng seed");
@@ -214,13 +214,13 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     throw new GameBugError("action intent reached commit() before v0");
   }
   if (game.status !== "active") {
-    return reject("not_active", "Game is not active");
+    return reject("notActive", "Game is not active");
   }
 
   if (intent.expectedVersion > state.version) {
     // The client claims a version the game hasn't reached — a protocol bug,
     // but the client-facing remedy is the same resync as any version miss.
-    return reject("state_updated", `Expected version ${intent.expectedVersion} is ahead of the game ` + `(current ${state.version})`);
+    return reject("stateUpdated", `Expected version ${intent.expectedVersion} is ahead of the game ` + `(current ${state.version})`);
   }
   if (intent.expectedVersion < state.version) {
     // The same-view rule: the stale intent transfers iff this seat's
@@ -228,7 +228,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     // frames (never stored, or already compacted) reject conservatively.
     const views = input.staleViews;
     if (!views?.expected || !views.current || !sameView(views.expected, views.current)) {
-      return reject("state_updated", "State updated — try again");
+      return reject("stateUpdated", "State updated — try again");
     }
   }
 
@@ -236,14 +236,14 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     return reject("expired", "Turn has expired");
   }
   if (!state.pending.includes(intent.seat)) {
-    return reject("not_pending", "Not your turn");
+    return reject("notPending", "Not your turn");
   }
 
   const config = parseStoredPayload(rules.schemas.config, game.config, "config", game.schemaVersion);
   const priorState = parseStoredPayload(rules.schemas.state, state.state, "state", game.schemaVersion);
   const parsed = parseClientPayload(rules.schemas.action, intent.data, "action");
   if (!parsed.ok) {
-    return reject("invalid_payload", parsed.message);
+    return reject("invalidPayload", parsed.message);
   }
 
   let envelope: Envelope;
@@ -258,7 +258,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     });
   } catch (error) {
     if (error instanceof IllegalMoveError) {
-      return reject("illegal_move", error.message || "Illegal move");
+      return reject("illegalMove", error.message || "Illegal move");
     }
     throw error;
   }
@@ -266,7 +266,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
   // Bank deduction: budget mode, no per-action override, game not ending.
   // The grace forgives acceptance, never time charged.
   let playerTimes = state.playerTimes;
-  if (game.budgetSeconds !== null && envelope.turn_seconds === undefined && envelope.outcome === undefined) {
+  if (game.budgetSeconds !== null && envelope.turnSeconds === undefined && envelope.outcome === undefined) {
     if (playerTimes === null) {
       throw new GameBugError("budget-timed game has no playerTimes banks");
     }
@@ -283,7 +283,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
       type: intent.actor,
       kind: "game",
       data,
-      player_index: intent.seat,
+      playerIndex: intent.seat,
     },
     cause: { kind: "game", data, playerIndex: intent.seat },
     playerTimes,
@@ -336,20 +336,20 @@ function commitTimeout(input: CommitInput, _intent: Extract<Intent, { kind: "lif
       type: "system",
       kind: "lifecycle",
       data,
-      player_index: null,
+      playerIndex: null,
     },
     cause: { kind: "lifecycle", data },
     playerTimes,
   });
 }
 
-function commitForfeit(input: CommitInput, intent: Extract<Intent, { kind: "lifecycle"; type: "forfeit" | "auto_forfeit" }>): CommitPlan | Rejected {
+function commitForfeit(input: CommitInput, intent: Extract<Intent, { kind: "lifecycle"; type: "forfeit" | "autoForfeit" }>): CommitPlan | Rejected {
   const { game, state, rules } = input;
   if (state === null) {
     throw new GameBugError("forfeit intent reached commit() before v0");
   }
   if (game.status !== "active") {
-    return reject("not_active", "Game is not active");
+    return reject("notActive", "Game is not active");
   }
 
   const config = parseStoredPayload(rules.schemas.config, game.config, "config", game.schemaVersion);
@@ -358,7 +358,7 @@ function commitForfeit(input: CommitInput, intent: Extract<Intent, { kind: "life
   // Unconditional intent: no deadline/pending/version guard, banks untouched.
   const data: LifecycleAction = {
     type: intent.type,
-    player_index: intent.seat,
+    playerIndex: intent.seat,
   };
   const envelope = rules.applyLifecycle({
     state: priorState,
@@ -381,7 +381,7 @@ function commitForfeit(input: CommitInput, intent: Extract<Intent, { kind: "life
       type: intent.type === "forfeit" ? "user" : "system",
       kind: "lifecycle",
       data,
-      player_index: intent.type === "forfeit" ? intent.seat : null,
+      playerIndex: intent.type === "forfeit" ? intent.seat : null,
     },
     cause: { kind: "lifecycle", data },
     playerTimes: state.playerTimes,
@@ -416,30 +416,30 @@ function buildPlan(
   const next = computeNextDeadline({
     now,
     gameOver: outcomes !== null,
-    actionSeconds: envelope.turn_seconds ?? null,
+    actionSeconds: envelope.turnSeconds ?? null,
     budgetSeconds: game.budgetSeconds,
     turnSeconds: game.turnSeconds,
-    newPending: envelope.pending_players,
+    newPending: envelope.pendingPlayers,
     newPlayerTimes: t.playerTimes,
   });
 
   // No viewer, no frame: a seat purged mid-game has neither identity, so its
   // projection would be unreadable forever (mirrors the old slice filter).
-  const identified = new Set(roster.filter((s) => s.user_id !== null || s.bot_id !== null).map((s) => s.player_index));
+  const identified = new Set(roster.filter((s) => s.userId !== null || s.botId !== null).map((s) => s.playerIndex));
   const frames = fanOutObservations(rules, {
     state: envelope.state,
-    pending: envelope.pending_players,
+    pending: envelope.pendingPlayers,
     participantCount: roster.length,
     config: t.config,
     cause: t.cause,
     isReplay: false,
-  }).filter((frame) => identified.has(frame.player_index));
+  }).filter((frame) => identified.has(frame.playerIndex));
 
   return {
     nextState: {
       version: t.version,
       state: envelope.state,
-      pending: envelope.pending_players,
+      pending: envelope.pendingPlayers,
       rngSeed: t.seed,
       deadline: next.deadline,
       playerTimes: t.playerTimes,
@@ -460,17 +460,17 @@ function validateOutcomes(envelope: Envelope, roster: readonly Seat[], schemaVer
   const outcome = envelope.outcome;
   if (outcome === undefined) return null;
   if (!Array.isArray(outcome) || outcome.length === 0) {
-    throw new GameBugError(`Hook returned a non-array or empty outcome (schema_version ${schemaVersion})`);
+    throw new GameBugError(`Hook returned a non-array or empty outcome (schemaVersion ${schemaVersion})`);
   }
   for (const entry of outcome) {
-    if (!roster.some((s) => s.player_index === entry.player_index)) {
-      throw new GameBugError(`Outcome references unknown player_index ${entry.player_index}`);
+    if (!roster.some((s) => s.playerIndex === entry.playerIndex)) {
+      throw new GameBugError(`Outcome references unknown playerIndex ${entry.playerIndex}`);
     }
     if (typeof entry.placement !== "number") {
-      throw new GameBugError(`Outcome for player_index ${entry.player_index} missing required placement`);
+      throw new GameBugError(`Outcome for playerIndex ${entry.playerIndex} missing required placement`);
     }
-    if (typeof entry.team_index !== "number") {
-      throw new GameBugError(`Outcome for player_index ${entry.player_index} missing required team_index`);
+    if (typeof entry.teamIndex !== "number") {
+      throw new GameBugError(`Outcome for playerIndex ${entry.playerIndex} missing required teamIndex`);
     }
   }
   return outcome;
@@ -481,26 +481,26 @@ function validateOutcomes(envelope: Envelope, roster: readonly Seat[], schemaVer
  * The kernel names seats; the host owns delivery and filtering (FCM prefs,
  * local vs server bots). */
 function computeEffects(roster: readonly Seat[], envelope: Envelope, outcomes: OutcomeEntry[] | null, actingSeat: number | undefined): Effect[] {
-  const bySeat = new Map(roster.map((s) => [s.player_index, s]));
+  const bySeat = new Map(roster.map((s) => [s.playerIndex, s]));
   if (outcomes !== null) {
-    const userIds = roster.filter((s) => s.user_id !== null).map((s) => s.user_id as string);
-    return userIds.length ? [{ kind: "notify_finished", user_ids: userIds }] : [];
+    const userIds = roster.filter((s) => s.userId !== null).map((s) => s.userId as string);
+    return userIds.length ? [{ kind: "notifyFinished", userIds: userIds }] : [];
   }
   const effects: Effect[] = [];
-  for (const seat of envelope.pending_players) {
+  for (const seat of envelope.pendingPlayers) {
     const member = bySeat.get(seat);
     if (!member) continue;
-    if (member.bot_id !== null) {
+    if (member.botId !== null) {
       // A bot always needs its wake — even the acting seat re-entering pending
       // (an extra turn): a bot has no live client to act on its own, so its
       // only signal to move again is a fresh wake. A duplicate is harmless
       // (the in-DO self-apply dedupes on commandId; an external wake carries
       // the same version and loses the version check at commit).
-      effects.push({ kind: "wake_bot", seat, bot_id: member.bot_id });
-    } else if (seat !== actingSeat && member.user_id !== null) {
+      effects.push({ kind: "wakeBot", seat, botId: member.botId });
+    } else if (seat !== actingSeat && member.userId !== null) {
       // A human actor is live in-app and needs no push; only newly-waiting
       // humans are notified.
-      effects.push({ kind: "notify_turn", seat, user_id: member.user_id });
+      effects.push({ kind: "notifyTurn", seat, userId: member.userId });
     }
   }
   return effects;

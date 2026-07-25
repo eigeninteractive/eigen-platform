@@ -65,15 +65,15 @@ async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<Game
   const byGame = new Map<string, RatingDelta[]>();
   for (const row of deltaRows) {
     const delta: RatingDelta = {
-      identity: { user_id: row.userId, bot_id: row.botId },
+      identity: { userId: row.userId, botId: row.botId },
       pool: row.pool,
-      mu_before: row.muBefore,
-      sigma_before: row.sigmaBefore,
-      display_before: row.displayBefore,
-      mu_after: row.muAfter,
-      sigma_after: row.sigmaAfter,
-      display_after: row.displayAfter,
-      display_change: row.displayChange,
+      muBefore: row.muBefore,
+      sigmaBefore: row.sigmaBefore,
+      displayBefore: row.displayBefore,
+      muAfter: row.muAfter,
+      sigmaAfter: row.sigmaAfter,
+      displayAfter: row.displayAfter,
+      displayChange: row.displayChange,
     };
     const list = byGame.get(row.gameId);
     if (list === undefined) byGame.set(row.gameId, [delta]);
@@ -89,7 +89,7 @@ export async function withRosters(d1: D1Database, rows: GameRow[]): Promise<Game
   if (rows.length === 0) return [];
   const db = orm(d1);
   const seatRows = await db
-    .select({ gameId: participants.gameId, player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type })
+    .select({ gameId: participants.gameId, playerIndex: participants.playerIndex, userId: participants.userId, botId: participants.botId, type: participants.type })
     .from(participants)
     .where(
       inArray(
@@ -121,7 +121,7 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
   // returns early when nothing is finished+rated).
   const [gameRows, seatRows] = await db.batch([
     db.select().from(games).where(eq(games.id, gameId)),
-    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
+    db.select({ playerIndex: participants.playerIndex, userId: participants.userId, botId: participants.botId, type: participants.type }).from(participants).where(eq(participants.gameId, gameId)).orderBy(participants.playerIndex),
   ]);
   const row = gameRows[0];
   if (row === undefined) return undefined;
@@ -131,15 +131,15 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
 /** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
   const db = orm(d1);
-  // One round trip, like readGame — but the roster is keyed by game_id, which
+  // One round trip, like readGame — but the roster is keyed by gameId, which
   // a code lookup does not yield until it resolves. A subquery bridges the gap:
-  // participants are filtered by "the id of the row with this short_code", so
+  // participants are filtered by "the id of the row with this shortCode", so
   // both statements still go in a single batch instead of a sequential id
   // lookup. (readGame needs no subquery — it already holds the id.)
   const idForCode = db.select({ id: games.id }).from(games).where(eq(games.shortCode, shortCode));
   const [gameRows, seatRows] = await db.batch([
     db.select().from(games).where(eq(games.shortCode, shortCode)),
-    db.select({ player_index: participants.playerIndex, user_id: participants.userId, bot_id: participants.botId, type: participants.type }).from(participants).where(inArray(participants.gameId, idForCode)).orderBy(participants.playerIndex),
+    db.select({ playerIndex: participants.playerIndex, userId: participants.userId, botId: participants.botId, type: participants.type }).from(participants).where(inArray(participants.gameId, idForCode)).orderBy(participants.playerIndex),
   ]);
   const row = gameRows[0];
   if (row === undefined) return undefined;
@@ -180,8 +180,8 @@ export async function readLobby(d1: D1Database, limit: number, cursor: number | 
 
 /** "My games" through the participants index (THE access path for
  * games-of-user). `active` = anything still alive; `finished` = the history
- * list, newest finish first (aborted rows carry no finished_at — they sort by
- * updated_at). */
+ * list, newest finish first (aborted rows carry no finishedAt — they sort by
+ * updatedAt). */
 export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const db = orm(d1);
   const statuses: GameRow["status"][] = bucket === "active" ? ["waiting", "ready", "active"] : ["finished", "aborted"];

@@ -8,12 +8,12 @@ part of 'friend_target.dart';
 
 FriendTarget _$FriendTargetFromJson(Map<String, dynamic> json) =>
     $checkedCreate('FriendTarget', json, ($checkedConvert) {
-      $checkKeys(json, requiredKeys: const ['target_user_id']);
+      $checkKeys(json, requiredKeys: const ['targetUserId']);
       final val = FriendTarget(
-        targetUserId: $checkedConvert('target_user_id', (v) => v as String),
+        targetUserId: $checkedConvert('targetUserId', (v) => v as String),
       );
       return val;
-    }, fieldKeyMap: const {'targetUserId': 'target_user_id'});
+    });
 
 Map<String, dynamic> _$FriendTargetToJson(FriendTarget instance) =>
-    <String, dynamic>{'target_user_id': instance.targetUserId};
+    <String, dynamic>{'targetUserId': instance.targetUserId};

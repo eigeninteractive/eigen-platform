@@ -46,8 +46,8 @@ async function seedTwoSeatGame(): Promise<{ gameId: string; shortCode: string; a
     maxPlayers: 2,
     shortCode,
     seats: [
-      { player_index: 0, user_id: a, bot_id: null, type: "human" },
-      { player_index: 1, user_id: b, bot_id: null, type: "human" },
+      { playerIndex: 0, userId: a, botId: null, type: "human" },
+      { playerIndex: 1, userId: b, botId: null, type: "human" },
     ],
     now,
   });
@@ -60,10 +60,10 @@ describe("single-game readers", () => {
     const game = await readGameByCode(env.DB, shortCode);
     expect(game?.id).toBe(gameId);
     // The subquery must resolve this game's seats — not none, not another
-    // game's. Both seats, in player_index order.
+    // game's. Both seats, in playerIndex order.
     expect(game?.participants).toEqual([
-      { player_index: 0, user_id: a, bot_id: null, type: "human" },
-      { player_index: 1, user_id: b, bot_id: null, type: "human" },
+      { playerIndex: 0, userId: a, botId: null, type: "human" },
+      { playerIndex: 1, userId: b, botId: null, type: "human" },
     ]);
   });
 
@@ -72,8 +72,8 @@ describe("single-game readers", () => {
     const game = await readGame(env.DB, gameId);
     expect(game?.id).toBe(gameId);
     expect(game?.participants).toEqual([
-      { player_index: 0, user_id: a, bot_id: null, type: "human" },
-      { player_index: 1, user_id: b, bot_id: null, type: "human" },
+      { playerIndex: 0, userId: a, botId: null, type: "human" },
+      { playerIndex: 1, userId: b, botId: null, type: "human" },
     ]);
   });
 

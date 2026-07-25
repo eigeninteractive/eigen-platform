@@ -164,7 +164,7 @@ place a `public/` file that shadows one of them.
 A single action shows how the pieces interact:
 
 ```
-client ──POST /api/engine/games/{id}/action { seat, expected_version, data }──►
+client ──POST /api/engine/games/{id}/action { seat, expectedVersion, data }──►
   Worker: verify Firebase token → provision/load user row → build a Command
           (a pre-authenticated value) → call the game's DO stub
     DO (input gate held):
@@ -202,16 +202,16 @@ commit({ game, state, roster, intent, now, rules, staleViews }) →
 ```
 
 - **`intent`** is one of `start` (seed a new game), `action` (a player/bot
-  move), or `lifecycle` (`timeout` / `forfeit` / `auto_forfeit`).
-- **`rules`** is the game's `GameRules` unit for this game's `schema_version`.
+  move), or `lifecycle` (`timeout` / `forfeit` / `autoForfeit`).
+- **`rules`** is the game's `GameRules` unit for this game's `schemaVersion`.
   The kernel invokes the game's hooks but owns everything around them.
 - A **`CommitPlan`** carries: the next `StateRow` (version, opaque state,
   pending set, deadline, per-player clocks), the per-seat projected
   `frames`, the `action` to log, any `outcomes` (if the game ended), the
-  `alarm` time to arm, and named **effects** (`wake_bot`, `notify_turn`,
-  `notify_finished`) for the runtime to deliver post-commit.
+  `alarm` time to arm, and named **effects** (`wakeBot`, `notifyTurn`,
+  `notifyFinished`) for the runtime to deliver post-commit.
 - A **`Rejected`** is a value, not an exception: a stable `code`
-  (`illegal_move`, `not_participant`, `board_updated`, …) plus a message. The
+  (`illegalMove`, `notParticipant`, `board_updated`, …) plus a message. The
   DO returns it; the Worker maps it to an HTTP status.
 
 The kernel owns four things worth calling out:
@@ -227,7 +227,7 @@ The kernel owns four things worth calling out:
   layer, §8; only the math is here.)
 
 Version dispatch never happens *inside* game logic. The engine resolves the
-game's `schema_version` to a `GameRules` unit once, up front, and every hook it
+game's `schemaVersion` to a `GameRules` unit once, up front, and every hook it
 calls is already the right version. A game author never writes `if (version ===
 …)`.
 
@@ -264,7 +264,7 @@ D1 write; §5.3 of the lifecycle). The DO is created lazily on first contact
 `blockConcurrencyWhile`, and copies them into `meta` + `roster`. From then on the
 DO owns `status` and `rng_seed`; D1's copy becomes a display read-model updated
 from DO effects. If no game row exists in D1, first contact resolves to a clean
-`unknown_game`.
+`unknownGame`.
 
 ### 5.3 The command pipeline & idempotency
 
@@ -304,7 +304,7 @@ gap by a simple version-range fetch and lets replay walk the log linearly.
 directly, because the DO does not exist yet. The Worker runs all creation policy
 (guest gates, config parse against the version schema, the `ratingPool`
 decision, and validation of the client's concrete `rated` assertion), generates
-a unique `short_code` (a readable 6-char code with a retry loop on the UNIQUE
+a unique `shortCode` (a readable 6-char code with a retry loop on the UNIQUE
 index), and writes the games + participants rows with the creator in seat 0.
 The DO is not touched; it will lazy-init on first command or socket.
 
@@ -320,7 +320,7 @@ minting (guest-vs-rated, friends-access, schema gate — no D1 reads inside the
 gate) and integrity enforced in the DO (status, seat occupancy, creator-only
 rules). Highlights:
 
-- **Join** by id or by short_code. Creating with `min_players` already satisfied
+- **Join** by id or by shortCode. Creating with `minPlayers` already satisfied
   makes a game `ready`; otherwise `waiting`.
 - **Leave** compacts seat indexes (safe pre-start, since no transition references
   a seat yet). The creator cannot leave — they cancel.
@@ -345,7 +345,7 @@ opening v0 frame so the client can render immediately. Guests may play bots
 ### 6.3 Active play
 
 A move is `POST /api/engine/games/{id}/action` carrying the caller's own `seat`,
-the `expected_version` it computed against, and the game-defined `data`. The DO
+the `expectedVersion` it computed against, and the game-defined `data`. The DO
 verifies the seat belongs to the caller against its authoritative roster (a seat
 you don't hold is a clean 403), runs the kernel, and — on accept — commits the
 next version and rides the caller's own projected frame back on the response.
@@ -389,13 +389,13 @@ creator gate, works even on a never-initialized DO).
 Timing is server-authoritative and lives in the kernel. A game is created in
 exactly one timing mode:
 
-- **Turn**: a fixed budget per move (`turn_seconds`).
-- **Budget** (chess-clock): a per-player bank (`budget_seconds`) with an optional
-  Fischer `increment_seconds` added after each move.
+- **Turn**: a fixed budget per move (`turnSeconds`).
+- **Budget** (chess-clock): a per-player bank (`budgetSeconds`) with an optional
+  Fischer `incrementSeconds` added after each move.
 - **Untimed**: no clock at all.
 
 (Turn and budget are mutually exclusive; increment requires budget.) A hook may
-also override the deadline for a single action via the envelope's `turn_seconds`,
+also override the deadline for a single action via the envelope's `turnSeconds`,
 without touching any player's bank.
 
 ### The deadline computation
@@ -405,13 +405,13 @@ After every transition the kernel computes the next `deadline` and
 milliseconds — the kernel never reads a clock):
 
 1. **Game over** → both `null` (no deadline).
-2. **Hook per-action override** (`envelope.turn_seconds = N`) → `now + N·1000`,
+2. **Hook per-action override** (`envelope.turnSeconds = N`) → `now + N·1000`,
    banks untouched.
 3. **Budget mode** → `now + min(remaining bank over the new pending seats)`. A
    budget-timed game allows at most one pending seat (enforced upstream), so this
    min is normally just that seat's bank; the min is a safe degradation if a
    multi-pending state ever arrives.
-4. **Per-turn mode** → `now + turn_seconds·1000`.
+4. **Per-turn mode** → `now + turnSeconds·1000`.
 5. **Untimed** → both `null`.
 
 In budget mode the acting seat's bank is charged on each move:
@@ -585,7 +585,7 @@ pair in canonical order (`user_id_1 < user_id_2`) with a `status`
 shared row encodes the relationship and the direction of a request or block is
 recovered from `initiated_by`.
 
-- **Requests.** `POST /friends/requests {target_user_id}` inserts a `pending`
+- **Requests.** `POST /friends/requests {targetUserId}` inserts a `pending`
   row — unless the target already has a pending request out to the caller, in
   which case it **auto-accepts** (sending back is accepting). `accept`
   transitions the request the *other* party initiated. `DELETE /friends/{id}`
@@ -603,7 +603,7 @@ recovered from `initiated_by`.
   caller's accepted friends — the lobby that makes `friends`-access games
   reachable.
 
-Friend-event pushes (`friend_request`, `friend_accepted`) fire from the route
+Friend-event pushes (`friendRequest`, `friendAccepted`) fire from the route
 through the shared FCM path when a service account is configured. Because these
 run in a **stateless Worker** (not the always-alive DO), they ride
 `executionCtx.waitUntil` so a slow FCM call never delays the response — the one
@@ -645,7 +645,7 @@ HMAC over the exact message body, using a **per-bot key derived from one engine
 secret**:
 
 ```
-derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, bot_id)
+derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, botId)
 signature  = "v1," + base64(HMAC-SHA256(derivedKey, "<domain>:<message>"))
 ```
 
@@ -667,7 +667,7 @@ const key = await deriveBotKey(BOT_SIGNING_SECRET, botId); // base64
 or, with no code at all:
 
 ```bash
-echo -n "<bot_id>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
+echo -n "<botId>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
 ```
 
 That key is a **credential** — it authenticates that bot to the engine for as
@@ -695,8 +695,8 @@ path is skipped.
   reassigns a device) and deregister on sign-out via `DELETE
   /api/engine/me/devices/{fid}` (scoped to the caller). Without a registration,
   a user has no targets and simply receives nothing.
-- **Delivery**: on a turn/finish transition the kernel emits `notify_turn` /
-  `notify_finished` effects; the DO delivers them post-commit, single-attempt.
+- **Delivery**: on a turn/finish transition the kernel emits `notifyTurn` /
+  `notifyFinished` effects; the DO delivers them post-commit, single-attempt.
   A send that reports a permanently dead installation prunes that row; transient
   failures are left for the next send. There is no retry machinery — the game
   state is the truth and the app catches up on open.
@@ -821,7 +821,7 @@ authorization explicitly in application code, which keeps every check in view.
   only by their own `/me`.
 - **Game visibility is a capability model.** A game id is an unguessable UUID; a
   private game is unlisted (never in the lobby) and joinable only by someone who
-  holds its id or short_code. Reading a game summary requires the id, and the
+  holds its id or shortCode. Reading a game summary requires the id, and the
   sensitive part — the game *state* (frames) — is separately gated: only a
   participant, or anyone for a *finished public* game, may fetch frames.
 - **Seat ownership is enforced at the DO** against its authoritative roster, so a
@@ -1004,7 +1004,7 @@ VALUES (lower(hex(randomblob(16))), 'hard_ai', 'Hard AI', 'external', 1,
 `type` is CHECK-enforced against the transport it implies (an `external` bot
 must carry a `webhook_url`; an `engine` bot must not). `schema_version` is the
 highest game schema the bot supports — seating refuses a bot below the game's
-version, mirroring the human join gate. `rated_eligible` is required for a rated
+version, mirroring the human join gate. `ratedEligible` is required for a rated
 game. `config` is **public read-only reference data** consumed by the
 `botSeatable` hook and the client's pickers — never put a secret in it.
 
@@ -1155,11 +1155,11 @@ rejection converted to one) rendered by the app-level error handler.
 
 | Status | Meaning | Representative `code`s |
 |---|---|---|
-| 400 | Client mistake | `invalid_payload`, `illegal_move` |
+| 400 | Client mistake | `invalidPayload`, `illegalMove` |
 | 401 | Missing/invalid token | — |
-| 403 | Ownership/permission refusal | `not_creator`, `not_participant` |
-| 404 | No such game/user | `unknown_game` |
-| 409 | State conflict — resync and retry | `state_updated`, `not_active`, `not_ready`, `expired`, `not_pending`, `game_full`, `already_joined`, `not_joinable`, `creator_cannot_leave`, `schema_unsupported` |
+| 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
+| 404 | No such game/user | `unknownGame` |
+| 409 | State conflict — resync and retry | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported` |
 | 413 / 415 | Avatar too big / wrong type | — |
 | 422 | Assertion mismatch (e.g. `rated`) | — |
 | 500 | Server fault (game-hook bug, storage) | — |

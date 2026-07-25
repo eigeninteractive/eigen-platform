@@ -1,6 +1,6 @@
 /**
  * The RPS {@link GameModule}: the {@link GameRules} units keyed by
- * `schema_version` — exactly the versions this build ships.
+ * `schemaVersion` — exactly the versions this build ships.
  */
 
 import type { GameModule } from "@eigeninteractive/rules";

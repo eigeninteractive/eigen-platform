@@ -17,7 +17,7 @@ class DisplayNameUpdate {
   /// Returns a new [DisplayNameUpdate] instance.
   DisplayNameUpdate({required this.displayName});
 
-  @JsonKey(name: r'display_name', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
   @override

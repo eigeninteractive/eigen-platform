@@ -51,7 +51,7 @@ export function parseClientPayload<T>(schema: StandardSchemaV1<unknown, T>, valu
 export function parseStoredPayload<T>(schema: StandardSchemaV1<unknown, T>, value: unknown, what: string, schemaVersion: number): T {
   const result = validateSync(schema, value);
   if (result.issues) {
-    throw new GameBugError(`Stored ${what} failed validation for schema_version ` + `${schemaVersion}: ${issueSummary(result.issues)}`);
+    throw new GameBugError(`Stored ${what} failed validation for schemaVersion ` + `${schemaVersion}: ${issueSummary(result.issues)}`);
   }
   return result.value;
 }

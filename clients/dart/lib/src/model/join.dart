@@ -17,10 +17,10 @@ class Join {
   /// Returns a new [Join] instance.
   Join({required this.clientSchemaVersion, this.commandId});
 
-  @JsonKey(name: r'client_schema_version', required: true, includeIfNull: false)
+  @JsonKey(name: r'clientSchemaVersion', required: true, includeIfNull: false)
   final int clientSchemaVersion;
 
-  @JsonKey(name: r'command_id', required: false, includeIfNull: false)
+  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
   final String? commandId;
 
   @override

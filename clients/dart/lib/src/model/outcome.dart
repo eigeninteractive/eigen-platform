@@ -27,7 +27,7 @@ class Outcome {
     this.score,
   });
 
-  @JsonKey(name: r'player_index', required: true, includeIfNull: false)
+  @JsonKey(name: r'playerIndex', required: true, includeIfNull: false)
   final int playerIndex;
 
   @JsonKey(name: r'result', required: true, includeIfNull: false)
@@ -36,7 +36,7 @@ class Outcome {
   @JsonKey(name: r'placement', required: true, includeIfNull: false)
   final int placement;
 
-  @JsonKey(name: r'team_index', required: true, includeIfNull: false)
+  @JsonKey(name: r'teamIndex', required: true, includeIfNull: false)
   final int teamIndex;
 
   @JsonKey(name: r'score', required: false, includeIfNull: false)

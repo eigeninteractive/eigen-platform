@@ -73,7 +73,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const game = await readGame(ctx.d1(c.env), c.req.valid("param").gameId);
-      if (game === undefined) throw new HttpError(404, "Unknown game", "unknown_game");
+      if (game === undefined) throw new HttpError(404, "Unknown game", "unknownGame");
       return c.json(gameSummaryOf(game), 200);
     },
   );
@@ -111,10 +111,10 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
           bots: bots.map((b) => ({
             id: b.id,
             username: b.username,
-            display_name: b.displayName,
-            avatar_url: b.avatarUrl,
-            schema_version: b.schemaVersion,
-            rated_eligible: b.ratedEligible,
+            displayName: b.displayName,
+            avatarUrl: b.avatarUrl,
+            schemaVersion: b.schemaVersion,
+            ratedEligible: b.ratedEligible,
             config: b.config,
           })),
         },
@@ -133,11 +133,11 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const user = c.var.auth.user;
-      return c.json({ ...playerOf(user), email: user.email, created_at: user.createdAt }, 200);
+      return c.json({ ...playerOf(user), email: user.email, createdAt: user.createdAt }, 200);
     },
   );
 
-  const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), display_rating: z.number().int(), updated_at: z.number().int() }).openapi("Rating");
+  const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), displayRating: z.number().int(), updatedAt: z.number().int() }).openapi("Rating");
   app.openapi(
     createRoute({
       method: "get",
@@ -148,7 +148,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.var.auth.user.id);
-      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, display_rating: r.displayRating, updated_at: r.updatedAt })) }, 200);
+      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, displayRating: r.displayRating, updatedAt: r.updatedAt })) }, 200);
     },
   );
 
@@ -188,18 +188,18 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.req.valid("param").playerId);
-      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, display_rating: r.displayRating, updated_at: r.updatedAt })) }, 200);
+      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, displayRating: r.displayRating, updatedAt: r.updatedAt })) }, 200);
     },
   );
 
   const historyShape = z
     .object({
-      game_id: z.string(),
+      gameId: z.string(),
       pool: z.string(),
-      display_before: z.number().int(),
-      display_after: z.number().int(),
-      display_change: z.number().int(),
-      created_at: z.number().int(),
+      displayBefore: z.number().int(),
+      displayAfter: z.number().int(),
+      displayChange: z.number().int(),
+      createdAt: z.number().int(),
     })
     .openapi("RatingHistoryEntry");
   app.openapi(
@@ -217,12 +217,12 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       return c.json(
         {
           history: rows.map((r) => ({
-            game_id: r.gameId,
+            gameId: r.gameId,
             pool: r.pool,
-            display_before: r.displayBefore,
-            display_after: r.displayAfter,
-            display_change: r.displayChange,
-            created_at: r.createdAt,
+            displayBefore: r.displayBefore,
+            displayAfter: r.displayAfter,
+            displayChange: r.displayChange,
+            createdAt: r.createdAt,
           })),
         },
         200,

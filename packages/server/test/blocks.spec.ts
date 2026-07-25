@@ -5,7 +5,7 @@
  * blocker and the blocked are affected the same way — and reversible by
  * unblocking.
  *
- * The seating refusal answers `unknown_game` on purpose: the lobby already
+ * The seating refusal answers `unknownGame` on purpose: the lobby already
  * hides the game from the pair, so a direct attempt sees the same "no such
  * game" a genuine miss would, and never learns a block exists.
  */
@@ -35,11 +35,11 @@ async function user(tag: string): Promise<TestTokenOptions> {
   return opts;
 }
 
-const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false };
+const createBody = { access: "public" as const, schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false };
 
 interface Created {
-  game_id: string;
-  short_code: string;
+  gameId: string;
+  shortCode: string;
 }
 
 async function createGame(host: TestTokenOptions): Promise<Created> {
@@ -63,19 +63,19 @@ describe("blocking — lobby visibility", () => {
     const game = await createGame(a);
 
     // Visible to everyone before any block.
-    expect(await lobbyIds(b)).toContain(game.game_id);
+    expect(await lobbyIds(b)).toContain(game.gameId);
 
     await block(a, b); // A is the blocker; the effect is symmetric.
 
     // Hidden from B (blocked with the creator A); still visible to the
     // uninvolved C; A still sees their own game (not blocked with themselves).
-    expect(await lobbyIds(b)).not.toContain(game.game_id);
-    expect(await lobbyIds(c)).toContain(game.game_id);
-    expect(await lobbyIds(a)).toContain(game.game_id);
+    expect(await lobbyIds(b)).not.toContain(game.gameId);
+    expect(await lobbyIds(c)).toContain(game.gameId);
+    expect(await lobbyIds(a)).toContain(game.gameId);
 
     // Unblock restores visibility.
     expect((await api(a, "DELETE", `/friends/${b.uid}/block`)).status).toBe(204);
-    expect(await lobbyIds(b)).toContain(game.game_id);
+    expect(await lobbyIds(b)).toContain(game.gameId);
   });
 
   it("hides regardless of who initiated the block", async () => {
@@ -84,24 +84,24 @@ describe("blocking — lobby visibility", () => {
     const game = await createGame(a);
     await block(b, a); // B blocks A this time.
     // B still cannot see A's game — the effect does not depend on direction.
-    expect(await lobbyIds(b)).not.toContain(game.game_id);
+    expect(await lobbyIds(b)).not.toContain(game.gameId);
   });
 });
 
 describe("blocking — the seating boundary", () => {
-  it("refuses a blocked user joining the game as unknown_game (by id and by code)", async () => {
+  it("refuses a blocked user joining the game as unknownGame (by id and by code)", async () => {
     const a = await user("a");
     const b = await user("b");
     const game = await createGame(a);
     await block(a, b);
 
-    const byId = await api(b, "POST", `/games/${game.game_id}/join`, { client_schema_version: 1 });
+    const byId = await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 });
     expect(byId.status).toBe(404);
-    expect(((await byId.json()) as { code: string }).code).toBe("unknown_game");
+    expect(((await byId.json()) as { code: string }).code).toBe("unknownGame");
 
-    const byCode = await api(b, "POST", "/games/join-by-code", { short_code: game.short_code, client_schema_version: 1 });
+    const byCode = await api(b, "POST", "/games/join-by-code", { shortCode: game.shortCode, clientSchemaVersion: 1 });
     expect(byCode.status).toBe(404);
-    expect(((await byCode.json()) as { code: string }).code).toBe("unknown_game");
+    expect(((await byCode.json()) as { code: string }).code).toBe("unknownGame");
   });
 
   it("refuses in the other direction too — the blocker cannot join the blocked user's game", async () => {
@@ -109,7 +109,7 @@ describe("blocking — the seating boundary", () => {
     const b = await user("b");
     const game = await createGame(b); // B hosts.
     await block(a, b); // A blocks B, then A tries to join B's game.
-    expect((await api(a, "POST", `/games/${game.game_id}/join`, { client_schema_version: 1 })).status).toBe(404);
+    expect((await api(a, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 })).status).toBe(404);
   });
 
   it("lets an unblocked third party join normally", async () => {
@@ -119,7 +119,7 @@ describe("blocking — the seating boundary", () => {
     const game = await createGame(a);
     await block(a, b);
     // C is blocked with nobody: the seat is open to them.
-    const joined = await json<{ roster: { players: unknown[] } }>(await api(c, "POST", `/games/${game.game_id}/join`, { client_schema_version: 1 }));
+    const joined = await json<{ roster: { players: unknown[] } }>(await api(c, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 }));
     expect(joined.roster.players.length).toBe(2);
   });
 });
@@ -131,20 +131,20 @@ describe("blocking — friends' open games", () => {
     const b = await user("b"); // will be blocked by A, and joins C's game
 
     // A and C become friends.
-    await api(a, "POST", "/friends/requests", { target_user_id: c.uid });
+    await api(a, "POST", "/friends/requests", { targetUserId: c.uid });
     expect((await api(c, "POST", `/friends/requests/${a.uid}/accept`)).status).toBe(204);
 
     const game = await createGame(c);
     // Before anyone is blocked, C's game shows in A's friends' games.
     const before = await json<{ games: { id: string }[] }>(await api(a, "GET", "/friends/games"));
-    expect(before.games.map((g) => g.id)).toContain(game.game_id);
+    expect(before.games.map((g) => g.id)).toContain(game.gameId);
 
     // B joins C's game (B and C are not blocked), then A blocks B.
-    expect((await api(b, "POST", `/games/${game.game_id}/join`, { client_schema_version: 1 })).status).toBe(200);
+    expect((await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 })).status).toBe(200);
     await block(a, b);
 
     // Now the game seats someone A blocked, so it drops out of A's friends' games.
     const after = await json<{ games: { id: string }[] }>(await api(a, "GET", "/friends/games"));
-    expect(after.games.map((g) => g.id)).not.toContain(game.game_id);
+    expect(after.games.map((g) => g.id)).not.toContain(game.gameId);
   });
 });

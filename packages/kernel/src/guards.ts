@@ -24,8 +24,8 @@ export function assertHookState(schemas: GameSchemas, envelope: Envelope, schema
  * remains the graceful-degradation safeguard should such a state ever be
  * reached. No-op when the game has no budget clock. */
 export function assertBudgetPending(budgetSeconds: number | null, envelope: Envelope, schemaVersion: number): void {
-  if (budgetSeconds !== null && envelope.pending_players.length > 1) {
-    throw new GameBugError(`Hook returned ${envelope.pending_players.length} pending players in a budget-timed game (schema_version ${schemaVersion}); budget mode allows at most one pending seat`);
+  if (budgetSeconds !== null && envelope.pendingPlayers.length > 1) {
+    throw new GameBugError(`Hook returned ${envelope.pendingPlayers.length} pending players in a budget-timed game (schemaVersion ${schemaVersion}); budget mode allows at most one pending seat`);
   }
 }
 
@@ -34,8 +34,8 @@ export function assertBudgetPending(budgetSeconds: number | null, envelope: Enve
  * account-deletion purge would turn that seat into a ghost — no identity, yet
  * still holding a deadline the timeout alarm fires at forever. */
 export function assertForfeitPending(targetSeat: number, envelope: Envelope, schemaVersion: number): void {
-  if (envelope.pending_players.includes(targetSeat)) {
-    throw new GameBugError(`Forfeit hook left the forfeited seat ${targetSeat} in the pending set (schema_version ${schemaVersion}); a forfeit must remove its target seat from pending`);
+  if (envelope.pendingPlayers.includes(targetSeat)) {
+    throw new GameBugError(`Forfeit hook left the forfeited seat ${targetSeat} in the pending set (schemaVersion ${schemaVersion}); a forfeit must remove its target seat from pending`);
   }
 }
 
@@ -47,17 +47,17 @@ export function assertForfeitPending(targetSeat: number, envelope: Envelope, sch
  * catches any later hook resurrecting the seat. */
 export function assertPendingIdentified(
   roster: readonly {
-    player_index: number;
-    user_id: string | null;
-    bot_id: string | null;
+    playerIndex: number;
+    userId: string | null;
+    botId: string | null;
   }[],
   envelope: Envelope,
   schemaVersion: number,
 ): void {
-  const identified = new Set(roster.filter((s) => s.user_id !== null || s.bot_id !== null).map((s) => s.player_index));
-  const ghost = envelope.pending_players.find((seat) => !identified.has(seat));
+  const identified = new Set(roster.filter((s) => s.userId !== null || s.botId !== null).map((s) => s.playerIndex));
+  const ghost = envelope.pendingPlayers.find((seat) => !identified.has(seat));
   if (ghost !== undefined) {
-    throw new GameBugError(`Hook returned pending seat ${ghost}, which has no identity (schema_version ${schemaVersion}); a purged seat can never act and must not be pending`);
+    throw new GameBugError(`Hook returned pending seat ${ghost}, which has no identity (schemaVersion ${schemaVersion}); a purged seat can never act and must not be pending`);
   }
 }
 
@@ -85,7 +85,7 @@ export function canonicalJson(value: Json | undefined): string {
  * runs on (and what the DO persists per transition as `frames[]`). */
 export interface SeatView {
   data: JsonObject;
-  pending_players: number[];
+  pendingPlayers: number[];
 }
 
 /** The same-view rule: a stale-`expectedVersion` action is accepted
@@ -98,5 +98,5 @@ export interface SeatView {
  * implicitly through `computeObservation`: reveal an event and it invalidates
  * pending stale submissions; hide it and they survive. */
 export function sameView(a: SeatView, b: SeatView): boolean {
-  return canonicalJson(a.data) === canonicalJson(b.data) && canonicalJson(a.pending_players) === canonicalJson(b.pending_players);
+  return canonicalJson(a.data) === canonicalJson(b.data) && canonicalJson(a.pendingPlayers) === canonicalJson(b.pendingPlayers);
 }

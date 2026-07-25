@@ -7,7 +7,7 @@ import { asyncSchema, schemaOf, turnRules } from "./helpers.js";
 
 const envelope = (pending: number[]): Envelope => ({
   state: { count: 1 },
-  pending_players: pending,
+  pendingPlayers: pending,
 });
 
 describe("canonicalJson", () => {
@@ -30,15 +30,15 @@ describe("canonicalJson", () => {
 
 describe("sameView", () => {
   it("matches structurally equal views regardless of construction order", () => {
-    expect(sameView({ data: { board: [1, 2], you: 0 }, pending_players: [0] }, { data: { you: 0, board: [1, 2] }, pending_players: [0] })).toBe(true);
+    expect(sameView({ data: { board: [1, 2], you: 0 }, pendingPlayers: [0] }, { data: { you: 0, board: [1, 2] }, pendingPlayers: [0] })).toBe(true);
   });
 
   it("differs when the data changed", () => {
-    expect(sameView({ data: { board: [1, 2] }, pending_players: [0] }, { data: { board: [1, 3] }, pending_players: [0] })).toBe(false);
+    expect(sameView({ data: { board: [1, 2] }, pendingPlayers: [0] }, { data: { board: [1, 3] }, pendingPlayers: [0] })).toBe(false);
   });
 
   it("differs when the observed pending set changed", () => {
-    expect(sameView({ data: { board: [1] }, pending_players: [0, 1] }, { data: { board: [1] }, pending_players: [0] })).toBe(false);
+    expect(sameView({ data: { board: [1] }, pendingPlayers: [0, 1] }, { data: { board: [1] }, pendingPlayers: [0] })).toBe(false);
   });
 });
 
@@ -48,7 +48,7 @@ describe("hook guards", () => {
   });
 
   it("assertHookState throws on a malformed state", () => {
-    const bad: Envelope = { state: { nope: true }, pending_players: [0] };
+    const bad: Envelope = { state: { nope: true }, pendingPlayers: [0] };
     expect(() => assertHookState(turnRules.schemas, bad, 1)).toThrow(GameBugError);
   });
 
@@ -65,8 +65,8 @@ describe("hook guards", () => {
 
   it("assertPendingIdentified rejects a pending seat with no identity", () => {
     const roster = [
-      { player_index: 0, user_id: "u", bot_id: null },
-      { player_index: 1, user_id: null, bot_id: null }, // purged
+      { playerIndex: 0, userId: "u", botId: null },
+      { playerIndex: 1, userId: null, botId: null }, // purged
     ];
     expect(() => assertPendingIdentified(roster, envelope([1]), 1)).toThrow(GameBugError);
     expect(() => assertPendingIdentified(roster, envelope([0]), 1)).not.toThrow();
@@ -92,7 +92,7 @@ describe("schema boundary", () => {
         "state",
         3,
       ),
-    ).toThrow(/schema_version 3/);
+    ).toThrow(/schemaVersion 3/);
   });
 
   it("rejects an async schema as a game bug", () => {

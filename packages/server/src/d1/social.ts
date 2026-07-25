@@ -101,11 +101,11 @@ export async function unblockUser(d1: D1Database, caller: string, target: string
 /** The other user's public identity — the shared core of a friend and a
  * pending-request entry. */
 interface IdentityFields {
-  user_id: string;
+  userId: string;
   username: string;
-  display_name: string;
-  avatar_url: string | null;
-  is_anonymous: boolean;
+  displayName: string;
+  avatarUrl: string | null;
+  isAnonymous: boolean;
 }
 
 /** One accepted friend. */
@@ -120,7 +120,7 @@ export type FriendRequestEntry = FriendEntry & { direction: "incoming" | "outgoi
 async function resolveIdentities(d1: D1Database, ids: string[]): Promise<Map<string, IdentityFields>> {
   if (ids.length === 0) return new Map();
   const people = await orm(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
-  return new Map(people.map((p) => [p.id, { user_id: p.id, username: p.username, display_name: p.displayName, avatar_url: p.avatarUrl, is_anonymous: p.isAnonymous }]));
+  return new Map(people.map((p) => [p.id, { userId: p.id, username: p.username, displayName: p.displayName, avatarUrl: p.avatarUrl, isAnonymous: p.isAnonymous }]));
 }
 
 /** The caller's accepted friends, newest first. */
@@ -190,7 +190,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
     .orderBy(sql`CASE WHEN ${users.username} = ${cleaned} THEN 0 WHEN ${users.username} LIKE ${`${cleaned}%`} THEN 1 ELSE 2 END`, users.username)
     .limit(limit)
     .all();
-  return rows.map((p) => ({ user_id: p.id, username: p.username, display_name: p.displayName, avatar_url: p.avatarUrl, is_anonymous: p.isAnonymous }));
+  return rows.map((p) => ({ userId: p.id, username: p.username, displayName: p.displayName, avatarUrl: p.avatarUrl, isAnonymous: p.isAnonymous }));
 }
 
 /** Joinable games created by the caller's accepted friends — the "friends'

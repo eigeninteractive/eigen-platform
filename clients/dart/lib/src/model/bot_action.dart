@@ -27,14 +27,14 @@ class BotAction {
     this.data,
   });
 
-  @JsonKey(name: r'bot_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'botId', required: true, includeIfNull: false)
   final String botId;
 
-  @JsonKey(name: r'game_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
   final String gameId;
 
   // minimum: 0
-  @JsonKey(name: r'player_index', required: true, includeIfNull: false)
+  @JsonKey(name: r'playerIndex', required: true, includeIfNull: false)
   final int playerIndex;
 
   // minimum: 0

@@ -9,9 +9,9 @@ import { GameBugError } from "./errors.js";
 /** One seat's projected frame, tagged with its seat. The host stamps
  * version/timing when it persists and fans these out. */
 export interface ObservationFrame {
-  player_index: number;
+  playerIndex: number;
   data: JsonObject;
-  pending_players: number[];
+  pendingPlayers: number[];
 }
 
 /** Project the new state into one slice per seat — the eager fan-out the host
@@ -38,13 +38,13 @@ export function fanOutObservations(rules: GameRules, args: Omit<ComputeObservati
     // seat's input and turn display, while the commit enforces the
     // authoritative set — a lie here soft-locks the client or produces taps
     // that always reject. Caught at the source, like assertHookState.
-    if (slice.pending_players.includes(seat) !== args.pending.includes(seat)) {
+    if (slice.pendingPlayers.includes(seat) !== args.pending.includes(seat)) {
       throw new GameBugError(`computeObservation for seat ${seat} misreports the seat's own pending status`);
     }
     frames.push({
-      player_index: seat,
+      playerIndex: seat,
       data: slice.data,
-      pending_players: slice.pending_players,
+      pendingPlayers: slice.pendingPlayers,
     });
   }
   return frames;

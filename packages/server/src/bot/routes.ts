@@ -32,9 +32,9 @@ import { verifyBotSignature } from "./bot-auth.js";
  * trusted only after the `Eigen-Signature` HMAC over the exact bytes verifies. */
 const botActionBody = z
   .object({
-    bot_id: z.string().min(1),
-    game_id: z.string().min(1),
-    player_index: z.number().int().min(0),
+    botId: z.string().min(1),
+    gameId: z.string().min(1),
+    playerIndex: z.number().int().min(0),
     version: z.number().int().min(0),
     data: z.unknown(),
   })
@@ -69,7 +69,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       // trusting the claim (constant-time). A bad signature is a flat 401 —
       // no oracle about which field was wrong.
       const raw = await c.req.text();
-      if (!(await verifyBotSignature(secret, claim.bot_id, "action", raw, signature))) {
+      if (!(await verifyBotSignature(secret, claim.botId, "action", raw, signature))) {
         throw new HttpError(401, "Invalid signature");
       }
 
@@ -78,14 +78,14 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       // Deterministic commandId so a bot's retry of the same turn dedupes.
       const cmd: Command = {
         kind: "action",
-        gameId: claim.game_id,
-        commandId: `botaction:${claim.bot_id}:${claim.game_id}:v${claim.version}:seat${claim.player_index}`,
-        actor: { userId: null, botId: claim.bot_id },
-        seat: claim.player_index,
+        gameId: claim.gameId,
+        commandId: `botaction:${claim.botId}:${claim.gameId}:v${claim.version}:seat${claim.playerIndex}`,
+        actor: { userId: null, botId: claim.botId },
+        seat: claim.playerIndex,
         expectedVersion: claim.version,
         data: claim.data,
       };
-      unwrap(await ctx.stub(c.env, claim.game_id).handle(cmd));
+      unwrap(await ctx.stub(c.env, claim.gameId).handle(cmd));
       return c.body(null, 204);
     },
   );

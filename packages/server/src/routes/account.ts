@@ -51,13 +51,13 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const username = c.req.valid("json").username.toLowerCase();
       if (!USERNAME_RE.test(username)) {
-        throw new HttpError(400, "A username is 3–20 characters of lowercase letters, digits, '_' or '.'", "username_invalid");
+        throw new HttpError(400, "A username is 3–20 characters of lowercase letters, digits, '_' or '.'", "usernameInvalid");
       }
       const userId = c.var.auth.user.id;
       try {
         await orm(ctx.d1(c.env)).update(users).set({ username, updatedAt: Date.now() }).where(eq(users.id, userId));
       } catch (error) {
-        if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken", "username_taken");
+        if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken", "usernameTaken");
         throw error;
       }
       return c.json({ username }, 200);
@@ -76,15 +76,15 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       tags: ["Me"],
       request: { body: { content: { "application/json": { schema: displayNameBody } }, required: true } },
       responses: {
-        200: { content: { "application/json": { schema: z.object({ display_name: z.string() }).openapi("DisplayNameUpdated") } }, description: "The new display name" },
+        200: { content: { "application/json": { schema: z.object({ displayName: z.string() }).openapi("DisplayNameUpdated") } }, description: "The new display name" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Invalid display name" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
       },
     }),
     async (c) => {
-      const displayName = c.req.valid("json").display_name.trim();
+      const displayName = c.req.valid("json").displayName.trim();
       await orm(ctx.d1(c.env)).update(users).set({ displayName, updatedAt: Date.now() }).where(eq(users.id, c.var.auth.user.id));
-      return c.json({ display_name: displayName }, 200);
+      return c.json({ displayName: displayName }, 200);
     },
   );
 

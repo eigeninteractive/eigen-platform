@@ -33,7 +33,7 @@ async function json<T>(res: Response, status = 200): Promise<T> {
   return (await res.json()) as T;
 }
 
-const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2 };
+const createBody = { access: "public" as const, schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2 };
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 /** Provision a user (guest or not) by making one authed request. */
@@ -51,12 +51,12 @@ afterEach(() => vi.restoreAllMocks());
 describe("delete-account", () => {
   it("cancels the creator's lobby and purges the user's D1 data", async () => {
     const a = uid("del-a");
-    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
+    const created = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
 
     expect((await api(a, "DELETE", "/me")).status).toBe(204);
 
     expect(await db.select().from(users).where(eq(users.id, a)).get()).toBeUndefined();
-    const game = await db.select().from(games).where(eq(games.id, created.game_id)).get();
+    const game = await db.select().from(games).where(eq(games.id, created.gameId)).get();
     expect(game?.status).toBe("aborted");
     expect(game?.createdBy).toBeNull();
   });
@@ -64,17 +64,17 @@ describe("delete-account", () => {
   it("forfeits an active game — the seat is anonymized, the opponent plays on", async () => {
     const a = uid("del-a");
     const b = uid("del-b");
-    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
-    await json(await api(b, "POST", `/games/${game_id}/join`, { client_schema_version: 1 }));
-    await json(await api(a, "POST", `/games/${game_id}/start`, {}));
-    await json(await api(a, "POST", `/games/${game_id}/action`, { seat: 0, expected_version: 0, data: { add: 2 } }));
+    const { gameId } = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
+    await json(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json(await api(a, "POST", `/games/${gameId}/start`, {}));
+    await json(await api(a, "POST", `/games/${gameId}/action`, { seat: 0, expectedVersion: 0, data: { add: 2 } }));
 
     expect((await api(a, "DELETE", "/me")).status).toBe(204);
 
     // The forfeit finishes the game (async on the DO); wait for it to land.
-    await vi.waitFor(async () => expect((await db.select().from(games).where(eq(games.id, game_id)).get())?.status).toBe("finished"));
+    await vi.waitFor(async () => expect((await db.select().from(games).where(eq(games.id, gameId)).get())?.status).toBe("finished"));
     expect(await db.select().from(users).where(eq(users.id, a)).get()).toBeUndefined();
-    const seats = await db.select().from(participants).where(eq(participants.gameId, game_id)).all();
+    const seats = await db.select().from(participants).where(eq(participants.gameId, gameId)).all();
     expect(seats.find((s) => s.playerIndex === 0)?.userId).toBeNull(); // A, anonymized
     expect(seats.find((s) => s.playerIndex === 1)?.userId).toBe(b); // B, intact
   });
@@ -90,7 +90,7 @@ describe("cron: stale-guest purge", () => {
     await provision(active, true);
 
     // `active` has a game touched just now; `stale` has none. Age both out.
-    await json<{ game_id: string }>(await api(active, "POST", "/games", { ...createBody, rated: false }, true), 201);
+    await json<{ gameId: string }>(await api(active, "POST", "/games", { ...createBody, rated: false }, true), 201);
     const eightDaysAgo = Date.now() - 8 * 24 * 60 * 60 * 1000;
     await db.update(users).set({ createdAt: eightDaysAgo }).where(eq(users.id, stale)).run();
     await db.update(users).set({ createdAt: eightDaysAgo }).where(eq(users.id, active)).run();
@@ -106,16 +106,16 @@ describe("cron: stale-guest purge", () => {
 describe("cron: abandoned-game reap", () => {
   it("aborts a lobby nobody started in time", async () => {
     const a = uid("reap-a");
-    const { game_id } = await json<{ game_id: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
+    const { gameId } = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
     await db
       .update(games)
       .set({ createdAt: Date.now() - 8 * 24 * 60 * 60 * 1000 })
-      .where(eq(games.id, game_id))
+      .where(eq(games.id, gameId))
       .run();
 
     await runCron();
 
-    const game = await db.select().from(games).where(eq(games.id, game_id)).get();
+    const game = await db.select().from(games).where(eq(games.id, gameId)).get();
     expect(game?.status).toBe("aborted");
   });
 });
@@ -147,8 +147,8 @@ describe("applyFinish purge guard", () => {
       maxPlayers: 2,
       shortCode: uid("C").slice(0, 8).toUpperCase(),
       seats: [
-        { player_index: 0, user_id: present, bot_id: null, type: "human" },
-        { player_index: 1, user_id: gone, bot_id: null, type: "human" },
+        { playerIndex: 0, userId: present, botId: null, type: "human" },
+        { playerIndex: 1, userId: gone, botId: null, type: "human" },
       ],
       now,
     });
@@ -157,12 +157,12 @@ describe("applyFinish purge guard", () => {
       gameId,
       finishId: crypto.randomUUID(),
       outcomes: [
-        { player_index: 0, result: "win", placement: 1, team_index: 0 },
-        { player_index: 1, result: "loss", placement: 2, team_index: 1 },
+        { playerIndex: 0, result: "win", placement: 1, teamIndex: 0 },
+        { playerIndex: 1, result: "loss", placement: 2, teamIndex: 1 },
       ],
       roster: [
-        { player_index: 0, user_id: present, bot_id: null, type: "human" },
-        { player_index: 1, user_id: gone, bot_id: null, type: "human" },
+        { playerIndex: 0, userId: present, botId: null, type: "human" },
+        { playerIndex: 1, userId: gone, botId: null, type: "human" },
       ],
       rated: true,
       ratingPool: "guard-pool",
@@ -179,7 +179,7 @@ describe("applyFinish purge guard", () => {
     ).toBeDefined();
     expect(await db.select().from(playerRatings).where(eq(playerRatings.userId, gone)).get()).toBeUndefined();
     expect(await db.select().from(ratingHistory).where(eq(ratingHistory.userId, gone)).get()).toBeUndefined();
-    expect(deltas?.some((d) => d.identity.user_id === gone)).toBe(false);
-    expect(deltas?.some((d) => d.identity.user_id === present)).toBe(true);
+    expect(deltas?.some((d) => d.identity.userId === gone)).toBe(false);
+    expect(deltas?.some((d) => d.identity.userId === present)).toBe(true);
   });
 });

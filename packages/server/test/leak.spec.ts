@@ -32,31 +32,31 @@ describe("leak test", () => {
     const a = `leak-a-${crypto.randomUUID()}`;
     const b = `leak-b-${crypto.randomUUID()}`;
 
-    // A hidden-info (schema_version 2) 2-player game, so `secret` is live state.
-    const create = await api(a, "POST", "/games", { access: "public", schema_version: 2, config: { target: 3 }, min_players: 2, max_players: 2, rated: false });
-    const { game_id } = JSON.parse(await clean(create, "create")) as { game_id: string };
+    // A hidden-info (schemaVersion 2) 2-player game, so `secret` is live state.
+    const create = await api(a, "POST", "/games", { access: "public", schemaVersion: 2, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false });
+    const { gameId } = JSON.parse(await clean(create, "create")) as { gameId: string };
 
     // Open B's socket before the game starts and collect every frame it fans out.
     const token = await mintToken({ uid: b });
-    const sockRes = await exports.default.fetch(`https://x/api/engine/games/${game_id}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const sockRes = await exports.default.fetch(`https://x/api/engine/games/${gameId}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
     const ws = sockRes.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
     const socketFrames: string[] = [];
     ws.addEventListener("message", (event: MessageEvent) => socketFrames.push(event.data as string));
     ws.accept();
 
-    await clean(await api(b, "POST", `/games/${game_id}/join`, { client_schema_version: 2 }), "join");
-    await clean(await api(a, "POST", `/games/${game_id}/start`, {}), "start");
+    await clean(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 2 }), "join");
+    await clean(await api(a, "POST", `/games/${gameId}/start`, {}), "start");
 
     // Play to a finish: seat 0 (A) opens, then seat 1 (B) closes it out.
-    await clean(await api(a, "POST", `/games/${game_id}/action`, { seat: 0, expected_version: 0, data: { add: 2 } }), "action A");
+    await clean(await api(a, "POST", `/games/${gameId}/action`, { seat: 0, expectedVersion: 0, data: { add: 2 } }), "action A");
     // A pulls its own live frames mid-game — the gap-recovery path.
-    await clean(await api(a, "GET", `/games/${game_id}/frames?from=0`), "frames (live)");
-    await clean(await api(b, "POST", `/games/${game_id}/action`, { seat: 1, expected_version: 1, data: { add: 2 } }), "action B");
+    await clean(await api(a, "GET", `/games/${gameId}/frames?from=0`), "frames (live)");
+    await clean(await api(b, "POST", `/games/${gameId}/action`, { seat: 1, expectedVersion: 1, data: { add: 2 } }), "action B");
 
     // The summary read, and post-finish replay for both a participant and…
-    await clean(await api(a, "GET", `/games/${game_id}`), "summary");
-    await clean(await api(a, "GET", `/games/${game_id}/frames?from=0`), "replay (participant)");
+    await clean(await api(a, "GET", `/games/${gameId}`), "summary");
+    await clean(await api(a, "GET", `/games/${gameId}/frames?from=0`), "replay (participant)");
 
     // …let the socket fan-out settle, then scan every frame it received.
     await vi.waitFor(() => expect(socketFrames.length).toBeGreaterThanOrEqual(3));

@@ -58,5 +58,5 @@ export function projectView(
     cause: args.cause ?? null,
     isReplay: args.isReplay ?? false,
   });
-  return { data: slice.data, pending_players: slice.pending_players };
+  return { data: slice.data, pendingPlayers: slice.pendingPlayers };
 }

@@ -25,13 +25,13 @@ class Seat {
     required this.type,
   });
 
-  @JsonKey(name: r'player_index', required: true, includeIfNull: false)
+  @JsonKey(name: r'playerIndex', required: true, includeIfNull: false)
   final int playerIndex;
 
-  @JsonKey(name: r'user_id', required: true, includeIfNull: true)
+  @JsonKey(name: r'userId', required: true, includeIfNull: true)
   final String? userId;
 
-  @JsonKey(name: r'bot_id', required: true, includeIfNull: true)
+  @JsonKey(name: r'botId', required: true, includeIfNull: true)
   final String? botId;
 
   @JsonKey(name: r'type', required: true, includeIfNull: false)

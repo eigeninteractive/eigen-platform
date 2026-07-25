@@ -37,16 +37,16 @@ class Bot {
   @JsonKey(name: r'username', required: true, includeIfNull: false)
   final String username;
 
-  @JsonKey(name: r'display_name', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
-  @JsonKey(name: r'avatar_url', required: true, includeIfNull: true)
+  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: true)
   final String? avatarUrl;
 
-  @JsonKey(name: r'schema_version', required: true, includeIfNull: false)
+  @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
 
-  @JsonKey(name: r'rated_eligible', required: true, includeIfNull: false)
+  @JsonKey(name: r'ratedEligible', required: true, includeIfNull: false)
   final bool ratedEligible;
 
   @JsonKey(name: r'config', required: true, includeIfNull: false)

@@ -49,3 +49,15 @@
 - [ ] Spectating Support
 - [ ] Quick Match
 - [ ] Target web platform, Web App notifications
+
+
+# Rough
+Where are there so many unnecessary mappings like 
+history: rows.map((r) => ({
+            gameId: r.gameId,
+            pool: r.pool,
+            displayBefore: r.displayBefore,
+            displayAfter: r.displayAfter,
+            displayChange: r.displayChange,
+            createdAt: r.createdAt,
+          })),

@@ -17,10 +17,10 @@ class Created {
   /// Returns a new [Created] instance.
   Created({required this.gameId, required this.shortCode});
 
-  @JsonKey(name: r'game_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
   final String gameId;
 
-  @JsonKey(name: r'short_code', required: true, includeIfNull: false)
+  @JsonKey(name: r'shortCode', required: true, includeIfNull: false)
   final String shortCode;
 
   @override

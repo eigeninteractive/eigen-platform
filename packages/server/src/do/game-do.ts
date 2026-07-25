@@ -1,6 +1,6 @@
 /**
  * The game's Durable Object — its serialized session AND its permanent
- * database. One DO per game_id, addressed by
+ * database. One DO per gameId, addressed by
  * `idFromName(gameId)`. Implementors subclass {@link BaseGameDO} — the
  * platform-idiomatic shape (cf. `agents`' `Agent`, partyserver's `Server`):
  *
@@ -87,7 +87,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   async handle(cmd: Command): Promise<CommandResult> {
     if (!(await this.#ensureInit(cmd.gameId))) {
-      return { ok: false, code: "unknown_game", message: "No game with this id" };
+      return { ok: false, code: "unknownGame", message: "No game with this id" };
     }
     const stored = this.#storedResponse(cmd.commandId);
     if (stored !== null) return stored;
@@ -117,42 +117,42 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const now = Date.now();
 
     if (meta.status !== "waiting" && meta.status !== "ready") {
-      return { ok: false, code: "not_joinable", message: `Game is ${meta.status}` };
+      return { ok: false, code: "notJoinable", message: `Game is ${meta.status}` };
     }
 
     let nextRoster: Seat[];
     switch (cmd.kind) {
       case "join": {
-        if (roster.some((s) => s.user_id !== null && s.user_id === cmd.actor.userId)) {
-          return { ok: false, code: "already_joined", message: "Already seated in this game" };
+        if (roster.some((s) => s.userId !== null && s.userId === cmd.actor.userId)) {
+          return { ok: false, code: "alreadyJoined", message: "Already seated in this game" };
         }
         if (roster.length >= meta.maxPlayers) {
-          return { ok: false, code: "game_full", message: "Game is full" };
+          return { ok: false, code: "gameFull", message: "Game is full" };
         }
-        nextRoster = [...roster, { player_index: roster.length, user_id: cmd.actor.userId, bot_id: null, type: "human" }];
+        nextRoster = [...roster, { playerIndex: roster.length, userId: cmd.actor.userId, botId: null, type: "human" }];
         break;
       }
       case "leave": {
         if (cmd.actor.userId !== null && cmd.actor.userId === meta.createdBy) {
-          return { ok: false, code: "creator_cannot_leave", message: "The creator cancels the game instead of leaving it" };
+          return { ok: false, code: "creatorCannotLeave", message: "The creator cancels the game instead of leaving it" };
         }
-        const seat = roster.find((s) => s.user_id !== null && s.user_id === cmd.actor.userId);
+        const seat = roster.find((s) => s.userId !== null && s.userId === cmd.actor.userId);
         if (seat === undefined) {
-          return { ok: false, code: "not_participant", message: "Not seated in this game" };
+          return { ok: false, code: "notParticipant", message: "Not seated in this game" };
         }
         // Compact the indexes — safe pre-start only, which lobby
         // statuses guarantee: no frames or transitions reference seats yet.
-        nextRoster = roster.filter((s) => s.player_index !== seat.player_index).map((s, i) => ({ ...s, player_index: i }));
+        nextRoster = roster.filter((s) => s.playerIndex !== seat.playerIndex).map((s, i) => ({ ...s, playerIndex: i }));
         break;
       }
       case "add-bot": {
         if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
-          return { ok: false, code: "not_creator", message: "Only the creator can add a bot" };
+          return { ok: false, code: "notCreator", message: "Only the creator can add a bot" };
         }
         if (roster.length >= meta.maxPlayers) {
-          return { ok: false, code: "game_full", message: "Game is full" };
+          return { ok: false, code: "gameFull", message: "Game is full" };
         }
-        nextRoster = [...roster, { player_index: roster.length, user_id: null, bot_id: cmd.botId, type: "bot" }];
+        nextRoster = [...roster, { playerIndex: roster.length, userId: null, botId: cmd.botId, type: "bot" }];
         break;
       }
     }
@@ -163,7 +163,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     this.#db.transaction((tx) => {
       tx.delete(t.roster).run();
       for (const seat of nextRoster) {
-        tx.insert(t.roster).values({ playerIndex: seat.player_index, userId: seat.user_id, botId: seat.bot_id, type: seat.type }).run();
+        tx.insert(t.roster).values({ playerIndex: seat.playerIndex, userId: seat.userId, botId: seat.botId, type: seat.type }).run();
       }
       if (status !== meta.status) {
         tx.update(t.meta).set({ status }).where(eq(t.meta.id, 1)).run();
@@ -191,10 +191,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   async #cancel(cmd: Extract<Command, { kind: "cancel" }>): Promise<CommandResult> {
     const meta = this.#meta();
     if (meta.status !== "waiting" && meta.status !== "ready" && meta.status !== "aborted") {
-      return { ok: false, code: "not_joinable", message: `Game is ${meta.status}` };
+      return { ok: false, code: "notJoinable", message: `Game is ${meta.status}` };
     }
     if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
-      return { ok: false, code: "not_creator", message: "Only the creator can cancel the game" };
+      return { ok: false, code: "notCreator", message: "Only the creator can cancel the game" };
     }
     // Terminal status lands in storage first: anything interleaving with the
     // awaits below already sees an aborted game.
@@ -245,7 +245,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Creator-only start — a clean rejection, not a throw: any seated
     // client can reach this without a protocol violation.
     if (cmd.kind === "start" && meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
-      return { ok: false, code: "not_creator", message: "Only the creator can start the game" };
+      return { ok: false, code: "notCreator", message: "Only the creator can start the game" };
     }
     let actingSeat: number | null = null;
     if (cmd.kind === "action" || (cmd.kind === "lifecycle" && cmd.type === "forfeit")) {
@@ -283,10 +283,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * from a misbehaving external bot alike, so the refusal is a clean value
    * (→ 403), never a throw. */
   #actingSeat(actor: Principal, seat: number, roster: Seat[]): number | CommandResult {
-    const row = roster.find((s) => s.player_index === seat);
-    const owns = row !== undefined && ((actor.userId !== null && row.user_id === actor.userId) || (actor.botId !== null && row.bot_id === actor.botId));
+    const row = roster.find((s) => s.playerIndex === seat);
+    const owns = row !== undefined && ((actor.userId !== null && row.userId === actor.userId) || (actor.botId !== null && row.botId === actor.botId));
     if (!owns) {
-      return { ok: false, code: "not_participant", message: "That seat is not yours" };
+      return { ok: false, code: "notParticipant", message: "That seat is not yours" };
     }
     return seat;
   }
@@ -330,7 +330,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
-    const ownFrame = actingSeat === null ? null : (plan.frames.find((f) => f.player_index === actingSeat) ?? null);
+    const ownFrame = actingSeat === null ? null : (plan.frames.find((f) => f.playerIndex === actingSeat) ?? null);
     const response: CommandResult = {
       ok: true,
       version: next.version,
@@ -424,10 +424,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * unawaited, self-catching promise (no `waitUntil` — see `#apply`). */
   async #dispatchEffects(meta: MetaRow, roster: Seat[], plan: CommitPlan, next: StateRow): Promise<void> {
     for (const effect of plan.effects) {
-      if (effect.kind === "wake_bot") {
-        await this.#botTurn(meta, plan, next, effect.seat, effect.bot_id);
+      if (effect.kind === "wakeBot") {
+        await this.#botTurn(meta, plan, next, effect.seat, effect.botId);
       }
-      // `notify_turn` / `notify_finished` (FCM pushes) are delivered by the
+      // `notifyTurn` / `notifyFinished` (FCM pushes) are delivered by the
       // push step — wired in `#pushNotifications` below.
     }
     await this.#pushNotifications(meta, roster, plan);
@@ -447,12 +447,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         console.error(`bot turn skipped: bot ${botId} not in registry (game ${meta.gameId} seat ${seat})`);
         return;
       }
-      const frame = plan.frames.find((f) => f.player_index === seat);
+      const frame = plan.frames.find((f) => f.playerIndex === seat);
       if (frame === undefined) {
         console.error(`bot turn skipped: no projected frame for seat ${seat} (game ${meta.gameId})`);
         return;
       }
-      const observation: ObservationSlice = { data: frame.data, pending_players: frame.pending_players };
+      const observation: ObservationSlice = { data: frame.data, pendingPlayers: frame.pendingPlayers };
       switch (bot.type) {
         case "engine":
           await this.#runBotBrain(meta, bot, seat, observation, next);
@@ -479,7 +479,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const rules = this.#rules(meta);
     const action = rules.botActions?.[bot.username];
     if (action === undefined) {
-      console.error(`engine bot ${bot.username} has no botActions entry for schema_version ${meta.schemaVersion} (game ${meta.gameId})`);
+      console.error(`engine bot ${bot.username} has no botActions entry for schemaVersion ${meta.schemaVersion} (game ${meta.gameId})`);
       return;
     }
     const config = parseStoredPayload(rules.schemas.config, meta.config, "config", meta.schemaVersion);
@@ -521,13 +521,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       return;
     }
     const body = JSON.stringify({
-      game_id: meta.gameId,
-      bot_id: bot.id,
-      player_index: seat,
+      gameId: meta.gameId,
+      botId: bot.id,
+      playerIndex: seat,
       observation: observation.data,
       version: next.version,
-      pending_players: observation.pending_players,
-      turn_deadline: next.deadline,
+      pendingPlayers: observation.pendingPlayers,
+      turnDeadline: next.deadline,
     });
     const signature = await signForBot(secret, bot.id, "wake", body);
     try {
@@ -553,10 +553,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (sa === null) return;
     const d1 = this.d1(this.env);
     for (const effect of plan.effects) {
-      if (effect.kind === "notify_turn") {
-        await pushToUser(d1, sa, effect.user_id, turnPush(meta.gameId));
-      } else if (effect.kind === "notify_finished") {
-        await Promise.all(effect.user_ids.map((userId) => pushToUser(d1, sa, userId, finishPush(meta.gameId))));
+      if (effect.kind === "notifyTurn") {
+        await pushToUser(d1, sa, effect.userId, turnPush(meta.gameId));
+      } else if (effect.kind === "notifyFinished") {
+        await Promise.all(effect.userIds.map((userId) => pushToUser(d1, sa, userId, finishPush(meta.gameId))));
       }
     }
   }
@@ -608,7 +608,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     }
     const version = finalState.version + 1;
     // Engine-owned action variant — no game hook produces or ever sees it.
-    const action: TransitionAction = { type: "system", kind: "ratings", data: { deltas }, player_index: null };
+    const action: TransitionAction = { type: "system", kind: "ratings", data: { deltas }, playerIndex: null };
     const frames = this.#project(meta, roster, finalState.state, [], null, false);
     this.#db.transaction((tx) => {
       tx.insert(t.transitions).values({ version, state: finalState.state, action, pending: [], deadline: null, playerTimes: null, turnStartedAt: null }).run();
@@ -627,12 +627,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         type: "frame",
         version,
         data: frame.data,
-        pending_players: frame.pending_players,
+        pendingPlayers: frame.pendingPlayers,
         deadline: null,
-        player_times: null,
+        playerTimes: null,
         ratings: deltas,
       };
-      this.#send(roster, frame.player_index, message);
+      this.#send(roster, frame.playerIndex, message);
     }
   }
 
@@ -723,19 +723,19 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   #fanOut(frames: ObservationFrame[], next: StateRow, outcomes: OutcomeEntry[] | null, roster: Seat[]): void {
     for (const frame of frames) {
-      this.#send(roster, frame.player_index, this.#wireFrame(frame, next, outcomes));
+      this.#send(roster, frame.playerIndex, this.#wireFrame(frame, next, outcomes));
     }
   }
 
   /** Deliver one seat's frame to every socket whose authenticated principal
    * owns that seat — resolved against the roster at send time. */
   #send(roster: Seat[], seat: number, message: FrameMessage): void {
-    const owner = roster.find((s) => s.player_index === seat);
-    if (owner === undefined || owner.user_id === null) return;
+    const owner = roster.find((s) => s.playerIndex === seat);
+    if (owner === undefined || owner.userId === null) return;
     const payload = JSON.stringify(message);
     for (const ws of this.ctx.getWebSockets()) {
       const attachment = ws.deserializeAttachment() as SocketAttachment | null;
-      if (attachment?.userId !== null && attachment?.userId === owner.user_id) {
+      if (attachment?.userId !== null && attachment?.userId === owner.userId) {
         try {
           ws.send(payload);
         } catch {
@@ -764,9 +764,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       type: "frame",
       version: next.version,
       data: frame.data,
-      pending_players: frame.pending_players,
+      pendingPlayers: frame.pendingPlayers,
       deadline: next.deadline,
-      player_times: next.playerTimes,
+      playerTimes: next.playerTimes,
       ...(outcomes !== null ? { outcomes } : {}),
     };
   }
@@ -796,7 +796,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         .from(t.frames)
         .where(and(eq(t.frames.playerIndex, args.seat), gte(t.frames.version, args.from), lte(t.frames.version, args.to)))
         .all();
-      for (const f of frameRows) stored.set(f.version, { data: f.data, pending_players: f.pendingPlayers });
+      for (const f of frameRows) stored.set(f.version, { data: f.data, pendingPlayers: f.pendingPlayers });
     }
     for (const row of rows) {
       const ratings = row.action !== null && row.action.kind === "ratings" ? row.action.data.deltas : null;
@@ -807,9 +807,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         type: "frame",
         version: row.version,
         data: view.data,
-        pending_players: view.pending_players,
+        pendingPlayers: view.pendingPlayers,
         deadline: row.deadline,
-        player_times: row.playerTimes,
+        playerTimes: row.playerTimes,
         ...(ratings !== null ? { ratings } : {}),
       });
     }
@@ -830,24 +830,24 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         cause,
         isReplay,
       });
-      return { data: slice.data, pending_players: slice.pending_players };
+      return { data: slice.data, pendingPlayers: slice.pendingPlayers };
     }
-    const frame = this.#project(meta, roster, row.state, row.pending, cause, isReplay).find((f) => f.player_index === seat);
-    return frame === undefined ? null : { data: frame.data, pending_players: frame.pending_players };
+    const frame = this.#project(meta, roster, row.state, row.pending, cause, isReplay).find((f) => f.playerIndex === seat);
+    return frame === undefined ? null : { data: frame.data, pendingPlayers: frame.pendingPlayers };
   }
 
   /** The game-hook cause vocabulary; the engine-owned ratings row has none. */
   #causeOf(action: TransitionAction | null): TransitionCause {
     if (action === null || action.kind === "ratings") return null;
     if (action.kind === "game") {
-      return { kind: "game", data: action.data, playerIndex: action.player_index };
+      return { kind: "game", data: action.data, playerIndex: action.playerIndex };
     }
     return { kind: "lifecycle", data: action.data };
   }
 
   #project(meta: MetaRow, roster: Seat[], state: JsonObject, pending: number[], cause: TransitionCause, isReplay: boolean): ObservationFrame[] {
     const rules = this.#rules(meta);
-    const identified = new Set(roster.filter((s) => s.user_id !== null || s.bot_id !== null).map((s) => s.player_index));
+    const identified = new Set(roster.filter((s) => s.userId !== null || s.botId !== null).map((s) => s.playerIndex));
     return fanOutObservations(rules, {
       state,
       pending,
@@ -855,7 +855,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       config: parseStoredPayload(rules.schemas.config, meta.config, "config", meta.schemaVersion),
       cause,
       isReplay,
-    }).filter((f) => identified.has(f.player_index));
+    }).filter((f) => identified.has(f.playerIndex));
   }
 
   // ── Lazy init & snapshot loads ─────────────────────────────────────
@@ -864,7 +864,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * sanctioned non-storage await near the gate — `blockConcurrencyWhile`
    * holds ALL events, so nothing interleaves, and it runs once per game.
    * Returns false when no such game exists (callers answer 404 /
-   * `unknown_game`; a missing row must not throw here — an exception inside
+   * `unknownGame`; a missing row must not throw here — an exception inside
    * `blockConcurrencyWhile` resets the whole object). */
   async #ensureInit(gameId: string): Promise<boolean> {
     if (this.#loadMeta() !== undefined) return true;
@@ -897,7 +897,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           })
           .run();
         for (const seat of row.participants) {
-          tx.insert(t.roster).values({ playerIndex: seat.player_index, userId: seat.user_id, botId: seat.bot_id, type: seat.type }).run();
+          tx.insert(t.roster).values({ playerIndex: seat.playerIndex, userId: seat.userId, botId: seat.botId, type: seat.type }).run();
         }
       });
     });
@@ -907,7 +907,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   #rules(meta: MetaRow): GameRules {
     const rules = this.gameModule.versions[meta.schemaVersion];
     if (rules === undefined) {
-      throw new GameBugError(`No rules unit for schema_version ${meta.schemaVersion}`);
+      throw new GameBugError(`No rules unit for schemaVersion ${meta.schemaVersion}`);
     }
     return rules;
   }
@@ -923,7 +923,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   #roster(): Seat[] {
-    return this.#db.select({ player_index: t.roster.playerIndex, user_id: t.roster.userId, bot_id: t.roster.botId, type: t.roster.type }).from(t.roster).orderBy(t.roster.playerIndex).all();
+    return this.#db.select({ playerIndex: t.roster.playerIndex, userId: t.roster.userId, botId: t.roster.botId, type: t.roster.type }).from(t.roster).orderBy(t.roster.playerIndex).all();
   }
 
   #latestTransition(): TransitionRow | null {
@@ -945,7 +945,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** Frame rows for one transition's per-seat fan-out. */
   #frameRows(version: number, frames: ObservationFrame[]) {
-    return frames.map((f) => ({ version, playerIndex: f.player_index, data: f.data, pendingPlayers: f.pending_players }));
+    return frames.map((f) => ({ version, playerIndex: f.playerIndex, data: f.data, pendingPlayers: f.pendingPlayers }));
   }
 
   /** One seat's stored live frame at one version — the frames-table PK. */
@@ -955,7 +955,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       .from(t.frames)
       .where(and(eq(t.frames.version, version), eq(t.frames.playerIndex, seat)))
       .get();
-    return row === undefined ? null : { data: row.data, pending_players: row.pendingPlayers };
+    return row === undefined ? null : { data: row.data, pendingPlayers: row.pendingPlayers };
   }
 
   #storedResponse(commandId: string): CommandResult | null {

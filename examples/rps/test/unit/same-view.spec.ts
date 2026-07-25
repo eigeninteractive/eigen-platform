@@ -29,8 +29,8 @@ const game: GameRow = {
 };
 
 const roster: Seat[] = [
-  { player_index: 0, user_id: "user-a", bot_id: null, type: "human" },
-  { player_index: 1, user_id: "user-b", bot_id: null, type: "human" },
+  { playerIndex: 0, userId: "user-a", botId: null, type: "human" },
+  { playerIndex: 1, userId: "user-b", botId: null, type: "human" },
 ];
 
 /** v4: a fresh round, both seats pending, nothing committed. */
@@ -124,7 +124,7 @@ describe("same-view rule over real RPS rules", () => {
       }),
     );
     if (!isRejected(result)) throw new Error("expected a rejection");
-    expect(result.code).toBe("state_updated");
+    expect(result.code).toBe("stateUpdated");
   });
 
   it("rejects conservatively when the stale frame is unavailable", () => {
@@ -133,7 +133,7 @@ describe("same-view rule over real RPS rules", () => {
       action(1, "paper", 4, { state: planA.nextState }), // no staleViews
     );
     if (!isRejected(result)) throw new Error("expected a rejection");
-    expect(result.code).toBe("state_updated");
+    expect(result.code).toBe("stateUpdated");
   });
 
   it("hides the opponent's commit in every live frame (leak check)", () => {
@@ -141,10 +141,10 @@ describe("same-view rule over real RPS rules", () => {
     for (const frame of planA.frames) {
       const data = frame.data as JsonObject;
       expect(data.commits).toBeUndefined();
-      if (frame.player_index === 1) {
+      if (frame.playerIndex === 1) {
         expect(data.yourMove).toBeNull();
         // Seat 1 sees only its own pending status.
-        expect(frame.pending_players).toEqual([1]);
+        expect(frame.pendingPlayers).toEqual([1]);
       }
     }
   });

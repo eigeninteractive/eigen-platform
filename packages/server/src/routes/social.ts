@@ -38,7 +38,7 @@ const userIdParam = z.object({ userId: z.string().min(1) });
 
 /** Friend writes are for registered accounts only. */
 function requireRegistered(auth: Authed): void {
-  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account", "registration_required");
+  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account", "registrationRequired");
 }
 
 /** Best-effort friend-event push, off the response path. `waitUntil` keeps the
@@ -90,7 +90,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       await enforceRateLimit(c.env, "user_search", c.var.auth.user.id);
       const { q, limit } = c.req.valid("query");
       const rows = await searchUsers(ctx.d1(c.env), c.var.auth.user.id, q, limit);
-      return c.json({ users: rows.map((r) => ({ id: r.user_id, username: r.username, display_name: r.display_name, avatar_url: r.avatar_url, is_anonymous: r.is_anonymous })) }, 200);
+      return c.json({ users: rows.map((r) => ({ id: r.userId, username: r.username, displayName: r.displayName, avatarUrl: r.avatarUrl, isAnonymous: r.isAnonymous })) }, 200);
     },
   );
 
@@ -108,7 +108,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       requireRegistered(c.var.auth);
       const caller = c.var.auth.user;
       await enforceRateLimit(c.env, "friend_request", caller.id);
-      const target = c.req.valid("json").target_user_id;
+      const target = c.req.valid("json").targetUserId;
       if (target === caller.id) throw new HttpError(400, "You cannot friend yourself");
       const [targetRow] = await readPlayers(ctx.d1(c.env), [target]);
       if (targetRow === undefined) throw new HttpError(404, "No such user");

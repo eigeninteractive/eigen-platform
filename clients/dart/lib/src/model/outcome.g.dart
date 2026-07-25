@@ -6,34 +6,30 @@ part of 'outcome.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-Outcome _$OutcomeFromJson(Map<String, dynamic> json) => $checkedCreate(
-  'Outcome',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      requiredKeys: const ['player_index', 'result', 'placement', 'team_index'],
-    );
-    final val = Outcome(
-      playerIndex: $checkedConvert('player_index', (v) => (v as num).toInt()),
-      result: $checkedConvert(
-        'result',
-        (v) => $enumDecode(_$OutcomeResultEnumEnumMap, v),
-      ),
-      placement: $checkedConvert('placement', (v) => (v as num).toInt()),
-      teamIndex: $checkedConvert('team_index', (v) => (v as num).toInt()),
-      score: $checkedConvert('score', (v) => v as num?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {'playerIndex': 'player_index', 'teamIndex': 'team_index'},
-);
+Outcome _$OutcomeFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('Outcome', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        requiredKeys: const ['playerIndex', 'result', 'placement', 'teamIndex'],
+      );
+      final val = Outcome(
+        playerIndex: $checkedConvert('playerIndex', (v) => (v as num).toInt()),
+        result: $checkedConvert(
+          'result',
+          (v) => $enumDecode(_$OutcomeResultEnumEnumMap, v),
+        ),
+        placement: $checkedConvert('placement', (v) => (v as num).toInt()),
+        teamIndex: $checkedConvert('teamIndex', (v) => (v as num).toInt()),
+        score: $checkedConvert('score', (v) => v as num?),
+      );
+      return val;
+    });
 
 Map<String, dynamic> _$OutcomeToJson(Outcome instance) => <String, dynamic>{
-  'player_index': instance.playerIndex,
+  'playerIndex': instance.playerIndex,
   'result': _$OutcomeResultEnumEnumMap[instance.result]!,
   'placement': instance.placement,
-  'team_index': instance.teamIndex,
+  'teamIndex': instance.teamIndex,
   'score': ?instance.score,
 };
 

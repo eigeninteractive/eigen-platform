@@ -26,10 +26,10 @@ class SoloStarted {
     required this.frame,
   });
 
-  @JsonKey(name: r'game_id', required: true, includeIfNull: false)
+  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
   final String gameId;
 
-  @JsonKey(name: r'short_code', required: true, includeIfNull: false)
+  @JsonKey(name: r'shortCode', required: true, includeIfNull: false)
   final String shortCode;
 
   @JsonKey(name: r'version', required: true, includeIfNull: false)

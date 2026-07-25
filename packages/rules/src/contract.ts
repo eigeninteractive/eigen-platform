@@ -17,13 +17,13 @@ import type { JsonObject } from "./json.js";
 // ── Core enums ────────────────────────────────────────────────────────────────
 
 /** The trigger of a lifecycle action, resolved by the game's `applyLifecycle`
- * hook. `forfeit` is a voluntary resign; `auto_forfeit` the engine-driven
+ * hook. `forfeit` is a voluntary resign; `autoForfeit` the engine-driven
  * variant (account-deletion purge); `timeout` is the clock. The two forfeits
- * share a shape (both target `data.player_index`) and most games resolve them
+ * share a shape (both target `data.playerIndex`) and most games resolve them
  * identically — but the hook receives the real trigger, so a game may choose
  * different consequences (e.g. a draw rather than a loss when the seat was
  * purged). */
-export type LifecycleType = "timeout" | "forfeit" | "auto_forfeit";
+export type LifecycleType = "timeout" | "forfeit" | "autoForfeit";
 
 /** Per-player result of a finished game. */
 export type GameResult = "win" | "loss" | "draw" | "eliminated";
@@ -59,18 +59,18 @@ export interface Rng {
 
 /**
  * One participant's result, recorded when the game ends. `placement`
- * (1 = best, ties share a value) feeds OpenSkill directly; `team_index`
- * groups players rated together (use `player_index` for individual games).
+ * (1 = best, ties share a value) feeds OpenSkill directly; `teamIndex`
+ * groups players rated together (use `playerIndex` for individual games).
  *
  * A `type` alias, not an `interface`, on purpose: outcomes are JSON payloads
  * (persisted, compared by fixture runners), and only a type alias gets the
  * implicit index signature that makes it assignable to `Json`.
  */
 export type OutcomeEntry = {
-  player_index: number;
+  playerIndex: number;
   result: GameResult;
   placement: number;
-  team_index: number;
+  teamIndex: number;
   /** Optional raw game score, for display or score-based variants. */
   score?: number | null;
 };
@@ -82,15 +82,15 @@ export type OutcomeEntry = {
 export interface Envelope<TState extends JsonObject = JsonObject> {
   /** New pure game payload (board, deck, fog…). Never carries whose-turn or
    * winner info — those are engine-owned fields. Must match the game's
-   * `schema_version` schema — the engine validates it before committing. */
+   * `schemaVersion` schema — the engine validates it before committing. */
   state: TState;
   /** 0-based seats that may act next. Empty ⇒ game over. */
-  pending_players: number[];
+  pendingPlayers: number[];
   /** Present **only** when the game ends. Absent/undefined means ongoing. */
   outcome?: OutcomeEntry[];
   /** Optional per-action deadline override for *this action only* (does not
    * touch any player's bank). Omit to use the game's configured timing. */
-  turn_seconds?: number;
+  turnSeconds?: number;
 }
 
 /** One participant's view of the state, produced by `computeObservation`. */
@@ -101,7 +101,7 @@ export interface ObservationSlice {
    * hidden-info games (e.g. a Nope window, or a simultaneous-commit round
    * where revealing that the opponent moved would leak information). It must
    * stay truthful about the seat *itself* — the engine enforces that. */
-  pending_players: number[];
+  pendingPlayers: number[];
 }
 
 // ── Hook args ─────────────────────────────────────────────────────────────────
@@ -133,17 +133,17 @@ export interface ApplyActionArgs<TState extends JsonObject = JsonObject, TAction
  * the action log (with `kind = 'lifecycle'`). Engine-owned and
  * version-independent: every game gets these transitions for free, without
  * declaring them in its schemas. `forfeit` carries the forfeiting seat (a
- * voluntary resign); `auto_forfeit` is the engine-driven variant (account
+ * voluntary resign); `autoForfeit` is the engine-driven variant (account
  * purge); `timeout` carries no seat — the affected seats are
  * {@link ApplyLifecycleArgs.pending}. */
-export type LifecycleAction = { type: "timeout" } | { type: "forfeit" | "auto_forfeit"; player_index: number };
+export type LifecycleAction = { type: "timeout" } | { type: "forfeit" | "autoForfeit"; playerIndex: number };
 
 export interface ApplyLifecycleArgs<TState extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> extends HookContext<TConfig> {
   state: TState;
   /** Seats awaiting an action. For `timeout` these are exactly the seats that
    * ran out of time — resolve the whole set in one envelope (you may declare a
-   * draw). For `forfeit`/`auto_forfeit`, the target seat is in
-   * `data.player_index`. */
+   * draw). For `forfeit`/`autoForfeit`, the target seat is in
+   * `data.playerIndex`. */
   pending: number[];
   /** The trigger — always equal to `data.type`. */
   type: LifecycleType;
@@ -232,7 +232,7 @@ export type BotAction<TAction extends JsonObject = JsonObject, TConfig extends J
 
 // ── Schemas + rules unit ──────────────────────────────────────────────────────
 
-/** The declarative payload contracts for one `schema_version`: the Standard
+/** The declarative payload contracts for one `schemaVersion`: the Standard
  * Schemas the engine uses to parse (and validate) every game payload crossing
  * the JSON boundary. Keep them transform-free — what parses is what persists,
  * and the engine re-validates hook-returned state against `state`. Schemas
@@ -249,7 +249,7 @@ export interface GameSchemas<TState extends JsonObject = JsonObject, TAction ext
 }
 
 /**
- * Everything one `schema_version` of a game needs: the payload contracts plus
+ * Everything one `schemaVersion` of a game needs: the payload contracts plus
  * all six hooks, narrowly typed to that version's shapes.
  *
  * The type parameters are the version's payload types, inferred from the
@@ -340,12 +340,12 @@ export type AnyGameRules = GameRules<any, any, any>;
  * The complete game-specific surface — the same-named twin of the Dart
  * `GameModule` (whose extras are client-only creation/about UI). Implement
  * this once per app and pass it to `createEngine`; the engine owns all
- * version dispatch — every request resolves the game's `schema_version`
+ * version dispatch — every request resolves the game's `schemaVersion`
  * entry from {@link versions} and invokes that unit's hooks. Game code never
  * branches on version.
  */
 export interface GameModule {
-  /** The {@link GameRules} units keyed by `schema_version` — exactly the
+  /** The {@link GameRules} units keyed by `schemaVersion` — exactly the
    * versions this build ships. Sparse on purpose: game creation rejects a
    * version not present here, loading a stored game requires its version's
    * entry, and a drained old version is retired by deleting its entry. The

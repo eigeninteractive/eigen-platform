@@ -35,37 +35,37 @@ describe("friend requests", () => {
     const a = await user("a");
     const b = await user("b");
 
-    const sent = await json<{ status: string }>(await api(a, "POST", "/friends/requests", { target_user_id: b.uid }));
+    const sent = await json<{ status: string }>(await api(a, "POST", "/friends/requests", { targetUserId: b.uid }));
     expect(sent.status).toBe("requested");
 
     // A sees it outgoing; B sees it incoming.
-    const aPending = await json<{ requests: { user_id: string; direction: string }[] }>(await api(a, "GET", "/friends/requests"));
-    expect(aPending.requests).toEqual([expect.objectContaining({ user_id: b.uid, direction: "outgoing" })]);
-    const bPending = await json<{ requests: { user_id: string; direction: string }[] }>(await api(b, "GET", "/friends/requests"));
-    expect(bPending.requests).toEqual([expect.objectContaining({ user_id: a.uid, direction: "incoming" })]);
+    const aPending = await json<{ requests: { userId: string; direction: string }[] }>(await api(a, "GET", "/friends/requests"));
+    expect(aPending.requests).toEqual([expect.objectContaining({ userId: b.uid, direction: "outgoing" })]);
+    const bPending = await json<{ requests: { userId: string; direction: string }[] }>(await api(b, "GET", "/friends/requests"));
+    expect(bPending.requests).toEqual([expect.objectContaining({ userId: a.uid, direction: "incoming" })]);
 
     // B accepts.
     expect((await api(b, "POST", `/friends/requests/${a.uid}/accept`)).status).toBe(204);
-    const aFriends = await json<{ friends: { user_id: string }[] }>(await api(a, "GET", "/friends"));
-    expect(aFriends.friends.map((f) => f.user_id)).toContain(b.uid);
-    const bFriends = await json<{ friends: { user_id: string }[] }>(await api(b, "GET", "/friends"));
-    expect(bFriends.friends.map((f) => f.user_id)).toContain(a.uid);
+    const aFriends = await json<{ friends: { userId: string }[] }>(await api(a, "GET", "/friends"));
+    expect(aFriends.friends.map((f) => f.userId)).toContain(b.uid);
+    const bFriends = await json<{ friends: { userId: string }[] }>(await api(b, "GET", "/friends"));
+    expect(bFriends.friends.map((f) => f.userId)).toContain(a.uid);
   });
 
   it("a reverse request auto-accepts", async () => {
     const a = await user("a");
     const b = await user("b");
-    await api(a, "POST", "/friends/requests", { target_user_id: b.uid });
-    const back = await json<{ status: string }>(await api(b, "POST", "/friends/requests", { target_user_id: a.uid }));
+    await api(a, "POST", "/friends/requests", { targetUserId: b.uid });
+    const back = await json<{ status: string }>(await api(b, "POST", "/friends/requests", { targetUserId: a.uid }));
     expect(back.status).toBe("accepted");
-    const bFriends = await json<{ friends: { user_id: string }[] }>(await api(b, "GET", "/friends"));
-    expect(bFriends.friends.map((f) => f.user_id)).toContain(a.uid);
+    const bFriends = await json<{ friends: { userId: string }[] }>(await api(b, "GET", "/friends"));
+    expect(bFriends.friends.map((f) => f.userId)).toContain(a.uid);
   });
 
   it("remove withdraws / unfriends idempotently", async () => {
     const a = await user("a");
     const b = await user("b");
-    await api(a, "POST", "/friends/requests", { target_user_id: b.uid });
+    await api(a, "POST", "/friends/requests", { targetUserId: b.uid });
     expect((await api(a, "DELETE", `/friends/${b.uid}`)).status).toBe(204);
     const bPending = await json<{ requests: unknown[] }>(await api(b, "GET", "/friends/requests"));
     expect(bPending.requests).toEqual([]);
@@ -81,14 +81,14 @@ describe("friend requests", () => {
 
   it("rejects self, guest targets, and guest callers", async () => {
     const a = await user("a");
-    expect((await api(a, "POST", "/friends/requests", { target_user_id: a.uid })).status).toBe(400);
+    expect((await api(a, "POST", "/friends/requests", { targetUserId: a.uid })).status).toBe(400);
 
     const guest: TestTokenOptions = { uid: `g-${rnd()}`, anonymous: true };
     expect((await api(guest, "GET", "/me")).status).toBe(200);
     // Registered A cannot friend a guest.
-    expect((await api(a, "POST", "/friends/requests", { target_user_id: guest.uid })).status).toBe(400);
+    expect((await api(a, "POST", "/friends/requests", { targetUserId: guest.uid })).status).toBe(400);
     // A guest cannot send requests at all.
-    expect((await api(guest, "POST", "/friends/requests", { target_user_id: a.uid })).status).toBe(403);
+    expect((await api(guest, "POST", "/friends/requests", { targetUserId: a.uid })).status).toBe(403);
   });
 });
 
@@ -98,13 +98,13 @@ describe("blocking", () => {
     const b = await user("b");
     expect((await api(a, "POST", `/friends/${b.uid}/block`)).status).toBe(204);
     // Neither direction can request while the block stands.
-    expect((await api(b, "POST", "/friends/requests", { target_user_id: a.uid })).status).toBe(403);
-    expect((await api(a, "POST", "/friends/requests", { target_user_id: b.uid })).status).toBe(403);
+    expect((await api(b, "POST", "/friends/requests", { targetUserId: a.uid })).status).toBe(403);
+    expect((await api(a, "POST", "/friends/requests", { targetUserId: b.uid })).status).toBe(403);
     // Only the blocker can lift it.
     expect((await api(b, "DELETE", `/friends/${a.uid}/block`)).status).toBe(204); // no-op
-    expect((await api(a, "POST", "/friends/requests", { target_user_id: b.uid })).status).toBe(403);
+    expect((await api(a, "POST", "/friends/requests", { targetUserId: b.uid })).status).toBe(403);
     expect((await api(a, "DELETE", `/friends/${b.uid}/block`)).status).toBe(204);
-    expect((await json<{ status: string }>(await api(a, "POST", "/friends/requests", { target_user_id: b.uid }))).status).toBe("requested");
+    expect((await json<{ status: string }>(await api(a, "POST", "/friends/requests", { targetUserId: b.uid }))).status).toBe("requested");
   });
 });
 
@@ -133,12 +133,12 @@ describe("friends' open games", () => {
   it("lists joinable games created by a friend", async () => {
     const a = await user("a");
     const b = await user("b");
-    await api(a, "POST", "/friends/requests", { target_user_id: b.uid });
+    await api(a, "POST", "/friends/requests", { targetUserId: b.uid });
     await api(b, "POST", `/friends/requests/${a.uid}/accept`);
 
-    const created = await json<{ game_id: string }>(await api(a, "POST", "/games", { access: "public", schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false }), 201);
+    const created = await json<{ gameId: string }>(await api(a, "POST", "/games", { access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }), 201);
     const list = await json<{ games: { id: string }[] }>(await api(b, "GET", "/friends/games"));
-    expect(list.games.map((g) => g.id)).toContain(created.game_id);
+    expect(list.games.map((g) => g.id)).toContain(created.gameId);
   });
 });
 
@@ -163,14 +163,14 @@ describe("keyset pagination", () => {
     const a = await user("a");
     const created: string[] = [];
     for (let i = 0; i < 3; i++) {
-      const game = await json<{ game_id: string }>(await api(a, "POST", "/games", { access: "public", schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false }), 201);
-      created.push(game.game_id);
+      const game = await json<{ gameId: string }>(await api(a, "POST", "/games", { access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }), 201);
+      created.push(game.gameId);
     }
 
-    const first = await json<{ games: { id: string; updated_at: number }[] }>(await api(a, "GET", "/games/mine?limit=2"));
+    const first = await json<{ games: { id: string; updatedAt: number }[] }>(await api(a, "GET", "/games/mine?limit=2"));
     expect(first.games).toHaveLength(2);
 
-    const cursor = first.games[1].updated_at;
+    const cursor = first.games[1].updatedAt;
     const second = await json<{ games: { id: string }[] }>(await api(a, "GET", `/games/mine?limit=2&cursor=${cursor}`));
 
     // Strictly older than the cursor: no overlap with the first page, and the
@@ -185,15 +185,15 @@ describe("keyset pagination", () => {
 describe("display name edit", () => {
   it("changes the display name, trims it, and does not require uniqueness", async () => {
     const a = await user("a");
-    const updated = await json<{ display_name: string }>(await api(a, "PUT", "/me/display-name", { display_name: "  Ada Lovelace  " }));
-    expect(updated.display_name).toBe("Ada Lovelace");
-    expect((await json<{ display_name: string }>(await api(a, "GET", "/me"))).display_name).toBe("Ada Lovelace");
+    const updated = await json<{ displayName: string }>(await api(a, "PUT", "/me/display-name", { displayName: "  Ada Lovelace  " }));
+    expect(updated.displayName).toBe("Ada Lovelace");
+    expect((await json<{ displayName: string }>(await api(a, "GET", "/me"))).displayName).toBe("Ada Lovelace");
 
     // Unlike the username, a display name is deliberately not unique.
     const b = await user("b");
-    expect((await api(b, "PUT", "/me/display-name", { display_name: "Ada Lovelace" })).status).toBe(200);
+    expect((await api(b, "PUT", "/me/display-name", { displayName: "Ada Lovelace" })).status).toBe(200);
 
     // Empty (or whitespace-only) is rejected by the body schema.
-    expect((await api(a, "PUT", "/me/display-name", { display_name: "   " })).status).toBe(400);
+    expect((await api(a, "PUT", "/me/display-name", { displayName: "   " })).status).toBe(400);
   });
 });

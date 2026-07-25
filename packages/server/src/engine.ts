@@ -86,7 +86,7 @@ export interface AvatarsConfig<TEnv> {
   /** Public base URL for direct-from-bucket reads — a bucket custom domain
    * (`https://avatars.game.com`) or an r2.dev URL. Absent/empty → the worker
    * serves avatars at `/avatars/{uid}` (the zoneless default). Set it and
-   * stored `avatar_url`s point straight at the bucket, so reads never invoke
+   * stored `avatarUrl`s point straight at the bucket, so reads never invoke
    * the worker. An `env` accessor so dev (unset) and prod (a var) differ with
    * no code change — the "the flip stays a config change" seam. */
   publicBaseUrl?(env: TEnv): string | undefined;
@@ -264,7 +264,7 @@ export function buildApp(ctx: RouteContext) {
     type: "apiKey",
     in: "header",
     name: "Eigen-Signature",
-    description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction.",
+    description: "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, botId)`. The engine signs wakes with the same header in the other direction.",
   });
   // Liveness. Unconditional, unauthed, and deliberately does NO I/O — no D1,
   // no DO, no config disclosure. That is what makes it safe to leave open: it

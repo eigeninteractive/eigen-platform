@@ -8,15 +8,15 @@ part of 'created.dart';
 
 Created _$CreatedFromJson(Map<String, dynamic> json) =>
     $checkedCreate('Created', json, ($checkedConvert) {
-      $checkKeys(json, requiredKeys: const ['game_id', 'short_code']);
+      $checkKeys(json, requiredKeys: const ['gameId', 'shortCode']);
       final val = Created(
-        gameId: $checkedConvert('game_id', (v) => v as String),
-        shortCode: $checkedConvert('short_code', (v) => v as String),
+        gameId: $checkedConvert('gameId', (v) => v as String),
+        shortCode: $checkedConvert('shortCode', (v) => v as String),
       );
       return val;
-    }, fieldKeyMap: const {'gameId': 'game_id', 'shortCode': 'short_code'});
+    });
 
 Map<String, dynamic> _$CreatedToJson(Created instance) => <String, dynamic>{
-  'game_id': instance.gameId,
-  'short_code': instance.shortCode,
+  'gameId': instance.gameId,
+  'shortCode': instance.shortCode,
 };

@@ -44,24 +44,24 @@ export async function pushToUser(d1: D1Database, sa: ServiceAccount, userId: str
 }
 
 /** The "your turn" push. The engine has no game title, so the copy stays
- * generic; the `deep_link` carries the client to the game. */
+ * generic; the `deepLink` carries the client to the game. */
 export function turnPush(gameId: string): NotificationMessage {
-  return { title: "Your turn", body: "It's your move.", data: { category: "your_turn", deep_link: `/game/${gameId}` } };
+  return { title: "Your turn", body: "It's your move.", data: { category: "yourTurn", deepLink: `/game/${gameId}` } };
 }
 
 /** The "game over" push. */
 export function finishPush(gameId: string): NotificationMessage {
-  return { title: "Game over", body: "Your game has finished.", data: { category: "game_finished", deep_link: `/game/${gameId}` } };
+  return { title: "Game over", body: "Your game has finished.", data: { category: "gameFinished", deepLink: `/game/${gameId}` } };
 }
 
 /** The "someone wants to be friends" push, addressed to the request's recipient. */
 export function friendRequestPush(actorName: string): NotificationMessage {
-  return { title: `${actorName} wants to be friends`, body: "Tap to respond.", data: { category: "friend_request", deep_link: "/social" } };
+  return { title: `${actorName} wants to be friends`, body: "Tap to respond.", data: { category: "friendRequest", deepLink: "/social" } };
 }
 
 /** The "your request was accepted" push, addressed to the original requester. */
 export function friendAcceptedPush(actorName: string): NotificationMessage {
-  return { title: `${actorName} accepted your friend request`, body: "Tap to view.", data: { category: "friend_accepted", deep_link: "/social" } };
+  return { title: `${actorName} accepted your friend request`, body: "Tap to view.", data: { category: "friendAccepted", deepLink: "/social" } };
 }
 
 export { readServiceAccount };

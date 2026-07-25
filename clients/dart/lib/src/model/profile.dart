@@ -37,19 +37,19 @@ class Profile {
   @JsonKey(name: r'username', required: true, includeIfNull: false)
   final String username;
 
-  @JsonKey(name: r'display_name', required: true, includeIfNull: false)
+  @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
-  @JsonKey(name: r'avatar_url', required: true, includeIfNull: false)
+  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: false)
   final String avatarUrl;
 
-  @JsonKey(name: r'is_anonymous', required: true, includeIfNull: false)
+  @JsonKey(name: r'isAnonymous', required: true, includeIfNull: false)
   final bool isAnonymous;
 
   @JsonKey(name: r'email', required: true, includeIfNull: true)
   final String? email;
 
-  @JsonKey(name: r'created_at', required: true, includeIfNull: false)
+  @JsonKey(name: r'createdAt', required: true, includeIfNull: false)
   final int createdAt;
 
   @override

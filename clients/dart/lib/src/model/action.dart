@@ -33,10 +33,10 @@ class Action {
   final Object? data;
 
   // minimum: 0
-  @JsonKey(name: r'expected_version', required: true, includeIfNull: false)
+  @JsonKey(name: r'expectedVersion', required: true, includeIfNull: false)
   final int expectedVersion;
 
-  @JsonKey(name: r'command_id', required: false, includeIfNull: false)
+  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
   final String? commandId;
 
   @override

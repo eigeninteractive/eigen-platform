@@ -67,7 +67,7 @@ describe("enforceRateLimit", () => {
     expect(await catchError(() => enforceRateLimit({}, "friend_request", "u1"))).toBeUndefined();
   });
 
-  it("passes while under the limit, then throws a 429 rate_limited with Retry-After", async () => {
+  it("passes while under the limit, then throws a 429 rateLimited with Retry-After", async () => {
     const env = { [RATE_LIMIT_BINDING.game_create]: fakeLimiter(2) };
     expect(await catchError(() => enforceRateLimit(env, "game_create", "u1"))).toBeUndefined();
     expect(await catchError(() => enforceRateLimit(env, "game_create", "u1"))).toBeUndefined();
@@ -76,7 +76,7 @@ describe("enforceRateLimit", () => {
     expect(error).toBeInstanceOf(HttpError);
     const http = error as HttpError;
     expect(http.status).toBe(429);
-    expect(http.code).toBe("rate_limited");
+    expect(http.code).toBe("rateLimited");
     expect(http.retryAfterSeconds).toBe(60);
   });
 });

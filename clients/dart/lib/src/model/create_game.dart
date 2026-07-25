@@ -39,30 +39,30 @@ class CreateGame {
   @JsonKey(name: r'access', required: true, includeIfNull: false)
   final GameAccess access;
 
-  @JsonKey(name: r'schema_version', required: true, includeIfNull: false)
+  @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
 
   @JsonKey(name: r'config', required: true, includeIfNull: false)
   final Object config;
 
   // minimum: 1
-  @JsonKey(name: r'min_players', required: true, includeIfNull: false)
+  @JsonKey(name: r'minPlayers', required: true, includeIfNull: false)
   final int minPlayers;
 
   // minimum: 1
-  @JsonKey(name: r'max_players', required: true, includeIfNull: false)
+  @JsonKey(name: r'maxPlayers', required: true, includeIfNull: false)
   final int maxPlayers;
 
   @JsonKey(name: r'rated', required: false, includeIfNull: false)
   final bool? rated;
 
-  @JsonKey(name: r'turn_seconds', required: false, includeIfNull: false)
+  @JsonKey(name: r'turnSeconds', required: false, includeIfNull: false)
   final int? turnSeconds;
 
-  @JsonKey(name: r'budget_seconds', required: false, includeIfNull: false)
+  @JsonKey(name: r'budgetSeconds', required: false, includeIfNull: false)
   final int? budgetSeconds;
 
-  @JsonKey(name: r'increment_seconds', required: false, includeIfNull: false)
+  @JsonKey(name: r'incrementSeconds', required: false, includeIfNull: false)
   final int? incrementSeconds;
 
   @override

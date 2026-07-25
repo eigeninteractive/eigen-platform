@@ -8,12 +8,12 @@ part of 'display_name_updated.dart';
 
 DisplayNameUpdated _$DisplayNameUpdatedFromJson(Map<String, dynamic> json) =>
     $checkedCreate('DisplayNameUpdated', json, ($checkedConvert) {
-      $checkKeys(json, requiredKeys: const ['display_name']);
+      $checkKeys(json, requiredKeys: const ['displayName']);
       final val = DisplayNameUpdated(
-        displayName: $checkedConvert('display_name', (v) => v as String),
+        displayName: $checkedConvert('displayName', (v) => v as String),
       );
       return val;
-    }, fieldKeyMap: const {'displayName': 'display_name'});
+    });
 
 Map<String, dynamic> _$DisplayNameUpdatedToJson(DisplayNameUpdated instance) =>
-    <String, dynamic>{'display_name': instance.displayName};
+    <String, dynamic>{'displayName': instance.displayName};

@@ -18,7 +18,7 @@ async function api(id: string, method: string, path: string, body?: unknown): Pr
   });
 }
 
-const createBody = { access: "public" as const, schema_version: 1, config: { target: 3 }, min_players: 2, max_players: 2, rated: false };
+const createBody = { access: "public" as const, schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false };
 
 describe("deep-link well-known", () => {
   it("generates assetlinks.json from config, as JSON", async () => {
@@ -46,9 +46,9 @@ describe("deep-link well-known", () => {
 describe("share/landing page", () => {
   it("renders OG tags + store links for a real invite code", async () => {
     const a = uid("host");
-    const { short_code } = (await (await api(a, "POST", "/games", createBody)).json()) as { short_code: string };
+    const { shortCode } = (await (await api(a, "POST", "/games", createBody)).json()) as { shortCode: string };
 
-    const res = await exports.default.fetch(`https://x/join/${short_code}`);
+    const res = await exports.default.fetch(`https://x/join/${shortCode}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -68,9 +68,9 @@ describe("share/landing page", () => {
 describe("game landing page", () => {
   it("renders OG tags, the roster, and store links for a public game", async () => {
     const a = uid("gh");
-    const { game_id } = (await (await api(a, "POST", "/games", createBody)).json()) as { game_id: string };
+    const { gameId } = (await (await api(a, "POST", "/games", createBody)).json()) as { gameId: string };
 
-    const res = await exports.default.fetch(`https://x/game/${game_id}`);
+    const res = await exports.default.fetch(`https://x/game/${gameId}`);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     const html = await res.text();
@@ -82,14 +82,14 @@ describe("game landing page", () => {
 
   it("does not leak the roster of a private game", async () => {
     const a = uid("gp");
-    const displayName = (await (await api(a, "GET", "/me")).json()) as { display_name?: string };
-    const { game_id } = (await (await api(a, "POST", "/games", { ...createBody, access: "private" })).json()) as { game_id: string };
+    const displayName = (await (await api(a, "GET", "/me")).json()) as { displayName?: string };
+    const { gameId } = (await (await api(a, "POST", "/games", { ...createBody, access: "private" })).json()) as { gameId: string };
 
-    const html = await (await exports.default.fetch(`https://x/game/${game_id}`)).text();
+    const html = await (await exports.default.fetch(`https://x/game/${gameId}`)).text();
     expect(html).toContain("Open this game in"); // the generic card
     expect(html).not.toContain("Watch this game"); // no roster description
     // The seated player's name must not appear on an unauthenticated page.
-    if (displayName.display_name !== undefined) expect(html).not.toContain(displayName.display_name);
+    if (displayName.displayName !== undefined) expect(html).not.toContain(displayName.displayName);
   });
 
   it("returns a 404 page for an unknown game id", async () => {
@@ -110,15 +110,15 @@ describe("avatars", () => {
     const a = uid("av");
     const up = await upload(a, "image/png", png);
     expect(up.status).toBe(200);
-    const { avatar_url } = (await up.json()) as { avatar_url: string };
-    expect(avatar_url).toMatch(new RegExp(`^/avatars/${a}\\?v=\\d+$`));
+    const { avatarUrl } = (await up.json()) as { avatarUrl: string };
+    expect(avatarUrl).toMatch(new RegExp(`^/avatars/${a}\\?v=\\d+$`));
 
     // /me reflects the stored URL.
-    const me = (await (await api(a, "GET", "/me")).json()) as { avatar_url: string };
-    expect(me.avatar_url).toBe(avatar_url);
+    const me = (await (await api(a, "GET", "/me")).json()) as { avatarUrl: string };
+    expect(me.avatarUrl).toBe(avatarUrl);
 
     // Public serve — no auth, right content type, immutable cache.
-    const served = await exports.default.fetch(`https://x${avatar_url}`);
+    const served = await exports.default.fetch(`https://x${avatarUrl}`);
     expect(served.status).toBe(200);
     expect(served.headers.get("content-type")).toBe("image/png");
     expect(served.headers.get("cache-control")).toContain("immutable");
@@ -134,10 +134,10 @@ describe("avatars", () => {
 
   it("serves a repeat read from the edge cache, surviving the underlying object", async () => {
     const a = uid("cache");
-    const { avatar_url } = (await (await upload(a, "image/png", png)).json()) as { avatar_url: string };
+    const { avatarUrl } = (await (await upload(a, "image/png", png)).json()) as { avatarUrl: string };
 
     // First read populates the Worker's edge cache (via waitUntil).
-    const first = await exports.default.fetch(`https://x${avatar_url}`);
+    const first = await exports.default.fetch(`https://x${avatarUrl}`);
     expect(first.status).toBe(200);
     expect(new Uint8Array(await first.arrayBuffer())).toEqual(png);
 
@@ -149,18 +149,18 @@ describe("avatars", () => {
     // ...yet the original versioned URL still serves the bytes: it came from
     // the cache, never R2. (This is exactly why account deletion must
     // invalidate the entry — see the next test.)
-    const second = await exports.default.fetch(`https://x${avatar_url}`);
+    const second = await exports.default.fetch(`https://x${avatarUrl}`);
     expect(second.status).toBe(200);
     expect(new Uint8Array(await second.arrayBuffer())).toEqual(png);
   });
 
   it("deletes the avatar object when the account is deleted", async () => {
     const a = uid("av");
-    const { avatar_url } = (await (await upload(a, "image/png", png)).json()) as { avatar_url: string };
-    expect((await exports.default.fetch(`https://x${avatar_url}`)).status).toBe(200);
+    const { avatarUrl } = (await (await upload(a, "image/png", png)).json()) as { avatarUrl: string };
+    expect((await exports.default.fetch(`https://x${avatarUrl}`)).status).toBe(200);
 
     expect((await api(a, "DELETE", "/me")).status).toBe(204);
-    expect((await exports.default.fetch(`https://x${avatar_url}`)).status).toBe(404);
+    expect((await exports.default.fetch(`https://x${avatarUrl}`)).status).toBe(404);
   });
 });
 

@@ -17,7 +17,7 @@ class LobbyCommand {
   /// Returns a new [LobbyCommand] instance.
   LobbyCommand({this.commandId});
 
-  @JsonKey(name: r'command_id', required: false, includeIfNull: false)
+  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
   final String? commandId;
 
   @override
