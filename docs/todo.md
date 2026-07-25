@@ -38,7 +38,6 @@
   as they ship; add screenshots/logos to the showcase.
 - changelog maintenance for both, release instructions, etc. (the changelog is
   now `eigen-web`'s `/blog`).
-- Remove supabase markers, comments, etc. not just from prose, but understand the context, code, etc. and suggest if there's any meaningful refactor for the good
 
 # P1
 
@@ -49,15 +48,3 @@
 - [ ] Spectating Support
 - [ ] Quick Match
 - [ ] Target web platform, Web App notifications
-
-
-# Rough
-Where are there so many unnecessary mappings like 
-history: rows.map((r) => ({
-            gameId: r.gameId,
-            pool: r.pool,
-            displayBefore: r.displayBefore,
-            displayAfter: r.displayAfter,
-            displayChange: r.displayChange,
-            createdAt: r.createdAt,
-          })),
