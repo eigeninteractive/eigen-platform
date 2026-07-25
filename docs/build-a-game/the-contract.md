@@ -16,7 +16,7 @@ reconnection, ratings, bots, auth, history, the API, and the game's website. You
 never touch a database, a Durable Object, a migration, or a socket.
 
 Both halves come from a package with no engine dependencies —
-[`@eigen/rules`](../reference/typescript/rules.md) is pure types plus two tiny
+[`@eigeninteractive/rules`](../reference/typescript/rules.md) is pure types plus two tiny
 helpers, and you can read it top to bottom in ten minutes.
 
 ## Four facts that shape everything you write
@@ -61,7 +61,7 @@ fixtures run against both units and fail a test on divergence. See
 A `GameModule` is a map from `schema_version` to a `GameRules` unit:
 
 ```ts
-import type { GameModule } from "@eigen/rules";
+import type { GameModule } from "@eigeninteractive/rules";
 import { rulesV1 } from "./v1.js";
 
 export const gameModule: GameModule = {

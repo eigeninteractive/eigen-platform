@@ -1,6 +1,6 @@
-# @eigen/testkit
+# @eigeninteractive/testkit
 
-`@eigen/testkit` — drive a game's rules through the real kernel without a
+`@eigeninteractive/testkit` — drive a game's rules through the real kernel without a
 Worker, a database or a network. Build a table, submit actions as seats,
 assert on the resulting transitions and per-seat observations.
 

@@ -17,7 +17,7 @@ Every hook returns `Envelope<State>`:
 | `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `team_index`, optional `score`). |
 | `turn_seconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
 
-The generated types are in the [`@eigen/rules` reference](./typescript/rules.md).
+The generated types are in the [`@eigeninteractive/rules` reference](./typescript/rules.md).
 
 ## Determinism — the RNG contract
 

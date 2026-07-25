@@ -29,7 +29,7 @@ export default {
   skipErrorChecking: true,
 
   // One file per module, flat, so URLs stay short. `sync-api` then rewrites
-  // the `@eigen.*` filenames TypeDoc derives from module names into plain
+  // the `@eigeninteractive.*` filenames TypeDoc derives from module names into plain
   // slugs, since `@` in a URL path is legal but ugly.
   outputFileStrategy: "modules",
   flattenOutputFiles: true,

@@ -1,6 +1,6 @@
-# @eigen/rules
+# @eigeninteractive/rules
 
-`@eigen/rules` — the contract a game implements. A `GameModule` bundles one
+`@eigeninteractive/rules` — the contract a game implements. A `GameModule` bundles one
 `GameRules` unit per schema version; the engine calls its hooks and never
 inspects game state directly. This package is types plus a couple of
 helpers: it has no runtime dependencies and pulls in no engine code.

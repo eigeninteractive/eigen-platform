@@ -12,11 +12,11 @@ database and players, and it is about fifteen lines of glue around your
 
 ## The glue
 
-Two pieces, both from `@eigen/server`:
+Two pieces, both from `@eigeninteractive/server`:
 
 ```ts
 // src/index.ts
-import { BaseGameDO, createEngine } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
 import { gameModule } from "./rules/index.js";
 
 // 1. Bind the game's Durable Object to your game module + D1.
@@ -82,7 +82,7 @@ Three things make that true:
   placeholder `FIREBASE_*` trio and a dev `BOT_SIGNING_SECRET`. Push degrades to
   a logged no-op, which is the intended local behaviour — do not put real
   credentials there to "make push work" locally.
-- **Auth is testable without Firebase.** `@eigen/server/testing` mints local
+- **Auth is testable without Firebase.** `@eigeninteractive/server/testing` mints local
   tokens the auth middleware accepts, so integration tests exercise the real
   middleware, the real Durable Object and the real D1 with no Firebase project.
 

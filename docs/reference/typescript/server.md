@@ -1,6 +1,6 @@
-# @eigen/server
+# @eigeninteractive/server
 
-`@eigen/server` — everything that deploys: the
+`@eigeninteractive/server` — everything that deploys: the
 `createEngine` API factory, the GameDO base class, the D1 applier +
 schemas, and the protocol types.
 

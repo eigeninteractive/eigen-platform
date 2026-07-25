@@ -18,7 +18,7 @@
  *   3. runs `docusaurus gen-api-docs` to turn the spec into MDX pages.
  *
  * Step 2's output is renamed on the way through: TypeDoc names files after the
- * module, so `@eigen/server/testing` lands as `@eigen.server.testing.md` and
+ * module, so `@eigeninteractive/server/testing` lands as `@eigeninteractive.server.testing.md` and
  * would be served from a URL with an `@` in it. We flatten those to plain
  * slugs and rewrite the cross-links to match.
  */
@@ -35,13 +35,13 @@ const tsDocsDir = join(siteDir, "docs", "reference", "typescript");
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: siteDir, stdio: "inherit" });
 const step = (msg) => console.log(`\n\x1b[36m▸ ${msg}\x1b[0m`);
 
-// A module name becomes a file slug: "@eigen/server/testing" arrives as
-// "@eigen.server.testing.md" and leaves as "server-testing.md". Namespace
+// A module name becomes a file slug: "@eigeninteractive/server/testing" arrives as
+// "@eigeninteractive.server.testing.md" and leaves as "server-testing.md". Namespace
 // pages carry a literal "Namespace" segment we drop.
 const slugFor = (file) =>
   `${file
     .replace(/\.md$/, "")
-    .replace(/^@eigen\./, "")
+    .replace(/^@eigeninteractive\./, "")
     .replace(/\.Namespace\./g, ".")
     .replace(/\./g, "-")
     .toLowerCase()}.md`;

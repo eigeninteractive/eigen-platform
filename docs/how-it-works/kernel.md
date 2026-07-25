@@ -6,7 +6,7 @@ description: The pure decision core — a function from inputs to a commit plan,
 
 # The kernel — the pure decision core
 
-`@eigen/kernel` is the crown jewel: a pure function from inputs to a commit
+`@eigeninteractive/kernel` is the crown jewel: a pure function from inputs to a commit
 plan. It touches no platform API, so it is exhaustively unit-testable and
 identical in every environment.
 
@@ -50,4 +50,4 @@ never writes `if (version === …)`. See [Evolving your game](../build-a-game/ve
 
 :::
 
-The kernel's full API is in the [`@eigen/kernel` reference](../reference/typescript/kernel.md).
+The kernel's full API is in the [`@eigeninteractive/kernel` reference](../reference/typescript/kernel.md).

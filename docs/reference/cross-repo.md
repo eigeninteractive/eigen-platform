@@ -19,11 +19,11 @@ it is an ordinary versioned dependency, and `eigen_api: ^1.2.0` in an app states
 exactly the compatibility it means.
 
 The *rules* half is the part that genuinely spans two repos, and it is why the
-contract in `@eigen/rules` is small and precise: it is the seam two languages
+contract in `@eigeninteractive/rules` is small and precise: it is the seam two languages
 meet at.
 
 ```text
-          ┌──────────────────── @eigen/rules ────────────────────┐
+          ┌──────────────────── @eigeninteractive/rules ────────────────────┐
           │  GameRules · GameModule · the six hooks · Envelope   │
           └──────────────────────────────────────────────────────┘
                     │                              │

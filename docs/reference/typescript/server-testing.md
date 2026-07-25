@@ -1,6 +1,6 @@
-# @eigen/server/testing
+# @eigeninteractive/server/testing
 
-`@eigen/server/testing` — the test-auth recipe, for the engine's own
+`@eigeninteractive/server/testing` — the test-auth recipe, for the engine's own
 suite and for implementor test workers alike:
 
 ```ts

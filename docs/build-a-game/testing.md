@@ -73,7 +73,7 @@ not a gap, so a game like RPS simply has no preview coverage here.
 **TypeScript**, one line from the testkit, under plain-Node vitest:
 
 ```ts
-import { twinFixtureTests } from "@eigen/testkit";
+import { twinFixtureTests } from "@eigeninteractive/testkit";
 import { gameModule } from "../../src/rules/index.js";
 
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
@@ -118,7 +118,7 @@ auth. See [Rendering](./rendering.md#testing-the-screen).
 
 **Integration tests against the real runtime.** Drive the actual Worker (routes +
 Durable Object + D1) with `@cloudflare/vitest-pool-workers`, using
-`@eigen/server/testing` to mint local tokens. The engine's own suites cover the
+`@eigeninteractive/server/testing` to mint local tokens. The engine's own suites cover the
 plumbing — lobby, sockets, timing, finish, ratings, purge — so your job is *your
 game* end to end: a full match, a timeout resolution, a bot game.
 
@@ -150,7 +150,7 @@ jobs:
 
 `pnpm -r build` before `typecheck` is not optional if your game lives in a
 workspace beside the engine packages: they resolve through their `exports` field
-to `dist/`, so an unbuilt `@eigen/server` fails to type-check its consumers.
+to `dist/`, so an unbuilt `@eigeninteractive/server` fails to type-check its consumers.
 
 :::danger Do not deploy from CI
 

@@ -1,6 +1,6 @@
-# @eigen/kernel
+# @eigeninteractive/kernel
 
-`@eigen/kernel` — the pure decision core. Given the current row, a state
+`@eigeninteractive/kernel` — the pure decision core. Given the current row, a state
 snapshot and an intent, it returns a plan: the next state, the transition to
 append, the observations to fan out, and any effects to schedule. It touches
 no storage and no clock of its own, so every decision is reproducible from

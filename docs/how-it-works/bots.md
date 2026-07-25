@@ -53,10 +53,10 @@ bot** is therefore: insert the row, derive that bot's key, and hand it to whoeve
 runs the bot — which may well be you. The bot's owner gets only the derived key
 and never sees `BOT_SIGNING_SECRET`.
 
-`@eigen/server` exports the derivation as an operator utility:
+`@eigeninteractive/server` exports the derivation as an operator utility:
 
 ```ts
-import { deriveBotKey } from "@eigen/server";
+import { deriveBotKey } from "@eigeninteractive/server";
 const key = await deriveBotKey(BOT_SIGNING_SECRET, botId); // base64
 ```
 

@@ -12,26 +12,26 @@ The server is a small pnpm monorepo. The split is by **trust and purity**, not
 by feature:
 
 ```text
-@eigen/rules    The implementor contract: GameRules, GameModule, the six hooks,
+@eigeninteractive/rules    The implementor contract: GameRules, GameModule, the six hooks,
                 the JSON/Envelope/Observation types. Pure types + 2 helpers.
                 Zero engine dependencies — a game author reads only this.
 
-@eigen/kernel   The pure decision core. Given (game, state, roster, intent, now)
+@eigeninteractive/kernel   The pure decision core. Given (game, state, roster, intent, now)
                 it returns a commit plan or a rejection. No I/O, no platform
                 APIs, fully unit-testable. Owns timing/grace, the same-view rule,
                 observation fan-out, RNG derivation, and the rating math.
 
-@eigen/server   Everything that deploys: the BaseGameDO class, the hono routes,
+@eigeninteractive/server   Everything that deploys: the BaseGameDO class, the hono routes,
                 the D1 schema + appliers, auth, bots, push, the createEngine
                 factory. This is the only package an implementor's Worker imports
-                at runtime (plus their own @eigen/rules game module).
+                at runtime (plus their own @eigeninteractive/rules game module).
 
-@eigen/testkit  Shared conformance fixtures + kernel scenarios, run by both the
+@eigeninteractive/testkit  Shared conformance fixtures + kernel scenarios, run by both the
                 TS tests and the Dart client's tests to catch twin drift.
 ```
 
-An implementor authors a game against `@eigen/rules`, and ships a Worker that
-imports `@eigen/server`. They never see the DO internals, the D1 schema, or the
+An implementor authors a game against `@eigeninteractive/rules`, and ships a Worker that
+imports `@eigeninteractive/server`. They never see the DO internals, the D1 schema, or the
 migration machinery.
 
 ## One Worker, two authenticated API groups, one public web surface
