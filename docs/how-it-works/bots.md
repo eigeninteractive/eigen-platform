@@ -41,7 +41,7 @@ HMAC over the exact message body, using a **per-bot key derived from one engine
 secret**:
 
 ```text
-derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, bot_id)
+derivedKey = HMAC-SHA256(BOT_SIGNING_SECRET, botId)
 signature  = "v1," + base64(HMAC-SHA256(derivedKey, "<domain>:<message>"))
 ```
 
@@ -63,7 +63,7 @@ const key = await deriveBotKey(BOT_SIGNING_SECRET, botId); // base64
 or, with no code at all:
 
 ```bash
-echo -n "<bot_id>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
+echo -n "<botId>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
 ```
 
 :::warning Rotation is all-or-nothing

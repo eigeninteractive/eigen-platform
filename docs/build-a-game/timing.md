@@ -23,13 +23,13 @@ in the system, and it means your only real decisions are the two below.
 ```ts
 if (type === "timeout") {
   // Both idle ⇒ a drawn match; one idle ⇒ the seat that did commit wins.
-  if (pending.length === 2) return { state, pending_players: [], outcome: drawOutcome() };
+  if (pending.length === 2) return { state, pendingPlayers: [], outcome: drawOutcome() };
   const winner = (1 - pending[0]) as 0 | 1;
-  return { state, pending_players: [], outcome: matchOutcome(winner) };
+  return { state, pendingPlayers: [], outcome: matchOutcome(winner) };
 }
 ```
 
-**The envelope's `turn_seconds`** widens the deadline for *one* action only — a
+**The envelope's `turnSeconds`** widens the deadline for *one* action only — a
 longer window for a special phase — without touching any player's bank. Omit it
 to use the game's configured timing.
 
@@ -40,7 +40,7 @@ alarm are all engine-owned; see
 ## The client side: display only
 
 Each frame carries the true `deadline` (epoch ms, or null when untimed) and, in
-budget mode, the per-seat `player_times` banks. `TimingContext` on
+budget mode, the per-seat `playerTimes` banks. `TimingContext` on
 `GameContentContext.timing` exposes them as `clock`, `deadline`, `playerTimes`
 and `windowMillis`, plus `isTimed`, `deviceDeadline` and `remaining`.
 

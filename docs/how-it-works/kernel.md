@@ -16,16 +16,16 @@ commit({ game, state, roster, intent, now, rules, staleViews }) →
 ```
 
 - **`intent`** is one of `start` (seed a new game), `action` (a player/bot
-  move), or `lifecycle` (`timeout` / `forfeit` / `auto_forfeit`).
-- **`rules`** is the game's `GameRules` unit for this game's `schema_version`.
+  move), or `lifecycle` (`timeout` / `forfeit` / `autoForfeit`).
+- **`rules`** is the game's `GameRules` unit for this game's `schemaVersion`.
   The kernel invokes the game's hooks but owns everything around them.
 - A **`CommitPlan`** carries: the next `StateRow` (version, opaque state,
   pending set, deadline, per-player clocks), the per-seat projected
   `frames`, the `action` to log, any `outcomes` (if the game ended), the
-  `alarm` time to arm, and named **effects** (`wake_bot`, `notify_turn`,
-  `notify_finished`) for the runtime to deliver post-commit.
+  `alarm` time to arm, and named **effects** (`wakeBot`, `notifyTurn`,
+  `notifyFinished`) for the runtime to deliver post-commit.
 - A **`Rejected`** is a value, not an exception: a stable `code`
-  (`illegal_move`, `not_participant`, `board_updated`, …) plus a message. The
+  (`illegalMove`, `notParticipant`, `board_updated`, …) plus a message. The
   DO returns it; the Worker maps it to an HTTP status.
 
 The kernel owns four things worth calling out:
@@ -44,7 +44,7 @@ The kernel owns four things worth calling out:
 
 :::note Version dispatch never happens inside game logic
 
-The engine resolves the game's `schema_version` to a `GameRules` unit once, up
+The engine resolves the game's `schemaVersion` to a `GameRules` unit once, up
 front, and every hook it calls is already the right version. A game author
 never writes `if (version === …)`. See [Evolving your game](../build-a-game/versions.md).
 

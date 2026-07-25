@@ -67,7 +67,7 @@ client receives:
   at the moment the socket opened. From v0 the roster is frozen, so this is what
   moves; it is what lets a client reconcile in one step instead of guessing.
 - **Versioned frames** from v0 — each is one seat's projected observation at one
-  state version (`{ version, data, pending_players, deadline, player_times,
+  state version (`{ version, data, pendingPlayers, deadline, playerTimes,
   outcomes?, ratings? }`).
 
 Frames are **strictly serial with no gaps**. The client tracks the last version

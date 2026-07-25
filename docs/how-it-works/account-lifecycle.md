@@ -20,7 +20,7 @@ next request resurrect the user. So:
    failure this throws **before** any D1 write, so nothing is half-deleted and a
    retry is clean — the route surfaces a 502 ("intact, retry"), never a partial
    deletion.
-3. Purge D1 as one explicit `batch()`: anonymize the seats and `created_by` (so
+3. Purge D1 as one explicit `batch()`: anonymize the seats and `createdBy` (so
    finished-game history stays readable as "Deleted User"), delete ratings,
    history, relationships, and device rows, then the `users` row last. Delete the
    avatar object if present.

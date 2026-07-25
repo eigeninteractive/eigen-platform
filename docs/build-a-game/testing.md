@@ -15,7 +15,7 @@ Nothing here needs a Cloudflare account, a Firebase project or a network.
 
 ## Twin fixtures
 
-A fixture file is a list of cases, keyed to one `schema_version`:
+A fixture file is a list of cases, keyed to one `schemaVersion`:
 
 ```json
 {

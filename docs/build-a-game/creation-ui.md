@@ -48,7 +48,7 @@ class RpsModule extends GameModule {
 - **`BudgetConfig` is only valid for strictly sequential games.** The server
   rejects a hook envelope with more than one pending seat in a budget-timed game
   as a game bug. If any phase has multiple pending seats, use a per-action mode
-  for it — or a `turn_seconds` override on that envelope.
+  for it — or a `turnSeconds` override on that envelope.
 - **`defaultConfig`** seeds the config map before the player touches anything, so
   a game with no custom UI still creates a valid game.
 - **`playersForConfig`** overrides the range when it depends on a creation-time

@@ -10,7 +10,7 @@ its inputs alone.
 
 ### GameBugError
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:15](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L15)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:15](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L15)
 
 A broken game/engine invariant — a bug, not a rejection.
 
@@ -73,7 +73,7 @@ Error.constructor
 
 ### CommitInput
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:96](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L96)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:96](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L96)
 
 #### Properties
 
@@ -83,7 +83,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:96](https://github.com/e
 game: GameRow;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:97](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L97)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:97](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L97)
 
 ##### intent
 
@@ -91,7 +91,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:97](https://github.com/e
 intent: Intent;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:102](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L102)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:102](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L102)
 
 ##### now
 
@@ -99,7 +99,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:102](https://github.com/
 now: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:105](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L105)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:105](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L105)
 
 The commit instant (epoch ms) — sampled once by the host, never read
 here.
@@ -110,7 +110,7 @@ here.
 roster: Seat[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:101](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L101)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:101](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L101)
 
 ##### rules
 
@@ -118,9 +118,9 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:101](https://github.com/
 rules: GameRules;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:108](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L108)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:108](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L108)
 
-The version unit for the game's `schema_version`, already resolved by
+The version unit for the game's `schemaVersion`, already resolved by
 the host from the `GameModule.versions` map.
 
 ##### staleViews?
@@ -132,7 +132,7 @@ optional staleViews?: {
 };
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:116](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L116)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:116](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L116)
 
 Same-view material for a stale game action: the acting seat's stored
 frames at `expectedVersion` and at the current version. Only consulted
@@ -158,7 +158,7 @@ expected: SeatView | null;
 state: StateRow | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:100](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L100)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:100](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L100)
 
 The latest transition, or null before v0 (only a `start` intent is
 meaningful then).
@@ -167,7 +167,7 @@ meaningful then).
 
 ### CommitPlan
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:139](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L139)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:139](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L139)
 
 #### Properties
 
@@ -177,7 +177,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:139](https://github.com/
 action: TransitionAction | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:142](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L142)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:142](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L142)
 
 ##### alarm
 
@@ -185,7 +185,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:142](https://github.com/
 alarm: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:155](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L155)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:155](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L155)
 
 The instant the DO must arm its alarm at — the true deadline plus the
 grace window — or null to clear it.
@@ -196,7 +196,7 @@ grace window — or null to clear it.
 effects: Effect[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:156](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L156)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:156](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L156)
 
 ##### frames
 
@@ -204,7 +204,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:156](https://github.com/
 frames: ObservationFrame[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:145](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L145)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:145](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L145)
 
 Per-seat projected frames (identified seats only) — persisted with the
 transition, fanned out over sockets. No raw state escapes the kernel.
@@ -215,7 +215,7 @@ transition, fanned out over sockets. No raw state escapes the kernel.
 nextState: StateRow;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:141](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L141)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:141](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L141)
 
 The next transition row, already versioned (`v+1`, or 0 for start).
 
@@ -225,7 +225,7 @@ The next transition row, already versioned (`v+1`, or 0 for start).
 outcomes: OutcomeEntry[] | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:152](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L152)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:152](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L152)
 
 Per-seat results when this transition ends the game, else null.
 
@@ -238,7 +238,7 @@ the host delivers them as a follow-up versioned ratings transition.
 
 ### GameRow
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:32](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L32)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:32](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L32)
 
 The game's standing configuration — the DO `meta` snapshot.
 
@@ -250,7 +250,7 @@ The game's standing configuration — the DO `meta` snapshot.
 budgetSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:39](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L39)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:39](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L39)
 
 ##### config
 
@@ -258,7 +258,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:39](https://github.com/e
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:37](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L37)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:37](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L37)
 
 Stored creation config; parsed against the version unit's config schema
 before any hook sees it.
@@ -269,7 +269,7 @@ before any hook sees it.
 incrementSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:40](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L40)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:40](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L40)
 
 ##### rated
 
@@ -277,7 +277,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:40](https://github.com/e
 rated: boolean;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:41](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L41)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:41](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L41)
 
 ##### ratingPool
 
@@ -285,7 +285,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:41](https://github.com/e
 ratingPool: string | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:42](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L42)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:42](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L42)
 
 ##### schemaVersion
 
@@ -293,7 +293,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:42](https://github.com/e
 schemaVersion: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:34](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L34)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:34](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L34)
 
 ##### status
 
@@ -301,7 +301,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:34](https://github.com/e
 status: GameStatus;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:33](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L33)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:33](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L33)
 
 ##### turnSeconds
 
@@ -309,13 +309,13 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:33](https://github.com/e
 turnSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:38](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L38)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:38](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L38)
 
 ***
 
 ### NextDeadline
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:50](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L50)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:50](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L50)
 
 #### Properties
 
@@ -325,7 +325,7 @@ Defined in: [eigen-server/packages/kernel/src/timing.ts:50](https://github.com/e
 deadline: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:51](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L51)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:51](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L51)
 
 ##### turnStartedAt
 
@@ -333,13 +333,13 @@ Defined in: [eigen-server/packages/kernel/src/timing.ts:51](https://github.com/e
 turnStartedAt: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:52](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L52)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:52](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L52)
 
 ***
 
 ### ObservationFrame
 
-Defined in: [eigen-server/packages/kernel/src/observe.ts:11](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/observe.ts#L11)
+Defined in: [eigen-server/packages/kernel/src/observe.ts:11](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/observe.ts#L11)
 
 One seat's projected frame, tagged with its seat. The host stamps
 version/timing when it persists and fans these out.
@@ -352,33 +352,33 @@ version/timing when it persists and fans these out.
 data: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/observe.ts:13](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/observe.ts#L13)
+Defined in: [eigen-server/packages/kernel/src/observe.ts:13](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/observe.ts#L13)
 
-##### pending\_players
-
-```ts
-pending_players: number[];
-```
-
-Defined in: [eigen-server/packages/kernel/src/observe.ts:14](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/observe.ts#L14)
-
-##### player\_index
+##### pendingPlayers
 
 ```ts
-player_index: number;
+pendingPlayers: number[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/observe.ts:12](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/observe.ts#L12)
+Defined in: [eigen-server/packages/kernel/src/observe.ts:14](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/observe.ts#L14)
+
+##### playerIndex
+
+```ts
+playerIndex: number;
+```
+
+Defined in: [eigen-server/packages/kernel/src/observe.ts:12](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/observe.ts#L12)
 
 ***
 
 ### PlayerInput
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:27](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L27)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:27](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L27)
 
 A player seat to be rated. Self-contained: each seat's current
 `mu`/`sigma` is bundled, so this module never reads a store.
-`display_rating` is intentionally NOT carried — it is derived from
+`displayRating` is intentionally NOT carried — it is derived from
 `mu`/`sigma` so the formula lives in one place per side of the wire.
 
 #### Extends
@@ -387,13 +387,13 @@ A player seat to be rated. Self-contained: each seat's current
 
 #### Properties
 
-##### bot\_id
+##### botId
 
 ```ts
-bot_id: string | null;
+botId: string | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:30](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L30)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:30](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L30)
 
 ##### placement
 
@@ -401,42 +401,42 @@ Defined in: [eigen-server/packages/kernel/src/ratings.ts:30](https://github.com/
 placement: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:32](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L32)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:32](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L32)
 
 Ordinal finish rank (1 = best); ties share the same value.
 
-##### player\_index
+##### playerIndex
 
 ```ts
-player_index: number;
+playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:28](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L28)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:28](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L28)
 
-##### team\_index
+##### teamIndex
 
 ```ts
-team_index: number;
+teamIndex: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:35](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L35)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:35](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L35)
 
-Players sharing a team_index are rated as one team. For individual
-games this equals player_index.
+Players sharing a teamIndex are rated as one team. For individual
+games this equals playerIndex.
 
-##### user\_id
+##### userId
 
 ```ts
-user_id: string | null;
+userId: string | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:29](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L29)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L29)
 
 ***
 
 ### RatingDelta
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:55](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L55)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:55](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L55)
 
 One rated identity's before → after, exactly the rating_history row minus
 store keys. Computed by the D1 applier inside the rating CAS and delivered
@@ -444,29 +444,29 @@ on the post-finish ratings transition (the `kind: "ratings"` action).
 
 #### Properties
 
-##### display\_after
+##### displayAfter
 
 ```ts
-display_after: number;
+displayAfter: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:63](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L63)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:63](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L63)
 
-##### display\_before
+##### displayBefore
 
 ```ts
-display_before: number;
+displayBefore: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:60](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L60)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:60](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L60)
 
-##### display\_change
+##### displayChange
 
 ```ts
-display_change: number;
+displayChange: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:64](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L64)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:64](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L64)
 
 ##### identity
 
@@ -474,23 +474,23 @@ Defined in: [eigen-server/packages/kernel/src/ratings.ts:64](https://github.com/
 identity: RatingIdentity;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:56](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L56)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:56](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L56)
 
-##### mu\_after
-
-```ts
-mu_after: number;
-```
-
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:61](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L61)
-
-##### mu\_before
+##### muAfter
 
 ```ts
-mu_before: number;
+muAfter: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:58](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L58)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:61](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L61)
+
+##### muBefore
+
+```ts
+muBefore: number;
+```
+
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:58](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L58)
 
 ##### pool
 
@@ -498,29 +498,29 @@ Defined in: [eigen-server/packages/kernel/src/ratings.ts:58](https://github.com/
 pool: string;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:57](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L57)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:57](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L57)
 
-##### sigma\_after
-
-```ts
-sigma_after: number;
-```
-
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:62](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L62)
-
-##### sigma\_before
+##### sigmaAfter
 
 ```ts
-sigma_before: number;
+sigmaAfter: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:59](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L59)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:62](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L62)
+
+##### sigmaBefore
+
+```ts
+sigmaBefore: number;
+```
+
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:59](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L59)
 
 ***
 
 ### RatingResult
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:48](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L48)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:48](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L48)
 
 One identity's newly computed rating — the pure OpenSkill posterior,
 before the store-owned CAS revision is attached by the applier.
@@ -537,13 +537,13 @@ before the store-owned CAS revision is attached by the applier.
 identity: RatingIdentity;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:49](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L49)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:49](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L49)
 
 ***
 
 ### Rejected
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:42](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L42)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:42](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L42)
 
 An intent the kernel refused. A value, not a throw — rejections are part
 of the normal protocol.
@@ -556,7 +556,7 @@ of the normal protocol.
 code: RejectCode;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:44](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L44)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:44](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L44)
 
 ##### message
 
@@ -564,7 +564,7 @@ Defined in: [eigen-server/packages/kernel/src/errors.ts:44](https://github.com/e
 message: string;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:45](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L45)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:45](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L45)
 
 ##### rejected
 
@@ -572,34 +572,34 @@ Defined in: [eigen-server/packages/kernel/src/errors.ts:45](https://github.com/e
 rejected: true;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:43](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L43)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:43](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L43)
 
 ***
 
 ### Seat
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:47](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L47)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:47](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L47)
 
 One seat of the roster. Both ids null ⇒ the account was purged mid-game
 (the seat plays on as "Deleted User" for display, but can never act).
 
 #### Properties
 
-##### bot\_id
+##### botId
 
 ```ts
-bot_id: string | null;
+botId: string | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:50](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L50)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:50](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L50)
 
-##### player\_index
+##### playerIndex
 
 ```ts
-player_index: number;
+playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:48](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L48)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:48](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L48)
 
 ##### type
 
@@ -607,21 +607,21 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:48](https://github.com/e
 type: "bot" | "human";
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:51](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L51)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:51](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L51)
 
-##### user\_id
+##### userId
 
 ```ts
-user_id: string | null;
+userId: string | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:49](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L49)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:49](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L49)
 
 ***
 
 ### SeatView
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:86](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L86)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:86](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L86)
 
 A seat's stored projection at one version — what the same-view compare
 runs on (and what the DO persists per transition as `frames[]`).
@@ -634,21 +634,21 @@ runs on (and what the DO persists per transition as `frames[]`).
 data: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:87](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L87)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:87](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L87)
 
-##### pending\_players
+##### pendingPlayers
 
 ```ts
-pending_players: number[];
+pendingPlayers: number[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:88](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L88)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:88](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L88)
 
 ***
 
 ### StateRow
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:56](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L56)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:56](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L56)
 
 The latest committed transition — state plus the engine-owned clocks. All
 instants are epoch milliseconds.
@@ -661,7 +661,7 @@ instants are epoch milliseconds.
 deadline: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:63](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L63)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:63](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L63)
 
 The true turn deadline shown to clients; the alarm arms at
 `deadline + grace`.
@@ -672,7 +672,7 @@ The true turn deadline shown to clients; the alarm arms at
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:59](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L59)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:59](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L59)
 
 ##### playerTimes
 
@@ -680,7 +680,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:59](https://github.com/e
 playerTimes: number[] | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:65](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L65)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:65](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L65)
 
 Per-seat budget banks (ms), budget mode only.
 
@@ -690,7 +690,7 @@ Per-seat budget banks (ms), budget mode only.
 rngSeed: string;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:60](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L60)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:60](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L60)
 
 ##### state
 
@@ -698,7 +698,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:60](https://github.com/e
 state: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:58](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L58)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:58](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L58)
 
 ##### turnStartedAt
 
@@ -706,7 +706,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:58](https://github.com/e
 turnStartedAt: number | null;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:66](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L66)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:66](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L66)
 
 ##### version
 
@@ -714,7 +714,7 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:66](https://github.com/e
 version: number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:57](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L57)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:57](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L57)
 
 ## Type Aliases
 
@@ -723,22 +723,22 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:57](https://github.com/e
 ```ts
 type Effect = 
   | {
-  bot_id: string;
-  kind: "wake_bot";
+  botId: string;
+  kind: "wakeBot";
   seat: number;
 }
   | {
-  kind: "notify_turn";
+  kind: "notifyTurn";
   seat: number;
-  user_id: string;
+  userId: string;
 }
   | {
-  kind: "notify_finished";
-  user_ids: string[];
+  kind: "notifyFinished";
+  userIds: string[];
 };
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:137](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L137)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:137](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L137)
 
 A push/wake the host should attempt post-commit (single attempt + error
 log — no retry machinery in v1). The kernel names seats; the host resolves
@@ -752,7 +752,7 @@ delivery (FCM targets, bot webhook vs local bot).
 type GameStatus = "waiting" | "ready" | "active" | "finished" | "aborted";
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:29](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L29)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L29)
 
 ***
 
@@ -778,11 +778,11 @@ type Intent =
   | {
   kind: "lifecycle";
   seat: number;
-  type: "forfeit" | "auto_forfeit";
+  type: "forfeit" | "autoForfeit";
 };
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:73](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L73)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:73](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L73)
 
 What the host asks the kernel to do — the kernel-facing half of a
 `Command` (authorization already happened at the edge; dedupe at the DO).
@@ -882,11 +882,11 @@ seat: number;
 {
   kind: "lifecycle";
   seat: number;
-  type: "forfeit" | "auto_forfeit";
+  type: "forfeit" | "autoForfeit";
 }
 ```
 
-`forfeit` = a voluntary resign (a user action); `auto_forfeit` = the
+`forfeit` = a voluntary resign (a user action); `autoForfeit` = the
 engine-driven variant (account purge; identity-less system action).
 
 ***
@@ -905,7 +905,7 @@ type ParseResult<T> =
 };
 ```
 
-Defined in: [eigen-server/packages/kernel/src/schema.ts:13](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/schema.ts#L13)
+Defined in: [eigen-server/packages/kernel/src/schema.ts:13](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/schema.ts#L13)
 
 A client payload parse: refusal is the caller's fault, so failure comes
 back as a value for `commit()` to turn into a rejection.
@@ -922,17 +922,17 @@ back as a value for `commit()` to turn into a rejection.
 
 ```ts
 type RejectCode = 
-  | "not_active"
-  | "not_ready"
+  | "notActive"
+  | "notReady"
   | "expired"
-  | "not_pending"
-  | "state_updated"
-  | "invalid_payload"
-  | "illegal_move"
+  | "notPending"
+  | "stateUpdated"
+  | "invalidPayload"
+  | "illegalMove"
   | "abstain";
 ```
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:20](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L20)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:20](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L20)
 
 Why an intent was refused. Stable machine codes — the host's transport
 mapping and the client's retry policy key on these, so treat renames as
@@ -947,13 +947,13 @@ type TransitionAction =
   | {
   data: JsonObject;
   kind: "game";
-  player_index: number;
+  playerIndex: number;
   type: "user" | "bot";
 }
   | {
   data: LifecycleAction;
   kind: "lifecycle";
-  player_index: number | null;
+  playerIndex: number | null;
   type: ActionType;
 }
   | {
@@ -961,15 +961,15 @@ type TransitionAction =
      deltas: RatingDelta[];
   };
   kind: "ratings";
-  player_index: null;
+  playerIndex: null;
   type: "system";
 };
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:132](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L132)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:132](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L132)
 
 The action-log entry for a transition. Null only for the start transition
-(v0), which no action produced. `player_index` is the performer's seat —
+(v0), which no action produced. `playerIndex` is the performer's seat —
 null for identity-less system actions (timeout, auto-forfeit).
 
 The `ratings` variant is engine-owned, never produced by `commit()`: the
@@ -985,11 +985,11 @@ engine's, not the game's opaque payload.
 const DEADLINE_GRACE_MS: 750 = 750;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:27](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L27)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:27](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L27)
 
 Grace window (ms) added to every deadline comparison so a player who
 submits on time is not rejected because network latency carried the request
-past the deadline. Keep it small relative to per-action `turn_seconds`
+past the deadline. Keep it small relative to per-action `turnSeconds`
 windows. The client's display-only `kServerDeadlineGrace` mirrors this.
 
 ## Functions
@@ -1003,7 +1003,7 @@ function assertBudgetPending(
    schemaVersion): void;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:26](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L26)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:26](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L26)
 
 Enforce budget mode's sequential-pending rule at the source: an
 accumulated clock only meters individual thinking time when at most one
@@ -1035,7 +1035,7 @@ function assertForfeitPending(
    schemaVersion): void;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:36](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L36)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:36](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L36)
 
 Enforce that a forfeit actually removes the forfeited seat: a hook that
 leaves `targetSeat` in the pending set is a game bug. Left uncaught, the
@@ -1065,7 +1065,7 @@ function assertHookState(
    schemaVersion): void;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:16](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L16)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:16](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L16)
 
 Validate the state a hook returned against the game's version schema
 before it is committed — catching a hook that wrote a malformed or
@@ -1095,7 +1095,7 @@ function assertPendingIdentified(
    schemaVersion): void;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:48](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L48)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:48](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L48)
 
 Enforce that every pending seat has someone behind it: a seat whose
 account was purged mid-game (both ids null) can never act, so a hook that
@@ -1108,7 +1108,7 @@ catches any later hook resurrecting the seat.
 
 | Parameter | Type |
 | ------ | ------ |
-| `roster` | readonly \{ `bot_id`: `string` \| `null`; `player_index`: `number`; `user_id`: `string` \| `null`; \}[] |
+| `roster` | readonly \{ `botId`: `string` \| `null`; `playerIndex`: `number`; `userId`: `string` \| `null`; \}[] |
 | `envelope` | `Envelope` |
 | `schemaVersion` | `number` |
 
@@ -1124,7 +1124,7 @@ catches any later hook resurrecting the seat.
 function canonicalJson(value): string;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:69](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L69)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:69](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L69)
 
 Canonical JSON: deterministic serialization with object keys sorted and
 `undefined` object values treated as absent — so two structurally equal
@@ -1148,7 +1148,7 @@ views compare byte-identical regardless of construction order.
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:166](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L166)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:166](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L166)
 
 #### Parameters
 
@@ -1168,16 +1168,16 @@ Defined in: [eigen-server/packages/kernel/src/commit.ts:166](https://github.com/
 function computeNextDeadline(input): NextDeadline;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:69](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L69)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:69](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L69)
 
 Computes the deadline and `turnStartedAt` for the next action — the
 precedence chain used by start and every commit mode. Pass
 `gameOver = true` when the transition ends the game.
 
 1. game over → both null
-2. hook returned `turn_seconds` N → now + N s (banks untouched)
+2. hook returned `turnSeconds` N → now + N s (banks untouched)
 3. budget mode → now + MIN remaining bank over the new pending set
-4. per-action mode → now + configured `turn_seconds`
+4. per-action mode → now + configured `turnSeconds`
 5. untimed → both null
 
 Budget mode allows at most one pending seat — enforced at the source by
@@ -1189,7 +1189,7 @@ graceful-degradation safeguard should a multi-pending state arrive anyway.
 | Parameter | Type | Description |
 | ------ | ------ | ------ |
 | `input` | \{ `actionSeconds`: `number` \| `null`; `budgetSeconds`: `number` \| `null`; `gameOver`: `boolean`; `newPending`: readonly `number`[]; `newPlayerTimes`: readonly `number`[] \| `null`; `now`: `number`; `turnSeconds`: `number` \| `null`; \} | - |
-| `input.actionSeconds` | `number` \| `null` | The hook's per-action override (envelope `turn_seconds`), else null. |
+| `input.actionSeconds` | `number` \| `null` | The hook's per-action override (envelope `turnSeconds`), else null. |
 | `input.budgetSeconds` | `number` \| `null` | - |
 | `input.gameOver` | `boolean` | - |
 | `input.newPending` | readonly `number`[] | - |
@@ -1209,7 +1209,7 @@ graceful-degradation safeguard should a multi-pending state arrive anyway.
 function computeRatings(players): RatingResult[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:197](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L197)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:197](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L197)
 
 Compute every identity's new rating for one finished game.
 
@@ -1244,7 +1244,7 @@ row left to update.
 function deadlineExpired(deadline, now): boolean;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:32](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L32)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:32](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L32)
 
 TRUE once a turn deadline (plus the grace window) has genuinely passed,
 measured against the injected `now`. A null deadline (untimed turn) is
@@ -1274,7 +1274,7 @@ function deductBank(
    incrementSeconds): number[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/timing.ts:40](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/timing.ts#L40)
+Defined in: [eigen-server/packages/kernel/src/timing.ts:40](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/timing.ts#L40)
 
 Deducts the acting player's elapsed thinking time from their budget bank
 and applies the Fischer increment. Returns a new `playerTimes` array (ms
@@ -1303,7 +1303,7 @@ at 0, not negative.
 function defaultRating(): Rating;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:74](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L74)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:74](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L74)
 
 The OpenSkill prior for a never-rated identity.
 
@@ -1319,7 +1319,7 @@ The OpenSkill prior for a never-rated identity.
 function deriveRng(seed, version): Rng;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/rng.ts:29](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/rng.ts#L29)
+Defined in: [eigen-server/packages/kernel/src/rng.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/rng.ts#L29)
 
 The deterministic RNG for one transition: rand-seed's sfc32 keyed by the
 game's base seed and the state version the envelope will commit as. The
@@ -1347,7 +1347,7 @@ derivation to the Supabase-era engine, so recorded games stay replayable.
 function displayRating(mu, sigma): number;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/ratings.ts:69](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/ratings.ts#L69)
+Defined in: [eigen-server/packages/kernel/src/ratings.ts:69](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/ratings.ts#L69)
 
 max(0, round((mu − 3σ) · 40)) — the one server-side home of the display
 formula (the client mirrors it for optimistic display only).
@@ -1371,7 +1371,7 @@ formula (the client mirrors it for optimistic display only).
 function fanOutObservations(rules, args): ObservationFrame[];
 ```
 
-Defined in: [eigen-server/packages/kernel/src/observe.ts:24](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/observe.ts#L24)
+Defined in: [eigen-server/packages/kernel/src/observe.ts:24](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/observe.ts#L24)
 
 Project the new state into one slice per seat — the eager fan-out the host
 persists per transition (frames serve live delivery and the same-view
@@ -1400,7 +1400,7 @@ decision here.
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/commit.ts:160](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/commit.ts#L160)
+Defined in: [eigen-server/packages/kernel/src/commit.ts:160](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/commit.ts#L160)
 
 Type guard: did `commit()` refuse the intent?
 
@@ -1425,7 +1425,7 @@ function parseClientPayload<T>(
 what): ParseResult<T>;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/schema.ts:40](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/schema.ts#L40)
+Defined in: [eigen-server/packages/kernel/src/schema.ts:40](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/schema.ts#L40)
 
 Parse a client-submitted payload (an action's `data`, a create request's
 `config`) through its schema. Failure is the caller's fault. Returns the
@@ -1463,7 +1463,7 @@ function parseStoredPayload<T>(
    schemaVersion): T;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/schema.ts:51](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/schema.ts#L51)
+Defined in: [eigen-server/packages/kernel/src/schema.ts:51](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/schema.ts#L51)
 
 Parse a stored payload (a state row, the game's config) through its
 schema. Failure means corrupted data or a schema that no longer matches
@@ -1496,7 +1496,7 @@ what this version historically wrote — an engine-side bug, thrown.
 function randomSeed(): string;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/rng.ts:18](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/rng.ts#L18)
+Defined in: [eigen-server/packages/kernel/src/rng.ts:18](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/rng.ts#L18)
 
 A fresh base seed for a new game: 128 random bits, hex-encoded. Stored on
 the game's v0 state row and copied onto every later row (server-only —
@@ -1514,7 +1514,7 @@ never expose it: the whole randomness of the game is derivable from it).
 function reject(code, message): Rejected;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/errors.ts:48](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/errors.ts#L48)
+Defined in: [eigen-server/packages/kernel/src/errors.ts:48](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/errors.ts#L48)
 
 #### Parameters
 
@@ -1535,7 +1535,7 @@ Defined in: [eigen-server/packages/kernel/src/errors.ts:48](https://github.com/e
 function sameView(a, b): boolean;
 ```
 
-Defined in: [eigen-server/packages/kernel/src/guards.ts:100](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/kernel/src/guards.ts#L100)
+Defined in: [eigen-server/packages/kernel/src/guards.ts:100](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/kernel/src/guards.ts#L100)
 
 The same-view rule: a stale-`expectedVersion` action is accepted
 iff the acting seat's own projected observation — slice `data` plus the

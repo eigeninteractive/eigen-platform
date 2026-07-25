@@ -17,7 +17,7 @@ authorization explicitly in application code, which keeps every check in view.
   only by their own `/me`.
 - **Game visibility is a capability model.** A game id is an unguessable UUID; a
   private game is unlisted (never in the lobby) and joinable only by someone who
-  holds its id or short_code. Reading a game summary requires the id, and the
+  holds its id or shortCode. Reading a game summary requires the id, and the
   sensitive part — the game *state* (frames) — is separately gated: only a
   participant, or anyone for a *finished public* game, may fetch frames.
 - **Seat ownership is enforced at the DO** against its authoritative roster, so a

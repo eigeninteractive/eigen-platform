@@ -73,7 +73,7 @@ place a `public/` file that shadows one of them.
 A single action shows how the pieces interact:
 
 ```text
-client ──POST /api/engine/games/{id}/action { seat, expected_version, data }──►
+client ──POST /api/engine/games/{id}/action { seat, expectedVersion, data }──►
   Worker: verify Firebase token → provision/load user row → build a Command
           (a pre-authenticated value) → call the game's DO stub
     DO (input gate held):

@@ -51,7 +51,7 @@ pair in canonical order (`user_id_1 < user_id_2`) with a `status`
 shared row encodes the relationship and the direction of a request or block is
 recovered from `initiated_by`.
 
-- **Requests.** `POST /friends/requests {target_user_id}` inserts a `pending`
+- **Requests.** `POST /friends/requests {targetUserId}` inserts a `pending`
   row — unless the target already has a pending request out to the caller, in
   which case it **auto-accepts** (sending back is accepting). `accept`
   transitions the request the *other* party initiated. `DELETE /friends/{id}`

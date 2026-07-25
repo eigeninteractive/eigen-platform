@@ -19,7 +19,7 @@ The DO's own SQLite database is the game. Six tables:
 | `roster` | permanent | One row per seat (`player_index`, `user_id`/`bot_id`, `type`). The **authoritative** roster — D1's copy is a display mirror. |
 | `transitions` | permanent | **Append-only, immutable.** One row per version: the opaque `state`, the `action` that produced it, the pending set, deadline, per-player clocks. This table *is* the game's history. |
 | `frames` | live-only | Per-seat projected observations, for socket gap-recovery and the same-view compare. Drained by the finish compaction (replay re-projects instead). |
-| `commands` | live-only | `commandId → stored response` for idempotent retries. Drained by the finish compaction. |
+| `commands` | live-only | `command_id → stored response` for idempotent retries. Drained by the finish compaction. |
 | `outbox` | transient | What the D1 finish-apply needs, written atomically with the finishing transition and cleared only *after* the apply succeeds. Its presence is the recovery signal. |
 
 The schema is engine-owned and self-applying: a drizzle `durable-sqlite`
@@ -35,7 +35,7 @@ first contact (first command or socket): it reads the game + participants from
 D1 once, inside `blockConcurrencyWhile`, and copies them into `meta` + `roster`.
 From then on the DO owns `status` and `rng_seed`; D1's copy becomes a display
 read-model updated from DO effects. If no game row exists in D1, first contact
-resolves to a clean `unknown_game`.
+resolves to a clean `unknownGame`.
 
 ## The command pipeline & idempotency
 

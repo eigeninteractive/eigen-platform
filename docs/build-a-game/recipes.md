@@ -1,12 +1,12 @@
 ---
 sidebar_position: 11
 title: Recipes — common game shapes
-description: Sequential, simultaneous, team, elimination and phased games — all expressed through pending_players and computeObservation.
+description: Sequential, simultaneous, team, elimination and phased games — all expressed through pendingPlayers and computeObservation.
 ---
 
 # Recipes — common game shapes
 
-The whole game is expressed through `pending_players` and what
+The whole game is expressed through `pendingPlayers` and what
 `computeObservation` reveals. A few canonical shapes:
 
 ## Sequential (perfect information)
@@ -20,8 +20,8 @@ turn.
 applyAction({ state, playerIndex, data }) {
   const next = applyMove(state, playerIndex, data);
   return next.won
-    ? { state: next, pending_players: [], outcome: win(playerIndex) }
-    : { state: next, pending_players: [(playerIndex + 1) % playerCount] };
+    ? { state: next, pendingPlayers: [], outcome: win(playerIndex) }
+    : { state: next, pendingPlayers: [(playerIndex + 1) % playerCount] };
 }
 computeObservation: passthroughObservation,
 ```
@@ -37,14 +37,14 @@ arrives.
 
 ## Team games
 
-Set `team_index` on outcome entries to the team, not the seat, so OpenSkill rates
+Set `teamIndex` on outcome entries to the team, not the seat, so OpenSkill rates
 teammates together. `placement` is the team's finish.
 
 ## Elimination / multiplayer
 
-Shrink `pending_players` as seats bust out; give an eliminated seat
+Shrink `pendingPlayers` as seats bust out; give an eliminated seat
 `result: "eliminated"` with its `placement`. The game ends when
-`pending_players` empties; the final `outcome` ranks everyone by placement.
+`pendingPlayers` empties; the final `outcome` ranks everyone by placement.
 
 ## Reveal for animation
 
@@ -54,5 +54,5 @@ clients can animate the transition. Decide per seat what that reveal shows using
 
 ## Phased turns / variable clocks
 
-A phase that needs longer returns `turn_seconds: N` on its envelope to widen just
+A phase that needs longer returns `turnSeconds: N` on its envelope to widen just
 that action's deadline, leaving every player's bank untouched.

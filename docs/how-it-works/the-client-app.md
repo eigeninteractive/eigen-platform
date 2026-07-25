@@ -48,7 +48,7 @@ my_app/
 │   ├── firebase_options.dart
 │   └── game/
 │       ├── game_module.dart # versions map + creation/about UI
-│       └── v1/              # one folder per schema_version
+│       └── v1/              # one folder per schemaVersion
 ├── test/game/twin_fixtures_test.dart
 ├── android/ ios/ web/ …
 ├── assets/icon/             # icon.png + icon_foreground.png

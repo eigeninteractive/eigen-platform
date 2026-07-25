@@ -13,9 +13,9 @@ Every hook returns `Envelope<State>`:
 | Field | Meaning |
 |---|---|
 | `state` | The new pure game payload — validated against your `state` schema before commit. Never carries whose-turn or winner metadata. |
-| `pending_players` | 0-based seats that may act next. **Empty ⇒ the game is over** (with `outcome`). |
-| `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `team_index`, optional `score`). |
-| `turn_seconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
+| `pendingPlayers` | 0-based seats that may act next. **Empty ⇒ the game is over** (with `outcome`). |
+| `outcome?` | Present **only** on the ending transition: one `OutcomeEntry` per seat (`result`, `placement`, `teamIndex`, optional `score`). |
+| `turnSeconds?` | Override the deadline for *this action only*; omit for the game's configured timing. |
 
 The generated types are in the [`@eigeninteractive/rules` reference](./typescript/rules.md).
 
@@ -38,7 +38,7 @@ reproduces the identical sequence. The rules:
 
 - `throw new IllegalMoveError("…")` from `applyAction` for a move that breaks the
   rules (a mis-tap, a buggy client). The engine renders it as the **caller's**
-  error (a 400 `illegal_move`) — this is an *expected* outcome, not a fault.
+  error (a 400 `illegalMove`) — this is an *expected* outcome, not a fault.
 - **Any other throw** from a hook is treated as a **game bug** and surfaces as a
   server 500. Don't use exceptions for control flow; return the right envelope
   instead.

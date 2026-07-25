@@ -25,7 +25,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
 
   initialState(): Envelope<State> {
     return { state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
-             pending_players: [0, 1] };   // both seats act at once
+             pendingPlayers: [0, 1] };   // both seats act at once
   }
 
   applyAction({ state, data, playerIndex, config }: ApplyActionArgs<State, Action, Config>): Envelope<State> {
@@ -37,7 +37,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
       // First commit of the round: record it, wait for the opponent.
       const commits: State["commits"] = [null, null];
       commits[seat] = data.move;
-      return { state: { ...state, commits }, pending_players: [other] };
+      return { state: { ...state, commits }, pendingPlayers: [other] };
     }
 
     // Second commit: resolve the round, and maybe the match.
@@ -47,24 +47,24 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
 
     if (winner !== null && wins[winner] >= config.targetWins) {
       return { state: { ...state, wins, commits: [null, null], lastRound: { moves, winner } },
-               pending_players: [], outcome: matchOutcome(winner) };
+               pendingPlayers: [], outcome: matchOutcome(winner) };
     }
     return { state: { round: state.round + 1, wins, commits: [null, null], lastRound: { moves, winner } },
-             pending_players: [0, 1] };
+             pendingPlayers: [0, 1] };
   }
 
   computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<…>): ObservationSlice {
     if (isReplay || playerIndex === null) {
       // The match is over — reveal everything.
       return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, commits: state.commits },
-               pending_players: pending };
+               pendingPlayers: pending };
     }
     const seat = playerIndex as 0 | 1;
     // Two deliberate omissions that ARE the game:
     //  - the opponent's commit is hidden (only your own move comes back);
     //  - the opponent's pending status is masked (you see only your own).
     return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, yourMove: state.commits[seat] },
-             pending_players: pending.filter((s) => s === seat) };
+             pendingPlayers: pending.filter((s) => s === seat) };
   }
 
   ratingPool({ access }: RatingPoolArgs<Config>): string | null {
@@ -137,7 +137,7 @@ The cost of that on the client is one nullable field, because
 
 ### Hiding *pending* is what makes simultaneous play correct
 
-`pending_players: pending.filter((s) => s === seat)` looks like a detail. It is
+`pendingPlayers: pending.filter((s) => s === seat)` looks like a detail. It is
 the mechanism.
 
 Because a hidden commit does not change your projected view, the engine's

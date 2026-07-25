@@ -118,7 +118,7 @@ The **`name`** must match exactly — that is how the engine finds the binding. 
 enforces them, and `period` may only be `10` or `60`. Each **`namespace_id`** is
 a positive integer that **must be unique within your Cloudflare account**, since
 ids are account-scoped and reusing one across two Workers makes them share
-counters. A limited caller gets `429` with `code: "rate_limited"` and a
+counters. A limited caller gets `429` with `code: "rateLimited"` and a
 `Retry-After` header. The binding is per-colo and eventually consistent — an
 abuse dampener, not a hard quota.
 

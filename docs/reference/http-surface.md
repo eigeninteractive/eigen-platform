@@ -78,14 +78,14 @@ rejection converted to one) rendered by the app-level error handler.
 
 | Status | Meaning | Representative `code`s |
 |---|---|---|
-| 400 | Client mistake | `invalid_payload`, `illegal_move` |
+| 400 | Client mistake | `invalidPayload`, `illegalMove` |
 | 401 | Missing/invalid token | — |
-| 403 | Ownership/permission refusal | `not_creator`, `not_participant` |
-| 404 | No such game/user | `unknown_game` |
-| 409 | State conflict — resync and retry | `state_updated`, `not_active`, `not_ready`, `expired`, `not_pending`, `game_full`, `already_joined`, `not_joinable`, `creator_cannot_leave`, `schema_unsupported` |
+| 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
+| 404 | No such game/user | `unknownGame` |
+| 409 | State conflict — resync and retry | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported` |
 | 413 / 415 | Avatar too big / wrong type | — |
 | 422 | Assertion mismatch (e.g. `rated`) | — |
-| 429 | Rate limited | `rate_limited` |
+| 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | — |
 | 502 | Account deletion upstream failure (intact; retry) | — |
 

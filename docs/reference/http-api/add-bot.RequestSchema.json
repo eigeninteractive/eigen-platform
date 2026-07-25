@@ -1,1 +1,1 @@
-{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"bot_id":{"type":"string"},"command_id":{"type":"string","minLength":1,"maxLength":128}},"required":["bot_id"],"title":"AddBot"}}}}}
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"botId":{"type":"string"},"commandId":{"type":"string","minLength":1,"maxLength":128}},"required":["botId"],"title":"AddBot"}}}}}

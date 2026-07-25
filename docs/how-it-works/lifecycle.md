@@ -12,7 +12,7 @@ description: Creation, the waiting room, active play, finish and history compact
 directly, because the DO does not exist yet. The Worker runs all creation policy
 (guest gates, config parse against the version schema, the `ratingPool`
 decision, and validation of the client's concrete `rated` assertion), generates
-a unique `short_code` (a readable 6-char code with a retry loop on the UNIQUE
+a unique `shortCode` (a readable 6-char code with a retry loop on the UNIQUE
 index), and writes the games + participants rows with the creator in seat 0.
 The DO is not touched; it will lazy-init on first command or socket.
 
@@ -32,7 +32,7 @@ minting (guest-vs-rated, friends-access, schema gate — no D1 reads inside the
 gate) and integrity enforced in the DO (status, seat occupancy, creator-only
 rules). Highlights:
 
-- **Join** by id or by short_code. Creating with `min_players` already satisfied
+- **Join** by id or by shortCode. Creating with `minPlayers` already satisfied
   makes a game `ready`; otherwise `waiting`.
 - **Leave** compacts seat indexes (safe pre-start, since no transition references
   a seat yet). The creator cannot leave — they cancel.
@@ -57,7 +57,7 @@ opening v0 frame so the client can render immediately. Guests may play bots
 ## Active play
 
 A move is `POST /api/engine/games/{id}/action` carrying the caller's own `seat`,
-the `expected_version` it computed against, and the game-defined `data`. The DO
+the `expectedVersion` it computed against, and the game-defined `data`. The DO
 verifies the seat belongs to the caller against its authoritative roster (a seat
 you don't hold is a clean 403), runs the kernel, and — on accept — commits the
 next version and rides the caller's own projected frame back on the response.

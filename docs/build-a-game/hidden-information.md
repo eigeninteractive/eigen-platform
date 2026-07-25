@@ -57,7 +57,7 @@ accepts both. That is covered in
 
 ### Masking pending changes what "my turn" means
 
-`pending_players` is projected too. In RPS a seat sees at most **its own** seat
+`pendingPlayers` is projected too. In RPS a seat sees at most **its own** seat
 in `frame.pendingPlayers`, never the opponent's. So:
 
 - `pendingPlayers.contains(mySeat)` still answers "may I act?" correctly.

@@ -8,7 +8,7 @@
 type BotType = "engine" | "external" | "local";
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:135](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L135)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:135](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L135)
 
 How a bot's moves are produced — the dispatch discriminator:
 - `engine`: the brain ships in the game's `GameModule` as
@@ -28,7 +28,7 @@ const bots: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:141](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L141)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:141](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L141)
 
 Bot registry. `type` selects the dispatch path; `webhook_url` is
 required for (and only for) `external`. `username` is the stable,
@@ -44,7 +44,7 @@ const deviceInstallations: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:242](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L242)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:242](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L242)
 
 FCM push targets, keyed by Firebase Installation ID — unchanged.
 
@@ -57,7 +57,7 @@ const games: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:45](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L45)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:45](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L45)
 
 The game summary/read-model row (created worker-direct, before the
 DO exists;: updated post-commit from DO effects, accepted staleness).
@@ -71,7 +71,7 @@ const participants: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:93](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L93)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:93](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L93)
 
 The roster join table — one row per seat, the indexed access path for
 "games of user X" (ported from the Supabase era; the JSON-snapshot detour
@@ -88,7 +88,7 @@ const playerRatings: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:170](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L170)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:170](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L170)
 
 Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
 set. `revision` is the CAS counter: the finish apply reads
@@ -106,7 +106,7 @@ const ratingHistory: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:207](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L207)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:207](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L207)
 
 Immutable per-game rating log for the profile history screen — and the
 concurrency control for rating writes.
@@ -137,7 +137,7 @@ const relationships: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:111](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L111)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:111](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L111)
 
 Friends — canonical pair order (`user_id_1 < user_id_2`, worker-enforced)
 + UNIQUE, as the Supabase era had.
@@ -151,7 +151,7 @@ const users: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:26](https://github.com/eigeninteractive/eigen-server/blob/a8d4d3e7091c01d99bac986af11b200eb19a04b8/packages/server/src/d1/schema.ts#L26)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:26](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L26)
 
 Merged users + user_profiles (the split served RLS separation that no
 longer exists). Provisioned on first sight of a verified Firebase token;

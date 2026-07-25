@@ -23,7 +23,7 @@ semantics. That would break games and replays already running under it. Instead:
 3. Register it: `versions: { 1: rulesV1, 2: rulesV2 }`.
 4. **Do the same on the Dart side**, under the same key.
 
-Every game row is stamped with the `schema_version` it was created under, and
+Every game row is stamped with the `schemaVersion` it was created under, and
 that is honoured for its whole life. New games are created at the newest version
 your build ships; existing games keep running against their own unit until they
 drain. Neither side branches on version — the engine resolves it once and calls
@@ -93,5 +93,5 @@ touching:
 | Axis | Granularity | Where it lives |
 |---|---|---|
 | Package version | per release | `pubspec.yaml` / `package.json`, git tag |
-| **Game schema version** | per game-type revision | `schema_version` on the game row — selects the unit on both sides |
+| **Game schema version** | per game-type revision | `schemaVersion` on the game row — selects the unit on both sides |
 | Cache schema version | per persisted model | each provider's `destroyKey` |

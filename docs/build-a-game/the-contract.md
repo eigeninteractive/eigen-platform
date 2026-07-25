@@ -32,7 +32,7 @@ helpers, and you can read it top to bottom in ten minutes.
    server's answer is the truth.
 
 3. **You never branch on version.** Rules are organised one unit per
-   `schema_version`, on both sides. The engine resolves a game's version once and
+   `schemaVersion`, on both sides. The engine resolves a game's version once and
    calls that unit; your hook bodies only ever see their own version's shapes.
 
 4. **Determinism is required.** State must be a pure function of `(seed, ordered
@@ -58,7 +58,7 @@ fixtures run against both units and fail a test on divergence. See
 
 ## The TypeScript half
 
-A `GameModule` is a map from `schema_version` to a `GameRules` unit:
+A `GameModule` is a map from `schemaVersion` to a `GameRules` unit:
 
 ```ts
 import type { GameModule } from "@eigeninteractive/rules";

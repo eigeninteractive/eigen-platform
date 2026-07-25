@@ -9,13 +9,13 @@ description: Three timing modes, the deadline precedence chain, and why one grac
 Timing is server-authoritative and lives in the kernel. A game is created in
 exactly one timing mode:
 
-- **Turn**: a fixed budget per move (`turn_seconds`).
-- **Budget** (chess-clock): a per-player bank (`budget_seconds`) with an optional
-  Fischer `increment_seconds` added after each move.
+- **Turn**: a fixed budget per move (`turnSeconds`).
+- **Budget** (chess-clock): a per-player bank (`budgetSeconds`) with an optional
+  Fischer `incrementSeconds` added after each move.
 - **Untimed**: no clock at all.
 
 (Turn and budget are mutually exclusive; increment requires budget.) A hook may
-also override the deadline for a single action via the envelope's `turn_seconds`,
+also override the deadline for a single action via the envelope's `turnSeconds`,
 without touching any player's bank.
 
 ## The deadline computation
@@ -25,13 +25,13 @@ After every transition the kernel computes the next `deadline` and
 milliseconds — the kernel never reads a clock):
 
 1. **Game over** → both `null` (no deadline).
-2. **Hook per-action override** (`envelope.turn_seconds = N`) → `now + N·1000`,
+2. **Hook per-action override** (`envelope.turnSeconds = N`) → `now + N·1000`,
    banks untouched.
 3. **Budget mode** → `now + min(remaining bank over the new pending seats)`. A
    budget-timed game allows at most one pending seat (enforced upstream), so this
    min is normally just that seat's bank; the min is a safe degradation if a
    multi-pending state ever arrives.
-4. **Per-turn mode** → `now + turn_seconds·1000`.
+4. **Per-turn mode** → `now + turnSeconds·1000`.
 5. **Untimed** → both `null`.
 
 In budget mode the acting seat's bank is charged on each move:

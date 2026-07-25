@@ -52,7 +52,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "Eigen-Signature",
-        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, bot_id)`. The engine signs wakes with the same header in the other direction."
+        "description": "An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, botId)`. The engine signs wakes with the same header in the other direction."
       }
     },
     "schemas": {
@@ -63,7 +63,9 @@
             "type": "string"
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "Lobby": {
         "type": "object",
@@ -75,7 +77,9 @@
             }
           }
         },
-        "required": ["games"]
+        "required": [
+          "games"
+        ]
       },
       "GameSummary": {
         "type": "object",
@@ -83,8 +87,11 @@
           "id": {
             "type": "string"
           },
-          "created_by": {
-            "type": ["string", "null"]
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/GameStatus"
@@ -92,47 +99,68 @@
           "access": {
             "$ref": "#/components/schemas/GameAccess"
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "turn_seconds": {
-            "type": ["integer", "null"]
+          "turnSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "budget_seconds": {
-            "type": ["integer", "null"]
+          "budgetSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "increment_seconds": {
-            "type": ["integer", "null"]
+          "incrementSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "rated": {
             "type": "boolean"
           },
-          "rating_pool": {
-            "type": ["string", "null"]
+          "ratingPool": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer"
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           },
-          "pending_players": {
-            "type": ["array", "null"],
+          "pendingPlayers": {
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "integer"
             }
           },
-          "turn_deadline": {
-            "type": ["integer", "null"]
+          "turnDeadline": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "outcomes": {
-            "type": ["array", "null"],
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "$ref": "#/components/schemas/Outcome"
             }
@@ -143,13 +171,16 @@
               "$ref": "#/components/schemas/RatingDelta"
             }
           },
-          "finished_at": {
-            "type": ["integer", "null"]
+          "finishedAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "created_at": {
+          "createdAt": {
             "type": "integer"
           },
-          "updated_at": {
+          "updatedAt": {
             "type": "integer"
           },
           "participants": {
@@ -159,37 +190,82 @@
             }
           }
         },
-        "required": ["id", "created_by", "status", "access", "schema_version", "config", "turn_seconds", "budget_seconds", "increment_seconds", "rated", "rating_pool", "min_players", "max_players", "short_code", "pending_players", "turn_deadline", "outcomes", "finished_at", "created_at", "updated_at", "participants"]
+        "required": [
+          "id",
+          "createdBy",
+          "status",
+          "access",
+          "schemaVersion",
+          "config",
+          "turnSeconds",
+          "budgetSeconds",
+          "incrementSeconds",
+          "rated",
+          "ratingPool",
+          "minPlayers",
+          "maxPlayers",
+          "shortCode",
+          "pendingPlayers",
+          "turnDeadline",
+          "outcomes",
+          "finishedAt",
+          "createdAt",
+          "updatedAt",
+          "participants"
+        ]
       },
       "GameStatus": {
         "type": "string",
-        "enum": ["waiting", "ready", "active", "finished", "aborted"]
+        "enum": [
+          "waiting",
+          "ready",
+          "active",
+          "finished",
+          "aborted"
+        ]
       },
       "GameAccess": {
         "type": "string",
-        "enum": ["public", "private", "friends"]
+        "enum": [
+          "public",
+          "private",
+          "friends"
+        ]
       },
       "Outcome": {
         "type": "object",
         "properties": {
-          "player_index": {
+          "playerIndex": {
             "type": "integer"
           },
           "result": {
             "type": "string",
-            "enum": ["win", "loss", "draw", "eliminated"]
+            "enum": [
+              "win",
+              "loss",
+              "draw",
+              "eliminated"
+            ]
           },
           "placement": {
             "type": "integer"
           },
-          "team_index": {
+          "teamIndex": {
             "type": "integer"
           },
           "score": {
-            "type": ["number", "null"]
+            "type": [
+              "number",
+              "null"
+            ]
           }
         },
-        "required": ["player_index", "result", "placement", "team_index"]
+        "required": [
+          "playerIndex",
+          "result",
+          "placement",
+          "teamIndex"
+        ]
       },
       "RatingDelta": {
         "type": "object",
@@ -200,60 +276,93 @@
           "pool": {
             "type": "string"
           },
-          "mu_before": {
+          "muBefore": {
             "type": "number"
           },
-          "sigma_before": {
+          "sigmaBefore": {
             "type": "number"
           },
-          "display_before": {
+          "displayBefore": {
             "type": "integer"
           },
-          "mu_after": {
+          "muAfter": {
             "type": "number"
           },
-          "sigma_after": {
+          "sigmaAfter": {
             "type": "number"
           },
-          "display_after": {
+          "displayAfter": {
             "type": "integer"
           },
-          "display_change": {
+          "displayChange": {
             "type": "integer"
           }
         },
-        "required": ["identity", "pool", "mu_before", "sigma_before", "display_before", "mu_after", "sigma_after", "display_after", "display_change"]
+        "required": [
+          "identity",
+          "pool",
+          "muBefore",
+          "sigmaBefore",
+          "displayBefore",
+          "muAfter",
+          "sigmaAfter",
+          "displayAfter",
+          "displayChange"
+        ]
       },
       "RatingIdentity": {
         "type": "object",
         "properties": {
-          "user_id": {
-            "type": ["string", "null"]
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "bot_id": {
-            "type": ["string", "null"]
+          "botId": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "required": ["user_id", "bot_id"]
+        "required": [
+          "userId",
+          "botId"
+        ]
       },
       "Seat": {
         "type": "object",
         "properties": {
-          "player_index": {
+          "playerIndex": {
             "type": "integer"
           },
-          "user_id": {
-            "type": ["string", "null"]
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "bot_id": {
-            "type": ["string", "null"]
+          "botId": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "type": {
             "type": "string",
-            "enum": ["human", "bot"]
+            "enum": [
+              "human",
+              "bot"
+            ]
           }
         },
-        "required": ["player_index", "user_id", "bot_id", "type"]
+        "required": [
+          "playerIndex",
+          "userId",
+          "botId",
+          "type"
+        ]
       },
       "ErrorResponse": {
         "type": "object",
@@ -265,33 +374,35 @@
             "$ref": "#/components/schemas/ErrorCode"
           }
         },
-        "required": ["error"]
+        "required": [
+          "error"
+        ]
       },
       "ErrorCode": {
         "type": "string",
         "enum": [
-          "not_active",
-          "not_ready",
+          "notActive",
+          "notReady",
           "expired",
-          "not_pending",
-          "state_updated",
-          "invalid_payload",
-          "illegal_move",
-          "unknown_game",
-          "not_joinable",
-          "game_full",
-          "already_joined",
-          "not_participant",
-          "not_creator",
-          "creator_cannot_leave",
-          "schema_unsupported",
-          "username_invalid",
-          "username_taken",
-          "friends_only",
-          "registration_required",
-          "image_too_large",
-          "unsupported_image_type",
-          "rate_limited"
+          "notPending",
+          "stateUpdated",
+          "invalidPayload",
+          "illegalMove",
+          "unknownGame",
+          "notJoinable",
+          "gameFull",
+          "alreadyJoined",
+          "notParticipant",
+          "notCreator",
+          "creatorCannotLeave",
+          "schemaUnsupported",
+          "usernameInvalid",
+          "usernameTaken",
+          "friendsOnly",
+          "registrationRequired",
+          "imageTooLarge",
+          "unsupportedImageType",
+          "rateLimited"
         ],
         "description": "A stable machine code identifying why a request failed."
       },
@@ -305,7 +416,9 @@
             }
           }
         },
-        "required": ["games"]
+        "required": [
+          "games"
+        ]
       },
       "Players": {
         "type": "object",
@@ -317,7 +430,9 @@
             }
           }
         },
-        "required": ["players"]
+        "required": [
+          "players"
+        ]
       },
       "Player": {
         "type": "object",
@@ -328,17 +443,26 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
-            "type": ["string", "null"]
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           }
         },
-        "required": ["id", "username", "display_name", "avatar_url", "is_anonymous"]
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "avatarUrl",
+          "isAnonymous"
+        ]
       },
       "Bots": {
         "type": "object",
@@ -350,7 +474,9 @@
             }
           }
         },
-        "required": ["bots"]
+        "required": [
+          "bots"
+        ]
       },
       "Bot": {
         "type": "object",
@@ -361,23 +487,34 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
-            "type": ["string", "null"]
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
-          "rated_eligible": {
+          "ratedEligible": {
             "type": "boolean"
           },
           "config": {
             "type": "object"
           }
         },
-        "required": ["id", "username", "display_name", "avatar_url", "schema_version", "rated_eligible", "config"]
+        "required": [
+          "id",
+          "username",
+          "displayName",
+          "avatarUrl",
+          "schemaVersion",
+          "ratedEligible",
+          "config"
+        ]
       },
       "Profile": {
         "allOf": [
@@ -388,13 +525,19 @@
             "type": "object",
             "properties": {
               "email": {
-                "type": ["string", "null"]
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
-              "created_at": {
+              "createdAt": {
                 "type": "integer"
               }
             },
-            "required": ["email", "created_at"]
+            "required": [
+              "email",
+              "createdAt"
+            ]
           }
         ]
       },
@@ -408,7 +551,9 @@
             }
           }
         },
-        "required": ["ratings"]
+        "required": [
+          "ratings"
+        ]
       },
       "Rating": {
         "type": "object",
@@ -422,14 +567,20 @@
           "sigma": {
             "type": "number"
           },
-          "display_rating": {
+          "displayRating": {
             "type": "integer"
           },
-          "updated_at": {
+          "updatedAt": {
             "type": "integer"
           }
         },
-        "required": ["pool", "mu", "sigma", "display_rating", "updated_at"]
+        "required": [
+          "pool",
+          "mu",
+          "sigma",
+          "displayRating",
+          "updatedAt"
+        ]
       },
       "PlayerGames": {
         "type": "object",
@@ -441,7 +592,9 @@
             }
           }
         },
-        "required": ["games"]
+        "required": [
+          "games"
+        ]
       },
       "RatingHistory": {
         "type": "object",
@@ -453,43 +606,55 @@
             }
           }
         },
-        "required": ["history"]
+        "required": [
+          "history"
+        ]
       },
       "RatingHistoryEntry": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
           "pool": {
             "type": "string"
           },
-          "display_before": {
+          "displayBefore": {
             "type": "integer"
           },
-          "display_after": {
+          "displayAfter": {
             "type": "integer"
           },
-          "display_change": {
+          "displayChange": {
             "type": "integer"
           },
-          "created_at": {
+          "createdAt": {
             "type": "integer"
           }
         },
-        "required": ["game_id", "pool", "display_before", "display_after", "display_change", "created_at"]
+        "required": [
+          "gameId",
+          "pool",
+          "displayBefore",
+          "displayAfter",
+          "displayChange",
+          "createdAt"
+        ]
       },
       "Created": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           }
         },
-        "required": ["game_id", "short_code"]
+        "required": [
+          "gameId",
+          "shortCode"
+        ]
       },
       "CreateGame": {
         "type": "object",
@@ -497,48 +662,63 @@
           "access": {
             "$ref": "#/components/schemas/GameAccess"
           },
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer",
             "minimum": 1
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer",
             "minimum": 1
           },
           "rated": {
             "type": "boolean"
           },
-          "turn_seconds": {
-            "type": ["integer", "null"],
+          "turnSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           },
-          "budget_seconds": {
-            "type": ["integer", "null"],
+          "budgetSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           },
-          "increment_seconds": {
-            "type": ["integer", "null"],
+          "incrementSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           }
         },
-        "required": ["access", "schema_version", "config", "min_players", "max_players"]
+        "required": [
+          "access",
+          "schemaVersion",
+          "config",
+          "minPlayers",
+          "maxPlayers"
+        ]
       },
       "SoloStarted": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
-          "short_code": {
+          "shortCode": {
             "type": "string"
           },
           "version": {
@@ -548,14 +728,24 @@
             "$ref": "#/components/schemas/Frame"
           }
         },
-        "required": ["game_id", "short_code", "version", "frame"]
+        "required": [
+          "gameId",
+          "shortCode",
+          "version",
+          "frame"
+        ]
       },
       "Frame": {
-        "type": ["object", "null"],
+        "type": [
+          "object",
+          "null"
+        ],
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["frame"]
+            "enum": [
+              "frame"
+            ]
           },
           "version": {
             "type": "integer"
@@ -563,17 +753,23 @@
           "data": {
             "type": "object"
           },
-          "pending_players": {
+          "pendingPlayers": {
             "type": "array",
             "items": {
               "type": "integer"
             }
           },
           "deadline": {
-            "type": ["integer", "null"]
+            "type": [
+              "integer",
+              "null"
+            ]
           },
-          "player_times": {
-            "type": ["array", "null"],
+          "playerTimes": {
+            "type": [
+              "array",
+              "null"
+            ],
             "items": {
               "type": "integer"
             }
@@ -591,71 +787,98 @@
             }
           }
         },
-        "required": ["type", "version", "data", "pending_players", "deadline", "player_times"]
+        "required": [
+          "type",
+          "version",
+          "data",
+          "pendingPlayers",
+          "deadline",
+          "playerTimes"
+        ]
       },
       "CreateSolo": {
         "type": "object",
         "properties": {
-          "schema_version": {
+          "schemaVersion": {
             "type": "integer"
           },
           "config": {
             "type": "object"
           },
-          "min_players": {
+          "minPlayers": {
             "type": "integer",
             "minimum": 1
           },
-          "max_players": {
+          "maxPlayers": {
             "type": "integer",
             "minimum": 1
           },
           "rated": {
             "type": "boolean"
           },
-          "bot_ids": {
+          "botIds": {
             "type": "array",
             "items": {
               "type": "string"
             },
             "minItems": 1
           },
-          "turn_seconds": {
-            "type": ["integer", "null"],
+          "turnSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           },
-          "budget_seconds": {
-            "type": ["integer", "null"],
+          "budgetSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           },
-          "increment_seconds": {
-            "type": ["integer", "null"],
+          "incrementSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "exclusiveMinimum": 0,
             "default": null
           }
         },
-        "required": ["schema_version", "config", "min_players", "max_players", "bot_ids"]
+        "required": [
+          "schemaVersion",
+          "config",
+          "minPlayers",
+          "maxPlayers",
+          "botIds"
+        ]
       },
       "Joined": {
         "type": "object",
         "properties": {
-          "game_id": {
+          "gameId": {
             "type": "string"
           },
           "roster": {
             "$ref": "#/components/schemas/Roster"
           }
         },
-        "required": ["game_id", "roster"]
+        "required": [
+          "gameId",
+          "roster"
+        ]
       },
       "Roster": {
         "type": "object",
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["roster"]
+            "enum": [
+              "roster"
+            ]
           },
           "status": {
             "$ref": "#/components/schemas/GameStatus"
@@ -667,21 +890,27 @@
             }
           }
         },
-        "required": ["type", "status", "players"]
+        "required": [
+          "type",
+          "status",
+          "players"
+        ]
       },
       "Join": {
         "type": "object",
         "properties": {
-          "client_schema_version": {
+          "clientSchemaVersion": {
             "type": "integer"
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
-        "required": ["client_schema_version"]
+        "required": [
+          "clientSchemaVersion"
+        ]
       },
       "JoinByCode": {
         "allOf": [
@@ -691,12 +920,14 @@
           {
             "type": "object",
             "properties": {
-              "short_code": {
+              "shortCode": {
                 "type": "string",
                 "minLength": 1
               }
             },
-            "required": ["short_code"]
+            "required": [
+              "shortCode"
+            ]
           }
         ]
       },
@@ -707,12 +938,14 @@
             "$ref": "#/components/schemas/Roster"
           }
         },
-        "required": ["roster"]
+        "required": [
+          "roster"
+        ]
       },
       "LobbyCommand": {
         "type": "object",
         "properties": {
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
@@ -722,16 +955,18 @@
       "AddBot": {
         "type": "object",
         "properties": {
-          "bot_id": {
+          "botId": {
             "type": "string"
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
-        "required": ["bot_id"]
+        "required": [
+          "botId"
+        ]
       },
       "CommandAccepted": {
         "type": "object",
@@ -743,7 +978,10 @@
             "$ref": "#/components/schemas/Frame"
           }
         },
-        "required": ["version", "frame"]
+        "required": [
+          "version",
+          "frame"
+        ]
       },
       "Action": {
         "type": "object",
@@ -753,17 +991,20 @@
             "minimum": 0
           },
           "data": {},
-          "expected_version": {
+          "expectedVersion": {
             "type": "integer",
             "minimum": 0
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
-        "required": ["seat", "expected_version"]
+        "required": [
+          "seat",
+          "expectedVersion"
+        ]
       },
       "Forfeit": {
         "type": "object",
@@ -772,13 +1013,15 @@
             "type": "integer",
             "minimum": 0
           },
-          "command_id": {
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128
           }
         },
-        "required": ["seat"]
+        "required": [
+          "seat"
+        ]
       },
       "Frames": {
         "type": "object",
@@ -790,7 +1033,9 @@
             }
           }
         },
-        "required": ["frames"]
+        "required": [
+          "frames"
+        ]
       },
       "UsernameUpdated": {
         "type": "object",
@@ -799,7 +1044,9 @@
             "type": "string"
           }
         },
-        "required": ["username"]
+        "required": [
+          "username"
+        ]
       },
       "UsernameUpdate": {
         "type": "object",
@@ -810,27 +1057,33 @@
             "maxLength": 20
           }
         },
-        "required": ["username"]
+        "required": [
+          "username"
+        ]
       },
       "DisplayNameUpdated": {
         "type": "object",
         "properties": {
-          "display_name": {
+          "displayName": {
             "type": "string"
           }
         },
-        "required": ["display_name"]
+        "required": [
+          "displayName"
+        ]
       },
       "DisplayNameUpdate": {
         "type": "object",
         "properties": {
-          "display_name": {
+          "displayName": {
             "type": "string",
             "minLength": 1,
             "maxLength": 40
           }
         },
-        "required": ["display_name"]
+        "required": [
+          "displayName"
+        ]
       },
       "DeviceRegistration": {
         "type": "object",
@@ -842,10 +1095,17 @@
           },
           "platform": {
             "type": "string",
-            "enum": ["ios", "android", "web"]
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ]
           }
         },
-        "required": ["fid", "platform"]
+        "required": [
+          "fid",
+          "platform"
+        ]
       },
       "Friends": {
         "type": "object",
@@ -857,7 +1117,9 @@
             }
           }
         },
-        "required": ["friends"]
+        "required": [
+          "friends"
+        ]
       },
       "Friend": {
         "type": "object",
@@ -865,23 +1127,33 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
-            "type": ["string", "null"]
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           },
-          "user_id": {
+          "userId": {
             "type": "string"
           },
           "since": {
             "type": "integer"
           }
         },
-        "required": ["username", "display_name", "avatar_url", "is_anonymous", "user_id", "since"]
+        "required": [
+          "username",
+          "displayName",
+          "avatarUrl",
+          "isAnonymous",
+          "userId",
+          "since"
+        ]
       },
       "FriendRequests": {
         "type": "object",
@@ -893,7 +1165,9 @@
             }
           }
         },
-        "required": ["requests"]
+        "required": [
+          "requests"
+        ]
       },
       "FriendRequest": {
         "type": "object",
@@ -901,16 +1175,19 @@
           "username": {
             "type": "string"
           },
-          "display_name": {
+          "displayName": {
             "type": "string"
           },
-          "avatar_url": {
-            "type": ["string", "null"]
+          "avatarUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "is_anonymous": {
+          "isAnonymous": {
             "type": "boolean"
           },
-          "user_id": {
+          "userId": {
             "type": "string"
           },
           "since": {
@@ -918,10 +1195,21 @@
           },
           "direction": {
             "type": "string",
-            "enum": ["incoming", "outgoing"]
+            "enum": [
+              "incoming",
+              "outgoing"
+            ]
           }
         },
-        "required": ["username", "display_name", "avatar_url", "is_anonymous", "user_id", "since", "direction"]
+        "required": [
+          "username",
+          "displayName",
+          "avatarUrl",
+          "isAnonymous",
+          "userId",
+          "since",
+          "direction"
+        ]
       },
       "FriendsGames": {
         "type": "object",
@@ -933,7 +1221,9 @@
             }
           }
         },
-        "required": ["games"]
+        "required": [
+          "games"
+        ]
       },
       "UserSearch": {
         "type": "object",
@@ -945,40 +1235,49 @@
             }
           }
         },
-        "required": ["users"]
+        "required": [
+          "users"
+        ]
       },
       "FriendRequestResult": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["requested", "accepted"]
+            "enum": [
+              "requested",
+              "accepted"
+            ]
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "FriendTarget": {
         "type": "object",
         "properties": {
-          "target_user_id": {
+          "targetUserId": {
             "type": "string",
             "minLength": 1
           }
         },
-        "required": ["target_user_id"]
+        "required": [
+          "targetUserId"
+        ]
       },
       "BotAction": {
         "type": "object",
         "properties": {
-          "bot_id": {
+          "botId": {
             "type": "string",
             "minLength": 1
           },
-          "game_id": {
+          "gameId": {
             "type": "string",
             "minLength": 1
           },
-          "player_index": {
+          "playerIndex": {
             "type": "integer",
             "minimum": 0
           },
@@ -988,7 +1287,12 @@
           },
           "data": {}
         },
-        "required": ["bot_id", "game_id", "player_index", "version"]
+        "required": [
+          "botId",
+          "gameId",
+          "playerIndex",
+          "version"
+        ]
       }
     },
     "parameters": {}
@@ -997,7 +1301,9 @@
     "/health": {
       "get": {
         "operationId": "getHealth",
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "security": [],
         "summary": "Liveness probe",
         "description": "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.",
@@ -1018,7 +1324,9 @@
     "/api/engine/lobby": {
       "get": {
         "operationId": "getLobby",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1033,7 +1341,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"]
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "required": false,
             "name": "cursor",
@@ -1097,12 +1408,17 @@
     "/api/engine/games/mine": {
       "get": {
         "operationId": "getMyGames",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
               "type": "string",
-              "enum": ["active", "finished"],
+              "enum": [
+                "active",
+                "finished"
+              ],
               "default": "active"
             },
             "required": false,
@@ -1122,7 +1438,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"]
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "required": false,
             "name": "cursor",
@@ -1186,7 +1505,9 @@
     "/api/engine/games/{gameId}": {
       "get": {
         "operationId": "getGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1255,7 +1576,9 @@
     "/api/engine/players": {
       "get": {
         "operationId": "getPlayers",
-        "tags": ["Players"],
+        "tags": [
+          "Players"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1324,7 +1647,9 @@
     "/api/engine/bots": {
       "get": {
         "operationId": "getBots",
-        "tags": ["Bots"],
+        "tags": [
+          "Bots"
+        ],
         "responses": {
           "200": {
             "description": "The bot catalog",
@@ -1382,7 +1707,9 @@
     "/api/engine/me": {
       "get": {
         "operationId": "getProfile",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "responses": {
           "200": {
             "description": "The caller's own profile",
@@ -1438,7 +1765,9 @@
       },
       "delete": {
         "operationId": "deleteAccount",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "responses": {
           "204": {
             "description": "The account and its data were deleted"
@@ -1469,7 +1798,9 @@
     "/api/engine/me/ratings": {
       "get": {
         "operationId": "getMyRatings",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "responses": {
           "200": {
             "description": "The caller's current rating per pool",
@@ -1527,7 +1858,9 @@
     "/api/engine/players/{playerId}/games": {
       "get": {
         "operationId": "getPlayerGames",
-        "tags": ["Players"],
+        "tags": [
+          "Players"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1551,7 +1884,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"]
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "required": false,
             "name": "cursor",
@@ -1615,7 +1951,9 @@
     "/api/engine/players/{playerId}/ratings": {
       "get": {
         "operationId": "getPlayerRatings",
-        "tags": ["Players"],
+        "tags": [
+          "Players"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1684,7 +2022,9 @@
     "/api/engine/me/rating-history": {
       "get": {
         "operationId": "getMyRatingHistory",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "parameters": [
           {
             "schema": {
@@ -1763,7 +2103,9 @@
     "/api/engine/games": {
       "post": {
         "operationId": "createGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1851,7 +2193,9 @@
     "/api/engine/games/solo": {
       "post": {
         "operationId": "createSoloGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1939,7 +2283,9 @@
     "/api/engine/games/{gameId}/join": {
       "post": {
         "operationId": "joinGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2038,7 +2384,9 @@
     "/api/engine/games/join-by-code": {
       "post": {
         "operationId": "joinGameByCode",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2126,7 +2474,9 @@
     "/api/engine/games/{gameId}/leave": {
       "post": {
         "operationId": "leaveGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2225,7 +2575,9 @@
     "/api/engine/games/{gameId}/cancel": {
       "post": {
         "operationId": "cancelGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2324,7 +2676,9 @@
     "/api/engine/games/{gameId}/add-bot": {
       "post": {
         "operationId": "addBot",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2423,7 +2777,9 @@
     "/api/engine/games/{gameId}/start": {
       "post": {
         "operationId": "startGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2522,7 +2878,9 @@
     "/api/engine/games/{gameId}/action": {
       "post": {
         "operationId": "submitAction",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2621,7 +2979,9 @@
     "/api/engine/games/{gameId}/forfeit": {
       "post": {
         "operationId": "forfeitGame",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2720,7 +3080,9 @@
     "/api/engine/games/{gameId}/frames": {
       "get": {
         "operationId": "getFrames",
-        "tags": ["Games"],
+        "tags": [
+          "Games"
+        ],
         "parameters": [
           {
             "schema": {
@@ -2733,7 +3095,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"],
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0,
               "default": 0
             },
@@ -2743,7 +3108,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"],
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "required": false,
@@ -2828,7 +3196,9 @@
     "/api/engine/me/username": {
       "put": {
         "operationId": "updateUsername",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2886,7 +3256,9 @@
     "/api/engine/me/display-name": {
       "put": {
         "operationId": "updateDisplayName",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2934,7 +3306,9 @@
     "/api/engine/me/devices": {
       "put": {
         "operationId": "registerDevice",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2975,7 +3349,9 @@
     "/api/engine/me/devices/{fid}": {
       "delete": {
         "operationId": "unregisterDevice",
-        "tags": ["Me"],
+        "tags": [
+          "Me"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3007,7 +3383,9 @@
     "/api/engine/friends": {
       "get": {
         "operationId": "listFriends",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "responses": {
           "200": {
             "description": "The caller's accepted friends",
@@ -3065,7 +3443,9 @@
     "/api/engine/friends/requests": {
       "get": {
         "operationId": "listFriendRequests",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "responses": {
           "200": {
             "description": "Pending requests, incoming and outgoing",
@@ -3121,7 +3501,9 @@
       },
       "post": {
         "operationId": "sendFriendRequest",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -3189,7 +3571,9 @@
     "/api/engine/friends/games": {
       "get": {
         "operationId": "getFriendsGames",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3204,7 +3588,10 @@
           },
           {
             "schema": {
-              "type": ["integer", "null"]
+              "type": [
+                "integer",
+                "null"
+              ]
             },
             "required": false,
             "name": "cursor",
@@ -3268,7 +3655,9 @@
     "/api/engine/users/search": {
       "get": {
         "operationId": "searchUsers",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3348,7 +3737,9 @@
     "/api/engine/friends/requests/{userId}/accept": {
       "post": {
         "operationId": "acceptFriendRequest",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3410,7 +3801,9 @@
     "/api/engine/friends/{userId}": {
       "delete": {
         "operationId": "removeFriend",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3472,7 +3865,9 @@
     "/api/engine/friends/{userId}/block": {
       "post": {
         "operationId": "blockUser",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3532,7 +3927,9 @@
       },
       "delete": {
         "operationId": "unblockUser",
-        "tags": ["Social"],
+        "tags": [
+          "Social"
+        ],
         "parameters": [
           {
             "schema": {
@@ -3594,7 +3991,9 @@
     "/api/bot/action": {
       "post": {
         "operationId": "botAction",
-        "tags": ["BotWebhook"],
+        "tags": [
+          "BotWebhook"
+        ],
         "security": [
           {
             "botHmac": []

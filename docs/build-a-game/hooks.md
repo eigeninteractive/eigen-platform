@@ -11,14 +11,14 @@ Each section below ends with **what reaches the client** — because a hook's re
 output is not its return value, it is what a player ends up looking at.
 
 Everything returns an **`Envelope<State>`**: the new `state`, the
-`pending_players` who may act next (empty ⇒ game over), an optional `outcome`
-(present **only** when the game ends), and an optional `turn_seconds` override
+`pendingPlayers` who may act next (empty ⇒ game over), an optional `outcome`
+(present **only** when the game ends), and an optional `turnSeconds` override
 for this one action. See the [Envelope reference](../reference/envelope.md).
 
 ## `initialState({ config, rng, playerCount }) → Envelope`
 
 The starting position. Draw any setup randomness (shuffle, first player) from
-`rng`. Set `pending_players` to whoever moves first.
+`rng`. Set `pendingPlayers` to whoever moves first.
 
 *On the client:* the first frame of the game, projected through
 `computeObservation` with `cause: null`. There is no predecessor, so a game
@@ -30,7 +30,7 @@ A player's move. **The engine has already confirmed it is this seat's turn at th
 expected version** — do not re-check turn order. Validate move *legality* only;
 if it fails, `throw new IllegalMoveError("…")` and the engine renders it as the
 caller's error. Any *other* throw is treated as a game bug (a server 500). Return
-the next envelope: advance the state, set the next `pending_players`, and include
+the next envelope: advance the state, set the next `pendingPlayers`, and include
 `outcome` if this move ended the game.
 
 *On the client:* the legality check you write here is transcribed into the Dart
@@ -47,8 +47,8 @@ it always resolves. Three triggers:
 - **`timeout`** — the seats in `pending` ran out of time. Resolve the whole set
   in one envelope (you decide the consequence — often a loss for the idle seat,
   or a draw if everyone stalled).
-- **`forfeit`** — a voluntary resign; the seat is in `data.player_index`.
-- **`auto_forfeit`** — the engine-driven variant (an account was deleted). Same
+- **`forfeit`** — a voluntary resign; the seat is in `data.playerIndex`.
+- **`autoForfeit`** — the engine-driven variant (an account was deleted). Same
   shape as forfeit; you *may* choose a gentler consequence (a draw rather than a
   loss) since the seat did not choose to quit.
 
@@ -60,11 +60,11 @@ screen needs to know it came from a lifecycle event — `gameStatus` flips to
 
 Project the state into **one seat's view** — this is where hidden information
 lives, and it is the hook with the most leverage in the whole contract. Return
-`{ data, pending_players }`:
+`{ data, pendingPlayers }`:
 
 - `data` is exactly what this seat may see. Strip anything hidden (opponents'
   hands, face-down cards, un-revealed simultaneous commits).
-- `pending_players` may be *narrowed* from the true set to avoid leaking
+- `pendingPlayers` may be *narrowed* from the true set to avoid leaking
   information — for example hiding that an opponent has secretly moved — but it
   must stay truthful about the seat *itself*, and the engine enforces that.
 - `playerIndex` is `null` for a public viewer (only ever with `isReplay: true`,
