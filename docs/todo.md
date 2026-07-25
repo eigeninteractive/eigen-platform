@@ -4,29 +4,6 @@
   `?token=` upgrade, web Firebase auth, `cached_network_image` against the
   worker-served avatar URL, and the FCM service worker + VAPID key. Add web to
   the CI matrix.
-- **Deploy the new web topology.** The old `eigeninteractive-web` Worker is
-  deleted and its repo archived; `eigen-web` is built and ready. Remaining, all
-  deploy actions: point the apex at `eigen-web` (`pnpm deploy` there), put each
-  game Worker on its own `*.eigeninteractive.com` subdomain, and enable
-  **Cloudflare Web Analytics** in the dashboard for both.
-- **Retire the duplicated source docs.** `docs/architecture.md`,
-  `docs/building_a_game.md` and `eigen-flutter/docs/client_reference.md` have
-  been ported into `eigen-web` (which is now the source of truth) but are
-  deliberately still in place. Once the site is live and verified, delete them —
-  every repo's `AGENTS.md` already points agents at
-  `https://eigeninteractive.com/llms.txt`, and every page is fetchable as `.md`.
-- **Decide where the generated Dart API client lives.** Today `openapi.json` is
-  vendored into `eigen-flutter`, regenerated there by `tool/generate_api.sh`, and
-  consumed as a path dependency — so the spec exists in two repos and a bespoke
-  `repository_dispatch` + sync-PR workflow exists to keep them equal. The
-  alternative is to make the *contract* the published artifact and let consumers
-  depend on a version: either generate and publish `eigen_api` from
-  `eigen-server` CI (the client leaves the Flutter repo entirely, along with its
-  Java/openapi-generator toolchain), or keep generating in `eigen-flutter` but
-  read the spec from a pinned `@eigen/server` in `node_modules` instead of a
-  copied file. Both replace the custom dispatch machinery with ordinary
-  dependency-bump PRs. Same question applies to `eigen-web`, which currently
-  needs a sibling checkout to build its references.
 - **Generate the Dart payload types from the game's Standard Schema.** A game
   declares `state` / `action` / `config` once in TypeScript, then hand-writes the
   Dart mirror — and every implementor installs `freezed`, `json_serializable` and
