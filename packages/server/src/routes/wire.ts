@@ -15,7 +15,7 @@
 import type { JsonObject } from "@eigeninteractive/rules";
 import { z } from "@hono/zod-openapi";
 import type { UserRow } from "../auth/provision.js";
-import type { GameWithRoster } from "../d1/reads.js";
+import type { BotRow, GameWithRoster } from "../d1/reads.js";
 import type { ErrorCode } from "../http.js";
 
 /** A game-defined JSON object payload (an observation's `data`, a config).
@@ -379,4 +379,13 @@ export function gameSummaryOf(g: GameWithRoster): z.infer<typeof gameSummaryShap
 
 export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "avatarUrl" | "isAnonymous">): z.infer<typeof playerShape> {
   return { id: u.id, username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl, isAnonymous: u.isAnonymous };
+}
+
+/** The bot catalog projection. Unlike the ratings/history reads (whose SELECT
+ * already names exactly the wire fields), `readBots` returns the whole row —
+ * `games.ts` needs `type` and the secret `webhookUrl` to seat bots — so the
+ * public shape is carved out here, at the wire boundary, and `webhookUrl` never
+ * leaves. */
+export function botOf(b: BotRow): z.infer<typeof botShape> {
+  return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, ratedEligible: b.ratedEligible, config: b.config };
 }

@@ -90,7 +90,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       await enforceRateLimit(c.env, "user_search", c.var.auth.user.id);
       const { q, limit } = c.req.valid("query");
       const rows = await searchUsers(ctx.d1(c.env), c.var.auth.user.id, q, limit);
-      return c.json({ users: rows.map((r) => ({ id: r.userId, username: r.username, displayName: r.displayName, avatarUrl: r.avatarUrl, isAnonymous: r.isAnonymous })) }, 200);
+      return c.json({ users: rows }, 200);
     },
   );
 

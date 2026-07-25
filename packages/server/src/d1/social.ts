@@ -165,7 +165,7 @@ export async function listPendingRequests(d1: D1Database, caller: string): Promi
  * blocked relationship with the caller. Prefix and exact matches rank first.
  * `LIKE` for v1 (FTS5 later); the `%` wildcard is stripped from the query so a
  * caller can't force an unbounded scan. */
-export async function searchUsers(d1: D1Database, caller: string, query: string, limit: number): Promise<IdentityFields[]> {
+export async function searchUsers(d1: D1Database, caller: string, query: string, limit: number): Promise<Pick<typeof users.$inferSelect, "id" | "username" | "displayName" | "avatarUrl" | "isAnonymous">[]> {
   const cleaned = query.replace(/%/g, "").trim();
   if (cleaned === "") return [];
   const like = `%${cleaned}%`;
@@ -190,7 +190,7 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
     .orderBy(sql`CASE WHEN ${users.username} = ${cleaned} THEN 0 WHEN ${users.username} LIKE ${`${cleaned}%`} THEN 1 ELSE 2 END`, users.username)
     .limit(limit)
     .all();
-  return rows.map((p) => ({ userId: p.id, username: p.username, displayName: p.displayName, avatarUrl: p.avatarUrl, isAnonymous: p.isAnonymous }));
+  return rows;
 }
 
 /** Joinable games created by the caller's accepted friends — the "friends'

@@ -8,7 +8,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
-import { botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape } from "./wire.js";
+import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape } from "./wire.js";
 
 function okResponse<T extends z.ZodType>(schema: T, description: string) {
   const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -106,20 +106,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const bots = await readBots(ctx.d1(c.env));
-      return c.json(
-        {
-          bots: bots.map((b) => ({
-            id: b.id,
-            username: b.username,
-            displayName: b.displayName,
-            avatarUrl: b.avatarUrl,
-            schemaVersion: b.schemaVersion,
-            ratedEligible: b.ratedEligible,
-            config: b.config,
-          })),
-        },
-        200,
-      );
+      return c.json({ bots: bots.map(botOf) }, 200);
     },
   );
 
@@ -148,7 +135,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.var.auth.user.id);
-      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, displayRating: r.displayRating, updatedAt: r.updatedAt })) }, 200);
+      return c.json({ ratings: rows }, 200);
     },
   );
 
@@ -188,7 +175,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.req.valid("param").playerId);
-      return c.json({ ratings: rows.map((r) => ({ pool: r.pool, mu: r.mu, sigma: r.sigma, displayRating: r.displayRating, updatedAt: r.updatedAt })) }, 200);
+      return c.json({ ratings: rows }, 200);
     },
   );
 
@@ -214,19 +201,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const { pool, limit } = c.req.valid("query");
       const rows = await readRatingHistory(ctx.d1(c.env), c.var.auth.user.id, pool ?? null, limit);
-      return c.json(
-        {
-          history: rows.map((r) => ({
-            gameId: r.gameId,
-            pool: r.pool,
-            displayBefore: r.displayBefore,
-            displayAfter: r.displayAfter,
-            displayChange: r.displayChange,
-            createdAt: r.createdAt,
-          })),
-        },
-        200,
-      );
+      return c.json({ history: rows }, 200);
     },
   );
 }
