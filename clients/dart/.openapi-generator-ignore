@@ -1,0 +1,14 @@
+# Files the generator must not overwrite. Everything not listed here — lib/,
+# doc/, README.md, build.yaml — is regenerated wholesale on every run.
+
+# The dart-dio template stamps `sdk: >=3.5.0` while its own json_serializable
+# output uses the Dart 3.8 null-aware-elements feature, so the real floor is
+# ^3.8.0; it also knows nothing about this package's homepage, repository, or
+# version-tracks-the-engine rule.
+pubspec.yaml
+
+# Carries the `unused_import: ignore` that the template's own output requires —
+# it imports ErrorResponse into every api file whether or not that file uses it.
+# Without this line the generator overwrites the setting on every run and the
+# package publishes with seven warnings against its pub.dev score.
+analysis_options.yaml

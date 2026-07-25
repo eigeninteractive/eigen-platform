@@ -27,17 +27,79 @@ branch that releases.
 
 ## The CI gate
 
-Every PR runs lint → build → typecheck → test, plus three **drift guards** that
+Every PR runs lint → build → typecheck → test, plus four **drift guards** that
 regenerate a committed artifact and fail if the result differs:
 
 | Guard | Catches |
 |---|---|
 | `openapi.json` re-emitted | a route or zod schema change that skipped `pnpm --filter @eigen/server openapi` |
+| Dart client regenerated | a wire change that skipped `pnpm dart-client` — and it runs `dart analyze` + a publish dry run, so the artifact is known to compile |
 | D1 + DO migrations regenerated | a drizzle schema edit with no migration — nothing else catches this, and it ships code expecting columns that do not exist |
 | `wrangler types` re-run | a renamed or removed binding, which typechecking alone misses |
 
 If one fails, run the command it names and commit the result. Do not hand-edit
 a generated artifact.
+
+## The Dart client
+
+`clients/dart` is the `eigen_api` package — the typed Dart REST client,
+generated from `openapi.json` and **committed**. Regenerate with:
+
+```bash
+pnpm dart-client   # runs the generator via `pnpm dlx`; needs a JDK on PATH
+```
+
+The generator is openapi-generator, run through its official npm wrapper with
+`pnpm dlx @openapitools/openapi-generator-cli`. The wrapper downloads and
+version-pins the JAR (the pin lives in `openapitools.json`), so none of that is
+hand-maintained here; openapi-generator is a Java program, so a JDK must be on
+PATH, but nothing installs it — CI's `setup-java` and your local install provide
+it. It runs via `pnpm dlx` (an ephemeral install), not a workspace
+devDependency, on purpose: added to the workspace the wrapper breaks under
+pnpm's isolated linker — its build-script approval gate blocks the wrapper's
+self-install and its phantom `tslib` fails to resolve — and dlx's throwaway
+install sidesteps both while leaving no devDependency behind.
+
+Everything under `clients/dart` is generated except `pubspec.yaml`,
+`analysis_options.yaml` and `.openapi-generator-ignore` — which is the list of
+those protected files. Never hand-edit anything else; the next run erases it.
+`analysis_options.yaml` relaxes exactly two lints, because analysis of a
+generated package is a compile check, not a style gate.
+
+It lives here rather than in `eigen-flutter` on purpose. The wire contract is
+this repo's, so a breaking change to it should arrive as a **reviewable Dart
+diff in the same pull request that changed the zod schema** — not days later, in
+another repository, as a failing sync PR. Committing the output is what makes
+that diff exist; the CI guard above is what keeps it honest.
+
+Its version is stamped from `@eigen/server`'s, so a consumer's
+`eigen_api: ^1.2.0` states exactly the compatibility it means. `pnpm
+version-packages` (which the release workflow runs) regenerates it, so the
+version PR already carries the bumped pubspec.
+
+### How it publishes to pub.dev
+
+Not inline with the npm release, and the reason is a pub.dev constraint worth
+knowing. pub.dev's automated publishing trusts a GitHub OIDC token **only when
+its ref is a tag** matching a pattern you configure on the package — but the npm
+release runs on a branch push (a changesets merge), whose token pub.dev rejects.
+
+So the flow is two hops:
+
+1. `release.yml` publishes to npm, then — when a publish actually happened —
+   pushes an `eigen_api-v<version>` tag.
+2. `release-dart-client.yml` fires on that tag and runs `dart pub publish`, whose
+   OIDC token now carries a tag ref pub.dev accepts.
+
+The tag must be pushed with a **PAT**, because a tag pushed by the built-in
+`GITHUB_TOKEN` deliberately does not trigger another workflow.
+
+**Required secret:** `RELEASE_TAG_PAT` — a token with `contents: write` on this
+repo, used only to push the release tag.
+
+**pub.dev setup, once:** on the `eigen_api` package page → Admin → Automated
+publishing, set repository `eigeninteractive/eigen-server` and tag pattern
+`eigen_api-v{{version}}`. No pub credential is stored anywhere.
 
 ## Releasing to npm
 
@@ -95,14 +157,17 @@ on the `@eigen` scope.
 
 ## Notifying downstream repos
 
-The engine is the producer in two cross-repo contracts, and neither consumer can
-detect a change on its own — both hold vendored copies:
+`eigen-web` holds vendored copies of two things this repo produces, and cannot
+detect a change to either on its own:
 
 ```text
-openapi.json    →  eigen-flutter  (regenerates its typed Dart client)
-                →  eigen-web      (regenerates the HTTP API reference)
+openapi.json    →  eigen-web      (regenerates the HTTP API reference)
 package barrels →  eigen-web      (regenerates the TypeDoc reference)
 ```
+
+`eigen-flutter` used to be on that list. It no longer is: it consumes the
+published `eigen_api` as an ordinary dependency, so a wire change reaches it as
+a version bump rather than a file copy.
 
 There is a third coupling that **nothing dispatches**, because it is a hand
 edit on both sides: the RPS twin fixtures.
@@ -118,20 +183,15 @@ observation, which for a hidden-information game is not the state. Omitting it
 means "the two coincide", which is true only for perfect-information games.
 
 `.github/workflows/notify-consumers.yml` dispatches an `engine-api-changed`
-event to both when one of those inputs lands on `main`. Each consumer
-regenerates and **opens a pull request** — the PR is the notification, a
-reviewable diff rather than an alert to triage.
-
-This matters most for the client: generated Dart enums carry no `unknown`
-sentinel, so a new wire-enum member is a *compile error by design*. A failing
-sync PR means the change is breaking and needs a coordinated schema-version
-bump, not a patch.
+event when one of those inputs lands on `main`. `eigen-web` regenerates and
+**opens a pull request** — the PR is the notification, a reviewable diff rather
+than an alert to triage.
 
 **Required secret:** `CONSUMER_DISPATCH_TOKEN` — a PAT or GitHub App token with
-`contents: write` on `eigen-flutter` and `eigen-web`. The default `GITHUB_TOKEN`
-cannot reach another repository. If it is absent the job warns instead of
-failing; each consumer can still be synced manually from its Actions tab, and
-both have a weekly scheduled backstop.
+`contents: write` on `eigen-web`. The default `GITHUB_TOKEN` cannot reach
+another repository. If it is absent the job warns instead of failing; the sync
+can still be run manually from that repo's Actions tab, and it has a weekly
+scheduled backstop.
 
 ## Deploying
 

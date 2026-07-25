@@ -15,12 +15,43 @@
   deliberately still in place. Once the site is live and verified, delete them —
   every repo's `AGENTS.md` already points agents at
   `https://eigeninteractive.com/llms.txt`, and every page is fetchable as `.md`.
-- **Publishing to pub.dev is blocked.** `.gitignore` excludes `*.g.dart` and
-  `*.freezed.dart`, and `dart pub publish` honours `.gitignore` — so 71
-  generated files exist on disk and **zero would ship**, giving consumers a
-  package that does not compile. Fixing it means committing generated output and
-  accepting the diff noise. Blocks both `eigen_flutter` and `eigen_api`, which
-  release in lockstep.
+- **Decide where the generated Dart API client lives.** Today `openapi.json` is
+  vendored into `eigen-flutter`, regenerated there by `tool/generate_api.sh`, and
+  consumed as a path dependency — so the spec exists in two repos and a bespoke
+  `repository_dispatch` + sync-PR workflow exists to keep them equal. The
+  alternative is to make the *contract* the published artifact and let consumers
+  depend on a version: either generate and publish `eigen_api` from
+  `eigen-server` CI (the client leaves the Flutter repo entirely, along with its
+  Java/openapi-generator toolchain), or keep generating in `eigen-flutter` but
+  read the spec from a pinned `@eigen/server` in `node_modules` instead of a
+  copied file. Both replace the custom dispatch machinery with ordinary
+  dependency-bump PRs. Same question applies to `eigen-web`, which currently
+  needs a sibling checkout to build its references.
+- **Generate the Dart payload types from the game's Standard Schema.** A game
+  declares `state` / `action` / `config` once in TypeScript, then hand-writes the
+  Dart mirror — and every implementor installs `freezed`, `json_serializable` and
+  `build_runner` to do it. Builders are not inheritable from a dependency (only
+  annotations are), so the engine cannot supply that toolchain. But the schemas
+  are machine-readable: emitting them as JSON Schema alongside `openapi.json`
+  would let a generator produce the Dart payload types, turning the twin from a
+  transcription that can drift into a build artifact that cannot. This is the
+  single largest remaining source of twin bugs, and the `field_rename` /
+  wire-key mismatch class disappears with it.
+- **Scaffolding: `create-eigen-game`.** Starting a game today means creating two
+  repos by hand and getting a dozen small things right — the Worker glue,
+  `wrangler.jsonc` bindings, the v1 rules unit, the Dart `GameModule`, the
+  matching `build.yaml` (whose `field_rename` must agree with the schemas), the
+  fixture directories in *both* repos, and the two CI workflows. One generator
+  that writes both halves at a known-good starting point removes all of it.
+- **Decide the monorepo question.** Four repos today (`eigen-server`,
+  `eigen-flutter`, `eigen-web`, plus each game) with three hand-maintained
+  cross-repo couplings: `openapi.json`, the TypeScript sources the docs
+  reference, and the twin fixtures — the last of which **nothing** syncs and no
+  CI can see. A monorepo makes all three a single atomic change and lets a
+  `diff -r` guard the fixtures; the costs are a mixed pnpm/Dart toolchain in one
+  place, and losing the clean per-repo open-source boundary. Worth deciding
+  before there are several games, not after. Relates to the two items above:
+  schema-derived types and scaffolding both get simpler in a monorepo.
 - **Finish the docs product.** Shipped: the task-first IA (each page carries both
   the TypeScript and Dart halves of one task), the generated HTTP + TypeScript
   references (`pnpm sync-api`), local search, `llms.txt` / `llms-full.txt` /
@@ -30,7 +61,10 @@
   as they ship; add screenshots/logos to the showcase.
 - changelog maintenance for both, release instructions, etc. (the changelog is
   now `eigen-web`'s `/blog`).
-- Scaffolding and implementor Monorepo suggestions
+- **Pick a house convention for game payload wire keys.** RPS's TypeScript
+  schemas use camelCase; `strategy` used snake_case with `field_rename: snake`.
+  Game payloads are game-owned so neither is wrong, but the two halves' codecs
+  must agree, and choosing now is cheaper than migrating games later.
 
 # P1
 
