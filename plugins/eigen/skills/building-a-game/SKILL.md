@@ -1,6 +1,6 @@
 ---
 name: building-a-game
-description: Write or review a game on the Eigen engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigen/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegal_move, board_updated, state_updated), or reviewing a game module for determinism and observation-projection mistakes.
+description: Write or review a game on the Eigen engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegal_move, board_updated, state_updated), or reviewing a game module for determinism and observation-projection mistakes.
 ---
 
 # Building a game on Eigen
@@ -98,7 +98,7 @@ Twin fixtures are the drift net between the TypeScript and Dart halves — share
 JSON, run by both runners:
 
 ```ts
-import { twinFixtureTests } from "@eigen/testkit";
+import { twinFixtureTests } from "@eigeninteractive/testkit";
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
 ```
 

@@ -1,5 +1,5 @@
 /**
- * `@eigen/server/testing` — the test-auth recipe, for the engine's own
+ * `@eigeninteractive/server/testing` — the test-auth recipe, for the engine's own
  * suite and for implementor test workers alike:
  *
  * ```ts
@@ -20,7 +20,7 @@
  * shipped in the package); it protects nothing and must never reach a
  * production config: pass `auth` ONLY in test workers.
  *
- * @module @eigen/server/testing
+ * @module @eigeninteractive/server/testing
  */
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";

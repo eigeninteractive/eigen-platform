@@ -3,7 +3,7 @@
  * escapes the kernel except through `computeObservation`.
  */
 
-import type { ComputeObservationArgs, GameRules, JsonObject } from "@eigen/rules";
+import type { ComputeObservationArgs, GameRules, JsonObject } from "@eigeninteractive/rules";
 import { GameBugError } from "./errors.js";
 
 /** One seat's projected frame, tagged with its seat. The host stamps

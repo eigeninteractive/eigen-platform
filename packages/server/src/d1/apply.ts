@@ -19,8 +19,8 @@
  * guarantees its paired rating write did too.
  */
 
-import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigen/kernel";
-import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
+import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
+import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";

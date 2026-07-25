@@ -5,7 +5,7 @@
  * error handler. One error shape everywhere: `{ error, code? }`.
  */
 
-import type { RejectCode } from "@eigen/kernel";
+import type { RejectCode } from "@eigeninteractive/kernel";
 import type { CommandResult, LobbyRejectCode } from "./protocol.js";
 
 /**

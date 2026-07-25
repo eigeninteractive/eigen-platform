@@ -17,7 +17,7 @@ pnpm exec biome check .
 ```
 
 No Cloudflare account and no payment method are needed: `wrangler dev` simulates
-Durable Objects, D1, R2 and cron locally, and `@eigen/server/testing` mints test
+Durable Objects, D1, R2 and cron locally, and `@eigeninteractive/server/testing` mints test
 tokens so integration tests exercise the real auth middleware without Firebase.
 
 ## Branching
@@ -32,7 +32,7 @@ regenerate a committed artifact and fail if the result differs:
 
 | Guard | Catches |
 |---|---|
-| `openapi.json` re-emitted | a route or zod schema change that skipped `pnpm --filter @eigen/server openapi` |
+| `openapi.json` re-emitted | a route or zod schema change that skipped `pnpm --filter @eigeninteractive/server openapi` |
 | Dart client regenerated | a wire change that skipped `pnpm dart-client` — and it runs `dart analyze` + a publish dry run, so the artifact is known to compile |
 | D1 + DO migrations regenerated | a drizzle schema edit with no migration — nothing else catches this, and it ships code expecting columns that do not exist |
 | `wrangler types` re-run | a renamed or removed binding, which typechecking alone misses |
@@ -72,7 +72,7 @@ diff in the same pull request that changed the zod schema** — not days later, 
 another repository, as a failing sync PR. Committing the output is what makes
 that diff exist; the CI guard above is what keeps it honest.
 
-Its version is stamped from `@eigen/server`'s, so a consumer's
+Its version is stamped from `@eigeninteractive/server`'s, so a consumer's
 `eigen_api: ^1.2.0` states exactly the compatibility it means. `pnpm
 version-packages` (which the release workflow runs) regenerates it, so the
 version PR already carries the bumped pubspec.
@@ -124,7 +124,7 @@ decision stays explicit (an npm version cannot be unpublished after 72 hours)
 without anyone remembering a version number or a publish order.
 
 The four packages are **`fixed`** in `.changeset/config.json`: they share one
-version and always bump together. A single patch on `@eigen/rules` bumps all
+version and always bump together. A single patch on `@eigeninteractive/rules` bumps all
 four. They are tightly interdependent, and an independent-version matrix would
 be maintained by hand for no benefit.
 
@@ -143,7 +143,7 @@ schema-version bump and a coordinated client release.
 
 - **`pnpm publish -r`, never `npm publish`.** The packages depend on each other
   with `workspace:*`. pnpm rewrites those to real versions on the way out and
-  publishes in topological order (`@eigen/rules` before its dependents); npm
+  publishes in topological order (`@eigeninteractive/rules` before its dependents); npm
   would publish the literal `workspace:*` and produce four broken tarballs.
 - **`publishConfig.access: "public"`** is set on each package. Scoped packages
   default to restricted, which fails on a free account.
@@ -153,7 +153,7 @@ so each tarball is traceable to the commit and workflow run that built it. That
 needs `id-token: write`, which the workflow already declares.
 
 **Required secret:** `NPM_TOKEN` — an npm automation token with publish rights
-on the `@eigen` scope.
+on the `@eigeninteractive` scope.
 
 ## Notifying downstream repos
 

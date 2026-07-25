@@ -1,7 +1,7 @@
 # Changelog
 
 This package is generated from the Eigen engine's OpenAPI specification and its
-version tracks [`@eigen/server`](https://www.npmjs.com/package/@eigen/server)
+version tracks [`@eigeninteractive/server`](https://www.npmjs.com/package/@eigeninteractive/server)
 exactly — 1.0.0 here is 1.0.0 there. It has no changes of its own.
 
 See the engine's changelog:

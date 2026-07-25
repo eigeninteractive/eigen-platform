@@ -1,4 +1,4 @@
-import type { Envelope } from "@eigen/rules";
+import type { Envelope } from "@eigeninteractive/rules";
 import { describe, expect, it } from "vitest";
 import { GameBugError } from "../src/errors.js";
 import { assertBudgetPending, assertForfeitPending, assertHookState, assertPendingIdentified, canonicalJson, sameView } from "../src/guards.js";

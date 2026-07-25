@@ -5,7 +5,7 @@
  * acceptance policy.
  */
 
-import type { Envelope, GameSchemas, Json, JsonObject } from "@eigen/rules";
+import type { Envelope, GameSchemas, Json, JsonObject } from "@eigeninteractive/rules";
 import { GameBugError } from "./errors.js";
 import { parseStoredPayload } from "./schema.js";
 

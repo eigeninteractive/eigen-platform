@@ -1,4 +1,4 @@
-# @eigen/testkit
+# @eigeninteractive/testkit
 
 Test helpers for games built on the [Eigen engine](https://eigeninteractive.com).
 
@@ -7,7 +7,7 @@ network — and run the shared JSON fixtures that keep the TypeScript and Dart
 halves of a game from drifting apart.
 
 ```ts
-import { twinFixtureTests } from "@eigen/testkit";
+import { twinFixtureTests } from "@eigeninteractive/testkit";
 import { gameModule } from "../../src/rules/index.js";
 
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));

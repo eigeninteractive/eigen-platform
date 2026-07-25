@@ -28,8 +28,8 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { type CommitPlan, commit, DEADLINE_GRACE_MS, deriveRng, fanOutObservations, GameBugError, type GameStatus, type Intent, isRejected, type ObservationFrame, parseStoredPayload, type RatingDelta, randomSeed, type Seat, type SeatView, type StateRow, type TransitionAction } from "@eigen/kernel";
-import type { GameModule, GameRules, JsonObject, ObservationSlice, OutcomeEntry, TransitionCause } from "@eigen/rules";
+import { type CommitPlan, commit, DEADLINE_GRACE_MS, deriveRng, fanOutObservations, GameBugError, type GameStatus, type Intent, isRejected, type ObservationFrame, parseStoredPayload, type RatingDelta, randomSeed, type Seat, type SeatView, type StateRow, type TransitionAction } from "@eigeninteractive/kernel";
+import type { GameModule, GameRules, JsonObject, ObservationSlice, OutcomeEntry, TransitionCause } from "@eigeninteractive/rules";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { type DrizzleSqliteDODatabase, drizzle } from "drizzle-orm/durable-sqlite";
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";

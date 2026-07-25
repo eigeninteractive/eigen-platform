@@ -10,7 +10,7 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "openapi": "pnpm --filter @eigen/server openapi",
+    "openapi": "pnpm --filter @eigeninteractive/server openapi",
     "dart-client": "scripts/generate-dart-client.sh",
     "changeset": "changeset",
     "version-packages": "changeset version && scripts/generate-dart-client.sh"

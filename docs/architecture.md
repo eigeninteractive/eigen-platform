@@ -104,26 +104,26 @@ The server is a small pnpm monorepo. The split is by **trust and purity**, not
 by feature:
 
 ```
-@eigen/rules    The implementor contract: GameRules, GameModule, the six hooks,
+@eigeninteractive/rules    The implementor contract: GameRules, GameModule, the six hooks,
                 the JSON/Envelope/Observation types. Pure types + 2 helpers.
                 Zero engine dependencies — a game author reads only this.
 
-@eigen/kernel   The pure decision core. Given (game, state, roster, intent, now)
+@eigeninteractive/kernel   The pure decision core. Given (game, state, roster, intent, now)
                 it returns a commit plan or a rejection. No I/O, no platform
                 APIs, fully unit-testable. Owns timing/grace, the same-view rule,
                 observation fan-out, RNG derivation, and the rating math.
 
-@eigen/server   Everything that deploys: the BaseGameDO class, the hono routes,
+@eigeninteractive/server   Everything that deploys: the BaseGameDO class, the hono routes,
                 the D1 schema + appliers, auth, bots, push, the createEngine
                 factory. This is the only package an implementor's Worker imports
-                at runtime (plus their own @eigen/rules game module).
+                at runtime (plus their own @eigeninteractive/rules game module).
 
-@eigen/testkit  Shared conformance fixtures + kernel scenarios, run by both the
+@eigeninteractive/testkit  Shared conformance fixtures + kernel scenarios, run by both the
                 TS tests and the Dart client's tests to catch twin drift.
 ```
 
-An implementor authors a game against `@eigen/rules`, and ships a Worker that
-imports `@eigen/server`. They never see the DO internals, the D1 schema, or the
+An implementor authors a game against `@eigeninteractive/rules`, and ships a Worker that
+imports `@eigeninteractive/server`. They never see the DO internals, the D1 schema, or the
 migration machinery.
 
 ### 3.2 One Worker, two authenticated API groups, one public web surface
@@ -192,7 +192,7 @@ wakes) happens *after* the commit, where interleaving is harmless.
 
 ## 4. The kernel — the pure decision core
 
-`@eigen/kernel` is the crown jewel: a pure function from inputs to a commit plan.
+`@eigeninteractive/kernel` is the crown jewel: a pure function from inputs to a commit plan.
 It touches no platform API, so it is exhaustively unit-testable and identical in
 every environment.
 
@@ -657,10 +657,10 @@ bot** is therefore: insert the row (§17.5), derive that bot's key, and hand it
 to whoever runs the bot — which may well be you. The bot's owner gets only the
 derived key and never sees `BOT_SIGNING_SECRET`.
 
-`@eigen/server` exports the derivation as an operator utility:
+`@eigeninteractive/server` exports the derivation as an operator utility:
 
 ```ts
-import { deriveBotKey } from "@eigen/server";
+import { deriveBotKey } from "@eigeninteractive/server";
 const key = await deriveBotKey(BOT_SIGNING_SECRET, botId); // base64
 ```
 
@@ -872,7 +872,7 @@ An implementor's entire runtime surface is one `createEngine` call plus a
 `BaseGameDO` subclass:
 
 ```ts
-import { BaseGameDO, createEngine } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
 import { gameModule } from "./rules";
 
 export class GameDO extends BaseGameDO<Env> {
@@ -902,7 +902,7 @@ accessor. Nothing is discovered by convention at runtime.
 | Kind | Name | Required | What it enables |
 |---|---|---|---|
 | Durable Object | `GameDO` (SQLite storage, via the `exports` field) | **yes** | The per-game session + history |
-| D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. `migrations_dir` points at `node_modules/@eigen/server/migrations` |
+| D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. `migrations_dir` points at `node_modules/@eigeninteractive/server/migrations` |
 | Cron trigger | daily | **yes** in practice | The guest purge + abandoned-game reap (§13.2). Without it those two backstops never run |
 | Assets | `./public` directory | optional | Static files, served unmetered |
 | R2 bucket | any binding | optional | Avatar uploads (`avatars` config block) |
@@ -947,7 +947,7 @@ Three things make local development need no cloud account and no payment method:
   placeholder `FIREBASE_*` trio and a dev `BOT_SIGNING_SECRET`. Push degrades to
   a logged no-op, which is the intended local behaviour — do not put real
   credentials there to "make push work" locally.
-- **Auth is testable without Firebase.** `@eigen/server/testing` mints local
+- **Auth is testable without Firebase.** `@eigeninteractive/server/testing` mints local
   tokens the auth middleware accepts, so integration tests exercise the real
   middleware, the real DO, and the real D1 without a Firebase project. This is
   the same seam the engine's own suites use.
@@ -963,7 +963,7 @@ than hand-edited:
 
 - **D1 migrations** are generated with drizzle-kit (`pnpm db:generate:d1`) and
   applied with `wrangler d1 migrations apply` — **never at runtime**. They ship
-  inside `@eigen/server`, so an implementor applies them but never authors them.
+  inside `@eigeninteractive/server`, so an implementor applies them but never authors them.
   The **DO SQLite schema self-applies** inside the DO on activation
   (`blockConcurrencyWhile`), which is what lets a finished game woken years later
   migrate itself before serving anything.
@@ -1009,7 +1009,7 @@ game. `config` is **public read-only reference data** consumed by the
 `botSeatable` hook and the client's pickers — never put a secret in it.
 
 Then hand the bot's owner **one derived key** —
-`await deriveBotKey(BOT_SIGNING_SECRET, botId)` from `@eigen/server`, or the
+`await deriveBotKey(BOT_SIGNING_SECRET, botId)` from `@eigeninteractive/server`, or the
 `openssl` one-liner in §11.1 — and never the master secret. Adding a bot
 therefore needs no new secret and no redeploy.
 
@@ -1081,7 +1081,7 @@ and as Dart (client-side optimistic preview + rendering, in the client repo).
 The two are kept honest by **shared JSON fixtures per version unit**, run by both
 the TS and Dart test runners — a drift between the twins fails a test on both
 sides. The engine generates the OpenAPI spec that the client's transport is
-generated from. This is why the contract in `@eigen/rules` is small and precise:
+generated from. This is why the contract in `@eigeninteractive/rules` is small and precise:
 it is the seam two languages meet at.
 
 For how to actually write a game against that contract, see

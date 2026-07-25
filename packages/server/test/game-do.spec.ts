@@ -10,7 +10,7 @@
 
 import { runDurableObjectAlarm, runInDurableObject } from "cloudflare:test";
 import { env } from "cloudflare:workers";
-import type { GameStatus } from "@eigen/kernel";
+import type { GameStatus } from "@eigeninteractive/kernel";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { describe, expect, it, vi } from "vitest";

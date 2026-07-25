@@ -1,7 +1,7 @@
 /**
  * Public configuration types for the game's web surface, kept beside the code
  * that renders it. `engine.ts` re-exports them, so an implementor still imports
- * everything from `@eigen/server`.
+ * everything from `@eigeninteractive/server`.
  */
 
 /** The legal entity publishing the game. Required whenever `site` is present:

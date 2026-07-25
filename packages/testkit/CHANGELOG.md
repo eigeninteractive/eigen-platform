@@ -1,4 +1,4 @@
-# @eigen/testkit
+# @eigeninteractive/testkit
 
 ## 1.0.0
 

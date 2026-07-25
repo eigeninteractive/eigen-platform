@@ -1,4 +1,4 @@
-# @eigen/server
+# @eigeninteractive/server
 
 The deployable half of the [Eigen engine](https://eigeninteractive.com) — a
 server-authoritative engine for turn-based multiplayer games on Cloudflare
@@ -10,7 +10,7 @@ sockets, reconnection, ratings, bots, auth, history, the HTTP API and the
 game's website.
 
 ```ts
-import { BaseGameDO, createEngine } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
 import { gameModule } from "./rules";
 
 export class GameDO extends BaseGameDO<Env> {
@@ -27,7 +27,7 @@ export default createEngine({
 ```
 
 Ships the engine's D1 migrations under `migrations/` — point your
-`migrations_dir` at `node_modules/@eigen/server/migrations` and apply them with
+`migrations_dir` at `node_modules/@eigeninteractive/server/migrations` and apply them with
 `wrangler d1 migrations apply`. You never author them.
 
 ## Documentation

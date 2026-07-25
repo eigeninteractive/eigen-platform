@@ -6,7 +6,7 @@
 #   - DELETE /me returns a clean failure instead of calling Identity Toolkit
 # Do not put real service-account credentials here to "make push work" locally.
 #
-# Auth still works without a Firebase project: `@eigen/server/testing` mints
+# Auth still works without a Firebase project: `@eigeninteractive/server/testing` mints
 # local tokens the real auth middleware accepts, which is how the test suites
 # exercise the real DO and real D1 with no cloud account.
 

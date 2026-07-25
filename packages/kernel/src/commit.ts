@@ -15,7 +15,7 @@
  * in arrival order.
  */
 
-import { type ActionType, type Envelope, type GameRules, IllegalMoveError, type JsonObject, type LifecycleAction, type OutcomeEntry, type TransitionCause } from "@eigen/rules";
+import { type ActionType, type Envelope, type GameRules, IllegalMoveError, type JsonObject, type LifecycleAction, type OutcomeEntry, type TransitionCause } from "@eigeninteractive/rules";
 import { GameBugError, type Rejected, reject } from "./errors.js";
 import { assertBudgetPending, assertForfeitPending, assertHookState, assertPendingIdentified, type SeatView, sameView } from "./guards.js";
 import { fanOutObservations, type ObservationFrame } from "./observe.js";

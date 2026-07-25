@@ -1,4 +1,4 @@
-# @eigen/rules
+# @eigeninteractive/rules
 
 ## 1.0.0
 

@@ -11,7 +11,7 @@ touch a database, a Durable Object, a migration, or a socket. You implement one
 small, precisely-typed contract, wire it into a Worker, and deploy.
 
 Everything you write lives behind one interface, `GameModule`, from the
-`@eigen/rules` package. That package is pure types plus two tiny helpers, and it
+`@eigeninteractive/rules` package. That package is pure types plus two tiny helpers, and it
 has zero engine dependencies — you can read it top to bottom in ten minutes.
 
 ---
@@ -49,7 +49,7 @@ Four facts define the shape of everything you write:
 A `GameModule` is just a map from `schema_version` to a `GameRules` unit:
 
 ```ts
-import type { GameModule } from "@eigen/rules";
+import type { GameModule } from "@eigeninteractive/rules";
 import { rulesV1 } from "./v1.js";
 
 export const gameModule: GameModule = {
@@ -363,11 +363,11 @@ Notes:
 
 ## 10. Wiring it into a Worker
 
-Two small pieces of glue, both from `@eigen/server`:
+Two small pieces of glue, both from `@eigeninteractive/server`:
 
 ```ts
 // src/index.ts
-import { BaseGameDO, createEngine } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
 import { gameModule } from "./rules/index.js";
 
 // 1. Bind the game's Durable Object to your game module + D1.
@@ -572,7 +572,7 @@ fails a test on both sides. A fixture file is a list of cases:
 testkit:
 
 ```ts
-import { twinFixtureTests } from "@eigen/testkit";
+import { twinFixtureTests } from "@eigeninteractive/testkit";
 import { gameModule } from "../../src/rules/index.js";
 
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
@@ -586,7 +586,7 @@ twins drift. Copy the observation your hook *should* produce for each seat into
 ### Integration tests
 
 Drive the real Worker (routes + DO + D1) with `@cloudflare/vitest-pool-workers`,
-using `@eigen/server/testing` to mint local test tokens. The engine's own suites
+using `@eigeninteractive/server/testing` to mint local test tokens. The engine's own suites
 cover the plumbing (lobby, sockets, timing, finish, ratings, purge); your job is
 to test *your game's* behaviour end-to-end where it matters — a full match, a
 timeout resolution, a bot game.
@@ -598,7 +598,7 @@ timeout resolution, a bot game.
 Everything in §11 runs offline and needs no Cloudflare account, so a game's CI is
 just those commands on a runner. There are no secrets to inject: the Workers
 tests boot the real `workerd` with local D1/R2/DO simulation, and
-`@eigen/server/testing` mints the tokens, so nothing reaches the network.
+`@eigeninteractive/server/testing` mints the tokens, so nothing reaches the network.
 
 ```yaml
 # .github/workflows/ci.yml
@@ -637,7 +637,7 @@ jobs:
 
 `pnpm -r build` before `typecheck` is not optional if your game lives in a
 workspace beside the engine packages: they resolve through their `exports` field
-to `dist/`, so an unbuilt `@eigen/server` fails to type-check its consumers.
+to `dist/`, so an unbuilt `@eigeninteractive/server` fails to type-check its consumers.
 
 **Do not deploy from CI.** `wrangler d1 migrations apply --remote` mutates a real
 database, and a deploy is the one action in this system that isn't reversible by
@@ -709,7 +709,7 @@ reimplement:
 - **Bots infrastructure**, **push**, **deep links**, **avatars**, and the whole
   **HTTP/OpenAPI surface**.
 
-Your entire job is the pure rules in `@eigen/rules` plus the ~15-line Worker glue.
+Your entire job is the pure rules in `@eigeninteractive/rules` plus the ~15-line Worker glue.
 If you find yourself reaching for a database, a socket, a clock, or a lock inside
 a hook — stop; the engine already did it, and doing it in a hook would break
 determinism.

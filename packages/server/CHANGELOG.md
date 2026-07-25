@@ -1,4 +1,4 @@
-# @eigen/server
+# @eigeninteractive/server
 
 ## 1.0.0
 

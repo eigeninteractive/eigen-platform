@@ -1,4 +1,4 @@
-# @eigen/rules
+# @eigeninteractive/rules
 
 The game-rules contract for the [Eigen engine](https://eigeninteractive.com) — a
 server-authoritative engine for turn-based multiplayer games.
@@ -8,7 +8,7 @@ A game author reads only this: `GameRules`, `GameModule`, the six hooks, and the
 `Envelope` / `Observation` types.
 
 ```ts
-import type { GameModule, GameRules, Envelope } from "@eigen/rules";
+import type { GameModule, GameRules, Envelope } from "@eigeninteractive/rules";
 
 export const gameModule: GameModule = { versions: { 1: rulesV1 } };
 ```

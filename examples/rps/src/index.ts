@@ -4,7 +4,7 @@
  * Deploys with `pnpm deploy` (engine D1 migrations apply, then the code).
  */
 
-import { BaseGameDO, createEngine } from "@eigen/server";
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
 import { gameModule as rpsGame } from "./rules";
 
 export class GameDO extends BaseGameDO<Env> {

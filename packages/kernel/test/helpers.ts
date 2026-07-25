@@ -5,8 +5,8 @@
  * illegal moves.
  */
 
-import type { Envelope, GameRules, JsonObject, OutcomeEntry } from "@eigen/rules";
-import { IllegalMoveError, passthroughObservation } from "@eigen/rules";
+import type { Envelope, GameRules, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
+import { IllegalMoveError, passthroughObservation } from "@eigeninteractive/rules";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { GameRow, Seat, StateRow } from "../src/commit.js";
 

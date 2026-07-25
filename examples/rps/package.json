@@ -11,13 +11,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json"
   },
   "devDependencies": {
-    "@eigen/testkit": "workspace:*",
+    "@eigeninteractive/testkit": "workspace:*",
     "@types/node": "^26.1.1",
     "drizzle-orm": "^0.45.2"
   },
   "dependencies": {
-    "@eigen/rules": "workspace:*",
-    "@eigen/server": "workspace:*",
+    "@eigeninteractive/rules": "workspace:*",
+    "@eigeninteractive/server": "workspace:*",
     "zod": "^4.4.3"
   }
 }

@@ -60,7 +60,7 @@
  * Wire it up in a game-owned test file running under plain-Node vitest:
  *
  * ```ts
- * import { twinFixtureTests } from "@eigen/testkit";
+ * import { twinFixtureTests } from "@eigeninteractive/testkit";
  * import { gameModule } from "../src/rules/index.js";
  *
  * twinFixtureTests(gameModule, new URL("../src/rules/fixtures/", import.meta.url));
@@ -68,7 +68,7 @@
  */
 
 import { readdirSync, readFileSync } from "node:fs";
-import { type Envelope, type GameAccess, type GameModule, type GameRules, IllegalMoveError, type Json, type JsonObject, type ObservationSlice, type OutcomeEntry } from "@eigen/rules";
+import { type Envelope, type GameAccess, type GameModule, type GameRules, IllegalMoveError, type Json, type JsonObject, type ObservationSlice, type OutcomeEntry } from "@eigeninteractive/rules";
 import Rand from "rand-seed";
 import { it } from "vitest";
 
@@ -136,7 +136,7 @@ export type TwinFixtureCase = ActionCase | RatingPoolCase | BotSeatableCase;
 // rules rather than to the fixture. These parsers close that gap: a
 // malformed fixture fails at LOAD, naming the file, the case, and the field.
 //
-// Hand-written rather than schema-library-backed on purpose: `@eigen/rules`
+// Hand-written rather than schema-library-backed on purpose: `@eigeninteractive/rules`
 // describes an implementor's schemas with `StandardSchemaV1` precisely so the
 // engine never mandates a validation library, and the Dart twin runner is
 // deliberately framework-free. This is ~80 lines and keeps both true.

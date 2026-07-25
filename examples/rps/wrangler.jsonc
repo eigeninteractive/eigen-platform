@@ -57,10 +57,10 @@
       //     wrangler d1 create rps-dev
       "database_id": "00000000-0000-0000-0000-000000000000",
       // Engine-owned schema, like the DO's: migrations ship inside
-      // @eigen/server and `deploy` applies them before the code goes out.
+      // @eigeninteractive/server and `deploy` applies them before the code goes out.
       // App-custom data belongs in a SEPARATE second d1_databases entry with
       // its own migrations_dir — never in this database.
-      "migrations_dir": "node_modules/@eigen/server/migrations"
+      "migrations_dir": "node_modules/@eigeninteractive/server/migrations"
     }
   ],
   "r2_buckets": [

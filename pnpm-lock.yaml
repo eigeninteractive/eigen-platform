@@ -234,17 +234,17 @@ importers:
 
   examples/rps:
     dependencies:
-      '@eigen/rules':
+      '@eigeninteractive/rules':
         specifier: workspace:*
         version: link:../../packages/rules
-      '@eigen/server':
+      '@eigeninteractive/server':
         specifier: workspace:*
         version: link:../../packages/server
       zod:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@eigen/testkit':
+      '@eigeninteractive/testkit':
         specifier: workspace:*
         version: link:../../packages/testkit
       '@types/node':
@@ -256,7 +256,7 @@ importers:
 
   packages/kernel:
     dependencies:
-      '@eigen/rules':
+      '@eigeninteractive/rules':
         specifier: workspace:*
         version: link:../rules
       '@standard-schema/spec':
@@ -277,10 +277,10 @@ importers:
 
   packages/server:
     dependencies:
-      '@eigen/kernel':
+      '@eigeninteractive/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@eigen/rules':
+      '@eigeninteractive/rules':
         specifier: workspace:*
         version: link:../rules
       '@hono/zod-openapi':
@@ -311,10 +311,10 @@ importers:
 
   packages/testkit:
     dependencies:
-      '@eigen/kernel':
+      '@eigeninteractive/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@eigen/rules':
+      '@eigeninteractive/rules':
         specifier: workspace:*
         version: link:../rules
       rand-seed:

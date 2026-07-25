@@ -14,8 +14,8 @@
  * `wrangler d1 migrations apply` — never at runtime.
  */
 
-import type { GameStatus, Seat } from "@eigen/kernel";
-import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
+import type { GameStatus, Seat } from "@eigeninteractive/kernel";
+import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { sql } from "drizzle-orm";
 import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 

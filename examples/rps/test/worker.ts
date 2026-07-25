@@ -1,12 +1,12 @@
 /**
  * The test worker: the production entry's exact config with the engine's
- * test verifier swapped in (`@eigen/server/testing`), so specs mint their own
+ * test verifier swapped in (`@eigeninteractive/server/testing`), so specs mint their own
  * tokens against the local JWKS while every other code path stays real.
  * Bound by test/wrangler.jsonc; never deployed.
  */
 
-import { createEngine } from "@eigen/server";
-import { testVerifier } from "@eigen/server/testing";
+import { createEngine } from "@eigeninteractive/server";
+import { testVerifier } from "@eigeninteractive/server/testing";
 import { gameModule as rpsGame } from "../src/rules";
 
 export { GameDO } from "../src/index";

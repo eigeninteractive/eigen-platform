@@ -12,8 +12,8 @@
  * epoch milliseconds, matching the kernel's injected clock.
  */
 
-import type { GameStatus, TransitionAction } from "@eigen/kernel";
-import type { GameAccess, JsonObject, OutcomeEntry } from "@eigen/rules";
+import type { GameStatus, TransitionAction } from "@eigeninteractive/kernel";
+import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import type { CommandResult } from "../protocol.js";
 

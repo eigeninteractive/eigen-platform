@@ -1,4 +1,4 @@
-# @eigen/kernel
+# @eigeninteractive/kernel
 
 ## 1.0.0
 

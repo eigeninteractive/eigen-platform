@@ -1,12 +1,12 @@
 /**
- * `@eigen/server` — everything that deploys: the
+ * `@eigeninteractive/server` — everything that deploys: the
  * `createEngine` API factory, the GameDO base class, the D1 applier +
  * schemas, and the protocol types.
  *
- * @module @eigen/server
+ * @module @eigeninteractive/server
  */
 
-export { displayRating, type RatingDelta } from "@eigen/kernel";
+export { displayRating, type RatingDelta } from "@eigeninteractive/kernel";
 export { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 export { ensureUser, type UserRow } from "./auth/provision.js";
 // The operator utility for onboarding an external bot: derive the key you hand

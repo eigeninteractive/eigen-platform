@@ -4,7 +4,7 @@
  * the client repo's CI — one recorded behavior, two implementations.
  */
 
-import { twinFixtureTests } from "@eigen/testkit";
+import { twinFixtureTests } from "@eigeninteractive/testkit";
 import { gameModule } from "../../src/rules/index.js";
 
 twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));

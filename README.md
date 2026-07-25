@@ -72,7 +72,7 @@ pnpm dev                 # wrangler dev — local DO, D1, R2 and cron simulation
 `.dev.vars` holds **placeholders on purpose**. Every feature they gate (push,
 account deletion via Identity Toolkit, external bots) is simply *off* when
 unconfigured, and that is the intended local behaviour — don't put real
-credentials there. Auth still works: `@eigen/server/testing` mints local tokens
+credentials there. Auth still works: `@eigeninteractive/server/testing` mints local tokens
 the real auth middleware accepts, which is how the suites exercise the real
 Durable Object and real D1 with no Firebase project.
 
@@ -89,7 +89,7 @@ SQLite and the actual alarm scheduler — not mocks of them.
 | `pnpm -r typecheck` | `tsc --noEmit` across the workspace |
 | `pnpm lint` / `pnpm format` | Biome check / check-and-write |
 | `pnpm openapi` | Re-emit `packages/server/openapi.json` from the routes |
-| `pnpm --filter @eigen/server db:generate:d1` | Generate a D1 migration from the drizzle schema |
+| `pnpm --filter @eigeninteractive/server db:generate:d1` | Generate a D1 migration from the drizzle schema |
 | `cd examples/rps && pnpm dev` | Run the example Worker locally |
 
 Run `pnpm exec wrangler types` in a Worker after changing its bindings in

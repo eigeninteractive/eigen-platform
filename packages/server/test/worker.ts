@@ -4,7 +4,7 @@
  * alternation, timing, finish, ratings — with none of a real game's noise.
  */
 
-import type { GameModule, GameRules, JsonObject } from "@eigen/rules";
+import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
 import { BaseGameDO, createEngine } from "../src/index.js";
 import { testVerifier } from "../src/testing.js";
 

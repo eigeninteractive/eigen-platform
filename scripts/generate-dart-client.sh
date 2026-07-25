@@ -40,7 +40,7 @@ OUT="$ROOT/clients/dart"
 # so a server major *is* a client major — and a consumer's `eigen_api: ^1.2.0`
 # then carries exactly the compatibility statement it should.
 VERSION="$(node -p "require('$ROOT/packages/server/package.json').version")"
-echo "==> eigen_api version $VERSION (from @eigen/server)"
+echo "==> eigen_api version $VERSION (from @eigeninteractive/server)"
 
 # Clearing lib/ and doc/ guarantees no orphan file survives a schema removal.
 # dlx runs from ROOT so the wrapper reads the version pin in ./openapitools.json.
@@ -80,7 +80,7 @@ cat > "$OUT/CHANGELOG.md" <<EOF
 # Changelog
 
 This package is generated from the Eigen engine's OpenAPI specification and its
-version tracks [\`@eigen/server\`](https://www.npmjs.com/package/@eigen/server)
+version tracks [\`@eigeninteractive/server\`](https://www.npmjs.com/package/@eigeninteractive/server)
 exactly — $VERSION here is $VERSION there. It has no changes of its own.
 
 See the engine's changelog:

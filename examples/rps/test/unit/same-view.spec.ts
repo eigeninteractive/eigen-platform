@@ -10,8 +10,8 @@
  *   computed against the previous round is refused with "state updated".
  */
 
-import type { JsonObject } from "@eigen/rules";
-import { type CommitInput, type CommitPlan, commit, type GameRow, isRejected, projectView, type Seat, type StateRow } from "@eigen/testkit";
+import type { JsonObject } from "@eigeninteractive/rules";
+import { type CommitInput, type CommitPlan, commit, type GameRow, isRejected, projectView, type Seat, type StateRow } from "@eigeninteractive/testkit";
 import { describe, expect, it } from "vitest";
 import { rulesV1 } from "../../src/rules/v1.js";
 

@@ -8,7 +8,7 @@
  * The Dart client has a same-named `GameRules` twin per version (payload
  * codec, `isValidAction`/`previewAction`, rendering, and the
  * `ratingPool`/`botSeatable` twins); shared JSON fixtures keep the two in
- * sync — see `@eigen/testkit`.
+ * sync — see `@eigeninteractive/testkit`.
  */
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";

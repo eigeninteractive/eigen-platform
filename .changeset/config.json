@@ -7,7 +7,7 @@
     }
   ],
   "commit": false,
-  "fixed": [["@eigen/kernel", "@eigen/rules", "@eigen/server", "@eigen/testkit"]],
+  "fixed": [["@eigeninteractive/kernel", "@eigeninteractive/rules", "@eigeninteractive/server", "@eigeninteractive/testkit"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

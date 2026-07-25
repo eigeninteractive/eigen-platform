@@ -1,5 +1,5 @@
 {
-  "name": "@eigen/testkit",
+  "name": "@eigeninteractive/testkit",
   "version": "1.0.0",
   "license": "MIT",
   "description": "Test helpers for games built on the Eigen engine: drive rules through the real kernel and run shared twin fixtures, with no Worker, database or network.",
@@ -30,8 +30,8 @@
   "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
-    "@eigen/kernel": "workspace:*",
-    "@eigen/rules": "workspace:*",
+    "@eigeninteractive/kernel": "workspace:*",
+    "@eigeninteractive/rules": "workspace:*",
     "rand-seed": "^3.0.0"
   },
   "devDependencies": {

@@ -3,7 +3,7 @@
  * ships exactly:
  *
  * ```ts
- * import { BaseGameDO, createEngine } from '@eigen/server';
+ * import { BaseGameDO, createEngine } from '@eigeninteractive/server';
  * import { gameModule } from './rules';
  *
  * export class GameDO extends BaseGameDO<Env> {
@@ -27,7 +27,7 @@
  * HttpError throw rendered by the app-level error handler as `{ error, code? }`.
  */
 
-import type { GameModule } from "@eigen/rules";
+import type { GameModule } from "@eigeninteractive/rules";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { ErrorHandler, MiddlewareHandler } from "hono";
 import type { OpenAPIObject } from "openapi3-ts/oas31";

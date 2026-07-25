@@ -6,8 +6,8 @@
  * integrity (seat occupancy, status, versions) under its input gate.
  */
 
-import type { GameStatus, RatingDelta, RejectCode, Seat } from "@eigen/kernel";
-import type { JsonObject, LifecycleType, OutcomeEntry } from "@eigen/rules";
+import type { GameStatus, RatingDelta, RejectCode, Seat } from "@eigeninteractive/kernel";
+import type { JsonObject, LifecycleType, OutcomeEntry } from "@eigeninteractive/rules";
 
 /** Re-exported from the kernel — rating math and its shapes live there. */
 export type { RatingDelta };

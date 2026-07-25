@@ -5,7 +5,7 @@
  * socket, and range fetches touch the DO.
  */
 
-import type { RatingDelta, Seat } from "@eigen/kernel";
+import type { RatingDelta, Seat } from "@eigeninteractive/kernel";
 import { and, desc, eq, inArray, lt, or, type SQLWrapper, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 import { noBlockedParticipant } from "./blocks.js";

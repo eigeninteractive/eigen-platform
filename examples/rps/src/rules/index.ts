@@ -3,7 +3,7 @@
  * `schema_version` — exactly the versions this build ships.
  */
 
-import type { GameModule } from "@eigen/rules";
+import type { GameModule } from "@eigeninteractive/rules";
 import { rulesV1 } from "./v1.js";
 
 export const gameModule: GameModule = {

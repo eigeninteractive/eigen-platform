@@ -5,8 +5,8 @@
  * range fetch, and the WebSocket upgrade.
  */
 
-import { parseClientPayload, type Seat } from "@eigen/kernel";
-import type { GameRules, JsonObject } from "@eigen/rules";
+import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
+import type { GameRules, JsonObject } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";

@@ -1,5 +1,5 @@
 /**
- * Test-only worker config for @eigen/server's vitest-pool-workers suite —
+ * Test-only worker config for @eigeninteractive/server's vitest-pool-workers suite —
  * never deployed. Binds the GameDO produced by createGameDO plus a simulated
  * D1 database.
  */

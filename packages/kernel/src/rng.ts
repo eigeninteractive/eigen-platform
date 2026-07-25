@@ -2,7 +2,7 @@
  * Deterministic randomness — the engine side of the {@link Rng} contract.
  */
 
-import type { Rng } from "@eigen/rules";
+import type { Rng } from "@eigeninteractive/rules";
 import Rand from "rand-seed";
 
 // The kernel loads no platform type libs (purity is enforced by the module

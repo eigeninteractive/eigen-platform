@@ -1,4 +1,4 @@
-# @eigen/kernel
+# @eigeninteractive/kernel
 
 The pure decision core of the [Eigen engine](https://eigeninteractive.com).
 
@@ -7,7 +7,7 @@ plan or a rejection. It touches no platform API and reads no clock, so it is
 exhaustively unit-testable and behaves identically in every environment.
 
 ```ts
-import { commit } from "@eigen/kernel";
+import { commit } from "@eigeninteractive/kernel";
 
 const plan = commit({ game, state, roster, intent, now, rules, staleViews });
 ```

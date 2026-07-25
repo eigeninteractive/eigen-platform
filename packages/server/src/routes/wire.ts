@@ -8,7 +8,7 @@
  * field — raw state never leaves the DO, and the games row carries none.
  */
 
-import type { JsonObject } from "@eigen/rules";
+import type { JsonObject } from "@eigeninteractive/rules";
 import { z } from "@hono/zod-openapi";
 import type { UserRow } from "../auth/provision.js";
 import type { GameWithRoster } from "../d1/reads.js";

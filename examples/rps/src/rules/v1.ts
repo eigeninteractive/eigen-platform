@@ -29,7 +29,7 @@
  * running against this unit until they drain.
  */
 
-import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigen/rules";
+import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigeninteractive/rules";
 import { z } from "zod";
 
 const moveSchema = z.enum(["rock", "paper", "scissors"]);

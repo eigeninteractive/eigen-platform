@@ -12,7 +12,7 @@ description: >-
 # emits that syntax regardless of the declared lower bound, so lowering it only
 # breaks generation. Relax to match once the template stamps a 3.8 bound itself.
 #
-# `version:` is stamped by the generation script from @eigen/server's
+# `version:` is stamped by the generation script from @eigeninteractive/server's
 # package.json — the wire contract is the server's, so the client carries the
 # server's version. Do not edit it by hand.
 version: 1.0.0

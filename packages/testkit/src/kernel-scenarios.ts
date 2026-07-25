@@ -3,14 +3,14 @@
  * engine transitions over their rules unit (same-view pairs, timing/grace
  * behavior, lifecycle outcomes) without depending on the engine's internals.
  *
- * `@eigen/kernel` is an internal package: implementors ship `@eigen/rules` +
- * `@eigen/server` and dev-depend on `@eigen/testkit` alone. Everything a
+ * `@eigeninteractive/kernel` is an internal package: implementors ship `@eigeninteractive/rules` +
+ * `@eigeninteractive/server` and dev-depend on `@eigeninteractive/testkit` alone. Everything a
  * game's test suite legitimately needs from the kernel is re-exported here,
  * so the kernel's own surface stays free to churn.
  */
 
-import type { SeatView } from "@eigen/kernel";
-import type { GameRules, JsonObject, TransitionCause } from "@eigen/rules";
+import type { SeatView } from "@eigeninteractive/kernel";
+import type { GameRules, JsonObject, TransitionCause } from "@eigeninteractive/rules";
 
 export type {
   CommitInput,
@@ -24,14 +24,14 @@ export type {
   Seat,
   SeatView,
   StateRow,
-} from "@eigen/kernel";
+} from "@eigeninteractive/kernel";
 export {
   commit,
   DEADLINE_GRACE_MS,
   deriveRng,
   isRejected,
   randomSeed,
-} from "@eigen/kernel";
+} from "@eigeninteractive/kernel";
 
 /** Project one seat's view of a state — the stored-frame shape the same-view
  * rule compares (`commit()`'s `staleViews` input). Convenience for scenario

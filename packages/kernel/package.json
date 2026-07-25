@@ -1,5 +1,5 @@
 {
-  "name": "@eigen/kernel",
+  "name": "@eigeninteractive/kernel",
   "version": "1.0.0",
   "license": "MIT",
   "description": "The pure decision core of the Eigen engine: given a game, state, roster and intent it returns a commit plan or a rejection. No I/O, no platform APIs.",
@@ -30,7 +30,7 @@
   "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
-    "@eigen/rules": "workspace:*",
+    "@eigeninteractive/rules": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "openskill": "^5.0.1",
     "rand-seed": "^3.0.0"
