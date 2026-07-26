@@ -86,11 +86,15 @@ contract underneath changing.
 For the engine, it means **the wire changed in a way an existing client cannot
 absorb**. Two categories are less obvious than they look:
 
-**Widening an enum is breaking.** `GameStatus`, `ErrorCode`, `GameAccess`, seat
-type and the rest are closed sets on the wire, and the generated Dart client
-parses them strictly — there is no fallback member, so a client that meets a
-value it has never heard of throws while decoding the response. Adding a member
-therefore looks purely additive and is not.
+**Widening a response enum is additive.** Every generated Dart enum has an
+`unknownDefaultOpenApi` member. When an installed client meets a value introduced
+by a newer server, decoding succeeds and the app can show generic or
+update-required UI rather than losing the whole response.
+
+That sentinel is deliberately **read-side only**. Serialising it produces
+`unknown_default_open_api`, which no route accepts. Adding a value that clients
+may optionally send is additive; changing a request so an old client must send
+the new value is breaking. Removing or renaming an enum member is also breaking.
 
 **Adding a field is not breaking.** The generated models are built with
 `disallowUnrecognizedKeys: false`, so an older client silently ignores keys it
@@ -104,11 +108,16 @@ as long as people leave them installed — so an old client meeting a new server
 is the normal case, not the edge case, and it is a case you cannot fix by
 shipping a patch.
 
-That asymmetry is why unknown-field tolerance matters: the server can add fields
-freely and every app in the field keeps working. Strict enum parsing is the
-opposite, and it is the sharp edge in the current design — a single new
-`ErrorCode` breaks every installed app until it updates. Until that changes,
-treat any enum widening as a coordinated release, not a server-side detail.
+That asymmetry is why the generated client tolerates both kinds of response
+widening: unknown fields are ignored, and unknown enum values become
+`unknownDefaultOpenApi`. The server can add either without making a current app
+fail response decoding.
+
+The sentinel adds a member to every generated enum, so exhaustive switches must
+handle it. It was enabled before the first release, while there were no
+published packages or installed apps, so there was no version bump or migration
+window. Future enum additions reuse the same member and do not change the Dart
+surface.
 
 Anything genuinely breaking needs a deprecation window: ship the additive half
 first, let installs turn over, and only then remove the old half.
