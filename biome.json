@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!build", "!.docusaurus", "!static", "!**/*.mdx", "!docs/reference/http-api", "!docs/reference/typescript"]
+    "includes": ["**", "!build", "!.docusaurus", "!static", "!**/*.mdx", "!api", "!docs/reference/http-api", "!docs/reference/typescript"]
   },
   "formatter": {
     "enabled": true,

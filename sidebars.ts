@@ -72,7 +72,7 @@ const sidebars: SidebarsConfig = {
       key: "reference-overview",
       label: "Reference",
       collapsed: false,
-      items: ["reference/http-surface", "reference/envelope", "reference/cross-repo"],
+      items: ["reference/http-surface", "reference/envelope", "reference/cross-repo", "reference/compatibility"],
     },
     {
       type: "category",

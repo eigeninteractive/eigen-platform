@@ -48,6 +48,46 @@ const config: Config = {
           // The OpenAPI theme swizzles the doc item to render request/response
           // panels. Non-API pages render exactly as before.
           docItemComponent: "@theme/ApiItem",
+
+          // Versioned on the ENGINE major, because that is the number that
+          // decides whether a page is still true: the docs describe the wire
+          // contract, the engine owns it, and `eigen_api` is stamped with the
+          // engine's version for the same reason. `eigen_flutter` moves
+          // independently — its majors are Dart-side API churn, which changes a
+          // code sample rather than the model — so it is NOT an axis here. What
+          // pairs with what is stated on /docs/reference/compatibility.
+          //
+          // No version is CUT yet, and that is deliberate. Docusaurus'
+          // own guidance is that versioning "will just increase your build
+          // time, and introduce complexity"; a cut snapshots all of `docs/`
+          // into `versioned_docs/`, and the bulk of this site is the generated
+          // TypeDoc and HTTP reference, so a cut roughly doubles both the build
+          // and the local search index. With one release line live that buys
+          // nothing.
+          //
+          // Naming the current version now is the cheap half of versioning, and
+          // it costs no URLs: Docusaurus serves `lastVersion` at the base path,
+          // so these pages stay at /docs/*. When the next breaking engine
+          // release approaches, run
+          //
+          //   pnpm docusaurus docs:version 0.1.x
+          //
+          // and 0.1.x freezes into `versioned_docs/version-0.1.x` at
+          // /docs/0.1.x/* while `docs/` becomes the new line at /docs/*. The
+          // generated reference freezes with it, which is exactly right —
+          // `sync-api` keeps writing to `docs/`, so no part of the pipeline has
+          // to learn about versions.
+          //
+          // The label tracks the engine's BREAKING axis, which pre-1.0 is the
+          // minor: at 0.x a `^0.1.0` constraint resolves to `>=0.1.0 <0.2.0`,
+          // so 0.1.x is one compatibility line and 0.2.0 starts the next. Once
+          // the engine reaches 1.0.0 this becomes "1.x" and tracks the major.
+          lastVersion: "current",
+          versions: {
+            current: {
+              label: "0.1.x",
+            },
+          },
         },
         blog: {
           showReadingTime: true,
@@ -176,6 +216,17 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
+        // Renders as "0.1.x" — the label from `versions.current` above. With
+        // one version live the dropdown exists to answer "which engine is this
+        // describing, and what Flutter release pairs with it", which is why the
+        // compatibility table is pinned into it rather than left in the
+        // sidebar alone. Once a version is cut it becomes an ordinary version
+        // switcher and the extra item stays useful.
+        {
+          type: "docsVersionDropdown",
+          position: "right",
+          dropdownItemsAfter: [{ to: "/docs/reference/compatibility", label: "Compatibility" }],
+        },
         {
           href: GITHUB,
           label: "GitHub",

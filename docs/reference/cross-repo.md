@@ -15,8 +15,10 @@ fails a test on both sides.
 The engine generates the OpenAPI spec, generates the typed Dart client from it
 **in the same repository**, and publishes that client to pub.dev at the engine's
 own version. So the transport half is not a cross-repo contract at all any more —
-it is an ordinary versioned dependency, and `eigen_api: ^1.2.0` in an app states
-exactly the compatibility it means.
+it is an ordinary versioned dependency, and `eigen_api: ^0.1.0` in an app states
+exactly the compatibility it means (see
+[Versions and compatibility](compatibility.md) for what that resolves to while
+the engine is pre-1.0).
 
 The *rules* half is the part that genuinely spans two repos, and it is why the
 contract in `@eigeninteractive/rules` is small and precise: it is the seam two languages
