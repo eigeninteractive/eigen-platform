@@ -1,8 +1,8 @@
 /**
  * Device registration — the FCM push-target ingress that
  * makes `notify/push.ts` deliverable. Verifies the upsert-on-FID reassignment
- * and the caller-scoped delete, the two behaviours the Supabase-era
- * `app_upsert_device_installation` / `app_delete_device_installation` RPCs had.
+ * and the caller-scoped delete — the two behaviours that keep one app install
+ * mapped to exactly one user.
  */
 
 import { env, exports } from "cloudflare:workers";

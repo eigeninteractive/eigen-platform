@@ -1,6 +1,7 @@
 /**
- * Opt-in avatar uploads. R2 has no RLS and no
- * client-direct writes, so uploads go through the worker: a raw-binary
+ * Opt-in avatar uploads. Clients never write to R2 directly — there is no way
+ * to scope a bucket credential to one user — so uploads go through the
+ * worker, which authenticates the caller and owns the key: a raw-binary
  * `PUT /api/engine/me/avatar` (authed) streams the image to R2 under key =
  * uid, and a public `GET /avatars/:uid` serves it with a long immutable cache.
  *

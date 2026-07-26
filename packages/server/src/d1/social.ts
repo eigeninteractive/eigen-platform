@@ -195,14 +195,20 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
 
 /** Joinable games created by the caller's accepted friends — the "friends'
  * open games" lobby. Waiting/ready games only, newest first. */
+/** The user ids of a user's accepted friends — the fan-out target for a
+ * friends-access game invite, and the creator filter behind `friendsOpenGames`. */
+export async function acceptedFriendIds(d1: D1Database, userId: string): Promise<string[]> {
+  const rows = await orm(d1)
+    .select({ a: relationships.userId1, b: relationships.userId2 })
+    .from(relationships)
+    .where(and(or(eq(relationships.userId1, userId), eq(relationships.userId2, userId)), eq(relationships.status, "accepted")))
+    .all();
+  return rows.map((r) => (r.a === userId ? r.b : r.a));
+}
+
 export async function friendsOpenGames(d1: D1Database, caller: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const db = orm(d1);
-  const friends = await db
-    .select()
-    .from(relationships)
-    .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "accepted")))
-    .all();
-  const friendIds = friends.map((r) => (r.userId1 === caller ? r.userId2 : r.userId1));
+  const friendIds = await acceptedFriendIds(d1, caller);
   if (friendIds.length === 0) return [];
   const rows = await db
     .select()

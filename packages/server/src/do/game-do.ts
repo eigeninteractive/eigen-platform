@@ -37,7 +37,7 @@ import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { withRetry } from "../d1/retry.js";
-import { finishPush, pushToUser, readServiceAccount, turnPush } from "../notify/push.js";
+import { finishPush, pushToUser, readServiceAccount, readyPush, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot, SyncMessage } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
@@ -179,6 +179,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // .catch-guarded) promise runs to completion on its own — waitUntil is a
     // stateless-Worker idiom that's redundant here.
     this.#mirrorD1(`roster mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }));
+    // A join that just filled the lobby: nudge the away creator to start. Skip
+    // when the actor is the creator (they filled it themselves via add-bot, so
+    // they are already here). Best-effort, like the mirror above.
+    if (status === "ready" && meta.status !== "ready" && meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
+      this.#pushReady(meta.createdBy, gameId);
+    }
     return response;
   }
 
@@ -509,8 +515,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** External bot: POST a signed wake carrying the bot's freshly-committed
-   * observation, so the bot needs no callback to fetch state. Fire-and-forget
-   *: a single attempt, no retry, and we neither wait for nor act on the
+   * observation, so the bot needs no callback to fetch state. Fire-and-forget:
+   * a single attempt, no retry, and we neither wait for nor act on the
    * result — the move arrives later on `/api/bot/action`, and a lost or bounced
    * wake rides the turn deadline. A failure is therefore logged, never thrown;
    * the only bound is `WAKE_TIMEOUT_MS`, capping the held connection. */
@@ -559,6 +565,16 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         await Promise.all(effect.userIds.map((userId) => pushToUser(d1, sa, userId, finishPush(meta.gameId))));
       }
     }
+  }
+
+  /** Best-effort "your game is ready to start" push to the creator when a join
+   * fills the lobby. Fire-and-forget like the D1 mirror — the DO stays alive for
+   * the pending promise; `pushToUser` never throws and no-ops when FCM is
+   * unconfigured. */
+  #pushReady(creatorId: string, gameId: string): void {
+    const sa = readServiceAccount(this.env);
+    if (sa === null) return;
+    void pushToUser(this.d1(this.env), sa, creatorId, readyPush(gameId));
   }
 
   /** The engine bot-signing master secret, read from env by the documented
@@ -672,8 +688,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** The worker routes the upgrade here after authenticating; the principal
    * header is worker-set (never client-supplied — the worker strips inbound
-   * headers when forwarding). One socket serves the game's whole lifetime
-   *: unversioned roster snapshots pre-game, versioned frames from v0.
+   * headers when forwarding). One socket serves the game's whole lifetime:
+   * unversioned roster snapshots pre-game, versioned frames from v0.
    * A not-yet-seated user's socket simply receives no frames until the
    * roster contains them. */
   async fetch(request: Request): Promise<Response> {

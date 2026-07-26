@@ -15,11 +15,10 @@
  * one-liner in its docstring) and hands that to the bot's owner, who never
  * sees the master secret.
  *
- * Ported from the Supabase-era `_engine/bot_auth.ts`; the crypto is all
- * platform-native — WebCrypto for the HMAC, and the runtime's own
- * `Uint8Array` base64 codec (`toBase64`/`fromBase64`) for the transport
- * encoding — and it takes the master secret as an argument instead of reading
- * a Deno-global env.
+ * The crypto is all platform-native — WebCrypto for the HMAC, and the
+ * runtime's own `Uint8Array` base64 codec (`toBase64`/`fromBase64`) for the
+ * transport encoding. The master secret is taken as an argument rather than
+ * read from a global, so this module stays pure and testable.
  */
 
 const SCHEME = "v1";

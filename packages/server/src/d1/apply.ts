@@ -23,6 +23,7 @@ import { computeRatings, defaultRating, displayRating, GameBugError, type GameSt
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { orm } from "./orm.js";
+import { ratingDeltaFromRow } from "./reads.js";
 import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
@@ -146,8 +147,8 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
  * (`ratings-cas.spec.ts` covers it). The real chain is:
  *
  *   Error: Failed query: insert into "rating_history" ...
- *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.userId, ...
- *          └─ Error: UNIQUE constraint failed: rating_history.userId, ...
+ *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.user_id, ...
+ *          └─ Error: UNIQUE constraint failed: rating_history.user_id, ...
  */
 export function isUniqueViolation(error: unknown): boolean {
   for (let e: unknown = error, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
@@ -271,17 +272,7 @@ function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, p
 async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDelta[]> {
   const db = orm(d1);
   const rows = await db.select().from(ratingHistory).where(eq(ratingHistory.finishId, finishId)).all();
-  return rows.map((row) => ({
-    identity: { userId: row.userId, botId: row.botId },
-    pool: row.pool,
-    muBefore: row.muBefore,
-    sigmaBefore: row.sigmaBefore,
-    displayBefore: row.displayBefore,
-    muAfter: row.muAfter,
-    sigmaAfter: row.sigmaAfter,
-    displayAfter: row.displayAfter,
-    displayChange: row.displayChange,
-  }));
+  return rows.map(ratingDeltaFromRow);
 }
 
 /** The display upsert after a non-finishing transition — fire-and-forget

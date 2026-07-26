@@ -11,8 +11,10 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
+import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
+import { gameInvitePush, pushToUser, readServiceAccount } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, joinedShape, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
@@ -142,15 +144,17 @@ function generateShortCode(): string {
 }
 
 function isShortCodeCollision(error: unknown): boolean {
-  return error instanceof Error && /UNIQUE constraint failed.*shortCode/.test(error.message);
+  // Matches SQLite's error text, which names the physical column (`short_code`),
+  // not the camelCase Drizzle property.
+  return error instanceof Error && /UNIQUE constraint failed.*short_code/.test(error.message);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
-  // — the one worker-direct write. Policy ports verbatim from the
-  // Supabase-era handleCreate: guest gates, config parse, ratingPool, and
-  // the client's `rated` assertion (validated, never coerced).
+  // Create — the one worker-direct write, and the only place game policy is
+  // decided outside a DO: guest gates, config parse, ratingPool, and the
+  // client's `rated` assertion (validated, never coerced).
   app.openapi(
     createRoute({
       method: "post",
@@ -217,7 +221,18 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
             seats,
             now,
           });
-          return c.json({ gameId: gameId, shortCode: shortCode }, 201);
+          // Friends-access game: fan out an invite push to the creator's
+          // accepted friends. Best-effort and off the response path — a friend
+          // with notifications off (or none at all) costs nothing, and a push
+          // failure never affects the create.
+          if (body.access === "friends") {
+            const sa = readServiceAccount(c.env);
+            if (sa !== null) {
+              const d1 = ctx.d1(c.env);
+              c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => pushToUser(d1, sa, id, gameInvitePush(auth.user.displayName, gameId))))));
+            }
+          }
+          return c.json({ gameId, shortCode }, 201);
         } catch (error) {
           if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
         }
@@ -314,7 +329,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const stub = ctx.stub(c.env, gameId);
       const started = commandResult(await stub.handle(mint(auth, "start", gameId, undefined)));
       const [frame] = await stub.frames({ seat: 0, from: started.version, to: started.version });
-      return c.json({ gameId: gameId, shortCode: shortCode, version: started.version, frame: frame ?? null }, 201);
+      return c.json({ gameId, shortCode, version: started.version, frame: frame ?? null }, 201);
     },
   );
 
@@ -454,7 +469,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // — a player's move. The client sends its own seat (uniform with bots);
+  // Act — a player's move. The client sends its own seat (uniform with bots);
   // the DO verifies it belongs to the caller against its own roster (the
   // authoritative copy — the D1 participants mirror only displays) and the
   // caller's committed frame rides the response. No D1 read on this path.
@@ -507,7 +522,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // — the range fetch: live gap recovery AND finished-game replay, one
+  // Transitions — the range fetch: live gap recovery AND finished-game replay, one
   // path. Participants read their own seat; a finished PUBLIC game is
   // replayable by anyone as the null-seat viewer projection.
   app.openapi(

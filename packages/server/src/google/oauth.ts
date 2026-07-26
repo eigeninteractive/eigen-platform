@@ -6,10 +6,10 @@
  * endpoint, caching the bearer per (client email, scope) in isolate memory
  * until shortly before expiry.
  *
- * Ported from the Supabase-era `_engine/fcm.ts`, adapted off Deno +
- * `google-auth-library` to Workers-native `jose`. If Firebase isn't
- * configured (no `FIREBASE_*` vars), {@link readServiceAccount} returns null
- * and callers skip — every Google-backed effect is best-effort.
+ * `jose` is used rather than `google-auth-library`, which assumes a Node
+ * runtime the Workers isolate does not provide. If Firebase isn't configured
+ * (no `FIREBASE_*` vars), {@link readServiceAccount} returns null and callers
+ * skip — every Google-backed effect is best-effort.
  */
 
 import { importPKCS8, SignJWT } from "jose";

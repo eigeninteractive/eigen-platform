@@ -1,12 +1,12 @@
 /**
- * D1 user provisioning: a `users` row appears on first
- * sight of a verified token — the Cloudflare replacement for the Supabase-era
- * `handle_new_user` trigger, porting its username rules: derived from the
- * email local part (sanitised to the `^[a-z0-9_.]{3,20}$` charset the future
- * username-edit route will enforce), or a generated `player_NNNNN` handle for
- * guests. The guest lifecycle carries over: `linkWithCredential`
- * preserves the uid, so conversion is an UPDATE backfill on the same row —
- * and per the old product decision, the provider's display name and avatar
+ * D1 user provisioning: a `users` row appears on first sight of a verified
+ * token, so no signup call is ever needed. The username is derived from the
+ * email local part (sanitised to the `^[a-z0-9_.]{3,20}$` charset the
+ * username-edit route enforces), or a generated `player_NNNNN` handle for
+ * guests.
+ *
+ * Guest conversion keeps the same row: `linkWithCredential` preserves the uid,
+ * so it is an UPDATE backfill. The provider's display name and avatar
  * OVERWRITE whatever the guest had, while the username stays the stable
  * handle.
  */

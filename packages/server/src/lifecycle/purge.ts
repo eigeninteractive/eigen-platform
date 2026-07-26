@@ -2,12 +2,10 @@
  * Account deletion & guest purge — the one path shared
  * by the `DELETE /api/engine/me` route and the cron guest sweep.
  *
- * Order is **games → Firebase → D1**, a deliberate departure from the old
- * Supabase transaction (which deleted `auth.users` inside the SQL). Here
- * Firebase is a separate system, and our auth middleware re-provisions a
- * `users` row on any valid token — so deleting the D1 row while the Firebase
- * account still lives would let the very next request RESURRECT the user. We
- * therefore:
+ * Order is **games → Firebase → D1**, and it matters: Firebase is a separate
+ * system, and our auth middleware re-provisions a `users` row on any valid
+ * token — so deleting the D1 row while the Firebase account still lives would
+ * let the very next request RESURRECT the user. We therefore:
  *
  *   1. resolve the user's live games and forfeit / cancel / leave each (a
  *      rated forfeit applies ratings while the user row still exists);
@@ -15,8 +13,8 @@
  *      BEFORE touching D1, so nothing is half-deleted and a retry is clean;
  *   3. run the D1 purge as one `batch()`.
  *
- * D1 has no FK cascades, so the preserve-vs-delete is explicit (mirrors the
- * old table): seats and createdBy are anonymized (SET NULL) to keep
+ * D1 has no FK cascades, so the preserve-vs-delete is explicit: seats and
+ * createdBy are anonymized (SET NULL) to keep
  * finished-game history readable as "Deleted User"; ratings, history,
  * relationships, and device rows are deleted; the `users` row goes last.
  */

@@ -1,9 +1,8 @@
 /**
  * Twin-drift fixture runner — the TS half of the shared JSON fixtures that
- * keep a version unit's TS and Dart `GameRules` twins in sync. Vitest/Node
- * port of the Supabase-era Deno runner; the JSON fixture format is unchanged,
- * so existing fixtures work as-is and the Dart runner
- * (`lib/testing/twin_fixtures.dart`) stays untouched.
+ * keep a version unit's TS and Dart `GameRules` twins in sync. The JSON
+ * fixture format is shared verbatim with the Dart runner
+ * (`lib/testing/twin_fixtures.dart`) — one file, two consumers.
  *
  * One fixture file per concern lives beside the version units at
  * `<fixturesRoot>/v<N>/*.json` and is consumed by BOTH sides: this module

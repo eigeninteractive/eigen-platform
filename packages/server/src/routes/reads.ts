@@ -78,8 +78,9 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // The batch identity endpoint — the decided alternative to denormalizing
-  // identity onto games rows; the client's persisted cache keeps it warm.
+  // The batch identity endpoint — why games rows carry no denormalized
+  // identity: a renamed user is correct everywhere on the next fetch, with no
+  // history rewrite. The client's persisted cache keeps this warm.
   app.openapi(
     createRoute({
       method: "get",

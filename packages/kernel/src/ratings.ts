@@ -1,7 +1,6 @@
 /**
- * OpenSkill rating computation — pure, store-agnostic. Ported verbatim from
- * the Supabase-era `_engine/ratings.ts` (same math, same multi-seat bot
- * collapse, same purged-seat handling).
+ * OpenSkill rating computation — pure, store-agnostic. Multi-seat bots collapse
+ * to a single rated identity, and purged seats are excluded.
  *
  * Invoked on a rated game's finishing transition: the applier fetches each
  * seat's current `mu`/`sigma` (defaulting a never-rated identity to openskill

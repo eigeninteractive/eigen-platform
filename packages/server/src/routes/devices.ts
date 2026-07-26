@@ -7,9 +7,8 @@
  *
  * Keyed on the FID (one row per app install): signing in on a device reassigns
  * that FID from any prior user, so a FID always maps to exactly one user and no
- * stale association lingers. Mirrors the Supabase-era
- * `app_upsert_device_installation` / `app_delete_device_installation` RPCs,
- * moved to worker routes because the new stack has no client-direct DB access.
+ * stale association lingers — otherwise a shared device would push one user's
+ * turn alerts to whoever signed in after them.
  */
 
 import { createRoute, z } from "@hono/zod-openapi";

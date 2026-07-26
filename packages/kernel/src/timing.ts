@@ -1,21 +1,19 @@
 /**
- * Pure timing math — the port of the Supabase-era SQL helpers
- * (`deadline_grace_ms`, `deadline_expired`, `deduct_bank`,
- * `compute_next_deadline`), semantically unchanged. All instants are epoch
- * milliseconds and always injected — the kernel never reads a clock.
+ * Pure timing math — deadlines, the grace window, and the budget bank. All
+ * instants are epoch milliseconds and always injected: the kernel never reads
+ * a clock.
  *
  * The grace window compensates network physics (server time is measured at
- * request arrival, not at the tap). It collapsed from the old three-place
- * race symmetry to this ONE constant with exactly two call sites: the kernel
- * accepts an action while `now <= deadline + grace`, and the DO arms its
- * alarm at `deadline + grace`. Whichever arrives first — the latent action or
- * the alarm — commits; the loser sees already-advanced state and no-ops.
+ * request arrival, not at the tap). It is ONE constant with exactly two call
+ * sites: the kernel accepts an action while `now <= deadline + grace`, and the
+ * DO arms its alarm at `deadline + grace`. Whichever arrives first — the latent
+ * action or the alarm — commits; the loser sees already-advanced state and
+ * no-ops.
  *
- * Budget-mode fairness carries over verbatim: the grace forgives *acceptance*,
- * not *time charged* — the elapsed bank deduction (floored at 0) still runs.
- * So does flag-fall: a player whose bank hits 0 can overrun by up to the
- * grace and still have that final move counted (bounded, self-limiting —
- * accepted behaviour).
+ * Budget-mode fairness: the grace forgives *acceptance*, not *time charged* —
+ * the elapsed bank deduction (floored at 0) still runs. So does flag-fall: a
+ * player whose bank hits 0 can overrun by up to the grace and still have that
+ * final move counted (bounded, self-limiting — accepted behaviour).
  */
 
 import { GameBugError } from "./errors.js";

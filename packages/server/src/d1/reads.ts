@@ -43,6 +43,24 @@ export interface GameWithRoster extends GameRow {
   ratings?: RatingDelta[];
 }
 
+/** Rebuild a {@link RatingDelta} from its stored `ratingHistory` row — the
+ * inverse of the write in `applyFinish`. Shared by the batch history read
+ * (`withRatings`) and the crash-recovery rebuild (`recoverDeltas`), so the
+ * flat-row → nested-delta shape lives in exactly one place. */
+export function ratingDeltaFromRow(row: typeof ratingHistory.$inferSelect): RatingDelta {
+  return {
+    identity: { userId: row.userId, botId: row.botId },
+    pool: row.pool,
+    muBefore: row.muBefore,
+    sigmaBefore: row.sigmaBefore,
+    displayBefore: row.displayBefore,
+    muAfter: row.muAfter,
+    sigmaAfter: row.sigmaAfter,
+    displayAfter: row.displayAfter,
+    displayChange: row.displayChange,
+  };
+}
+
 /** Batch-load the rating changes for a page of games.
  *
  * One query for the whole page, like the roster join above — per-game reads
@@ -64,17 +82,7 @@ async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<Game
 
   const byGame = new Map<string, RatingDelta[]>();
   for (const row of deltaRows) {
-    const delta: RatingDelta = {
-      identity: { userId: row.userId, botId: row.botId },
-      pool: row.pool,
-      muBefore: row.muBefore,
-      sigmaBefore: row.sigmaBefore,
-      displayBefore: row.displayBefore,
-      muAfter: row.muAfter,
-      sigmaAfter: row.sigmaAfter,
-      displayAfter: row.displayAfter,
-      displayChange: row.displayChange,
-    };
+    const delta = ratingDeltaFromRow(row);
     const list = byGame.get(row.gameId);
     if (list === undefined) byGame.set(row.gameId, [delta]);
     else list.push(delta);
@@ -224,9 +232,8 @@ export async function readPlayerPublicGames(d1: D1Database, playerId: string, li
   );
 }
 
-/** The batch identity endpoint (`players?ids=`) — the decided alternative to
- * denormalizing identity onto games rows; the client's persisted player cache
- * keeps it warm. */
+/** The batch identity endpoint (`players?ids=`) — why games rows carry no
+ * denormalized identity; the client's persisted player cache keeps it warm. */
 export async function readPlayers(d1: D1Database, ids: string[]) {
   if (ids.length === 0) return [];
   return await orm(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();

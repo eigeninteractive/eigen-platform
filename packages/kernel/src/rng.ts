@@ -24,8 +24,8 @@ export function randomSeed(): string {
  * game's base seed and the state version the envelope will commit as. The
  * same `(seed, version)` always yields the same draw sequence — a replay
  * re-derives it — and every transition gets an independent stream, so hooks
- * draw as many values as they need with no cross-invocation state. Identical
- * derivation to the Supabase-era engine, so recorded games stay replayable. */
+ * draw as many values as they need with no cross-invocation state. The
+ * derivation is fixed, so recorded games stay replayable. */
 export function deriveRng(seed: string, version: number): Rng {
   return new Rand(`${seed}:${version}`);
 }

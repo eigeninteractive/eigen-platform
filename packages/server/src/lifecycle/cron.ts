@@ -1,11 +1,9 @@
 /**
  * The cron backstop — the worker's `scheduled` handler.
  *
- * Deliberately NOT a timeout sweep. The old Supabase stack ran a cron that
- * scanned `game_states.turnDeadline` and force-expired overdue turns, because
- * Postgres has no per-game timer. Our DO deadline alarm IS that timer —
- * durable, per-game, platform-retried — so turn timeouts never need
- * a sweep. This handler does only what has no per-entity timer of its own:
+ * Deliberately NOT a timeout sweep. A game's DO deadline alarm is its timer —
+ * durable, per-game, platform-retried — so turn timeouts never need scanning
+ * for. This handler does only what has no per-entity timer of its own:
  *
  *   1. **Stale-guest purge** — old, inactive anonymous accounts, torn down
  *      through the same {@link purgeUser} path the delete-account route uses.

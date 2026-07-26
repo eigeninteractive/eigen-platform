@@ -54,6 +54,18 @@ export function finishPush(gameId: string): NotificationMessage {
   return { title: "Game over", body: "Your game has finished.", data: { category: "gameFinished", deepLink: `/game/${gameId}` } };
 }
 
+/** The "your game is ready to start" push, addressed to the creator when a
+ * join fills the lobby while they are away. */
+export function readyPush(gameId: string): NotificationMessage {
+  return { title: "Ready to start", body: "Your game has enough players — tap to start.", data: { category: "gameReady", deepLink: `/game/${gameId}` } };
+}
+
+/** The "a friend started a game you can join" push, fanned out to the
+ * creator's accepted friends when a friends-access game is created. */
+export function gameInvitePush(actorName: string, gameId: string): NotificationMessage {
+  return { title: `${actorName} started a game`, body: "Tap to join.", data: { category: "gameInvite", deepLink: `/game/${gameId}` } };
+}
+
 /** The "someone wants to be friends" push, addressed to the request's recipient. */
 export function friendRequestPush(actorName: string): NotificationMessage {
   return { title: `${actorName} wants to be friends`, body: "Tap to respond.", data: { category: "friendRequest", deepLink: "/social" } };

@@ -1,9 +1,8 @@
 /**
  * The implementor contract — everything a game author must understand, and
- * nothing else. Ported near-verbatim from the Supabase-era
- * `_types/engine.types.ts`; the enums are now plain unions (no generated DB
- * types), schema slots are typed against Standard Schema (bring Zod, Valibot,
- * ArkType…), and the RNG is the engine-owned {@link Rng} interface.
+ * nothing else. Enums are plain unions, schema slots are typed against
+ * Standard Schema (bring Zod, Valibot, ArkType…), and randomness comes from
+ * the engine-owned {@link Rng} interface.
  *
  * The Dart client has a same-named `GameRules` twin per version (payload
  * codec, `isValidAction`/`previewAction`, rendering, and the

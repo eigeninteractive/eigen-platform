@@ -1,6 +1,6 @@
 /**
- * The leak test: with RLS gone, the kernel's
- * per-seat projection is the ONLY thing keeping hidden state server-side. This
+ * The leak test: the kernel's per-seat projection is the ONLY thing keeping
+ * hidden state server-side — nothing downstream re-filters it. This
  * drives a full lifecycle of the hidden-info version-2 game (whose raw state
  * carries `LEAK_SENTINEL`, stripped by `computeObservation`) and asserts the
  * sentinel escapes through no response body and no socket frame — live play,

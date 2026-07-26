@@ -810,8 +810,8 @@ independent of which optional feature blocks are enabled.
 
 ## 15. Security model
 
-The old stack leaned on Postgres row-level security; this one enforces
-authorization explicitly in application code, which keeps every check in view.
+Authorization is enforced explicitly in application code rather than delegated
+to the database, so every check is visible at the route that depends on it.
 
 - **Every `/api/engine/*` route is token-gated**; the socket upgrade included
   (its `?token=` is verified by the same middleware).
