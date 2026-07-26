@@ -8,7 +8,7 @@ assert on the resulting transitions and per-seat observations.
 
 ### ActionCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:83](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L83)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:82](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L82)
 
 A game-action case — exercises schemas, `applyAction`, and (through
 `expected.observation`) `computeObservation` for the acting seat.
@@ -21,7 +21,7 @@ A game-action case — exercises schemas, `applyAction`, and (through
 action: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:94](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L94)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L93)
 
 ##### config
 
@@ -29,7 +29,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:94](https://gith
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:86](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L86)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:85](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L85)
 
 ##### expected
 
@@ -43,7 +43,7 @@ expected: {
 };
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:95](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L95)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:94](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L94)
 
 ###### observation?
 
@@ -81,7 +81,7 @@ valid: boolean;
 kind: "action";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L84)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:83](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L83)
 
 ##### name
 
@@ -89,7 +89,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://gith
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:85](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L85)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L84)
 
 ##### obs?
 
@@ -97,7 +97,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:85](https://gith
 optional obs?: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:89](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L89)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:88](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L88)
 
 Dart-side observation payload; unused here (defaults to `state`).
 
@@ -107,7 +107,7 @@ Dart-side observation payload; unused here (defaults to `state`).
 optional participantCount?: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L92)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L91)
 
 ##### pending
 
@@ -115,7 +115,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://gith
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L90)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:89](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L89)
 
 ##### playerIndex
 
@@ -123,7 +123,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://gith
 playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L91)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L90)
 
 ##### rngSeed?
 
@@ -131,7 +131,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://gith
 optional rngSeed?: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L93)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L92)
 
 ##### state
 
@@ -139,13 +139,13 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://gith
 state: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:87](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L87)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:86](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L86)
 
 ***
 
 ### BotSeatableCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:119](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L119)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:118](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L118)
 
 A `botSeatable` predicate case.
 
@@ -157,7 +157,7 @@ A `botSeatable` predicate case.
 botConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L123)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L122)
 
 ##### expected
 
@@ -165,7 +165,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://git
 expected: boolean;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:124](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L124)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L123)
 
 ##### gameConfig
 
@@ -173,7 +173,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:124](https://git
 gameConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L122)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:121](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L121)
 
 ##### kind
 
@@ -181,7 +181,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://git
 kind: "botSeatable";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:120](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L120)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:119](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L119)
 
 ##### name
 
@@ -189,13 +189,13 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:120](https://git
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:121](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L121)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:120](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L120)
 
 ***
 
 ### CommitInput
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:286
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:285
 
 #### Properties
 
@@ -205,7 +205,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:286
 game: GameRow;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:287
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:286
 
 ##### intent
 
@@ -213,7 +213,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:287
 intent: Intent;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:292
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:291
 
 ##### now
 
@@ -221,7 +221,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:292
 now: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:295
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:294
 
 The commit instant (epoch ms) — sampled once by the host, never read
 here.
@@ -232,7 +232,7 @@ here.
 roster: Seat[];
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:291
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:290
 
 ##### rules
 
@@ -240,7 +240,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:291
 rules: GameRules;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:298
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:297
 
 The version unit for the game's `schemaVersion`, already resolved by
 the host from the `GameModule.versions` map.
@@ -254,7 +254,7 @@ optional staleViews?: {
 };
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:306
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:305
 
 Same-view material for a stale game action: the acting seat's stored
 frames at `expectedVersion` and at the current version. Only consulted
@@ -280,7 +280,7 @@ expected: SeatView | null;
 state: StateRow | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:290
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:289
 
 The latest transition, or null before v0 (only a `start` intent is
 meaningful then).
@@ -289,7 +289,7 @@ meaningful then).
 
 ### CommitPlan
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:352
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:351
 
 #### Properties
 
@@ -299,7 +299,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:352
 action: TransitionAction | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:355
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:354
 
 ##### alarm
 
@@ -307,7 +307,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:355
 alarm: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:368
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:367
 
 The instant the DO must arm its alarm at — the true deadline plus the
 grace window — or null to clear it.
@@ -318,7 +318,7 @@ grace window — or null to clear it.
 effects: Effect[];
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:369
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:368
 
 ##### frames
 
@@ -326,7 +326,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:369
 frames: ObservationFrame[];
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:358
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:357
 
 Per-seat projected frames (identified seats only) — persisted with the
 transition, fanned out over sockets. No raw state escapes the kernel.
@@ -337,7 +337,7 @@ transition, fanned out over sockets. No raw state escapes the kernel.
 nextState: StateRow;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:354
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:353
 
 The next transition row, already versioned (`v+1`, or 0 for start).
 
@@ -347,7 +347,7 @@ The next transition row, already versioned (`v+1`, or 0 for start).
 outcomes: OutcomeEntry[] | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:365
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:364
 
 Per-seat results when this transition ends the game, else null.
 
@@ -360,7 +360,7 @@ the host delivers them as a follow-up versioned ratings transition.
 
 ### GameRow
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:224
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:223
 
 The game's standing configuration — the DO `meta` snapshot.
 
@@ -372,7 +372,7 @@ The game's standing configuration — the DO `meta` snapshot.
 budgetSeconds: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:231
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:230
 
 ##### config
 
@@ -380,7 +380,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:231
 config: JsonObject;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:229
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:228
 
 Stored creation config; parsed against the version unit's config schema
 before any hook sees it.
@@ -391,7 +391,7 @@ before any hook sees it.
 incrementSeconds: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:232
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:231
 
 ##### rated
 
@@ -399,7 +399,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:232
 rated: boolean;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:233
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:232
 
 ##### ratingPool
 
@@ -407,7 +407,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:233
 ratingPool: string | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:234
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:233
 
 ##### schemaVersion
 
@@ -415,7 +415,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:234
 schemaVersion: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:226
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:225
 
 ##### status
 
@@ -423,7 +423,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:226
 status: GameStatus;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:225
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:224
 
 ##### turnSeconds
 
@@ -431,7 +431,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:225
 turnSeconds: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:230
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:229
 
 ***
 
@@ -472,7 +472,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:116
 
 ### RatingPoolCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:105](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L105)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:104](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L104)
 
 A `ratingPool` predicate case. Omitted timing fields mean null.
 
@@ -484,7 +484,7 @@ A `ratingPool` predicate case. Omitted timing fields mean null.
 access: GameAccess;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:108](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L108)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L107)
 
 ##### budgetSeconds?
 
@@ -492,7 +492,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:108](https://git
 optional budgetSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L110)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:109](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L109)
 
 ##### config
 
@@ -500,7 +500,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://git
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L114)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L113)
 
 ##### expected
 
@@ -508,7 +508,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://git
 expected: string | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:115](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L115)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L114)
 
 ##### incrementSeconds?
 
@@ -516,7 +516,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:115](https://git
 optional incrementSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L111)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L110)
 
 ##### kind
 
@@ -524,7 +524,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://git
 kind: "ratingPool";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L106)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:105](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L105)
 
 ##### maxPlayers
 
@@ -532,7 +532,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://git
 maxPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L113)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L112)
 
 ##### minPlayers
 
@@ -540,7 +540,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://git
 minPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L112)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L111)
 
 ##### name
 
@@ -548,7 +548,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://git
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L107)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L106)
 
 ##### turnSeconds?
 
@@ -556,7 +556,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://git
 optional turnSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:109](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L109)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:108](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L108)
 
 ***
 
@@ -597,7 +597,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:46
 
 ### Seat
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:238
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:237
 
 One seat of the roster. Both ids null ⇒ the account was purged mid-game
 (the seat plays on as "Deleted User" for display, but can never act).
@@ -610,7 +610,7 @@ One seat of the roster. Both ids null ⇒ the account was purged mid-game
 botId: string | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:241
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:240
 
 ##### playerIndex
 
@@ -618,7 +618,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:241
 playerIndex: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:239
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:238
 
 ##### type
 
@@ -626,7 +626,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:239
 type: "bot" | "human";
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:242
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:241
 
 ##### userId
 
@@ -634,7 +634,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:242
 userId: string | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:240
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:239
 
 ***
 
@@ -667,7 +667,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:95
 
 ### StateRow
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:246
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:245
 
 The latest committed transition — state plus the engine-owned clocks. All
 instants are epoch milliseconds.
@@ -680,7 +680,7 @@ instants are epoch milliseconds.
 deadline: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:253
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:252
 
 The true turn deadline shown to clients; the alarm arms at
 `deadline + grace`.
@@ -691,7 +691,7 @@ The true turn deadline shown to clients; the alarm arms at
 pending: number[];
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:249
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:248
 
 ##### playerTimes
 
@@ -699,7 +699,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:249
 playerTimes: number[] | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:255
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:254
 
 Per-seat budget banks (ms), budget mode only.
 
@@ -709,7 +709,7 @@ Per-seat budget banks (ms), budget mode only.
 rngSeed: string;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:250
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:249
 
 ##### state
 
@@ -717,7 +717,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:250
 state: JsonObject;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:248
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:247
 
 ##### turnStartedAt
 
@@ -725,7 +725,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:248
 turnStartedAt: number | null;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:256
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:255
 
 ##### version
 
@@ -733,13 +733,13 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:256
 version: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:247
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:246
 
 ***
 
 ### TwinFixtureFile
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:76](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L76)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:75](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L75)
 
 One fixture file: cases targeting one `schemaVersion` unit.
 
@@ -751,7 +751,7 @@ One fixture file: cases targeting one `schemaVersion` unit.
 cases: TwinFixtureCase[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:78](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L78)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:77](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L77)
 
 ##### schemaVersion
 
@@ -759,7 +759,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:78](https://gith
 schemaVersion: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:77](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L77)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:76](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L76)
 
 ## Type Aliases
 
@@ -783,7 +783,7 @@ type Effect =
 };
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:340
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:339
 
 A push/wake the host should attempt post-commit (single attempt + error
 log — no retry machinery in v1). The kernel names seats; the host resolves
@@ -817,7 +817,7 @@ type Intent =
 };
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:260
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:259
 
 What the host asks the kernel to do — the kernel-facing half of a
 `Command` (authorization already happened at the edge; dedupe at the DO).
@@ -957,7 +957,7 @@ type TwinFixtureCase =
   | BotSeatableCase;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:127](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L127)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:126](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L126)
 
 ## Functions
 
@@ -967,7 +967,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:127](https://git
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:373
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:372
 
 #### Parameters
 
@@ -987,7 +987,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:373
 function deepEquals(a, b): boolean;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:481](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L481)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:480](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L480)
 
 Structural JSON equality. Object keys with `undefined` values count as
 absent (matching how schema libraries model optional fields); array order
@@ -1012,14 +1012,14 @@ matters.
 function deriveRng(seed, version): Rng;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:389
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:388
 
 The deterministic RNG for one transition: rand-seed's sfc32 keyed by the
 game's base seed and the state version the envelope will commit as. The
 same `(seed, version)` always yields the same draw sequence — a replay
 re-derives it — and every transition gets an independent stream, so hooks
-draw as many values as they need with no cross-invocation state. Identical
-derivation to the Supabase-era engine, so recorded games stay replayable.
+draw as many values as they need with no cross-invocation state. The
+derivation is fixed, so recorded games stay replayable.
 
 #### Parameters
 
@@ -1040,7 +1040,7 @@ derivation to the Supabase-era engine, so recorded games stay replayable.
 function evaluateTwinCase(rules, kase): string[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:275](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L275)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:274](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L274)
 
 Run one fixture case against a rules unit, returning failure descriptions
 (empty ⇒ the case passes). Pure — the file-reading test registrar is
@@ -1065,7 +1065,7 @@ Run one fixture case against a rules unit, returning failure descriptions
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:372
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:371
 
 Type guard: did `commit()` refuse the intent?
 
@@ -1087,7 +1087,7 @@ Type guard: did `commit()` refuse the intent?
 function parseTwinFixtureFile(path, json): TwinFixtureFile;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:248](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L248)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:247](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L247)
 
 Validate one fixture file's parsed JSON, or throw naming the offending
 file, case, and field. Exported so a repo can lint its fixtures without
@@ -1112,7 +1112,7 @@ running them.
 function projectView(rules, args): SeatView;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/kernel-scenarios.ts:39](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/kernel-scenarios.ts#L39)
+Defined in: [eigen-server/packages/testkit/src/kernel-scenarios.ts:39](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/kernel-scenarios.ts#L39)
 
 Project one seat's view of a state — the stored-frame shape the same-view
 rule compares (`commit()`'s `staleViews` input). Convenience for scenario
@@ -1144,7 +1144,7 @@ tests that replay a simultaneous-move race.
 function randomSeed(): string;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:382
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:381
 
 A fresh base seed for a new game: 128 random bits, hex-encoded. Stored on
 the game's v0 state row and copied onto every later row (server-only —
@@ -1162,7 +1162,7 @@ never expose it: the whole randomness of the game is derivable from it).
 function twinFixtureTests(gameModule, fixturesRoot): void;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:291](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/testkit/src/twin-fixtures.ts#L291)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:290](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/testkit/src/twin-fixtures.ts#L290)
 
 Register one vitest test per fixture case found under `fixturesRoot`
 (layout: `<root>/v<N>/*.json`). Call at the top level of a test module

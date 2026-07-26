@@ -13,7 +13,7 @@ schemas, and the protocol types.
 
 ### AuthError
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:12](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L12)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:12](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L12)
 
 Verification failure — always the caller's fault; the app maps it to 401.
 
@@ -76,7 +76,7 @@ Error.constructor
 
 ### `abstract` BaseGameDO
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:66](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L66)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:66](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L66)
 
 #### Extends
 
@@ -100,7 +100,7 @@ Defined in: [eigen-server/packages/server/src/do/game-do.ts:66](https://github.c
 new BaseGameDO<TEnv>(ctx, env): BaseGameDO<TEnv>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:75](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L75)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:75](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L75)
 
 ###### Parameters
 
@@ -127,7 +127,7 @@ DurableObject<TEnv>.constructor
 abstract protected readonly gameModule: GameModule;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:68](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L68)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:68](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L68)
 
 The implementor's game — the `versions` map the engine dispatches on.
 
@@ -139,7 +139,7 @@ The implementor's game — the `versions` map the engine dispatches on.
 abort(gameId): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:213](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L213)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:213](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L213)
 
 Unconditional teardown (cron reap): mark the game aborted in D1 and
 drop the DO's storage — no creator gate, no init requirement. A
@@ -169,7 +169,7 @@ GameStub.abort
 alarm(): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:655](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L655)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:655](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L655)
 
 ###### Returns
 
@@ -181,7 +181,7 @@ Defined in: [eigen-server/packages/server/src/do/game-do.ts:655](https://github.
 abstract protected d1(env): D1Database;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:71](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L71)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:71](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L71)
 
 The EngineConfig seam: the engine never assumes binding names — the
 subclass picks the D1 database off its own Env.
@@ -202,12 +202,12 @@ subclass picks the D1 database off its own Env.
 fetch(request): Promise<Response>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:679](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L679)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:679](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L679)
 
 The worker routes the upgrade here after authenticating; the principal
 header is worker-set (never client-supplied — the worker strips inbound
-headers when forwarding). One socket serves the game's whole lifetime
-: unversioned roster snapshots pre-game, versioned frames from v0.
+headers when forwarding). One socket serves the game's whole lifetime:
+unversioned roster snapshots pre-game, versioned frames from v0.
 A not-yet-seated user's socket simply receives no frames until the
 roster contains them.
 
@@ -233,7 +233,7 @@ GameStub.fetch
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:779](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L779)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:779](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L779)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -265,7 +265,7 @@ GameStub.frames
 handle(cmd): Promise<CommandResult>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:88](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L88)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:88](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L88)
 
 ###### Parameters
 
@@ -289,7 +289,7 @@ GameStub.handle
 repokeFinish(): Promise<boolean>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:643](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L643)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:643](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L643)
 
 The gated admin re-poke (step 4): re-runs the D1 apply for a
 finish whose effects never landed. Idempotent end to end — finish_id
@@ -312,7 +312,7 @@ GameStub.repokeFinish
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:713](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L713)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:713](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L713)
 
 ###### Returns
 
@@ -324,7 +324,7 @@ Defined in: [eigen-server/packages/server/src/do/game-do.ts:713](https://github.
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:719](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L719)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:719](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L719)
 
 ###### Parameters
 
@@ -343,7 +343,7 @@ Defined in: [eigen-server/packages/server/src/do/game-do.ts:719](https://github.
 webSocketMessage(): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/do/game-do.ts:708](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/do/game-do.ts#L708)
+Defined in: [eigen-server/packages/server/src/do/game-do.ts:708](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/do/game-do.ts#L708)
 
 ###### Returns
 
@@ -353,7 +353,7 @@ Defined in: [eigen-server/packages/server/src/do/game-do.ts:708](https://github.
 
 ### HttpError
 
-Defined in: [eigen-server/packages/server/src/http.ts:38](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/http.ts#L38)
+Defined in: [eigen-server/packages/server/src/http.ts:38](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/http.ts#L38)
 
 #### Extends
 
@@ -371,7 +371,7 @@ new HttpError(
    retryAfterSeconds?): HttpError;
 ```
 
-Defined in: [eigen-server/packages/server/src/http.ts:46](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/http.ts#L46)
+Defined in: [eigen-server/packages/server/src/http.ts:46](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/http.ts#L46)
 
 ###### Parameters
 
@@ -400,7 +400,7 @@ Error.constructor
 readonly code: ErrorCode | undefined;
 ```
 
-Defined in: [eigen-server/packages/server/src/http.ts:40](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/http.ts#L40)
+Defined in: [eigen-server/packages/server/src/http.ts:40](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/http.ts#L40)
 
 ##### retryAfterSeconds
 
@@ -408,7 +408,7 @@ Defined in: [eigen-server/packages/server/src/http.ts:40](https://github.com/eig
 readonly retryAfterSeconds: number | undefined;
 ```
 
-Defined in: [eigen-server/packages/server/src/http.ts:44](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/http.ts#L44)
+Defined in: [eigen-server/packages/server/src/http.ts:44](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/http.ts#L44)
 
 Seconds the caller should wait before retrying — rendered as the
 `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
@@ -420,13 +420,13 @@ Seconds the caller should wait before retrying — rendered as the
 readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
 ```
 
-Defined in: [eigen-server/packages/server/src/http.ts:39](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/http.ts#L39)
+Defined in: [eigen-server/packages/server/src/http.ts:39](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/http.ts#L39)
 
 ## Interfaces
 
 ### AuthClaims
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:18](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L18)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:18](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L18)
 
 What a verified ID token asserts. `isAnonymous` (the
 `firebase.sign_in_provider === 'anonymous'` claim) drives every guest gate;
@@ -441,7 +441,7 @@ Apple usually only email, guests none).
 email: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:21](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L21)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:21](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L21)
 
 ##### isAnonymous
 
@@ -449,7 +449,7 @@ Defined in: [eigen-server/packages/server/src/auth/firebase.ts:21](https://githu
 isAnonymous: boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:20](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L20)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:20](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L20)
 
 ##### name
 
@@ -457,7 +457,7 @@ Defined in: [eigen-server/packages/server/src/auth/firebase.ts:20](https://githu
 name: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:22](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L22)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:22](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L22)
 
 ##### picture
 
@@ -465,7 +465,7 @@ Defined in: [eigen-server/packages/server/src/auth/firebase.ts:22](https://githu
 picture: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:23](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L23)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:23](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L23)
 
 ##### uid
 
@@ -473,13 +473,13 @@ Defined in: [eigen-server/packages/server/src/auth/firebase.ts:23](https://githu
 uid: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:19](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L19)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:19](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L19)
 
 ***
 
 ### CreateGameInput
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:320](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L320)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:311](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L311)
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -492,7 +492,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:324](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L324)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:315](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L315)
 
 ##### budgetSeconds
 
@@ -500,7 +500,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:324](https://github.co
 budgetSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:328](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L328)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:319](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L319)
 
 ##### config
 
@@ -508,7 +508,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:328](https://github.co
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:326](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L326)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:317](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L317)
 
 ##### createdBy
 
@@ -516,7 +516,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:326](https://github.co
 createdBy: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:322](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L322)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:313](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L313)
 
 ##### gameId
 
@@ -524,7 +524,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:322](https://github.co
 gameId: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:321](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L321)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:312](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L312)
 
 ##### incrementSeconds
 
@@ -532,7 +532,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:321](https://github.co
 incrementSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:329](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L329)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:320](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L320)
 
 ##### maxPlayers
 
@@ -540,7 +540,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:329](https://github.co
 maxPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:333](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L333)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:324](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L324)
 
 ##### minPlayers
 
@@ -548,7 +548,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:333](https://github.co
 minPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:332](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L332)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:323](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L323)
 
 ##### now
 
@@ -556,7 +556,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:332](https://github.co
 now: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:336](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L336)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:327](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L327)
 
 ##### rated
 
@@ -564,7 +564,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:336](https://github.co
 rated: boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:330](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L330)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:321](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L321)
 
 ##### ratingPool
 
@@ -572,7 +572,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:330](https://github.co
 ratingPool: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:331](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L331)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:322](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L322)
 
 ##### schemaVersion
 
@@ -580,7 +580,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:331](https://github.co
 schemaVersion: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:325](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L325)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:316](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L316)
 
 ##### seats
 
@@ -588,7 +588,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:325](https://github.co
 seats: Seat[];
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:335](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L335)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:326](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L326)
 
 ##### shortCode
 
@@ -596,7 +596,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:335](https://github.co
 shortCode: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:334](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L334)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:325](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L325)
 
 ##### status
 
@@ -604,7 +604,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:334](https://github.co
 status: "waiting" | "ready";
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:323](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L323)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:314](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L314)
 
 ##### turnSeconds
 
@@ -612,13 +612,13 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:323](https://github.co
 turnSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:327](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L327)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:318](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L318)
 
 ***
 
 ### EngineConfig
 
-Defined in: [eigen-server/packages/server/src/engine.ts:98](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L98)
+Defined in: [eigen-server/packages/server/src/engine.ts:98](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L98)
 
 The EngineConfig seam: the engine never assumes binding names — the
 implementor picks bindings off their own Env. Annotate the accessors' `env`
@@ -639,7 +639,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:105](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L105)
+Defined in: [eigen-server/packages/server/src/engine.ts:105](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L105)
 
 The whitelabel app's display name — the single source of truth for the
 engine's own identity (the `/j` share/landing page title + OG tags today;
@@ -653,7 +653,7 @@ feature blocks are enabled.
 optional auth?: TokenVerifier;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L126)
+Defined in: [eigen-server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L126)
 
 Test seam only: replace the token verifier (tests mint their own RS256
 tokens against a local JWKS). Leave unset in production.
@@ -664,7 +664,7 @@ tokens against a local JWKS). Leave unset in production.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:116](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L116)
+Defined in: [eigen-server/packages/server/src/engine.ts:116](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L116)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -674,7 +674,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:114](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L114)
+Defined in: [eigen-server/packages/server/src/engine.ts:114](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L114)
 
 Deep linking + share pages. Omit → not mounted.
 
@@ -684,7 +684,7 @@ Deep linking + share pages. Omit → not mounted.
 gameModule: GameModule;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:99](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L99)
+Defined in: [eigen-server/packages/server/src/engine.ts:99](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L99)
 
 ##### lifecycle?
 
@@ -692,7 +692,7 @@ Defined in: [eigen-server/packages/server/src/engine.ts:99](https://github.com/e
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:123](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L123)
+Defined in: [eigen-server/packages/server/src/engine.ts:123](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L123)
 
 Cron-backstop tuning — guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -704,7 +704,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:119](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L119)
+Defined in: [eigen-server/packages/server/src/engine.ts:119](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L119)
 
 The public web surface — landing page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -717,7 +717,7 @@ Omit → not mounted (the worker is API-only).
 d1(env): D1Database;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L107)
+Defined in: [eigen-server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L107)
 
 The engine's D1 database (engine-private).
 
@@ -737,7 +737,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L112)
+Defined in: [eigen-server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L112)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -758,7 +758,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:109](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L109)
+Defined in: [eigen-server/packages/server/src/engine.ts:109](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L109)
 
 The GameDO namespace binding.
 
@@ -776,7 +776,7 @@ The GameDO namespace binding.
 
 ### FinishApplyInput
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:28](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L28)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:29](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L29)
 
 #### Properties
 
@@ -786,7 +786,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:28](https://github.com
 finishId: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:32](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L32)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:33](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L33)
 
 The DO-minted idempotency key — the apply is a no-op replay when
 the games row already carries it.
@@ -797,7 +797,7 @@ the games row already carries it.
 gameId: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L29)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:30](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L30)
 
 ##### now
 
@@ -805,7 +805,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:29](https://github.com
 now: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L37)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:38](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L38)
 
 ##### outcomes
 
@@ -813,7 +813,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:37](https://github.com
 outcomes: OutcomeEntry[];
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:33](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L33)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:34](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L34)
 
 ##### rated
 
@@ -821,7 +821,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:33](https://github.com
 rated: boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:35](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L35)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L36)
 
 ##### ratingPool
 
@@ -829,7 +829,7 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:35](https://github.com
 ratingPool: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L36)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L37)
 
 ##### roster
 
@@ -837,13 +837,13 @@ Defined in: [eigen-server/packages/server/src/d1/apply.ts:36](https://github.com
 roster: Seat[];
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:34](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L34)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:35](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L35)
 
 ***
 
 ### FrameMessage
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:91](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L91)
+Defined in: [eigen-server/packages/server/src/protocol.ts:91](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L91)
 
 One seat's versioned frame on the wire — the socket fan-out payload, and
 (for the acting seat) the command-response ride-along. `ratings` appears
@@ -857,7 +857,7 @@ only on the post-finish ratings transition.
 data: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:94](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L94)
+Defined in: [eigen-server/packages/server/src/protocol.ts:94](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L94)
 
 ##### deadline
 
@@ -865,7 +865,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:94](https://github.com
 deadline: number | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:97](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L97)
+Defined in: [eigen-server/packages/server/src/protocol.ts:97](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L97)
 
 The true client-facing deadline (grace is display-only there).
 
@@ -875,7 +875,7 @@ The true client-facing deadline (grace is display-only there).
 optional outcomes?: OutcomeEntry[];
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:99](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L99)
+Defined in: [eigen-server/packages/server/src/protocol.ts:99](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L99)
 
 ##### pendingPlayers
 
@@ -883,7 +883,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:99](https://github.com
 pendingPlayers: number[];
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:95](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L95)
+Defined in: [eigen-server/packages/server/src/protocol.ts:95](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L95)
 
 ##### playerTimes
 
@@ -891,7 +891,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:95](https://github.com
 playerTimes: number[] | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:98](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L98)
+Defined in: [eigen-server/packages/server/src/protocol.ts:98](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L98)
 
 ##### ratings?
 
@@ -899,7 +899,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:98](https://github.com
 optional ratings?: RatingDelta[];
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:100](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L100)
+Defined in: [eigen-server/packages/server/src/protocol.ts:100](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L100)
 
 ##### type
 
@@ -907,7 +907,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:100](https://github.co
 type: "frame";
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:92](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L92)
+Defined in: [eigen-server/packages/server/src/protocol.ts:92](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L92)
 
 ##### version
 
@@ -915,13 +915,13 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:92](https://github.com
 version: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:93](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L93)
+Defined in: [eigen-server/packages/server/src/protocol.ts:93](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L93)
 
 ***
 
 ### LegalConfig
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L29)
+Defined in: [eigen-server/packages/server/src/site/config.ts:29](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L29)
 
 Legal document overrides. Each is an HTML **fragment** — body content only,
 no document wrapper; the engine supplies the shell, styling and footer.
@@ -940,7 +940,7 @@ what a template's tokens used to stand in for.
 optional deleteAccount?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:32](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L32)
+Defined in: [eigen-server/packages/server/src/site/config.ts:32](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L32)
 
 ##### privacy?
 
@@ -948,7 +948,7 @@ Defined in: [eigen-server/packages/server/src/site/config.ts:32](https://github.
 optional privacy?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:31](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L31)
+Defined in: [eigen-server/packages/server/src/site/config.ts:31](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L31)
 
 ##### terms?
 
@@ -956,13 +956,13 @@ Defined in: [eigen-server/packages/server/src/site/config.ts:31](https://github.
 optional terms?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:30](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L30)
+Defined in: [eigen-server/packages/server/src/site/config.ts:30](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L30)
 
 ***
 
 ### OperatorConfig
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:9](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L9)
+Defined in: [eigen-server/packages/server/src/site/config.ts:9](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L9)
 
 The legal entity publishing the game. Required whenever `site` is present:
 the default legal documents take it as a prop and cannot render without it.
@@ -975,7 +975,7 @@ the default legal documents take it as a prop and cannot render without it.
 contactEmail: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:15](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L15)
+Defined in: [eigen-server/packages/server/src/site/config.ts:15](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L15)
 
 Support and privacy contact address.
 
@@ -985,7 +985,7 @@ Support and privacy contact address.
 effectiveDate: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:18](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L18)
+Defined in: [eigen-server/packages/server/src/site/config.ts:18](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L18)
 
 Effective date of the legal documents, as displayed. A plain string, not a
 Date — it is prose, and its format is the operator's choice.
@@ -996,7 +996,7 @@ Date — it is prose, and its format is the operator's choice.
 jurisdiction: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:13](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L13)
+Defined in: [eigen-server/packages/server/src/site/config.ts:13](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L13)
 
 Governing jurisdiction, e.g. `India`.
 
@@ -1006,7 +1006,7 @@ Governing jurisdiction, e.g. `India`.
 name: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:11](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L11)
+Defined in: [eigen-server/packages/server/src/site/config.ts:11](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L11)
 
 Legal entity name. Also the page footers' copyright holder.
 
@@ -1014,7 +1014,7 @@ Legal entity name. Also the page footers' copyright holder.
 
 ### Principal
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:16](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L16)
+Defined in: [eigen-server/packages/server/src/protocol.ts:16](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L16)
 
 Who a command acts as, resolved at the edge. Exactly one id is set.
 
@@ -1026,7 +1026,7 @@ Who a command acts as, resolved at the edge. Exactly one id is set.
 botId: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:18](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L18)
+Defined in: [eigen-server/packages/server/src/protocol.ts:18](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L18)
 
 ##### userId
 
@@ -1034,13 +1034,13 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:18](https://github.com
 userId: string | null;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:17](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L17)
+Defined in: [eigen-server/packages/server/src/protocol.ts:17](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L17)
 
 ***
 
 ### RatingDelta
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:172
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:171
 
 One rated identity's before → after, exactly the rating_history row minus
 store keys. Computed by the D1 applier inside the rating CAS and delivered
@@ -1054,7 +1054,7 @@ on the post-finish ratings transition (the `kind: "ratings"` action).
 displayAfter: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:180
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:179
 
 ##### displayBefore
 
@@ -1062,7 +1062,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:180
 displayBefore: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:177
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:176
 
 ##### displayChange
 
@@ -1070,7 +1070,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:177
 displayChange: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:181
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:180
 
 ##### identity
 
@@ -1078,7 +1078,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:181
 identity: RatingIdentity;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:173
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:172
 
 ##### muAfter
 
@@ -1086,7 +1086,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:173
 muAfter: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:178
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:177
 
 ##### muBefore
 
@@ -1094,7 +1094,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:178
 muBefore: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:175
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:174
 
 ##### pool
 
@@ -1102,7 +1102,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:175
 pool: string;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:174
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:173
 
 ##### sigmaAfter
 
@@ -1110,7 +1110,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:174
 sigmaAfter: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:179
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:178
 
 ##### sigmaBefore
 
@@ -1118,13 +1118,13 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:179
 sigmaBefore: number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:176
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:175
 
 ***
 
 ### RetryOptions
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:49](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L49)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:49](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L49)
 
 #### Properties
 
@@ -1134,7 +1134,7 @@ Defined in: [eigen-server/packages/server/src/d1/retry.ts:49](https://github.com
 optional attempts?: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:51](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L51)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:51](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L51)
 
 Total attempts including the first. Default 4.
 
@@ -1144,7 +1144,7 @@ Total attempts including the first. Default 4.
 optional baseDelayMs?: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:53](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L53)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:53](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L53)
 
 First backoff, doubling each retry. Default 50ms.
 
@@ -1154,7 +1154,7 @@ First backoff, doubling each retry. Default 50ms.
 optional maxDelayMs?: number;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:55](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L55)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:55](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L55)
 
 Backoff ceiling. Default 2000ms.
 
@@ -1164,7 +1164,7 @@ Backoff ceiling. Default 2000ms.
 optional onRetry?: (error, attempt) => void;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:59](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L59)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:59](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L59)
 
 Observe each retry (logging); never throws into the loop.
 
@@ -1185,7 +1185,7 @@ Observe each retry (logging); never throws into the loop.
 optional shouldRetry?: (error) => boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:57](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L57)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:57](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L57)
 
 Which failures are worth retrying. Default [isTransientD1Error](#istransientd1error).
 
@@ -1205,7 +1205,7 @@ Which failures are worth retrying. Default [isTransientD1Error](#istransientd1er
 optional sleep?: (ms) => Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:61](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L61)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:61](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L61)
 
 Delay primitive, injectable so tests run without real timers.
 
@@ -1223,7 +1223,7 @@ Delay primitive, injectable so tests run without real timers.
 
 ### RosterSnapshot
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:82](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L82)
+Defined in: [eigen-server/packages/server/src/protocol.ts:82](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L82)
 
 The unversioned pre-game snapshot: pushed to every socket on any
 roster change, idempotent — a reconnect just gets the current one. Also the
@@ -1237,7 +1237,7 @@ response body of an accepted waiting-room command.
 players: Seat[];
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:85](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L85)
+Defined in: [eigen-server/packages/server/src/protocol.ts:85](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L85)
 
 ##### status
 
@@ -1245,7 +1245,7 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:85](https://github.com
 status: GameStatus;
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:84](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L84)
+Defined in: [eigen-server/packages/server/src/protocol.ts:84](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L84)
 
 ##### type
 
@@ -1253,13 +1253,13 @@ Defined in: [eigen-server/packages/server/src/protocol.ts:84](https://github.com
 type: "roster";
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:83](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L83)
+Defined in: [eigen-server/packages/server/src/protocol.ts:83](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L83)
 
 ***
 
 ### SiteConfig
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:42](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L42)
+Defined in: [eigen-server/packages/server/src/site/config.ts:42](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L42)
 
 The public web surface a deployed game serves on its own host: landing page,
 legal documents, and the crawler files. Absent → none of it is mounted and
@@ -1277,7 +1277,7 @@ assets before invoking the worker.
 optional description?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:48](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L48)
+Defined in: [eigen-server/packages/server/src/site/config.ts:48](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L48)
 
 Longer landing-page prose. Defaults to `tagline`.
 
@@ -1287,7 +1287,7 @@ Longer landing-page prose. Defaults to `tagline`.
 optional legal?: LegalConfig;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:59](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L59)
+Defined in: [eigen-server/packages/server/src/site/config.ts:59](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L59)
 
 ##### name?
 
@@ -1295,7 +1295,7 @@ Defined in: [eigen-server/packages/server/src/site/config.ts:59](https://github.
 optional name?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:44](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L44)
+Defined in: [eigen-server/packages/server/src/site/config.ts:44](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L44)
 
 Public game name in titles and OG tags. Defaults to `appName`.
 
@@ -1305,7 +1305,7 @@ Public game name in titles and OG tags. Defaults to `appName`.
 optional ogImage?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:57](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L57)
+Defined in: [eigen-server/packages/server/src/site/config.ts:57](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L57)
 
 Path under `public/` to the 1200x630 OG image. Defaults to
 `/og-image.png`, the name `client_reference.md` §22 already prescribes for
@@ -1318,7 +1318,7 @@ never generates images.
 operator: OperatorConfig;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:58](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L58)
+Defined in: [eigen-server/packages/server/src/site/config.ts:58](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L58)
 
 ##### primaryColor
 
@@ -1326,7 +1326,7 @@ Defined in: [eigen-server/packages/server/src/site/config.ts:58](https://github.
 primaryColor: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:50](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L50)
+Defined in: [eigen-server/packages/server/src/site/config.ts:50](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L50)
 
 Hex accent colour, e.g. `#1a237e`. Also the `theme-color`.
 
@@ -1336,7 +1336,7 @@ Hex accent colour, e.g. `#1a237e`. Also the `theme-color`.
 optional screenshots?: string[];
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:52](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L52)
+Defined in: [eigen-server/packages/server/src/site/config.ts:52](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L52)
 
 Filenames under `public/screenshots/`, shown as a scrolling strip.
 
@@ -1346,7 +1346,7 @@ Filenames under `public/screenshots/`, shown as a scrolling strip.
 tagline: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/site/config.ts:46](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/site/config.ts#L46)
+Defined in: [eigen-server/packages/server/src/site/config.ts:46](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/site/config.ts#L46)
 
 One-sentence hook. The meta description and OG description.
 
@@ -1354,7 +1354,7 @@ One-sentence hook. The meta description and OG description.
 
 ### TokenVerifier
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:29](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L29)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:29](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L29)
 
 The seam `createEngine` consumes. Production is
 [createFirebaseVerifier](#createfirebaseverifier) with the default remote JWKS; tests inject a
@@ -1368,7 +1368,7 @@ local JWKS and mint their own RS256 tokens.
 verify(token): Promise<AuthClaims>;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:31](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L31)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:31](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L31)
 
 Resolve a bearer token to claims, or throw [AuthError](#autherror).
 
@@ -1432,7 +1432,7 @@ type Command =
 };
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:23](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L23)
+Defined in: [eigen-server/packages/server/src/protocol.ts:23](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L23)
 
 Everything that crosses the worker → DO boundary after creation (
 create itself is a worker-direct D1 write; the DO does not exist yet).
@@ -1637,7 +1637,7 @@ type CommandResult =
 };
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:124](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L124)
+Defined in: [eigen-server/packages/server/src/protocol.ts:124](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L124)
 
 What `GameDO.handle()` returns; accepted results are stored for commandId
 dedupe and replayed verbatim to a retry. Rejections are computed
@@ -1660,7 +1660,7 @@ type LobbyRejectCode =
   | "creatorCannotLeave";
 ```
 
-Defined in: [eigen-server/packages/server/src/protocol.ts:62](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/protocol.ts#L62)
+Defined in: [eigen-server/packages/server/src/protocol.ts:62](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/protocol.ts#L62)
 
 Why the DO refused a waiting-room command — the integrity column.
 These are *expected* refusals (accepted lobby staleness: the lobby may show
@@ -1676,7 +1676,7 @@ rejections; the worker maps them to HTTP. Genuine protocol violations
 type UserRow = typeof users.$inferSelect;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/provision.ts:19](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/provision.ts#L19)
+Defined in: [eigen-server/packages/server/src/auth/provision.ts:19](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/provision.ts#L19)
 
 ## Variables
 
@@ -1686,7 +1686,7 @@ Defined in: [eigen-server/packages/server/src/auth/provision.ts:19](https://gith
 const DEADLINE_GRACE_MS: 750 = 750;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:441
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:438
 
 Grace window (ms) added to every deadline comparison so a player who
 submits on time is not rejected because network latency carried the request
@@ -1701,7 +1701,7 @@ windows. The client's display-only `kServerDeadlineGrace` mirrors this.
 function applyFinish(d1, input): Promise<RatingDelta[] | null>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:46](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L46)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:47](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L47)
 
 Apply one finished game to D1. Returns the rated deltas (null for an
 unrated game) for the DO to deliver as the ratings transition. Throws on
@@ -1727,7 +1727,7 @@ the call site; the internal loop only absorbs CAS conflicts).
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:340](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L340)
+Defined in: [eigen-server/packages/server/src/engine.ts:340](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L340)
 
 #### Type Parameters
 
@@ -1754,7 +1754,7 @@ Defined in: [eigen-server/packages/server/src/engine.ts:340](https://github.com/
 function createFirebaseVerifier(projectId, getKey?): TokenVerifier;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/firebase.ts:46](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/firebase.ts#L46)
+Defined in: [eigen-server/packages/server/src/auth/firebase.ts:46](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/firebase.ts#L46)
 
 #### Parameters
 
@@ -1775,7 +1775,7 @@ Defined in: [eigen-server/packages/server/src/auth/firebase.ts:46](https://githu
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:342](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L342)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:333](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L333)
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact. Callers own the
@@ -1800,7 +1800,7 @@ shortCode retry: a duplicate trips the UNIQUE index and throws.
 function deriveBotKey(masterSecret, botId): Promise<string>;
 ```
 
-Defined in: [eigen-server/packages/server/src/bot/bot-auth.ts:61](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/bot/bot-auth.ts#L61)
+Defined in: [eigen-server/packages/server/src/bot/bot-auth.ts:60](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/bot/bot-auth.ts#L60)
 
 The per-bot signing key as base64 — **the operator utility**. This is the
 one value an external bot's owner is given, and the only one they need: it
@@ -1838,7 +1838,7 @@ owners you would re-issue all of them for.
 function displayRating(mu, sigma): number;
 ```
 
-Defined in: eigen-server/packages/kernel/dist/index.d.ts:185
+Defined in: eigen-server/packages/kernel/dist/index.d.ts:184
 
 max(0, round((mu − 3σ) · 40)) — the one server-side home of the display
 formula (the client mirrors it for optimistic display only).
@@ -1874,7 +1874,7 @@ function ensureUser(
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/auth/provision.ts:51](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/auth/provision.ts#L51)
+Defined in: [eigen-server/packages/server/src/auth/provision.ts:51](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/auth/provision.ts#L51)
 
 Load the caller's row, creating or backfilling it as the token demands.
 One read on the hot path; writes only on first sight and on guest →
@@ -1909,7 +1909,7 @@ permanent conversion.
 function isTransientD1Error(error): boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:42](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L42)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:42](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L42)
 
 #### Parameters
 
@@ -1929,7 +1929,7 @@ Defined in: [eigen-server/packages/server/src/d1/retry.ts:42](https://github.com
 function mirrorRoster(d1, args): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L308)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L299)
 
 The roster mirror after a committed waiting-room command — the DO's
 roster is the integrity copy; this rewrites the D1 display copy wholesale
@@ -1960,7 +1960,7 @@ single attempt.
 function openApiDocument(): OpenAPIObject;
 ```
 
-Defined in: [eigen-server/packages/server/src/engine.ts:397](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/engine.ts#L397)
+Defined in: [eigen-server/packages/server/src/engine.ts:397](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/engine.ts#L397)
 
 Build the API document from an inert app — route handlers never run, so
 the context can refuse everything. `appName` is an unused placeholder here:
@@ -2004,7 +2004,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:369](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L369)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:360](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L360)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact — one batched round trip.
@@ -2054,7 +2054,7 @@ its `meta`/`roster` on first contact — one batched round trip.
 function updateSummary(d1, args): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/apply.ts:290](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/apply.ts#L290)
+Defined in: [eigen-server/packages/server/src/d1/apply.ts:281](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/apply.ts#L281)
 
 The display upsert after a non-finishing transition — fire-and-forget
 post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
@@ -2084,7 +2084,7 @@ re-derivable from the DO at any time.
 function withRetry<T>(op, options?): Promise<T>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/retry.ts:78](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/retry.ts#L78)
+Defined in: [eigen-server/packages/server/src/d1/retry.ts:78](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/retry.ts#L78)
 
 Run `op`, retrying a *retryable* failure with jittered exponential backoff up
 to `attempts`. A non-retryable failure — or the last attempt — throws.

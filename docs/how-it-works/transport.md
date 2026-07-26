@@ -102,8 +102,8 @@ game code gets non-nullable identity — no null checks, no loading states.
 
 - Identity comes from `GET /api/engine/players?ids=` (batch, public identity:
   username, display name, avatar, anonymity — never email), warmed by a
-  client-side persisted cache. This is the decided alternative to denormalizing
-  identity onto game rows.
+  client-side persisted cache. Game rows carry no denormalized identity, so a
+  renamed user is correct everywhere on the next fetch.
 - For a **finished game whose participant was deleted**, the server anonymizes the
   seat (the roster keeps the seat, id nulled); the client renders a **synthetic
   identity** ("Deleted User", `player_{index}`) and sets `GamePlayer.isDeleted`.

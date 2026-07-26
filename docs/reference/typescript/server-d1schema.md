@@ -8,7 +8,7 @@
 type BotType = "engine" | "external" | "local";
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:135](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L135)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:137](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L137)
 
 How a bot's moves are produced — the dispatch discriminator:
 - `engine`: the brain ships in the game's `GameModule` as
@@ -17,7 +17,6 @@ How a bot's moves are produced — the dispatch discriminator:
   is then required);
 - `local`: client-driven (future offline-solo transcript import) — a
   registry row for identity only, never dispatched server-side.
-Replaces the Supabase-era `is_local` boolean.
 
 ## Variables
 
@@ -28,7 +27,7 @@ const bots: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:141](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L141)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:143](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L143)
 
 Bot registry. `type` selects the dispatch path; `webhook_url` is
 required for (and only for) `external`. `username` is the stable,
@@ -44,7 +43,7 @@ const deviceInstallations: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:242](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L242)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:244](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L244)
 
 FCM push targets, keyed by Firebase Installation ID — unchanged.
 
@@ -57,7 +56,7 @@ const games: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:45](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L45)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:47](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L47)
 
 The game summary/read-model row (created worker-direct, before the
 DO exists;: updated post-commit from DO effects, accepted staleness).
@@ -71,13 +70,12 @@ const participants: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:93](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L93)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:94](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L94)
 
-The roster join table — one row per seat, the indexed access path for
-"games of user X" (ported from the Supabase era; the JSON-snapshot detour
-was reverted 2026-07-17). Written at create/join/leave alongside the games
-row; the DO's own roster remains the integrity copy. The game-scoped
-unique indexes guard the join race exactly as the old schema did.
+The roster join table — one row per seat, and the indexed access path for
+"games of user X". Written at create/join/leave alongside the games row; the
+DO's own roster remains the integrity copy. The game-scoped unique indexes
+are what actually guard the join race.
 
 ***
 
@@ -88,7 +86,7 @@ const playerRatings: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:170](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L170)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:172](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L172)
 
 Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
 set. `revision` is the CAS counter: the finish apply reads
@@ -106,7 +104,7 @@ const ratingHistory: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:207](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L207)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:209](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L209)
 
 Immutable per-game rating log for the profile history screen — and the
 concurrency control for rating writes.
@@ -137,10 +135,11 @@ const relationships: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:111](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L111)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:113](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L113)
 
-Friends — canonical pair order (`user_id_1 < user_id_2`, worker-enforced)
-+ UNIQUE, as the Supabase era had.
+Friends and blocks — one row per pair, in canonical order
+(`user_id_1 < user_id_2`, worker-enforced) + UNIQUE, so a relationship can
+never exist twice in opposite orientations.
 
 ***
 
@@ -151,9 +150,9 @@ const users: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:26](https://github.com/eigeninteractive/eigen-server/blob/bce3b4d7acf8e790b583465c757a6c270bf31595/packages/server/src/d1/schema.ts#L26)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:28](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L28)
 
-Merged users + user_profiles (the split served RLS separation that no
-longer exists). Provisioned on first sight of a verified Firebase token;
-`avatar_url` defaults to the provider photo (null ⇒ client renders
-initials).
+One row per identity, public and private fields together — authorization is
+enforced in the routes, not by table separation. Provisioned on first sight
+of a verified Firebase token; `avatar_url` defaults to the provider photo
+(null ⇒ client renders initials).

@@ -107,12 +107,13 @@ abstract class RpsObservation with _$RpsObservation {
 
 Two settings worth being deliberate about:
 
-- **`field_rename` must match your schemas.** The JSON keys are whatever the
-  TypeScript declares. RPS uses camelCase (`yourMove`, `targetWins`), so its
-  `build.yaml` sets no rename at all — while the `eigen_flutter` package one
-  directory up sets `field_rename: snake` for the engine's own snake_case
-  vocabulary. Copying one config into the other silently breaks the codec. The
-  fixtures, which carry the real wire keys, are what catch it.
+- **`field_rename` must match your schemas.** The JSON keys are whatever your
+  TypeScript declares — `json_serializable` has no way to know them. The engine's
+  own wire vocabulary is camelCase throughout, and RPS follows it (`yourMove`,
+  `targetWins`), so neither `build.yaml` sets a rename at all. If your schemas
+  declare snake_case keys, set `field_rename: snake` in *your* `build.yaml` and
+  nowhere else. Getting this wrong silently breaks the codec; the fixtures, which
+  carry the real wire keys, are what catch it.
 - **`checked: true`** wraps a decode failure in a `CheckedFromJsonException`
   that names the offending field. A payload that fails to parse is a twin-drift
   bug report, and *"yourMove: `dynamite` is not one of the supported values"*
