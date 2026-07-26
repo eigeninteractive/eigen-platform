@@ -22,8 +22,8 @@ sign-in-provider claim, which drives every guest gate), and the profile fields
 
 ## Provisioning & guests
 
-A `users` row appears on first sight of a valid token (the replacement for a DB
-signup trigger). Username is derived from the email local part (sanitized to a
+A `users` row appears on first sight of a valid token, so there is no signup
+call to make. Username is derived from the email local part (sanitized to a
 `[a-z0-9_.]{3,20}` charset) or a generated `player_NNNNN` handle for guests, with
 a collision-retry loop.
 

@@ -8,7 +8,7 @@
 type BotType = "engine" | "external" | "local";
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:137](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L137)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:137](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L137)
 
 How a bot's moves are produced — the dispatch discriminator:
 - `engine`: the brain ships in the game's `GameModule` as
@@ -27,7 +27,7 @@ const bots: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:143](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L143)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:143](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L143)
 
 Bot registry. `type` selects the dispatch path; `webhook_url` is
 required for (and only for) `external`. `username` is the stable,
@@ -43,7 +43,7 @@ const deviceInstallations: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:244](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L244)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:244](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L244)
 
 FCM push targets, keyed by Firebase Installation ID — unchanged.
 
@@ -56,7 +56,7 @@ const games: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:47](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L47)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:47](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L47)
 
 The game summary/read-model row (created worker-direct, before the
 DO exists;: updated post-commit from DO effects, accepted staleness).
@@ -70,7 +70,7 @@ const participants: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:94](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L94)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:94](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L94)
 
 The roster join table — one row per seat, and the indexed access path for
 "games of user X". Written at create/join/leave alongside the games row; the
@@ -86,7 +86,7 @@ const playerRatings: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:172](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L172)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:172](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L172)
 
 Per-identity per-pool OpenSkill rating. Exactly one of user_id/bot_id is
 set. `revision` is the CAS counter: the finish apply reads
@@ -104,7 +104,7 @@ const ratingHistory: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:209](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L209)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:209](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L209)
 
 Immutable per-game rating log for the profile history screen — and the
 concurrency control for rating writes.
@@ -135,7 +135,7 @@ const relationships: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:113](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L113)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:113](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L113)
 
 Friends and blocks — one row per pair, in canonical order
 (`user_id_1 < user_id_2`, worker-enforced) + UNIQUE, so a relationship can
@@ -150,7 +150,7 @@ const users: SQLiteTableWithColumns<{
 }>;
 ```
 
-Defined in: [eigen-server/packages/server/src/d1/schema.ts:28](https://github.com/eigeninteractive/eigen-server/blob/edfab31337e0c25869d278aa0da930e33730d546/packages/server/src/d1/schema.ts#L28)
+Defined in: [eigen-server/packages/server/src/d1/schema.ts:28](https://github.com/eigeninteractive/eigen-server/blob/8838fc1e7c3ffa521d8331f0d4f5f4ef555de533/packages/server/src/d1/schema.ts#L28)
 
 One row per identity, public and private fields together — authorization is
 enforced in the routes, not by table separation. Provisioned on first sight
