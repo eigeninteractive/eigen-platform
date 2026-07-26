@@ -10,6 +10,7 @@
 
 import { createRoute, z } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
+import { isUniqueViolation } from "../d1/errors.js";
 import { orm } from "../d1/orm.js";
 import { users } from "../d1/schema.js";
 import type { EngineApp, RouteContext } from "../engine.js";
@@ -22,13 +23,10 @@ import { displayNameBody, errorShape, usernameBody } from "./wire.js";
  * letters, digits, underscore, and dot, 3–20 chars. */
 const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 
-function isUsernameCollision(error: unknown): boolean {
-  // The only UNIQUE column this UPDATE can violate is `username`. Check the
-  // message and any wrapped cause, since D1 nests the SQLite error.
-  const parts: string[] = [];
-  for (let e: unknown = error; e instanceof Error; e = e.cause) parts.push(e.message);
-  return /UNIQUE constraint failed/i.test(parts.join(" "));
-}
+/** The only UNIQUE column this UPDATE can violate is `username`, so the
+ * un-narrowed {@link isUniqueViolation} is exactly right here — no column name
+ * to keep in sync with the schema. */
+const isUsernameCollision = isUniqueViolation;
 
 export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
   // The caller changes their own username (the stable handle; distinct from the

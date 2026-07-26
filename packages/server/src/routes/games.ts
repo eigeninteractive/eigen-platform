@@ -10,6 +10,7 @@ import type { GameRules, JsonObject } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
+import { isShortCodeCollision } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
@@ -141,12 +142,6 @@ const CODE_ATTEMPTS = 5;
 function generateShortCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH));
   return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
-}
-
-function isShortCodeCollision(error: unknown): boolean {
-  // Matches SQLite's error text, which names the physical column (`short_code`),
-  // not the camelCase Drizzle property.
-  return error instanceof Error && /UNIQUE constraint failed.*short_code/.test(error.message);
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────

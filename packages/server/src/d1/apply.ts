@@ -22,6 +22,7 @@
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
 import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
@@ -135,26 +136,6 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     }
   }
   throw new GameBugError("unreachable: CAS loop exit");
-}
-
-/** A SQLite UNIQUE-index rejection.
- *
- * Matched on text because neither D1 nor drizzle exposes a structured error
- * code — and matched down the `cause` chain because drizzle rethrows with its
- * own "Failed query: ..." message, which does NOT contain the constraint
- * text. Testing only the top-level message silently classifies every CAS
- * conflict as fatal, disabling the retry this function exists to enable
- * (`ratings-cas.spec.ts` covers it). The real chain is:
- *
- *   Error: Failed query: insert into "rating_history" ...
- *     └─ Error: D1_ERROR: UNIQUE constraint failed: rating_history.user_id, ...
- *          └─ Error: UNIQUE constraint failed: rating_history.user_id, ...
- */
-export function isUniqueViolation(error: unknown): boolean {
-  for (let e: unknown = error, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
-    if (/UNIQUE constraint failed/i.test(e.message)) return true;
-  }
-  return false;
 }
 
 interface PriorRow {

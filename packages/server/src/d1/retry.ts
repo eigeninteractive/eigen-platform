@@ -16,6 +16,8 @@
  * that would just burn the budget before surfacing.
  */
 
+import { matchesCause } from "./errors.js";
+
 /** The transient D1 failures Cloudflare's debug-D1 docs mark "Retry the
  * operation": a network blip, a storage/Durable-Object reset, a code-update
  * restart, or a transient routing failure. This mirrors Cloudflare's own
@@ -26,11 +28,9 @@
  *
  * Two deliberate departures from the reference snippet:
  *
- * - Walked down the `cause` chain, not just the top message. drizzle's D1
- *   driver rewraps failures with its own "Failed query: ..." message that
- *   lacks the underlying text (the same wrapping that bites the rating CAS —
- *   see `isUniqueViolation`), so a flat `error.message` check would miss every
- *   one of these in this codebase.
+ * - Walked down the `cause` chain, not just the top message — via the shared
+ *   `matchesCause` (`d1/errors.ts`), which documents why a flat
+ *   `error.message` check would miss every one of these in this codebase.
  * - Overload (`D1 DB is overloaded`) and resource resets (memory/CPU limit)
  *   are NOT here. The docs' remedy for those is to shed load, not retry —
  *   hammering an overloaded DB is backwards, and doubly so for a cosmetic
@@ -39,11 +39,21 @@
  *   report" reason. */
 const RETRYABLE_D1 = [/Network connection lost/i, /caused object to be reset/i, /reset because its code was updated/i, /Cannot resolve D1 DB/i];
 
+/**
+ * True for the D1 failures worth retrying — a network blip, a storage or
+ * Durable-Object reset, a code-update restart, or a transient routing failure.
+ *
+ * Deliberately narrow. Overload and resource-limit errors are excluded (the
+ * remedy is to shed load, not retry), as are deterministic failures such as a
+ * constraint or type error, where retrying only delays the report. The whole
+ * `cause` chain is examined, because drizzle rewraps failures in its own
+ * message that does not carry the underlying text.
+ *
+ * This is the default predicate for {@link withRetry}; pass
+ * `shouldRetry` to override it.
+ */
 export function isTransientD1Error(error: unknown): boolean {
-  for (let e: unknown = error, depth = 0; e instanceof Error && depth < 5; e = e.cause, depth++) {
-    if (RETRYABLE_D1.some((re) => re.test(e.message))) return true;
-  }
-  return false;
+  return matchesCause(error, ...RETRYABLE_D1);
 }
 
 export interface RetryOptions {

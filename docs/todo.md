@@ -20,15 +20,6 @@
   matching `build.yaml` (whose `field_rename` must agree with the schemas), the
   fixture directories in *both* repos, and the two CI workflows. One generator
   that writes both halves at a known-good starting point removes all of it.
-- **Decide the monorepo question.** Four repos today (`eigen-server`,
-  `eigen-flutter`, `eigen-web`, plus each game) with three hand-maintained
-  cross-repo couplings: `openapi.json`, the TypeScript sources the docs
-  reference, and the twin fixtures — the last of which **nothing** syncs and no
-  CI can see. A monorepo makes all three a single atomic change and lets a
-  `diff -r` guard the fixtures; the costs are a mixed pnpm/Dart toolchain in one
-  place, and losing the clean per-repo open-source boundary. Worth deciding
-  before there are several games, not after. Relates to the two items above:
-  schema-derived types and scaffolding both get simpler in a monorepo.
 - **Finish the docs product.** Shipped: the task-first IA (each page carries both
   the TypeScript and Dart halves of one task), the generated HTTP + TypeScript
   references (`pnpm sync-api`), local search, `llms.txt` / `llms-full.txt` /

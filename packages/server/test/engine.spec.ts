@@ -68,6 +68,43 @@ describe("create", () => {
     expect(detail.rated).toBe(false);
   });
 
+  // The short-code retry loop. Codes are random and 31^6 wide, so a natural
+  // collision is never observed in a test run — it has to be forced. This is
+  // the only coverage of `isShortCodeCollision`, which classifies the SQLite
+  // UNIQUE failure; if it stops matching (a physical column rename, or a
+  // change in how `createGame` issues the statement that re-wraps the error),
+  // the loop silently stops retrying and a collision surfaces as a 500.
+  it("retries a short-code collision and creates with a fresh code", async () => {
+    const u = makeUsers();
+    const first = await createGame(u.a, { rated: false });
+
+    // `generateShortCode` maps random bytes through this alphabet; inverting it
+    // makes the next generated code exactly `first.shortCode`.
+    const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+    const real = crypto.getRandomValues.bind(crypto);
+    let forceOnce = true;
+    const spy = vi.spyOn(crypto, "getRandomValues").mockImplementation(((array: ArrayBufferView) => {
+      if (forceOnce && array instanceof Uint8Array && array.length === 6) {
+        forceOnce = false;
+        for (let i = 0; i < 6; i++) array[i] = CODE_ALPHABET.indexOf(first.shortCode[i] as string);
+        return array;
+      }
+      return real(array as Uint8Array);
+    }) as typeof crypto.getRandomValues);
+
+    try {
+      const second = await createGame(u.b, { rated: false });
+      // The forced first attempt collided; the loop retried and landed a
+      // different code rather than throwing.
+      expect(forceOnce).toBe(false);
+      expect(second.shortCode).not.toBe(first.shortCode);
+      expect(second.shortCode).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
+      expect(second.gameId).not.toBe(first.gameId);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it("defaults to rated when the pool allows, and rejects a false assertion", async () => {
     const u = makeUsers();
     const rated = await createGame(u.a);

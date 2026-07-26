@@ -16,7 +16,7 @@
 import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
-import { isUniqueViolation } from "../src/d1/apply.js";
+import { isUniqueViolation } from "../src/d1/errors.js";
 import { orm } from "../src/d1/orm.js";
 import { playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { applyFinish, createGame } from "../src/index.js";
