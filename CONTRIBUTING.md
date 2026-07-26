@@ -73,9 +73,13 @@ another repository, as a failing sync PR. Committing the output is what makes
 that diff exist; the CI guard above is what keeps it honest.
 
 Its version is stamped from `@eigeninteractive/server`'s, so a consumer's
-`eigen_api: ^1.2.0` states exactly the compatibility it means. `pnpm
+`eigen_api: ^0.1.0` states exactly the compatibility it means. `pnpm
 version-packages` (which the release workflow runs) regenerates it, so the
 version PR already carries the bumped pubspec.
+
+The same field also becomes the spec's `info.version` — `emit-openapi.mjs` reads
+it from `package.json` rather than letting the document builder hold a literal,
+so the packages, the spec and the client cannot drift apart.
 
 ### How it publishes to pub.dev
 
@@ -128,16 +132,40 @@ version and always bump together. A single patch on `@eigeninteractive/rules` bu
 four. They are tightly interdependent, and an independent-version matrix would
 be maintained by hand for no benefit.
 
-> The very first publish needs no changeset — `1.0.0` is already set, and
+> The very first publish needs no changeset — `0.1.0` is already set, and
 > changesets publishes any version npm does not have yet.
+
+### While we are pre-1.0, never pick `major`
+
+The packages are at **`0.1.0`**, and semver treats `0.x` specially: `^0.1.0`
+resolves to `>=0.1.0 <0.2.0`, so the **minor** position is where breakage is
+announced and the major position is unused. Translated to the prompt `pnpm
+changeset` gives you:
+
+| Your change | Pick | Result |
+| --- | --- | --- |
+| Breaking | **minor** | `0.1.4` → `0.2.0` |
+| Anything else | **patch** | `0.1.4` → `0.1.5` |
+| — | ~~major~~ | `0.1.4` → `1.0.0` — declares stability. Not yet. |
+
+changesets applies the bump literally; it will not translate `major` into "the
+0.x equivalent". So choosing `major` for an ordinary breaking change ships
+`1.0.0` and the stability promise that comes with it.
+
+This inverts once `1.0.0` is deliberate: from then on breaking is `major` and
+additive is `minor`, and the table above stops applying.
 
 ### The bump type that surprises people
 
 Wire enums are closed sets: the generated Dart client parses them strictly, with
 no `unknown` sentinel. So **adding a member to any enum on the wire**
 (`GameStatus`, `ErrorCode`, `GameAccess`, seat type) breaks the client build and
-is a **major** bump — even though it looks purely additive. It also needs a
-schema-version bump and a coordinated client release.
+is a **breaking** change — `minor` today — even though it looks purely additive.
+It also needs a schema-version bump and a coordinated client release.
+
+> There is a fix for this waiting in `docs/todo.md`: the pinned generator does
+> support `enumUnknownDefaultCase`, which gives every enum a fallback member.
+> Until it is turned on, treat enum widening as breaking.
 
 ### Two things that are easy to get wrong
 

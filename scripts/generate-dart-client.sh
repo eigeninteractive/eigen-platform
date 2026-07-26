@@ -36,9 +36,14 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPEC="$ROOT/packages/server/openapi.json"
 OUT="$ROOT/clients/dart"
 
-# The published version tracks the engine's. The wire contract is the server's,
-# so a server major *is* a client major — and a consumer's `eigen_api: ^1.2.0`
+# The published version tracks the engine's, read from the same package.json
+# field changesets owns (and that `emit-openapi.mjs` stamps into the spec's
+# `info.version`). The wire contract is the server's, so a breaking server
+# release *is* a breaking client release — and a consumer's `eigen_api: ^0.1.0`
 # then carries exactly the compatibility statement it should.
+#
+# Pre-1.0, "breaking" lives in the MINOR position: `^0.1.0` resolves to
+# `>=0.1.0 <0.2.0`, so 0.1.x is additive and 0.2.0 is the break.
 VERSION="$(node -p "require('$ROOT/packages/server/package.json').version")"
 echo "==> eigen_api version $VERSION (from @eigeninteractive/server)"
 
@@ -86,9 +91,12 @@ exactly — $VERSION here is $VERSION there. It has no changes of its own.
 See the engine's changelog:
 <https://github.com/eigeninteractive/eigen-server/blob/main/packages/server/CHANGELOG.md>
 
-A **major** bump means a breaking wire change. Generated enums parse strictly,
-with no \`unknown\` sentinel, so a new member of any wire enum is breaking even
-though it looks additive.
+While the engine is pre-1.0, a breaking wire change bumps the **minor** — a
+constraint of \`^0.1.0\` resolves to \`>=0.1.0 <0.2.0\`, so 0.1.x is additive and
+0.2.0 is the break. From 1.0.0 on it is the major, as usual.
+
+Generated enums parse strictly, with no \`unknown\` sentinel, so a new member of
+any wire enum is breaking even though it looks additive.
 EOF
 
 # Prepended rather than hand-owned, so the generator keeps the API/generator

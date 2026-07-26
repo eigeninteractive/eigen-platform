@@ -1,6 +1,6 @@
 {
   "name": "@eigeninteractive/server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "license": "MIT",
   "description": "The deployable half of the Eigen engine: the createEngine Worker factory, the BaseGameDO Durable Object base class, the D1 schema and appliers, auth, bots and push.",
   "main": "./dist/index.js",

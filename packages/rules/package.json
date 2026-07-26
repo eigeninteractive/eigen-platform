@@ -1,6 +1,6 @@
 {
   "name": "@eigeninteractive/rules",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "license": "MIT",
   "description": "The game-rules contract for the Eigen engine: GameRules, GameModule, the hooks, and the Envelope/Observation types. Pure types, zero engine dependencies.",
   "main": "./dist/index.js",

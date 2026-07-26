@@ -393,8 +393,15 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
 
 /** Build the API document from an inert app — route handlers never run, so
  * the context can refuse everything. `appName` is an unused placeholder here:
- * with `deepLink: null` the landing route (its only reader) is never mounted. */
-export function openApiDocument(): OpenAPIObject {
+ * with `deepLink: null` the landing route (its only reader) is never mounted.
+ *
+ * `version` is an argument rather than a constant in here because it has
+ * exactly one correct value — `@eigeninteractive/server`'s own — and changesets
+ * owns that value. Baked in as a literal it silently disagrees with the package
+ * on the first release: nothing reads it back, and the CI drift check only
+ * compares this file against itself, so the lie survives every check. The Dart
+ * client's pubspec is stamped from the same source for the same reason. */
+export function openApiDocument(version: string): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
@@ -403,7 +410,7 @@ export function openApiDocument(): OpenAPIObject {
     openapi: "3.1.0",
     info: {
       title: "Eigen Engine API",
-      version: "1.0.0",
+      version,
       description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated.",
     },
     // Every operation carries a tag; declaring them at the top level gives

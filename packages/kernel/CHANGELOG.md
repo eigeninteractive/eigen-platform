@@ -1,6 +1,6 @@
 # @eigeninteractive/kernel
 
-## 1.0.0
+## 0.1.0
 
 Initial release. The Eigen engine — a server-authoritative engine for turn-based
 multiplayer games on Cloudflare Workers.
