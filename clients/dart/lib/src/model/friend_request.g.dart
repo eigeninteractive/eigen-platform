@@ -29,7 +29,11 @@ FriendRequest _$FriendRequestFromJson(Map<String, dynamic> json) =>
         since: $checkedConvert('since', (v) => (v as num).toInt()),
         direction: $checkedConvert(
           'direction',
-          (v) => $enumDecode(_$FriendRequestDirectionEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$FriendRequestDirectionEnumEnumMap,
+            v,
+            unknownValue: FriendRequestDirectionEnum.unknownDefaultOpenApi,
+          ),
         ),
       );
       return val;
@@ -49,4 +53,5 @@ Map<String, dynamic> _$FriendRequestToJson(FriendRequest instance) =>
 const _$FriendRequestDirectionEnumEnumMap = {
   FriendRequestDirectionEnum.incoming: 'incoming',
   FriendRequestDirectionEnum.outgoing: 'outgoing',
+  FriendRequestDirectionEnum.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

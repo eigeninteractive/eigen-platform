@@ -968,21 +968,23 @@ than hand-edited:
   (`blockConcurrencyWhile`), which is what lets a finished game woken years later
   migrate itself before serving anything.
 - **`openapi.json`** is emitted from the route definitions (`pnpm openapi`) and
-  vendored into the Dart client repo, where `tool/generate_api.sh` regenerates
-  the typed client from it.
+  feeds the engine-owned Dart client. `pnpm dart-client` regenerates
+  `clients/dart` from it.
 
 The wire loop is a **standing rule, not a suggestion**: a shape the generated
 Dart client consumes badly gets fixed in the zod schemas here and regenerated —
 never patched around in Dart. Re-emit `openapi.json` and rerun the client's
-generator **in the same change**, because the two repos have no other coupling
-that would catch the drift.
+generator **in the same change**; CI regenerates and diffs the committed client
+so drift fails loudly.
 
-Relatedly, **wire enums are closed sets.** The Dart client generates enums with
-no `unknown` sentinel and parses strictly, so adding a member to any enum on the
-wire — `GameStatus`, `ErrorCode`, `GameAccess`, seat type — is a **breaking
-change** that needs a schema-version bump and a coordinated client release. The
-`Record<ErrorCode, string>` documentation map in `routes/wire.ts` is exhaustive
-by construction, so a new code fails the TypeScript build until it is described.
+Generated wire enums include an `unknownDefaultOpenApi` sentinel. A response
+enum can gain a member without breaking response decoding in an older app; the
+app receives the sentinel until it knows the new value. This is read-side
+compatibility only — serialising the sentinel produces
+`unknown_default_open_api`, which no route accepts. The
+`Record<ErrorCode, string>` documentation map in `routes/wire.ts` remains
+exhaustive by construction, so a new code fails the TypeScript build until it is
+described.
 
 ### 17.5 Registering bots (an operator task, not a client one)
 

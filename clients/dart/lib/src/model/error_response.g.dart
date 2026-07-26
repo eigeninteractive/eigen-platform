@@ -13,7 +13,11 @@ ErrorResponse _$ErrorResponseFromJson(Map<String, dynamic> json) =>
         error: $checkedConvert('error', (v) => v as String),
         code: $checkedConvert(
           'code',
-          (v) => $enumDecodeNullable(_$ErrorCodeEnumMap, v),
+          (v) => $enumDecodeNullable(
+            _$ErrorCodeEnumMap,
+            v,
+            unknownValue: ErrorCode.unknownDefaultOpenApi,
+          ),
         ),
       );
       return val;
@@ -48,4 +52,5 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.imageTooLarge: 'imageTooLarge',
   ErrorCode.unsupportedImageType: 'unsupportedImageType',
   ErrorCode.rateLimited: 'rateLimited',
+  ErrorCode.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

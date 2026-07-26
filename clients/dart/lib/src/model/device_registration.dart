@@ -20,7 +20,12 @@ class DeviceRegistration {
   @JsonKey(name: r'fid', required: true, includeIfNull: false)
   final String fid;
 
-  @JsonKey(name: r'platform', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'platform',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: DeviceRegistrationPlatformEnum.unknownDefaultOpenApi,
+  )
   final DeviceRegistrationPlatformEnum platform;
 
   @override
@@ -50,7 +55,9 @@ enum DeviceRegistrationPlatformEnum {
   @JsonValue(r'android')
   android(r'android'),
   @JsonValue(r'web')
-  web(r'web');
+  web(r'web'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const DeviceRegistrationPlatformEnum(this.value);
 

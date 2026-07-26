@@ -22,7 +22,11 @@ CreateGame _$CreateGameFromJson(
   final val = CreateGame(
     access: $checkedConvert(
       'access',
-      (v) => $enumDecode(_$GameAccessEnumMap, v),
+      (v) => $enumDecode(
+        _$GameAccessEnumMap,
+        v,
+        unknownValue: GameAccess.unknownDefaultOpenApi,
+      ),
     ),
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
     config: $checkedConvert('config', (v) => v as Object),
@@ -59,4 +63,5 @@ const _$GameAccessEnumMap = {
   GameAccess.public: 'public',
   GameAccess.private: 'private',
   GameAccess.friends: 'friends',
+  GameAccess.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

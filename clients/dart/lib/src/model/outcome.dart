@@ -30,7 +30,12 @@ class Outcome {
   @JsonKey(name: r'playerIndex', required: true, includeIfNull: false)
   final int playerIndex;
 
-  @JsonKey(name: r'result', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'result',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: OutcomeResultEnum.unknownDefaultOpenApi,
+  )
   final OutcomeResultEnum result;
 
   @JsonKey(name: r'placement', required: true, includeIfNull: false)
@@ -79,7 +84,9 @@ enum OutcomeResultEnum {
   @JsonValue(r'draw')
   draw(r'draw'),
   @JsonValue(r'eliminated')
-  eliminated(r'eliminated');
+  eliminated(r'eliminated'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const OutcomeResultEnum(this.value);
 

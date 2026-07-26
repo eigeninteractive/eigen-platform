@@ -40,11 +40,19 @@ GameSummary _$GameSummaryFromJson(
     createdBy: $checkedConvert('createdBy', (v) => v as String?),
     status: $checkedConvert(
       'status',
-      (v) => $enumDecode(_$GameStatusEnumMap, v),
+      (v) => $enumDecode(
+        _$GameStatusEnumMap,
+        v,
+        unknownValue: GameStatus.unknownDefaultOpenApi,
+      ),
     ),
     access: $checkedConvert(
       'access',
-      (v) => $enumDecode(_$GameAccessEnumMap, v),
+      (v) => $enumDecode(
+        _$GameAccessEnumMap,
+        v,
+        unknownValue: GameAccess.unknownDefaultOpenApi,
+      ),
     ),
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
     config: $checkedConvert('config', (v) => v as Object),
@@ -124,10 +132,12 @@ const _$GameStatusEnumMap = {
   GameStatus.active: 'active',
   GameStatus.finished: 'finished',
   GameStatus.aborted: 'aborted',
+  GameStatus.unknownDefaultOpenApi: 'unknown_default_open_api',
 };
 
 const _$GameAccessEnumMap = {
   GameAccess.public: 'public',
   GameAccess.private: 'private',
   GameAccess.friends: 'friends',
+  GameAccess.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

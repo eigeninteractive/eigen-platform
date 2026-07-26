@@ -49,7 +49,12 @@ class FriendRequest {
   @JsonKey(name: r'since', required: true, includeIfNull: false)
   final int since;
 
-  @JsonKey(name: r'direction', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'direction',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: FriendRequestDirectionEnum.unknownDefaultOpenApi,
+  )
   final FriendRequestDirectionEnum direction;
 
   @override
@@ -89,7 +94,9 @@ enum FriendRequestDirectionEnum {
   @JsonValue(r'incoming')
   incoming(r'incoming'),
   @JsonValue(r'outgoing')
-  outgoing(r'outgoing');
+  outgoing(r'outgoing'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const FriendRequestDirectionEnum(this.value);
 

@@ -36,7 +36,12 @@ class CreateGame {
     this.incrementSeconds,
   });
 
-  @JsonKey(name: r'access', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'access',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameAccess.unknownDefaultOpenApi,
+  )
   final GameAccess access;
 
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)

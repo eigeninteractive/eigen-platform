@@ -12,11 +12,19 @@ Roster _$RosterFromJson(Map<String, dynamic> json) =>
       final val = Roster(
         type: $checkedConvert(
           'type',
-          (v) => $enumDecode(_$RosterTypeEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$RosterTypeEnumEnumMap,
+            v,
+            unknownValue: RosterTypeEnum.unknownDefaultOpenApi,
+          ),
         ),
         status: $checkedConvert(
           'status',
-          (v) => $enumDecode(_$GameStatusEnumMap, v),
+          (v) => $enumDecode(
+            _$GameStatusEnumMap,
+            v,
+            unknownValue: GameStatus.unknownDefaultOpenApi,
+          ),
         ),
         players: $checkedConvert(
           'players',
@@ -34,7 +42,10 @@ Map<String, dynamic> _$RosterToJson(Roster instance) => <String, dynamic>{
   'players': instance.players.map((e) => e.toJson()).toList(),
 };
 
-const _$RosterTypeEnumEnumMap = {RosterTypeEnum.roster: 'roster'};
+const _$RosterTypeEnumEnumMap = {
+  RosterTypeEnum.roster: 'roster',
+  RosterTypeEnum.unknownDefaultOpenApi: 'unknown_default_open_api',
+};
 
 const _$GameStatusEnumMap = {
   GameStatus.waiting: 'waiting',
@@ -42,4 +53,5 @@ const _$GameStatusEnumMap = {
   GameStatus.active: 'active',
   GameStatus.finished: 'finished',
   GameStatus.aborted: 'aborted',
+  GameStatus.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

@@ -22,7 +22,11 @@ Frame _$FrameFromJson(Map<String, dynamic> json) =>
       final val = Frame(
         type: $checkedConvert(
           'type',
-          (v) => $enumDecode(_$FrameTypeEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$FrameTypeEnumEnumMap,
+            v,
+            unknownValue: FrameTypeEnum.unknownDefaultOpenApi,
+          ),
         ),
         version: $checkedConvert('version', (v) => (v as num).toInt()),
         data: $checkedConvert('data', (v) => v as Object),
@@ -62,4 +66,7 @@ Map<String, dynamic> _$FrameToJson(Frame instance) => <String, dynamic>{
   'ratings': ?instance.ratings?.map((e) => e.toJson()).toList(),
 };
 
-const _$FrameTypeEnumEnumMap = {FrameTypeEnum.frame: 'frame'};
+const _$FrameTypeEnumEnumMap = {
+  FrameTypeEnum.frame: 'frame',
+  FrameTypeEnum.unknownDefaultOpenApi: 'unknown_default_open_api',
+};

@@ -16,7 +16,11 @@ Outcome _$OutcomeFromJson(Map<String, dynamic> json) =>
         playerIndex: $checkedConvert('playerIndex', (v) => (v as num).toInt()),
         result: $checkedConvert(
           'result',
-          (v) => $enumDecode(_$OutcomeResultEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$OutcomeResultEnumEnumMap,
+            v,
+            unknownValue: OutcomeResultEnum.unknownDefaultOpenApi,
+          ),
         ),
         placement: $checkedConvert('placement', (v) => (v as num).toInt()),
         teamIndex: $checkedConvert('teamIndex', (v) => (v as num).toInt()),
@@ -38,4 +42,5 @@ const _$OutcomeResultEnumEnumMap = {
   OutcomeResultEnum.loss: 'loss',
   OutcomeResultEnum.draw: 'draw',
   OutcomeResultEnum.eliminated: 'eliminated',
+  OutcomeResultEnum.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

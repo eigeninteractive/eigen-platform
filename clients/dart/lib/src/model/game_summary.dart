@@ -72,10 +72,20 @@ class GameSummary {
   @JsonKey(name: r'createdBy', required: true, includeIfNull: true)
   final String? createdBy;
 
-  @JsonKey(name: r'status', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'status',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameStatus.unknownDefaultOpenApi,
+  )
   final GameStatus status;
 
-  @JsonKey(name: r'access', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'access',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameAccess.unknownDefaultOpenApi,
+  )
   final GameAccess access;
 
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)

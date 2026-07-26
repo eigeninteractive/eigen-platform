@@ -15,7 +15,9 @@ enum GameStatus {
   @JsonValue(r'finished')
   finished(r'finished'),
   @JsonValue(r'aborted')
-  aborted(r'aborted');
+  aborted(r'aborted'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const GameStatus(this.value);
 

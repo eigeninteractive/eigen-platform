@@ -13,7 +13,11 @@ DeviceRegistration _$DeviceRegistrationFromJson(Map<String, dynamic> json) =>
         fid: $checkedConvert('fid', (v) => v as String),
         platform: $checkedConvert(
           'platform',
-          (v) => $enumDecode(_$DeviceRegistrationPlatformEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$DeviceRegistrationPlatformEnumEnumMap,
+            v,
+            unknownValue: DeviceRegistrationPlatformEnum.unknownDefaultOpenApi,
+          ),
         ),
       );
       return val;
@@ -29,4 +33,6 @@ const _$DeviceRegistrationPlatformEnumEnumMap = {
   DeviceRegistrationPlatformEnum.ios: 'ios',
   DeviceRegistrationPlatformEnum.android: 'android',
   DeviceRegistrationPlatformEnum.web: 'web',
+  DeviceRegistrationPlatformEnum.unknownDefaultOpenApi:
+      'unknown_default_open_api',
 };

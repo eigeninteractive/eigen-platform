@@ -11,7 +11,9 @@ enum GameAccess {
   @JsonValue(r'private')
   private(r'private'),
   @JsonValue(r'friends')
-  friends(r'friends');
+  friends(r'friends'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const GameAccess(this.value);
 

@@ -19,10 +19,20 @@ class Roster {
   /// Returns a new [Roster] instance.
   Roster({required this.type, required this.status, required this.players});
 
-  @JsonKey(name: r'type', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'type',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: RosterTypeEnum.unknownDefaultOpenApi,
+  )
   final RosterTypeEnum type;
 
-  @JsonKey(name: r'status', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'status',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameStatus.unknownDefaultOpenApi,
+  )
   final GameStatus status;
 
   @JsonKey(name: r'players', required: true, includeIfNull: false)
@@ -51,7 +61,9 @@ class Roster {
 
 enum RosterTypeEnum {
   @JsonValue(r'roster')
-  roster(r'roster');
+  roster(r'roster'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const RosterTypeEnum(this.value);
 

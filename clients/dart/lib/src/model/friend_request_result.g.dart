@@ -12,7 +12,11 @@ FriendRequestResult _$FriendRequestResultFromJson(Map<String, dynamic> json) =>
       final val = FriendRequestResult(
         status: $checkedConvert(
           'status',
-          (v) => $enumDecode(_$FriendRequestResultStatusEnumEnumMap, v),
+          (v) => $enumDecode(
+            _$FriendRequestResultStatusEnumEnumMap,
+            v,
+            unknownValue: FriendRequestResultStatusEnum.unknownDefaultOpenApi,
+          ),
         ),
       );
       return val;
@@ -27,4 +31,6 @@ Map<String, dynamic> _$FriendRequestResultToJson(
 const _$FriendRequestResultStatusEnumEnumMap = {
   FriendRequestResultStatusEnum.requested: 'requested',
   FriendRequestResultStatusEnum.accepted: 'accepted',
+  FriendRequestResultStatusEnum.unknownDefaultOpenApi:
+      'unknown_default_open_api',
 };

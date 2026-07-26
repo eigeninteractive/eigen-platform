@@ -34,7 +34,12 @@ class Seat {
   @JsonKey(name: r'botId', required: true, includeIfNull: true)
   final String? botId;
 
-  @JsonKey(name: r'type', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'type',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: SeatTypeEnum.unknownDefaultOpenApi,
+  )
   final SeatTypeEnum type;
 
   @override
@@ -67,7 +72,9 @@ enum SeatTypeEnum {
   @JsonValue(r'human')
   human(r'human'),
   @JsonValue(r'bot')
-  bot(r'bot');
+  bot(r'bot'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const SeatTypeEnum(this.value);
 

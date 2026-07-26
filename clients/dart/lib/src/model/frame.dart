@@ -35,7 +35,12 @@ class Frame {
     this.ratings,
   });
 
-  @JsonKey(name: r'type', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'type',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: FrameTypeEnum.unknownDefaultOpenApi,
+  )
   final FrameTypeEnum type;
 
   @JsonKey(name: r'version', required: true, includeIfNull: false)
@@ -95,7 +100,9 @@ class Frame {
 
 enum FrameTypeEnum {
   @JsonValue(r'frame')
-  frame(r'frame');
+  frame(r'frame'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const FrameTypeEnum(this.value);
 

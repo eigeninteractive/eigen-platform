@@ -17,7 +17,12 @@ class FriendRequestResult {
   /// Returns a new [FriendRequestResult] instance.
   FriendRequestResult({required this.status});
 
-  @JsonKey(name: r'status', required: true, includeIfNull: false)
+  @JsonKey(
+    name: r'status',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: FriendRequestResultStatusEnum.unknownDefaultOpenApi,
+  )
   final FriendRequestResultStatusEnum status;
 
   @override
@@ -43,7 +48,9 @@ enum FriendRequestResultStatusEnum {
   @JsonValue(r'requested')
   requested(r'requested'),
   @JsonValue(r'accepted')
-  accepted(r'accepted');
+  accepted(r'accepted'),
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const FriendRequestResultStatusEnum(this.value);
 

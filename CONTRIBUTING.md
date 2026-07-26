@@ -157,15 +157,17 @@ additive is `minor`, and the table above stops applying.
 
 ### The bump type that surprises people
 
-Wire enums are closed sets: the generated Dart client parses them strictly, with
-no `unknown` sentinel. So **adding a member to any enum on the wire**
-(`GameStatus`, `ErrorCode`, `GameAccess`, seat type) breaks the client build and
-is a **breaking** change — `minor` today — even though it looks purely additive.
-It also needs a schema-version bump and a coordinated client release.
+Generated Dart enums include an `unknownDefaultOpenApi` sentinel. An installed
+client can therefore decode an enum member introduced by a newer server, so
+**adding a member to a response enum is additive**. The sentinel is read-side
+compatibility only: serialising it produces `unknown_default_open_api`, which no
+route accepts. Removing or renaming a member remains breaking, as does widening
+an enum that a client must send unless the old client can never select the new
+member.
 
-> There is a fix for this waiting in `docs/todo.md`: the pinned generator does
-> support `enumUnknownDefaultCase`, which gives every enum a fallback member.
-> Until it is turned on, treat enum widening as breaking.
+The sentinel was enabled before the first release, so its extra enum member did
+not require a version bump or migration. Future enum widening reuses that member
+and does not change the Dart surface.
 
 ### Two things that are easy to get wrong
 

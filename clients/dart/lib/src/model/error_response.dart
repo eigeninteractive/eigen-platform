@@ -21,7 +21,12 @@ class ErrorResponse {
   @JsonKey(name: r'error', required: true, includeIfNull: false)
   final String error;
 
-  @JsonKey(name: r'code', required: false, includeIfNull: false)
+  @JsonKey(
+    name: r'code',
+    required: false,
+    includeIfNull: false,
+    unknownEnumValue: ErrorCode.unknownDefaultOpenApi,
+  )
   final ErrorCode? code;
 
   @override

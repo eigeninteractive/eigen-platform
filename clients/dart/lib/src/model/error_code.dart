@@ -93,7 +93,11 @@ enum ErrorCode {
 
   /// A stable machine code identifying why a request failed.
   @JsonValue(r'rateLimited')
-  rateLimited(r'rateLimited');
+  rateLimited(r'rateLimited'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'unknown_default_open_api')
+  unknownDefaultOpenApi(r'unknown_default_open_api');
 
   const ErrorCode(this.value);
 
