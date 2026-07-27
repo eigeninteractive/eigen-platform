@@ -5,7 +5,7 @@
  */
 
 import { BaseGameDO, createEngine } from "@eigeninteractive/server";
-import { gameModule as rpsGame } from "./rules";
+import rpsGame from "./module";
 
 export class GameDO extends BaseGameDO<Env> {
   protected readonly gameModule = rpsGame;

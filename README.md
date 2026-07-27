@@ -20,7 +20,7 @@ implementation and the thing you actually run locally.
 | [`docs/architecture.md`](docs/architecture.md) | **Start here.** How the server works, end to end — the request path, the Durable Object, D1, timing, ratings, and §17 for deployment and operations. |
 | [`docs/building_a_game.md`](docs/building_a_game.md) | How to build a game on the engine: the TypeScript rules contract, hook by hook, with recipes. |
 | [`docs/todo.md`](docs/todo.md) | The single forward-looking tracker, covering **both** repos. |
-| `docs/client_reference.md` in `eigen-flutter` | The client: transport, the Dart rules contract, the app shell, shipping an app. |
+| `doc/client_reference.md` in `eigen-flutter` | The client: transport, generated payload types and rules bases, the app shell, shipping an app. |
 
 ## Layout
 
@@ -30,7 +30,8 @@ eigen-server/
 │   ├── rules/        # the GameRules contract — the types a game implements
 │   ├── kernel/       # the pure, platform-free game loop (commit, timing, replay)
 │   ├── server/       # the Worker: routes, auth, the GameDO, D1 schema + migrations
-│   └── testkit/      # twin-fixture runner + harnesses for testing a game
+│   ├── testkit/      # twin-fixture runner + contract emitter
+│   └── create-eigen-game/ # combined Worker/Flutter project scaffolder
 ├── examples/rps/     # the reference Worker — rock-paper-scissors
 └── docs/
 ```
@@ -38,6 +39,21 @@ eigen-server/
 `kernel` is deliberately platform-free: it knows nothing about Workers, D1 or
 Durable Objects, which is what makes the game loop testable in isolation and
 replayable years later.
+
+## Scaffold a game
+
+After the packages are published, a game implementor starts with:
+
+```bash
+pnpm create eigen-game my-game
+# or: npm create eigen-game@latest my-game
+```
+
+The command composes the canonical C3-style Worker template with
+`flutter create --empty`, installs both halves, emits `game-contract.json`, and
+generates the initial Dart payload types and rules base. It creates one combined
+repository; teams using separate repositories can consume the same public
+contracts by hand.
 
 ## Dev setup on a new machine
 

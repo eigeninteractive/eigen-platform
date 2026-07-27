@@ -13,7 +13,7 @@
 import type { JsonObject } from "@eigeninteractive/rules";
 import { type CommitInput, type CommitPlan, commit, type GameRow, isRejected, projectView, type Seat, type StateRow } from "@eigeninteractive/testkit";
 import { describe, expect, it } from "vitest";
-import { rulesV1 } from "../../src/rules/v1.js";
+import { rulesV1 } from "../../src/module/v1.js";
 
 const NOW = 1_800_000_000_000;
 

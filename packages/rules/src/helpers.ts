@@ -21,7 +21,7 @@ export class IllegalMoveError extends Error {}
  * under the same-view rule a passthrough game is automatically strict about
  * simultaneous submissions: any opponent move changes every seat's view.
  */
-export const passthroughObservation = <TState extends JsonObject, TAction extends JsonObject, TConfig extends JsonObject>(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice => ({
+export const passthroughObservation = <TState extends JsonObject, TAction extends JsonObject, TConfig extends JsonObject>(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice<TState> => ({
   data: args.state,
   pendingPlayers: args.pending,
 });

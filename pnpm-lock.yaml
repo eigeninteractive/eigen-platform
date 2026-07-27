@@ -254,11 +254,38 @@ importers:
         specifier: ^0.45.2
         version: 0.45.2(@cloudflare/workers-types@5.20260715.1)
 
-  packages/kernel:
-    dependencies:
+  packages/create-eigen-game:
+    devDependencies:
       '@eigeninteractive/rules':
         specifier: workspace:*
         version: link:../rules
+      '@eigeninteractive/server':
+        specifier: workspace:*
+        version: link:../server
+      '@eigeninteractive/testkit':
+        specifier: workspace:*
+        version: link:../testkit
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.19)(tsx@4.23.1)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@26.1.1)(vite@8.1.4(@types/node@26.1.1)(esbuild@0.28.1)(tsx@4.23.1)(yaml@2.9.0))
+      wrangler:
+        specifier: ^4.110.0
+        version: 4.111.0(@cloudflare/workers-types@5.20260715.1)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+
+  packages/kernel:
+    dependencies:
       '@standard-schema/spec':
         specifier: ^1.1.0
         version: 1.1.0
@@ -268,6 +295,10 @@ importers:
       rand-seed:
         specifier: ^3.0.0
         version: 3.0.0
+    devDependencies:
+      '@eigeninteractive/rules':
+        specifier: workspace:*
+        version: link:../rules
 
   packages/rules:
     dependencies:
@@ -280,9 +311,6 @@ importers:
       '@eigeninteractive/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@eigeninteractive/rules':
-        specifier: workspace:*
-        version: link:../rules
       '@hono/zod-openapi':
         specifier: ^1.5.1
         version: 1.5.1(hono@4.12.30)(zod@4.4.3)
@@ -305,6 +333,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: ^5.20260715.1
         version: 5.20260715.1
+      '@eigeninteractive/rules':
+        specifier: workspace:*
+        version: link:../rules
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -314,13 +345,16 @@ importers:
       '@eigeninteractive/kernel':
         specifier: workspace:*
         version: link:../kernel
-      '@eigeninteractive/rules':
-        specifier: workspace:*
-        version: link:../rules
       rand-seed:
         specifier: ^3.0.0
         version: 3.0.0
+      tsx:
+        specifier: ^4.23.1
+        version: 4.23.1
     devDependencies:
+      '@eigeninteractive/rules':
+        specifier: workspace:*
+        version: link:../rules
       '@types/node':
         specifier: ^26.1.1
         version: 26.1.1

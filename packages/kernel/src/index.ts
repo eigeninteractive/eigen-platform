@@ -43,6 +43,7 @@ export {
 } from "./ratings.js";
 export { deriveRng, randomSeed } from "./rng.js";
 export {
+  assertHookPayload,
   type ParseResult,
   parseClientPayload,
   parseStoredPayload,

@@ -34,3 +34,7 @@ export type {
 } from "./contract.js";
 export { IllegalMoveError, passthroughObservation } from "./helpers.js";
 export type { Json, JsonObject } from "./json.js";
+export type {
+  GamePayloadSchema,
+  StandardJSONSchemaV1,
+} from "./standard-json-schema.js";

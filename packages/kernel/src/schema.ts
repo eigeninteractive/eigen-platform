@@ -55,3 +55,14 @@ export function parseStoredPayload<T>(schema: StandardSchemaV1<unknown, T>, valu
   }
   return result.value;
 }
+
+/** Validate a payload produced by a game hook. Unlike client parsing, a
+ * failure is always a game bug. Validate-only: callers retain the hook's
+ * original object so a schema library cannot silently normalize or strip a
+ * value on the game's behalf. */
+export function assertHookPayload<T>(schema: StandardSchemaV1<unknown, T>, value: unknown, what: string): asserts value is T {
+  const result = validateSync(schema, value);
+  if (result.issues) {
+    throw new GameBugError(`${what} failed validation: ${issueSummary(result.issues)}`);
+  }
+}

@@ -5,30 +5,37 @@
  * illegal moves.
  */
 
-import type { Envelope, GameRules, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
+import type { Envelope, GamePayloadSchema, GameRules, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { IllegalMoveError, passthroughObservation } from "@eigeninteractive/rules";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { GameRow, Seat, StateRow } from "../src/commit.js";
 
 /** A minimal synchronous Standard Schema from a predicate. */
-export function schemaOf<T>(check: (value: unknown) => boolean): StandardSchemaV1<unknown, T> {
+export function schemaOf<T>(check: (value: unknown) => boolean): GamePayloadSchema<T> {
   return {
     "~standard": {
       version: 1,
       vendor: "eigen-test",
       validate: (value) => (check(value) ? { value: value as T } : { issues: [{ message: "failed test schema" }] }),
+      jsonSchema: {
+        input: () => ({}),
+        output: () => ({}),
+      },
     },
   };
 }
 
 /** A Standard Schema whose validate returns a Promise — for the sync-only
  * enforcement test. */
-export function asyncSchema<T>(): StandardSchemaV1<unknown, T> {
+export function asyncSchema<T>(): GamePayloadSchema<T> {
   return {
     "~standard": {
       version: 1,
       vendor: "eigen-test",
       validate: (value) => Promise.resolve({ value: value as T }),
+      jsonSchema: {
+        input: () => ({}),
+        output: () => ({}),
+      },
     },
   };
 }
@@ -48,6 +55,7 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 export const turnRules: GameRules = {
   schemas: {
     state: schemaOf<TurnState>((v) => isObject(v) && typeof v.count === "number"),
+    observation: schemaOf<TurnState>((v) => isObject(v) && typeof v.count === "number"),
     action: schemaOf<TurnAction>((v) => isObject(v) && typeof v.add === "number"),
     config: schemaOf<TurnConfig>((v) => isObject(v) && typeof v.target === "number"),
   },

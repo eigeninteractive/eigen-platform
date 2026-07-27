@@ -1,0 +1,28 @@
+import 'package:eigen_flutter/testing/twin_fixtures.dart';
+import 'package:example_game/game/module.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  const module = ExampleGameModule();
+  final suites = loadTwinFixtureSuites('test/fixtures');
+
+  test('the generated twin fixture suite is present', () {
+    expect(suites, isNotEmpty);
+  });
+
+  for (final suite in suites) {
+    final rules = module.versions[suite.schemaVersion];
+    group('twin fixtures v${suite.schemaVersion} (${suite.path})', () {
+      for (final fixtureCase in suite.cases) {
+        test(fixtureCase.name, () {
+          expect(
+            rules,
+            isNotNull,
+            reason: 'no Dart rules unit for v${suite.schemaVersion}',
+          );
+          expect(runTwinFixtureCase(rules!, fixtureCase), isEmpty);
+        });
+      }
+    });
+  }
+}

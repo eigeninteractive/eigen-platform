@@ -32,7 +32,15 @@
 import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigeninteractive/rules";
 import { z } from "zod";
 
-const moveSchema = z.enum(["rock", "paper", "scissors"]);
+const moveSchema = z.enum(["rock", "paper", "scissors"]).meta({ id: "Move" });
+
+const roundSchema = z
+  .object({
+    moves: z.tuple([moveSchema, moveSchema]),
+    /** Round winner's seat; null for a drawn round. */
+    winner: z.union([z.literal(0), z.literal(1)]).nullable(),
+  })
+  .meta({ id: "Round" });
 
 const stateSchema = z.object({
   /** 1-based; increments when a resolved round leaves the match undecided. */
@@ -42,13 +50,17 @@ const stateSchema = z.object({
   /** The current round's hidden commits, per seat. */
   commits: z.tuple([moveSchema.nullable(), moveSchema.nullable()]),
   /** The last resolved round — the reveal the clients animate. */
-  lastRound: z
-    .object({
-      moves: z.tuple([moveSchema, moveSchema]),
-      /** Round winner's seat; null for a drawn round. */
-      winner: z.union([z.literal(0), z.literal(1)]).nullable(),
-    })
-    .nullable(),
+  lastRound: roundSchema.nullable(),
+});
+
+const observationSchema = z.object({
+  round: z.int().min(1),
+  wins: z.tuple([z.int().min(0), z.int().min(0)]),
+  lastRound: roundSchema.nullable(),
+  /** Present for a live participant; absent from replay/public views. */
+  yourMove: moveSchema.nullable().optional(),
+  /** Present for replay/public views; absent during live play. */
+  commits: z.tuple([moveSchema.nullable(), moveSchema.nullable()]).optional(),
 });
 
 const actionSchema = z.object({ move: moveSchema });
@@ -60,6 +72,7 @@ const configSchema = z.object({
 
 type Move = z.infer<typeof moveSchema>;
 type State = z.infer<typeof stateSchema>;
+type Observation = z.infer<typeof observationSchema>;
 type Action = z.infer<typeof actionSchema>;
 type Config = z.infer<typeof configSchema>;
 
@@ -83,9 +96,10 @@ function drawOutcome(): OutcomeEntry[] {
   ];
 }
 
-class RpsRulesV1 implements GameRules<State, Action, Config> {
+class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
   readonly schemas = {
     state: stateSchema,
+    observation: observationSchema,
     action: actionSchema,
     config: configSchema,
   };
@@ -160,7 +174,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
     };
   }
 
-  computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<State, Action, Config>): ObservationSlice {
+  computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<State, Action, Config>): ObservationSlice<Observation> {
     if (isReplay || playerIndex === null) {
       // Post-game (participant replay or public viewer): reveal everything.
       return {
@@ -204,7 +218,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
    * post-commit whenever that bot is due. A second personality would be
    * another entry (e.g. `rps-counter`), or the same function reading a
    * `botConfig` difficulty knob. */
-  readonly botActions: Record<string, BotAction<Action, Config>> = {
+  readonly botActions: Record<string, BotAction<Action, Observation, Config>> = {
     "rps-random": ({ rng }) => {
       const moves: Move[] = ["rock", "paper", "scissors"];
       return { move: moves[Math.floor(rng.next() * moves.length)] };
@@ -214,7 +228,7 @@ class RpsRulesV1 implements GameRules<State, Action, Config> {
 
 /** The v1 rules unit, registered under key `1` in `index.ts`. The class is
  * authored against its concrete payload types (`implements GameRules<State,
- * Action, Config>` above — fully type-checked); annotating the export as
+ * Observation, Action, Config>` above — fully type-checked); annotating the export as
  * {@link AnyGameRules} erases those types for the registry with no cast, since
  * the engine re-validates every payload against `schemas` before a hook runs. */
 export const rulesV1: AnyGameRules = new RpsRulesV1();

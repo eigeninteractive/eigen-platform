@@ -18,6 +18,10 @@ function schemaOf<T>(check: (value: unknown) => value is T) {
       version: 1 as const,
       vendor: "eigen-test",
       validate: (value: unknown) => (check(value) ? { value } : { issues: [{ message: "invalid payload" }] }),
+      jsonSchema: {
+        input: () => ({}),
+        output: () => ({}),
+      },
     },
   };
 }
@@ -31,6 +35,7 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 const rules: GameRules = {
   schemas: {
     state: schemaOf((v): v is State => isObject(v) && typeof v.count === "number"),
+    observation: schemaOf((v): v is State => isObject(v) && typeof v.count === "number"),
     action: schemaOf((v): v is Action => isObject(v) && (v.add === 1 || v.add === 2)),
     config: schemaOf((v): v is Config => isObject(v) && typeof v.target === "number"),
   },
@@ -83,6 +88,7 @@ type HiddenState = { count: number; secret: string };
 const hiddenRules: GameRules = {
   schemas: {
     state: schemaOf((v): v is HiddenState => isObject(v) && typeof v.count === "number" && typeof v.secret === "string"),
+    observation: schemaOf((v): v is JsonObject => isObject(v) && typeof v.count === "number"),
     action: schemaOf((v): v is Action => isObject(v) && (v.add === 1 || v.add === 2)),
     config: schemaOf((v): v is Config => isObject(v) && typeof v.target === "number"),
   },

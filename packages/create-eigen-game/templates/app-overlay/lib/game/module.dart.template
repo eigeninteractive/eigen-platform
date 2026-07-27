@@ -1,0 +1,29 @@
+import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:flutter/material.dart';
+
+import 'v1/rules.dart';
+
+class ExampleGameModule extends GameModule {
+  const ExampleGameModule();
+
+  @override
+  Map<int, GameRules> get versions => const {1: ExampleGameRulesV1()};
+
+  @override
+  GameCreationSpec get creationSpec => const GameCreationSpec(
+    minPlayers: 2,
+    maxPlayers: 2,
+    timingConfigs: {'Untimed': UntimedConfig()},
+    defaultConfig: {'target': 10},
+  );
+
+  @override
+  Widget? buildCreationConfig({
+    required ValueChanged<Map<String, dynamic>> onChanged,
+  }) => null;
+
+  @override
+  Widget buildRules(BuildContext context) => const Text(
+    'Take turns increasing the counter. The first player to reach the target wins.',
+  );
+}

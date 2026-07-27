@@ -6,6 +6,20 @@
  * @module @eigeninteractive/testkit
  */
 
+export { checkConfiguredGameContract, emitConfiguredGameContract } from "./contract-command.js";
+export {
+  type BuildGameContractOptions,
+  buildGameContract,
+  checkGameContract,
+  type EmitGameContractOptions,
+  emitGameContract,
+  GAME_CONTRACT_FORMAT_VERSION,
+  type GameContract,
+  type GameContractFixture,
+  type GameContractVersion,
+  gameContractFilename,
+  gameContractJson,
+} from "./game-contract.js";
 export {
   type CommitInput,
   type CommitPlan,

@@ -1,0 +1,44 @@
+import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+
+import 'game/module.dart';
+
+const _apiBaseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'https://REPLACE_ME.workers.dev',
+);
+const _googleWebClientId = String.fromEnvironment(
+  'GOOGLE_WEB_CLIENT_ID',
+  defaultValue: 'REPLACE_ME.apps.googleusercontent.com',
+);
+
+Future<void> main() async {
+  await runEngineApp(
+    module: const ExampleGameModule(),
+    config: const AppConfig(
+      branding: Branding(appName: 'Example Game', seedColor: Colors.indigo),
+      engine: EngineConfig(
+        apiBaseUrl: _apiBaseUrl,
+        googleWebClientId: _googleWebClientId,
+      ),
+    ),
+    firebaseOptions: _firebaseOptions,
+    onBackgroundMessage: _onBackgroundMessage,
+  );
+}
+
+// Replace this with DefaultFirebaseOptions.currentPlatform after running
+// `flutterfire configure`.
+const _firebaseOptions = FirebaseOptions(
+  apiKey: 'REPLACE_ME',
+  appId: 'REPLACE_ME',
+  messagingSenderId: 'REPLACE_ME',
+  projectId: 'REPLACE_ME',
+);
+
+@pragma('vm:entry-point')
+Future<void> _onBackgroundMessage(RemoteMessage message) async {
+  await Firebase.initializeApp(options: _firebaseOptions);
+}

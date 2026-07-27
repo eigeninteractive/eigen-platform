@@ -10,8 +10,8 @@
  * sync — see `@eigeninteractive/testkit`.
  */
 
-import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { JsonObject } from "./json.js";
+import type { GamePayloadSchema } from "./standard-json-schema.js";
 
 // ── Core enums ────────────────────────────────────────────────────────────────
 
@@ -93,9 +93,9 @@ export interface Envelope<TState extends JsonObject = JsonObject> {
 }
 
 /** One participant's view of the state, produced by `computeObservation`. */
-export interface ObservationSlice {
+export interface ObservationSlice<TObservation extends JsonObject = JsonObject> {
   /** What this seat is permitted to see. */
-  data: JsonObject;
+  data: TObservation;
   /** Pending set as this seat sees it — may be narrowed from the true set for
    * hidden-info games (e.g. a Nope window, or a simultaneous-commit round
    * where revealing that the opponent moved would leak information). It must
@@ -218,8 +218,8 @@ export interface BotSeatableArgs<TConfig extends JsonObject = JsonObject> {
  * move. `rng` is deterministic per (game, version, seat) for reproducible
  * tests — but the chosen move is what gets logged, so the brain need not be
  * pure (replay uses the recorded action, never re-runs the brain). */
-export interface BotActionArgs<TConfig extends JsonObject = JsonObject> extends HookContext<TConfig> {
-  observation: ObservationSlice;
+export interface BotActionArgs<TObservation extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> extends HookContext<TConfig> {
+  observation: ObservationSlice<TObservation>;
   botConfig: JsonObject;
   playerIndex: number;
   rng: Rng;
@@ -227,7 +227,7 @@ export interface BotActionArgs<TConfig extends JsonObject = JsonObject> extends 
 
 /** One engine bot's move function — the value type in
  * {@link GameRules.botActions}. */
-export type BotAction<TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> = (args: BotActionArgs<TConfig>) => TAction;
+export type BotAction<TAction extends JsonObject = JsonObject, TObservation extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> = (args: BotActionArgs<TObservation, TConfig>) => TAction;
 
 // ── Schemas + rules unit ──────────────────────────────────────────────────────
 
@@ -238,13 +238,15 @@ export type BotAction<TAction extends JsonObject = JsonObject, TConfig extends J
  * must validate **synchronously** (every mainstream library does unless you
  * opt into async refinements) — the engine rejects an async schema as a game
  * bug. */
-export interface GameSchemas<TState extends JsonObject = JsonObject, TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> {
+export interface GameSchemas<TState extends JsonObject = JsonObject, TObservation extends JsonObject = JsonObject, TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> {
   /** The pure game payload stored per transition. */
-  state: StandardSchemaV1<unknown, TState>;
+  state: GamePayloadSchema<TState>;
+  /** One participant's projected view, as returned by `computeObservation`. */
+  observation: GamePayloadSchema<TObservation>;
   /** A player move's `data`, as submitted by clients and bots. */
-  action: StandardSchemaV1<unknown, TAction>;
+  action: GamePayloadSchema<TAction>;
   /** The per-instance creation config stored on the game. */
-  config: StandardSchemaV1<unknown, TConfig>;
+  config: GamePayloadSchema<TConfig>;
 }
 
 /**
@@ -259,9 +261,9 @@ export interface GameSchemas<TState extends JsonObject = JsonObject, TAction ext
  * change incompatibly, ship a new `GameRules` under the next version key
  * (reusing unchanged pieces by import) instead of branching inside hooks.
  */
-export interface GameRules<TState extends JsonObject = JsonObject, TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> {
+export interface GameRules<TState extends JsonObject = JsonObject, TObservation extends JsonObject = JsonObject, TAction extends JsonObject = JsonObject, TConfig extends JsonObject = JsonObject> {
   /** The payload contracts for this version. */
-  schemas: GameSchemas<TState, TAction, TConfig>;
+  schemas: GameSchemas<TState, TObservation, TAction, TConfig>;
 
   /** Starting envelope. Draw any setup randomness (deck shuffle, first
    * player…) from `args.rng`. */
@@ -287,7 +289,7 @@ export interface GameRules<TState extends JsonObject = JsonObject, TAction exten
    * (which ignores the cause). What this hook reveals also implicitly sets
    * the simultaneous-move policy: a stale submission survives exactly while
    * the acting seat's projected view is unchanged (the same-view rule). */
-  computeObservation(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice;
+  computeObservation(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice<TObservation>;
 
   /** Decide whether — and in which pool — a game with these settings is
    * rated. Return the pool name (e.g. `'rapid'`) or `null` for unrated. The
@@ -314,7 +316,7 @@ export interface GameRules<TState extends JsonObject = JsonObject, TAction exten
    * returned move is validated against `schemas.action` and an illegal one is
    * rejected exactly like a human's, so a buggy brain fails that seat's turn
    * (the deadline backstops it) rather than corrupting the game. */
-  botActions?: Record<string, BotAction<TAction, TConfig>>;
+  botActions?: Record<string, BotAction<TAction, TObservation, TConfig>>;
 }
 
 /**
@@ -328,12 +330,12 @@ export interface GameRules<TState extends JsonObject = JsonObject, TAction exten
  * payload against that entry's own `schemas` before invoking a hook, so the
  * static type was only ever an authoring aid — redundant once the unit is
  * registered. Authors keep full type-checking by writing
- * `class X implements GameRules<State, Action, Config>` (or annotating a
+ * `class X implements GameRules<State, Observation, Action, Config>` (or annotating a
  * literal `: GameRules<…>`); assigning that into a `versions` map just works,
  * with no `as`-cast, because `any` disables the variance check at this seam.
  */
 // biome-ignore lint/suspicious/noExplicitAny: type-erased plugin registry — see the doc comment above; `any` is the existential escape, guarded at runtime by per-entry schema validation.
-export type AnyGameRules = GameRules<any, any, any>;
+export type AnyGameRules = GameRules<any, any, any, any>;
 
 /**
  * The complete game-specific surface — the same-named twin of the Dart

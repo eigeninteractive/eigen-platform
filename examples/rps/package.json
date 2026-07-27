@@ -2,7 +2,12 @@
   "name": "rps",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "eigen": {
+    "game": "Rps"
+  },
   "scripts": {
+    "contract": "eigen-contract",
     "deploy": "wrangler d1 migrations apply rps_dev --remote && wrangler deploy",
     "dev": "wrangler dev",
     "start": "wrangler dev",

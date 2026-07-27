@@ -28,7 +28,26 @@
  */
 
 import { DurableObject } from "cloudflare:workers";
-import { type CommitPlan, commit, DEADLINE_GRACE_MS, deriveRng, fanOutObservations, GameBugError, type GameStatus, type Intent, isRejected, type ObservationFrame, parseStoredPayload, type RatingDelta, randomSeed, type Seat, type SeatView, type StateRow, type TransitionAction } from "@eigeninteractive/kernel";
+import {
+  assertHookPayload,
+  type CommitPlan,
+  commit,
+  DEADLINE_GRACE_MS,
+  deriveRng,
+  fanOutObservations,
+  GameBugError,
+  type GameStatus,
+  type Intent,
+  isRejected,
+  type ObservationFrame,
+  parseStoredPayload,
+  type RatingDelta,
+  randomSeed,
+  type Seat,
+  type SeatView,
+  type StateRow,
+  type TransitionAction,
+} from "@eigeninteractive/kernel";
 import type { GameModule, GameRules, JsonObject, ObservationSlice, OutcomeEntry, TransitionCause } from "@eigeninteractive/rules";
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { type DrizzleSqliteDODatabase, drizzle } from "drizzle-orm/durable-sqlite";
@@ -846,6 +865,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         cause,
         isReplay,
       });
+      assertHookPayload(rules.schemas.observation, slice.data, "computeObservation for public viewer");
       return { data: slice.data, pendingPlayers: slice.pendingPlayers };
     }
     const frame = this.#project(meta, roster, row.state, row.pending, cause, isReplay).find((f) => f.playerIndex === seat);

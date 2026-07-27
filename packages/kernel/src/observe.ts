@@ -5,6 +5,7 @@
 
 import type { ComputeObservationArgs, GameRules, JsonObject } from "@eigeninteractive/rules";
 import { GameBugError } from "./errors.js";
+import { assertHookPayload } from "./schema.js";
 
 /** One seat's projected frame, tagged with its seat. The host stamps
  * version/timing when it persists and fans these out. */
@@ -33,6 +34,7 @@ export function fanOutObservations(rules: GameRules, args: Omit<ComputeObservati
       cause: args.cause,
       isReplay: args.isReplay,
     });
+    assertHookPayload(rules.schemas.observation, slice.data, `computeObservation for seat ${seat}`);
     // A projection may mask OTHER seats' pending status (hidden info), but it
     // must be truthful about the seat itself: the frame is what gates that
     // seat's input and turn display, while the commit enforces the

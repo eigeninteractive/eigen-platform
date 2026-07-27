@@ -30,10 +30,15 @@
   "author": "Eigen Interactive",
   "type": "module",
   "dependencies": {
-    "@eigeninteractive/rules": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "openskill": "^5.0.1",
     "rand-seed": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@eigeninteractive/rules": "workspace:^"
+  },
+  "devDependencies": {
+    "@eigeninteractive/rules": "workspace:*"
   },
   "homepage": "https://eigeninteractive.com",
   "repository": {

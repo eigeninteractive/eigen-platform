@@ -8,10 +8,14 @@ halves of a game from drifting apart.
 
 ```ts
 import { twinFixtureTests } from "@eigeninteractive/testkit";
-import { gameModule } from "../../src/rules/index.js";
+import gameModule from "../../src/module/index.js";
 
-twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
+twinFixtureTests(gameModule, new URL("../../src/module/fixtures/", import.meta.url));
 ```
+
+`eigen-contract` imports the default `src/module/index.ts`, validates every
+`fixtures/v<N>/*.json` against the registered version, and emits
+`game-contract.json`. Use `eigen-contract --check` in CI.
 
 ## Documentation
 

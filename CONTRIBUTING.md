@@ -213,7 +213,7 @@ a version bump rather than a file copy.
 
 There is a third coupling that **nothing dispatches**, because it is a hand
 edit on both sides: the RPS twin fixtures.
-`examples/rps/src/rules/fixtures/v1/rps.json` here and
+`examples/rps/src/module/fixtures/v1/rps.json` here and
 `example/fixtures/v1/rps.json` in `eigen-flutter` are the same file, run against
 the TypeScript unit here and the Dart twin there. Editing one leaves that repo
 green while the other holds a stale copy, and nothing fails until the other

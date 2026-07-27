@@ -7,7 +7,7 @@
 
 import { createEngine } from "@eigeninteractive/server";
 import { testVerifier } from "@eigeninteractive/server/testing";
-import { gameModule as rpsGame } from "../src/rules";
+import rpsGame from "../src/module";
 
 export { GameDO } from "../src/index";
 

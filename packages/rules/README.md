@@ -10,7 +10,7 @@ A game author reads only this: `GameRules`, `GameModule`, the six hooks, and the
 ```ts
 import type { GameModule, GameRules, Envelope } from "@eigeninteractive/rules";
 
-export const gameModule: GameModule = { versions: { 1: rulesV1 } };
+export default { versions: { 1: rulesV1 } } satisfies GameModule;
 ```
 
 ## Documentation

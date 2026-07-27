@@ -86,10 +86,10 @@ is byte-identical between the version it expected and the current version. So:
 **Schemas:** derive types with `z.infer` and `type` aliases, never `interface`
 (the engine's `JsonObject` constraint needs the implicit index signature).
 Transform-free and synchronous. **Name payload keys in `camelCase`** — the house
-convention. Your zod keys *are* the wire keys, and the Dart twin then sets
-`field_rename: none`, so the two codecs match one-to-one with no rename layer to
-get wrong. (Engine-owned structures like the rating `outcome` carry their own
-keys; the convention is about the payloads you define.)
+convention. Your Zod keys *are* the wire keys, and the generated Dart payload
+types preserve them one-to-one with no rename layer to get wrong.
+(Engine-owned structures like the rating `outcome` carry their own keys; the
+convention is about the payloads you define.)
 
 **Versions:** a breaking change is a new unit (`v2`), never an edit to a shipped
 one. Old games keep running on their own unit. Retiring splits in two — the
@@ -103,7 +103,7 @@ JSON, run by both runners:
 
 ```ts
 import { twinFixtureTests } from "@eigeninteractive/testkit";
-twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
+twinFixtureTests(gameModule, new URL("../src/module/fixtures/", import.meta.url));
 ```
 
 Fixtures use the **wire shape** — the JSON keys as serialized, not Dart field
@@ -113,9 +113,14 @@ their own keys. Cover at minimum: one legal move with its expected observation,
 one illegal move, one game-ending move, and one case per `ratingPool` /
 `botSeatable` branch.
 
-**A rules change is a two-repo change.** The fixture JSON is duplicated in the
-client repo with no sharing mechanism, so editing it here leaves the other repo
-green on a stale copy. Copy the same `v<N>/*.json` into both in the same change.
+Fixtures are authored only under `src/module/fixtures`. Run `eigen-contract`
+after changing them; it validates their `v<N>/` path and `schemaVersion`, embeds
+them in `game-contract.json`, and the Dart generator copies those exact
+documents into the app. Use `eigen-contract --check` in CI.
+
+Before anything ships, edit v1 directly. Once games or released clients depend
+on a version, incompatible changes get a new rules unit and fixture directory
+on both sides.
 
 ## Wiring a Worker
 

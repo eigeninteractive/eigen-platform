@@ -9,7 +9,7 @@
  * so the kernel's own surface stays free to churn.
  */
 
-import type { SeatView } from "@eigeninteractive/kernel";
+import { assertHookPayload, type SeatView } from "@eigeninteractive/kernel";
 import type { GameRules, JsonObject, TransitionCause } from "@eigeninteractive/rules";
 
 export type {
@@ -58,5 +58,6 @@ export function projectView(
     cause: args.cause ?? null,
     isReplay: args.isReplay ?? false,
   });
+  assertHookPayload(rules.schemas.observation, slice.data, `computeObservation for ${args.seat === null ? "viewer" : `seat ${args.seat}`}`);
   return { data: slice.data, pendingPlayers: slice.pendingPlayers };
 }

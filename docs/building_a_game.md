@@ -10,6 +10,14 @@ sockets, reconnection, ratings, bots, auth, history, and the API. You never
 touch a database, a Durable Object, a migration, or a socket. You implement one
 small, precisely-typed contract, wire it into a Worker, and deploy.
 
+For a new combined Worker and Flutter repository, run `pnpm create eigen-game
+my-game` (or `npm create eigen-game@latest my-game`). The scaffolder renders
+the same canonical Worker template that follows Cloudflare's C3 project shape,
+then uses `flutter create --empty` for the app. It installs the dependencies,
+emits the initial `game-contract.json`, and generates the Dart payload types
+and rules base; the engine repositories remain published dependencies rather
+than cloned source.
+
 Everything you write lives behind one interface, `GameModule`, from the
 `@eigeninteractive/rules` package. That package is pure types plus two tiny helpers, and it
 has zero engine dependencies — you can read it top to bottom in ten minutes.
@@ -52,17 +60,17 @@ A `GameModule` is just a map from `schemaVersion` to a `GameRules` unit:
 import type { GameModule } from "@eigeninteractive/rules";
 import { rulesV1 } from "./v1.js";
 
-export const gameModule: GameModule = {
+export default {
   versions: { 1: rulesV1 },
-};
+} satisfies GameModule;
 ```
 
 A `GameRules` unit is one version's **payload schemas + six hooks** (plus an
 optional seventh for bots). The whole contract:
 
 ```ts
-interface GameRules<TState, TAction, TConfig> {
-  schemas: { state; action; config };                        // Standard Schema each
+interface GameRules<TState, TObservation, TAction, TConfig> {
+  schemas: { state; observation; action; config };           // validation + JSON Schema
 
   initialState(args): Envelope<TState>;                      // seed a new game
   applyAction(args): Envelope<TState>;                       // a player's move
@@ -75,15 +83,17 @@ interface GameRules<TState, TAction, TConfig> {
 }
 ```
 
-Author each unit as a class `implements GameRules<State, Action, Config>` (or a
-literal typed `: GameRules<…>`) so you get full type-checking, then register it
+Author each unit as a class
+`implements GameRules<State, Observation, Action, Config>` (or a typed literal)
+so you get full type-checking, then register it
 in the `versions` map. That's it — no base class to extend, no lifecycle to
 manage.
 
 > **The other half of your game is Dart.** Every game also ships a same-keyed
-> Dart `GameModule` in the client repo — the payload codec, `isValidAction`,
-> `previewAction`, the board rendering, and display-only twins of `ratingPool`
-> and `botSeatable`. That contract is documented in **`docs/client_reference.md`
+> Dart `GameModule` in the client repo — generated payload parsing,
+> `isValidAction`, `previewAction`, the board rendering, and display-only twins
+> of `ratingPool` and `botSeatable`. That contract is documented in
+> **`doc/client_reference.md`
 > in the `eigen-flutter` repo** (Part II); this guide covers the authoritative
 > TypeScript half. The two are kept honest by shared fixtures (§11).
 
@@ -91,11 +101,12 @@ manage.
 
 ## 3. Schemas & payload types — schema-first
 
-Every payload that crosses the JSON boundary (`state`, `action`, `config`) is
-declared as a **Standard Schema** — bring Zod, Valibot, ArkType, anything that
-implements the spec. The engine parses each payload with your schema *before*
-your hook sees it, and re-validates the state your hook returns before
-committing. So your hook bodies never touch unvalidated JSON.
+Every payload that crosses the boundary (`state`, `observation`, `action`,
+`config`) is declared with validation plus Standard JSON Schema emission. Zod 4
+provides both. The engine validates inputs, returned state, and every projected
+observation. `@eigeninteractive/testkit` emits the same schemas and fixtures as
+a deterministic `game-contract.json`, which `eigen_flutter` turns into Dart
+payload classes and a typed rules base.
 
 Derive your TypeScript types from the schemas, and follow two rules:
 
@@ -196,11 +207,16 @@ allow the seating.
 RPS is the engine's *hardest-case-first* example: simultaneous commitment with
 hidden information. Both seats are pending each round; a commit is stored in the
 state but hidden from the opponent by `computeObservation`. Here is the whole
-game (see `examples/rps/src/rules/v1.ts` for the file with comments):
+game (see `examples/rps/src/module/v1.ts` for the file with comments):
 
 ```ts
-class RpsRulesV1 implements GameRules<State, Action, Config> {
-  readonly schemas = { state: stateSchema, action: actionSchema, config: configSchema };
+class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
+  readonly schemas = {
+    state: stateSchema,
+    observation: observationSchema,
+    action: actionSchema,
+    config: configSchema,
+  };
 
   initialState(): Envelope<State> {
     return { state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
@@ -573,9 +589,9 @@ testkit:
 
 ```ts
 import { twinFixtureTests } from "@eigeninteractive/testkit";
-import { gameModule } from "../../src/rules/index.js";
+import gameModule from "../../src/module/index.js";
 
-twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
+twinFixtureTests(gameModule, new URL("../../src/module/fixtures/", import.meta.url));
 ```
 
 Write fixtures for the interesting states — especially hidden-info reveals and
@@ -646,24 +662,38 @@ machine — or, if you do want push-button deploys, connect the repo to Cloudfla
 **Workers Builds** so the deploy is owned by Cloudflare's side rather than by a
 long-lived API token sitting in GitHub secrets.
 
-### The half your CI cannot see
+### The artifact your app consumes
 
-Your rules exist twice, in two repos, and **the fixture JSON is duplicated —
-there is no sharing mechanism.** The consequence is easy to get wrong:
+Default-export the module from `src/module/index.ts`, declare the stable display
+name in `package.json`, and run `eigen-contract` after schema or fixture changes:
 
-> Editing a fixture here makes *this* repo's CI green while the client repo
-> still holds the old copy. Nothing fails until the client repo's CI next runs —
-> possibly days later, on someone else's PR.
+```json
+{
+  "eigen": { "game": "Chess" },
+  "scripts": { "contract": "eigen-contract" }
+}
+```
 
-So a rules change is a **two-repo change**, and the fixture edit is the part that
-must land in both. Copy the same `v<N>/*.json` files into the client repo's
-fixture root in the same change. Both runners read `schemaVersion` from inside
-the file and expect a `v<N>/` directory layout, so the files are byte-identical
-between repos — which is exactly what makes a stale copy invisible.
+The testkit CLI uses `tsx` internally, validates the fixtures, and writes one deterministic
+`game-contract.json` containing every version's four JSON Schemas and fixture
+documents. The Flutter generator consumes that exact artifact to emit payload
+classes, typed rules bases, and its fixture copies.
 
-If the two repos are ever built together (a monorepo, or a CI job that checks out
-both as siblings the way a Flutter app's workflow checks out the engine), a
-`diff -r` between the two fixture roots is the cheapest possible guard.
+The scaffold wires both fixture runners and includes a starter v1 case. Keep
+`npm run test:watch` or `pnpm run test:watch` running while editing TypeScript
+rules. After a schema or fixture change, run `npm run contract` or
+`pnpm run contract` from the generated repository root; that one command emits
+the Worker contract and regenerates the Dart library and fixture copies. Then
+run `flutter test` from `app/`. CI runs the root `contract:check`, which checks
+both generated sides without rewriting them. The underlying server and app
+commands remain independently usable for split repositories.
+
+Before the first release, edit v1 directly. After games or clients depend on a
+version, incompatible changes become a new registered unit on both sides.
+
+Commit or publish the artifact and pin it by checksum when the repositories are
+separate. CI regenerates the Worker artifact and runs the Dart generator with
+`--check`; no sibling checkout or hand-copied mirror is required.
 
 ---
 

@@ -8,7 +8,7 @@
  * `<fixturesRoot>/v<N>/*.json` and is consumed by BOTH sides: this module
  * runs each case against the TS unit (schemas + `applyAction` +
  * `computeObservation` + the two predicates), while the Dart runner runs the
- * same file against the Dart twin (`parseObservation`/`parseAction` codec,
+ * same file against the Dart twin (generated payload parsing,
  * `isValidAction`, `previewAction`, predicate twins). A behavioral divergence
  * then fails one side's CI instead of degrading UX in production.
  *
@@ -60,9 +60,9 @@
  *
  * ```ts
  * import { twinFixtureTests } from "@eigeninteractive/testkit";
- * import { gameModule } from "../src/rules/index.js";
+ * import gameModule from "../src/module/index.js";
  *
- * twinFixtureTests(gameModule, new URL("../src/rules/fixtures/", import.meta.url));
+ * twinFixtureTests(gameModule, new URL("../src/module/fixtures/", import.meta.url));
  * ```
  */
 
