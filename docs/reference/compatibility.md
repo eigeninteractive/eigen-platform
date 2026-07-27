@@ -122,8 +122,24 @@ surface.
 Anything genuinely breaking needs a deprecation window: ship the additive half
 first, let installs turn over, and only then remove the old half.
 
-`eigen_flutter` bundles `in_app_update`, which is the nudge for that turnover —
-but treat it as a nudge. It shortens the tail; it does not end it.
+`eigen_flutter` checks for updates at cold start and on resume. Routine Android
+checks use Play's native update flow without interrupting an active game. When
+an unknown value makes one surface unsafe, that surface instead shows an
+explicit update action: Play in-app update on Android, or a reload of the
+current application in a browser. No store or download URL is configured by
+the client framework.
+
+For a new value that old clients cannot safely present, release in client-first
+order:
+
+1. Publish the compatible Android build and deploy the compatible web client
+   while the server still emits the old vocabulary.
+2. Wait until the Play build is available to the full intended audience.
+3. Only then enable the server behavior that emits the new value.
+
+Do not enable that behavior globally during a staged Play rollout unless the
+rollout already covers everyone who may receive it. The sentinel prevents a
+decode crash; it cannot make an unpublished or ineligible update available.
 
 ## Reading the docs at the right version
 
