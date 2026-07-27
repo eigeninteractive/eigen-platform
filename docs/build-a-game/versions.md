@@ -63,15 +63,13 @@ Two gates, deliberately redundant:
 
 ## What counts as breaking
 
-**Adding a member to a wire enum is breaking**, even though it looks purely
-additive. Generated Dart enums parse strictly with no `unknown` sentinel, so a
-new value throws.
+**Adding a member to a game payload enum is breaking**, even though it looks
+purely additive. The app cannot infer the legality or rendering of an unknown
+move, so put it in a new game `schemaVersion`.
 
-That is a deliberate trade. Tolerant decoding buys graceful degradation, and
-graceful degradation buys *silence* — which is exactly wrong when the two halves
-are two repos with one generated seam between them. With closed enums, adding a
-value server-side breaks the client **build**, loudly, in CI, before release,
-rather than producing a screen that renders nothing at runtime.
+Engine API enums have a separate read-side `unknownDefaultOpenApi` fallback.
+That protects installed apps from additive transport vocabulary while nudging
+an update; it is never serialized back.
 
 Within a version, additive change is still fine: new fields must be nullable or
 carry a default, never `required`. Changing a field's type or meaning, or

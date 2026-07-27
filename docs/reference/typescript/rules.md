@@ -1034,7 +1034,7 @@ input positions). It is **safe** here because the engine re-validates every
 payload against that entry's own `schemas` before invoking a hook, so the
 static type was only ever an authoring aid — redundant once the unit is
 registered. Authors keep full type-checking by writing
-`class X implements GameRules<State, Action, Config>` (or annotating a
+`class X implements GameRules<State, Observation, Action, Config>` (or annotating a
 literal `: GameRules<…>`); assigning that into a `versions` map just works,
 with no `as`-cast, because `any` disables the variance check at this seam.
 

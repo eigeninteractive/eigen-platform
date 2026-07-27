@@ -44,7 +44,7 @@ helpers, and you can read it top to bottom in ten minutes.
 
 | Member | TypeScript `GameRules` | Dart `GameRules` |
 |---|---|---|
-| `schemas` — the payload contracts | ✅ Standard Schema | ✅ as the codec: `parseConfig` / `parseObservation` / `parseAction` / `serializeAction` |
+| `schemas` — the payload contracts | ✅ Standard JSON Schema capable schemas | ✅ generated `GamePayloadCodec` |
 | `initialState`, `applyAction`, `applyLifecycle`, `computeObservation` | ✅ authoritative | — the client consumes observations, it does not produce them |
 | `isValidAction` | — `applyAction` *is* the check | ✅ UX-only transcription of its legality half |
 | `previewAction` | — `applyAction` is the truth | ✅ required; the game's own optimistic projection (null ⇒ server-driven) |
@@ -64,17 +64,17 @@ A `GameModule` is a map from `schemaVersion` to a `GameRules` unit:
 import type { GameModule } from "@eigeninteractive/rules";
 import { rulesV1 } from "./v1.js";
 
-export const gameModule: GameModule = {
+export default {
   versions: { 1: rulesV1 },
-};
+} satisfies GameModule;
 ```
 
 A unit is one version's payload schemas plus six hooks (and an optional seventh
 for bots):
 
 ```ts
-interface GameRules<TState, TAction, TConfig> {
-  schemas: { state; action; config };                        // Standard Schema each
+interface GameRules<TState, TObservation, TAction, TConfig> {
+  schemas: { state; observation; action; config };           // validation + JSON Schema
 
   initialState(args): Envelope<TState>;                      // seed a new game
   applyAction(args): Envelope<TState>;                       // a player's move
@@ -87,8 +87,9 @@ interface GameRules<TState, TAction, TConfig> {
 }
 ```
 
-Author each unit as a class `implements GameRules<State, Action, Config>` (or a
-literal typed `: GameRules<…>`) so you get full type-checking, then register it
+Author each unit as a literal or class typed
+`GameRules<State, Observation, Action, Config>` so you get full type-checking,
+then register it
 in the `versions` map. No base class, no lifecycle to manage.
 
 ## The Dart half
@@ -99,11 +100,9 @@ The same keys, and the members from the right-hand column above:
 class RpsRulesV1 extends GameRules<RpsObservation, RpsAction, RpsConfig> {
   const RpsRulesV1();
 
-  // The codec — the mirror of the TypeScript unit's schemas.
-  @override RpsConfig parseConfig(Map<String, dynamic> j) => RpsConfig.fromJson(j);
-  @override RpsObservation parseObservation(Map<String, dynamic> j) => RpsObservation.fromJson(j);
-  @override RpsAction parseAction(Map<String, dynamic> j) => RpsAction.fromJson(j);
-  @override Map<String, dynamic> serializeAction(RpsAction a) => a.toJson();
+  @override
+  GamePayloadCodec<RpsObservation, RpsAction, RpsConfig> get payloadCodec =>
+      const RpsPayloadCodec(); // generated from game-contract.json
 
   // Legality — the transcribed legality half of the TypeScript applyAction.
   @override

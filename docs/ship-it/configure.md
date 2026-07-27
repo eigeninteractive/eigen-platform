@@ -165,12 +165,12 @@ patched around in Dart. Re-emit `openapi.json` and rerun the client generator
 **in the same change**, because the two repos have no other coupling that would
 catch the drift.
 
-:::danger Wire enums are closed sets
+:::note Unknown engine enum values
 
-Generated Dart enums carry no `unknown` sentinel and parse strictly, so adding a
-member to any enum on the wire — `GameStatus`, `ErrorCode`, `GameAccess`, seat
-type — is a **breaking change** needing a schema-version bump and a coordinated
-client release. See [Changing a shipped game](../build-a-game/versions.md).
+Generated Dart transport enums decode a new wire member as
+`unknownDefaultOpenApi`, allowing the app to show its update-required state
+instead of crashing during response decoding. The fallback is read-only; never
+send it back to a route.
 
 :::
 

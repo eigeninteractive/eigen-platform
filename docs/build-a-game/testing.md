@@ -74,9 +74,9 @@ not a gap, so a game like RPS simply has no preview coverage here.
 
 ```ts
 import { twinFixtureTests } from "@eigeninteractive/testkit";
-import { gameModule } from "../../src/rules/index.js";
+import gameModule from "../../src/module/index.js";
 
-twinFixtureTests(gameModule, new URL("../../src/rules/fixtures/", import.meta.url));
+twinFixtureTests(gameModule, new URL("../../src/module/fixtures/", import.meta.url));
 ```
 
 **Dart**, rides `flutter test`:

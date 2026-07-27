@@ -17,11 +17,16 @@ persistence, ratings, sign-in, lobbies or replay.
 
 ## The rules that decide
 
-`eigen-server/examples/rps/src/rules/v1.ts`, condensed:
+`eigen-server/examples/rps/src/module/v1.ts`, condensed:
 
 ```ts
-class RpsRulesV1 implements GameRules<State, Action, Config> {
-  readonly schemas = { state: stateSchema, action: actionSchema, config: configSchema };
+class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
+  readonly schemas = {
+    state: stateSchema,
+    observation: observationSchema,
+    action: actionSchema,
+    config: configSchema,
+  };
 
   initialState(): Envelope<State> {
     return { state: { round: 1, wins: [0, 0], commits: [null, null], lastRound: null },
@@ -86,11 +91,9 @@ language:
 class RpsRulesV1 extends GameRules<RpsObservation, RpsAction, RpsConfig> {
   const RpsRulesV1();
 
-  // The codec — the mirror of the TypeScript schemas.
-  @override RpsConfig parseConfig(Map<String, dynamic> j) => RpsConfig.fromJson(j);
-  @override RpsObservation parseObservation(Map<String, dynamic> j) => RpsObservation.fromJson(j);
-  @override RpsAction parseAction(Map<String, dynamic> j) => RpsAction.fromJson(j);
-  @override Map<String, dynamic> serializeAction(RpsAction a) => a.toJson();
+  @override
+  GamePayloadCodec<RpsObservation, RpsAction, RpsConfig> get payloadCodec =>
+      const RpsPayloadCodec(); // generated from game-contract.json
 
   // The legality half of applyAction, transcribed — this is what greys out a button.
   @override

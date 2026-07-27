@@ -39,12 +39,10 @@ None of it is game code — a game never opens a socket or resolves an identity.
   server-reported failure into `EngineException`; a failure with *no* response
   propagates as the underlying `DioException`, because "the server said no" and
   "the outcome is unknown" mean different things to a state-changing command.
-- **Wire enums are closed sets.** Generated enums carry no `unknown` sentinel and
-  parse strictly, so adding a member to any of them — `GameStatus`, `ErrorCode`,
-  `GameAccess`, seat type — is a breaking change needing a schema-version bump.
-  `test/shared/api_contract_test.dart` pins the sets so drift fails loudly. See
-  [Changing a shipped game](../build-a-game/versions.md) for why
-  refusing to build beats degrading gracefully here.
+- **Engine wire enums are forward-readable.** Generated enums map a member an
+  older app does not know to `unknownDefaultOpenApi`, so decoding succeeds and
+  the app can request an update. The fallback is read-side only and is never
+  sent back.
 - **Lists page by keyset cursor**, not offset: the cursor is the previous page's
   last sort value. These lists change while they are being read, and an offset
   would show the same row twice after a single insert.

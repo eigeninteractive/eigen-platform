@@ -1,64 +1,75 @@
 ---
 sidebar_position: 2
 title: The cross-repo contract
-description: The game rules exist twice — TypeScript on the server, Dart on the client — and shared fixtures keep the twins honest.
+description: Engine packages are dependencies; a deterministic game contract carries payload schemas and fixtures between a game's Worker and Flutter repositories.
 ---
 
 # The cross-repo contract
 
-The game rules exist **twice**: as TypeScript (server-authoritative, in the
-engine repo) and as Dart (client-side optimistic preview + rendering, in the
-client repo). The two are kept honest by **shared JSON fixtures per version
-unit**, run by both the TS and Dart test runners — a drift between the twins
-fails a test on both sides.
-
-The engine generates the OpenAPI spec, generates the typed Dart client from it
-**in the same repository**, and publishes that client to pub.dev at the engine's
-own version. So the transport half is not a cross-repo contract at all any more —
-it is an ordinary versioned dependency, and `eigen_api: ^0.1.0` in an app states
-exactly the compatibility it means (see
-[Versions and compatibility](compatibility.md) for what that resolves to while
-the engine is pre-1.0).
-
-The *rules* half is the part that genuinely spans two repos, and it is why the
-contract in `@eigeninteractive/rules` is small and precise: it is the seam two languages
-meet at.
+There are two independent boundaries:
 
 ```text
-          ┌──────────────────── @eigeninteractive/rules ────────────────────┐
-          │  GameRules · GameModule · the six hooks · Envelope   │
-          └──────────────────────────────────────────────────────┘
-                    │                              │
-        TypeScript twin                      Dart twin
-     (authoritative, server)          (optimistic preview, render)
-                    │                              │
-                    └────── shared JSON fixtures ──┘
-                            run by both runners
-
-          openapi.json ──────► generated in-repo ──────► eigen_api on pub.dev
+engine release                         game release
+openapi.json ──► eigen_api             TypeScript schemas + fixtures
+                     │                           │
+                     ▼                           ▼
+               eigen_flutter              game-contract.json
+                                                   │
+                                                   ▼
+                                          generated Dart payloads
 ```
 
-For the reference game the two twins and their fixtures are:
+Engine developers publish `@eigeninteractive/rules`,
+`@eigeninteractive/kernel`, `@eigeninteractive/server`,
+`@eigeninteractive/testkit`, `eigen_api`, and `eigen_flutter`. Game
+implementors consume those packages from npm/pub.dev. They do not clone or
+submodule the engine repositories.
 
-| | Server | Client |
-|---|---|---|
-| Rules | `eigen-server/examples/rps/src/rules/v1.ts` | `eigen-flutter/example/lib/src/v1/rules.dart` |
-| Fixtures | `examples/rps/src/rules/fixtures/v1/rps.json` | `example/fixtures/v1/rps.json` |
+A game's Worker owns its authoritative TypeScript rules and emits one
+deterministic `game-contract.json`. The artifact contains the four payload
+schemas for every `schemaVersion` plus validated behavioral fixtures. The
+Flutter repository consumes the exact artifact to generate immutable Dart
+payload types, the codec, and fixture copies.
 
-Those two fixture files are byte-identical copies maintained by hand — **no
-mechanism syncs them**, which is the one coupling neither repo's CI can see.
+The artifact model works for a combined repository, separate Worker/app
+repositories, or a fully hand-created setup. The scaffold currently generates
+only the combined layout; it merely writes boilerplate and runs
+`flutter create`, introducing no private runtime contract.
 
-Two rules follow from this and are not negotiable:
+## Dependency identity
 
-- **Fix the wire, not the client.** A shape the generated Dart client consumes
-  badly gets fixed in the zod schemas and regenerated — never patched around in
-  Dart. Both happen in the engine repo, in the same change, and CI regenerates
-  and diffs the client so a stale one cannot merge.
-- **Wire enums are closed sets.** The Dart client generates enums with no
-  `unknown` sentinel and parses strictly, so adding a member to any enum on the
-  wire is a breaking change needing a schema-version bump and a coordinated
-  client release.
+Packages that exchange rule objects or inspect `IllegalMoveError` share
+`@eigeninteractive/rules` as a peer dependency. This makes the application
+provide one physical rules package, preserving constructor/symbol identity
+across package boundaries. pnpm and npm are the supported Node package
+managers.
 
-For how to write a game against that contract, see
-[Build a game](../build-a-game/the-contract.md). For the twin-fixture mechanics,
-see [Testing your game](../build-a-game/testing.md).
+## Promotion order
+
+Treat the contract file as an immutable release input:
+
+1. emit and test a new contract;
+2. generate/test the Flutter app from that exact checksum;
+3. release the compatible Android build to Play;
+4. only then deploy Worker behavior that creates or returns the new
+   `schemaVersion`.
+
+This order matters even when Google Play handles delivery: rollout is not
+instant and installed apps are not force-updated. The app already detects an
+unsupported game schema and presents the update path. On web, the equivalent
+action is a browser reload, which loads the current deployed bundle.
+
+Additive engine transport enums do not require this dance: generated Dart
+transport enums decode an unknown member as `unknownDefaultOpenApi`. Game
+payload enums remain schema-versioned because an unknown move cannot be acted
+on or safely serialized back.
+
+## CI checks
+
+The Worker regenerates `game-contract.json` and fails on a diff. The app runs
+`eigen_flutter:generate_payloads --check` and its copied fixtures. Separate
+repositories can fetch the artifact from a release, registry, or object store;
+pin it by checksum instead of depending on a sibling checkout path.
+
+See [Payload types](../build-a-game/schemas.md) and
+[Versions and compatibility](compatibility.md).
