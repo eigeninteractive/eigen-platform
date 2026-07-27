@@ -169,6 +169,18 @@ The sentinel was enabled before the first release, so its extra enum member did
 not require a version bump or migration. Future enum widening reuses that member
 and does not change the Dart surface.
 
+When a new response value carries semantics an old app cannot safely present,
+release in client-first order even though decoding is additive:
+
+1. Publish the compatible Android build to Play and deploy the compatible web
+   client while the server still emits the old vocabulary.
+2. Wait until the Play build is available to the full intended audience.
+3. Only then deploy or enable the server behavior that emits the new value.
+
+Without capability negotiation, do not enable the server behavior globally
+during a staged Play rollout: users outside the rollout could reach the
+update-required UI before Play offers them the update.
+
 ### Two things that are easy to get wrong
 
 - **`pnpm publish -r`, never `npm publish`.** The packages depend on each other

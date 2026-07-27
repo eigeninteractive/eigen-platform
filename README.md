@@ -114,10 +114,11 @@ Two consequences worth knowing before you touch a schema:
 - **Fix wire awkwardness at the source.** A shape the generated Dart client
   consumes badly gets fixed in the zod schemas here — never patched around in
   Dart.
-- **Wire enums are closed sets.** The Dart client generates enums with no
-  `unknown` sentinel and parses strictly, so adding a member to any enum on the
-  wire (`GameStatus`, `ErrorCode`, `GameAccess`, seat type) is a **breaking
-  change** needing a schema-version bump and a coordinated client release.
+- **Response enums tolerate widening.** The Dart client maps a member it does
+  not know to `unknownDefaultOpenApi`, so adding a response value does not
+  break decoding. The sentinel is read-side only: clients must never send it
+  back. Removing or renaming a value remains breaking, as does requiring an
+  old client to send a newly added request value.
 
 ## Deploying
 
