@@ -19,13 +19,13 @@ immutable log.
 
 ## What you actually write
 
-A game is **two same-keyed registries**: TypeScript rules that decide, and a Dart
-codec and screen that draw. That is the whole surface.
+A game is **two same-keyed registries**: TypeScript rules that decide, and Dart
+rules and a screen that draw. That is the whole surface.
 
 | You write | The engine owns |
 |---|---|
 | The rules — six hooks, on the server | Persistence, sockets, reconnection, timing, ratings, history, replay |
-| The payload codec and the board, in Dart | Sign-in, home, lobby, friends, profile, settings, push, deep links |
+| Client-side legality, optimism, and the board, in Dart | Sign-in, home, lobby, friends, profile, settings, push, deep links |
 | A creation dialog's declaration | The dialog, the countdown, the finished banner, the whole app shell |
 
 For scale: Rock–Paper–Scissors, the reference game, is about 220 lines of

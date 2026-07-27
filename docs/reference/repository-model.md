@@ -19,7 +19,9 @@ Worker's authoritative schemas and fixtures and consumed by the Dart generator.
 `create-eigen-game` scaffolds the common combined layout only. It adds no
 runtime capability: teams using separate repositories can create either half by
 hand from the same public contracts. npm and pnpm are the supported Node package
-managers.
+managers. Its Worker source is a standalone C3-style template and is also the
+single source rendered into the combined repository; the scaffolder does not
+carry a second Cloudflare implementation.
 
 ## Engine developer
 

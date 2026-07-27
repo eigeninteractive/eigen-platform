@@ -88,26 +88,22 @@ about what it leaves out.
 language:
 
 ```dart
-class RpsRulesV1 extends GameRules<RpsObservation, RpsAction, RpsConfig> {
+class RpsRulesV1 extends RpsV1RulesBase {
   const RpsRulesV1();
-
-  @override
-  GamePayloadCodec<RpsObservation, RpsAction, RpsConfig> get payloadCodec =>
-      const RpsPayloadCodec(); // generated from game-contract.json
 
   // The legality half of applyAction, transcribed — this is what greys out a button.
   @override
   bool isValidAction({
-    required RpsObservation obs,
+    required RpsV1Observation obs,
     required List<int> pending,
-    required RpsAction data,
+    required RpsV1Action data,
     required int playerIndex,
-    required RpsConfig config,
+    required RpsV1Config config,
   }) => pending.contains(playerIndex) && !obs.committedBy(playerIndex);
 
   // Always null. See below — this is the interesting one.
   @override
-  RpsObservation? previewAction({ /* same parameters */ }) => null;
+  RpsV1Observation? previewAction({ /* same parameters */ }) => null;
 
   @override
   Widget buildContent(GameContentContext context) =>
@@ -194,8 +190,8 @@ the Dart runner drives the codec and `isValidAction` with **`obs`** — the acti
 seat's actual view, which for a game with fog is a different payload. A
 divergence fails a test in whichever language drifted.
 
-See [Testing](../build-a-game/testing.md) for the full format, and for the one
-thing CI cannot catch: the two copies are duplicated by hand.
+See [Testing](../build-a-game/testing.md) for the full format and the
+contract/generator checks that carry the authored server fixtures into the app.
 
 ## Next
 

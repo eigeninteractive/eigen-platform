@@ -21,6 +21,9 @@ pnpm create eigen-game my-game
 npm create eigen-game@latest my-game
 ```
 
+`my-game` is the only naming input. It is a lowercase kebab-case slug; the
+scaffolder derives `My Game`, `my_game`, and the `MyGame` type prefix from it.
+
 The default is a single repository:
 
 ```text
@@ -29,24 +32,25 @@ my-game/
 └── app/      # Flutter app and presentation rules
 ```
 
-The scaffold intentionally supports only this combined layout for now. The
-generated files use only public npm/pub.dev contracts, so teams that prefer
-separate repositories can create either half by hand. The scaffold is
-convenience, not a runtime requirement.
+The scaffold intentionally supports only this combined layout. It composes a
+canonical C3-style Cloudflare Worker template with `flutter create --empty`,
+installs both halves, emits the initial `game-contract.json`, and generates the
+initial Dart payload types and rules base. The generated files use only public
+npm/pub.dev contracts, so teams that prefer separate repositories can create
+either half by hand. The scaffold is convenience, not a runtime requirement.
 
 Until publishing is enabled, engine contributors can build and run the CLI from
-`eigen-server/packages/create-eigen-game`; package installation is deliberately
-left for the publishing pass.
+`eigen-server/packages/create-eigen-game`. The eventual implementor command
+requires the Eigen npm and pub.dev packages to have been published first.
 
 ## Generate the game contract
 
-Declare `state`, `observation`, `action`, and `config` as Standard JSON Schema
-capable schemas beside the Worker rules. Then:
+The scaffold has already performed the first generation. After changing
+`state`, `observation`, `action`, `config`, or a shared fixture, regenerate:
 
 ```bash
-cd server
-pnpm install                 # npm install is supported too
-pnpm contract                # writes deterministic game-contract.json
+pnpm run contract            # from the generated repository root
+# npm run contract is supported too
 ```
 
 `game-contract.json` is the game-owned boundary between repositories. It
@@ -54,11 +58,12 @@ contains every schema version plus the validated twin fixtures. Commit it,
 publish it as a release artifact, or copy it into the app build; no particular
 repository layout is assumed.
 
-Generate the Dart payload library and fixture copies:
+The root command also generates the Dart payload library and fixture copies.
+The underlying commands remain independently usable when the halves live in
+separate repositories:
 
 ```bash
-cd ../app
-flutter pub get
+cd app
 dart run eigen_flutter:generate_payloads \
   --contract ../server/game-contract.json \
   --output lib/game/generated/payloads.dart \
@@ -67,8 +72,48 @@ flutter test
 ```
 
 The output is immutable plain Dart with deep value equality, field-aware decode
-errors, and a `GamePayloadCodec`. A game does not install Freezed,
-`json_serializable`, or `build_runner` for payload types.
+errors, and a typed abstract rules base that owns payload parsing and
+serialization. A game does not install Freezed, `json_serializable`, or
+`build_runner` for payload types. It also does not declare `code_builder` or
+`dart_style`: those are implementation dependencies of the executable shipped
+by `eigen_flutter`.
+
+Those packages generate from Dart declarations; they do not turn a Standard
+JSON Schema object into the Eigen payload surface. Emitting annotations for
+them would still require the schema-to-Dart translation, then add a second
+builder pass and app-owned generator dependencies. Eigen performs the narrow
+game-schema translation into its own semantic model, delegates Dart declaration
+emission to `code_builder`, and formats the result in memory with `dart_style`.
+
+## The development loop
+
+The scaffold includes one v1 fixture and both fixture runners. Keep the
+TypeScript runner watching while editing rules:
+
+```bash
+cd server
+pnpm run test:watch          # or: npm run test:watch
+```
+
+After changing a schema or fixture, refresh the cross-language artifact and
+the generated Dart side:
+
+```bash
+cd ..                        # repository root
+pnpm run contract
+
+cd app
+flutter test
+```
+
+Changing only TypeScript hook behavior does not necessarily change the
+schemas, but update its shared fixture and run the same sequence: fixtures are
+part of `game-contract.json`. `wrangler dev` reloads Worker source; it does not
+regenerate the contract or Dart files.
+
+Before anything has shipped, freely edit the seeded v1 unit. Once persisted
+games or released clients depend on v1, make an incompatible change in a new
+v2 unit and keep both registry entries.
 
 ## Run locally
 
@@ -82,15 +127,16 @@ curl http://localhost:8787/health
 app against it additionally requires Firebase configuration; pure rules,
 fixture, and widget tests do not.
 
+The Worker template uses Wrangler-generated `Env` types and a stable `GAME_DB`
+binding. Wrangler automatically provisions its D1 database on first remote
+use; the deploy script applies the engine migrations before deploying.
+
 ## Keep generation honest
 
 Run generation in write mode during development and check mode in CI:
 
 ```bash
-dart run eigen_flutter:generate_payloads \
-  --contract game-contract.json \
-  --output lib/game/generated/payloads.dart \
-  --check
+pnpm run contract:check      # generated repository root
 ```
 
 When the two halves are separate repositories, promote one exact

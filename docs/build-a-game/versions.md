@@ -32,6 +32,11 @@ the right unit.
 Compatible tweaks — a bug fix that changes neither stored shapes nor recorded
 behaviour — can edit the unit in place. Update the fixtures alongside.
 
+Before the first release or persisted shared environment, v1 is not frozen:
+edit it directly, regenerate `game-contract.json` and the Dart payload library,
+and let both fixture suites expose the required client changes. Creating v2 for
+every development edit only preserves history that nobody consumes.
+
 ## Two gates, and one is longer than you think
 
 Retiring an old unit splits into two lifetimes, and conflating them is how

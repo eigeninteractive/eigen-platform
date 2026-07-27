@@ -32,17 +32,40 @@ Flutter repository consumes the exact artifact to generate immutable Dart
 payload types, the codec, and fixture copies.
 
 The artifact model works for a combined repository, separate Worker/app
-repositories, or a fully hand-created setup. The scaffold currently generates
-only the combined layout; it merely writes boilerplate and runs
-`flutter create`, introducing no private runtime contract.
+repositories, or a fully hand-created setup. The scaffold generates only the
+combined layout. It renders a canonical C3-style Worker template, runs
+`flutter create --empty`, installs both halves, and performs the first contract
+and Dart payload generation. It introduces no private runtime contract.
 
 ## Dependency identity
 
 Packages that exchange rule objects or inspect `IllegalMoveError` share
 `@eigeninteractive/rules` as a peer dependency. This makes the application
-provide one physical rules package, preserving constructor/symbol identity
-across package boundaries. pnpm and npm are the supported Node package
-managers.
+select the compatible rules instance used in its dependency graph, preserving
+constructor/symbol identity across those package boundaries. pnpm and npm are
+the supported Node package managers. A normal transitive dependency may be
+hoisted and deduplicated, but that install layout is not its contract and
+nested copies remain valid.
+
+The game Worker therefore declares `@eigeninteractive/rules` directly as well
+as `@eigeninteractive/server`. This is intentional:
+
+- `rules` is the small, platform-free contract the game implements;
+- `server` is the Cloudflare deployment runtime that consumes that contract;
+- `kernel`, `server`, and `testkit` bind their rules peer to the implementor's
+  one direct installation.
+
+`server` does not re-export the rules API. A re-export would create two
+canonical import paths for the same contract while leaving the peer requirement
+in place. Making rules a hidden transitive dependency instead would weaken the
+single-instance guarantee, especially when testkit participates in the same
+process.
+
+In the combined scaffold, run `pnpm run contract` or `npm run contract` at the
+repository root after changing schemas or fixtures. It emits the Worker
+artifact and regenerates the Dart payloads and fixture copies. The matching
+root `contract:check` checks both sides without writing; the underlying commands
+remain available for split repositories.
 
 ## Promotion order
 

@@ -49,7 +49,7 @@ file and check different things:
 |---|---|---|
 | `state` | input to `applyAction` | — |
 | **`obs`** | ignored | input to `isValidAction` / `previewAction` |
-| `action` | parsed by `schemas.action` | round-tripped through the codec |
+| `action` | parsed by `schemas.action` | parsed and serialized by the generated rules base |
 | `expected.valid` | `applyAction` throws or not | `isValidAction` |
 | `expected.state` / `pending` / `outcome` | the returned envelope | — |
 | `expected.observation` | `computeObservation` output | `previewAction` output, **when non-null** |
@@ -100,7 +100,9 @@ void main() {
 ```
 
 Both expect a `v<N>/` directory layout and read `schemaVersion` from inside each
-file.
+file. `eigen-contract` rejects a path such as `v2/case.json` whose document says
+`"schemaVersion": 1`, or any fixture targeting a version absent from
+`GameModule.versions`.
 
 ## What to cover
 
@@ -124,33 +126,31 @@ game* end to end: a full match, a timeout resolution, a bot game.
 
 ## CI
 
-Both halves are plain commands on a runner, with no secrets to inject: the
-Workers tests boot the real `workerd` with local D1/R2/DO simulation, and the
-test tokens are minted in-process.
+Both halves are plain commands with no secrets. The engine packages arrive as
+published dependencies, so an implementor does not build the engine workspace:
 
-```yaml
-# the game Worker's .github/workflows/ci.yml
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v4          # reads `packageManager`, NOT `devEngines`
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
+```bash
+# combined scaffold, from the repository root
+pnpm run contract:check
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec biome ci .           # or your linter of choice
-      - run: pnpm -r build                  # engine packages resolve via exports → dist
-      - run: pnpm -r typecheck
-      - run: pnpm -r test                   # twin fixtures + integration
+# server/
+pnpm install --frozen-lockfile
+pnpm run typecheck
+pnpm test
+
+# app/
+flutter pub get
+flutter analyze
+flutter test
 ```
 
-`pnpm -r build` before `typecheck` is not optional if your game lives in a
-workspace beside the engine packages: they resolve through their `exports` field
-to `dist/`, so an unbuilt `@eigeninteractive/server` fails to type-check its consumers.
+The root `contract:check` composes the server contract check and Dart generator
+check. In separate repositories, run those two underlying commands in their
+respective pipelines instead.
+
+The scaffold supplies the initial `test/twin.spec.ts`,
+`test/game/twin_fixtures_test.dart`, and v1 fixture. Grow those tests with the
+rules rather than replacing their wiring.
 
 :::danger Do not deploy from CI
 
@@ -163,19 +163,13 @@ GitHub secrets.
 
 :::
 
-## The coupling CI cannot see
+## The cross-repository gate
 
-The fixture JSON is **duplicated across the two repos with no sharing
-mechanism**, and both runners expect byte-identical files. The consequence is
-easy to get wrong:
+Fixtures have one authored home: `server/src/module/fixtures`. The contract CLI
+validates and embeds them in `game-contract.json`; the Dart generator copies
+those exact documents into the app. Do not hand-edit `app/test/fixtures`.
 
-> Editing a fixture in one repo makes *that* repo's CI green while the other
-> still holds the old copy. Nothing fails until the other repo's CI next runs —
-> possibly days later, on someone else's pull request.
-
-So **a rules change is a two-repo change**, and the fixture edit is the part that
-must land in both. Copy the same `v<N>/*.json` files across in the same change.
-
-If the two are ever checked out together — a monorepo, or a job that clones both
-as siblings — a `diff -r` between the two fixture roots is the cheapest possible
-guard.
+In separate repositories, promote one exact contract artifact by checksum.
+The app's generator `--check` then proves that its payload types and fixture
+copies came from that artifact. This turns cross-repository drift into a normal
+generated-file failure rather than a manual directory comparison.

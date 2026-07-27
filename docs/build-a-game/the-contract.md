@@ -44,7 +44,7 @@ helpers, and you can read it top to bottom in ten minutes.
 
 | Member | TypeScript `GameRules` | Dart `GameRules` |
 |---|---|---|
-| `schemas` — the payload contracts | ✅ Standard JSON Schema capable schemas | ✅ generated `GamePayloadCodec` |
+| `schemas` — the payload contracts | ✅ Standard JSON Schema capable schemas | ✅ generated payload types and rules base |
 | `initialState`, `applyAction`, `applyLifecycle`, `computeObservation` | ✅ authoritative | — the client consumes observations, it does not produce them |
 | `isValidAction` | — `applyAction` *is* the check | ✅ UX-only transcription of its legality half |
 | `previewAction` | — `applyAction` is the truth | ✅ required; the game's own optimistic projection (null ⇒ server-driven) |
@@ -97,26 +97,22 @@ in the `versions` map. No base class, no lifecycle to manage.
 The same keys, and the members from the right-hand column above:
 
 ```dart
-class RpsRulesV1 extends GameRules<RpsObservation, RpsAction, RpsConfig> {
+class RpsRulesV1 extends RpsV1RulesBase {
   const RpsRulesV1();
-
-  @override
-  GamePayloadCodec<RpsObservation, RpsAction, RpsConfig> get payloadCodec =>
-      const RpsPayloadCodec(); // generated from game-contract.json
 
   // Legality — the transcribed legality half of the TypeScript applyAction.
   @override
   bool isValidAction({
-    required RpsObservation obs,
+    required RpsV1Observation obs,
     required List<int> pending,
-    required RpsAction data,
+    required RpsV1Action data,
     required int playerIndex,
-    required RpsConfig config,
+    required RpsV1Config config,
   }) => pending.contains(playerIndex) && !obs.committedBy(playerIndex);
 
   // Optimism — or null to stay server-driven.
   @override
-  RpsObservation? previewAction({ /* same parameters */ }) => null;
+  RpsV1Observation? previewAction({ /* same parameters */ }) => null;
 
   @override
   Widget buildContent(GameContentContext context) =>

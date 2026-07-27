@@ -82,7 +82,7 @@ wrong half the time is worse than none — it shows a reveal that never happened
 /// Always null — RPS cannot predict its own next observation, and saying so
 /// is the correct answer rather than a gap.
 @override
-RpsObservation? previewAction({ /* … */ }) => null;
+RpsV1Observation? previewAction({ /* … */ }) => null;
 ```
 
 The board still feels instant. It holds the tapped move in widget state and

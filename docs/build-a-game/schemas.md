@@ -37,6 +37,12 @@ export const rules: GameRules<State, Observation, Action, Config> = {
 };
 ```
 
+Eigen requests the Standard JSON Schema `draft-2020-12` target. It is the
+current JSON Schema meta-schema and one of the two targets Standard JSON Schema
+strongly recommends implementors support. Using one explicit modern dialect
+keeps `$defs`, nullable unions, arrays, and references deterministic across
+schema libraries instead of accepting library-specific output.
+
 Give reusable/nested schemas stable `meta({ id: "…" })` names. These names
 become stable Dart type names; wire keys themselves are preserved exactly.
 
@@ -77,19 +83,28 @@ dart run eigen_flutter:generate_payloads \
   --fixtures-output test/fixtures
 ```
 
-For each version the generator emits immutable classes/enums and a concrete
-`GamePayloadCodec<TObservation, TAction, TConfig>`. Register it on the Dart
-rules unit:
+The contract's top-level `game` value supplies the Dart type prefix. For
+example, `"game": "Example Game"` emits `ExampleGameV1Observation`,
+`ExampleGameV1Action`, `ExampleGameV1Config`, and
+`ExampleGameV1RulesBase`. The scaffolder derives that value from its one
+lowercase kebab-case game slug. A hand-created project controls it through
+`package.json`'s `eigen.game`.
+
+For each version the generator emits immutable classes/enums and a typed
+abstract rules base containing all payload parsing and serialization. Extend
+that base in the Dart rules unit:
 
 ```dart
-class RpsRulesV1 extends GameRules<RpsObservation, RpsAction, RpsConfig> {
-  @override
-  GamePayloadCodec<RpsObservation, RpsAction, RpsConfig> get payloadCodec =>
-      const RpsPayloadCodec();
-
+class RpsRulesV1 extends RpsV1RulesBase {
   // legality, optional preview, and UI remain handwritten
 }
 ```
+
+Every version includes its number: version 1 uses `RpsV1RulesBase`, version 2
+uses `RpsV2RulesBase`, and so on. The generated base is replaced whenever the
+contract is regenerated, while the subclass remains entirely game-owned.
+The generator and its `code_builder`/`dart_style` implementation dependencies
+ship inside `eigen_flutter`; the game app declares only `eigen_flutter`.
 
 Unknown fields are ignored while known fields are decoded strictly. That is the
 useful read-side balance: additive object fields survive an older app, while a
