@@ -9,9 +9,16 @@ description: Scaffold a game Worker and Flutter app, generate the shared payload
 You build an Eigen game in your own repository. The engine repositories are
 ordinary dependencies; game implementors do not clone them.
 
-## Scaffold both halves
+## Prerequisites
 
-After the first packages are published:
+- Node.js 22 or newer;
+- npm or pnpm;
+- Flutter with Dart 3.9 or newer.
+
+A Cloudflare account and Firebase project are needed to run the complete app
+and deploy, but not to scaffold the project or test game rules.
+
+## Scaffold both halves
 
 ```bash
 # pnpm
@@ -39,9 +46,9 @@ initial Dart payload types and rules base. The generated files use only public
 npm/pub.dev contracts, so teams that prefer separate repositories can create
 either half by hand. The scaffold is convenience, not a runtime requirement.
 
-Until publishing is enabled, engine contributors can build and run the CLI from
-`eigen-server/packages/create-eigen-game`. The eventual implementor command
-requires the Eigen npm and pub.dev packages to have been published first.
+Prefer to create the repositories yourself or add Eigen to an existing app?
+Follow [Set up without the scaffolder](./manual-setup.md). It uses the same
+public contracts and supports independent Worker and app repositories.
 
 ## Generate the game contract
 
@@ -72,18 +79,9 @@ flutter test
 ```
 
 The output is immutable plain Dart with deep value equality, field-aware decode
-errors, and a typed abstract rules base that owns payload parsing and
-serialization. A game does not install Freezed, `json_serializable`, or
-`build_runner` for payload types. It also does not declare `code_builder` or
-`dart_style`: those are implementation dependencies of the executable shipped
-by `eigen_flutter`.
-
-Those packages generate from Dart declarations; they do not turn a Standard
-JSON Schema object into the Eigen payload surface. Emitting annotations for
-them would still require the schema-to-Dart translation, then add a second
-builder pass and app-owned generator dependencies. Eigen performs the narrow
-game-schema translation into its own semantic model, delegates Dart declaration
-emission to `code_builder`, and formats the result in memory with `dart_style`.
+errors, and a typed abstract rules base. A game does not install Freezed,
+`json_serializable`, `build_runner`, `code_builder`, or `dart_style` for these
+payloads; the executable owns its generation implementation.
 
 ## The development loop
 

@@ -73,6 +73,20 @@ notification that the engine's API moved.
 Both generated directories are excluded from Biome; formatting them would only
 churn the next regeneration.
 
+### Dart API reference
+
+`docs/reference/dart.md` is an authored link-out, not a copied documentation
+tree. pub.dev runs dartdoc for every published `eigen_flutter` version and
+keeps those references versioned alongside the package; duplicating its HTML
+here would create a second unversioned artifact and break pub.dev's source/type
+links.
+
+The source of that reference is the `///` documentation in `eigen-flutter`.
+Its `dartdoc_options.yaml` exposes only the main barrel and testing entry point,
+and Flutter CI runs `dart doc --dry-run .` with unresolved references promoted
+to errors. After a package release, check the pub.dev Versions tab and then
+verify the `latest` link on `reference/dart.md`.
+
 ## The agent surface
 
 Every page is also served as Markdown (`.md` appended to any doc URL), indexed

@@ -1,0 +1,149 @@
+---
+sidebar_position: 3
+title: Set up without the scaffolder
+description: Create the Worker and Flutter halves by hand, in one repository or two, using only the published Eigen packages and game-contract.json.
+---
+
+# Set up without the scaffolder
+
+`create-eigen-game` is a convenience, not a framework requirement. A game is
+valid when its Worker and app satisfy the two public package contracts and
+share one generated `game-contract.json`; the directories may live together or
+in separate repositories.
+
+Use this path when you are adding Eigen to an existing app, need independent
+Worker and app release cycles, or want to own the project layout yourself.
+
+## Create the Worker
+
+Start a TypeScript Cloudflare Worker and add the runtime, rules contract, schema
+library, and test tooling:
+
+```bash
+mkdir server && cd server
+npm init -y
+npm install @eigeninteractive/server @eigeninteractive/rules zod
+npm install --save-dev @eigeninteractive/testkit wrangler typescript vitest @types/node
+```
+
+pnpm works equally well. Keep `@eigeninteractive/rules` as a direct dependency:
+`server` and `testkit` consume it as a peer so the process has one rules
+contract instance.
+
+Use this minimum application-owned layout:
+
+```text
+server/
+├── src/
+│   ├── index.ts
+│   └── module/
+│       ├── index.ts              # default export: GameModule
+│       ├── v1.ts                 # one GameRules unit
+│       └── fixtures/v1/*.json
+├── test/twin.spec.ts
+├── package.json
+├── tsconfig.json
+└── wrangler.jsonc
+```
+
+Default-export the module from `src/module/index.ts`:
+
+```ts
+import type { GameModule } from "@eigeninteractive/rules";
+import { rulesV1 } from "./v1.js";
+
+export default { versions: { 1: rulesV1 } } satisfies GameModule;
+```
+
+The Worker entry point only composes your module with engine-owned runtime:
+
+```ts
+import { BaseGameDO, createEngine } from "@eigeninteractive/server";
+import gameModule from "./module/index.js";
+
+export class GameDO extends BaseGameDO<Env> {
+  protected readonly gameModule = gameModule;
+  protected d1(env: Env) => env.GAME_DB;
+}
+
+export default createEngine({
+  gameModule,
+  appName: "My Game",
+  d1: (env: Env) => env.GAME_DB,
+  gameDO: (env: Env) => env.GAME_DO,
+});
+```
+
+Add the game name and contract commands to `package.json`:
+
+```json
+{
+  "type": "module",
+  "eigen": { "game": "My Game" },
+  "scripts": {
+    "contract": "eigen-contract",
+    "contract:check": "eigen-contract --check",
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "wrangler types && tsc --noEmit"
+  }
+}
+```
+
+The `eigen.game` value is the source of generated Dart type names. See
+[The contract](../build-a-game/the-contract.md) for the rules unit and
+[Deploy the Worker](../ship-it/deploy-the-worker.md) for the required D1,
+Durable Object, cron, and migration configuration.
+
+## Create the Flutter app
+
+Create a normal Flutter app, then add the package plus the two Firebase
+libraries imported by the app entry point:
+
+```bash
+flutter create --empty --org com.example my_game
+cd my_game
+flutter pub add eigen_flutter firebase_core firebase_messaging
+```
+
+The app imports the framework through its barrel only:
+
+```dart
+import 'package:eigen_flutter/eigen_flutter.dart';
+```
+
+Create `lib/game/module.dart`, register the same version keys as the TypeScript
+module, and call `runEngineApp` from `lib/main.dart`. The
+[Creation UI](../build-a-game/creation-ui.md) and
+[Rendering](../build-a-game/rendering.md) pages contain the two handwritten
+Dart pieces.
+
+## Connect the halves
+
+Emit the contract from the Worker:
+
+```bash
+cd server
+npm run contract
+```
+
+Transfer that exact `game-contract.json` to the app repository, then generate
+the Dart payloads and copied fixtures:
+
+```bash
+cd app
+dart run eigen_flutter:generate_payloads \
+  --contract path/to/game-contract.json \
+  --output lib/game/generated/payloads.dart \
+  --fixtures-output test/fixtures
+flutter test
+```
+
+Commit both generated outputs. In CI, run `npm run contract:check` in the
+Worker and the Dart generator with `--check` in the app.
+
+For separate repositories, promote the contract as an immutable build artifact
+and pin it by checksum. The app does not need Worker source, and the Worker does
+not need Flutter source. See
+[The cross-repository contract](../reference/cross-repo.md).

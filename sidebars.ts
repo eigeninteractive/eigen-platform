@@ -30,7 +30,7 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Getting started",
       collapsed: false,
-      items: ["getting-started/quickstart", "getting-started/your-first-game"],
+      items: ["getting-started/quickstart", "getting-started/your-first-game", "getting-started/manual-setup"],
     },
     {
       type: "category",
@@ -85,7 +85,17 @@ const sidebars: SidebarsConfig = {
       key: "reference-typescript",
       label: "TypeScript API",
       link: { type: "doc", id: "reference/typescript/index" },
-      items: ["reference/typescript/rules", "reference/typescript/kernel", "reference/typescript/server", "reference/typescript/server-testing", "reference/typescript/testkit", "reference/typescript/server-d1schema", "reference/typescript/server-doschema"],
+      items: [
+        "reference/typescript/rules",
+        "reference/typescript/server",
+        "reference/typescript/testkit",
+        "reference/typescript/server-testing",
+        {
+          type: "category",
+          label: "Engine internals",
+          items: ["reference/typescript/kernel", "reference/typescript/server-d1schema", "reference/typescript/server-doschema"],
+        },
+      ],
     },
     "reference/dart",
   ],

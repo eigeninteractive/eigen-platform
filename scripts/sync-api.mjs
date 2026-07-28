@@ -14,7 +14,7 @@
  *      input and as a static file — `/openapi.json` is the machine-readable
  *      HTTP contract, which is what an agent should read instead of a prose
  *      rendering of it;
- *   2. runs TypeDoc over the package barrels (see `typedoc.json`);
+ *   2. runs TypeDoc over the package barrels (see `typedoc.config.mjs`);
  *   3. runs `docusaurus gen-api-docs` to turn the spec into MDX pages.
  *
  * Step 2's output is renamed on the way through: TypeDoc names files after the
@@ -68,12 +68,45 @@ for (const file of generated) {
   for (const [from, to] of renames) {
     body = body.replaceAll(`](${from})`, `](${to})`).replaceAll(`](${from}#`, `](${to}#`);
   }
+  // TypeDoc occasionally leaves padding after multiline signature parameters.
+  // Keep committed generated docs friendly to repository-wide whitespace checks.
+  body = body
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .join("\n");
   writeFileSync(path, body);
 }
 for (const [from, to] of renames) {
   renameSync(join(tsDocsDir, from), join(tsDocsDir, to));
   console.log(`  ${from} → ${to}`);
 }
+
+// TypeDoc's default module list is technically correct but gives a game
+// implementor no clue which package to open first. Keep the declarations
+// generated while owning this small task-oriented landing page here.
+writeFileSync(
+  join(tsDocsDir, "index.md"),
+  `# TypeScript API
+
+This reference is generated from the published package barrels. Start with the
+package that owns the task you are doing:
+
+| Package | Open it when you need to… |
+|---|---|
+| [\`@eigeninteractive/rules\`](rules.md) | Implement a \`GameModule\`, payload schemas, hooks, observations, ratings, or bots. This is where most game code lives. |
+| [\`@eigeninteractive/server\`](server.md) | Compose the Cloudflare Worker with \`createEngine\`, \`BaseGameDO\`, bindings, deep links, avatars, or the public site. |
+| [\`@eigeninteractive/testkit\`](testkit.md) | Run twin fixtures, emit/check \`game-contract.json\`, or drive rules through the kernel in tests. |
+| [\`@eigeninteractive/server/testing\`](server-testing.md) | Mint local Firebase-compatible tokens for Worker integration tests. Never use it in production code. |
+
+Game Workers depend directly on \`rules\` and \`server\`; \`testkit\` and
+\`server/testing\` are test-only. The [task guides](../../build-a-game/the-contract.md)
+show how the TypeScript and Dart halves fit together.
+
+The kernel and storage-schema pages are engine internals. They remain available
+for debugging and contributors, but a game should not import them to implement
+rules or deploy a Worker.
+`,
+);
 
 step("Generating the HTTP reference (openapi)");
 rmSync(join(siteDir, "docs", "reference", "http-api"), { recursive: true, force: true });

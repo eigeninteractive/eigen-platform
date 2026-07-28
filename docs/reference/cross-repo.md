@@ -6,24 +6,18 @@ description: Engine packages are dependencies; a deterministic game contract car
 
 # The cross-repo contract
 
-There are two independent boundaries:
+The Worker's schemas are authoritative; the app consumes one generated
+artifact:
 
 ```text
-engine release                         game release
-openapi.json ──► eigen_api             TypeScript schemas + fixtures
-                     │                           │
-                     ▼                           ▼
-               eigen_flutter              game-contract.json
-                                                   │
-                                                   ▼
-                                          generated Dart payloads
+TypeScript schemas + fixtures
+              │
+              ▼
+      game-contract.json
+              │
+              ▼
+ generated Dart payloads + fixture copies
 ```
-
-Engine developers publish `@eigeninteractive/rules`,
-`@eigeninteractive/kernel`, `@eigeninteractive/server`,
-`@eigeninteractive/testkit`, `eigen_api`, and `eigen_flutter`. Game
-implementors consume those packages from npm/pub.dev. They do not clone or
-submodule the engine repositories.
 
 A game's Worker owns its authoritative TypeScript rules and emits one
 deterministic `game-contract.json`. The artifact contains the four payload
@@ -31,11 +25,9 @@ schemas for every `schemaVersion` plus validated behavioral fixtures. The
 Flutter repository consumes the exact artifact to generate immutable Dart
 payload types, the codec, and fixture copies.
 
-The artifact model works for a combined repository, separate Worker/app
-repositories, or a fully hand-created setup. The scaffold generates only the
-combined layout. It renders a canonical C3-style Worker template, runs
-`flutter create --empty`, installs both halves, and performs the first contract
-and Dart payload generation. It introduces no private runtime contract.
+This works in a combined repository, separate Worker/app repositories, or a
+fully hand-created setup. The engine repositories remain ordinary npm/pub.dev
+dependencies in all three.
 
 ## Dependency identity
 

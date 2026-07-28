@@ -1,37 +1,51 @@
 ---
 sidebar_position: 4
 title: Dart API
-description: Where the Flutter client's API reference lives.
+description: The hosted, versioned API reference for eigen_flutter and its testing library.
 ---
 
 # Dart API
 
-The Flutter client ships two Dart packages:
+Game apps use one package and one import:
 
-| Package | What it is |
-|---|---|
-| **`eigen_flutter`** | The app shell, transport, state and presentation — the only package a game app depends on, imported through its single barrel. |
-| **`eigen_api`** | The REST client generated from the server's `openapi.json`. A **build artifact**, generated and published by the engine repo and rewritten wholesale on every wire change. A game app never depends on it directly. |
-
-:::info Not yet published
-
-`eigen_flutter` is consumed as a **path dependency** today, so there is no
-pub.dev listing and therefore no hosted dartdoc yet. Once it is published, its
-generated API reference will live on pub.dev and be linked from here — that is
-the idiomatic home for a Dart package's API docs, and duplicating it into this
-site would only create a second thing to keep in sync.
-
-In the meantime, generate it locally:
-
-```bash
-cd eigen-flutter
-dart doc .
+```dart
+import 'package:eigen_flutter/eigen_flutter.dart';
 ```
 
-:::
+**[Open the latest `eigen_flutter` API reference on pub.dev →](https://pub.dev/documentation/eigen_flutter/latest/)**
 
-For the hand-written client documentation — the contracts, the design and the
-setup that isn't discoverable from the source — start at
-[the client overview](../build-a-game/the-contract.md). The type-level contract a game
-implements on the Dart side is in
-[Building a game's client half](../build-a-game/rendering.md).
+The reference contains only the two supported library entry points:
+
+| Library | Use it for |
+|---|---|
+| `package:eigen_flutter/eigen_flutter.dart` | App startup, configuration, the Dart `GameModule` / `GameRules` contract, generated wire vocabulary, and game-facing widgets. |
+| `package:eigen_flutter/testing/twin_fixtures.dart` | Running the shared TypeScript/Dart contract fixtures from `flutter test`. |
+
+Everything under the package's `core/`, `features/`, and `shared/` directories
+is implementation detail. Do not deep-import it. If a task guide asks you to
+use a type that is missing from the barrel, that is an engine API bug.
+
+## Guide versus API reference
+
+Use this site to complete a task; use pub.dev to look up an exact constructor,
+member, or type:
+
+- [The contract](../build-a-game/the-contract.md) explains what you implement
+  on both the TypeScript and Dart sides.
+- [Rendering](../build-a-game/rendering.md) covers `GameContentContext`,
+  actions, optimistic preview, seats, and widget tests.
+- [Creation UI](../build-a-game/creation-ui.md) covers `GameCreationSpec` and
+  the version-independent module UI.
+- [Testing](../build-a-game/testing.md) covers the dedicated testing library.
+
+`eigen_api` is the generated transport package used inside `eigen_flutter`.
+Game apps do not depend on or import it directly. For wire-level lookup, use
+the [HTTP API reference](./http-api/eigen-engine-api.info.mdx) or
+[`openapi.json`](pathname:///openapi.json).
+
+## Versioned docs
+
+The `latest` link follows the newest stable package. To inspect the API for a
+version pinned in an older app, open that release from the
+[`eigen_flutter` versions list](https://pub.dev/packages/eigen_flutter/versions);
+pub.dev keeps dartdoc for every published version.

@@ -10,10 +10,10 @@ and is the source of truth. Retrieve it rather than relying on memory:
 | Any page as Markdown | append `.md` to its URL |
 | HTTP contract (OpenAPI 3.1) | `https://eigeninteractive.com/openapi.json` |
 
-Start points: `/docs/concepts/overview.md` (how the engine works),
-`/docs/build-a-game/game-module.md` (the rules contract),
-`/docs/client/overview.md` (the Flutter client),
-`/docs/operate/configuration.md` (deploying and running it).
+Start points: `/docs/getting-started/quickstart.md` (scaffold and run both
+halves), `/docs/build-a-game/the-contract.md` (the rules contract),
+`/docs/build-a-game/rendering.md` (the Flutter game surface),
+`/docs/ship-it/deploy-the-worker.md` (deploying and running it).
 
 There is also a Claude Code skill for writing game rules:
 
@@ -21,4 +21,3 @@ There is also a Claude Code skill for writing game rules:
 /plugin marketplace add eigeninteractive/eigen-server
 /plugin install eigen@eigeninteractive
 ```
-

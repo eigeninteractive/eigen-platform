@@ -251,6 +251,7 @@ const config: Config = {
           items: [
             { label: "HTTP API", to: "/docs/reference/http-api/eigen-engine-api" },
             { label: "TypeScript API", to: "/docs/reference/typescript" },
+            { label: "Dart API", href: "https://pub.dev/documentation/eigen_flutter/latest/" },
             // `pathname://` opts out of the SPA router *and* the broken-link
             // check — these are static/post-build artifacts, not routes.
             { label: "OpenAPI spec", to: "pathname:///openapi.json" },

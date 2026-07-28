@@ -25,7 +25,7 @@ production config: pass `auth` ONLY in test workers.
 
 ### TestTokenOptions
 
-Defined in: [eigen-server/packages/server/src/testing.ts:57](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L57)
+Defined in: [eigen-server/packages/server/src/testing.ts:57](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L57)
 
 #### Properties
 
@@ -35,7 +35,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:57](https://github.com/
 optional anonymous?: boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:59](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L59)
+Defined in: [eigen-server/packages/server/src/testing.ts:59](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L59)
 
 ##### claims?
 
@@ -43,7 +43,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:59](https://github.com/
 optional claims?: Record<string, unknown>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:64](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L64)
+Defined in: [eigen-server/packages/server/src/testing.ts:64](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L64)
 
 Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 
@@ -53,7 +53,7 @@ Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 optional email?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L60)
+Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L60)
 
 ##### name?
 
@@ -61,7 +61,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/
 optional name?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:61](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L61)
+Defined in: [eigen-server/packages/server/src/testing.ts:61](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L61)
 
 ##### picture?
 
@@ -69,7 +69,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:61](https://github.com/
 optional picture?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:62](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L62)
+Defined in: [eigen-server/packages/server/src/testing.ts:62](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L62)
 
 ##### uid
 
@@ -77,7 +77,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:62](https://github.com/
 uid: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:58](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L58)
+Defined in: [eigen-server/packages/server/src/testing.ts:58](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L58)
 
 ## Variables
 
@@ -87,7 +87,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:58](https://github.com/
 const TEST_PROJECT_ID: "eigen-test" = "eigen-test";
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:29](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L29)
+Defined in: [eigen-server/packages/server/src/testing.ts:29](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L29)
 
 ## Functions
 
@@ -97,7 +97,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:29](https://github.com/
 function mintTestToken(opts): Promise<string>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:67](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L67)
+Defined in: [eigen-server/packages/server/src/testing.ts:67](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L67)
 
 #### Parameters
 
@@ -117,7 +117,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:67](https://github.com/
 function testBearer(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:86](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L86)
+Defined in: [eigen-server/packages/server/src/testing.ts:86](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L86)
 
 Authorization header for a minted token.
 
@@ -139,7 +139,7 @@ Authorization header for a minted token.
 function testVerifier(): TokenVerifier;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:53](https://github.com/eigeninteractive/eigen-server/blob/43a59eff5a9b4627d6d0d9ded56cc916e6998dee/packages/server/src/testing.ts#L53)
+Defined in: [eigen-server/packages/server/src/testing.ts:53](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L53)
 
 The verifier a test worker passes as `createEngine({ auth })`.
 

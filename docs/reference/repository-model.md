@@ -1,44 +1,68 @@
 ---
 sidebar_position: 1
-title: Repository model
-description: What game implementors own, what engine developers own, and which boundaries keep those repositories independent.
+title: Project layout
+description: What a game repository owns, which generated files cross the Worker/app boundary, and when to use one repository or two.
 ---
 
-# Repository model
+# Project layout
 
-## Game implementor
+Your game owns two deployable applications:
 
-A game owns a Cloudflare Worker repository and a Flutter app repository. They
-may be two directories in one repository or independent repositories.
+```text
+server/   Cloudflare Worker + authoritative TypeScript rules
+app/      Flutter application + client-side rules and presentation
+```
 
-The Worker depends on the published `@eigeninteractive/*` npm packages. The app
-depends on the published `eigen_flutter` package. The only game-specific
-artifact crossing between them is `game-contract.json`, emitted from the
-Worker's authoritative schemas and fixtures and consumed by the Dart generator.
+The engine is not source you copy into either application. The Worker consumes
+published `@eigeninteractive/*` packages from npm; the app consumes
+`eigen_flutter` from pub.dev.
 
-`create-eigen-game` scaffolds the common combined layout only. It adds no
-runtime capability: teams using separate repositories can create either half by
-hand from the same public contracts. npm and pnpm are the supported Node package
-managers. Its Worker source is a standalone C3-style template and is also the
-single source rendered into the combined repository; the scaffolder does not
-carry a second Cloudflare implementation.
+## Combined repository
 
-## Engine developer
+Use one repository when the same team changes and releases both halves. This is
+the layout produced by `create-eigen-game`:
 
-Engine developers work in the three engine repositories:
+```text
+my-game/
+├── package.json       # one contract / contract:check command
+├── server/
+│   ├── src/module/
+│   └── game-contract.json
+└── app/
+    ├── lib/game/
+    └── test/fixtures/
+```
 
-- `eigen-server` publishes the TypeScript packages and the OpenAPI-generated
-  `eigen_api`;
-- `eigen-flutter` publishes the reusable Flutter shell and its Dart payload
-  generator executable;
-- `eigen-web` publishes these versioned docs and generated references.
+`pnpm run contract` emits the Worker contract and immediately regenerates the
+Dart payloads and fixture copies. It is the shortest development loop and the
+recommended starting point.
 
-Cross-repository source paths and dependency overrides are development-only.
-No published manifest points at a sibling checkout.
+## Separate repositories
 
-Publishing and CI credentials are intentionally a separate setup pass. Until
-then, workspace builds prove package contents and the scaffold CLI is exercised
-from source; this does not alter the eventual implementor workflow.
+Use independent repositories when the Worker and app have different ownership,
+permissions, or release cadence. No engine capability is lost.
 
-See [The cross-repo contract](./cross-repo.md) for artifact promotion and
-[Quickstart](../getting-started/quickstart.md) for commands.
+The only game-specific artifact crossing between them is
+`game-contract.json`, emitted from the Worker's authoritative schemas and
+fixtures. Treat it like an API artifact:
+
+1. the Worker emits and tests it;
+2. CI publishes that exact file with a checksum;
+3. the app pins the artifact, generates Dart, and runs its fixture tests;
+4. the compatible app ships before the Worker begins returning the new schema.
+
+The app never imports Worker source. The Worker never imports Dart output.
+
+## Hand-created projects
+
+The scaffolder adds no private runtime contract and intentionally has no
+server-only or app-only modes. Existing projects can install the packages and
+create the required entry points themselves; see
+[Set up without the scaffolder](../getting-started/manual-setup.md).
+
+npm and pnpm are the supported Node package managers. Do not publish manifests
+with path dependencies or sibling-checkout overrides; those are local engine
+development tools, not part of a game.
+
+See [The cross-repository contract](./cross-repo.md) for artifact promotion and
+[Quickstart](../getting-started/quickstart.md) for the combined flow.
