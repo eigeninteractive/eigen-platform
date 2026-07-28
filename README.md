@@ -15,12 +15,17 @@ implementation and the thing you actually run locally.
 
 ## Documentation
 
-| Doc | What it is |
-|---|---|
-| [`docs/architecture.md`](docs/architecture.md) | **Start here.** How the server works, end to end — the request path, the Durable Object, D1, timing, ratings, and §17 for deployment and operations. |
-| [`docs/building_a_game.md`](docs/building_a_game.md) | How to build a game on the engine: the TypeScript rules contract, hook by hook, with recipes. |
-| [`docs/todo.md`](docs/todo.md) | The single forward-looking tracker, covering **both** repos. |
-| `doc/client_reference.md` in `eigen-flutter` | The client: transport, generated payload types and rules bases, the app shell, shipping an app. |
+The implementor documentation lives at
+**[eigeninteractive.com](https://eigeninteractive.com/docs/intro)**:
+
+- [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
+- [The TypeScript + Dart game contract](https://eigeninteractive.com/docs/build-a-game/the-contract)
+- [Deploy the Worker](https://eigeninteractive.com/docs/ship-it/deploy-the-worker)
+- [How the engine works](https://eigeninteractive.com/docs/how-it-works/overview)
+- [TypeScript API](https://eigeninteractive.com/docs/reference/typescript)
+
+[`docs/todo.md`](docs/todo.md) is the engine-maintainer backlog, not product
+documentation.
 
 ## Layout
 
@@ -33,7 +38,7 @@ eigen-server/
 │   ├── testkit/      # twin-fixture runner + contract emitter
 │   └── create-eigen-game/ # combined Worker/Flutter project scaffolder
 ├── examples/rps/     # the reference Worker — rock-paper-scissors
-└── docs/
+└── docs/todo.md       # engine-maintainer backlog
 ```
 
 `kernel` is deliberately platform-free: it knows nothing about Workers, D1 or
@@ -42,7 +47,7 @@ replayable years later.
 
 ## Scaffold a game
 
-After the packages are published, a game implementor starts with:
+A game implementor starts with:
 
 ```bash
 pnpm create eigen-game my-game
@@ -154,8 +159,9 @@ Migrations apply **before** the code goes out, so new code never meets an old
 schema. `curl https://your-worker/health` is the first post-deploy check — it is
 public, does no I/O, and confirms the Worker is deployed and routable (and only
 that; an empty `FIREBASE_PROJECT_ID` leaves it green while every authed request
-500s). `docs/architecture.md` §17 has the full bindings/vars/secrets table, the
-bot-registration SQL, and a first-deploy checklist.
+500s). The [deployment guide](https://eigeninteractive.com/docs/ship-it/deploy-the-worker)
+has the full bindings/vars/secrets table, bot-registration flow, and a
+first-deploy checklist.
 
 Day 0 runs entirely on the **Workers free plan with no payment method**. A card
 is first required only by a real R2 bucket for avatar uploads; the free →
@@ -163,7 +169,8 @@ paid upgrade after that is one click and zero code change.
 
 ## CI
 
-[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every PR and push
+The checks in [`.github/workflows/checks.yml`](.github/workflows/checks.yml) run
+on every PR and push
 to `main`: Biome, `pnpm -r build`, `pnpm -r typecheck`, `pnpm -r test`, and the
 `openapi.json` drift guard. It needs **no Cloudflare credentials** — the Workers
 tests boot `workerd` locally — and it never deploys.

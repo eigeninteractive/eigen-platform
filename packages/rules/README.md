@@ -15,10 +15,10 @@ export default { versions: { 1: rulesV1 } } satisfies GameModule;
 
 ## Documentation
 
-Full documentation: **<https://eigeninteractive.com/docs/build-a-game/game-module>**
+Full documentation: **<https://eigeninteractive.com/docs/build-a-game/the-contract>**
 
 - [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
-- [API reference](https://eigeninteractive.com/docs/reference/typescript)
+- [Rules API reference](https://eigeninteractive.com/docs/reference/typescript/rules)
 - [For agents: llms.txt](https://eigeninteractive.com/llms.txt)
 
 ## License

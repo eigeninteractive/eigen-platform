@@ -18,9 +18,10 @@ import type { PropsWithChildren } from "hono/jsx";
 import styles from "./site.css";
 
 /** Icon paths, defaulted to what `flutter_launcher_icons` already emits into a
- * Flutter app's `web/` directory (see `client_reference.md` §22). An
- * implementor who builds the app has these files already and copies them into
- * `public/`; nobody has to author a second icon set for the web. */
+ * Flutter app's `web/` directory (see the
+ * {@link https://eigeninteractive.com/docs/ship-it/branding | branding guide}).
+ * An implementor who builds the app has these files already and copies them
+ * into `public/`; nobody has to author a second icon set for the web. */
 export const ICONS = {
   favicon: "/favicon.png",
   appleTouch: "/icons/Icon-192.png",

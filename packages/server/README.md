@@ -11,7 +11,7 @@ game's website.
 
 ```ts
 import { BaseGameDO, createEngine } from "@eigeninteractive/server";
-import { gameModule } from "./rules";
+import gameModule from "./module/index.js";
 
 export class GameDO extends BaseGameDO<Env> {
   protected readonly gameModule = gameModule;
@@ -32,10 +32,10 @@ Ships the engine's D1 migrations under `migrations/` — point your
 
 ## Documentation
 
-Full documentation: **<https://eigeninteractive.com/docs/operate/configuration>**
+Full documentation: **<https://eigeninteractive.com/docs/ship-it/configure>**
 
 - [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
-- [API reference](https://eigeninteractive.com/docs/reference/typescript)
+- [Worker API reference](https://eigeninteractive.com/docs/reference/typescript/server)
 - [For agents: llms.txt](https://eigeninteractive.com/llms.txt)
 
 ## License

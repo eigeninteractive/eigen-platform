@@ -49,3 +49,9 @@ The Worker directly depends on both `@eigeninteractive/rules` and
 `@eigeninteractive/server`. Rules is the pure contract the game implements and
 the shared peer identity used by server/kernel/testkit; server is the
 Cloudflare runtime. Server deliberately does not re-export the rules surface.
+
+## Documentation
+
+- [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
+- [Manual setup and split repositories](https://eigeninteractive.com/docs/getting-started/manual-setup)
+- [The game contract](https://eigeninteractive.com/docs/build-a-game/the-contract)

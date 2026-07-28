@@ -22,7 +22,7 @@ twinFixtureTests(gameModule, new URL("../../src/module/fixtures/", import.meta.u
 Full documentation: **<https://eigeninteractive.com/docs/build-a-game/testing>**
 
 - [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
-- [API reference](https://eigeninteractive.com/docs/reference/typescript)
+- [Testkit API reference](https://eigeninteractive.com/docs/reference/typescript/testkit)
 - [For agents: llms.txt](https://eigeninteractive.com/llms.txt)
 
 ## License

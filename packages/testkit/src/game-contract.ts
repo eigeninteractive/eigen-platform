@@ -12,8 +12,10 @@ import { basename, relative, resolve } from "node:path";
 import type { GameModule, StandardJSONSchemaV1 } from "@eigeninteractive/rules";
 import { parseTwinFixtureFile } from "./twin-fixtures.js";
 
+/** Current format of the language-neutral contract consumed by Eigen's Dart generator. */
 export const GAME_CONTRACT_FORMAT_VERSION = 1;
 
+/** One validated twin-fixture document embedded in a {@link GameContract}. */
 export interface GameContractFixture {
   /** POSIX-style path relative to the supplied fixtures root. */
   path: string;
@@ -21,6 +23,7 @@ export interface GameContractFixture {
   document: unknown;
 }
 
+/** The four JSON Schemas emitted for one game `schemaVersion`. */
 export interface GameContractVersion {
   schemas: {
     state: Record<string, unknown>;
@@ -30,6 +33,7 @@ export interface GameContractVersion {
   };
 }
 
+/** Language-neutral schemas and fixtures shared by a game's Worker and app. */
 export interface GameContract {
   formatVersion: typeof GAME_CONTRACT_FORMAT_VERSION;
   game: string;
@@ -37,13 +41,19 @@ export interface GameContract {
   fixtures: GameContractFixture[];
 }
 
+/** Inputs for building a {@link GameContract} without writing it. */
 export interface BuildGameContractOptions {
+  /** Stable display name used as the generated Dart type prefix. */
   game: string;
+  /** Authoritative TypeScript rules registry. */
   gameModule: GameModule;
+  /** Root containing `v<N>/*.json` twin fixtures. */
   fixturesRoot?: string | URL;
 }
 
+/** Inputs for emitting or checking a {@link GameContract} file. */
 export interface EmitGameContractOptions extends BuildGameContractOptions {
+  /** Destination `game-contract.json` path. */
   output: string | URL;
 }
 

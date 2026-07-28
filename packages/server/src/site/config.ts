@@ -51,9 +51,10 @@ export interface SiteConfig {
   /** Filenames under `public/screenshots/`, shown as a scrolling strip. */
   screenshots?: string[];
   /** Path under `public/` to the 1200x630 OG image. Defaults to
-   * `/og-image.png`, the name `client_reference.md` §22 already prescribes for
-   * the Flutter app's own share card — one image, both surfaces. The engine
-   * never generates images. */
+   * `/og-image.png`, the name the
+   * {@link https://eigeninteractive.com/docs/ship-it/branding | branding guide}
+   * prescribes for the Flutter app's own share card — one image, both
+   * surfaces. The engine never generates images. */
   ogImage?: string;
   operator: OperatorConfig;
   legal?: LegalConfig;

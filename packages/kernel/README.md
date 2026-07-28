@@ -17,10 +17,10 @@ derivation and the rating math.
 
 ## Documentation
 
-Full documentation: **<https://eigeninteractive.com/docs/concepts/kernel>**
+Full documentation: **<https://eigeninteractive.com/docs/how-it-works/kernel>**
 
 - [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
-- [API reference](https://eigeninteractive.com/docs/reference/typescript)
+- [Kernel API reference](https://eigeninteractive.com/docs/reference/typescript/kernel)
 - [For agents: llms.txt](https://eigeninteractive.com/llms.txt)
 
 ## License

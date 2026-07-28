@@ -82,6 +82,24 @@ interface SocketAttachment {
 // hand-written `GameStub` surface, which the generic-erased RouteContext
 // needs in place of `DurableObjectStub<this>`. This clause makes the compiler
 // reject any signature here that diverges from what the callers expect.
+/**
+ * Durable Object base class that owns one authoritative game session.
+ *
+ * A game Worker subclasses this once to supply its {@link gameModule} and D1
+ * binding. Do not override command, socket, alarm, or persistence behavior:
+ * the base class owns the serialized game loop and applies engine migrations
+ * on activation.
+ *
+ * @example
+ * ```ts
+ * export class GameDO extends BaseGameDO<Env> {
+ *   protected readonly gameModule = gameModule;
+ *   protected d1(env: Env) {
+ *     return env.GAME_DB;
+ *   }
+ * }
+ * ```
+ */
 export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements GameStub {
   /** The implementor's game — the `versions` map the engine dispatches on. */
   protected abstract readonly gameModule: GameModule;

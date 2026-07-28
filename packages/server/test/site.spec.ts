@@ -37,8 +37,8 @@ describe("landing page", () => {
     const html = await (await get("/")).text();
     expect(html).toContain('<link rel="canonical" href="https://x/"/>');
     expect(html).toContain('<meta property="og:url" content="https://x/"/>');
-    // Defaults to the name client_reference.md §22 already prescribes for the
-    // Flutter app's own share card — one image, both surfaces.
+    // Defaults to the same name the branding guide prescribes for the Flutter
+    // app's share card — one image, both surfaces.
     expect(html).toContain('<meta property="og:image" content="https://x/og-image.png"/>');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"/>');
     expect(html).toContain('<meta charset="utf-8"/>');

@@ -35,17 +35,18 @@ Every mistake in a game module traces back to breaking one of these.
 
 ## What to implement
 
-A `GameModule` maps `schemaVersion` → a `GameRules` unit:
+A `GameModule` maps `schemaVersion` → a `GameRules` unit and is the default
+export of `src/module/index.ts`:
 
 ```ts
-export const gameModule: GameModule = { versions: { 1: rulesV1 } };
+export default { versions: { 1: rulesV1 } } satisfies GameModule;
 ```
 
 A `GameRules` unit is schemas + six hooks (+ optional bot brains):
 
 ```ts
-interface GameRules<TState, TAction, TConfig> {
-  schemas: { state; action; config };          // Standard Schema each
+interface GameRules<TState, TObservation, TAction, TConfig> {
+  schemas: { state; observation; action; config };
 
   initialState(args): Envelope<TState>;
   applyAction(args): Envelope<TState>;

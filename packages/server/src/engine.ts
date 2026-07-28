@@ -337,6 +337,26 @@ function resolveSite(cfg: SiteConfig, appName: string): ResolvedSite {
   };
 }
 
+/**
+ * Creates the complete Cloudflare Worker for one game deployment.
+ *
+ * Call this once from the default export of `src/index.ts`. The returned
+ * handler mounts the authenticated game API, WebSocket upgrades, scheduled
+ * lifecycle work, and any configured public/deep-link routes. Game
+ * implementors provide only {@link EngineConfig.gameModule} and binding
+ * accessors; routes, persistence, migrations, authentication, and session
+ * dispatch stay engine-owned.
+ *
+ * @example
+ * ```ts
+ * export default createEngine({
+ *   gameModule,
+ *   appName: "My Game",
+ *   d1: (env: Env) => env.GAME_DB,
+ *   gameDO: (env: Env) => env.GAME_DO,
+ * });
+ * ```
+ */
 export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(cfg: EngineConfig<TEnv, TDO>): ExportedHandler<TEnv> {
   const projectId = (env: TEnv): string => {
     if (cfg.firebaseProjectId !== undefined) return cfg.firebaseProjectId(env);

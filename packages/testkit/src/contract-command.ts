@@ -58,10 +58,21 @@ async function configuredGameContractOptions(root: string) {
   };
 }
 
+/**
+ * Emits `game-contract.json` from an Eigen package's conventional layout.
+ *
+ * This is the programmatic form of the `eigen-contract` executable. Most
+ * games should invoke the executable through their package script.
+ */
 export async function emitConfiguredGameContract(root = process.cwd()): Promise<void> {
   emitGameContract(await configuredGameContractOptions(root));
 }
 
+/**
+ * Fails when the conventionally configured contract is absent or stale.
+ *
+ * Use this in CI through `eigen-contract --check`.
+ */
 export async function checkConfiguredGameContract(root = process.cwd()): Promise<void> {
   checkGameContract(await configuredGameContractOptions(root));
 }
