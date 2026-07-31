@@ -136,6 +136,14 @@ module, and call `runEngineApp` from `lib/main.dart`. The
 [Rendering](../build-a-game/rendering.md) pages contain the two handwritten
 Dart pieces.
 
+Create `app-config.json` beside `pubspec.yaml` with `API_BASE_URL`,
+`GOOGLE_WEB_CLIENT_ID`, optional `APP_HOST`, and the public
+`FIREBASE_VAPID_KEY`. Read them once with `const String.fromEnvironment` in
+`main.dart`, pass them into `EngineConfig`, and use
+`--dart-define-from-file=app-config.json` for both Android and web commands.
+The complete shape and validation rules are in
+[Configuration](../ship-it/configure.md#the-app).
+
 For web, add the Firebase Messaging service worker and register it from a custom
 `web/flutter_bootstrap.js`; configure a fixed local origin in the Worker and
 Firebase. The scaffold supplies those files automatically. Manual projects can

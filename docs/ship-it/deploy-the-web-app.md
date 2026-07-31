@@ -30,7 +30,9 @@ the browser integration points differ:
 - the game feed uses `wss://…?token=…`, because browser WebSocket upgrades
   cannot set an `Authorization` header;
 - Firebase Messaging runs background delivery in a service worker;
-- persisted Riverpod snapshots use browser LocalStorage instead of SQLite.
+- server responses stay in Riverpod memory for the browser session and are
+  fetched again after a reload. Firebase Auth and small user preferences retain
+  their own browser persistence.
 
 ## 1. Use a stable local origin
 
@@ -39,7 +41,8 @@ ports. Run Flutter on the scaffold's fixed port:
 
 ```bash
 cd app
-flutter run -d chrome --web-hostname localhost --web-port 7357
+flutter run -d chrome --web-hostname localhost --web-port 7357 \
+  --dart-define-from-file=app-config.json
 ```
 
 Local development deliberately uses two origins, so Flutter can hot reload
@@ -82,19 +85,16 @@ The scaffold contains:
 
 - `web/firebase-messaging-sw.js`, which receives background messages;
 - `web/flutter_bootstrap.js`, which registers that worker before Flutter starts;
-- a `FIREBASE_VAPID_KEY` Dart define consumed by `EngineConfig`.
+- an `app-config.json` containing the public `FIREBASE_VAPID_KEY` consumed by
+  `EngineConfig`.
 
 Copy the Web app configuration from Firebase Console into
 `firebase-messaging-sw.js`. It is intentionally app-owned: a service worker runs
 outside the Dart isolate and cannot import `firebase_options.dart`.
 
 Generate or copy the public Web Push certificate key from Firebase Console →
-Project Settings → Cloud Messaging → Web configuration, then run:
-
-```bash
-flutter run -d chrome --web-hostname localhost --web-port 7357 \
-  --dart-define=FIREBASE_VAPID_KEY=YOUR_PUBLIC_VAPID_KEY
-```
+Project Settings → Cloud Messaging → Web configuration, then put it in
+`app-config.json` before running the command from step 1.
 
 The VAPID key is public but required for Eigen's web target. An empty key stops
 web startup with an actionable configuration error; it is not treated as a
@@ -126,7 +126,8 @@ only with registering FCM before Flutter starts.
 
 ## 4. Build and deploy one artifact
 
-Edit the scaffolded `app/web-config.json`. These are public build-time values:
+Edit the scaffolded `app/app-config.json`. These are public build-time values
+shared by Android and web:
 
 ```json
 {
@@ -158,11 +159,13 @@ pnpm run deploy
 ```
 
 The root script runs `flutter build web --release` directly into
-`server/public/`, applies D1 migrations, then deploys the Worker and assets
-together. Wrangler's `single-page-application` fallback handles clean Flutter
-paths. Its selective `run_worker_first` list keeps exact static files on
-Cloudflare's asset path while reserving dynamic engine routes for Worker code.
-There is no second hosting product or second deployment URL to coordinate.
+`server/public/` with
+`--dart-define-from-file=app-config.json`, applies D1 migrations, then deploys
+the Worker and assets together. Wrangler's `single-page-application` fallback
+handles clean Flutter paths. Its selective `run_worker_first` list keeps exact
+static files on Cloudflare's asset path while reserving dynamic engine routes
+for Worker code. There is no second hosting product or second deployment URL
+to coordinate.
 
 For the simple reload update model:
 
@@ -199,7 +202,7 @@ Before release, test at the production origin:
 7. direct navigation and refresh at `/game/:id` or `/join/:code`;
 8. the update-required reload after replacing the deployed bundle.
 
-The engine CI runs its platform-specific storage and socket tests in Chrome,
-then compiles the RPS reference entrypoint with `flutter build web --release`.
-Your app CI should do the same with its generated Firebase configuration, then
-add credentialed browser integration tests for the flows above.
+The engine CI runs its browser socket and integration tests, then compiles the
+RPS reference entrypoint with `flutter build web --release`. Your app CI should
+do the same with `app-config.json` and its generated Firebase configuration,
+then add credentialed browser integration tests for the flows above.

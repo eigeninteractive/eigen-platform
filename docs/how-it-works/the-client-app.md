@@ -42,9 +42,9 @@ A consuming app is a standard Flutter app with the game under `lib/game/`:
 ```text
 my_app/
 ├── pubspec.yaml             # depends on eigen_flutter (path, until published)
+├── app-config.json          # public Android + web build-time values
 ├── lib/
 │   ├── main.dart            # ~30-line entry: runEngineApp(module, config, …)
-│   ├── env/                 # envied-generated Env
 │   ├── firebase_options.dart
 │   └── game/
 │       ├── game_module.dart # versions map + creation/about UI
@@ -76,10 +76,10 @@ initial event is missed:
    `initialize()`** — the terminated-state tap arrives on a broadcast stream, so
    a listener attached after init misses it.
 3. Keep the native splash up until auth resolves; if authenticated, also await
-   the profile cache restore, **capped at 2 s**. SQLite resolves in ~5 ms, so the
-   cap only fires on a first-ever launch with no cache and no network — in which
-   case `FlutterNativeSplash.remove()` still runs in `finally` and the home
-   screen opens with a loading profile. The app is never stuck behind the splash.
+   the profile warm-up, **capped at 2 s**. A native SQLite cache normally
+   resolves immediately; web fetches the profile again after reload. If neither
+   finishes within the cap, `FlutterNativeSplash.remove()` still runs in
+   `finally` and the home screen opens with a loading profile.
 4. An `AppLifecycleListener` reconciles OS/browser notification permission,
    FCM registration and the server's installation row, and polls for an Android
    in-app update on every resume.
@@ -111,34 +111,34 @@ both before the first request and after a denial. One install-local marker
 records only a user-initiated system request, so a fresh install still gets an
 **Enable** button; another ensures the explanatory modal appears only once.
 Blocked native users get an explicit system-Settings action and blocked web
-users get browser site-settings guidance. Granted permission triggers
-`getToken()` and then the FID upsert. Token refresh, FID rotation, sign-in and
-app resume all retry that reconciliation; revoking permission removes the stale
-server installation row without deleting the Firebase installation itself.
+users get browser site-settings guidance. Granted permission calls Firebase's
+FID-based `register()` flow and then upserts the installation. FID rotation,
+sign-in and app resume all retry that reconciliation; revoking permission
+removes the stale server installation row without deleting the Firebase
+installation itself.
 
 The splash is **infra-owned**: a game never calls `FlutterNativeSplash.remove()`.
 
 ## Local persistence
 
-**Goal:** eliminate cold-start spinners for data that is already known and rarely
-changes — first paint shows real data, background refreshes update silently.
+**Native goal:** eliminate cold-start spinners for data that is already known
+and rarely changes. Web deliberately starts with a fresh server read after each
+reload and relies on Riverpod's in-memory state for the browser session.
 
-A single platform storage adapter stores persisted provider state as JSON,
-opened once at startup and shared. Android uses Riverpod's official SQLite
-adapter (`riverpod.db`, via `riverpod_sqflite`); web stores the same small,
-non-critical snapshots in browser LocalStorage through
-`SharedPreferencesAsync`. Persisted providers **race** their restore against the
-network fetch rather than sequencing them: `persist()` is called *without*
-awaiting, and an internal `didChange` guard stops a slow cache read from
-overwriting a fresher network result.
+Native apps currently store selected provider state as JSON with Riverpod's
+official SQLite adapter (`riverpod.db`, via `riverpod_sqflite`). Persisted
+providers **race** their restore against the network fetch rather than
+sequencing them: `persist()` is called *without* awaiting, and an internal
+`didChange` guard stops a slow cache read from overwriting a fresher network
+result.
 
-| Provider | Persisted | Why |
+| Provider | Native across launches | Web after reload |
 |---|---|---|
-| current user profile | yes | Own profile; cold-start UX |
-| player-info cache (per id) | yes | Public identity; kills per-seat spinners and keeps the batch `players?ids=` endpoint warm |
-| friends | yes | Social list; stale-while-revalidate |
-| bot catalog | yes | Deployment-global reference data; readies the "Add bot" picker |
-| ratings, active games | **no** | Live data — staleness would be misleading |
+| current user profile | SQLite stale-while-revalidate | fetch |
+| player-info cache (per id) | SQLite, 30-day expiry | fetch through the batch endpoint |
+| friends | SQLite stale-while-revalidate | fetch |
+| bot catalog | SQLite, 7-day expiry | fetch |
+| ratings, active games | fetch | fetch |
 
 Two disciplines make this safe:
 
@@ -146,16 +146,23 @@ Two disciplines make this safe:
   key when *its* model's persisted shape changes incompatibly; old entries are
   discarded and refetched. Sharing one key would mean a profile change wipes the
   friends cache. There is no incremental JSON migration — this is the only path.
-- **Clear on sign-out and account deletion.** `deleteUserData(uid)` wipes every
+- **Clear native user caches on sign-out and account deletion.**
+  `deleteUserData(uid)` wipes every
   user-scoped key (`profile_{uid}`, `friends_{uid}`, …) and must run **before**
   the auth session ends, since after deletion the credentials are gone. Cache
-  entries also carry an expiry, and the browser adapter caps the entire cache at
-  512 entries by evicting the oldest writes. The **player-info cache is
-  deliberately not cleared** — player identity is public, and a second account
-  on the same device benefits from it — but each entry expires after 30 days.
+  entries also carry an expiry. The **player-info cache is deliberately not
+  cleared** — player identity is public, and a second account on the same device
+  benefits from it — but each entry expires after 30 days.
 
 The keys live in one place (`core/storage/`) rather than beside their providers,
 which also breaks a circular import between auth and profile.
+
+Theme choice and notification reconciliation markers are small preferences, not
+server-response caches, and continue to use `SharedPreferencesAsync` on web.
+Firebase owns authentication persistence independently. When native adopts
+Drift for queryable data such as game history, these JSON snapshots should move
+behind repositories as typed tables rather than turning Drift into another
+generic Riverpod key-value backend.
 
 ## Connectivity & offline UX
 

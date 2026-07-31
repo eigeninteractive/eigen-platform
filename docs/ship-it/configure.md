@@ -64,19 +64,25 @@ that schema, and its migrations will not know about them.
 ## The app
 
 One `AppConfig` passed to `runEngineApp`: `Branding` (name, theme seed) plus
-`EngineConfig` (the injected runtime values). **Nothing is read from `Env` inside
-the framework** — the app owns its env plumbing and hands values in.
+`EngineConfig` (the injected runtime values). The app reads Dart compilation
+environment declarations once at this composition root; the framework does not
+read hidden process or file state.
 
 ```dart
+const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
+const appHost = String.fromEnvironment('APP_HOST');
+
 await runEngineApp(
   module: const RpsModule(),
   config: AppConfig(
     branding: const Branding(appName: 'Rock Paper Scissors', seedColor: Colors.teal),
     engine: EngineConfig(
-      apiBaseUrl: Env.apiBaseUrl,
-      googleWebClientId: Env.googleWebClientId,
-      firebaseVapidKey: Env.firebaseVapidKey,
-      appHost: Env.appHost,
+      apiBaseUrl: apiBaseUrl,
+      googleWebClientId: googleWebClientId,
+      firebaseVapidKey: firebaseVapidKey,
+      appHost: appHost.isEmpty ? null : appHost,
     ),
   ),
   firebaseOptions: DefaultFirebaseOptions.currentPlatform,
@@ -84,8 +90,15 @@ await runEngineApp(
 );
 ```
 
-The values come from `.env` (git-ignored, read by `envied`; regenerate with
-`dart run build_runner build` after any change):
+The scaffold stores these public values in `app/app-config.json`. Pass that
+same file to every Flutter run or build; no generated environment class or
+configuration code-generation step is needed:
+
+```bash
+flutter run --dart-define-from-file=app-config.json
+flutter build appbundle --release \
+  --dart-define-from-file=app-config.json
+```
 
 | Var | Required | Purpose |
 |---|---|---|
@@ -93,6 +106,12 @@ The values come from `.env` (git-ignored, read by `envied`; regenerate with
 | `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. |
 | `APP_HOST` | optional | This game's hostname, without scheme. In the default deployment it is the host part of `API_BASE_URL`; it enables invite/replay sharing and legal links. `/download` is the native install page. |
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
+
+These values are embedded in the Android binary or downloaded web bundle and
+must never be treated as secrets. Required entries start empty in a fresh
+scaffold. `runEngineApp` validates all of them before initializing Firebase and
+reports every missing or malformed value together. Worker service-account keys,
+bot signing keys, and other real credentials stay in Worker secrets.
 
 ## Firebase — once per deployment
 

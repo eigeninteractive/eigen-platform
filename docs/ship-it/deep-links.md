@@ -42,7 +42,9 @@ deliberately *not* claimed, so it opens in the browser.
 The host is compiled into the binary, because the OS verifies domain ownership at
 install time. So it lives in **three places that must stay in sync**:
 
-1. **`.env`** — `APP_HOST=mygame.example.com`, then regenerate envied.
+1. **`app/app-config.json`** — `"APP_HOST": "mygame.example.com"`. Pass the
+   file to Android and web builds with
+   `--dart-define-from-file=app-config.json`.
 2. **`android/app/src/main/AndroidManifest.xml`** — `android:host` **and an
    `android:pathPrefix` for each of `/join` and `/game`** in the App Links
    `<intent-filter>`. Android fetches

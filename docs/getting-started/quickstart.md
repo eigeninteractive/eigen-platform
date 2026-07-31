@@ -130,11 +130,13 @@ Run the browser at the stable origin already allowed by the Worker scaffold:
 
 ```bash
 cd app
-flutter run -d chrome --web-hostname localhost --web-port 7357
+flutter run -d chrome --web-hostname localhost --web-port 7357 \
+  --dart-define-from-file=app-config.json
 ```
 
 Select Android and Web when running `flutterfire configure`, then finish the
-required service-worker and VAPID setup in
+required public values in `app-config.json`, service-worker configuration, and
+VAPID setup in
 [Deploy the web app](../ship-it/deploy-the-web-app.md). Copy
 `server/.dev.vars.example` to `server/.dev.vars` and fill the Admin credentials
 from that same Firebase project before running authenticated Worker traffic.

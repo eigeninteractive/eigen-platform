@@ -26,6 +26,7 @@ in the build command:
 
 ```bash
 flutter build appbundle --release \
+  --dart-define-from-file=app-config.json \
   --obfuscate --split-debug-info=build/debug-info/android/
 ```
 
@@ -39,11 +40,12 @@ is unreadable, so keep the retention long enough to outlive a release.
 
 The Android release path has three jobs:
 
-- **test** — checks out the app, writes `.env` from secrets, decodes
-  `firebase_options.dart`, then format, analyze, test.
+- **test** — checks out the app, supplies `app-config.json`, restores or
+  generates `firebase_options.dart`, then format, analyze, test.
 - **build** (main pushes only) — decodes `google-services.json` and the keystore,
   writes `android/key.properties`, builds a signed obfuscated AAB with
-  `--build-number=${{ github.run_number }}`, and uploads the AAB and the debug
+  `--build-number=${{ github.run_number }}` and
+  `--dart-define-from-file=app-config.json`, and uploads the AAB and the debug
   symbols as artifacts.
 - **deploy** — downloads the AAB and runs `bundle exec fastlane android internal`.
 
@@ -53,21 +55,25 @@ with the public Firebase configuration. Deploy the combined Worker + asset
 version only after that target passes; the routing and cache requirements are in
 [Deploy the web app](./deploy-the-web-app.md).
 
-`FIREBASE_OPTIONS_DART_BASE64` is needed in **test** as well as build — without
-it, analyze cannot resolve the import.
+The four app declarations are public. Commit the production
+`app-config.json`, or construct it in CI from repository/environment variables
+when environments differ. Do not place these values in a secret store merely
+because they are injected at build time.
 
-| Secret | Used for |
+| CI input | Used for |
 |---|---|
-| `API_BASE_URL`, `GOOGLE_WEB_CLIENT_ID`, `APP_HOST` | written into `.env` |
+| `API_BASE_URL`, `GOOGLE_WEB_CLIENT_ID`, `APP_HOST`, `FIREBASE_VAPID_KEY` | `app-config.json` |
 | `FIREBASE_OPTIONS_DART_BASE64` | `lib/firebase_options.dart` |
 | `GOOGLE_SERVICES_JSON_BASE64` | `android/app/google-services.json` (build only) |
 | `GOOGLE_SERVICE_INFO_PLIST_BASE64` | the iOS equivalent, when iOS CI is added |
 | `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` | signing |
 | `GOOGLE_PLAY_JSON_KEY` | fastlane `upload_to_play_store` |
 
-Encode with `base64 -i <file> | pbcopy`. `firebase.json` is **not** a CI secret —
-it is only used by the `flutterfire` CLI to target the right project on the next
-`configure` run, and is never read by a build.
+`firebase_options.dart`, `google-services.json`, and `firebase.json` contain
+client identifiers, not service-account credentials. They may be committed or
+reconstructed in CI according to the app's environment policy. Signing keys,
+the Play service account, and Worker Admin credentials remain secrets. Encode
+files for CI with `base64 -i <file> | pbcopy`.
 
 ## fastlane
 
