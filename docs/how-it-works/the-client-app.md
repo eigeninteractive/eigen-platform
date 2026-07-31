@@ -50,10 +50,18 @@ my_app/
 │       ├── game_module.dart # versions map + creation/about UI
 │       └── v1/              # one folder per schemaVersion
 ├── test/game/twin_fixtures_test.dart
-├── android/ ios/ web/ …
+├── web/
+│   ├── firebase-config.js  # generated for the messaging service worker
+│   └── firebase-messaging-sw.js
+├── android/ ios/ …
 ├── assets/icon/             # icon.png + icon_foreground.png
 └── fastlane/                # Fastfile + Appfile
 ```
+
+`dart run eigen_flutter:configure_firebase` generates FlutterFire's platform
+files and `web/firebase-config.js` from the same selected Firebase app. The
+service worker remains app-owned because it runs outside the Dart isolate, but
+its identifiers are not hand-maintained.
 
 The `v1/` folder is a **convention, not enforced** — the contract is the
 `versions` map. But mirroring the layout across both languages is what makes a
