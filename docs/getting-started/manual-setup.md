@@ -144,6 +144,18 @@ Create `app-config.json` beside `pubspec.yaml` with `API_BASE_URL`,
 The complete shape and validation rules are in
 [Configuration](../ship-it/configure.md#the-app).
 
+After installing and authenticating the Firebase and FlutterFire CLIs, run the
+engine's setup executable from the Flutter repository root:
+
+```bash
+dart run eigen_flutter:configure_firebase
+```
+
+It generates FlutterFire's platform files and
+`web/firebase-config.js` for the messaging worker from the same selected Web
+app. Keep the scaffold's `firebase-messaging-sw.js` and
+`flutter_bootstrap.js`; do not duplicate Firebase identifiers by hand.
+
 For web, add the Firebase Messaging service worker and register it from a custom
 `web/flutter_bootstrap.js`; configure a fixed local origin in the Worker and
 Firebase. The scaffold supplies those files automatically. Manual projects can

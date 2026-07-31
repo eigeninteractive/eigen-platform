@@ -41,7 +41,8 @@ is unreadable, so keep the retention long enough to outlive a release.
 The Android release path has three jobs:
 
 - **test** — checks out the app, supplies `app-config.json`, restores or
-  generates `firebase_options.dart`, then format, analyze, test.
+  generates `firebase_options.dart` and `web/firebase-config.js`, then format,
+  analyze, test.
 - **build** (main pushes only) — decodes `google-services.json` and the keystore,
   writes `android/key.properties`, builds a signed obfuscated AAB with
   `--build-number=${{ github.run_number }}` and
@@ -64,16 +65,19 @@ because they are injected at build time.
 |---|---|
 | `API_BASE_URL`, `GOOGLE_WEB_CLIENT_ID`, `APP_HOST`, `FIREBASE_VAPID_KEY` | `app-config.json` |
 | `FIREBASE_OPTIONS_DART_BASE64` | `lib/firebase_options.dart` |
+| `FIREBASE_WEB_CONFIG_JS_BASE64` | `web/firebase-config.js` |
 | `GOOGLE_SERVICES_JSON_BASE64` | `android/app/google-services.json` (build only) |
 | `GOOGLE_SERVICE_INFO_PLIST_BASE64` | the iOS equivalent, when iOS CI is added |
 | `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD` | signing |
 | `GOOGLE_PLAY_JSON_KEY` | fastlane `upload_to_play_store` |
 
-`firebase_options.dart`, `google-services.json`, and `firebase.json` contain
-client identifiers, not service-account credentials. They may be committed or
-reconstructed in CI according to the app's environment policy. Signing keys,
-the Play service account, and Worker Admin credentials remain secrets. Encode
-files for CI with `base64 -i <file> | pbcopy`.
+`firebase_options.dart`, `firebase-config.js`, `google-services.json`, and
+`firebase.json` contain client identifiers, not service-account credentials.
+They may be committed or reconstructed in CI according to the app's environment
+policy. Generate the first two together with `firebase:configure` so they name
+the same Web app. Signing keys, the Play service account, and Worker Admin
+credentials remain secrets. Encode files for CI with
+`base64 -i <file> | pbcopy`.
 
 ## fastlane
 

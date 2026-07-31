@@ -134,9 +134,10 @@ flutter run -d chrome --web-hostname localhost --web-port 7357 \
   --dart-define-from-file=app-config.json
 ```
 
-Select Android and Web when running `flutterfire configure`, then finish the
-required public values in `app-config.json`, service-worker configuration, and
-VAPID setup in
+Run `pnpm firebase:configure` (or `npm run firebase:configure`) from the
+generated repository root. It configures Android and Web with FlutterFire and
+generates the service worker's matching public Firebase configuration. Then
+finish the required public values and VAPID key in `app-config.json` as shown in
 [Deploy the web app](../ship-it/deploy-the-web-app.md). Copy
 `server/.dev.vars.example` to `server/.dev.vars` and fill the Admin credentials
 from that same Firebase project before running authenticated Worker traffic.

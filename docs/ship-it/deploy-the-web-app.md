@@ -63,8 +63,19 @@ or otherwise non-standard origins.
 
 ## 2. Configure Firebase for web
 
-Run `flutterfire configure` and select **Android and Web**. Use the generated
-options in `runEngineApp`:
+From the generated repository root, configure Android, Flutter Web, and the
+messaging worker together:
+
+```bash
+pnpm firebase:configure
+# or: npm run firebase:configure
+```
+
+For an app maintained in its own repository, run
+`dart run eigen_flutter:configure_firebase` from the Flutter root. Both forms
+run FlutterFire for Android and Web, then derive the service worker
+configuration from the Web app FlutterFire selected. Use the generated options
+in `runEngineApp`:
 
 ```dart
 firebaseOptions: DefaultFirebaseOptions.currentPlatform,
@@ -84,13 +95,15 @@ service-account private key remains a secret.
 The scaffold contains:
 
 - `web/firebase-messaging-sw.js`, which receives background messages;
+- `web/firebase-config.js`, generated from FlutterFire's selected Web app;
 - `web/flutter_bootstrap.js`, which registers that worker before Flutter starts;
 - an `app-config.json` containing the public `FIREBASE_VAPID_KEY` consumed by
   `EngineConfig`.
 
-Copy the Web app configuration from Firebase Console into
-`firebase-messaging-sw.js`. It is intentionally app-owned: a service worker runs
-outside the Dart isolate and cannot import `firebase_options.dart`.
+Do not copy Firebase identifiers into the service worker. It imports the
+generated `firebase-config.js`; rerunning `firebase:configure` updates both it
+and `firebase_options.dart` from the same selected Firebase app. Both generated
+files contain public application identifiers, not Firebase Admin credentials.
 
 Generate or copy the public Web Push certificate key from Firebase Console →
 Project Settings → Cloud Messaging → Web configuration, then put it in
@@ -170,7 +183,8 @@ to coordinate.
 For the simple reload update model:
 
 - serve `index.html`, `flutter_bootstrap.js`, `main.dart.js`, and
-  `firebase-messaging-sw.js` with revalidation or a short cache;
+  `firebase-messaging-sw.js` plus `firebase-config.js` with revalidation or a
+  short cache;
 - immutable-hash assets may use a long cache;
 - deploy the complete Worker + asset version atomically.
 
@@ -204,5 +218,6 @@ Before release, test at the production origin:
 
 The engine CI runs its browser socket and integration tests, then compiles the
 RPS reference entrypoint with `flutter build web --release`. Your app CI should
-do the same with `app-config.json` and its generated Firebase configuration,
-then add credentialed browser integration tests for the flows above.
+do the same with `app-config.json`, `firebase_options.dart`, and the generated
+`firebase-config.js`, then add credentialed browser integration tests for the
+flows above.

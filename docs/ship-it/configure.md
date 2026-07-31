@@ -115,14 +115,34 @@ bot signing keys, and other real credentials stay in Worker secrets.
 
 ## Firebase — once per deployment
 
-Firebase is mandatory on the client: the app will not compile without
-`firebase_options.dart`, even for local development.
+Firebase is mandatory on the client. A fresh scaffold contains a throwing
+`firebase_options.dart` seam so analysis works before project setup, but the app
+will not start until FlutterFire replaces it with real platform configuration.
 
 1. **Create the project** at console.firebase.google.com with Analytics enabled.
-2. `npm i -g firebase-tools && firebase login`, then
-   `dart pub global activate flutterfire_cli`, then **`flutterfire configure`** —
-   select Android and Web. It registers both apps and writes
-   `firebase_options.dart`.
+2. Install and authenticate the official tooling:
+
+   ```bash
+   npm install --global firebase-tools
+   firebase login
+   dart pub global activate flutterfire_cli
+   ```
+
+   From a scaffolded repository root, run:
+
+   ```bash
+   pnpm firebase:configure
+   # or: npm run firebase:configure
+   ```
+
+   The engine executable runs FlutterFire for Android and Web, reads the Web
+   app ID FlutterFire records in `app/firebase.json`, asks the Firebase CLI for
+   that app's SDK configuration, and writes
+   `app/web/firebase-config.js`. This keeps
+   `app/lib/firebase_options.dart` and the messaging worker on the same
+   Firebase Web app without copying identifiers. In a standalone app
+   repository, run `dart run eigen_flutter:configure_firebase` from the Flutter
+   root.
 3. **Add SHA fingerprints** to the Android app. `flutterfire` does *not* do this,
    and Google Sign-In validates the calling app's certificate at runtime:
    - **Now:** the debug key, so Sign-In works in dev builds.
@@ -173,12 +193,15 @@ environment's files or reconstruct them in CI:
 |---|---|
 | `lib/firebase_options.dart` | Dart, all platforms |
 | `android/app/google-services.json` | Android native |
-| `firebase.json` | FlutterFire CLI metadata — **not** needed in CI |
+| `web/firebase-config.js` | Generated public Web config for the messaging worker |
+| `firebase.json` | FlutterFire CLI metadata and selected Firebase app IDs |
 
 Web Push also requires the app-owned
-`web/firebase-messaging-sw.js`. Its Firebase config repeats the public Web
-values because a service worker runs outside Dart and cannot import
-`firebase_options.dart`. See [Deploy the web app](./deploy-the-web-app.md).
+`web/firebase-messaging-sw.js`. A service worker runs outside Dart and cannot
+import `firebase_options.dart`, so it imports the generated
+`firebase-config.js` instead. The VAPID public key remains in `app-config.json`:
+Firebase's app SDK configuration does not include the Web Push certificate.
+See [Deploy the web app](./deploy-the-web-app.md).
 
 ## Avatars (optional)
 
