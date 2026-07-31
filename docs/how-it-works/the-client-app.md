@@ -80,8 +80,9 @@ initial event is missed:
    cap only fires on a first-ever launch with no cache and no network — in which
    case `FlutterNativeSplash.remove()` still runs in `finally` and the home
    screen opens with a loading profile. The app is never stuck behind the splash.
-4. An `AppLifecycleListener` re-checks OS notification permission and polls for
-   an Android in-app update on every resume.
+4. An `AppLifecycleListener` reconciles OS/browser notification permission,
+   FCM registration and the server's installation row, and polls for an Android
+   in-app update on every resume.
 
 On **sign-in** the same handler does four things, all fire-and-forget so none of
 them delays first paint: identify the user to analytics, tag the account as guest
@@ -90,6 +91,31 @@ catalog. Registration is driven by *auth state* rather than by the notification
 service's one-time init, because the row maps a **user** to a device — an
 in-session sign-in or account switch must re-register.
 
+Notification initialization **never requests permission**. The first time a
+player is successfully seated in a multiplayer waiting room, the shell explains
+the concrete value (game ready, turn and result alerts) and exposes an explicit
+**Enable notifications** action. That action owns the system/browser prompt.
+Choosing **Not now** is respected: future waiting rooms use a quiet inline
+action, while Settings remains a secondary fallback. Failed joins, spectators
+and solo games never trigger the education sheet. The shell resolves four
+permission states:
+
+- **unavailable** — Web Push is unsupported in this browser;
+- **promptable** — the player has not made a decision;
+- **enabled** — permission and FCM registration can be reconciled;
+- **blocked** — open Android system settings, or explain how to use browser site
+  settings.
+
+This extra state is necessary on Android 13+, where Firebase reports `denied`
+both before the first request and after a denial. One install-local marker
+records only a user-initiated system request, so a fresh install still gets an
+**Enable** button; another ensures the explanatory modal appears only once.
+Blocked native users get an explicit system-Settings action and blocked web
+users get browser site-settings guidance. Granted permission triggers
+`getToken()` and then the FID upsert. Token refresh, FID rotation, sign-in and
+app resume all retry that reconciliation; revoking permission removes the stale
+server installation row without deleting the Firebase installation itself.
+
 The splash is **infra-owned**: a game never calls `FlutterNativeSplash.remove()`.
 
 ## Local persistence
@@ -97,12 +123,14 @@ The splash is **infra-owned**: a game never calls `FlutterNativeSplash.remove()`
 **Goal:** eliminate cold-start spinners for data that is already known and rarely
 changes — first paint shows real data, background refreshes update silently.
 
-A single on-device SQLite database (`riverpod.db`, via `riverpod_sqflite`) stores
-persisted provider state as JSON, opened once at startup and shared. Persisted
-providers **race** their SQLite restore against the network fetch rather than
-sequencing them: `persist()` is called *without* awaiting, and an internal
-`didChange` guard stops a slow cache read from overwriting a fresher network
-result.
+A single platform storage adapter stores persisted provider state as JSON,
+opened once at startup and shared. Android uses Riverpod's official SQLite
+adapter (`riverpod.db`, via `riverpod_sqflite`); web stores the same small,
+non-critical snapshots in browser LocalStorage through
+`SharedPreferencesAsync`. Persisted providers **race** their restore against the
+network fetch rather than sequencing them: `persist()` is called *without*
+awaiting, and an internal `didChange` guard stops a slow cache read from
+overwriting a fresher network result.
 
 | Provider | Persisted | Why |
 |---|---|---|
@@ -121,9 +149,10 @@ Two disciplines make this safe:
 - **Clear on sign-out and account deletion.** `deleteUserData(uid)` wipes every
   user-scoped key (`profile_{uid}`, `friends_{uid}`, …) and must run **before**
   the auth session ends, since after deletion the credentials are gone. Cache
-  entries never expire on their own, so this explicit eviction is the only
-  eviction. The **player-info cache is deliberately not cleared** — player
-  identity is public, and a second account on the same device benefits from it.
+  entries also carry an expiry, and the browser adapter caps the entire cache at
+  512 entries by evicting the oldest writes. The **player-info cache is
+  deliberately not cleared** — player identity is public, and a second account
+  on the same device benefits from it — but each entry expires after 30 days.
 
 The keys live in one place (`core/storage/`) rather than beside their providers,
 which also breaks a circular import between auth and profile.
@@ -263,12 +292,16 @@ the client's job is only to not offer what will be refused:
 - Settings shows a "save your progress" upgrade card, because **inactive guests
   are swept server-side** after a period of inactivity.
 
-**Upgrade preserves the uid.** `linkWithCredential` converts in place, so games,
-ratings and friendships carry over with no migration; the provider's display name
-and avatar overwrite the guest's while the stable username handle survives. If the
-chosen account already belongs to a registered user the link fails, and the
-controller **switches into the existing account** instead — clearing the abandoned
-guest's local data and device registration first, exactly as sign-out does.
+**Upgrade preserves the uid.** Native uses `linkWithCredential`; web uses
+`linkWithPopup`. Both convert in place, so games, ratings and friendships carry
+over with no migration; the provider's display name and avatar overwrite the
+guest's while the stable username handle survives. If the chosen account already
+belongs to a registered user the link fails, and the app explains that guest
+progress cannot be transferred and asks before
+switching. Only explicit confirmation signs into the existing account; after
+that succeeds, the abandoned guest's disposable local cache is cleared and the
+auth-state handler registers the device installation for the destination
+account.
 
 A long-dormant guest may have been purged server-side. The client treats "valid
 token, empty data" as automatic re-provisioning (the server creates a fresh guest

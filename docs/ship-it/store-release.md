@@ -37,7 +37,7 @@ is unreadable, so keep the retention long enough to outlive a release.
 
 ## The app's CI
 
-Three jobs:
+The Android release path has three jobs:
 
 - **test** — checks out the app, writes `.env` from secrets, decodes
   `firebase_options.dart`, then format, analyze, test.
@@ -46,6 +46,12 @@ Three jobs:
   `--build-number=${{ github.run_number }}`, and uploads the AAB and the debug
   symbols as artifacts.
 - **deploy** — downloads the AAB and runs `bundle exec fastlane android internal`.
+
+Web has no store lane, but it is part of the same Worker release artifact. Add a
+web target to the verification matrix that runs the root `build:web` script
+with the public Firebase configuration. Deploy the combined Worker + asset
+version only after that target passes; the routing and cache requirements are in
+[Deploy the web app](./deploy-the-web-app.md).
 
 `FIREBASE_OPTIONS_DART_BASE64` is needed in **test** as well as build — without
 it, analyze cannot resolve the import.

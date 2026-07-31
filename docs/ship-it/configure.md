@@ -8,9 +8,11 @@ description: Both halves of a deployment's runtime config — the Worker's bindi
 
 A deployment has two configuration surfaces and one thing they share. The Worker
 reads bindings off its `Env`; the app injects an `AppConfig` at its composition
-root. **Neither discovers anything by convention** — every value is handed over
-explicitly, which is what lets the framework stay app-agnostic and the engine
-stay binding-name-agnostic.
+root. Game-owned bindings are handed over through typed accessors, while the
+engine reserves a small set of environment names for cross-cutting credentials
+such as Firebase Admin. The app remains explicit and injects every runtime
+value, keeping the framework app-agnostic and the Worker free to name its D1,
+Durable Object and R2 bindings.
 
 The shared piece is the Firebase project: the app signs users in against it, and
 the Worker verifies the resulting tokens against the same project id.
@@ -28,16 +30,25 @@ mounted.
 | Durable Object | `GameDO` (SQLite storage, via the `exports` field) | **yes** | The per-game session + history |
 | D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. `migrations_dir` points at `node_modules/@eigeninteractive/server/migrations` |
 | Cron trigger | daily | **yes** in practice | The guest purge + abandoned-game reap. Without it those two backstops never run |
-| Assets | `./public` directory | optional | Static files, served unmetered |
+| Assets | `ASSETS` → `./public` | **yes for web** | Flutter bundle, served directly unless a path is in `run_worker_first` |
 | R2 bucket | any binding | optional | Avatar uploads (`avatars` config block) |
 | Var | `FIREBASE_PROJECT_ID` | **yes** | Token verification. Empty ⇒ every authed request 500s |
-| Secret | `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | optional | Push (FCM) **and** the Identity-Toolkit admin delete used by account deletion |
+| Var | `WEB_APP_ORIGIN` | **yes for web** | Canonical Flutter origin used for absolute notification click links and automatically trusted for cross-origin browser REST and WebSocket requests |
+| Secret | `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | **yes** | Push (FCM) **and** the Identity-Toolkit admin delete used by account deletion |
 | Secret | `BOT_SIGNING_SECRET` | optional | External bots (the per-bot HMAC is derived from it) |
 
-Each optional feature is **off** when unconfigured — no placeholder values, no
-dummy credentials. A deploy with no service account sends no pushes and returns a
-clean failure from `DELETE /me`; a deploy with no `BOT_SIGNING_SECRET` rejects
-every bot webhook. That is why local development needs no real credentials.
+The entries under `wrangler.jsonc` → `vars` are Worker environment variables,
+not TypeScript constants. They are used locally and uploaded with every
+deployment, so keep `FIREBASE_PROJECT_ID` and `WEB_APP_ORIGIN` there as the
+single source of truth. `.dev.vars` is only for the Firebase credentials and
+other secrets that must not be committed.
+
+The Firebase service account belongs to the same project the app already uses
+for Auth; notifications do not introduce a second backend account. Production
+authenticated requests reject missing Admin credentials instead of silently
+running without push or leaving a Firebase identity behind during account
+deletion. Optional feature blocks still stay off when absent; for example, no
+`BOT_SIGNING_SECRET` means external bot webhooks are rejected.
 
 The full type is in the
 [`@eigeninteractive/server` reference](../reference/typescript/server.md).
@@ -64,6 +75,7 @@ await runEngineApp(
     engine: EngineConfig(
       apiBaseUrl: Env.apiBaseUrl,
       googleWebClientId: Env.googleWebClientId,
+      firebaseVapidKey: Env.firebaseVapidKey,
       appHost: Env.appHost,
     ),
   ),
@@ -79,8 +91,8 @@ The values come from `.env` (git-ignored, read by `envied`; regenerate with
 |---|---|---|
 | `API_BASE_URL` | **yes** | Origin of the Worker — scheme + host only, **no path, no trailing slash**. Routes carry their own `/api/engine` prefix; the socket is this origin with `ws`/`wss`. |
 | `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. |
-| `APP_HOST` | optional | This game's public host. One host for everything: invite and replay deep links, the waiting-room QR code, and — when the Worker has `site` configured — the legal pages and landing page. All of them are hidden when unset. |
-| `FIREBASE_VAPID_KEY` | optional | FCM Web Push (web only). |
+| `APP_HOST` | optional | This game's hostname, without scheme. In the default deployment it is the host part of `API_BASE_URL`; it enables invite/replay sharing and legal links. `/download` is the native install page. |
+| `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
 
 ## Firebase — once per deployment
 
@@ -90,7 +102,8 @@ Firebase is mandatory on the client: the app will not compile without
 1. **Create the project** at console.firebase.google.com with Analytics enabled.
 2. `npm i -g firebase-tools && firebase login`, then
    `dart pub global activate flutterfire_cli`, then **`flutterfire configure`** —
-   it registers the Android and iOS apps for you.
+   select Android and Web. It registers both apps and writes
+   `firebase_options.dart`.
 3. **Add SHA fingerprints** to the Android app. `flutterfire` does *not* do this,
    and Google Sign-In validates the calling app's certificate at runtime:
    - **Now:** the debug key, so Sign-In works in dev builds.
@@ -104,26 +117,49 @@ Firebase is mandatory on the client: the app will not compile without
      (Play Console → Release → Setup → App signing). Play re-signs your bundle
      with *their* key, so the app on users' devices is not signed with yours —
      **omitting this is why Sign-In "works in dev and fails in production."**
-4. Enable **Crashlytics** and verify **Cloud Messaging** is on.
-5. **iOS push:** create an APNs `.p8` key at developer.apple.com (Keys → Apple
-   Push Notifications service), note the Key ID and Team ID, and upload it under
-   Project Settings → Cloud Messaging. In Xcode, add the **Push Notifications**
-   and **Background Modes → Remote notifications** capabilities to the Runner
-   target.
-6. **Server-side push credentials:** Project Settings → Service Accounts →
+4. Enable **Crashlytics** for Android and verify **Cloud Messaging** is on.
+   Crashlytics has no Flutter web implementation; use your hosting/browser
+   observability for uncaught web failures.
+5. **Android FID registration:** `eigen_flutter` is an Android Flutter plugin.
+   Its library manifest enables
+   `firebase_messaging_installation_id_enabled`, and its exported Firebase BoM
+   constraint selects a native Messaging SDK with FID registration. This works
+   for scaffolded and hand-created apps that depend on `eigen_flutter`; do not
+   edit the generated application manifest or `gradle.properties`. The engine's
+   explicit BoM constraint can be removed once FlutterFire selects Messaging
+   25.1.0 or newer itself. See Firebase's
+   [Android release notes](https://firebase.google.com/support/release-notes/android#messaging_v25-1-0).
+6. **Android desugaring:** foreground notifications use
+   `flutter_local_notifications`, which requires core-library desugaring in the
+   application module. The scaffold adds the required compiler setting and
+   `desugar_jdk_libs` dependency. Hand-created apps should copy the Gradle block
+   from [Manual setup](../getting-started/manual-setup.md#create-the-flutter-app).
+7. **Web Push key:** Project Settings → Cloud Messaging → Web configuration →
+   generate a Web Push certificate. Pass its public VAPID key as
+   `FIREBASE_VAPID_KEY`.
+8. **Server-side Firebase credentials:** Project Settings → Service Accounts →
    Generate new private key. The Worker needs only `client_email` and
    `private_key` from that JSON — set them as Worker secrets and **delete the
    downloaded file**; it grants full Firebase Admin access.
 
-These four generated files are **gitignored and must never be committed** — they
-are instance-specific, and CI reconstructs them from secrets:
+FCM is a no-cost Firebase product on both Spark and Blaze plans. Requiring it
+adds configuration to the Firebase project already needed by Auth, not another
+account or payment method.
+
+These are instance-specific Firebase configuration files. They contain public
+app identifiers, not service-account secrets; either commit the correct
+environment's files or reconstruct them in CI:
 
 | File | Platform |
 |---|---|
 | `lib/firebase_options.dart` | Dart, all platforms |
 | `android/app/google-services.json` | Android native |
-| `ios/Runner/GoogleService-Info.plist` | iOS native |
 | `firebase.json` | FlutterFire CLI metadata — **not** needed in CI |
+
+Web Push also requires the app-owned
+`web/firebase-messaging-sw.js`. Its Firebase config repeats the public Web
+values because a service worker runs outside Dart and cannot import
+`firebase_options.dart`. See [Deploy the web app](./deploy-the-web-app.md).
 
 ## Avatars (optional)
 
@@ -142,6 +178,9 @@ that works on a zoneless `workers.dev` deploy.
 
 On the client, every avatar routes through `PlayerAvatar`, which resolves a
 relative URL against the API origin — so both setups work with no app change.
+`cached_network_image` has no package-managed disk cache in a browser; the
+browser's HTTP cache honors the Worker's immutable response, and the versioned
+URL makes an upload a new cache entry.
 
 ## Generated artifacts
 

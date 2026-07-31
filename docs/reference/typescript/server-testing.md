@@ -4,8 +4,14 @@
 suite and for implementor test workers alike:
 
 ```ts
-// test/worker.ts — your production entry, with the test verifier:
-export default createEngine({ ...same config, auth: testVerifier() });
+// test/worker.ts — your production entry with explicit Firebase fakes:
+export default createEngine({
+  ...sameConfig,
+  testing: {
+    auth: testVerifier(),
+    firebaseAdmin: () => testFirebaseAdmin,
+  },
+});
 // a spec:
 import { exports } from "cloudflare:workers";
 await exports.default.fetch(url, { headers: await testBearer({ uid: "alice" }) });
@@ -19,13 +25,13 @@ own `test/env.d.ts` for the hand-rolled version, or use `wrangler types`.)
 Tokens are verified through the SAME jose code path production uses — only
 the JWKS is local. The RS256 keypair below is a public fixture (checked in,
 shipped in the package); it protects nothing and must never reach a
-production config: pass `auth` ONLY in test workers.
+production config: pass `testing` ONLY in test workers.
 
 ## Interfaces
 
 ### TestTokenOptions
 
-Defined in: [eigen-server/packages/server/src/testing.ts:57](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L57)
+Defined in: [eigen-server/packages/server/src/testing.ts:70](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L70)
 
 #### Properties
 
@@ -35,7 +41,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:57](https://github.com/
 optional anonymous?: boolean;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:59](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L59)
+Defined in: [eigen-server/packages/server/src/testing.ts:72](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L72)
 
 ##### claims?
 
@@ -43,7 +49,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:59](https://github.com/
 optional claims?: Record<string, unknown>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:64](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L64)
+Defined in: [eigen-server/packages/server/src/testing.ts:77](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L77)
 
 Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 
@@ -53,7 +59,7 @@ Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 optional email?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L60)
+Defined in: [eigen-server/packages/server/src/testing.ts:73](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L73)
 
 ##### name?
 
@@ -61,7 +67,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/
 optional name?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:61](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L61)
+Defined in: [eigen-server/packages/server/src/testing.ts:74](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L74)
 
 ##### picture?
 
@@ -69,7 +75,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:61](https://github.com/
 optional picture?: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:62](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L62)
+Defined in: [eigen-server/packages/server/src/testing.ts:75](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L75)
 
 ##### uid
 
@@ -77,7 +83,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:62](https://github.com/
 uid: string;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:58](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L58)
+Defined in: [eigen-server/packages/server/src/testing.ts:71](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L71)
 
 ## Variables
 
@@ -87,7 +93,19 @@ Defined in: [eigen-server/packages/server/src/testing.ts:58](https://github.com/
 const TEST_PROJECT_ID: "eigen-test" = "eigen-test";
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:29](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L29)
+Defined in: [eigen-server/packages/server/src/testing.ts:36](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L36)
+
+***
+
+### testFirebaseAdmin
+
+```ts
+const testFirebaseAdmin: FirebaseAdminEffects;
+```
+
+Defined in: [eigen-server/packages/server/src/testing.ts:60](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L60)
+
+No-op Firebase Admin effects for test workers and test Durable Objects.
 
 ## Functions
 
@@ -97,7 +115,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:29](https://github.com/
 function mintTestToken(opts): Promise<string>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:67](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L67)
+Defined in: [eigen-server/packages/server/src/testing.ts:80](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L80)
 
 #### Parameters
 
@@ -117,7 +135,7 @@ Defined in: [eigen-server/packages/server/src/testing.ts:67](https://github.com/
 function testBearer(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:86](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L86)
+Defined in: [eigen-server/packages/server/src/testing.ts:99](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L99)
 
 Authorization header for a minted token.
 
@@ -139,9 +157,9 @@ Authorization header for a minted token.
 function testVerifier(): TokenVerifier;
 ```
 
-Defined in: [eigen-server/packages/server/src/testing.ts:53](https://github.com/eigeninteractive/eigen-server/blob/8442ac8172493c0db7b6e5909f21c6b9deddafe4/packages/server/src/testing.ts#L53)
+Defined in: [eigen-server/packages/server/src/testing.ts:66](https://github.com/eigeninteractive/eigen-server/blob/2ab21e75f9bf5968648e6bdb0a54bf7d33c9869b/packages/server/src/testing.ts#L66)
 
-The verifier a test worker passes as `createEngine({ auth })`.
+The verifier a test worker passes under `createEngine({ testing })`.
 
 #### Returns
 

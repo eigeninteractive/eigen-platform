@@ -18,11 +18,13 @@ failure mode is silent, so the checklist at the end is worth actually running.
   `apple-app-site-association` (iOS Universal Links, served extensionless as
   `application/json` — the content-type a static file usually gets wrong). One
   source of truth, regenerated on deploy.
-- **`/join/:shortCode` and `/game/:gameId`** are the share and landing pages.
+- **`/join/:shortCode` and `/game/:gameId`** are native app links and Flutter
+  web routes.
   They read the D1 summary for real Open Graph tags — host and open seats for an
   invite, roster and status for a game — so a shared link unfurls richly. They
-  are also the *not-installed* fallback: an installed app opens the https URL
-  directly, so a browser only reaches these when the app is absent.
+  An installed app intercepts the HTTPS URL before it reaches the server. A
+  browser receives the Flutter SPA at that same route, and a crawler reads the
+  dynamic metadata from the same HTML response. There is no user-agent branch.
   `/game/:gameId` shows the roster for a **public** game only; a private game
   gets a generic card, because an unauthenticated page cannot authorise a viewer.
 
@@ -33,7 +35,8 @@ not the upload key's, and not the debug key's.
 
 The app owns **two path prefixes** on this host: `/join/{code}` for invites and
 `/game/{id}` for replay links and push-notification taps. Everything else the
-Worker serves there — `/`, `/terms`, `/privacy`, `/delete-account` — is
+Worker serves there — `/`, `/download`, `/terms`, `/privacy`,
+`/delete-account` — is
 deliberately *not* claimed, so it opens in the browser.
 
 The host is compiled into the binary, because the OS verifies domain ownership at

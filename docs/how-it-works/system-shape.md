@@ -47,12 +47,13 @@ request surface is three cleanly separated spaces on one host:
 /api/bot/*      External-bot webhook. Authenticated per-request by an HMAC
                 signature (no user token). Just POST /api/bot/action today.
 
-/ (public)      Unauthed web surface. /health (always on; zero I/O liveness)
-                plus, mounted only when configured:
+/ (public)      Flutter web static assets plus unauthed Worker routes.
+                /health is always on; configured routes include:
                 /.well-known/assetlinks.json + apple-app-site-association
-                (deep-link verification), /join/:shortCode (share/landing),
+                (deep-link verification), /join/:shortCode and /game/:gameId
+                (dynamic metadata + Flutter shell),
                 /avatars/:uid (opt-in avatar serving), and the `site` group —
-                / (landing), /terms, /privacy, /delete-account, /sitemap.xml,
+                /download, /terms, /privacy, /delete-account, /sitemap.xml,
                 /robots.txt, /site.webmanifest. Plus static assets.
 ```
 
@@ -63,10 +64,10 @@ with its own security scheme) — the [HTTP API reference](../reference/http-api
 is generated from it, and the typed Dart client is generated from it in this
 same repository and published to pub.dev.
 
-Static assets are served **unmetered** by Cloudflare's asset server. A request
-that matches no static file falls through to the Worker on its own, so the
-dynamic paths need no `run_worker_first` configuration — the only rule is not to
-place a `public/` file that shadows one of them.
+Exact static assets are served directly by Cloudflare without a Worker
+invocation. The selective `run_worker_first` list reserves the API, app-link,
+legal, download, crawler, and avatar paths for Worker code; every other unknown
+browser route receives Flutter's `index.html` through the SPA fallback.
 
 ## The path of a move
 

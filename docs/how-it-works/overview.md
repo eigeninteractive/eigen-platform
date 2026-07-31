@@ -57,7 +57,7 @@ with no payment method**.
 | Global cross-game store | **D1** (SQLite) | Identity, social, bots, ratings, and game *summaries* — a read-model + registry, never an arbiter |
 | Avatars (opt-in) | **R2** | User-uploaded avatar objects; developed under local simulation, a real bucket only at deploy |
 | Auth | **Firebase Auth**, verified in-worker with **jose** | Google / Apple / Anonymous sign-in; the worker verifies ID tokens itself |
-| Push (opt-in) | **FCM HTTP v1** | Turn / finish notifications |
+| Push | **FCM HTTP v1** | Turn / finish notifications; permission remains player-controlled |
 
 Why these and not the obvious alternatives:
 
@@ -87,5 +87,7 @@ Why these and not the obvious alternatives:
 The free-tier binder is DO SQLite + D1. The first ceiling is DO storage writes
 (~100k rows/day ≈ ~1,400 games/day). Crossing it is a one-click plan upgrade
 with **zero code change** — no architecture in these documents assumes the paid
-tier. R2 (avatars) and FCM (push) are opt-in and add a payment method only when
-an operator turns them on for a real deploy.
+tier. R2 remains an optional paid-service integration for avatars. FCM shares
+the Firebase project already required by Auth and is a no-cost Firebase product;
+the infrastructure is always configured even though players may decline
+notification permission.

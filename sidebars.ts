@@ -41,7 +41,7 @@ const sidebars: SidebarsConfig = {
     {
       type: "category",
       label: "Ship it",
-      items: ["ship-it/deploy-the-worker", "ship-it/configure", "ship-it/deep-links", "ship-it/branding", "ship-it/push", "ship-it/store-release"],
+      items: ["ship-it/deploy-the-worker", "ship-it/deploy-the-web-app", "ship-it/configure", "ship-it/deep-links", "ship-it/branding", "ship-it/push", "ship-it/store-release"],
     },
     {
       type: "category",

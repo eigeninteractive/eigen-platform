@@ -8,7 +8,7 @@ package that owns the task you are doing:
 | [`@eigeninteractive/rules`](rules.md) | Implement a `GameModule`, payload schemas, hooks, observations, ratings, or bots. This is where most game code lives. |
 | [`@eigeninteractive/server`](server.md) | Compose the Cloudflare Worker with `createEngine`, `BaseGameDO`, bindings, deep links, avatars, or the public site. |
 | [`@eigeninteractive/testkit`](testkit.md) | Run twin fixtures, emit/check `game-contract.json`, or drive rules through the kernel in tests. |
-| [`@eigeninteractive/server/testing`](server-testing.md) | Mint local Firebase-compatible tokens for Worker integration tests. Never use it in production code. |
+| [`@eigeninteractive/server/testing`](server-testing.md) | Mint local Firebase-compatible tokens and supply explicit no-op Firebase Admin effects for Worker integration tests. Never use it in production code. |
 
 Game Workers depend directly on `rules` and `server`; `testkit` and
 `server/testing` are test-only. The [task guides](../../build-a-game/the-contract.md)

@@ -7,8 +7,10 @@ description: Best-effort turn and finish pushes via FCM HTTP v1, addressed to Fi
 # Push notifications
 
 The engine sends best-effort "your turn" and "game over" pushes via FCM HTTP v1.
-It is entirely opt-in: with no Firebase service-account configured, the whole
-path is skipped.
+Notification capability is part of every standard deployment: Auth and FCM use
+the same Firebase project, and authenticated Worker traffic requires its
+service-account credentials. The player still decides whether to grant
+notification permission.
 
 - **Auth**: a service-account JWT (signed with jose, RS256) is exchanged at
   Google's token endpoint for an OAuth bearer, cached per (account, scope) in
@@ -24,6 +26,11 @@ path is skipped.
   A send that reports a permanently dead installation prunes that row; transient
   failures are left for the next send. There is no retry machinery — the game
   state is the truth and the app catches up on open.
+
+Required infrastructure does not make delivery authoritative. A denied
+permission, unsupported browser, offline device, expired installation or FCM
+failure all result in no push; sockets and ordinary state synchronization must
+still make the game correct.
 
 The client side of this — requesting permission, registering the FID, and
 handling a tapped notification — is covered in

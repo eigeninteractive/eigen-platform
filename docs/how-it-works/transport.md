@@ -12,9 +12,11 @@ None of it is game code — a game never opens a socket or resolves an identity.
 
 ## Session, requests & errors
 
-- **Auth is Firebase.** Google and Anonymous sign-in are implemented;
-  `linkWithCredential` upgrades a guest to a permanent account, preserving the
-  uid, so every game, rating and friendship carries over with no data migration.
+- **Auth is Firebase.** Google and Anonymous sign-in are implemented. Native
+  uses the Google ID token with `signInWithCredential`; web lets Firebase own
+  the browser popup with `signInWithPopup`. `linkWithCredential` on native and
+  `linkWithPopup` on web upgrade a guest in place, preserving the uid, so every
+  game, rating and friendship carries over with no data migration.
   Every request sends the Firebase ID token as `Authorization: Bearer <token>`;
   WebSocket upgrades send it as `?token=` (browsers can't set headers on an
   upgrade). Tokens refresh on the Firebase SDK's schedule; the client attaches

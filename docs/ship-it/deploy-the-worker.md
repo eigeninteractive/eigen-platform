@@ -17,7 +17,7 @@ Two pieces, both from `@eigeninteractive/server`:
 ```ts
 // src/index.ts
 import { BaseGameDO, createEngine } from "@eigeninteractive/server";
-import { gameModule } from "./rules/index.js";
+import gameModule from "./module/index.js";
 
 // 1. Bind the game's Durable Object to your game module + D1.
 export class GameDO extends BaseGameDO<Env> {
@@ -48,8 +48,12 @@ config's type parameters infer from the accessors.
 The `GameDO` Durable Object (SQLite storage, via the `exports` field), your D1
 database, a daily `cron` trigger (the lifecycle backstop), `nodejs_compat`, and —
 if you use them — an R2 bucket for avatars and a `public/` assets directory. Set
-`FIREBASE_PROJECT_ID` (required for auth); add the `FIREBASE_*` service-account
-trio to enable push, and `BOT_SIGNING_SECRET` to enable external bots.
+the required Firebase trio (`FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`) from the same project used
+by the app. Set `WEB_APP_ORIGIN` for absolute web-notification links and as the
+automatically trusted browser origin for local or deliberately split hosting.
+Set `clientOrigins` only to replace that convention with multiple or
+non-standard browser origins. Add `BOT_SIGNING_SECRET` to enable external bots.
 
 You do **not** write D1 migrations. The engine owns its schema and ships them;
 you apply them at deploy. The per-game Durable Object schema self-applies. If you
@@ -60,7 +64,9 @@ The full binding table is in [Configuration](./configure.md).
 
 ## Running it locally
 
-Nothing here needs a Cloudflare account, a Firebase project, or a payment method.
+Pure engine tests need no Cloudflare account, Firebase project, or payment
+method. Running the complete Worker and Flutter app together uses the Firebase
+project required by Auth.
 
 ```bash
 pnpm install
@@ -78,13 +84,15 @@ Three things make that true:
   D1, the cron trigger and R2 locally. Avatar upload and serving are developed
   entirely against the local R2 simulation; a real bucket enters only at a deploy
   with uploads enabled.
-- **Local secrets are placeholders.** `.dev.vars` (git-ignored) carries a
-  placeholder `FIREBASE_*` trio and a dev `BOT_SIGNING_SECRET`. Push degrades to
-  a logged no-op, which is the intended local behaviour — do not put real
-  credentials there to "make push work" locally.
+- **Full-app development uses the real Firebase project.** Copy
+  `.dev.vars.example` to the git-ignored `.dev.vars` and fill the
+  service-account email and private key. The project ID and web origin remain
+  in `wrangler.jsonc`; the credentials belong to that same Firebase project,
+  not a second backend.
 - **Auth is testable without Firebase.** `@eigeninteractive/server/testing` mints local
   tokens the auth middleware accepts, so integration tests exercise the real
-  middleware, the real Durable Object and the real D1 with no Firebase project.
+  middleware, the real Durable Object and the real D1 with no Firebase project
+  or outbound FCM calls.
 
 :::tip Tests run in the real runtime
 
@@ -125,7 +133,7 @@ abuse dampener, not a hard quota.
 ## Deploying
 
 ```bash
-pnpm exec wrangler secret put FIREBASE_CLIENT_EMAIL   # if push/delete is wanted
+pnpm exec wrangler secret put FIREBASE_CLIENT_EMAIL
 pnpm exec wrangler secret put FIREBASE_PRIVATE_KEY
 pnpm exec wrangler secret put BOT_SIGNING_SECRET      # if external bots are wanted
 pnpm deploy              # = wrangler d1 migrations apply --remote && wrangler deploy
@@ -138,6 +146,11 @@ schema. Secrets persist across deploys and do not need re-setting.
 
 - [ ] `FIREBASE_PROJECT_ID` set to the real project — an empty value 500s every
       authed request and is the single most common misconfiguration.
+- [ ] `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` stored as Worker
+      secrets from that same project's service-account JSON. Missing values
+      reject authenticated traffic.
+- [ ] `WEB_APP_ORIGIN` is the exact deployed Flutter origin, and the same domain is
+      authorized in Firebase Auth.
 - [ ] D1 database created and its `database_id` written into `wrangler.jsonc`.
 - [ ] Cron trigger declared. Without it the guest purge and abandoned-game reap
       never run, and untimed abandoned games accumulate forever.
@@ -163,19 +176,31 @@ garbage `Authorization` header, so a monitor never mistakes an auth problem for
 an outage, and it is served `no-store` so a cached 200 cannot keep reporting
 healthy after the Worker stops being able to serve.
 
-What it therefore does **not** catch is the most common misconfiguration — an
-empty `FIREBASE_PROJECT_ID`, which 500s every authed request while `/health`
-stays green. Verifying that needs a real authed call, which is why the checklist
-leads with it. A deeper readiness check that pinged D1 and asserted config would
-be both a cost multiplier and a config leak on an unauthed route; if you want
-one, put it behind a secret rather than opening it.
+What it therefore does **not** catch is the most common misconfiguration —
+missing Firebase project or Admin values, which 500 every authed request while
+`/health` stays green. Verifying that needs a real authed call, which is why the
+checklist leads with it. A deeper readiness check that pinged D1 and asserted
+config would be both a cost multiplier and a config leak on an unauthed route;
+if you want one, put it behind a secret rather than opening it.
 
 It is deliberately absent from `openapi.json`: it is an operator endpoint, and
 including it would generate a Dart client method no app ever calls.
 
 ## Host story
 
-With a bought domain, a `custom_domain` on the Worker gives the API and deep
-links one host. Without one, the free `<name>.<account>.workers.dev` subdomain
-works from day zero — App Links and Universal Links accept any HTTPS host.
-Avatars and push each add a payment method only when actually enabled.
+With a bought domain, configure the Worker as that hostname's origin:
+
+```jsonc
+"workers_dev": false,
+"preview_urls": false,
+"routes": [{ "pattern": "rps.example.com", "custom_domain": true }]
+```
+
+This gives Flutter web, API, app links, legal pages, and `/download` one host;
+Cloudflare provisions its DNS record and certificate. The free
+`<name>.<account>.workers.dev` subdomain is useful before the custom domain is
+ready. Commit `workers_dev: false` for production: changing it only in the
+dashboard lets the next Wrangler deploy re-enable that second public origin.
+
+Avatars may require a paid Cloudflare plan at real scale; FCM itself is a
+no-cost Firebase product.

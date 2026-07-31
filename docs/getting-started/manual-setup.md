@@ -102,9 +102,26 @@ Create a normal Flutter app, then add the package plus the two Firebase
 libraries imported by the app entry point:
 
 ```bash
-flutter create --empty --org com.example my_game
+flutter create --empty --platforms android,web --org com.example my_game
 cd my_game
 flutter pub add eigen_flutter firebase_core firebase_messaging
+```
+
+`flutter_local_notifications`, used by the engine for foreground delivery,
+requires core-library desugaring in the Android application module. The
+scaffolder configures this automatically; for a hand-created app, append the
+following to `android/app/build.gradle.kts`:
+
+```kotlin
+android {
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
 ```
 
 The app imports the framework through its barrel only:
@@ -118,6 +135,18 @@ module, and call `runEngineApp` from `lib/main.dart`. The
 [Creation UI](../build-a-game/creation-ui.md) and
 [Rendering](../build-a-game/rendering.md) pages contain the two handwritten
 Dart pieces.
+
+For web, add the Firebase Messaging service worker and register it from a custom
+`web/flutter_bootstrap.js`; configure a fixed local origin in the Worker and
+Firebase. The scaffold supplies those files automatically. Manual projects can
+copy the small setup from [Deploy the web app](../ship-it/deploy-the-web-app.md).
+Pass the project's public VAPID key into `EngineConfig`; Eigen web treats a
+missing key as deployment misconfiguration rather than disabling notifications.
+
+On the Worker, set `FIREBASE_PROJECT_ID` and store that project's
+`FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` as secrets. Those Admin
+credentials are required for both FCM and complete account deletion; player
+permission and individual push delivery remain optional at runtime.
 
 ## Connect the halves
 

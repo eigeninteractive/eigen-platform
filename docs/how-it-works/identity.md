@@ -70,7 +70,7 @@ recovered from `initiated_by`.
   reachable.
 
 Friend-event pushes (`friend_request`, `friend_accepted`) fire from the route
-through the shared FCM path when a service account is configured. Because these
+through the shared, required FCM path. Because these
 run in a **stateless Worker** (not the always-alive DO), they ride
 `executionCtx.waitUntil` so a slow FCM call never delays the response — the one
 place the engine uses `waitUntil` deliberately.

@@ -40,7 +40,8 @@ my-game/
 ```
 
 The scaffold intentionally supports only this combined layout. It composes a
-canonical C3-style Cloudflare Worker template with `flutter create --empty`,
+  canonical C3-style Cloudflare Worker template with
+  `flutter create --empty --platforms android,web`,
 installs both halves, emits the initial `game-contract.json`, and generates the
 initial Dart payload types and rules base. The generated files use only public
 npm/pub.dev contracts, so teams that prefer separate repositories can create
@@ -124,6 +125,19 @@ curl http://localhost:8787/health
 `wrangler dev` simulates the Worker resources locally. Running the full Flutter
 app against it additionally requires Firebase configuration; pure rules,
 fixture, and widget tests do not.
+
+Run the browser at the stable origin already allowed by the Worker scaffold:
+
+```bash
+cd app
+flutter run -d chrome --web-hostname localhost --web-port 7357
+```
+
+Select Android and Web when running `flutterfire configure`, then finish the
+required service-worker and VAPID setup in
+[Deploy the web app](../ship-it/deploy-the-web-app.md). Copy
+`server/.dev.vars.example` to `server/.dev.vars` and fill the Admin credentials
+from that same Firebase project before running authenticated Worker traffic.
 
 The Worker template uses Wrangler-generated `Env` types and a stable `GAME_DB`
 binding. Wrangler automatically provisions its D1 database on first remote

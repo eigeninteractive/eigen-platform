@@ -99,15 +99,16 @@ and getting the store requirements subtly wrong.
 Absolute URLs in canonical links, OG tags and the sitemap are built from the
 **request origin**, so there is no domain to configure. To keep one canonical
 host, disable the `workers.dev` route in production. Store buttons come from your
-`deepLink` block, so store URLs are configured once. The landing page emits
+`deepLink` block, so store URLs are configured once. The `/download` page emits
 `SoftwareApplication` JSON-LD with `applicationCategory: "GameApplication"`.
 
-### The asset handoff
+### The web asset handoff
 
-The engine's default paths are exactly the filenames `flutter_launcher_icons`
-emits into the app's `web/` directory. The whole step is a copy:
+The root scaffold's `build:web` command writes Flutter's complete release
+bundle directly into the Worker's `public/` directory. The engine's default
+paths match the filenames `flutter_launcher_icons` emits:
 
-| The app generates | Copy to the Worker's `public/` | Used for |
+| The app generates | Worker asset path | Used for |
 |---|---|---|
 | `web/favicon.png` | `favicon.png` | Browser tab |
 | `web/icons/Icon-192.png` | `icons/Icon-192.png` | Manifest, apple-touch-icon |
@@ -155,13 +156,9 @@ Your fragment is inserted as-is, so write your own values into it directly.
 
 :::info Batteries included, batteries removable
 
-Overriding a whole page takes **no configuration at all**: Cloudflare serves a
-matching static asset *before* invoking the Worker, and default `html_handling`
-resolves the extensionless `/terms` to `public/terms.html`. Shipping the file
-replaces the generated page.
-
-The flip side is that a `public/` file can shadow a route by accident —
-`public/index.html` silently replaces your landing page.
+The scaffold reserves legal and `/download` paths with `run_worker_first`, so
+Flutter's SPA fallback cannot shadow them. To replace generated legal prose,
+use the typed `site.legal` fragments above.
 
 :::
 
@@ -177,7 +174,7 @@ The flip side is that a `public/` file can shadow a route by accident —
       `og:image`; `web/og-image.png` at 1200 × 630
 - [ ] `web/manifest.json`: real `name`, `short_name`, `description`,
       `background_color` / `theme_color`
-- [ ] `web/` icons and `og-image.png` copied into the Worker's `public/`
+- [ ] `pnpm run build:web` places the complete Flutter bundle in Worker assets
 - [ ] `site.operator` filled in, and the three legal documents actually read
 - [ ] App Links `<intent-filter>` carries an `android:pathPrefix` for both
       `/join` and `/game` — see [Deep links](./deep-links.md)
