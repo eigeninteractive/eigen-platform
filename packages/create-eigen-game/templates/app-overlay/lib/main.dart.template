@@ -5,14 +5,8 @@ import 'package:flutter/material.dart';
 
 import 'game/module.dart';
 
-const _apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'https://REPLACE_ME.workers.dev',
-);
-const _googleWebClientId = String.fromEnvironment(
-  'GOOGLE_WEB_CLIENT_ID',
-  defaultValue: 'REPLACE_ME.apps.googleusercontent.com',
-);
+const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+const _googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const _firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const _appHost = String.fromEnvironment('APP_HOST');
 

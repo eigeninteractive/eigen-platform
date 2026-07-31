@@ -38,8 +38,9 @@ separate repositories.
 
 The initial scaffold already generates Dart payloads from the Worker contract.
 Implement the client-side legality, preview and presentation rules under
-`app/lib/game/`, then configure Firebase and the Worker origin in
-`app/lib/main.dart`.
+`app/lib/game/`, then configure Firebase and fill the public build-time values
+in `app/app-config.json`. They are Dart compilation environment declarations,
+not secrets; private credentials belong only in the Worker.
 
 See `app/lib/game/README.md` for the regeneration command.
 
@@ -48,11 +49,12 @@ by the Worker template:
 
 ```sh
 cd app
-flutter run -d chrome --web-hostname localhost --web-port 7357
+flutter run -d chrome --web-hostname localhost --web-port 7357 \
+  --dart-define-from-file=app-config.json
 ```
 
 For production, give the game one canonical custom domain, edit the public
-values in `app/web-config.json`, then deploy both halves together:
+values in `app/app-config.json`, then deploy both halves together:
 
 ```sh
 {{PACKAGE_MANAGER}} run deploy
@@ -63,11 +65,21 @@ SPA and API. The app is `/`; invite and game URLs open the installed native app
 or the browser SPA; the native install landing page is `/download`.
 
 Select Android and Web in `flutterfire configure`, replace the public Firebase
-placeholders in `web/firebase-messaging-sw.js`, and pass the public VAPID key as
-`--dart-define=FIREBASE_VAPID_KEY=…`. `eigen_flutter` bundles the pinned
-Cropper.js assets and loads them only when avatar editing starts, so the app
-needs no Cropper.js setup or runtime CDN. The complete production checklist is at
+placeholders in `web/firebase-messaging-sw.js`, and put the public VAPID key in
+`app-config.json`. `eigen_flutter` bundles the pinned Cropper.js assets and
+loads them only when avatar editing starts, so the app needs no Cropper.js
+setup or runtime CDN. The complete production checklist is at
 https://eigeninteractive.com/docs/ship-it/deploy-the-web-app.
+
+Android releases use the same configuration file:
+
+```sh
+{{PACKAGE_MANAGER}} run build:android
+```
+
+Required values are intentionally empty in a fresh scaffold. The app reports
+all missing or malformed declarations at startup instead of continuing with
+placeholder endpoints.
 
 The `eigen_flutter` Android plugin enables Firebase's current FID-based
 messaging mode and supplies a Firebase SDK new enough to support it. The

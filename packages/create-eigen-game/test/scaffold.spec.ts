@@ -53,7 +53,10 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/web/index.html"), "utf8")).not.toContain("cropper");
     expect(existsSync(resolve(root, "app/web/vendor/cropperjs"))).toBe(false);
     expect(readFileSync(resolve(root, "app/web/firebase-messaging-sw.js"), "utf8")).toContain("firebase.messaging()");
-    expect(readFileSync(resolve(root, "app/web-config.json"), "utf8")).toContain('"APP_HOST": "REPLACE_ME.example.com"');
+    const appConfig = readFileSync(resolve(root, "app/app-config.json"), "utf8");
+    expect(appConfig).toContain('"API_BASE_URL": ""');
+    expect(appConfig).toContain('"APP_HOST": ""');
+    expect(existsSync(resolve(root, "app/web-config.json"))).toBe(false);
     expect(readFileSync(resolve(root, "README.md"), "utf8")).toContain("npm run contract");
     const rootGitignore = readFileSync(resolve(root, ".gitignore"), "utf8");
     expect(rootGitignore).toContain("server/node_modules/");
@@ -73,7 +76,9 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts.contract).toContain("--fixtures-output test/fixtures");
     expect(rootManifest.scripts["contract:check"]).toContain("npm run contract:check");
     expect(rootManifest.scripts["contract:check"]).toMatch(/--check$/);
+    expect(rootManifest.scripts["build:android"]).toContain("--dart-define-from-file=app-config.json");
     expect(rootManifest.scripts["build:web"]).toContain("--output ../server/public");
+    expect(rootManifest.scripts["build:web"]).toContain("--dart-define-from-file=app-config.json");
     expect(rootManifest.scripts.deploy).toContain("run build:web");
   });
 

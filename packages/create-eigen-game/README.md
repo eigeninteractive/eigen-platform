@@ -36,7 +36,9 @@ the TypeScript contract and regenerates the Dart payloads in one command;
 `pnpm run deploy` (or npm) is similarly whole-project: it builds Flutter web
 into the Worker's Static Assets directory, applies D1 migrations, and deploys
 one same-origin Worker. The Flutter app lives at `/`; the generated native
-install page lives at `/download`.
+install page lives at `/download`. Both Android and web builds read the same
+public values from `app/app-config.json` through Flutter's native
+`--dart-define-from-file` support.
 
 ## Template architecture
 
