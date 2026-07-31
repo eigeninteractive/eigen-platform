@@ -64,11 +64,20 @@ That builds Flutter into `server/public/` and deploys one Worker containing the
 SPA and API. The app is `/`; invite and game URLs open the installed native app
 or the browser SPA; the native install landing page is `/download`.
 
-Select Android and Web in `flutterfire configure`, replace the public Firebase
-placeholders in `web/firebase-messaging-sw.js`, and put the public VAPID key in
-`app-config.json`. `eigen_flutter` bundles the pinned Cropper.js assets and
-loads them only when avatar editing starts, so the app needs no Cropper.js
-setup or runtime CDN. The complete production checklist is at
+Install and authenticate the Firebase and FlutterFire CLIs, then configure
+Android, Flutter Web, and the messaging service worker together:
+
+```sh
+{{PACKAGE_MANAGER}} run firebase:configure
+```
+
+The command uses FlutterFire's selected Web app to generate both
+`lib/firebase_options.dart` and `web/firebase-config.js`; do not copy Firebase
+identifiers by hand. Put the public VAPID key in `app-config.json` separately —
+Firebase's app SDK configuration does not include that Web Push certificate.
+`eigen_flutter` bundles the pinned Cropper.js assets and loads them only when
+avatar editing starts, so the app needs no Cropper.js setup or runtime CDN. The
+complete production checklist is at
 https://eigeninteractive.com/docs/ship-it/deploy-the-web-app.
 
 Android releases use the same configuration file:

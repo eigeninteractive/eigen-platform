@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
+import 'firebase_options.dart';
 import 'game/module.dart';
 
 const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
@@ -25,21 +26,14 @@ Future<void> main() async {
         firebaseVapidKey: _firebaseVapidKey,
       ),
     ),
-    firebaseOptions: _firebaseOptions,
+    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
     onBackgroundMessage: _onBackgroundMessage,
   );
 }
 
-// Replace this with DefaultFirebaseOptions.currentPlatform after running
-// `flutterfire configure`.
-const _firebaseOptions = FirebaseOptions(
-  apiKey: 'REPLACE_ME',
-  appId: 'REPLACE_ME',
-  messagingSenderId: 'REPLACE_ME',
-  projectId: 'REPLACE_ME',
-);
-
 @pragma('vm:entry-point')
 Future<void> _onBackgroundMessage(RemoteMessage message) async {
-  await Firebase.initializeApp(options: _firebaseOptions);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 }

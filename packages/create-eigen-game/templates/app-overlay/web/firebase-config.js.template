@@ -1,0 +1,4 @@
+throw new Error(
+  "Firebase Web is not configured. Run `pnpm firebase:configure` or " +
+    "`npm run firebase:configure` from the project root.",
+);

@@ -52,7 +52,18 @@ describe("scaffoldGame", () => {
     expect(bootstrap).not.toContain("cdnjs.cloudflare.com");
     expect(readFileSync(resolve(root, "app/web/index.html"), "utf8")).not.toContain("cropper");
     expect(existsSync(resolve(root, "app/web/vendor/cropperjs"))).toBe(false);
-    expect(readFileSync(resolve(root, "app/web/firebase-messaging-sw.js"), "utf8")).toContain("firebase.messaging()");
+    const messagingWorker = readFileSync(resolve(root, "app/web/firebase-messaging-sw.js"), "utf8");
+    expect(messagingWorker).toContain('importScripts("firebase-config.js")');
+    expect(messagingWorker).toContain("firebase.initializeApp(self.firebaseConfig)");
+    expect(messagingWorker).toContain("firebase.messaging()");
+    expect(messagingWorker).not.toContain("REPLACE_ME");
+    expect(readFileSync(resolve(root, "app/web/firebase-config.js"), "utf8")).toContain("firebase:configure");
+    const firebaseOptions = readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8");
+    expect(firebaseOptions).toContain("class DefaultFirebaseOptions");
+    expect(firebaseOptions).toContain("Firebase is not configured");
+    const appMain = readFileSync(resolve(root, "app/lib/main.dart"), "utf8");
+    expect(appMain).toContain("DefaultFirebaseOptions.currentPlatform");
+    expect(appMain).not.toContain("REPLACE_ME");
     const appConfig = readFileSync(resolve(root, "app/app-config.json"), "utf8");
     expect(appConfig).toContain('"API_BASE_URL": ""');
     expect(appConfig).toContain('"APP_HOST": ""');
@@ -80,6 +91,7 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts["build:web"]).toContain("--output ../server/public");
     expect(rootManifest.scripts["build:web"]).toContain("--dart-define-from-file=app-config.json");
     expect(rootManifest.scripts.deploy).toContain("run build:web");
+    expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_flutter:configure_firebase");
   });
 
   it("uses ecosystem CLIs to bootstrap both halves", () => {

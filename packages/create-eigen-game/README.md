@@ -50,9 +50,12 @@ same template under `server/`; it does not maintain a second Worker skeleton.
 `templates/app-overlay` is applied after
 `flutter create --empty --platforms android,web`. It supplies the Firebase
 Messaging service worker, the narrowly scoped Flutter bootstrap that registers
-it before app startup. `eigen_flutter` bundles and loads the Cropper.js assets
-required by `image_cropper` on web, so generated apps do not carry their own
-copy or configure `web/index.html`.
+it before app startup, and one setup command that runs FlutterFire and derives
+the worker's public Firebase configuration from the Web app FlutterFire
+selected. Implementors never copy those identifiers into JavaScript by hand.
+`eigen_flutter` bundles and loads the Cropper.js assets required by
+`image_cropper` on web, so generated apps do not carry their own copy or
+configure `web/index.html`.
 On Android, `eigen_flutter` supplies FID messaging configuration through its
 plugin manifest and native dependency graph; the scaffolder does not edit the
 application manifest or `gradle.properties`. It adds the application-level core
