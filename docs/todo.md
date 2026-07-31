@@ -1,8 +1,3 @@
-# P0
-- [ ] Web Deployment Origin, etc.
-- [ ] Is String.fromEnvironment idiomatic? What about Envied?
-- [ ] Are we reinventing the wheel with web storage backend?
-
 # P1
 
 - [ ] Track [FlutterFire FID Issue](https://github.com/firebase/flutterfire/issues/18479)
