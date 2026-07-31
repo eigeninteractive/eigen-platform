@@ -121,7 +121,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     renderTree(resolve(templatesRoot, "project"), stagingRoot, name, manager);
 
     if (bootstrap) {
-      run("flutter", ["create", "--empty", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
+      run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
     } else {
       mkdirSync(appRoot, { recursive: true });
     }

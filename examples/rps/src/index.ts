@@ -4,7 +4,7 @@
  * Deploys with `pnpm deploy` (engine D1 migrations apply, then the code).
  */
 
-import { BaseGameDO, createEngine } from "@eigeninteractive/server";
+import { BaseGameDO, createEngine, type EngineConfig } from "@eigeninteractive/server";
 import rpsGame from "./module";
 
 export class GameDO extends BaseGameDO<Env> {
@@ -14,7 +14,7 @@ export class GameDO extends BaseGameDO<Env> {
   }
 }
 
-export default createEngine({
+export const engineConfig = {
   gameModule: rpsGame,
   appName: "RPS",
   d1: (env: Env) => env.rps_dev,
@@ -36,18 +36,16 @@ export default createEngine({
   // register. Absolute URLs (canonical/OG/sitemap) come from the request
   // origin, so nothing about the domain is configured here.
   //
-  // Any generated page can be replaced by shipping the matching file under
-  // `public/` (`public/terms.html` beats `GET /terms`), because Cloudflare
-  // serves matching static assets before invoking the worker. `legal` is
-  // omitted, so all three documents use the engine's generic templates —
-  // review them before publishing a real app; they are a starting point, and
-  // the operator carries the liability for what they say.
+  // `legal` is omitted, so all three documents use the engine's generic
+  // templates. Review them before publishing a real app; they are a starting
+  // point, and the operator carries the liability for what they say.
   //
   // The engine never generates images — but the Flutter app already produces
   // every one it needs. `flutter_launcher_icons` emits `web/favicon.png` and
   // `web/icons/Icon-{192,512}.png` (+ maskable) from the same 1024x1024 source
   // the app icon uses, and `web/og-image.png` is the app's own share card. Copy
-  // those into `public/` and the landing page, manifest and OG tags are done;
+  // the release build writes those into `public/`; `/download`, the manifest,
+  // and OG tags then share them.
   // the engine's default paths are exactly those names.
   site: {
     tagline: "Rock, paper, scissors — the smallest complete game on the Eigen engine.",
@@ -62,4 +60,6 @@ export default createEngine({
   // Per-user write rate limits need NO wiring here: the engine resolves each
   // limiter by its conventional `EIGEN_RATE_LIMIT_*` binding name, so the
   // `ratelimits` block in wrangler.jsonc is the whole setup.
-});
+} satisfies EngineConfig<Env, GameDO>;
+
+export default createEngine(engineConfig);

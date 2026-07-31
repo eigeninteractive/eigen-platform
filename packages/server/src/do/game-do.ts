@@ -56,7 +56,8 @@ import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { withRetry } from "../d1/retry.js";
-import { finishPush, pushToUser, readServiceAccount, readyPush, turnPush } from "../notify/push.js";
+import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/admin-effects.js";
+import { finishPush, readyPush, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot, SyncMessage } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
@@ -106,6 +107,11 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   /** The EngineConfig seam: the engine never assumes binding names — the
    * subclass picks the D1 database off its own Env. */
   protected abstract d1(env: TEnv): D1Database;
+  /** Required Firebase Admin effects. Tests override this with the explicit
+   * fake exported by `@eigeninteractive/server/testing`. */
+  protected firebaseAdmin(env: TEnv): FirebaseAdminEffects {
+    return firebaseAdminFromEnv(env);
+  }
 
   readonly #db: DrizzleSqliteDODatabase;
 
@@ -588,30 +594,24 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** FCM turn/finish pushes: a "your turn" push to each newly-waiting
-   * human, and a "game over" push to every human when the game ends. Skipped
-   * wholesale when FCM is not configured (no service account) — pushes are
-   * best-effort. Each `pushToUser` catches and logs on its own. */
+   * human, and a "game over" push to every human when the game ends. */
   async #pushNotifications(meta: MetaRow, _roster: Seat[], plan: CommitPlan): Promise<void> {
-    const sa = readServiceAccount(this.env);
-    if (sa === null) return;
+    const admin = this.firebaseAdmin(this.env);
     const d1 = this.d1(this.env);
     for (const effect of plan.effects) {
       if (effect.kind === "notifyTurn") {
-        await pushToUser(d1, sa, effect.userId, turnPush(meta.gameId));
+        await admin.notifyUser(d1, effect.userId, turnPush(meta.gameId));
       } else if (effect.kind === "notifyFinished") {
-        await Promise.all(effect.userIds.map((userId) => pushToUser(d1, sa, userId, finishPush(meta.gameId))));
+        await Promise.all(effect.userIds.map((userId) => admin.notifyUser(d1, userId, finishPush(meta.gameId))));
       }
     }
   }
 
   /** Best-effort "your game is ready to start" push to the creator when a join
-   * fills the lobby. Fire-and-forget like the D1 mirror — the DO stays alive for
-   * the pending promise; `pushToUser` never throws and no-ops when FCM is
-   * unconfigured. */
+   * fills the lobby. Fire-and-forget like the D1 mirror — the DO stays alive
+   * for the pending promise. */
   #pushReady(creatorId: string, gameId: string): void {
-    const sa = readServiceAccount(this.env);
-    if (sa === null) return;
-    void pushToUser(this.d1(this.env), sa, creatorId, readyPush(gameId));
+    void this.firebaseAdmin(this.env).notifyUser(this.d1(this.env), creatorId, readyPush(gameId));
   }
 
   /** The engine bot-signing master secret, read from env by the documented

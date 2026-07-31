@@ -96,7 +96,7 @@ export function Page(props: PropsWithChildren<PageProps>) {
             <meta name="twitter:image" content={props.ogImage} />
           </>
         )}
-        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:card" content={props.ogImage === undefined ? "summary" : "summary_large_image"} />
         <meta name="twitter:title" content={props.title} />
         <meta name="twitter:description" content={props.description} />
         <link rel="icon" href={ICONS.favicon} />

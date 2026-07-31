@@ -4,8 +4,8 @@
  * the `scheduled` handler, and the applyFinish purge guard that keeps a
  * deleted identity from being re-rated by a later finish.
  *
- * FIREBASE_* is unset in the test worker, so `purgeUser` skips the Firebase
- * call and purges D1 directly — exactly the documented no-service-account path.
+ * FIREBASE_* is unset in the test worker; its explicit Firebase Admin fake
+ * makes account deletion a no-op while every game and D1 purge path stays real.
  */
 
 import { env, exports } from "cloudflare:workers";

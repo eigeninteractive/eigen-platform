@@ -7,9 +7,10 @@
  * until shortly before expiry.
  *
  * `jose` is used rather than `google-auth-library`, which assumes a Node
- * runtime the Workers isolate does not provide. If Firebase isn't configured
- * (no `FIREBASE_*` vars), {@link readServiceAccount} returns null and callers
- * skip — every Google-backed effect is best-effort.
+ * runtime the Workers isolate does not provide. {@link readServiceAccount}
+ * keeps parsing separate from deployment policy: `createEngine` requires the
+ * credentials for production traffic, while tests with the explicit auth seam
+ * can run without making Google calls.
  */
 
 import { importPKCS8, SignJWT } from "jose";
@@ -28,9 +29,10 @@ export interface ServiceAccount {
   privateKey: string;
 }
 
-/** Resolve the service account from env, or null when it is not configured
- * (any of the three vars missing). Mirrors the `FIREBASE_PROJECT_ID` /
- * `BOT_SIGNING_SECRET` env conventions used elsewhere. */
+/** Resolve the service account from env, or null when any value is absent.
+ *
+ * Production policy is enforced by `createEngine`; the nullable parser keeps
+ * local tests and inert documentation generation independent of Google. */
 export function readServiceAccount(env: unknown): ServiceAccount | null {
   const e = env as Record<string, unknown>;
   const projectId = e.FIREBASE_PROJECT_ID;

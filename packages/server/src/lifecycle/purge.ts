@@ -20,10 +20,9 @@
  */
 
 import { and, eq, inArray, or } from "drizzle-orm";
-import { deleteFirebaseAccount } from "../auth/admin.js";
 import { orm } from "../d1/orm.js";
 import { deviceInstallations, games, participants, playerRatings, ratingHistory, relationships, users } from "../d1/schema.js";
-import type { ServiceAccount } from "../google/oauth.js";
+import type { FirebaseAdminEffects } from "../firebase/admin-effects.js";
 import type { Command, GameStub } from "../protocol.js";
 
 /** The engine surface the lifecycle paths need — supplied by `createEngine`
@@ -31,9 +30,8 @@ import type { Command, GameStub } from "../protocol.js";
 export interface EngineOps {
   d1: D1Database;
   stub(gameId: string): GameStub;
-  /** Null when the `FIREBASE_*` service-account vars are unset — the Firebase
-   * account then cannot be deleted server-side (see {@link purgeUser}). */
-  serviceAccount: ServiceAccount | null;
+  /** Required Firebase Admin effects, real in production and explicit in tests. */
+  firebaseAdmin: FirebaseAdminEffects;
   /** The avatars R2 bucket, or null when uploads aren't enabled — the user's
    * avatar object (key = uid) is deleted on purge when present. */
   avatarBucket: R2Bucket | null;
@@ -98,14 +96,7 @@ export async function purgeUser(ops: EngineOps, userId: string): Promise<void> {
   const seats = await readLiveSeats(ops.d1, userId);
   for (const seat of seats) await clearSeat(ops, userId, seat);
 
-  if (ops.serviceAccount !== null) {
-    await deleteFirebaseAccount(ops.serviceAccount, userId);
-  } else {
-    // No service account configured: we cannot delete the Firebase credential,
-    // so the D1 row is reclaimed but the account could re-provision on the next
-    // request. A real deployment sets FIREBASE_*; tests never re-request.
-    console.warn(`purge: FIREBASE_* not configured — deleting D1 data for ${userId} but not the Firebase account`);
-  }
+  await ops.firebaseAdmin.deleteAccount(userId);
 
   await purgeD1(ops.d1, userId);
 

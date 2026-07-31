@@ -14,11 +14,10 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { deviceInstallations } from "../d1/schema.js";
-import { type NotificationMessage, readServiceAccount, type ServiceAccount, sendNotifications } from "./fcm.js";
+import { type NotificationMessage, type PushTarget, readServiceAccount, type ServiceAccount, sendNotifications } from "./fcm.js";
 
-async function readUserFids(d1: D1Database, userId: string): Promise<string[]> {
-  const rows = await orm(d1).select({ fid: deviceInstallations.fid }).from(deviceInstallations).where(eq(deviceInstallations.userId, userId)).all();
-  return rows.map((r) => r.fid);
+async function readUserTargets(d1: D1Database, userId: string): Promise<PushTarget[]> {
+  return orm(d1).select({ fid: deviceInstallations.fid, platform: deviceInstallations.platform }).from(deviceInstallations).where(eq(deviceInstallations.userId, userId)).all();
 }
 
 async function pruneFids(d1: D1Database, userId: string, fids: string[]): Promise<void> {
@@ -31,11 +30,11 @@ async function pruneFids(d1: D1Database, userId: string, fids: string[]): Promis
 
 /** Send `message` to every device registered to `userId`, then prune any
  * permanently unregistered ones. Never throws. */
-export async function pushToUser(d1: D1Database, sa: ServiceAccount, userId: string, message: NotificationMessage): Promise<void> {
+export async function pushToUser(d1: D1Database, sa: ServiceAccount, userId: string, message: NotificationMessage, webAppOrigin?: string): Promise<void> {
   try {
-    const fids = await readUserFids(d1, userId);
-    if (fids.length === 0) return;
-    const results = await sendNotifications(sa, message, fids);
+    const targets = await readUserTargets(d1, userId);
+    if (targets.length === 0) return;
+    const results = await sendNotifications(sa, message, targets, webAppOrigin);
     const stale = results.flatMap((r) => (r.status === "fulfilled" && r.value.prunable ? [r.value.fid] : []));
     if (stale.length > 0) await pruneFids(d1, userId, stale);
   } catch (error) {

@@ -40,6 +40,29 @@ describe("createFirebaseVerifier", () => {
 });
 
 describe("middleware + provisioning", () => {
+  it("answers trusted browser preflights before auth and rejects unknown origins", async () => {
+    const allowed = await exports.default.fetch("https://x/api/engine/me", {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://app.example",
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "authorization",
+      },
+    });
+    expect(allowed.status).toBe(204);
+    expect(allowed.headers.get("access-control-allow-origin")).toBe("https://app.example");
+    expect(allowed.headers.get("access-control-allow-headers")).toContain("Authorization");
+
+    const denied = await exports.default.fetch("https://x/api/engine/me", {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://evil.example",
+        "access-control-request-method": "GET",
+      },
+    });
+    expect(denied.headers.get("access-control-allow-origin")).toBeNull();
+  });
+
   it("401s without a token and with garbage", async () => {
     expect((await exports.default.fetch("https://x/api/engine/me")).status).toBe(401);
     expect((await exports.default.fetch("https://x/api/engine/me", { headers: { authorization: "Bearer nope" } })).status).toBe(401);

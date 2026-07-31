@@ -6,7 +6,7 @@
  *
  * All writes require a registered (non-guest) caller: a guest is a throwaway
  * identity that cannot hold a stable friend graph. Friend-event pushes go out
- * through the shared push path when a service account is configured; they ride
+ * through the required shared push path; they ride
  * `executionCtx.waitUntil` so a slow FCM call never delays the response (a
  * stateless Worker, unlike the DO, needs waitUntil to keep background work
  * alive past the response).
@@ -17,7 +17,7 @@ import { readPlayers } from "../d1/reads.js";
 import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPendingRequests, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
-import { friendAcceptedPush, friendRequestPush, pushToUser } from "../notify/push.js";
+import { friendAcceptedPush, friendRequestPush } from "../notify/push.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { errorShape, friendRequestShape, friendShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
 
@@ -45,9 +45,7 @@ function requireRegistered(auth: Authed): void {
  * background send alive past the response (a stateless Worker needs it, unlike
  * the DO). */
 function pushFriendEvent(ctx: RouteContext, env: unknown, waitUntil: (p: Promise<unknown>) => void, userId: string, message: ReturnType<typeof friendRequestPush>): void {
-  const sa = ctx.serviceAccount(env);
-  if (sa === null) return;
-  waitUntil(pushToUser(ctx.d1(env), sa, userId, message));
+  waitUntil(ctx.firebaseAdmin(env).notifyUser(ctx.d1(env), userId, message));
 }
 
 export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {

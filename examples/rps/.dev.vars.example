@@ -1,16 +1,12 @@
 # Copy to `.dev.vars` (git-ignored) for `wrangler dev`.
 #
-# These are PLACEHOLDERS and should stay that way. Every feature they gate is
-# simply off when unconfigured, which is the intended local behaviour:
-#   - push degrades to a logged no-op
-#   - DELETE /me returns a clean failure instead of calling Identity Toolkit
-# Do not put real service-account credentials here to "make push work" locally.
+# Fill these from the same Firebase project used by the Flutter app. The email
+# and private key come from Project settings > Service accounts > Generate new
+# private key. Never commit the downloaded JSON or `.dev.vars`.
 #
-# Auth still works without a Firebase project: `@eigeninteractive/server/testing` mints
-# local tokens the real auth middleware accepts, which is how the test suites
-# exercise the real DO and real D1 with no cloud account.
+# Automated tests remain credential-free: the explicit server testing verifier
+# bypasses production Firebase configuration and never calls Google.
 
-FIREBASE_PROJECT_ID=placeholder
-FIREBASE_CLIENT_EMAIL=placeholder@placeholder.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="placeholder"
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
 BOT_SIGNING_SECRET=dev-only-secret

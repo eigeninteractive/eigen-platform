@@ -13,15 +13,22 @@ const _googleWebClientId = String.fromEnvironment(
   'GOOGLE_WEB_CLIENT_ID',
   defaultValue: 'REPLACE_ME.apps.googleusercontent.com',
 );
+const _firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
+const _appHost = String.fromEnvironment('APP_HOST');
 
 Future<void> main() async {
   await runEngineApp(
     module: const ExampleGameModule(),
-    config: const AppConfig(
-      branding: Branding(appName: 'Example Game', seedColor: Colors.indigo),
+    config: AppConfig(
+      branding: const Branding(
+        appName: 'Example Game',
+        seedColor: Colors.indigo,
+      ),
       engine: EngineConfig(
         apiBaseUrl: _apiBaseUrl,
         googleWebClientId: _googleWebClientId,
+        appHost: _appHost.isEmpty ? null : _appHost,
+        firebaseVapidKey: _firebaseVapidKey,
       ),
     ),
     firebaseOptions: _firebaseOptions,

@@ -1,9 +1,8 @@
 /**
- * Device registration — the ingress that makes FCM pushes
- * deliverable. A client upserts its Firebase Installation ID (FID) here so the
- * turn/finish pushes (`notify/push.ts`) have somewhere to go, and deletes it on
- * sign-out. The send side reads and prunes this table; these two routes are the
- * only writers.
+ * Device registration — the ingress that makes FCM pushes deliverable. A
+ * client upserts its Firebase Installation ID (FID) and deletes the
+ * installation on sign-out. The send side reads and prunes this table; these
+ * two routes are the only writers.
  *
  * Keyed on the FID (one row per app install): signing in on a device reassigns
  * that FID from any prior user, so a FID always maps to exactly one user and no
@@ -20,7 +19,7 @@ import { errorShape } from "./wire.js";
 
 const deviceBody = z
   .object({
-    /** The Firebase Installation ID for this app install (the FCM target). */
+    /** Stable identity for this Firebase app installation. */
     fid: z.string().min(1).max(256),
     platform: z.enum(["ios", "android", "web"]),
   })

@@ -240,7 +240,7 @@ export const ratingHistory = sqliteTable(
   ],
 );
 
-/** FCM push targets, keyed by Firebase Installation ID — unchanged. */
+/** FCM push targets, keyed by Firebase Installation ID. */
 export const deviceInstallations = sqliteTable(
   "device_installations",
   {

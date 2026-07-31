@@ -102,7 +102,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       const userId = c.var.auth.user.id;
       const avatarUrl = c.var.auth.user.avatarUrl;
       try {
-        await purgeUser({ d1: ctx.d1(c.env), stub: (gameId) => ctx.stub(c.env, gameId), serviceAccount: ctx.serviceAccount(c.env), avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(c.env) }, userId);
+        await purgeUser({ d1: ctx.d1(c.env), stub: (gameId) => ctx.stub(c.env, gameId), firebaseAdmin: ctx.firebaseAdmin(c.env), avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(c.env) }, userId);
       } catch (error) {
         console.error(`delete-account for ${userId} failed`, error);
         throw new HttpError(502, "Account deletion failed — please try again");

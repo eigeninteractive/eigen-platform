@@ -6,7 +6,7 @@
 
 import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
 import { BaseGameDO, createEngine } from "../src/index.js";
-import { testVerifier } from "../src/testing.js";
+import { testFirebaseAdmin, testVerifier } from "../src/testing.js";
 
 /** The worker-side Env — the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
@@ -134,6 +134,9 @@ export class GameDO extends BaseGameDO<TestEnv> {
   protected d1(env: TestEnv): D1Database {
     return env.DB;
   }
+  protected firebaseAdmin(_env: TestEnv) {
+    return testFirebaseAdmin;
+  }
 }
 
 /** The deployed shape, with the test auth seam: the same verifier
@@ -143,7 +146,11 @@ export default createEngine({
   appName: "Eigen Test",
   d1: (env: TestEnv) => env.DB,
   gameDO: (env: TestEnv) => env.GAME_DO,
-  auth: testVerifier(),
+  testing: {
+    auth: testVerifier(),
+    firebaseAdmin: () => testFirebaseAdmin,
+  },
+  clientOrigins: ["https://app.example", "http://localhost:7357"],
   // deep linking + avatars — exercised by web.spec.ts. Avatars use
   // the simulated AVATARS bucket; publicBaseUrl is left unset (the worker-serve
   // default), so avatarUrl is the relative /avatars/{uid} route.

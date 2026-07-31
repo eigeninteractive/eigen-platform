@@ -2,7 +2,9 @@
   "name": "example-game",
   "private": true,
   "scripts": {
+    "build:web": "cd app && flutter build web --release --output ../server/public --dart-define-from-file=web-config.json",
     "contract": "cd server && {{PACKAGE_MANAGER}} run contract && cd ../app && dart run eigen_flutter:generate_payloads --contract ../server/game-contract.json --output lib/game/generated/payloads.dart --fixtures-output test/fixtures",
-    "contract:check": "cd server && {{PACKAGE_MANAGER}} run contract:check && cd ../app && dart run eigen_flutter:generate_payloads --contract ../server/game-contract.json --output lib/game/generated/payloads.dart --fixtures-output test/fixtures --check"
+    "contract:check": "cd server && {{PACKAGE_MANAGER}} run contract:check && cd ../app && dart run eigen_flutter:generate_payloads --contract ../server/game-contract.json --output lib/game/generated/payloads.dart --fixtures-output test/fixtures --check",
+    "deploy": "{{PACKAGE_MANAGER}} run build:web && cd server && {{PACKAGE_MANAGER}} run deploy"
   }
 }

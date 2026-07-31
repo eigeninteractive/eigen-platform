@@ -23,7 +23,8 @@ my-game/
 └── app/      # generated Dart payloads and handwritten Flutter presentation
 ```
 
-The scaffolder installs both halves, emits `server/game-contract.json`, and
+The scaffolder creates the Flutter shell explicitly for Android and web,
+installs both halves, emits `server/game-contract.json`, and
 generates the initial Dart payload types and typed rules base. Engine
 repositories remain ordinary npm/pub.dev dependencies and are not cloned.
 It also supplies a starter v1 twin fixture, a Vitest runner, a Flutter fixture
@@ -32,6 +33,11 @@ generated repository root, `pnpm run contract` (or `npm run contract`) emits
 the TypeScript contract and regenerates the Dart payloads in one command;
 `contract:check` checks both artifacts without rewriting them.
 
+`pnpm run deploy` (or npm) is similarly whole-project: it builds Flutter web
+into the Worker's Static Assets directory, applies D1 migrations, and deploys
+one same-origin Worker. The Flutter app lives at `/`; the generated native
+install page lives at `/download`.
+
 ## Template architecture
 
 `templates/worker` is a valid standalone Cloudflare C3-style Worker template:
@@ -39,9 +45,17 @@ it contains its own `package.json`, `wrangler.jsonc`, TypeScript entry point,
 generated Wrangler types, and game module. The combined Eigen CLI renders that
 same template under `server/`; it does not maintain a second Worker skeleton.
 
-`templates/app-overlay` is applied after `flutter create --empty`. The CLI then
-uses `flutter pub add` and the public `eigen_flutter:generate_payloads`
-executable instead of editing Flutter's generated YAML by hand.
+`templates/app-overlay` is applied after
+`flutter create --empty --platforms android,web`. It supplies the Firebase
+Messaging service worker, the narrowly scoped Flutter bootstrap that registers
+it before app startup. `eigen_flutter` bundles and loads the Cropper.js assets
+required by `image_cropper` on web, so generated apps do not carry their own
+copy or configure `web/index.html`.
+On Android, `eigen_flutter` supplies FID messaging configuration through its
+plugin manifest and native dependency graph; the scaffolder does not edit
+Flutter-owned Gradle or manifest files. The CLI then uses `flutter pub add` and the public
+`eigen_flutter:generate_payloads` executable instead of editing Flutter's
+generated YAML by hand.
 
 The public CLI intentionally has no server-only or app-only modes.
 
@@ -54,4 +68,5 @@ Cloudflare runtime. Server deliberately does not re-export the rules surface.
 
 - [Quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
 - [Manual setup and split repositories](https://eigeninteractive.com/docs/getting-started/manual-setup)
+- [Deploy the web app](https://eigeninteractive.com/docs/ship-it/deploy-the-web-app)
 - [The game contract](https://eigeninteractive.com/docs/build-a-game/the-contract)

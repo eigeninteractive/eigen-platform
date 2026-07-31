@@ -292,6 +292,31 @@ describe("active play & frames", () => {
 });
 
 describe("socket (roster snapshots → frames)", () => {
+  it("accepts the configured browser origin and rejects an unknown one", async () => {
+    const u = makeUsers();
+    const { gameId } = await createGame(u.a, { rated: false });
+    const token = await mintToken({ uid: u.a });
+    const url = `https://x/api/engine/games/${gameId}/socket?token=${token}`;
+
+    const denied = await exports.default.fetch(url, {
+      headers: {
+        Upgrade: "websocket",
+        Origin: "https://evil.example",
+      },
+    });
+    expect(denied.status).toBe(403);
+
+    const allowed = await exports.default.fetch(url, {
+      headers: {
+        Upgrade: "websocket",
+        Origin: "https://app.example",
+      },
+    });
+    expect(allowed.status).toBe(101);
+    allowed.webSocket?.accept();
+    allowed.webSocket?.close();
+  });
+
   it("serves one socket across the lobby → active transition", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });

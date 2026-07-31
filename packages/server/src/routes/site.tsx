@@ -3,19 +3,14 @@
  * host besides the API. Unauthed, outside `/api`, and absent from the OpenAPI
  * document, exactly like the deep-link routes in `links.tsx`:
  *
- *   - `GET /` — the landing page, rendered from `site` config.
+ *   - `GET /download` — the native app download page, rendered from `site`.
  *   - `GET /terms`, `/privacy`, `/delete-account` — the legal documents.
  *   - `GET /sitemap.xml`, `GET /robots.txt` — crawler directives.
  *   - `GET /site.webmanifest` — the web app manifest.
  *
- * Every one of these is overridable with zero configuration: Cloudflare serves
- * a matching static asset *before* invoking the worker, and default
- * `html_handling` resolves the extensionless `/terms` to `public/terms.html`.
- * So an implementor who wants a different page just ships the file.
- *
- * These routes need no `run_worker_first` entry: a request matching no static
- * file already falls through to the worker. The one rule is not to add a
- * `public/` file that shadows a path you did not mean to replace.
+ * The scaffold lists these in Static Assets' `run_worker_first`, keeping
+ * Flutter's SPA fallback from swallowing legal, download, and crawler routes.
+ * Implementors customize legal prose through the typed `site.legal` config.
  *
  * **Path note.** These live on the game's own host alongside the app's deep
  * links (`/join/:code`, `/game/:id`), so the app's Android App Links
@@ -77,7 +72,7 @@ function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, origin: 
     applicationCategory: "GameApplication",
     name: site.name,
     description: site.tagline,
-    url: `${origin}/`,
+    url: `${origin}/download`,
     image: ogImage,
     ...(os.length > 0 ? { operatingSystem: os.join(", ") } : {}),
     publisher: { "@type": "Organization", name: site.operator.name },
@@ -88,29 +83,10 @@ const LEGAL_TITLES = { "/terms": "Terms of Service", "/privacy": "Privacy Policy
 
 export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
   const site = ctx.site as ResolvedSite;
-  const stores = storeLinks(ctx.deepLink);
   // Absolute URLs (canonical, OG, sitemap) are built from the request origin.
   // Correct for a worker on a single host; disable the workers.dev route in
   // production so that host is the canonical one.
   const originOf = (url: string): string => new URL(url).origin;
-
-  app.get("/", (c) => {
-    const origin = originOf(c.req.url);
-    const ogImage = `${origin}${site.ogImage}`;
-    return c.html(
-      renderDocument(
-        <Page title={`${site.name} — ${site.tagline}`} description={site.tagline} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${origin}/`} ogImage={ogImage} operatorName={site.operator.name} jsonLd={jsonLdFor(site, ctx.deepLink, origin, ogImage)}>
-          <h1>{site.name}</h1>
-          <p class="lead">{site.tagline}</p>
-          {site.description !== site.tagline && <p>{site.description}</p>}
-          {site.screenshots.length > 0 && <Screenshots site={site} />}
-          {stores.length > 0 && <StoreButtons links={stores} />}
-        </Page>,
-      ),
-      200,
-      { "Cache-Control": PAGE_CACHE },
-    );
-  });
 
   for (const [path, fragment] of [
     ["/terms", site.legal.terms],
@@ -133,7 +109,7 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
 
   // Only the durable, indexable pages. Share links are ephemeral, already carry
   // `noindex`, and would churn the sitemap on every game created.
-  const urls = ["/", "/terms", "/privacy", "/delete-account"];
+  const urls = ["/download", "/terms", "/privacy", "/delete-account"];
   app.get("/sitemap.xml", (c) => {
     const origin = originOf(c.req.url);
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `  <url><loc>${origin}${u}</loc><changefreq>monthly</changefreq></url>`).join("\n")}\n</urlset>`;
@@ -147,18 +123,32 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
     const robots = `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /join/\nDisallow: /game/\n\nSitemap: ${originOf(c.req.url)}/sitemap.xml\n`;
     return c.body(robots, 200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": CRAWLER_CACHE });
   });
+}
 
-  // Icon paths match what `flutter_launcher_icons` emits into a Flutter app's
-  // `web/` directory, so an implementor copies that folder into `public/`
-  // rather than authoring a second icon set. The engine generates no images.
+/** Register the web/native handoff independently of legal-site configuration.
+ *
+ * A fresh scaffold can serve `/download` before the implementor has supplied
+ * legally meaningful operator details. Adding `site` later enriches the same
+ * route with branding, screenshots, structured data, and the legal footer.
+ */
+export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
+  const stores = storeLinks(ctx.deepLink);
+  const enabled = (env: unknown): boolean => ctx.site !== null || ctx.deepLink !== null || ctx.webAssets(env) !== null;
+  const name = ctx.site?.name ?? ctx.appName;
+  const tagline = ctx.site?.tagline ?? `Play ${name} in your browser or get the native app.`;
+
+  // Icon paths match Flutter's web build. Keep the engine manifest available
+  // even before legal-site configuration, because Page links it from the
+  // out-of-box download page.
+  const color = ctx.site?.primaryColor ?? "#6750a4";
   const manifest = JSON.stringify({
-    name: site.name,
-    short_name: site.name,
-    description: site.tagline,
+    name,
+    short_name: name,
+    description: tagline,
     start_url: "/",
     display: "browser",
-    theme_color: site.primaryColor,
-    background_color: site.primaryColor,
+    theme_color: color,
+    background_color: color,
     icons: [
       { src: ICONS.icon192, sizes: "192x192", type: "image/png" },
       { src: ICONS.icon512, sizes: "512x512", type: "image/png" },
@@ -166,5 +156,36 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
       { src: ICONS.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   });
-  app.get("/site.webmanifest", (c) => c.body(manifest, 200, { "Content-Type": "application/manifest+json", "Cache-Control": CRAWLER_CACHE }));
+
+  // Static Assets serves Flutter's index at `/` before the Worker runs. This
+  // redirect is the graceful fallback when there is no matching web asset.
+  app.get("/", (c) => (enabled(c.env) ? c.redirect("/download", 302) : c.notFound()));
+
+  app.get("/download", (c) => {
+    if (!enabled(c.env)) return c.notFound();
+
+    const origin = new URL(c.req.url).origin;
+    const site = ctx.site;
+    const ogImage = site === null ? undefined : `${origin}${site.ogImage}`;
+    return c.html(
+      renderDocument(
+        <Page title={`${name} — ${tagline}`} description={tagline} siteName={name} primaryColor={site?.primaryColor} canonicalUrl={`${origin}/download`} ogImage={ogImage} operatorName={site?.operator.name} jsonLd={site === null || ogImage === undefined ? undefined : jsonLdFor(site, ctx.deepLink, origin, ogImage)}>
+          <h1>{name}</h1>
+          <p class="lead">{tagline}</p>
+          {site !== null && site.description !== site.tagline && <p>{site.description}</p>}
+          {site !== null && site.screenshots.length > 0 && <Screenshots site={site} />}
+          <div>
+            <a class="btn" href="/">
+              Play on the web
+            </a>
+            {stores.length > 0 && <StoreButtons links={stores} />}
+          </div>
+        </Page>,
+      ),
+      200,
+      { "Cache-Control": PAGE_CACHE },
+    );
+  });
+
+  app.get("/site.webmanifest", (c) => (enabled(c.env) ? c.body(manifest, 200, { "Content-Type": "application/manifest+json", "Cache-Control": CRAWLER_CACHE }) : c.notFound()));
 }

@@ -32,19 +32,18 @@ export interface LegalConfig {
   deleteAccount?: string;
 }
 
-/** The public web surface a deployed game serves on its own host: landing page,
+/** The public web surface a deployed game serves on its own host: download page,
  * legal documents, and the crawler files. Absent → none of it is mounted and
  * the worker stays API-only.
  *
- * Every generated page is overridable by shipping the equivalent static asset
- * (`public/terms.html` beats `GET /terms`), because Cloudflare serves matching
- * assets before invoking the worker. */
+ * The scaffold reserves these paths for the Worker with Static Assets'
+ * `run_worker_first`; customize legal prose through this typed config. */
 export interface SiteConfig {
   /** Public game name in titles and OG tags. Defaults to `appName`. */
   name?: string;
   /** One-sentence hook. The meta description and OG description. */
   tagline: string;
-  /** Longer landing-page prose. Defaults to `tagline`. */
+  /** Longer download-page prose. Defaults to `tagline`. */
   description?: string;
   /** Hex accent colour, e.g. `#1a237e`. Also the `theme-color`. */
   primaryColor: string;

@@ -19,7 +19,7 @@ const operator = { name: "Op & Co", jurisdiction: "Here", contactEmail: "a@b.c",
 
 describe("landing page", () => {
   it("renders the game name, tagline and screenshots", async () => {
-    const res = await get("/");
+    const res = await get("/download");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
     expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
@@ -34,9 +34,9 @@ describe("landing page", () => {
   it("carries canonical, OG and Twitter tags built on the inferred request origin", async () => {
     // The test worker omits `canonicalOrigin`, so absolute URLs are inferred
     // from the request — here `https://x`.
-    const html = await (await get("/")).text();
-    expect(html).toContain('<link rel="canonical" href="https://x/"/>');
-    expect(html).toContain('<meta property="og:url" content="https://x/"/>');
+    const html = await (await get("/download")).text();
+    expect(html).toContain('<link rel="canonical" href="https://x/download"/>');
+    expect(html).toContain('<meta property="og:url" content="https://x/download"/>');
     // Defaults to the same name the branding guide prescribes for the Flutter
     // app's share card — one image, both surfaces.
     expect(html).toContain('<meta property="og:image" content="https://x/og-image.png"/>');
@@ -45,7 +45,7 @@ describe("landing page", () => {
   });
 
   it("describes itself as a game to crawlers, not as an organisation", async () => {
-    const html = await (await get("/")).text();
+    const html = await (await get("/download")).text();
     const jsonLd = html.match(/<script type="application\/ld\+json">(.*?)<\/script>/)?.[1];
     expect(jsonLd).toBeDefined();
     const parsed = JSON.parse(jsonLd as string) as { "@type": string; applicationCategory: string; publisher: { name: string } };
@@ -55,7 +55,7 @@ describe("landing page", () => {
   });
 
   it("takes its store buttons from the deep-link config, so store URLs are set once", async () => {
-    const html = await (await get("/")).text();
+    const html = await (await get("/download")).text();
     expect(html).toContain("https://apps.apple.com/app/id000000000");
     expect(html).toContain("https://play.google.com/store/apps/details?id=com.eigen.test");
   });
@@ -101,7 +101,7 @@ describe("legal documents", () => {
   });
 
   it("links the legal pages from every page footer", async () => {
-    for (const path of ["/", "/terms", "/privacy"]) {
+    for (const path of ["/download", "/terms", "/privacy"]) {
       const html = await (await get(path)).text();
       expect(html).toContain('href="/terms"');
       expect(html).toContain('href="/privacy"');
@@ -116,8 +116,8 @@ describe("crawler files", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/xml");
     const xml = await res.text();
-    for (const path of ["/", "/terms", "/privacy", "/delete-account"]) {
-      expect(xml).toContain(`<loc>https://x${path === "/" ? "/" : path}</loc>`);
+    for (const path of ["/download", "/terms", "/privacy", "/delete-account"]) {
+      expect(xml).toContain(`<loc>https://x${path}</loc>`);
     }
     expect(xml).not.toContain("/join/");
   });
@@ -144,6 +144,14 @@ describe("crawler files", () => {
     // implementor copies that folder rather than authoring a second icon set.
     expect(manifest.icons.map((i) => i.src)).toEqual(["/icons/Icon-192.png", "/icons/Icon-512.png", "/icons/Icon-maskable-192.png", "/icons/Icon-maskable-512.png"]);
     expect(manifest.icons.filter((i) => i.purpose === "maskable")).toHaveLength(2);
+  });
+});
+
+describe("web root", () => {
+  it("falls back to the download page when no Flutter asset matches first", async () => {
+    const res = await exports.default.fetch(new Request("https://x/", { redirect: "manual" }));
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/download");
   });
 });
 

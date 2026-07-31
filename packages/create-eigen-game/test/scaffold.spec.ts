@@ -29,8 +29,13 @@ describe("scaffoldGame", () => {
     const wrangler = readFileSync(resolve(root, "server/wrangler.jsonc"), "utf8");
     expect(worker).toContain("class GameDO extends BaseGameDO<Env>");
     expect(worker).toContain("env.GAME_DB");
+    expect(worker).not.toContain("clientOrigins:");
     expect(worker).not.toContain("interface Env");
     expect(wrangler).toContain('"binding": "GAME_DB"');
+    expect(wrangler).toContain('"WEB_APP_ORIGIN": "http://localhost:7357"');
+    expect(wrangler).toContain('"binding": "ASSETS"');
+    expect(wrangler).toContain('"not_found_handling": "single-page-application"');
+    expect(wrangler).toContain('"/download"');
     expect(wrangler).not.toContain("database_id");
 
     expect(readFileSync(resolve(root, "server/src/module/index.ts"), "utf8")).toContain("export default { versions:");
@@ -42,8 +47,23 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "server/test/twin.spec.ts"), "utf8")).toContain("twinFixtureTests");
     expect(readFileSync(resolve(root, "server/src/module/fixtures/v1/counter.json"), "utf8")).toContain('"schemaVersion": 1');
     expect(readFileSync(resolve(root, "app/lib/game/README.md"), "utf8")).toContain("eigen_flutter:generate_payloads");
+    const bootstrap = readFileSync(resolve(root, "app/web/flutter_bootstrap.js"), "utf8");
+    expect(bootstrap).toContain("firebase-messaging-sw.js");
+    expect(bootstrap).not.toContain("cdnjs.cloudflare.com");
+    expect(readFileSync(resolve(root, "app/web/index.html"), "utf8")).not.toContain("cropper");
+    expect(existsSync(resolve(root, "app/web/vendor/cropperjs"))).toBe(false);
+    expect(readFileSync(resolve(root, "app/web/firebase-messaging-sw.js"), "utf8")).toContain("firebase.messaging()");
+    expect(readFileSync(resolve(root, "app/web-config.json"), "utf8")).toContain('"APP_HOST": "REPLACE_ME.example.com"');
     expect(readFileSync(resolve(root, "README.md"), "utf8")).toContain("npm run contract");
-    expect(readFileSync(resolve(root, ".gitignore"), "utf8")).toContain("server/node_modules/");
+    const rootGitignore = readFileSync(resolve(root, ".gitignore"), "utf8");
+    expect(rootGitignore).toContain("server/node_modules/");
+    expect(rootGitignore).toContain("!server/.dev.vars.example");
+    expect(rootGitignore).toContain("server/public/*");
+    expect(rootGitignore).toContain("!server/public/.gitkeep");
+    const devVars = readFileSync(resolve(root, "server/.dev.vars.example"), "utf8");
+    expect(devVars).not.toContain("FIREBASE_PROJECT_ID=");
+    expect(devVars).not.toContain("WEB_APP_ORIGIN=");
+    expect(devVars).toContain("FIREBASE_PRIVATE_KEY=");
 
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.name).toBe("my-game");
@@ -53,6 +73,8 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts.contract).toContain("--fixtures-output test/fixtures");
     expect(rootManifest.scripts["contract:check"]).toContain("npm run contract:check");
     expect(rootManifest.scripts["contract:check"]).toMatch(/--check$/);
+    expect(rootManifest.scripts["build:web"]).toContain("--output ../server/public");
+    expect(rootManifest.scripts.deploy).toContain("run build:web");
   });
 
   it("uses ecosystem CLIs to bootstrap both halves", () => {
@@ -70,7 +92,7 @@ describe("scaffoldGame", () => {
 
     scaffoldGame({ directory: root, packageManager: "pnpm", org: "games.example", run });
 
-    expect(run).toHaveBeenCalledWith("flutter", expect.arrayContaining(["create", "--empty", "--project-name", "chess", "--org", "games.example"]), expect.any(String));
+    expect(run).toHaveBeenCalledWith("flutter", expect.arrayContaining(["create", "--empty", "--platforms", "android,web", "--project-name", "chess", "--org", "games.example"]), expect.any(String));
     expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.1.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));

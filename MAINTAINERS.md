@@ -29,13 +29,56 @@ The release workflows use:
 
 - `NPM_TOKEN`: npm automation token with publish rights on the
   `@eigeninteractive` scope.
-- `RELEASE_TAG_PAT`: token with `contents: write` on this repository, used only
-  to push the `eigen_api-v<version>` tag.
+- `RELEASE_PAT`: token with `contents: write` and `pull-requests: write` on this
+  repository. It opens the version pull request and pushes the
+  `eigen_api-v<version>` tag. Both uses exist for one reason: GitHub suppresses
+  workflow triggers for events raised by the built-in `GITHUB_TOKEN`, so a
+  version PR it opens has no checks and a tag it pushes starts no workflow.
 - `CONSUMER_DISPATCH_TOKEN`: token or GitHub App credential able to dispatch to
-  `eigen-web`.
+  `eigen-web`. Now that both repositories sit in the same organization, this is
+  better held as an organization secret shared with `eigen-web` than duplicated.
 
 npm publishing requests GitHub OIDC for provenance. The Dart workflow uses
 GitHub OIDC instead of storing a pub.dev credential.
+
+### This repository must stay public
+
+`--provenance` only works from a public source repository. npm rejects a
+provenance-signed tarball built from a private repo, and the wrapper chain hides
+the real error behind `E404 ... is not in this registry`. If the repository ever
+has to go private, remove `--provenance` from `release.yml` rather than trying
+to debug the 404.
+
+### Branch protection
+
+Require these two checks on `main`, under the names they report from a pull
+request run:
+
+```text
+Lint, typecheck & test
+Dart client is in sync with the spec
+```
+
+Do not require the `Checks / …` prefixed variants. Those are the same jobs
+reached through `workflow_call` from `release.yml`, which never runs on a pull
+request, so requiring them blocks every merge.
+
+### Why not npm trusted publishing (OIDC)
+
+Trusted publishing would remove `NPM_TOKEN`, and it is the better end state, but
+not yet:
+
+- A trusted publisher is configured per package on npmjs.com, so the package
+  must already exist. There is no pending-publisher bootstrap as PyPI has.
+- `changesets/action`'s `publish:` input spawns the registry client through a
+  wrapper chain that does not forward `ACTIONS_ID_TOKEN_REQUEST_*`, so OIDC
+  never reaches it (npm/cli#8976, open). Adopting it means publishing from a
+  separate top-level step instead.
+- Two settings here actively break it and would need changing first: the
+  `registry-url` on `setup-node` (it writes an `.npmrc` whose token npm prefers
+  over OIDC) and the `git+` prefix on every `repository.url`.
+
+Revisit after the packages exist on npm.
 
 After the first `eigen_api` publication, configure its pub.dev package under
 **Admin → Automated publishing**:
@@ -49,6 +92,12 @@ Tag pattern: eigen_api-v{{version}}
 
 The first registry publication is a bootstrap exception because pub.dev cannot
 configure automated publishing until the package exists.
+
+Before any of this, the repository must live at `eigeninteractive/eigen-server`
+and be public. Every `repository.url` already names that location, and npm
+matches it case-sensitively when signing provenance. The manual publications
+below carry no provenance — they run from a laptop with no OIDC — so the
+requirement first bites on the following, automated release.
 
 From clean checkouts:
 
@@ -100,7 +149,7 @@ The separate workflow is required because pub.dev's automated publisher
 validates a tag-ref OIDC identity. The npm workflow runs from a branch ref, so
 its identity cannot publish to pub.dev directly.
 
-The tag must be pushed with `RELEASE_TAG_PAT`; GitHub deliberately prevents a
+The tag must be pushed with `RELEASE_PAT`; GitHub deliberately prevents a
 tag created with the built-in `GITHUB_TOKEN` from triggering another workflow.
 The Dart workflow verifies that the tag matches `clients/dart/pubspec.yaml`,
 runs a publish dry run, and publishes exactly the committed generated client.

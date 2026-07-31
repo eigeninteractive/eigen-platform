@@ -6,6 +6,7 @@
 
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { renderFlutterShell } from "../src/site/flutter-shell.js";
 import { testBearer as bearer } from "../src/testing.js";
 
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
@@ -62,6 +63,61 @@ describe("share/landing page", () => {
     const res = await exports.default.fetch("https://x/join/ZZZZZZ");
     expect(res.status).toBe(404);
     expect(res.headers.get("content-type")).toContain("text/html");
+  });
+});
+
+describe("Flutter web share shell", () => {
+  it("serves the app shell with dynamic, escaped metadata and no caching", async () => {
+    const assets = {
+      fetch: async () =>
+        new Response('<!doctype html><html><head><meta name="description" content="old"><meta property="og:title" content="stale"><link rel="canonical" href="https://old.example"><title>Old</title></head><body><script src="/main.dart.js"></script></body></html>', { headers: { "Content-Type": "text/html" } }),
+    } as unknown as Fetcher;
+    const response = await renderFlutterShell(new Request("https://game.example/join/ABC123?utm_source=chat"), assets, {
+      title: 'Join "A & B"',
+      description: "One <seat> open",
+      siteName: "Example Game",
+    });
+
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    const html = await response.text();
+    expect(html).toContain('<title>Join "A &amp; B"</title>');
+    expect(html).toContain('content="One &lt;seat&gt; open"');
+    expect(html).toContain('property="og:url" content="https://game.example/join/ABC123"');
+    expect(html).not.toContain("utm_source");
+    expect(html).toContain('name="twitter:card" content="summary"');
+    expect(html).toContain('name="twitter:title" content="Join &quot;A &amp; B&quot;"');
+    expect(html).not.toContain("stale");
+    expect(html).not.toContain("old.example");
+    expect(html).toContain('href="/download"');
+    expect(html).toContain('src="/main.dart.js"');
+  });
+
+  it("uses a large Twitter card only when an image exists", async () => {
+    const assets = {
+      fetch: async () => new Response("<html><head><title>Old</title></head><body></body></html>"),
+    } as unknown as Fetcher;
+    const response = await renderFlutterShell(new Request("https://game.example/game/1"), assets, {
+      title: "Game",
+      description: "Watch this game.",
+      siteName: "Example Game",
+      image: "https://game.example/og.png",
+    });
+
+    expect(await response.text()).toContain('name="twitter:card" content="summary_large_image"');
+  });
+
+  it("fails loudly when a configured asset binding cannot serve index.html", async () => {
+    const assets = {
+      fetch: async () => new Response("Not found", { status: 404 }),
+    } as unknown as Fetcher;
+
+    await expect(
+      renderFlutterShell(new Request("https://game.example/game/1"), assets, {
+        title: "Game",
+        description: "Watch this game.",
+        siteName: "Example Game",
+      }),
+    ).rejects.toThrow("Flutter web assets could not serve /index.html (status 404)");
   });
 });
 

@@ -1,0 +1,6 @@
+{
+  "API_BASE_URL": "https://REPLACE_ME.example.com",
+  "APP_HOST": "REPLACE_ME.example.com",
+  "GOOGLE_WEB_CLIENT_ID": "REPLACE_ME.apps.googleusercontent.com",
+  "FIREBASE_VAPID_KEY": "REPLACE_ME"
+}

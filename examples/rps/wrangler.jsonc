@@ -13,21 +13,14 @@
       "storage": "sqlite"
     }
   },
-  // The worker is the link host. Static files live in ./public and are
-  // served UNMETERED by the asset server. No `run_worker_first` is needed: a
-  // request that matches no static file already falls through to the Worker, so
-  // the dynamic paths (the API, the generated .well-known files, the /j share
-  // page, worker-served avatars, and the generated site pages) reach it on
-  // their own.
-  //
-  // That precedence cuts both ways, and is the override mechanism for the
-  // engine's generated pages: a `public/terms.html` would be served at /terms
-  // instead of the engine's, and a `public/index.html` would replace the
-  // generated landing page. Deliberate here — ./public is empty so this example
-  // shows the engine's own pages — but it means never adding a file under
-  // ./public whose path shadows one you did not mean to replace.
+  // The release Flutter build is written into ./public. Exact assets bypass
+  // Worker execution; dynamic engine paths run Worker-first; every other
+  // browser route falls back to Flutter's index.html.
   "assets": {
-    "directory": "./public"
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health", "/avatars/*", "/.well-known/*", "/join/*", "/game/*", "/download", "/terms", "/privacy", "/delete-account", "/robots.txt", "/sitemap.xml", "/site.webmanifest"]
   },
   "durable_objects": {
     "bindings": [
@@ -41,9 +34,13 @@
     "enabled": true
   },
   "vars": {
-    // The only value token verification needs. Set to the Firebase project
-    // id before deploying; empty makes every request fail 500.
-    "FIREBASE_PROJECT_ID": ""
+    // Public Firebase project id. The matching FIREBASE_CLIENT_EMAIL and
+    // FIREBASE_PRIVATE_KEY are required secrets (or .dev.vars locally) for
+    // FCM and complete account deletion.
+    "FIREBASE_PROJECT_ID": "",
+    // Canonical Flutter web origin: trusted automatically for browser API +
+    // socket access and used for absolute notification click links.
+    "WEB_APP_ORIGIN": "http://localhost:7357"
   },
   "upload_source_maps": true,
   "compatibility_flags": ["nodejs_compat"],

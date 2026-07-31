@@ -3,8 +3,14 @@
  * suite and for implementor test workers alike:
  *
  * ```ts
- * // test/worker.ts — your production entry, with the test verifier:
- * export default createEngine({ ...same config, auth: testVerifier() });
+ * // test/worker.ts — your production entry with explicit Firebase fakes:
+ * export default createEngine({
+ *   ...sameConfig,
+ *   testing: {
+ *     auth: testVerifier(),
+ *     firebaseAdmin: () => testFirebaseAdmin,
+ *   },
+ * });
  * // a spec:
  * import { exports } from "cloudflare:workers";
  * await exports.default.fetch(url, { headers: await testBearer({ uid: "alice" }) });
@@ -18,13 +24,14 @@
  * Tokens are verified through the SAME jose code path production uses — only
  * the JWKS is local. The RS256 keypair below is a public fixture (checked in,
  * shipped in the package); it protects nothing and must never reach a
- * production config: pass `auth` ONLY in test workers.
+ * production config: pass `testing` ONLY in test workers.
  *
  * @module @eigeninteractive/server/testing
  */
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";
 import { createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
+import type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 
 export const TEST_PROJECT_ID = "eigen-test";
 const TEST_ISSUER = `https://securetoken.google.com/${TEST_PROJECT_ID}`;
@@ -49,7 +56,13 @@ const privateJwk: JWK = {
   qi: "-t4zj-6GUbBv3JAVeLL4JXK0kNlkvp23F-dg4i40THOtlAbuCc5rq7WYDivw7eDq-Z9lbbjOcjspo8rk49GsKFblgYUVCfmdl8hRYyouNs_eg-yqJtCEakGA5hf_kGaIh_9-rIHooZl-XxV7edRFRf6c7Z0V5ehXMpYinl-ZmZo",
 };
 
-/** The verifier a test worker passes as `createEngine({ auth })`. */
+/** No-op Firebase Admin effects for test workers and test Durable Objects. */
+export const testFirebaseAdmin: FirebaseAdminEffects = {
+  notifyUser: () => Promise.resolve(),
+  deleteAccount: () => Promise.resolve(),
+};
+
+/** The verifier a test worker passes under `createEngine({ testing })`. */
 export function testVerifier(): TokenVerifier {
   return createFirebaseVerifier(TEST_PROJECT_ID, createLocalJWKSet({ keys: [publicJwk] }));
 }

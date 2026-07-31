@@ -10,14 +10,13 @@
  *   - `GET /join/:shortCode` — the invite/share landing page.
  *   - `GET /game/:gameId` — a specific game's landing page (replay / spectate).
  *
- *     Both are the **not-installed fallback**: with App Links / Universal Links
- *     an installed app opens the https URL directly, so these render only when
- *     the app is absent — real OG tags from the D1 summary for rich unfurls,
- *     plus store links.
+ *     Both return Flutter's SPA shell when an `ASSETS` binding is present,
+ *     enriched with real OG tags from the D1 summary. An installed native app
+ *     intercepts the URL before HTTP; a browser opens the web app; a crawler
+ *     reads the same response metadata.
  *
- * These sit OUTSIDE `/api`. They need no `run_worker_first` entry: a request
- * matching no static file already falls through to the worker, so the only rule
- * is not to add a `public/` file that shadows one of these paths.
+ * These sit OUTSIDE `/api` and must be listed in Static Assets'
+ * `run_worker_first` so the Worker can enrich the SPA shell before serving it.
  *
  * **The app owns two path prefixes, `/join` and `/game`.** `/join/:code` is the
  * invite/share landing; `/game/:id` is a specific game (the app's replay links
@@ -33,10 +32,11 @@
 import type { GameWithRoster } from "../d1/reads.js";
 import { readGame, readGameByCode, readPlayers } from "../d1/reads.js";
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
+import { renderFlutterShell } from "../site/flutter-shell.js";
 import { Page, renderDocument } from "../site/page.js";
 
-/** The share/landing page: the not-installed fallback, and the source of the
- * OG tags a chat client unfurls. `noindex` because it is ephemeral and
+/** Native-only fallback when no Flutter asset binding exists. It still carries
+ * the OG tags a chat client unfurls. `noindex` because it is ephemeral and
  * per-game — unfurl scrapers still read the OG tags, which is what matters.
  *
  * `origin` is the request origin, so the OG image URL is absolute — which
@@ -59,10 +59,10 @@ function SharePage({ appName, title, description, stores, ctx, origin }: { appNa
 }
 
 /** The store buttons, built once from the deep-link config. */
-function storesFor(cfg: DeepLinkConfig): { label: string; url: string }[] {
+function storesFor(cfg: DeepLinkConfig | null): { label: string; url: string }[] {
   const stores: { label: string; url: string }[] = [];
-  if (cfg.apple?.storeUrl !== undefined) stores.push({ label: "App Store", url: cfg.apple.storeUrl });
-  if (cfg.android?.storeUrl !== undefined) stores.push({ label: "Google Play", url: cfg.android.storeUrl });
+  if (cfg?.apple?.storeUrl !== undefined) stores.push({ label: "App Store", url: cfg.apple.storeUrl });
+  if (cfg?.android?.storeUrl !== undefined) stores.push({ label: "Google Play", url: cfg.android.storeUrl });
   return stores;
 }
 
@@ -78,15 +78,15 @@ async function versusLine(d1: D1Database, game: GameWithRoster): Promise<string 
 }
 
 export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
-  const cfg = ctx.deepLink as DeepLinkConfig;
+  const cfg = ctx.deepLink;
   const appName = ctx.appName;
 
-  if (cfg.android !== undefined) {
+  if (cfg?.android !== undefined) {
     const body = JSON.stringify([{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: cfg.android.packageName, sha256_cert_fingerprints: cfg.android.sha256CertFingerprints } }]);
     app.get("/.well-known/assetlinks.json", (c) => c.body(body, 200, { "Content-Type": "application/json" }));
   }
 
-  if (cfg.apple !== undefined) {
+  if (cfg?.apple !== undefined) {
     // Extensionless AASA — the content type MUST be application/json. Legacy
     // `paths` form, broadly supported. Both app prefixes are listed; the site
     // group's pages are deliberately absent, which is what keeps Universal
@@ -96,42 +96,61 @@ export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
   }
 
   const stores = storesFor(cfg);
-  // The OG image URL must be absolute; build it from the request origin.
-  const originOf = (url: string): string => new URL(url).origin;
+  const renderAppLinkResponse = async (request: Request, assets: Fetcher | null, title: string, description: string, status: 200 | 404): Promise<Response> => {
+    const origin = new URL(request.url).origin;
+    if (assets !== null) {
+      return await renderFlutterShell(
+        request,
+        assets,
+        {
+          title,
+          description,
+          siteName: appName,
+          ...(ctx.site === null ? {} : { image: `${origin}${ctx.site.ogImage}` }),
+        },
+        status,
+      );
+    }
+    return new Response(renderDocument(<SharePage appName={appName} title={title} description={description} stores={stores} ctx={ctx} origin={origin} />), {
+      status,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  };
 
-  // The invite/share landing — the not-installed fallback for a `/join/:code`.
+  // Invite/share metadata plus the Flutter route at `/join/:code`.
   app.get("/join/:shortCode", async (c) => {
-    const origin = originOf(c.req.url);
+    const assets = ctx.webAssets(c.env);
+    if (cfg === null && assets === null) return c.notFound();
     const game = await readGameByCode(ctx.d1(c.env), c.req.param("shortCode").toUpperCase());
     if (game === undefined) {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This invite link is no longer valid." stores={stores} ctx={ctx} origin={origin} />), 404);
+      return renderAppLinkResponse(c.req.raw, assets, appName, "This invite link is no longer valid.", 404);
     }
     const joinable = game.status === "waiting" || game.status === "ready";
     const [host] = game.createdBy === null ? [] : await readPlayers(ctx.d1(c.env), [game.createdBy]);
     const hostName = host?.displayName ?? "Someone";
     const openSeats = Math.max(0, game.maxPlayers - game.participants.length);
     const description = joinable ? `${hostName} invited you${openSeats > 0 ? ` · ${openSeats} seat${openSeats === 1 ? "" : "s"} open` : ""}.` : `This game is ${game.status}.`;
-    return c.html(renderDocument(<SharePage appName={appName} title={`Join ${hostName} in ${appName}`} description={description} stores={stores} ctx={ctx} origin={origin} />), 200);
+    return renderAppLinkResponse(c.req.raw, assets, `Join ${hostName} in ${appName}`, description, 200);
   });
 
-  // A specific game's landing — the not-installed fallback for a `/game/:id`
-  // replay/spectate link, and the push-notification deep link's target when the
-  // app is absent. Keyed by game id (not the short code).
+  // A specific game's metadata + Flutter shell for `/game/:id`, which is also
+  // the push-notification deep link target. Keyed by id, not short code.
   app.get("/game/:gameId", async (c) => {
-    const origin = originOf(c.req.url);
+    const assets = ctx.webAssets(c.env);
+    if (cfg === null && assets === null) return c.notFound();
     const game = await readGame(ctx.d1(c.env), c.req.param("gameId"));
     if (game === undefined) {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description="This game link is no longer valid." stores={stores} ctx={ctx} origin={origin} />), 404);
+      return renderAppLinkResponse(c.req.raw, assets, appName, "This game link is no longer valid.", 404);
     }
     // A private game's roster must not leak to an unauthenticated visitor — the
     // app authorizes the viewer before showing a replay, this page cannot. Show
     // a generic card and let the app do the gating.
     if (game.access !== "public") {
-      return c.html(renderDocument(<SharePage appName={appName} title={appName} description={`Open this game in ${appName}.`} stores={stores} ctx={ctx} origin={origin} />), 200);
+      return renderAppLinkResponse(c.req.raw, assets, appName, `Open this game in ${appName}.`, 200);
     }
     const vs = await versusLine(ctx.d1(c.env), game);
     const suffix = vs === null ? "" : ` — ${vs}`;
     const description = game.status === "finished" ? `See how this game of ${appName} played out${suffix}.` : `Watch this game of ${appName}${suffix}.`;
-    return c.html(renderDocument(<SharePage appName={appName} title={vs === null ? appName : `${vs} · ${appName}`} description={description} stores={stores} ctx={ctx} origin={origin} />), 200);
+    return renderAppLinkResponse(c.req.raw, assets, vs === null ? appName : `${vs} · ${appName}`, description, 200);
   });
 }

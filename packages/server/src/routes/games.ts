@@ -15,7 +15,7 @@ import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame,
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
-import { gameInvitePush, pushToUser, readServiceAccount } from "../notify/push.js";
+import { gameInvitePush } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, joinedShape, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
@@ -221,11 +221,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           // with notifications off (or none at all) costs nothing, and a push
           // failure never affects the create.
           if (body.access === "friends") {
-            const sa = readServiceAccount(c.env);
-            if (sa !== null) {
-              const d1 = ctx.d1(c.env);
-              c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => pushToUser(d1, sa, id, gameInvitePush(auth.user.displayName, gameId))))));
-            }
+            const d1 = ctx.d1(c.env);
+            const admin = ctx.firebaseAdmin(c.env);
+            c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => admin.notifyUser(d1, id, gameInvitePush(auth.user.displayName, gameId))))));
           }
           return c.json({ gameId, shortCode }, 201);
         } catch (error) {
@@ -561,6 +559,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   app.get("/games/:gameId/socket", async (c) => {
     if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {
       throw new HttpError(400, "Expected a WebSocket upgrade");
+    }
+    // Browsers always send Origin on a WebSocket handshake. It is not covered
+    // by CORS, so enforce the same exact-origin policy here. Native clients
+    // normally omit Origin and continue to authenticate solely with Firebase.
+    const origin = c.req.header("origin");
+    if (origin !== undefined && origin !== new URL(c.req.url).origin && !ctx.clientOrigins(c.env).includes(origin)) {
+      throw new HttpError(403, "Browser origin is not allowed");
     }
     const gameId = c.req.param("gameId");
     await loadGame(ctx, c.env, gameId); // 404 without waking a DO for garbage ids

@@ -30,12 +30,13 @@
 import type { GameModule } from "@eigeninteractive/rules";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { ErrorHandler, MiddlewareHandler } from "hono";
+import { cors } from "hono/cors";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
 import type { BaseGameDO } from "./do/game-do.js";
-import { readServiceAccount, type ServiceAccount } from "./google/oauth.js";
+import { FirebaseAdminConfigurationError, type FirebaseAdminEffects, firebaseAdminFromEnv } from "./firebase/admin-effects.js";
 import { doHistoryStore, type HistoryStore } from "./history/store.js";
 import { HttpError } from "./http.js";
 import { type LifecycleOptions, runScheduled } from "./lifecycle/cron.js";
@@ -47,16 +48,16 @@ import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerGameRoutes } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
-import { registerSiteRoutes } from "./routes/site.js";
+import { registerDownloadRoute, registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
 import type { ResolvedSite, SiteConfig } from "./site/config.js";
 import { renderLegal } from "./site/legal/index.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
 
-/** Deep-linking. The worker generates the two `.well-known` files from
- * this and renders the `/join/:shortCode` share/landing page. Absent → none of
- * that group is mounted (the worker is API-only). Each platform block is
+/** Native deep linking. The Worker generates the two `.well-known` files and
+ * store links from this configuration. Browser `/join` and `/game` routes also
+ * work without it when Flutter is bound as `ASSETS`. Each platform block is
  * independent: supply only Android, only Apple, or both. */
 export interface DeepLinkConfig {
   android?: {
@@ -98,7 +99,7 @@ export interface AvatarsConfig<TEnv> {
 export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   gameModule: GameModule;
   /** The whitelabel app's display name — the single source of truth for the
-   * engine's own identity (the `/j` share/landing page title + OG tags today;
+   * engine's own identity (share metadata and public-page titles today;
    * FCM titles and share copy later). Deliberately top-level, not nested under
    * `deepLink`, so there is one place to set it regardless of which optional
    * feature blocks are enabled. */
@@ -110,20 +111,36 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   /** Firebase project id for token verification; defaults to the
    * `FIREBASE_PROJECT_ID` var (the only secret verification needs). */
   firebaseProjectId?(env: TEnv): string;
-  /** Deep linking + share pages. Omit → not mounted. */
+  /** Browser origins allowed to call the engine from a different origin.
+   *
+   * Same-origin requests always work. When omitted, the engine trusts the
+   * exact origin from the conventional `WEB_APP_ORIGIN` var when it is set.
+   * Supply this option to replace that default for multiple or otherwise
+   * non-standard browser origins. Paths and wildcards are intentionally
+   * unsupported. The list also protects browser WebSocket upgrades, whose
+   * `Origin` header is not governed by CORS.
+   *
+   * Set an empty list to disable the `WEB_APP_ORIGIN` default. */
+  clientOrigins?: readonly string[] | ((env: TEnv) => readonly string[]);
+  /** Native deep-link verification and store links. Omit for web-only. */
   deepLink?: DeepLinkConfig;
   /** Opt-in avatar uploads. Omit → not mounted. */
   avatars?: AvatarsConfig<TEnv>;
-  /** The public web surface — landing page, legal documents, crawler files.
+  /** The public web surface — download page, legal documents, crawler files.
    * Omit → not mounted (the worker is API-only). */
   site?: SiteConfig;
   /** Cron-backstop tuning — guest-purge/reap windows and batch caps.
    * Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
    * override just those. */
   lifecycle?: LifecycleOptions;
-  /** Test seam only: replace the token verifier (tests mint their own RS256
-   * tokens against a local JWKS). Leave unset in production. */
-  auth?: TokenVerifier;
+  /** Explicit test-only replacements for Firebase verification and Admin
+   * effects. Supplying them together prevents a fake verifier from
+   * accidentally turning missing production credentials into a nullable
+   * runtime path. Leave unset in production. */
+  testing?: {
+    auth: TokenVerifier;
+    firebaseAdmin(env: TEnv): FirebaseAdminEffects;
+  };
 }
 
 /** {@link AvatarsConfig} with the implementor's Env generic erased — what the
@@ -146,18 +163,23 @@ export interface RouteContext {
   d1(env: unknown): D1Database;
   stub(env: unknown, gameId: string): GameStub;
   verify(env: unknown, token: string): Promise<AuthClaims>;
+  /** Cross-origin browser clients trusted by this deployment. */
+  clientOrigins(env: unknown): readonly string[];
+  /** Flutter web assets exposed through Cloudflare's conventional `ASSETS`
+   * binding. Null keeps native-only deployments working without web output. */
+  webAssets(env: unknown): Fetcher | null;
   /** The engine bot-signing master secret, read from env by the
    * `BOT_SIGNING_SECRET` convention. Null when unset — the `/api/bot/action`
    * route then refuses every request (external bots are unsupported). */
   botSigningSecret(env: unknown): string | null;
-  /** The Firebase service account (account deletion FCM), or null
-   * when the `FIREBASE_*` service-account vars are unset. */
-  serviceAccount(env: unknown): ServiceAccount | null;
+  /** Required Firebase Admin effects used by FCM and account deletion. */
+  firebaseAdmin(env: unknown): FirebaseAdminEffects;
   /** The finished-game replay backend (seam #2). V1 is DO-backed; the
    * cold tier swaps the implementation without touching the route. */
   history(env: unknown): HistoryStore;
-  /** Deep-link config, or null when not configured — the well-known +
-   * landing routes are then not mounted. */
+  /** Native deep-link verification and store config, or null when the
+   * deployment serves web only. Browser `/join` and `/game` routes can still
+   * use the Flutter asset binding. */
   deepLink: DeepLinkConfig | null;
   /** Avatar config, or null when uploads are not enabled — the
    * upload/serve routes are then not mounted. */
@@ -204,6 +226,9 @@ const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof AuthError) {
     return c.json({ error: error.message }, 401);
   }
+  if (error instanceof FirebaseAdminConfigurationError) {
+    return c.json({ error: error.message }, 500);
+  }
   // GameBugError, DO integrity throws, storage failures: server faults.
   console.error("unhandled engine error", error);
   return c.json({ error: "Internal server error" }, 500);
@@ -211,6 +236,12 @@ const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
 
 function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
+    // Auth and notifications use the same Firebase project. Validate the
+    // server-side half at the authenticated boundary so a broken deployment
+    // fails clearly instead of silently running without push (or leaving a
+    // Firebase account behind during account deletion). Public `/health`
+    // remains a configuration-free liveness probe.
+    ctx.firebaseAdmin(c.env);
     const header = c.req.header("authorization");
     // The query fallback exists for WebSocket upgrades — browsers cannot set
     // headers on those. Everything else sends the Authorization header.
@@ -223,6 +254,19 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
     c.set("auth", { claims, user });
     await next();
   };
+}
+
+function isAllowedClientOrigin(ctx: RouteContext, env: unknown, requestUrl: string, origin: string): boolean {
+  return origin === new URL(requestUrl).origin || ctx.clientOrigins(env).includes(origin);
+}
+
+function browserCors(ctx: RouteContext): MiddlewareHandler<AppEnv> {
+  return cors({
+    origin: (origin, c) => (isAllowedClientOrigin(ctx, c.env, c.req.url, origin) ? origin : null),
+    allowMethods: ["GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Authorization", "Content-Type"],
+    maxAge: 86400,
+  });
 }
 
 /** Assemble the whole worker: the Firebase-authed engine group
@@ -254,6 +298,13 @@ export function buildApp(ctx: RouteContext) {
 
   const app = newOpenApiApp();
   app.onError(errorHandler);
+  // CORS belongs on the outer app, before the authenticated sub-app is
+  // mounted. That lets an OPTIONS preflight finish without a Firebase token.
+  // The public health/avatar reads use the same allowlist because CanvasKit
+  // and generated clients may fetch them rather than creating an HTML image.
+  app.use("/health", browserCors(ctx));
+  app.use("/avatars/*", browserCors(ctx));
+  app.use("/api/engine/*", browserCors(ctx));
   app.openAPIRegistry.registerComponent("securitySchemes", "firebase", {
     type: "http",
     scheme: "bearer",
@@ -307,9 +358,12 @@ export function buildApp(ctx: RouteContext) {
     (c) => c.json({ status: "ok" }, 200, { "Cache-Control": "no-store" }),
   );
 
-  // Public web surface: outside /api, unauthed, mounted only when
-  // configured. A distinct path space from /api, so mount order is immaterial.
-  if (ctx.deepLink !== null) registerLinkRoutes(app, ctx);
+  // Public web surface: outside /api and unauthed. Link routes are always
+  // registered because a web deployment is discovered per request from the
+  // conventional ASSETS binding; without ASSETS or native deep-link config
+  // they return the normal 404.
+  registerLinkRoutes(app, ctx);
+  registerDownloadRoute(app, ctx);
   if (ctx.avatars !== null) registerAvatarServe(app, ctx);
   if (ctx.site !== null) registerSiteRoutes(app, ctx);
   app.route("/api/engine", engine);
@@ -374,12 +428,24 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
       const ns = cfg.gameDO(env as TEnv);
       return ns.get(ns.idFromName(gameId));
     },
-    verify: (env, token) => (cfg.auth ?? createFirebaseVerifier(projectId(env as TEnv))).verify(token),
+    verify: (env, token) => (cfg.testing?.auth ?? createFirebaseVerifier(projectId(env as TEnv))).verify(token),
+    clientOrigins: (env) => {
+      const configured = cfg.clientOrigins;
+      if (configured !== undefined) {
+        return typeof configured === "function" ? configured(env as TEnv) : configured;
+      }
+      const webAppOrigin = (env as Record<string, unknown>).WEB_APP_ORIGIN;
+      return typeof webAppOrigin === "string" && webAppOrigin.length > 0 ? [new URL(webAppOrigin).origin] : [];
+    },
+    webAssets: (env) => {
+      const assets = (env as Record<string, unknown>).ASSETS;
+      return assets !== null && typeof assets === "object" && "fetch" in assets ? (assets as Fetcher) : null;
+    },
     botSigningSecret: (env) => {
       const secret = (env as Record<string, unknown>).BOT_SIGNING_SECRET;
       return typeof secret === "string" && secret.length > 0 ? secret : null;
     },
-    serviceAccount: (env) => readServiceAccount(env),
+    firebaseAdmin: (env) => cfg.testing?.firebaseAdmin(env as TEnv) ?? firebaseAdminFromEnv(env),
     history: (env) => doHistoryStore((gameId) => ctx.stub(env, gameId)),
     deepLink: cfg.deepLink ?? null,
     avatars:
@@ -396,7 +462,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   const ops = (env: TEnv): EngineOps => ({
     d1: ctx.d1(env),
     stub: (gameId) => ctx.stub(env, gameId),
-    serviceAccount: ctx.serviceAccount(env),
+    firebaseAdmin: ctx.firebaseAdmin(env),
     avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(env),
   });
   return {
@@ -425,7 +491,21 @@ export function openApiDocument(version: string): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
-  const app = buildApp({ gameModule: { versions: {} }, appName: "<unused>", d1: inert, stub: inert, verify: inert, botSigningSecret: () => null, serviceAccount: () => null, history: inert, deepLink: null, avatars: null, site: null });
+  const app = buildApp({
+    gameModule: { versions: {} },
+    appName: "<unused>",
+    d1: inert,
+    stub: inert,
+    verify: inert,
+    clientOrigins: () => [],
+    webAssets: () => null,
+    botSigningSecret: () => null,
+    firebaseAdmin: inert,
+    history: inert,
+    deepLink: null,
+    avatars: null,
+    site: null,
+  });
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {
