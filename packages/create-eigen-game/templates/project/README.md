@@ -71,9 +71,10 @@ https://eigeninteractive.com/docs/ship-it/deploy-the-web-app.
 
 The `eigen_flutter` Android plugin enables Firebase's current FID-based
 messaging mode and supplies a Firebase SDK new enough to support it. The
-scaffolder leaves Flutter's generated manifest and Gradle files untouched.
-Push registration is engine-owned; game code does not request or store an FCM
-registration token.
+scaffolder leaves Flutter's generated manifest and `gradle.properties`
+untouched; it adds only the application-level core-library desugaring block
+required by `flutter_local_notifications`. Push registration is engine-owned;
+game code does not request or store an FCM registration token.
 
 The Worker uses that same Firebase project for push and complete account
 deletion. Copy `server/.dev.vars.example` to `server/.dev.vars`, then fill its

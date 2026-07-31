@@ -84,8 +84,9 @@ describe("scaffoldGame", () => {
       if (command === "flutter" && args[0] === "create") {
         const app = args.at(-1);
         if (app) {
-          mkdirSync(app, { recursive: true });
+          mkdirSync(resolve(app, "android/app"), { recursive: true });
           writeFileSync(resolve(app, "pubspec.yaml"), "name: chess\ndependencies:\n  flutter:\n    sdk: flutter\n");
+          writeFileSync(resolve(app, "android/app/build.gradle.kts"), 'plugins {\n    id("com.android.application")\n}\n');
         }
       }
     });
@@ -97,6 +98,9 @@ describe("scaffoldGame", () => {
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
+    const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
+    expect(androidGradle).toContain("isCoreLibraryDesugaringEnabled = true");
+    expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');
 
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.scripts.contract).toContain("cd server && pnpm run contract");

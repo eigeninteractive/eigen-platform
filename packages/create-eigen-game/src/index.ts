@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -99,6 +99,33 @@ function packageCommand(manager: PackageManager, operation: "install" | "contrac
   return [manager, ["run", "contract"]];
 }
 
+const androidDesugaring = `// flutter_local_notifications requires desugaring in the application module.
+// A library plugin cannot enable this compiler setting transitively.
+android {
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}`;
+
+function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
+  const gradlePath = resolve(appRoot, "android/app/build.gradle.kts");
+  const gradle = readFileSync(gradlePath, "utf8");
+  if (!gradle.includes('id("com.android.application")')) {
+    throw new Error(`Flutter created an unexpected Android application build file: ${gradlePath}`);
+  }
+  const settingExists = gradle.includes("isCoreLibraryDesugaringEnabled");
+  const dependencyExists = gradle.includes("coreLibraryDesugaring(");
+  if (settingExists && dependencyExists) return;
+  if (settingExists || dependencyExists) {
+    throw new Error(`Flutter created an incomplete Android core library desugaring configuration: ${gradlePath}`);
+  }
+  appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "\n" : "\n\n"}${androidDesugaring}\n`);
+}
+
 export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const root = resolve(options.directory);
   const name = gameSlug(basename(root));
@@ -122,6 +149,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
 
     if (bootstrap) {
       run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
+      enableAndroidCoreLibraryDesugaring(appRoot);
     } else {
       mkdirSync(appRoot, { recursive: true });
     }

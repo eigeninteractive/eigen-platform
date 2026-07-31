@@ -52,8 +52,11 @@ it before app startup. `eigen_flutter` bundles and loads the Cropper.js assets
 required by `image_cropper` on web, so generated apps do not carry their own
 copy or configure `web/index.html`.
 On Android, `eigen_flutter` supplies FID messaging configuration through its
-plugin manifest and native dependency graph; the scaffolder does not edit
-Flutter-owned Gradle or manifest files. The CLI then uses `flutter pub add` and the public
+plugin manifest and native dependency graph; the scaffolder does not edit the
+application manifest or `gradle.properties`. It adds the application-level core
+library desugaring block required by `flutter_local_notifications`, because an
+Android library cannot supply that compiler setting transitively. The CLI then
+uses `flutter pub add` and the public
 `eigen_flutter:generate_payloads` executable instead of editing Flutter's
 generated YAML by hand.
 
