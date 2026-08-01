@@ -1,0 +1,176 @@
+name: Checks
+
+# The single definition of "is this commit good?", invoked two ways:
+#
+#   - directly, on every pull request;
+#   - by `release.yml` via `workflow_call`, on every push to main, so the commit
+#     that is about to publish clears exactly the same bar.
+#
+# There is deliberately no `push: [main]` trigger here. Release owns main and
+# calls this, so adding one would run the whole gate twice per merge.
+#
+# `workflow_call` re-executes these jobs; it does not look up whether they
+# already passed on this SHA (GitHub has no such mechanism, and it would be the
+# wrong thing anyway — main is a different commit from the PR head as soon as
+# anything else merges). What is shared is the definition, not the run.
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+# Correctness only — this workflow never deploys and needs no Cloudflare
+# credentials. Deploying is a deliberate `pnpm --filter <worker> deploy` from a
+# machine with `wrangler login`, because it applies D1 migrations against a real
+# database. Nothing here talks to the network beyond the package registry.
+#
+# It also needs no secrets, which is why `release.yml` calls it without
+# `secrets: inherit`.
+#
+# The Workers tests run under @cloudflare/vitest-pool-workers, which boots the
+# real `workerd` runtime with local D1/R2/DO simulation — no account, no
+# bindings to provision, and the same runtime semantics as production. That is
+# why `pnpm -r test` is the whole story and there is no separate integration job.
+
+# Superseding a pull request's run is free — only the newest push matters. A
+# run reached through `workflow_call` is NOT cancellable: it gates a release, so
+# cancelling it because a second commit landed on main would abort a publish
+# mid-flight. Keying on the SHA rather than the ref keeps those runs from
+# sharing a group at all.
+#
+# `github.workflow` is deliberately not in the key: inside a called workflow it
+# evaluates to the *caller's* name ("Release"), which would silently collide
+# with that workflow's own concurrency group.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Format + lint in one pass, in CI mode (never writes).
+      - name: Biome
+        run: pnpm exec biome ci .
+
+      # Workspace packages resolve through their `exports` → `dist`, so the
+      # libraries must be built before anything that consumes them can be
+      # type-checked. rps depends on @eigeninteractive/server and @eigeninteractive/rules this way.
+      - name: Build
+        run: pnpm -r build
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Test
+        run: pnpm -r test
+
+      # The generated spec is the contract the Dart client is generated from, so
+      # it is committed and must never lag the routes. Re-emitting it from the
+      # freshly built worker and diffing catches a route or zod schema change
+      # that skipped `pnpm --filter @eigeninteractive/server openapi`.
+      - name: OpenAPI spec is in sync with the routes
+        run: |
+          pnpm --filter @eigeninteractive/server openapi
+          git diff --exit-code -- packages/server/openapi.json \
+            || { echo "::error file=packages/server/openapi.json::openapi.json is stale. Run 'pnpm --filter @eigeninteractive/server openapi' and 'pnpm dart-client', then commit both."; exit 1; }
+
+      # Same shape of guard, higher stakes: migrations are generated from the
+      # drizzle schemas and applied at deploy, so a schema edit that skipped
+      # `db:generate` ships code expecting columns the database does not have.
+      # Nothing else catches it — the tests run against migrations, so schema
+      # and migrations drift together silently until a real deploy.
+      #
+      # `< /dev/null` matters: drizzle-kit prompts when a change is ambiguous
+      # (a rename vs a drop+add). Without it an ambiguous change hangs the job
+      # until the timeout; with it, drizzle-kit fails and you regenerate
+      # locally where you can answer the prompt.
+      - name: D1 and DO migrations are in sync with the schemas
+        run: |
+          pnpm --filter @eigeninteractive/server db:generate:d1 < /dev/null
+          pnpm --filter @eigeninteractive/server db:generate:do < /dev/null
+          git diff --exit-code --stat -- packages/server/migrations packages/server/src/do/migrations \
+            || { echo "::error::A drizzle schema changed without a migration. Run 'pnpm --filter @eigeninteractive/server db:generate:d1' and/or ':do' and commit the result."; exit 1; }
+          # A brand-new migration is an untracked file, which `git diff` alone
+          # would not see.
+          test -z "$(git status --porcelain -- packages/server/migrations packages/server/src/do/migrations)" \
+            || { echo "::error::db:generate produced a new migration file — commit it."; git status --short -- packages/server/migrations packages/server/src/do/migrations; exit 1; }
+
+      # worker-configuration.d.ts is generated from wrangler.jsonc bindings and
+      # committed. Typecheck only catches a binding that is *used* and missing;
+      # a renamed or removed binding stays green until runtime.
+      - name: Worker types are in sync with wrangler.jsonc
+        run: |
+          pnpm --filter rps exec wrangler types < /dev/null
+          git diff --exit-code -- examples/rps/worker-configuration.d.ts \
+            || { echo "::error file=examples/rps/worker-configuration.d.ts::Stale worker types. Run 'wrangler types' in the worker directory and commit."; exit 1; }
+
+  # The Dart client is generated from openapi.json and committed, so that a
+  # breaking wire change arrives as a reviewable Dart diff in the same pull
+  # request that changed the schema — rather than surfacing days later in
+  # another repository. This job is what makes "committed" mean "current".
+  #
+  # It is separate from `check` because it is the only thing here that needs
+  # Java and Dart, and it runs in parallel rather than lengthening the main job.
+  dart-client:
+    name: Dart client is in sync with the spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # openapi-generator runs via `pnpm dlx` (pnpm is set up above) but is a
+      # Java program, so a JDK must be on PATH. Dart runs build_runner, format,
+      # analyze and the publish dry run.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Regenerate
+        run: pnpm dart-client
+
+      # Untracked files matter as much as modified ones: a new schema produces a
+      # new model file, which `git diff` alone would not see.
+      - name: No drift
+        run: |
+          git diff --exit-code -- clients/dart \
+            || { echo "::error::The Dart client is stale. Run 'pnpm dart-client' and commit clients/dart."; exit 1; }
+          test -z "$(git status --porcelain -- clients/dart)" \
+            || { echo "::error::Generation produced new files under clients/dart — commit them."; git status --short -- clients/dart; exit 1; }
+
+      # Proves the artifact we would publish actually compiles, and keeps the
+      # pub.dev score honest — `dart analyze` is what pana grades.
+      - name: Analyze
+        run: dart analyze
+        working-directory: clients/dart
+
+      - name: Publish dry run
+        run: dart pub publish --dry-run
+        working-directory: clients/dart

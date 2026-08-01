@@ -1,0 +1,216 @@
+name: Release
+
+# Everything that happens when a commit lands on `main`: verify it, then either
+# open a version PR or publish. Changesets-driven, not tag-driven.
+#
+#   1. While working, describe user-visible changes:  pnpm changeset
+#      (pick a bump type, write the line users will read). Commit the generated
+#      `.changeset/*.md` with your PR.
+#   2. When those land on `main`, this workflow opens or updates a
+#      **"Release: version packages"** PR that applies the bumps and rewrites
+#      each package's CHANGELOG.md.
+#   3. Merging that PR runs this workflow again, finds no pending changesets,
+#      and publishes to npm.
+#
+# So releasing is "merge the version PR" — the decision stays explicit (npm
+# versions cannot be unpublished after 72 hours) without anyone hand-editing a
+# version number or remembering the publish order. Changesets accumulate: five
+# merged PRs keep updating one version PR, and one merge releases all five.
+#
+# The four packages are `fixed` in .changeset/config.json: they share one
+# version and always bump together, because they are tightly interdependent and
+# an independent-version matrix would be maintained by hand for no benefit.
+#
+# A fifth artifact rides along: `eigen_api`, the generated Dart client in
+# clients/dart, published to pub.dev at the same version. The wire contract is
+# the server's, so the client that speaks it carries the server's version — a
+# consumer's `eigen_api: ^0.1.0` then states exactly the compatibility it means.
+# `pnpm version-packages` regenerates it, so the version PR already carries the
+# stamped pubspec.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  # npm provenance links each tarball to the workflow run and commit that built
+  # it, which needs an OIDC token.
+  id-token: write
+
+jobs:
+  # The same gate every pull request clears, re-run against the merge commit.
+  # This is a fresh execution, not a lookup of the pull request's result: `main`
+  # is a different commit as soon as anything else merges, and publishing is the
+  # one irreversible step here, so it is checked on the exact commit that ships.
+  #
+  # It matters that this is the WHOLE gate rather than a re-typed subset —
+  # checks.yml also proves openapi.json, the drizzle migrations, the worker
+  # types and the generated Dart client are all in sync with their sources.
+  # Those guards are worth more at publish time than anywhere else.
+  gate:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+
+  release:
+    name: Version or publish
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      # One short-lived credential for all three privileged things this job
+      # does: open the version pull request, push the pub.dev tag, and dispatch
+      # to eigen-web. It replaces two personal access tokens.
+      #
+      # Why an App rather than a PAT: the token is minted per run and expires in
+      # about an hour, so there is no expiry to diarise and no long-lived
+      # credential to leak. It is scoped to the two repositories named below
+      # rather than to everything a human can reach, and it keeps working when
+      # people change roles.
+      #
+      # Crucially it retains the property a PAT was needed for in the first
+      # place: GitHub suppresses workflow triggers only for the built-in
+      # GITHUB_TOKEN. An App's token is not that token, so the version PR it
+      # opens gets checks and the tag it pushes fires publish-eigen-api.yml.
+      #
+      # `owner` + `repositories` are required for the eigen-web dispatch — the
+      # default scoping is this repository alone.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            eigen-server
+            eigen-web
+
+      - uses: actions/checkout@v7
+        with:
+          # changesets needs history to work out what changed since the last tag.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # `pnpm publish -r` ships what is in each package's `dist`, so the build
+      # has to happen in THIS job — `gate` ran on a different runner and none of
+      # its output is here. Jobs share a result, never a filesystem.
+      - name: Build
+        run: pnpm -r build
+
+      # `version:` below regenerates the Dart client (so the version PR carries
+      # its stamped pubspec), which runs openapi-generator via `pnpm dlx` and
+      # then build_runner. That needs a JDK on PATH and Dart; dlx fetches and
+      # version-pins the generator itself, so nothing else installs.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: changesets/action@v1
+        id: changesets
+        with:
+          # `pnpm publish -r`, never `npm publish`: it rewrites the
+          # `workspace:*` dependency ranges to real versions on the way out and
+          # publishes in topological order, so @eigeninteractive/rules lands
+          # before its dependents.
+          #
+          # `--provenance` REQUIRES THIS REPOSITORY TO BE PUBLIC. npm refuses to
+          # publish a provenance-signed tarball from a private source repo, and
+          # the real error ("Unsupported GitHub Actions source repository
+          # visibility") is swallowed by the pnpm/changesets wrapper chain and
+          # resurfaces as a nonsense `E404 ... is not in this registry`. If this
+          # repo ever goes private again, drop this flag rather than debugging
+          # the 404. See npm/cli#8976.
+          publish: pnpm publish -r --access public --no-git-checks --provenance
+          # `changeset version` then regenerate, so the Dart pubspec's version
+          # is stamped in the same PR rather than drifting until someone runs
+          # the generator by hand.
+          version: pnpm version-packages
+          title: "Release: version packages"
+          commit: "Version packages"
+        env:
+          # The App token, not GITHUB_TOKEN, so the version pull request gets
+          # CHECKS. A version PR opened by the built-in token shows no checks at
+          # all, and once required status checks are on it can never satisfy
+          # them — permanently unmergeable without an admin bypass.
+          #
+          # Second effect worth knowing: the git tags `changeset publish`
+          # creates for the npm packages are pushed with this token too, so they
+          # CAN trigger workflows. Nothing currently listens for them
+          # (publish-eigen-api.yml matches only `eigen_api-v*`), but a new
+          # tag-triggered workflow would start firing on every release.
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # ── Everything below runs only when npm actually published ─────────────
+
+      # eigen-web vendors this repo's `openapi.json` and package APIs to build
+      # its HTTP and TypeScript references. It cannot notice a change on its
+      # own, so tell it — its receiving workflow regenerates and opens a pull
+      # request, which is the notification a human actually sees.
+      #
+      # Gated on a real publish rather than on a push to main, and that is the
+      # whole point: eigen-web deploys continuously from its own main, so
+      # dispatching on every merge would put a public reference online
+      # describing an engine nobody can install yet. Tied to the release, the
+      # docs track what is on npm by construction.
+      #
+      # Being in the same organization does not make this free: GITHUB_TOKEN is
+      # scoped to the repository that minted it and can never dispatch to
+      # another one, so a cross-repo credential is structurally required. That
+      # is what the App token above is scoped to eigen-web for.
+      # `repository_dispatch` is the idiomatic mechanism for "another repo
+      # should react to this".
+      #
+      # Failing here fails the release. That is deliberate: the docs describe
+      # what is on npm, and a published engine with an unnotified docs site is
+      # a state worth stopping on rather than warning about.
+      - name: Notify eigen-web
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          gh api repos/eigeninteractive/eigen-web/dispatches \
+            -f event_type=engine-api-changed \
+            -F "client_payload[sha]=$SHA"
+
+      # eigen_api is published to pub.dev by a SEPARATE, tag-triggered workflow
+      # (publish-eigen-api.yml). It cannot be published inline here: pub.dev's
+      # automated publishing only trusts an OIDC token whose ref is a TAG
+      # matching the pattern configured on the package, and this workflow runs
+      # on a branch push. dart-lang/pub-dev#8507 asked for branch refs and was
+      # closed as won't-fix, so this split is permanent. The alternative is
+      # storing a long-lived pub.dev credential and publishing inline, which
+      # trades one workflow file for a password that never expires.
+      #
+      # The tag must be pushed with the App token, not GITHUB_TOKEN: a tag
+      # pushed by the built-in token deliberately does not trigger further
+      # workflow runs — the same suppression rule that costs the version PR its
+      # checks above, which is why one credential covers both uses.
+      #
+      # If this step fails after npm published, push the tag by hand — re-running
+      # the workflow finds no pending changesets and will not publish again.
+      - name: Tag eigen_api for pub.dev
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(grep -m1 '^version:' clients/dart/pubspec.yaml | awk '{print $2}')
+          git tag "eigen_api-v$v"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "eigen_api-v$v"
