@@ -1,0 +1,110 @@
+name: Sync API reference
+
+# The generated API reference is *derived* from eigen-server and committed here,
+# so it has to be refreshed when the engine's public surface changes.
+#
+# This pushes STRAIGHT TO MAIN, which then deploys via Cloudflare Workers
+# Builds. There is no pull request and no human step, and that is safe for a
+# narrow reason: everything this commits is deterministic output of
+# `pnpm sync-api`, and the job proves it builds — including `onBrokenLinks:
+# "throw"` — before pushing. A human reviewing a TypeDoc diff adds latency, not
+# signal. Authored prose is never touched by this workflow, so a behavior change
+# still needs its own reviewed pull request.
+#
+# It also only ever runs after eigen-server actually PUBLISHED, so what lands
+# here describes an engine that exists on npm.
+#
+# Note this requires `main` to accept a direct push from Actions. If branch
+# protection is added, either exempt this workflow or revert to opening a pull
+# request with peter-evans/create-pull-request.
+#
+# Fired three ways:
+#   - `repository_dispatch` from eigen-server's `release.yml`, sent when it
+#     actually PUBLISHES to npm — not on every merge to its main (the fast
+#     path). This site deploys continuously from its own main, so syncing per
+#     merge would put a public reference online describing an engine nobody can
+#     install yet. Tied to the release, the docs track what is on npm.
+#   - `workflow_dispatch` from the Actions tab — the manual path, and the
+#     recovery route when eigen-server's dispatch step fails after it published;
+#   - weekly, as a backstop so drift can never sit unnoticed indefinitely.
+on:
+  repository_dispatch:
+    types: [engine-api-changed]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 6 * * 1"
+
+concurrency:
+  group: sync-api
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Regenerate and publish
+    runs-on: ubuntu-latest
+    steps:
+      # sync-api resolves the engine at `../eigen-server`, so reproduce the
+      # sibling layout local development uses.
+      - uses: actions/checkout@v7
+        with:
+          path: eigen-web
+
+      - uses: actions/checkout@v7
+        with:
+          repository: eigeninteractive/eigen-server
+          path: eigen-server
+          # TypeDoc reads the checkout's HEAD SHA to build permalinks, so a
+          # shallow clone is fine but the ref must be the real one.
+          ref: ${{ github.event.client_payload.sha || 'main' }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: eigen-web/.nvmrc
+          cache: pnpm
+          cache-dependency-path: eigen-web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: eigen-web
+        run: pnpm install --frozen-lockfile
+
+      # The engine has to be built before its spec can be emitted — the emitter
+      # imports the built, node-safe entry.
+      - name: Emit the engine's OpenAPI spec
+        working-directory: eigen-server
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @eigeninteractive/server openapi
+
+      - name: Regenerate the reference
+        working-directory: eigen-web
+        run: pnpm sync-api
+
+      - name: Verify the site still builds
+        working-directory: eigen-web
+        run: |
+          pnpm exec biome ci .
+          pnpm build
+
+      # Nothing to do is the common case — most engine releases do not move the
+      # public surface. Exit quietly rather than pushing an empty commit and
+      # triggering a pointless redeploy.
+      - name: Commit and deploy
+        working-directory: eigen-web
+        env:
+          SHA: ${{ github.event.client_payload.sha || 'main' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Reference is already current — nothing to publish."
+            exit 0
+          fi
+          git commit -m "Sync API reference from eigen-server@${SHA}"
+          git push
+          echo "Pushed to main; Cloudflare Workers Builds will deploy it."
