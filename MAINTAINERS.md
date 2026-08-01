@@ -27,16 +27,27 @@ version as `@eigeninteractive/server`, whose wire contract it implements.
 
 The release workflows use:
 
-- `NPM_TOKEN`: npm automation token with publish rights on the
+- `NPM_TOKEN` (secret): npm automation token with publish rights on the
   `@eigeninteractive` scope.
-- `RELEASE_PAT`: token with `contents: write` and `pull-requests: write` on this
-  repository. It opens the version pull request and pushes the
-  `eigen_api-v<version>` tag. Both uses exist for one reason: GitHub suppresses
-  workflow triggers for events raised by the built-in `GITHUB_TOKEN`, so a
-  version PR it opens has no checks and a tag it pushes starts no workflow.
-- `CONSUMER_DISPATCH_TOKEN`: token or GitHub App credential able to dispatch to
-  `eigen-web`. Now that both repositories sit in the same organization, this is
-  better held as an organization secret shared with `eigen-web` than duplicated.
+- `RELEASE_APP_ID` (**variable**, not a secret) and `RELEASE_APP_PRIVATE_KEY`
+  (secret): credentials for the **Eigen Release** GitHub App, installed on the
+  organization with access to `eigen-server` and `eigen-web`.
+
+`release.yml` mints a short-lived token from that App and uses it for all three
+privileged operations: opening the version pull request, pushing the
+`eigen_api-v<version>` tag, and dispatching to `eigen-web`. One credential, no
+expiry to track.
+
+Two properties make the App necessary rather than merely tidier. GitHub
+suppresses workflow triggers for events raised by the built-in `GITHUB_TOKEN`,
+so a version PR it opened would carry no checks and a tag it pushed would start
+no workflow — an App's token is not that token, so both work. And
+`GITHUB_TOKEN` is scoped to the repository that minted it, so it can never
+dispatch to `eigen-web`.
+
+The App must be granted **Contents: Read and write** and **Pull requests: Read
+and write**. Its private key is the only long-lived credential here; rotate it
+from the App's settings page if it is ever exposed.
 
 npm publishing requests GitHub OIDC for provenance. The Dart workflow uses
 GitHub OIDC instead of storing a pub.dev credential.
@@ -74,9 +85,13 @@ not yet:
   wrapper chain that does not forward `ACTIONS_ID_TOKEN_REQUEST_*`, so OIDC
   never reaches it (npm/cli#8976, open). Adopting it means publishing from a
   separate top-level step instead.
-- Two settings here actively break it and would need changing first: the
-  `registry-url` on `setup-node` (it writes an `.npmrc` whose token npm prefers
-  over OIDC) and the `git+` prefix on every `repository.url`.
+- The `git+` prefix on every `repository.url` would need normalizing; npm's OIDC
+  matching is sensitive to it.
+
+One historic blocker is already gone: `setup-node` used to export a dummy
+`NODE_AUTH_TOKEN` that npm preferred over OIDC, producing the same misleading
+404. `actions/setup-node@v7` removed it. The `registry-url` input still writes
+an `.npmrc`, so verify that interaction when migrating.
 
 Revisit after the packages exist on npm.
 
@@ -149,7 +164,7 @@ The separate workflow is required because pub.dev's automated publisher
 validates a tag-ref OIDC identity. The npm workflow runs from a branch ref, so
 its identity cannot publish to pub.dev directly.
 
-The tag must be pushed with `RELEASE_PAT`; GitHub deliberately prevents a
+The tag must be pushed with the App token; GitHub deliberately prevents a
 tag created with the built-in `GITHUB_TOKEN` from triggering another workflow.
 The Dart workflow verifies that the tag matches `clients/dart/pubspec.yaml`,
 runs a publish dry run, and publishes exactly the committed generated client.
@@ -187,9 +202,11 @@ After npm publication, `.github/workflows/release.yml` sends the
 `engine-api-changed` repository dispatch. The receiving workflow regenerates
 the references and opens a reviewable pull request.
 
-If `CONSUMER_DISPATCH_TOKEN` is absent or the dispatch fails, run eigen-web's
-**Sync API reference** workflow manually. Its scheduled run is only a backstop;
-do not knowingly leave published APIs undocumented until then.
+A failing dispatch fails the release job. The npm
+publication has already happened at that point, so recover by running eigen-web's
+**Sync API reference** workflow manually rather than rerunning this one. Its
+scheduled run is only a backstop; do not knowingly leave published APIs
+undocumented until then.
 
 Authored prose is never generated. A behavior change still needs a matching
 eigen-web pull request.
