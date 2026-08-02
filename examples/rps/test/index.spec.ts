@@ -5,10 +5,8 @@
  */
 
 import { env, exports } from "cloudflare:workers";
-import { d1Schema } from "@eigeninteractive/server";
+import { readGameRow } from "@eigeninteractive/server";
 import { testBearer } from "@eigeninteractive/server/testing";
-import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/d1";
 import { expect, it } from "vitest";
 
 const ALICE = "rps-alice";
@@ -45,7 +43,6 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   // No mirror wait: the DO seats Bob on the join command and verifies the
   // seat each client sends against its own roster, so Bob can act the
   // moment his join returns.
-  const db = drizzle(env.rps_dev);
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
   expect(await started.json()).toMatchObject({ version: 0 });
 
@@ -59,13 +56,9 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   expect(resolved).toMatchObject({ version: 2 });
   expect(resolved.frame.outcomes).toHaveLength(2);
 
-  // The finish apply lands in D1 (single attempt, post-commit).
-  await expect
-    .poll(async () => {
-      const row = await db.select({ status: d1Schema.games.status }).from(d1Schema.games).where(eq(d1Schema.games.id, gameId)).get();
-      return row?.status;
-    })
-    .toBe("finished");
+  // The finish apply lands in D1 (single attempt, post-commit). `readGameRow`
+  // is the engine's own accessor — the D1 table definitions are internal.
+  await expect.poll(async () => (await readGameRow(env.rps_dev, gameId))?.status).toBe("finished");
 
   // A non-participant replays the finished public game as viewer: the
   // post-game projection reveals the hidden commits.
