@@ -114,6 +114,13 @@ jobs:
       # worker-configuration.d.ts is generated from wrangler.jsonc bindings and
       # committed. Typecheck only catches a binding that is *used* and missing;
       # a renamed or removed binding stays green until runtime.
+      #
+      # IF THIS FAILS AND `wrangler types` SHOWS NO DIFF LOCALLY: you have an
+      # `examples/rps/.dev.vars`. It is gitignored, absent here, and `wrangler
+      # types` READS IT — so generating locally bakes your local secret names
+      # into the committed file and it stops being reproducible from committed
+      # inputs. Move `.dev.vars` aside, regenerate, commit that, and move it
+      # back. This guard exists precisely to catch that contamination.
       - name: Worker types are in sync with wrangler.jsonc
         run: |
           pnpm --filter rps exec wrangler types < /dev/null

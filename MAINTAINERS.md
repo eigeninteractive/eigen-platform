@@ -132,14 +132,26 @@ From clean checkouts:
    `pnpm publish -r --access public --no-git-checks`.
 3. In `clients/dart`, run `dart pub publish --dry-run` and then the first
    interactive `dart pub publish`.
-4. Transfer both registry packages to the verified Eigen Interactive
-   publishers/organizations.
+4. Transfer `eigen_api` to the `eigeninteractive.com` verified publisher:
+   package page → **Admin** → enter the publisher name → **Transfer to
+   Publisher**. There is no pubspec field or flag for this; pub deliberately
+   cannot publish a *new* package straight to a publisher, so every first
+   publication lands under the uploader's Google Account and is moved
+   afterwards. You must be both an uploader of the package and an administrator
+   of the publisher, and **the transfer is irreversible**. Do this before
+   step 5 so automated publishing is configured against the final owner.
+
+   Afterwards, any publisher member can publish new versions, and
+   `dart pub publish` works directly — the workaround applies only to a
+   package's first-ever publication.
 5. Configure pub.dev automated publishing with the repository and tag pattern
    above.
 6. Configure a trusted publisher on each of the four npm packages, naming this
    repository, `release.yml`, and the `npm` environment.
 7. Configure `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`.
-8. Publish `eigen_flutter` only after `eigen_api` resolves publicly.
+8. Publish `eigen_flutter` only after `eigen_api` resolves publicly, then give
+   it the same treatment as step 4 — transfer to `eigeninteractive.com` before
+   configuring its automated publishing.
 
 Do not create the `eigen_api-v0.1.0` automation tag for the manually published
 version. Tag-driven Dart publication begins with the next engine version.
