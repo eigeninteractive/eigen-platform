@@ -9,19 +9,43 @@ start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release artifacts
 
-One engine release produces five artifacts:
+The repository publishes six artifacts:
 
-| Artifact | Registry | Source |
-|---|---|---|
-| `@eigeninteractive/rules` | npm | `packages/rules` |
-| `@eigeninteractive/kernel` | npm | `packages/kernel` |
-| `@eigeninteractive/server` | npm | `packages/server` |
-| `@eigeninteractive/testkit` | npm | `packages/testkit` |
-| `eigen_api` | pub.dev | `clients/dart` |
+| Artifact | Registry | Source | Versioning |
+|---|---|---|---|
+| `@eigeninteractive/rules` | npm | `packages/rules` | fixed group |
+| `@eigeninteractive/kernel` | npm | `packages/kernel` | fixed group |
+| `@eigeninteractive/server` | npm | `packages/server` | fixed group |
+| `@eigeninteractive/testkit` | npm | `packages/testkit` | fixed group |
+| `eigen_api` | pub.dev | `clients/dart` | follows the group |
+| `create-eigen-game` | npm | `packages/create-eigen-game` | **independent** |
 
-The npm packages are fixed together in `.changeset/config.json`. They carry one
-version because they are tightly interdependent. `eigen_api` carries the same
-version as `@eigeninteractive/server`, whose wire contract it implements.
+The four `@eigeninteractive/*` packages are fixed together in
+`.changeset/config.json`. They carry one version because they are tightly
+interdependent. `eigen_api` carries the same version as
+`@eigeninteractive/server`, whose wire contract it implements.
+
+`create-eigen-game` is the exception on both axes. It is **unscoped**, because
+that is what makes `npm create eigen-game` resolve — so it is not owned by the
+npm organization via a scope, and the org's team is granted access to it
+explicitly instead:
+
+```bash
+npm access grant read-write eigeninteractive:developers create-eigen-game
+```
+
+npm has no way to publish an unscoped package *as* an organization; ownership
+follows whichever account ran `npm publish`. Unpublishing and republishing does
+not change that and permanently burns the version number, so do not try it. The
+grant requires you to be both the package's direct owner and an org owner.
+
+It is also **not** in the fixed group, so Changesets versions it independently
+of the engine.
+
+⚠️ Its templates pin engine versions literally (`"@eigeninteractive/rules":
+"^0.1.0"`) and nothing regenerates them, so an engine minor bump — which is a
+breaking change pre-1.0 — will leave newly scaffolded games resolving the
+previous engine. Check the templates whenever the engine's major/minor moves.
 
 ## Required configuration
 
