@@ -19,7 +19,6 @@
     "format": "biome check --write .",
     "preview": "pnpm run build && wrangler dev"
   },
-  "packageManager": "pnpm@11.13.0",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
