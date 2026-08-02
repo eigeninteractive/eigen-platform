@@ -27,6 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The generated-reference guard below diffs against the base commit.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
 
@@ -56,3 +59,29 @@ jobs:
           for f in build/llms.txt build/llms-full.txt build/openapi.json build/docs/intro.md; do
             test -s "$f" || { echo "::error::missing or empty $f"; exit 1; }
           done
+
+      # The reference under these paths is DERIVED from eigen-server: every one
+      # of them is deleted and rewritten wholesale by `pnpm sync-api`. A hand
+      # edit here is silently reverted by the next engine release, so the docs
+      # would disagree with the engine until someone noticed. `sync-api.yml`
+      # owns them, and its branch is the only one allowed to change them.
+      #
+      # Deliberately path-scoped rather than all of `docs/reference/`: the
+      # compatibility, cross-repo, envelope, http-surface and project-layout
+      # pages live there too and are authored by hand.
+      #
+      # Last, so a generated-path edit never masks a real build failure.
+      - name: Generated reference is not hand-edited
+        if: github.event_name == 'pull_request' && github.head_ref != 'sync/api-reference'
+        run: |
+          changed=$(git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" HEAD -- \
+            docs/reference/typescript docs/reference/http-api \
+            static/openapi.json api/openapi.json)
+
+          if [ -n "$changed" ]; then
+            echo "::error::These files are generated from eigen-server and must not be edited by hand:"
+            echo "$changed" | sed 's/^/  /'
+            echo "::error::Change the engine's source instead. The reference refreshes when eigen-server publishes, or run the 'Sync API reference' workflow to refresh it now."
+            exit 1
+          fi

@@ -3,27 +3,25 @@ name: Sync API reference
 # The generated API reference is *derived* from eigen-server and committed here,
 # so it has to be refreshed when the engine's public surface changes.
 #
-# This pushes STRAIGHT TO MAIN, which then deploys via Cloudflare Workers
-# Builds. There is no pull request and no human step, and that is safe for a
-# narrow reason: everything this commits is deterministic output of
-# `pnpm sync-api`, and the job proves it builds — including `onBrokenLinks:
-# "throw"` — before pushing. A human reviewing a TypeDoc diff adds latency, not
-# signal. Authored prose is never touched by this workflow, so a behavior change
-# still needs its own reviewed pull request.
+# This opens a PULL REQUEST and turns on auto-merge; it does not push to `main`.
+# Generated output therefore lands the same way authored prose does — through
+# the gate in `checks.yml` — and `main` needs no bypass for automation. Nobody
+# has to review a TypeDoc diff: auto-merge lands it the moment checks pass, so
+# the human cost is zero while the gate stays honest.
 #
-# It also only ever runs after eigen-server actually PUBLISHED, so what lands
-# here describes an engine that exists on npm.
+# It only ever runs after eigen-server actually PUBLISHED, so what lands here
+# describes an engine that exists on npm.
 #
-# Note this requires `main` to accept a direct push from Actions. If branch
-# protection is added, either exempt this workflow or revert to opening a pull
-# request with peter-evans/create-pull-request.
+# The pull request is opened with the eigen-release App token, not
+# GITHUB_TOKEN. A pull request opened by GITHUB_TOKEN receives no check runs,
+# and `main` requires them — the PR would sit unmergeable forever with nothing
+# explaining why.
 #
 # Fired three ways:
 #   - `repository_dispatch` from eigen-server's `release.yml`, sent when it
-#     actually PUBLISHES to npm — not on every merge to its main (the fast
-#     path). This site deploys continuously from its own main, so syncing per
-#     merge would put a public reference online describing an engine nobody can
-#     install yet. Tied to the release, the docs track what is on npm.
+#     actually PUBLISHES to npm — not on every merge to its main. This site
+#     deploys continuously from its own main, so syncing per merge would put a
+#     public reference online describing an engine nobody can install yet.
 #   - `workflow_dispatch` from the Actions tab — the manual path, and the
 #     recovery route when eigen-server's dispatch step fails after it published;
 #   - weekly, as a backstop so drift can never sit unnoticed indefinitely.
@@ -38,19 +36,29 @@ concurrency:
   group: sync-api
   cancel-in-progress: true
 
-permissions:
-  contents: write
+# The App token below carries what this needs. GITHUB_TOKEN gets nothing.
+permissions: {}
 
 jobs:
   sync:
-    name: Regenerate and publish
+    name: Regenerate and open the sync pull request
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write # push the sync branch
+          permission-pull-requests: write # open it and enable auto-merge
+
       # sync-api resolves the engine at `../eigen-server`, so reproduce the
       # sibling layout local development uses.
       - uses: actions/checkout@v7
         with:
           path: eigen-web
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/checkout@v7
         with:
@@ -59,8 +67,14 @@ jobs:
           # TypeDoc reads the checkout's HEAD SHA to build permalinks, so a
           # shallow clone is fine but the ref must be the real one.
           ref: ${{ github.event.client_payload.sha || 'main' }}
+          persist-credentials: false
 
+      # Both checkouts live in subdirectories, so there is no package.json at
+      # the workspace root for the action to read `devEngines.packageManager`
+      # from. Without this it fails with "No pnpm version is specified".
       - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: eigen-web/package.json
 
       - uses: actions/setup-node@v7
         with:
@@ -84,27 +98,39 @@ jobs:
         working-directory: eigen-web
         run: pnpm sync-api
 
-      - name: Verify the site still builds
-        working-directory: eigen-web
-        run: |
-          pnpm exec biome ci .
-          pnpm build
-
       # Nothing to do is the common case — most engine releases do not move the
-      # public surface. Exit quietly rather than pushing an empty commit and
-      # triggering a pointless redeploy.
-      - name: Commit and deploy
+      # public surface. Exit quietly rather than opening an empty pull request.
+      - name: Open the sync pull request
         working-directory: eigen-web
         env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SHA: ${{ github.event.client_payload.sha || 'main' }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+
           git add -A
           if git diff --staged --quiet; then
             echo "Reference is already current — nothing to publish."
             exit 0
           fi
+
+          # -C and --force so a later sync refreshes the open pull request
+          # rather than failing on an existing branch.
+          git switch -C sync/api-reference
           git commit -m "Sync API reference from eigen-server@${SHA}"
-          git push
-          echo "Pushed to main; Cloudflare Workers Builds will deploy it."
+          git push --force -u origin sync/api-reference
+
+          if gh pr view sync/api-reference >/dev/null 2>&1; then
+            echo "Refreshed the existing sync pull request."
+          else
+            gh pr create --base main \
+              --title "Sync API reference from eigen-server" \
+              --body "Regenerated by \`sync-api.yml\` from eigen-server@\`${SHA}\`.
+
+          Deterministic output of \`pnpm sync-api\` — no authored prose is touched.
+          Auto-merge is on; this lands as soon as checks pass."
+          fi
+
+          # Lands it the moment the gate goes green, with no human in the loop.
+          gh pr merge sync/api-reference --auto --squash

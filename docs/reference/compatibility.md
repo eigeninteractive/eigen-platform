@@ -10,9 +10,9 @@ Four artifacts ship from three repositories. This page says which ones pair,
 and what a version number is actually promising.
 
 :::info Everything here is pre-1.0
-Nothing has been published to npm or pub.dev yet. Every package is at `0.1.0`,
-and the API is still moving. Read the [breaking axis](#the-breaking-axis-is-the-minor-for-now)
-section before writing a version constraint — it is not where you expect.
+Every package is still on the `0.x` line and the API is moving. Read the
+[breaking axis](#the-breaking-axis-is-the-minor-for-now) section before writing
+a version constraint — it is not where you expect.
 :::
 
 ## What pairs with what
@@ -22,9 +22,9 @@ section before writing a version constraint — it is not where you expect.
 | **0.1.x** *(this version)* | `^0.1.0` | `^0.1.0` | `^0.1.0` |
 
 `eigen_api` is not versioned independently. It is generated from the engine's
-OpenAPI spec and **stamped with the engine's version** — the same `package.json`
-field changesets owns also becomes the spec's `info.version` — so `0.1.4` there
-is `0.1.4` here, and they cannot drift. That is the whole point: a constraint of
+OpenAPI spec and **stamped with the engine's version** — the engine's release
+version is what the spec carries as `info.version` — so `0.1.4` there is `0.1.4`
+here, and they cannot drift. That is the whole point: a constraint of
 `eigen_api: ^0.1.0` in your app is a statement about which *wire* it speaks, not
 about a Dart library's API surface.
 
@@ -53,11 +53,10 @@ and the major position is unused. `0.1.4` → `0.1.5` is additive; `0.1.4` →
 `0.2.0` is the break. Once a package reaches `1.0.0` this shifts to the usual
 major/minor split.
 
-This is worth stating plainly because tooling does not translate it for you.
-`pnpm changeset` will happily apply a `major` bump to a `0.1.0` package and ship
-`1.0.0` — declaring a stability guarantee by accident. Pre-1.0, pick `minor` for
-breaking and `patch` for everything else. `cider` on the Dart side has a
-dedicated `cider bump breaking` that does the right thing at either stage.
+This is worth stating plainly because release tooling generally does not
+translate it for you: asking for a "major" bump on a `0.1.0` package ships
+`1.0.0` and declares a stability guarantee by accident. While a package you
+publish is pre-1.0, choose `minor` for breaking and `patch` for everything else.
 
 ## Three different version numbers
 
@@ -66,7 +65,7 @@ apart is most of what compatibility reasoning is:
 
 | | What it versions | Who moves it |
 | --- | --- | --- |
-| **Package semver** | the developer-facing API of one package | changesets (npm), cider (pub) |
+| **Package semver** | the developer-facing API of one package | whoever publishes that package |
 | **The engine's breaking axis** | the HTTP + socket wire contract | the engine; `eigen_api` mirrors it |
 | **Game `schemaVersion`** | one game's own state/action payloads | the game author |
 
@@ -114,9 +113,7 @@ widening: unknown fields are ignored, and unknown enum values become
 fail response decoding.
 
 The sentinel adds a member to every generated enum, so exhaustive switches must
-handle it. It was enabled before the first release, while there were no
-published packages or installed apps, so there was no version bump or migration
-window. Future enum additions reuse the same member and do not change the Dart
+handle it. Enum additions reuse that same member and do not change the Dart
 surface.
 
 Anything genuinely breaking needs a deprecation window: ship the additive half

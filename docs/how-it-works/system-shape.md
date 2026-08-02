@@ -8,7 +8,7 @@ description: Four packages split by trust and purity, one Worker with three requ
 
 ## Four packages
 
-The server is a small pnpm monorepo. The split is by **trust and purity**, not
+The server ships as four npm packages. The split is by **trust and purity**, not
 by feature:
 
 ```text

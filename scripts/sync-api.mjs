@@ -102,9 +102,11 @@ Game Workers depend directly on \`rules\` and \`server\`; \`testkit\` and
 \`server/testing\` are test-only. The [task guides](../../build-a-game/the-contract.md)
 show how the TypeScript and Dart halves fit together.
 
-The kernel and storage-schema pages are engine internals. They remain available
-for debugging and contributors, but a game should not import them to implement
-rules or deploy a Worker.
+The kernel page is an engine internal. It remains available for debugging and
+contributors, but a game should not import it to implement rules or deploy a
+Worker. The D1 and Durable Object storage schemas are not documented here at
+all: they are private to the engine, and \`readGameRow\` returns a game row
+typed without them.
 `,
 );
 

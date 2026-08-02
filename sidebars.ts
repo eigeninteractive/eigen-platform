@@ -93,7 +93,7 @@ const sidebars: SidebarsConfig = {
         {
           type: "category",
           label: "Engine internals",
-          items: ["reference/typescript/kernel", "reference/typescript/server-d1schema", "reference/typescript/server-doschema"],
+          items: ["reference/typescript/kernel"],
         },
       ],
     },
