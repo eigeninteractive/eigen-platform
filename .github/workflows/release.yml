@@ -154,7 +154,7 @@ jobs:
       # its stamped pubspec. That runs openapi-generator via `pnpm dlx` and then
       # build_runner, which needs a JDK on PATH and Dart; dlx fetches and
       # version-pins the generator itself, so nothing else installs.
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v5.6.0
         with:
           distribution: temurin
           java-version: "21"
