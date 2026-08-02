@@ -120,6 +120,11 @@ requirement first bites on the following, automated release.
 Authenticate with `npm login`, not a token. npm supports session-based auth, so
 2FA prompts normally and no credential is ever created, pasted or rotated.
 
+**eigen-flutter's CI is red until step 3 completes.** That repo resolves
+`eigen_api` from pub.dev; only a gitignored `pubspec_overrides.yaml` repoints it
+at a local checkout, and CI has no such file. Do not try to make its CI pass
+before `eigen_api` is published — publish first, then re-run it.
+
 From clean checkouts:
 
 1. Run the complete CI gate.
