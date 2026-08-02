@@ -23,7 +23,37 @@ export interface ScaffoldResult {
   name: string;
 }
 
-const templatesRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../templates");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const templatesRoot = resolve(packageRoot, "templates");
+
+/**
+ * The engine range emitted into a scaffolded project's package.json.
+ *
+ * Derived from this package's OWN version, which is meaningful only because
+ * `create-eigen-game` is a member of the `fixed` group in
+ * .changeset/config.json: it carries the same version as
+ * @eigeninteractive/rules, kernel, server and testkit. That makes the pin
+ * incapable of drifting, because there is no second number anyone could forget
+ * to bump — as opposed to a literal in the template, which silently keeps
+ * scaffolding the previous engine after a release.
+ *
+ * It also leaves older scaffolders self-consistent rather than broken:
+ * `create-eigen-game@0.1.0` emits `^0.1.0`, which still resolves. `npm create`
+ * takes the latest by default, so this only matters to someone who pinned
+ * deliberately — and they get a coherent pairing.
+ */
+const engineVersion = `^${(JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as { version: string }).version}`;
+
+/**
+ * The Flutter client range installed into the app half.
+ *
+ * Unlike the engine range above this CANNOT be derived. `eigen_flutter` lives
+ * in the eigen-flutter repository and versions independently, so nothing in
+ * this workspace knows its current version. Update it deliberately when a
+ * compatible client ships; the pairing is documented at
+ * https://eigeninteractive.com/docs/reference/compatibility.
+ */
+const flutterClientVersion = "^0.1.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
@@ -58,6 +88,7 @@ function render(contents: string, name: string, manager: PackageManager): string
   const replacements: ReadonlyArray<readonly [string, string]> = [
     ["@game/example-game-server", `@game/${name}-server`],
     ["{{PACKAGE_MANAGER}}", manager],
+    ["{{ENGINE_VERSION}}", engineVersion],
     ["ExampleGame", identifier(name)],
     ["Example Game", title(name)],
     ["example_game", dartName(name)],
@@ -156,7 +187,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     renderTree(resolve(templatesRoot, "app-overlay"), appRoot, name, manager);
 
     if (bootstrap) {
-      run("flutter", ["pub", "add", "eigen_flutter@^0.1.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
+      run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
       const [install, installArgs] = packageCommand(manager, "install");
       run(install, installArgs, serverRoot);
       const [contract, contractArgs] = packageCommand(manager, "contract");

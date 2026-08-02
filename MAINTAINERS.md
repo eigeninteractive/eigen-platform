@@ -18,34 +18,47 @@ The repository publishes six artifacts:
 | `@eigeninteractive/server` | npm | `packages/server` | fixed group |
 | `@eigeninteractive/testkit` | npm | `packages/testkit` | fixed group |
 | `eigen_api` | pub.dev | `clients/dart` | follows the group |
-| `create-eigen-game` | npm | `packages/create-eigen-game` | **independent** |
+| `create-eigen-game` | npm | `packages/create-eigen-game` | fixed group |
 
-The four `@eigeninteractive/*` packages are fixed together in
-`.changeset/config.json`. They carry one version because they are tightly
-interdependent. `eigen_api` carries the same version as
+All five npm packages are fixed together in `.changeset/config.json`: they carry
+one version and always bump together. `eigen_api` carries the same version as
 `@eigeninteractive/server`, whose wire contract it implements.
 
-`create-eigen-game` is the exception on both axes. It is **unscoped**, because
-that is what makes `npm create eigen-game` resolve — so it is not owned by the
-npm organization via a scope, and the org's team is granted access to it
-explicitly instead:
+`create-eigen-game` is in that group for a specific reason. It scaffolds
+projects that depend on the engine, so it has to emit an engine range — and it
+derives that range from **its own version**, which is only correct because the
+two are the same number:
+
+```jsonc
+// templates/worker/package.json
+"@eigeninteractive/server": "{{ENGINE_VERSION}}"   // → ^<this package's version>
+```
+
+That makes the pin incapable of drifting: there is no second number to forget.
+A literal in the template would keep scaffolding the previous engine after every
+release, silently, and pre-1.0 that previous engine is an incompatible one.
+
+It also leaves pinned scaffolders coherent rather than broken —
+`create-eigen-game@0.1.0` emits `^0.1.0`, which still resolves. `npm create`
+takes the latest by default, so only a deliberate pin reaches an older one.
+
+The **Flutter** client range is the exception: `eigen_flutter` lives in another
+repository and versions independently, so it cannot be derived. It is a single
+named constant, `flutterClientVersion` in `src/index.ts`, and must be updated by
+hand when a compatible client ships. See the [compatibility
+matrix](https://eigeninteractive.com/docs/reference/compatibility).
+
+`create-eigen-game` is also **unscoped**, because that is what makes
+`npm create eigen-game` resolve — so it is not owned by the npm organization via
+a scope, and the org's team is granted access explicitly instead:
 
 ```bash
 npm access grant read-write eigeninteractive:developers create-eigen-game
 ```
 
 npm has no way to publish an unscoped package *as* an organization; ownership
-follows whichever account ran `npm publish`. Unpublishing and republishing does
-not change that and permanently burns the version number, so do not try it. The
-grant requires you to be both the package's direct owner and an org owner.
-
-It is also **not** in the fixed group, so Changesets versions it independently
-of the engine.
-
-⚠️ Its templates pin engine versions literally (`"@eigeninteractive/rules":
-"^0.1.0"`) and nothing regenerates them, so an engine minor bump — which is a
-breaking change pre-1.0 — will leave newly scaffolded games resolving the
-previous engine. Check the templates whenever the engine's major/minor moves.
+follows whichever account ran `npm publish`. Unpublishing to retry does not
+change that and permanently burns the version number.
 
 ## Required configuration
 
@@ -92,10 +105,14 @@ the real error behind `E404 ... is not in this registry`. Trusted publishing
 emits provenance unconditionally, so going private would break publishing
 outright rather than merely dropping the attestation.
 
-### Branch protection
+### Branch ruleset
 
-Require these two checks on `main`, under the names they report from a pull
-request run:
+`main` is guarded by a **repository ruleset** (Settings → Rules → Rulesets), not
+the legacy branch-protection screen. Rulesets target `~DEFAULT_BRANCH`, so they
+keep working if the default branch is ever renamed, and they are readable and
+re-creatable through the API.
+
+The required checks are named as they report **from a pull request run**:
 
 ```text
 Lint, typecheck & test
@@ -104,7 +121,19 @@ Dart client is in sync with the spec
 
 Do not require the `Checks / …` prefixed variants. Those are the same jobs
 reached through `workflow_call` from `release.yml`, which never runs on a pull
-request, so requiring them blocks every merge.
+request — requiring them would block every merge permanently.
+
+Two deliberate settings:
+
+- **Zero required approvals.** The pull request rule exists to force the checks
+  to run and to keep history linear, not to simulate review on a solo project.
+- **Non-strict status checks** (branches need not be up to date before merging).
+  `release.yml` re-runs the whole gate against the merge commit, so a stale base
+  is caught there rather than by forcing a rebase on every merge.
+
+No bypass actor is configured. The release App never pushes to `main` — it
+pushes the `changeset-release/main` branch and opens a pull request like anyone
+else.
 
 ### The release runs as four jobs
 
@@ -118,78 +147,73 @@ The sub-actions are pinned to a prerelease commit, which is a deliberate,
 bounded choice — see [docs/blockers.md](docs/blockers.md) for the reasoning and
 the move to a stable `v2`.
 
-After the first `eigen_api` publication, configure its pub.dev package under
-**Admin → Automated publishing**:
+### Registry configuration
+
+Each registry authorises this repository directly; no publishing credential is
+stored anywhere. The settings below are already in place — they are recorded so
+a change can be recognised as a change.
+
+All five npm packages, under each package's **Settings → Trusted publisher**:
+
+```text
+Repository:   eigeninteractive/eigen-server
+Workflow:     release.yml
+Environment:  npm
+```
+
+`eigen_api`, under **Admin → Automated publishing**:
 
 ```text
 Repository:  eigeninteractive/eigen-server
 Tag pattern: eigen_api-v{{version}}
 ```
 
-## First publication
+All three fields must match exactly. A mismatch fails the OIDC exchange and
+surfaces as a misleading `E404 ... is not in this registry` rather than an
+authentication error.
 
-The first registry publication is a bootstrap exception because pub.dev cannot
-configure automated publishing until the package exists.
+## Adding a new published package
 
-npm imposes the same constraint for a different reason: a trusted publisher is
-configured on an existing package, so the packages must exist before CI can ever
-publish them.
+Publishing a brand-new package is the one flow CI cannot do for you, because
+both registries authorise a package that already exists:
 
-Before any of this, the repository must live at `eigeninteractive/eigen-server`
-and be public. Every `repository.url` already names that location, and npm
-matches it case-sensitively when signing provenance. The manual publications
-below carry no provenance — they run from a laptop with no OIDC — so the
-requirement first bites on the following, automated release.
+- **npm** — a trusted publisher is configured on an existing package, so the
+  first version must be pushed by hand.
+- **pub.dev** — automated publishing cannot be configured until the package
+  exists, and a *new* package cannot be published straight into a verified
+  publisher at all.
 
-Authenticate with `npm login`, not a token. npm supports session-based auth, so
-2FA prompts normally and no credential is ever created, pasted or rotated.
+So the first version of any new package is manual, and everything after is not.
 
-**eigen-flutter's CI is red until step 3 completes.** That repo resolves
-`eigen_api` from pub.dev; only a gitignored `pubspec_overrides.yaml` repoints it
-at a local checkout, and CI has no such file. Do not try to make its CI pass
-before `eigen_api` is published — publish first, then re-run it.
+1. Decide its versioning. Adding it to the `fixed` group in
+   `.changeset/config.json` means it shares the engine's version and bumps with
+   it; leaving it out means Changesets versions it on its own. Prefer the fixed
+   group unless the package genuinely has an independent release cadence.
+2. **npm:** run `npm login` from *outside* this repository — npm evaluates
+   `devEngines` before any command and refuses here because that field names
+   pnpm. Then `pnpm pack` the package and publish the tarball with
+   `npm publish <tarball> --access public --otp=<code>`.
 
-From clean checkouts:
+   Use `npm publish`, not `pnpm publish`: pnpm 11 implements publishing natively
+   and does not send the OTP header, so it fails with a 403 that reads like a
+   permissions problem. Packing with pnpm first is what resolves `workspace:*`
+   into real versions. One OTP per upload.
 
-1. Run the complete CI gate.
-2. `npm login` — run it from **outside the repository**. npm evaluates
-   `devEngines` before any command and refuses to run here because that field
-   names pnpm. Then publish the five npm packages at `0.1.0`:
+   Do **not** create a bypass-2FA token instead. npm restricted those in July
+   2026 and removes their publish access in January 2027.
+3. **pub.dev:** `dart pub publish`, then package page → **Admin** → **Transfer
+   to Publisher** → `eigeninteractive.com`. The transfer is irreversible and
+   requires you to be both an uploader of the package and an administrator of
+   the publisher.
+4. Register it under [Registry configuration](#registry-configuration) so CI can
+   publish every subsequent version.
+5. An **unscoped** npm package is owned by whoever published it, not by the
+   organisation — there is no way to publish one *as* an org, and unpublishing
+   to retry only burns the version number. Grant the org team access instead:
 
    ```bash
-   pnpm publish -r --access public --no-git-checks --otp=<code>
+   npm access grant read-write eigeninteractive:developers <package>
    ```
-
-   The `--otp` is required: npm rejects publishes authenticated only by a login
-   session. Do **not** create a bypass-2FA token instead — npm restricted those
-   in July 2026 and removes their publish access in January 2027. If the code
-   expires partway through, re-run with a fresh one; already-published versions
-   are skipped.
-3. In `clients/dart`, run `dart pub publish --dry-run` and then the first
-   interactive `dart pub publish`.
-4. Transfer `eigen_api` to the `eigeninteractive.com` verified publisher:
-   package page → **Admin** → enter the publisher name → **Transfer to
-   Publisher**. There is no pubspec field or flag for this; pub deliberately
-   cannot publish a *new* package straight to a publisher, so every first
-   publication lands under the uploader's Google Account and is moved
-   afterwards. You must be both an uploader of the package and an administrator
-   of the publisher, and **the transfer is irreversible**. Do this before
-   step 5 so automated publishing is configured against the final owner.
-
-   Afterwards, any publisher member can publish new versions, and
-   `dart pub publish` works directly — the workaround applies only to a
-   package's first-ever publication.
-5. Configure pub.dev automated publishing with the repository and tag pattern
-   above.
-6. Configure a trusted publisher on each of the four npm packages, naming this
-   repository, `release.yml`, and the `npm` environment.
-7. Configure `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`.
-8. Publish `eigen_flutter` only after `eigen_api` resolves publicly, then give
-   it the same treatment as step 4 — transfer to `eigeninteractive.com` before
-   configuring its automated publishing.
-
-Do not create the `eigen_api-v0.1.0` automation tag for the manually published
-version. Tag-driven Dart publication begins with the next engine version.
 
 ## Routine npm releases
 
@@ -252,6 +276,22 @@ update-required state before Play offers them the compatible application.
 
 The sentinel is read-side only. Serializing it produces
 `unknown_default_open_api`, which no route accepts.
+
+### After a compatible `eigen_flutter` ships
+
+Bump `flutterClientVersion` in `packages/create-eigen-game/src/index.ts`, and
+update the matrix in eigen-web's `docs/reference/compatibility.md`.
+
+This is the one version number in the project that nothing can derive or
+enforce. The scaffolder emits two halves — an npm server and a pub app —
+resolved by two package managers that never see each other, so no solver checks
+that the engine and client versions agree. Everything else is derived: the
+engine range comes from the scaffolder's own version, and `eigen_api`'s version
+comes from the server's.
+
+A scaffolder test asserts the literal, so a bump is a reviewed edit rather than
+a silent one. Its failure mode is not a wrong value but a forgotten one, which
+is why it is a checklist item here and not only a comment in the source.
 
 ## Downstream documentation
 
