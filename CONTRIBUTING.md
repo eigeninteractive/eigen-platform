@@ -113,9 +113,14 @@ Cloudflare build settings:
 | Setting | Value |
 |---|---|
 | Build command | `pnpm install && pnpm build` |
-| Deploy command | `npx wrangler deploy` |
+| Deploy command | `pnpm exec wrangler deploy` |
 | Production branch | `main` |
 | Non-production branch builds | off |
+
+Cloudflare defaults the deploy command to `npx wrangler deploy`; that cannot
+work here. `npx` runs under npm, npm enforces this repo's
+`devEngines.packageManager` (pnpm), and it refuses to run — so the deploy step
+fails after a perfectly green build.
 
 The Worker name in the Cloudflare dashboard must equal the `name` in
 `wrangler.jsonc` (`eigen-web`), or the build fails.

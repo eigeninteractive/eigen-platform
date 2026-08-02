@@ -9,8 +9,13 @@
  * only configures a Worker script, and there isn't one.
  *
  * Deploys run in Workers Builds (repo-connected, production branch `main`,
- * non-production branch builds off). `pnpm deploy` from a machine with
- * `wrangler login` does the same thing.
+ * non-production branch builds off), with build command `pnpm install && pnpm
+ * build` and deploy command `pnpm exec wrangler deploy`. That deploy command
+ * must not use `npx` — Cloudflare's default. npm enforces this package.json's
+ * `devEngines.packageManager` (pnpm) and refuses to run at all, failing the
+ * deploy step after a green build.
+ *
+ * `pnpm deploy` from a machine with `wrangler login` does the same thing.
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
