@@ -1,0 +1,58 @@
+name: Checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Correctness only — this workflow never deploys. Deployment is owned by
+# Cloudflare Workers Builds, which watches `main` directly: it clones the repo,
+# runs the build, and deploys with its own credentials. That means no Cloudflare
+# API token ever has to live in GitHub secrets.
+#
+# The site builds with no sibling checkout: the generated API reference under
+# `docs/reference/` is committed, produced on demand by `pnpm sync-api`.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome
+        run: pnpm exec biome ci .
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # `onBrokenLinks: "throw"` makes this the real link checker: a docs page
+      # linking at a moved or misspelled route fails the build here.
+      - name: Build
+        run: pnpm build
+
+      # The agent-facing surface is generated in a postBuild hook, so a plugin
+      # regression would otherwise fail silently and only show up as a 404.
+      - name: Agent surface was emitted
+        run: |
+          for f in build/llms.txt build/llms-full.txt build/openapi.json build/docs/intro.md; do
+            test -s "$f" || { echo "::error::missing or empty $f"; exit 1; }
+          done
