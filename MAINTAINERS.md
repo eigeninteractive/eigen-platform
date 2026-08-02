@@ -9,29 +9,61 @@ start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Release artifacts
 
-One engine release produces five artifacts:
+The repository publishes six artifacts:
 
-| Artifact | Registry | Source |
-|---|---|---|
-| `@eigeninteractive/rules` | npm | `packages/rules` |
-| `@eigeninteractive/kernel` | npm | `packages/kernel` |
-| `@eigeninteractive/server` | npm | `packages/server` |
-| `@eigeninteractive/testkit` | npm | `packages/testkit` |
-| `eigen_api` | pub.dev | `clients/dart` |
+| Artifact | Registry | Source | Versioning |
+|---|---|---|---|
+| `@eigeninteractive/rules` | npm | `packages/rules` | fixed group |
+| `@eigeninteractive/kernel` | npm | `packages/kernel` | fixed group |
+| `@eigeninteractive/server` | npm | `packages/server` | fixed group |
+| `@eigeninteractive/testkit` | npm | `packages/testkit` | fixed group |
+| `eigen_api` | pub.dev | `clients/dart` | follows the group |
+| `create-eigen-game` | npm | `packages/create-eigen-game` | **independent** |
 
-The npm packages are fixed together in `.changeset/config.json`. They carry one
-version because they are tightly interdependent. `eigen_api` carries the same
-version as `@eigeninteractive/server`, whose wire contract it implements.
+The four `@eigeninteractive/*` packages are fixed together in
+`.changeset/config.json`. They carry one version because they are tightly
+interdependent. `eigen_api` carries the same version as
+`@eigeninteractive/server`, whose wire contract it implements.
+
+`create-eigen-game` is the exception on both axes. It is **unscoped**, because
+that is what makes `npm create eigen-game` resolve — so it is not owned by the
+npm organization via a scope, and the org's team is granted access to it
+explicitly instead:
+
+```bash
+npm access grant read-write eigeninteractive:developers create-eigen-game
+```
+
+npm has no way to publish an unscoped package *as* an organization; ownership
+follows whichever account ran `npm publish`. Unpublishing and republishing does
+not change that and permanently burns the version number, so do not try it. The
+grant requires you to be both the package's direct owner and an org owner.
+
+It is also **not** in the fixed group, so Changesets versions it independently
+of the engine.
+
+⚠️ Its templates pin engine versions literally (`"@eigeninteractive/rules":
+"^0.1.0"`) and nothing regenerates them, so an engine minor bump — which is a
+breaking change pre-1.0 — will leave newly scaffolded games resolving the
+previous engine. Check the templates whenever the engine's major/minor moves.
 
 ## Required configuration
 
 The release workflows use:
 
-- `NPM_TOKEN` (secret): npm automation token with publish rights on the
-  `@eigeninteractive` scope.
-- `RELEASE_APP_ID` (**variable**, not a secret) and `RELEASE_APP_PRIVATE_KEY`
-  (secret): credentials for the **Eigen Release** GitHub App, installed on the
-  organization with access to `eigen-server` and `eigen-web`.
+- `RELEASE_APP_CLIENT_ID` (**variable**, not a secret) and
+  `RELEASE_APP_PRIVATE_KEY` (secret): credentials for the **Eigen Release**
+  GitHub App, installed on the organization with access to `eigen-server` and
+  `eigen-web`. Use the App's **Client ID** (`Iv23li…`), not the numeric App ID —
+  `actions/create-github-app-token` deprecated its `app-id` input.
+- An **`npm`** repository environment, named by each package's trusted publisher
+  on npmjs.com.
+
+There is deliberately **no npm token**. npm authentication is trusted publishing
+(OIDC): GitHub's short-lived identity is the credential, and provenance is
+emitted automatically without a `--provenance` flag. That is why the publish job
+must never set `registry-url` on `actions/setup-node` — it writes an `.npmrc`
+whose token npm prefers over an OIDC exchange.
 
 `release.yml` mints a short-lived token from that App and uses it for all three
 privileged operations: opening the version pull request, pushing the
@@ -54,11 +86,11 @@ GitHub OIDC instead of storing a pub.dev credential.
 
 ### This repository must stay public
 
-`--provenance` only works from a public source repository. npm rejects a
+Provenance only works from a public source repository. npm rejects a
 provenance-signed tarball built from a private repo, and the wrapper chain hides
-the real error behind `E404 ... is not in this registry`. If the repository ever
-has to go private, remove `--provenance` from `release.yml` rather than trying
-to debug the 404.
+the real error behind `E404 ... is not in this registry`. Trusted publishing
+emits provenance unconditionally, so going private would break publishing
+outright rather than merely dropping the attestation.
 
 ### Branch protection
 
@@ -74,26 +106,17 @@ Do not require the `Checks / …` prefixed variants. Those are the same jobs
 reached through `workflow_call` from `release.yml`, which never runs on a pull
 request, so requiring them blocks every merge.
 
-### Why not npm trusted publishing (OIDC)
+### The release runs as four jobs
 
-Trusted publishing would remove `NPM_TOKEN`, and it is the better end state, but
-not yet:
+`select-mode` decides version-vs-publish, then either `version` opens the
+release pull request or `pack` builds tarballs for `publish` to upload. The
+split exists because `id-token: write` and `environment:` attach to jobs rather
+than steps, so a single job would carry publishing privileges on runs that only
+open a pull request.
 
-- A trusted publisher is configured per package on npmjs.com, so the package
-  must already exist. There is no pending-publisher bootstrap as PyPI has.
-- `changesets/action`'s `publish:` input spawns the registry client through a
-  wrapper chain that does not forward `ACTIONS_ID_TOKEN_REQUEST_*`, so OIDC
-  never reaches it (npm/cli#8976, open). Adopting it means publishing from a
-  separate top-level step instead.
-- The `git+` prefix on every `repository.url` would need normalizing; npm's OIDC
-  matching is sensitive to it.
-
-One historic blocker is already gone: `setup-node` used to export a dummy
-`NODE_AUTH_TOKEN` that npm preferred over OIDC, producing the same misleading
-404. `actions/setup-node@v7` removed it. The `registry-url` input still writes
-an `.npmrc`, so verify that interaction when migrating.
-
-Revisit after the packages exist on npm.
+The sub-actions are pinned to a prerelease commit, which is a deliberate,
+bounded choice — see [docs/blockers.md](docs/blockers.md) for the reasoning and
+the move to a stable `v2`.
 
 After the first `eigen_api` publication, configure its pub.dev package under
 **Admin → Automated publishing**:
@@ -108,24 +131,62 @@ Tag pattern: eigen_api-v{{version}}
 The first registry publication is a bootstrap exception because pub.dev cannot
 configure automated publishing until the package exists.
 
+npm imposes the same constraint for a different reason: a trusted publisher is
+configured on an existing package, so the packages must exist before CI can ever
+publish them.
+
 Before any of this, the repository must live at `eigeninteractive/eigen-server`
 and be public. Every `repository.url` already names that location, and npm
 matches it case-sensitively when signing provenance. The manual publications
 below carry no provenance — they run from a laptop with no OIDC — so the
 requirement first bites on the following, automated release.
 
+Authenticate with `npm login`, not a token. npm supports session-based auth, so
+2FA prompts normally and no credential is ever created, pasted or rotated.
+
+**eigen-flutter's CI is red until step 3 completes.** That repo resolves
+`eigen_api` from pub.dev; only a gitignored `pubspec_overrides.yaml` repoints it
+at a local checkout, and CI has no such file. Do not try to make its CI pass
+before `eigen_api` is published — publish first, then re-run it.
+
 From clean checkouts:
 
 1. Run the complete CI gate.
-2. Publish the four npm packages at `0.1.0` in topological order with pnpm.
+2. `npm login` — run it from **outside the repository**. npm evaluates
+   `devEngines` before any command and refuses to run here because that field
+   names pnpm. Then publish the five npm packages at `0.1.0`:
+
+   ```bash
+   pnpm publish -r --access public --no-git-checks --otp=<code>
+   ```
+
+   The `--otp` is required: npm rejects publishes authenticated only by a login
+   session. Do **not** create a bypass-2FA token instead — npm restricted those
+   in July 2026 and removes their publish access in January 2027. If the code
+   expires partway through, re-run with a fresh one; already-published versions
+   are skipped.
 3. In `clients/dart`, run `dart pub publish --dry-run` and then the first
    interactive `dart pub publish`.
-4. Transfer both registry packages to the verified Eigen Interactive
-   publishers/organizations.
+4. Transfer `eigen_api` to the `eigeninteractive.com` verified publisher:
+   package page → **Admin** → enter the publisher name → **Transfer to
+   Publisher**. There is no pubspec field or flag for this; pub deliberately
+   cannot publish a *new* package straight to a publisher, so every first
+   publication lands under the uploader's Google Account and is moved
+   afterwards. You must be both an uploader of the package and an administrator
+   of the publisher, and **the transfer is irreversible**. Do this before
+   step 5 so automated publishing is configured against the final owner.
+
+   Afterwards, any publisher member can publish new versions, and
+   `dart pub publish` works directly — the workaround applies only to a
+   package's first-ever publication.
 5. Configure pub.dev automated publishing with the repository and tag pattern
    above.
-6. Configure the three repository secrets.
-7. Publish `eigen_flutter` only after `eigen_api` resolves publicly.
+6. Configure a trusted publisher on each of the four npm packages, naming this
+   repository, `release.yml`, and the `npm` environment.
+7. Configure `RELEASE_APP_CLIENT_ID` and `RELEASE_APP_PRIVATE_KEY`.
+8. Publish `eigen_flutter` only after `eigen_api` resolves publicly, then give
+   it the same treatment as step 4 — transfer to `eigeninteractive.com` before
+   configuring its automated publishing.
 
 Do not create the `eigen_api-v0.1.0` automation tag for the manually published
 version. Tag-driven Dart publication begins with the next engine version.
@@ -146,8 +207,11 @@ The routine flow is:
    provenance.
 6. It pushes `eigen_api-v<version>` and dispatches the documentation refresh.
 
-Use `pnpm publish -r`, never `npm publish`. pnpm rewrites `workspace:*`
-constraints to registry versions and publishes in topological order.
+In CI the `workspace:*` rewriting is the `pack` job's responsibility — it
+resolves those constraints into tarballs that `publish` then uploads, which is
+what keeps the workspace handling away from the authenticated upload. When
+publishing **manually**, use `pnpm publish -r` and never `npm publish`: pnpm
+does the same rewriting and publishes in topological order.
 `publishConfig.access: "public"` is set because scoped npm packages otherwise
 default to restricted access.
 

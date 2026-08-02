@@ -1,0 +1,69 @@
+name: Publish eigen_api
+
+# Publishes the generated Dart client (clients/dart) to pub.dev.
+#
+# This is the ONE workflow that cannot be folded into release.yml. pub.dev's
+# automated publishing trusts a GitHub OIDC token only when its ref is a TAG
+# matching the pattern configured on the package; a token minted for a branch
+# push is rejected outright. release.yml runs on a push to main, so its identity
+# can never satisfy pub.dev.
+#
+# This is permanent, not a gap waiting on an upstream fix: dart-lang/pub-dev#8507
+# asked for branch refType and was CLOSED as won't-fix in Feb 2025, because a
+# branch identity makes it materially harder to reason about what was published.
+# Do not restructure this workflow expecting the constraint to lift.
+#
+# Hence the handoff: release.yml publishes to npm, then pushes an
+# `eigen_api-v<version>` tag with a PAT — a tag pushed by the built-in
+# GITHUB_TOKEN would deliberately not trigger anything — and that tag fires this
+# workflow, whose OIDC token now carries a tag ref that pub.dev accepts.
+#
+# The alternative is storing a long-lived pub.dev credential in GitHub secrets
+# and publishing inline. That trades a workflow file for a permanent secret,
+# which is the worse deal.
+#
+# pub.dev setup, once (eigen_api → Admin → Automated publishing):
+#   - Repository:   eigeninteractive/eigen-server
+#   - Tag pattern:  eigen_api-v{{version}}
+# No credential is stored anywhere — the OIDC identity is the authentication.
+on:
+  push:
+    tags: ["eigen_api-v*"]
+
+concurrency:
+  group: publish-eigen-api
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # pub.dev OIDC
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      # The tag names the version; the committed pubspec must already carry it
+      # (version-packages stamped it in the version PR). A mismatch means the
+      # tag was pushed against the wrong commit — fail rather than publish it.
+      - name: Tag matches pubspec version
+        working-directory: clients/dart
+        run: |
+          tag="${GITHUB_REF_NAME#eigen_api-v}"
+          pkg=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}')
+          [ "$tag" = "$pkg" ] || {
+            echo "::error::tag eigen_api-v$tag does not match pubspec version $pkg"; exit 1; }
+
+      # The generated code is committed, so nothing is generated here — publish
+      # exactly what the tag points at.
+      - name: Dry run
+        run: dart pub publish --dry-run
+        working-directory: clients/dart
+
+      - name: Publish
+        run: dart pub publish --force
+        working-directory: clients/dart

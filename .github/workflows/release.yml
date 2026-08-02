@@ -1,0 +1,332 @@
+name: Release
+
+# Everything that happens when a commit lands on `main`: verify it, then either
+# open a version PR or publish. Changesets-driven, not tag-driven.
+#
+#   1. While working, describe user-visible changes:  pnpm changeset
+#      (pick a bump type, write the line users will read). Commit the generated
+#      `.changeset/*.md` with your PR.
+#   2. When those land on `main`, this workflow opens or updates a
+#      **"Release: version packages"** PR that applies the bumps and rewrites
+#      each package's CHANGELOG.md.
+#   3. Merging that PR runs this workflow again, finds no pending changesets,
+#      and publishes to npm.
+#
+# So releasing is "merge the version PR" — the decision stays explicit (npm
+# versions cannot be unpublished after 72 hours) without anyone hand-editing a
+# version number or remembering the publish order. Changesets accumulate: five
+# merged PRs keep updating one version PR, and one merge releases all five.
+#
+# ── Why four jobs rather than one step ────────────────────────────────────────
+#
+# npm authentication here is TRUSTED PUBLISHING (OIDC): there is no npm token
+# anywhere, and GitHub's short-lived identity is the credential. That is what
+# forces the shape, because `id-token: write` and `environment:` attach to JOBS,
+# not steps. A single job that both versions and publishes would have to carry
+# publish privileges on every run, including the ones that only open a pull
+# request. Splitting is the only way to express least privilege.
+#
+# The separate `pack` step matters for the same reason: it resolves `workspace:*`
+# into tarballs, and `publish` then uploads those under OIDC. Keeping the
+# workspace rewriting away from the authenticated upload is what makes OIDC
+# work reliably in a pnpm monorepo.
+#
+# This mirrors Changesets' own release pipeline, which is the reference
+# implementation for this layout:
+#   https://github.com/changesets/changesets/blob/main/.github/workflows/publish.yml
+#
+# The sub-actions are pinned to a COMMIT because they ship in a prerelease line
+# (v2.0.0-next.3) with no floating `v2` ref. See docs/blockers.md for the move
+# to a stable tag.
+#
+# ── The four packages, and a fifth artifact ───────────────────────────────────
+#
+# The four npm packages are `fixed` in .changeset/config.json: they share one
+# version and always bump together, because they are tightly interdependent and
+# an independent-version matrix would be maintained by hand for no benefit.
+#
+# `eigen_api`, the generated Dart client in clients/dart, rides along at the same
+# version. The wire contract is the server's, so the client that speaks it
+# carries the server's version — a consumer's `eigen_api: ^0.1.0` then states
+# exactly the compatibility it means. `pnpm version-packages` regenerates it, so
+# the version PR already carries the stamped pubspec.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# Default deny. Every job below grants itself only what it needs.
+permissions: {}
+
+jobs:
+  # The same gate every pull request clears, re-run against the merge commit.
+  # This is a fresh execution, not a lookup of the pull request's result: `main`
+  # is a different commit as soon as anything else merges, and publishing is the
+  # one irreversible step here, so it is checked on the exact commit that ships.
+  #
+  # It matters that this is the WHOLE gate rather than a re-typed subset —
+  # checks.yml also proves openapi.json, the drizzle migrations, the worker
+  # types and the generated Dart client are all in sync with their sources.
+  # Those guards are worth more at publish time than anywhere else.
+  gate:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read
+
+  # Decides what this push means: `version` when changesets are pending,
+  # `publish` when they are not and something is unpublished, `none` otherwise.
+  # Hoisting it into its own job is what lets the two paths below carry
+  # different permissions — and makes the decision visible in the Actions UI
+  # rather than buried inside one step.
+  select-mode:
+    name: Select mode
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      mode: ${{ steps.select-mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.select-mode.outputs.publish-plan-artifact-id }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Nothing here pushes, so do not leave the token in .git/config where
+          # a later step could read it.
+          persist-credentials: false
+          # changesets needs history to work out what changed since the last tag.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Select mode
+        id: select-mode
+        uses: changesets/action/select-mode@c47fa68bd43bb8ae0bae7e558622593deebf5955 # v2.0.0-next.3
+
+  # Pending changesets exist → open or refresh the version pull request.
+  #
+  # The branch is REGENERATED from main plus all pending changesets on every
+  # run, not appended to, which is why three patches then a minor produce one
+  # minor bump rather than four sequential ones.
+  version:
+    name: Version
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      # `script:` below regenerates the Dart client so the version PR carries
+      # its stamped pubspec. That runs openapi-generator via `pnpm dlx` and then
+      # build_runner, which needs a JDK on PATH and Dart; dlx fetches and
+      # version-pins the generator itself, so nothing else installs.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dart-lang/setup-dart@v1
+
+      # An App token, not GITHUB_TOKEN, so the version pull request gets CHECKS.
+      # GitHub suppresses workflow triggers for events raised by the built-in
+      # token, so a version PR it opens shows no checks at all — and with
+      # required status checks on `main`, it could never satisfy them and would
+      # be permanently unmergeable without an admin bypass.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write # push the version branch
+          permission-pull-requests: write # open/update the version PR
+
+      - name: Create or update the version pull request
+        uses: changesets/action/version@c47fa68bd43bb8ae0bae7e558622593deebf5955 # v2.0.0-next.3
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          # `changeset version` then regenerate, so the Dart pubspec's version
+          # is stamped in the same PR rather than drifting until someone runs
+          # the generator by hand.
+          script: pnpm version-packages
+          pr-title: "Release: version packages"
+          commit-message: "Version packages"
+
+  # No pending changesets → build the tarballs that `publish` will upload.
+  # Deliberately unprivileged: this job runs arbitrary build code, so it must
+  # never hold the publishing identity.
+  pack:
+    name: Pack
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The tarballs must contain built output — `dist` is what consumers get.
+      - name: Build
+        run: pnpm -r build
+
+      - name: Pack
+        id: pack
+        uses: changesets/action/pack@c47fa68bd43bb8ae0bae7e558622593deebf5955 # v2.0.0-next.3
+        with:
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  # The only job that can reach npm. `environment: npm` is not decoration: it is
+  # what a trusted publisher can be pinned to on npmjs.com, and where a required
+  # reviewer would be attached if this ever wants one.
+  #
+  # NOTE: `actions/setup-node` must NOT set `registry-url` here. That writes an
+  # .npmrc containing `_authToken=${NODE_AUTH_TOKEN}`, and npm prefers that over
+  # an OIDC exchange — surfacing as a nonsense `E404 ... is not in this
+  # registry` rather than an auth error. There is no npm token by design.
+  publish:
+    name: Publish
+    needs: pack
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 20
+    permissions:
+      contents: write # git tags + GitHub releases
+      id-token: write # OIDC — this is the npm credential
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      # Scoped to BOTH repositories: this job pushes a tag here and dispatches
+      # to eigen-web. GITHUB_TOKEN cannot do the latter at all — it is scoped to
+      # the repository that minted it, same organization or not.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: |
+            eigen-server
+            eigen-web
+          permission-contents: write
+
+      # Provenance is emitted automatically under trusted publishing — there is
+      # no `--provenance` flag to pass. It requires this repository to stay
+      # PUBLIC; npm refuses to sign provenance from a private source repo.
+      - name: Publish to npm
+        id: changesets
+        uses: changesets/action/publish@c47fa68bd43bb8ae0bae7e558622593deebf5955 # v2.0.0-next.3
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+      # ── Everything below runs only when npm actually published ─────────────
+
+      # eigen-web vendors this repo's `openapi.json` and package APIs to build
+      # its HTTP and TypeScript references. It cannot notice a change on its
+      # own, so tell it — its receiving workflow regenerates, commits to main
+      # and deploys.
+      #
+      # Gated on a real publish rather than on a push to main, and that is the
+      # whole point: eigen-web deploys continuously from its own main, so
+      # dispatching on every merge would put a public reference online
+      # describing an engine nobody can install yet. Tied to the release, the
+      # docs track what is on npm by construction.
+      #
+      # Failing here fails the release. That is deliberate: a published engine
+      # with an unnotified docs site is a state worth stopping on.
+      - name: Notify eigen-web
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          SHA: ${{ github.sha }}
+        run: |
+          gh api repos/eigeninteractive/eigen-web/dispatches \
+            -f event_type=engine-api-changed \
+            -F "client_payload[sha]=$SHA"
+
+      # eigen_api is published to pub.dev by a SEPARATE, tag-triggered workflow
+      # (publish-eigen-api.yml). It cannot be published inline here: pub.dev's
+      # automated publishing only trusts an OIDC token whose ref is a TAG
+      # matching the pattern configured on the package, and this workflow runs
+      # on a branch push. dart-lang/pub-dev#8507 asked for branch refs and was
+      # closed as won't-fix, so this split is permanent.
+      #
+      # The tag must be pushed with the App token: a tag pushed by the built-in
+      # GITHUB_TOKEN deliberately does not trigger further workflow runs — the
+      # same suppression rule that costs the version PR its checks above.
+      #
+      # If this step fails after npm published, push the tag by hand — re-running
+      # the workflow finds no pending changesets and will not publish again.
+      - name: Tag eigen_api for pub.dev
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(grep -m1 '^version:' clients/dart/pubspec.yaml | awk '{print $2}')
+          git tag "eigen_api-v$v"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "eigen_api-v$v"
