@@ -220,6 +220,14 @@ So the first version of any new package is manual, and everything after is not.
 Changesets owns versioning and changelog generation. Contributors commit a
 `.changeset/*.md` file with their change; versions are never edited by hand.
 
+`checks.yml` enforces this with `changeset status`: a pull request that touches
+a published package without a changeset fails. That guard exists because the
+omission is otherwise invisible — the pull request merges green, no version
+pull request appears, and the change is simply never released. For a change
+that genuinely should not ship a version, `pnpm changeset --empty` records the
+decision as a committed file. It has to be *committed*: `changeset status`
+reads tracked files, so an unstaged empty changeset still fails locally.
+
 The routine flow is:
 
 1. Changes land on `main`.

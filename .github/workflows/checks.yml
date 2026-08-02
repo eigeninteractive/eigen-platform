@@ -53,6 +53,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The changesets guard at the end of this job diffs against
+          # `origin/main`, which needs a merge base — a shallow clone has none.
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
 
@@ -126,6 +130,34 @@ jobs:
           pnpm --filter rps exec wrangler types < /dev/null
           git diff --exit-code -- examples/rps/worker-configuration.d.ts \
             || { echo "::error file=examples/rps/worker-configuration.d.ts::Stale worker types. Run 'wrangler types' in the worker directory and commit."; exit 1; }
+
+      # Every guard above proves the commit is CORRECT. This one proves it will
+      # actually SHIP, which nothing else here can see.
+      #
+      # A change to a published package with no `.changeset/*.md` merges green,
+      # produces no version pull request, and is never released — silently, with
+      # no artifact anywhere to notice. That is the failure mode worth
+      # automating against; forgetting to MERGE the version PR is not, because
+      # it leaves an open pull request titled "Release: version packages" at the
+      # top of the list and breaks nothing while it sits there.
+      #
+      # Runs last so a missing changeset never hides a real test failure, and
+      # only on pull requests: by the time a commit reaches `main` its changesets
+      # are already part of the diff being compared against.
+      #
+      # Skipped on the version pull request itself, which by construction edits
+      # every published package while deleting the changesets that describe
+      # them — exactly the shape this guard rejects. Without the exclusion it is
+      # a required check that branch can never satisfy.
+      #
+      # For a change that genuinely should not release — a comment, a test, an
+      # internal refactor — `pnpm changeset --empty` records that decision as a
+      # committed file rather than leaving the guard to be argued with.
+      - name: Changes to published packages are described by a changeset
+        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
+        run: |
+          pnpm changeset status --since=origin/main \
+            || { echo "::error::A published package changed with no changeset, so this would merge without ever being released. Run 'pnpm changeset' to describe the change, or 'pnpm changeset --empty' if it should not be published."; exit 1; }
 
   # The Dart client is generated from openapi.json and committed, so that a
   # breaking wire change arrives as a reviewable Dart diff in the same pull
