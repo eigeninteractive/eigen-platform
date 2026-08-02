@@ -19,6 +19,12 @@ caps granular write tokens at a 90-day lifetime, so a token would have meant a
 quarterly rotation plus enabling **Bypass 2FA** on the publishing account. There
 is now no npm credential anywhere in the pipeline.
 
+That alternative is also closing. npm [restricted bypass-2FA
+tokens][npm-bypass-restrict] on 2026-07-31 and has announced that they lose
+direct publish access in January 2027. Trusted publishing is becoming the only
+supported way to publish from CI, so this is not a preference to revisit —
+only the pinned prerelease below is.
+
 The prerelease risk is bounded rather than absent:
 
 - **Pinned by commit, so it cannot shift underneath us.** The usual hazard of a
@@ -71,6 +77,7 @@ Upstream references:
 - [changesets/action#515 — separate publish workflow for OIDC][ca-515]
 
 [npm-trusted]: https://docs.npmjs.com/trusted-publishers/
+[npm-bypass-restrict]: https://github.blog/changelog/2026-07-31-restricting-npm-bypass-2fa-granular-access-tokens/
 [npm-classic-revoked]: https://github.blog/changelog/2025-12-09-npm-classic-tokens-revoked-session-based-auth-and-cli-token-management-now-available/
 [npm-cli-8976]: https://github.com/npm/cli/issues/8976
 [ca-515]: https://github.com/changesets/action/issues/515

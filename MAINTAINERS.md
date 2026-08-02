@@ -128,8 +128,19 @@ before `eigen_api` is published — publish first, then re-run it.
 From clean checkouts:
 
 1. Run the complete CI gate.
-2. `npm login`, then publish the four npm packages at `0.1.0` with
-   `pnpm publish -r --access public --no-git-checks`.
+2. `npm login` — run it from **outside the repository**. npm evaluates
+   `devEngines` before any command and refuses to run here because that field
+   names pnpm. Then publish the five npm packages at `0.1.0`:
+
+   ```bash
+   pnpm publish -r --access public --no-git-checks --otp=<code>
+   ```
+
+   The `--otp` is required: npm rejects publishes authenticated only by a login
+   session. Do **not** create a bypass-2FA token instead — npm restricted those
+   in July 2026 and removes their publish access in January 2027. If the code
+   expires partway through, re-run with a fresh one; already-published versions
+   are skipped.
 3. In `clients/dart`, run `dart pub publish --dry-run` and then the first
    interactive `dart pub publish`.
 4. Transfer `eigen_api` to the `eigeninteractive.com` verified publisher:
