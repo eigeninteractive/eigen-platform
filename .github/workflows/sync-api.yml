@@ -86,12 +86,17 @@ jobs:
         working-directory: eigen-web
         run: pnpm install --frozen-lockfile
 
-      # The engine has to be built before its spec can be emitted — the emitter
-      # imports the built, node-safe entry.
+      # `pnpm -r build` first, and it is not optional: the engine's workspace
+      # packages resolve through their `exports` → `dist`, so `@eigeninteractive/kernel`
+      # has no type declarations until it is built, and the server's own DTS
+      # build fails to resolve it. This mirrors eigen-server's `checks.yml`,
+      # which builds for the same reason before emitting the spec. A local run
+      # hides this — `dist/` is already there from previous work.
       - name: Emit the engine's OpenAPI spec
         working-directory: eigen-server
         run: |
           pnpm install --frozen-lockfile
+          pnpm -r build
           pnpm --filter @eigeninteractive/server openapi
 
       - name: Regenerate the reference
