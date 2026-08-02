@@ -8,6 +8,13 @@ import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
 
+// Asserted against this package's own version rather than a literal, because
+// that is exactly the invariant being tested: the scaffolder is in the `fixed`
+// changesets group, so its version IS the engine version it must emit. A
+// literal here would have to be edited on every release and would pass while
+// the template silently kept pinning the previous engine.
+const expectedEngineRange = `^${(JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")) as { version: string }).version}`;
+
 describe("scaffoldGame", () => {
   it("renders the canonical templates as a combined repository", () => {
     const root = resolve(temporaryParent(), "my-game");
@@ -16,8 +23,9 @@ describe("scaffoldGame", () => {
 
     const manifest = JSON.parse(readFileSync(resolve(root, "server/package.json"), "utf8"));
     expect(manifest.name).toBe("@game/my-game-server");
-    expect(manifest.dependencies["@eigeninteractive/server"]).toBe("^0.1.0");
-    expect(manifest.dependencies["@eigeninteractive/rules"]).toBe("^0.1.0");
+    expect(manifest.dependencies["@eigeninteractive/server"]).toBe(expectedEngineRange);
+    expect(manifest.dependencies["@eigeninteractive/rules"]).toBe(expectedEngineRange);
+    expect(manifest.devDependencies["@eigeninteractive/testkit"]).toBe(expectedEngineRange);
     expect(manifest.eigen).toEqual({ game: "My Game" });
     expect(manifest.scripts.contract).toBe("eigen-contract");
     expect(manifest.scripts["contract:check"]).toBe("eigen-contract --check");
@@ -111,6 +119,11 @@ describe("scaffoldGame", () => {
     scaffoldGame({ directory: root, packageManager: "pnpm", org: "games.example", run });
 
     expect(run).toHaveBeenCalledWith("flutter", expect.arrayContaining(["create", "--empty", "--platforms", "android,web", "--project-name", "chess", "--org", "games.example"]), expect.any(String));
+    // `eigen_flutter` is asserted as a literal on purpose, unlike the engine
+    // range above. It cannot be derived — the client lives in another
+    // repository and versions independently — so this literal is the tripwire
+    // that makes bumping `flutterClientVersion` a deliberate, reviewed edit
+    // rather than something that slips through unnoticed.
     expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.1.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));

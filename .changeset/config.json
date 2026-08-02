@@ -7,7 +7,7 @@
     }
   ],
   "commit": false,
-  "fixed": [["@eigeninteractive/kernel", "@eigeninteractive/rules", "@eigeninteractive/server", "@eigeninteractive/testkit"]],
+  "fixed": [["@eigeninteractive/kernel", "@eigeninteractive/rules", "@eigeninteractive/server", "@eigeninteractive/testkit", "create-eigen-game"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",

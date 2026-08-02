@@ -37,12 +37,12 @@
     "typecheck": "wrangler types && tsc --noEmit"
   },
   "dependencies": {
-    "@eigeninteractive/rules": "^0.1.0",
-    "@eigeninteractive/server": "^0.1.0",
+    "@eigeninteractive/rules": "{{ENGINE_VERSION}}",
+    "@eigeninteractive/server": "{{ENGINE_VERSION}}",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@eigeninteractive/testkit": "^0.1.0",
+    "@eigeninteractive/testkit": "{{ENGINE_VERSION}}",
     "@types/node": "^26.1.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",
