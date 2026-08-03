@@ -1,5 +1,5 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 title: Your first game
 description: Rock–Paper–Scissors in both languages — the rules that decide, the screen that draws, and the fixture file that keeps them agreeing.
 ---

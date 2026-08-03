@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 4
 title: Set up without the scaffolder
 description: Create the Worker and Flutter halves by hand, in one repository or two, using only the published Eigen packages and game-contract.json.
 ---
