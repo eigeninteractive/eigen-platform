@@ -15,11 +15,11 @@
     "changeset": "changeset",
     "version-packages": "changeset version && pnpm openapi && scripts/generate-dart-client.sh"
   },
-  "packageManager": "pnpm@11.13.0",
+  "packageManager": "pnpm@11.20.0",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.13.0",
+      "version": "11.20.0",
       "onFail": "download"
     }
   },
