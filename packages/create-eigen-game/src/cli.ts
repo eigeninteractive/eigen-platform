@@ -13,7 +13,7 @@ Options:
   --package-manager <pm> npm or pnpm (defaults to the invoking package manager)
   -h, --help             Show this help`;
 
-function main(args: string[]): void {
+async function main(args: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -38,7 +38,7 @@ function main(args: string[]): void {
     throw new Error("--package-manager must be npm or pnpm");
   }
   const packageManager = (requestedManager as PackageManager | undefined) ?? detectPackageManager() ?? "pnpm";
-  const result = scaffoldGame({
+  const result = await scaffoldGame({
     directory: positionals[0],
     org: values.org,
     packageManager,
@@ -46,10 +46,8 @@ function main(args: string[]): void {
   console.log(`Created ${result.name} in ${result.root}`);
 }
 
-try {
-  main(process.argv.slice(2));
-} catch (error) {
+main(process.argv.slice(2)).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(`create-eigen-game: ${message}`);
   process.exitCode = 1;
-}
+});

@@ -15,11 +15,43 @@ const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eige
 // the template silently kept pinning the previous engine.
 const expectedEngineRange = `^${(JSON.parse(readFileSync(resolve(import.meta.dirname, "../package.json"), "utf8")) as { version: string }).version}`;
 
+// The pub.dev fixtures below are built from that same version, for the same
+// reason: a fixture spelling "0.2" would stop meaning "the line this scaffolder
+// emits" the moment the engine releases, and would then pass while asserting
+// nothing.
+const [, engineMajor, engineMinor] = /(\d+)\.(\d+)\.\d+/.exec(expectedEngineRange) as RegExpExecArray;
+const sameLineApi = `^${engineMajor}.${engineMinor}.0`;
+const otherLineApi = engineMajor === "0" ? `^0.${Number(engineMinor) + 1}.0` : `^${Number(engineMajor) + 1}.0.0`;
+
+interface ShellFixture {
+  version: string;
+  eigenApi: string;
+  retracted?: boolean;
+}
+
+/** The shape of pub.dev's `/api/packages/<name>`, reduced to what is read. */
+const pubResponse = (shells: ShellFixture[]) => ({
+  versions: shells.map(({ version, eigenApi, retracted }) => ({
+    version,
+    ...(retracted === true ? { retracted: true } : {}),
+    pubspec: { dependencies: { eigen_api: eigenApi, flutter: { sdk: "flutter" } } },
+  })),
+});
+
+const publishedShells = pubResponse([
+  { version: "0.1.0", eigenApi: otherLineApi },
+  { version: "0.4.0", eigenApi: sameLineApi },
+  { version: "0.4.1", eigenApi: sameLineApi },
+  { version: "0.4.2", eigenApi: sameLineApi, retracted: true },
+  { version: "0.5.0-dev.1", eigenApi: sameLineApi },
+  { version: "0.9.0", eigenApi: otherLineApi },
+]);
+
 describe("scaffoldGame", () => {
-  it("renders the canonical templates as a combined repository", () => {
+  it("renders the canonical templates as a combined repository", async () => {
     const root = resolve(temporaryParent(), "my-game");
 
-    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" });
+    await scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" });
 
     const manifest = JSON.parse(readFileSync(resolve(root, "server/package.json"), "utf8"));
     expect(manifest.name).toBe("@game/my-game-server");
@@ -102,7 +134,7 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_flutter:configure_firebase");
   });
 
-  it("uses ecosystem CLIs to bootstrap both halves", () => {
+  it("uses ecosystem CLIs to bootstrap both halves", async () => {
     const parent = temporaryParent();
     const root = resolve(parent, "chess");
     const run = vi.fn((command: string, args: string[]) => {
@@ -116,15 +148,14 @@ describe("scaffoldGame", () => {
       }
     });
 
-    scaffoldGame({ directory: root, packageManager: "pnpm", org: "games.example", run });
+    const fetchJson = vi.fn(async () => publishedShells);
+    await scaffoldGame({ directory: root, packageManager: "pnpm", org: "games.example", run, fetchJson });
 
     expect(run).toHaveBeenCalledWith("flutter", expect.arrayContaining(["create", "--empty", "--platforms", "android,web", "--project-name", "chess", "--org", "games.example"]), expect.any(String));
-    // `eigen_flutter` is asserted as a literal on purpose, unlike the engine
-    // range above. It cannot be derived — the client lives in another
-    // repository and versions independently — so this literal is the tripwire
-    // that makes bumping `flutterClientVersion` a deliberate, reviewed edit
-    // rather than something that slips through unnoticed.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.1.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
+    // 0.4.1, not 0.9.0 (a different engine line), not 0.4.2 (retracted), and
+    // not 0.5.0-dev.1 (a prerelease nobody would pick deliberately).
+    expect(fetchJson).toHaveBeenCalledWith("https://pub.dev/api/packages/eigen_flutter");
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.4.1", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
@@ -136,36 +167,84 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts.contract).toContain("cd server && pnpm run contract");
   });
 
-  it("makes identifiers safe for a numeric game name", () => {
+  it("makes identifiers safe for a numeric game name", async () => {
     const root = resolve(temporaryParent(), "2048");
-    scaffoldGame({ directory: root, bootstrap: false });
+    await scaffoldGame({ directory: root, bootstrap: false });
 
     expect(readFileSync(resolve(root, "app/lib/game/module.dart"), "utf8")).toContain("class Game2048Module");
     expect(readFileSync(resolve(root, "server/src/module/v1.ts"), "utf8")).toContain('id: "Game2048V1State"');
   });
 
-  it("requires one canonical slug and derives every other name", () => {
+  it("requires one canonical slug and derives every other name", async () => {
     const root = resolve(temporaryParent(), "Not A Slug");
 
-    expect(() => scaffoldGame({ directory: root, bootstrap: false })).toThrow("lowercase kebab-case slug");
+    await expect(scaffoldGame({ directory: root, bootstrap: false })).rejects.toThrow("lowercase kebab-case slug");
     expect(existsSync(root)).toBe(false);
   });
 
-  it("publishes the destination atomically", () => {
+  it("publishes the destination atomically", async () => {
     const parent = temporaryParent();
     const root = resolve(parent, "broken");
 
-    expect(() =>
+    await expect(
       scaffoldGame({
         directory: root,
+        fetchJson: async () => publishedShells,
         run: () => {
           throw new Error("flutter unavailable");
         },
       }),
-    ).toThrow("flutter unavailable");
+    ).rejects.toThrow("flutter unavailable");
 
     expect(existsSync(root)).toBe(false);
     expect(readdirSync(parent)).toEqual([]);
+  });
+
+  // The Flutter client is resolved from pub.dev rather than pinned in this
+  // package, so these cases are the contract that replaces the old literal.
+  it("fails without writing anything when pub.dev cannot be reached", async () => {
+    const parent = temporaryParent();
+    const root = resolve(parent, "offline");
+    const run = vi.fn();
+
+    await expect(
+      scaffoldGame({
+        directory: root,
+        run,
+        fetchJson: async () => {
+          throw new Error("getaddrinfo ENOTFOUND pub.dev");
+        },
+      }),
+    ).rejects.toThrow(/could not reach pub\.dev.*ENOTFOUND/s);
+
+    // Fail fast is the whole point: no fallback pin, and nothing on disk to
+    // clean up because resolution happens before the first mkdir.
+    expect(run).not.toHaveBeenCalled();
+    expect(existsSync(root)).toBe(false);
+    expect(readdirSync(parent)).toEqual([]);
+  });
+
+  it("fails when no published shell speaks this engine line", async () => {
+    const root = resolve(temporaryParent(), "unpaired");
+
+    await expect(
+      scaffoldGame({
+        directory: root,
+        run: vi.fn(),
+        fetchJson: async () => pubResponse([{ version: "0.1.0", eigenApi: otherLineApi }]),
+      }),
+    ).rejects.toThrow(/no published eigen_flutter speaks engine/);
+
+    expect(existsSync(root)).toBe(false);
+  });
+
+  it("does not reach the network when it is not bootstrapping", async () => {
+    const root = resolve(temporaryParent(), "dry");
+    const fetchJson = vi.fn();
+
+    await scaffoldGame({ directory: root, bootstrap: false, fetchJson });
+
+    expect(fetchJson).not.toHaveBeenCalled();
   });
 });
 
