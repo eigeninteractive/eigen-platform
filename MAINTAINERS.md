@@ -323,6 +323,23 @@ undocumented until then.
 Authored prose is never generated. A behavior change still needs a matching
 eigen-web pull request.
 
+### A release that crosses a version line
+
+The documentation site is versioned on this engine's release line — pre-1.0 the
+minor, so `0.2.x` is one line and `0.3.0` starts the next — and eigen-web
+asserts its version label against `info.version` in the spec it receives.
+
+So a release that crosses a line makes the sync pull request go **red** instead
+of auto-merging. That is deliberate: someone has to decide whether the old line
+gets frozen at `/docs/<line>/*` before the site starts describing the new one.
+Nothing here breaks and nothing needs rerunning — the reference simply waits in
+an open pull request until that decision is made in eigen-web, whose
+`CONTRIBUTING.md` carries the procedure.
+
+Two artifacts still need a hand: the compatibility matrix on
+`docs/reference/compatibility.md`, and `flutterClientVersion` here once a
+compatible `eigen_flutter` ships.
+
 ## Deployment
 
 Package publication and deployment are separate operations. CI never deploys a
