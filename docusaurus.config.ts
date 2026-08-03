@@ -49,43 +49,51 @@ const config: Config = {
           // panels. Non-API pages render exactly as before.
           docItemComponent: "@theme/ApiItem",
 
-          // Versioned on the ENGINE major, because that is the number that
-          // decides whether a page is still true: the docs describe the wire
-          // contract, the engine owns it, and `eigen_api` is stamped with the
-          // engine's version for the same reason. `eigen_flutter` moves
-          // independently — its majors are Dart-side API churn, which changes a
-          // code sample rather than the model — so it is NOT an axis here. What
-          // pairs with what is stated on /docs/reference/compatibility.
+          // Versioned on the engine's RELEASE LINE — the constraint a reader
+          // writes to install what these pages describe. Pre-1.0 that line is
+          // the minor: `^0.2.0` resolves to `>=0.2.0 <0.3.0`, so 0.2.x is one
+          // line and 0.3.0 starts the next. Once the engine reaches 1.0.0 this
+          // becomes "1.x" and tracks the major.
           //
-          // No version is CUT yet, and that is deliberate. Docusaurus'
-          // own guidance is that versioning "will just increase your build
-          // time, and introduce complexity"; a cut snapshots all of `docs/`
-          // into `versioned_docs/`, and the bulk of this site is the generated
-          // TypeDoc and HTTP reference, so a cut roughly doubles both the build
-          // and the local search index. With one release line live that buys
-          // nothing.
+          // The release line rather than the wire contract, and the difference
+          // is not academic: 0.2.0 moved the engine's line without touching
+          // openapi.json at all — it was a TypeScript barrel cleanup — and
+          // these pages document the TypeScript half as much as the Dart half.
+          // `eigen_flutter` is NOT an axis here; it moves on its own clock and
+          // declares its own pairing. See /docs/reference/compatibility.
           //
-          // Naming the current version now is the cheap half of versioning, and
-          // it costs no URLs: Docusaurus serves `lastVersion` at the base path,
-          // so these pages stay at /docs/*. When the next breaking engine
-          // release approaches, run
+          // `pnpm check-docs-version` asserts this label against `info.version`
+          // in the committed api/openapi.json, which is the engine's own stamp.
+          // So the sync pull request that lands a new engine line FAILS rather
+          // than silently relabelling the site. Crossing a line is a decision —
+          // cut the old one or relabel in place — and that check is what forces
+          // someone to make it.
           //
-          //   pnpm docusaurus docs:version 0.1.x
+          // No version is CUT yet, and that is deliberate twice over.
+          // Docusaurus' own guidance is that versioning "will just increase
+          // your build time, and introduce complexity"; a cut snapshots all of
+          // `docs/` into `versioned_docs/`, and the bulk of this site is the
+          // generated TypeDoc and HTTP reference, so a cut roughly doubles both
+          // the build and the local search index. There has also been nothing
+          // to freeze: the site's first public deploy already served 0.2.x, so
+          // no 0.1.x page was ever reachable to keep working.
           //
-          // and 0.1.x freezes into `versioned_docs/version-0.1.x` at
-          // /docs/0.1.x/* while `docs/` becomes the new line at /docs/*. The
+          // Naming the current version costs no URLs: Docusaurus serves
+          // `lastVersion` at the base path, so these pages stay at /docs/*.
+          // When a breaking engine release approaches, run
+          //
+          //   pnpm docusaurus docs:version 0.2.x
+          //
+          // and 0.2.x freezes into `versioned_docs/version-0.2.x` at
+          // /docs/0.2.x/* while `docs/` becomes the new line at /docs/*. The
           // generated reference freezes with it, which is exactly right —
-          // `sync-api` keeps writing to `docs/`, so no part of the pipeline has
-          // to learn about versions.
-          //
-          // The label tracks the engine's BREAKING axis, which pre-1.0 is the
-          // minor: at 0.x a `^0.1.0` constraint resolves to `>=0.1.0 <0.2.0`,
-          // so 0.1.x is one compatibility line and 0.2.0 starts the next. Once
-          // the engine reaches 1.0.0 this becomes "1.x" and tracks the major.
+          // `sync-api` keeps writing to `docs/`, so no part of that pipeline
+          // has to learn about versions. CONTRIBUTING.md has the procedure.
           lastVersion: "current",
           versions: {
             current: {
-              label: "0.1.x",
+              // Asserted against api/openapi.json — see check-docs-version.
+              label: "0.2.x",
             },
           },
         },
@@ -216,7 +224,7 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
-        // Renders as "0.1.x" — the label from `versions.current` above. With
+        // Renders as "0.2.x" — the label from `versions.current` above. With
         // one version live the dropdown exists to answer "which engine is this
         // describing, and what Flutter release pairs with it", which is why the
         // compatibility table is pinned into it rather than left in the
