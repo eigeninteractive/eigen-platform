@@ -30,7 +30,7 @@ const sidebars: SidebarsConfig = {
       type: "category",
       label: "Getting started",
       collapsed: false,
-      items: ["getting-started/quickstart", "getting-started/your-first-game", "getting-started/manual-setup"],
+      items: ["getting-started/prerequisites", "getting-started/quickstart", "getting-started/your-first-game", "getting-started/manual-setup"],
     },
     {
       type: "category",

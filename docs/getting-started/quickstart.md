@@ -1,5 +1,5 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 title: Quickstart
 description: Scaffold a game Worker and Flutter app, generate the shared payload contract, and run both halves locally.
 ---
@@ -11,12 +11,16 @@ ordinary dependencies; game implementors do not clone them.
 
 ## Prerequisites
 
-- Node.js 22 or newer;
-- npm or pnpm;
-- Flutter with Dart 3.9 or newer.
+Node.js 22 or newer, npm or pnpm, and Flutter 3.44 or newer — which brings the
+Dart 3.12 the client needs. Scaffolding also needs network access: it asks
+pub.dev which `eigen_flutter` release pairs with the engine it is scaffolding.
 
-A Cloudflare account and Firebase project are needed to run the complete app
-and deploy, but not to scaffold the project or test game rules.
+A Cloudflare account and Firebase project are needed to run the complete app and
+deploy, but not to scaffold the project or test game rules. The Android
+toolchain is needed only to run on Android.
+
+[Prerequisites](./prerequisites.md) covers each of these with install links, and
+gives you one command block that checks the lot.
 
 ## Scaffold both halves
 
