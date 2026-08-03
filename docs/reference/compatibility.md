@@ -19,35 +19,20 @@ a version constraint — it is not where you expect.
 
 | Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |
 | --- | --- | --- | --- |
-| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | *not published yet* |
+| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `^0.2.0` |
 | 0.1.x | `^0.1.0` | `^0.1.0` | `^0.1.0` |
-
-:::caution No Flutter shell has been published for 0.2.x yet
-`eigen_flutter 0.1.0` is the only release, and it constrains
-`eigen_api: ^0.1.0`. So you cannot depend on `eigen_flutter 0.1.0` and
-`eigen_api 0.2.0` in one app — pub will not resolve it.
-
-The 0.2.x **wire is unchanged from 0.1.x** (see below), so an app built on
-`eigen_flutter 0.1.0` talks to a `0.2.x` server correctly. Until a shell ships
-for this line, pin the pair that resolves: engine `^0.2.0` on the server,
-`eigen_flutter ^0.1.0` in the app.
-:::
 
 `eigen_api` is not versioned independently. It is generated from the engine's
 OpenAPI spec and **stamped with the engine's release version** — that is what the
 spec carries as `info.version` — so `0.2.4` there is `0.2.4` here, and they
 cannot drift.
 
-That stamp tracks the engine's *release line*, which is a little wider than the
-wire. The engine bumps for any breaking change it ships, including changes with
-no wire consequence at all: `0.2.0` was a TypeScript API cleanup, and the spec it
-emitted was byte-identical to `0.1.0`'s apart from the version stamp. A new
-`eigen_api` version therefore does not prove the wire moved. It proves the engine
-did.
-
-Constrain on the version regardless. It is the number both package managers can
-actually enforce, and "the wire probably didn't change this time" is not
-something an installed app can be built on.
+The engine bumps that version for any breaking change it ships, including ones
+with no wire consequence — a change to what `@eigeninteractive/rules` exports
+moves it just as a changed response body does. So a new `eigen_api` is not by
+itself evidence that the wire moved, and upgrading it may cost you nothing.
+Constrain on the version anyway: it is the number your package managers can
+actually enforce.
 
 `eigen_flutter` moves on its own clock. Its version describes its Dart API — the
 widgets, the providers, the `GameModule` contract — and it records which engines
