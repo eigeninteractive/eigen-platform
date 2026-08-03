@@ -42,10 +42,13 @@ It also leaves pinned scaffolders coherent rather than broken —
 `create-eigen-game@0.1.0` emits `^0.1.0`, which still resolves. `npm create`
 takes the latest by default, so only a deliberate pin reaches an older one.
 
-The **Flutter** client range is the exception: `eigen_flutter` lives in another
-repository and versions independently, so it cannot be derived. It is a single
-named constant, `flutterClientVersion` in `src/index.ts`, and must be updated by
-hand when a compatible client ships. See the [compatibility
+The **Flutter** client range cannot be derived that way: `eigen_flutter` lives in
+another repository and versions independently. It is resolved from pub.dev at
+scaffold time instead — the scaffolder picks the newest `eigen_flutter` whose own
+`eigen_api` constraint targets the engine line it emits. Nothing about it needs
+maintaining here; see [after a compatible `eigen_flutter`
+ships](#after-a-compatible-eigen_flutter-ships) for the two consequences that do
+matter, and the [compatibility
 matrix](https://eigeninteractive.com/docs/reference/compatibility).
 
 `create-eigen-game` is also **unscoped**, because that is what makes
@@ -287,19 +290,34 @@ The sentinel is read-side only. Serializing it produces
 
 ### After a compatible `eigen_flutter` ships
 
-Bump `flutterClientVersion` in `packages/create-eigen-game/src/index.ts`, and
-update the matrix in eigen-web's `docs/reference/compatibility.md`.
+Update the matrix in eigen-web's `docs/reference/compatibility.md`. Nothing in
+this repository needs touching.
 
-This is the one version number in the project that nothing can derive or
-enforce. The scaffolder emits two halves — an npm server and a pub app —
-resolved by two package managers that never see each other, so no solver checks
-that the engine and client versions agree. Everything else is derived: the
-engine range comes from the scaffolder's own version, and `eigen_api`'s version
-comes from the server's.
+The scaffolder used to carry a `flutterClientVersion` literal, and it was the
+one version number in the project that nothing could derive or enforce — the
+scaffolder emits an npm server and a pub app, resolved by two package managers
+that never see each other, so no solver checks that the two agree. Its failure
+mode was not a wrong value but a forgotten one.
 
-A scaffolder test asserts the literal, so a bump is a reviewed edit rather than
-a silent one. Its failure mode is not a wrong value but a forgotten one, which
-is why it is a checklist item here and not only a comment in the source.
+It now resolves at scaffold time instead: `create-eigen-game` asks pub.dev for
+the newest `eigen_flutter` whose own `eigen_api` constraint targets the engine
+line it emits. A literal could only ever be corrected by publishing this
+package — which, because `create-eigen-game` is in the `fixed` group, means an
+engine-wide release for a change the engine did not make, while every scaffolder
+already on npm keeps emitting the stale pin regardless.
+
+Two consequences to keep in mind:
+
+**Scaffolding requires network access, and fails hard without it.** There is no
+fallback pin, deliberately: a stale pin that still resolves produces a project
+whose halves quietly disagree, which surfaces later as a decode failure against
+a running server. Bootstrapping already needs the network for `flutter pub add`
+and the package install.
+
+**A release line with no published shell cannot be scaffolded.** If the engine
+has crossed to a line no `eigen_flutter` speaks yet, `create-eigen-game` refuses
+with an explicit error rather than pairing halves that do not match. So publish
+the Flutter shell for a new line *before* announcing the engine on it.
 
 ## Downstream documentation
 
