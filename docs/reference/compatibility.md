@@ -19,25 +19,28 @@ a version constraint — it is not where you expect.
 
 | Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |
 | --- | --- | --- | --- |
-| **0.1.x** *(this version)* | `^0.1.0` | `^0.1.0` | `^0.1.0` |
+| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `^0.2.0` |
+| 0.1.x | `^0.1.0` | `^0.1.0` | `^0.1.0` |
 
 `eigen_api` is not versioned independently. It is generated from the engine's
-OpenAPI spec and **stamped with the engine's version** — the engine's release
-version is what the spec carries as `info.version` — so `0.1.4` there is `0.1.4`
-here, and they cannot drift. That is the whole point: a constraint of
-`eigen_api: ^0.1.0` in your app is a statement about which *wire* it speaks, not
-about a Dart library's API surface.
+OpenAPI spec and **stamped with the engine's release version** — that is what the
+spec carries as `info.version` — so `0.2.4` there is `0.2.4` here, and they
+cannot drift.
+
+The engine bumps that version for any breaking change it ships, including ones
+with no wire consequence — a change to what `@eigeninteractive/rules` exports
+moves it just as a changed response body does. So a new `eigen_api` is not by
+itself evidence that the wire moved, and upgrading it may cost you nothing.
+Constrain on the version anyway: it is the number your package managers can
+actually enforce.
 
 `eigen_flutter` moves on its own clock. Its version describes its Dart API — the
 widgets, the providers, the `GameModule` contract — and it records which engines
 it works against through its own `eigen_api` constraint. So `eigen_flutter 0.4.0`
-depending on `eigen_api: ^0.1.0` means "this shell speaks the engine's 0.1.x
+depending on `eigen_api: ^0.2.0` means "this shell speaks the engine's 0.2.x
 wire". There is no lockstep release, and there deliberately isn't one: the engine
-breaks the wire in ways that have no Dart-side consequence at all, and forcing a
-shell release for each would make its version number meaningless.
-
-The two happen to sit at the same number today. That is a coincidence of both
-being new, not a rule — expect them to diverge.
+breaks in ways that have no Dart-side consequence at all, and forcing a shell
+release for each would make its version number meaningless.
 
 ## The breaking axis is the minor, for now
 
@@ -75,10 +78,12 @@ against the version the game was created at, and old games keep running under
 old rules forever. It is not tied to the engine's version, and bumping one never
 implies bumping the other. See [Versions](../build-a-game/versions.md).
 
-**The docs are versioned on the engine's breaking axis**, because that is what
+**The docs are versioned on the engine's release line**, because that is what
 decides whether a page is still true. A page describes a task end to end — the
-TypeScript rules and the Dart client together — and what invalidates it is the
-contract underneath changing.
+TypeScript rules and the Dart client together — so either half going breaking
+invalidates it, and the engine's release line is the one number that moves for
+both. That is why it is the release line and not the wire specifically: `0.2.0`
+left the wire untouched and still rewrote what a `GameModule` imports.
 
 ## What a breaking bump means
 
@@ -141,6 +146,13 @@ decode crash; it cannot make an unpublished or ineligible update available.
 ## Reading the docs at the right version
 
 The version selector in the navbar names the engine line these pages describe.
-Only `0.1.x` exists today, and it is served at the root — so every `/docs/*` URL
-is a 0.1.x URL. When the next breaking line arrives, `0.1.x` freezes at
-`/docs/0.1.x/*` and those links keep working.
+Only `0.2.x` is served, and it is served at the root — so every `/docs/*` URL is
+a 0.2.x URL.
+
+There is no `/docs/0.1.x/`. This site's first public deploy already described
+`0.2.x`, so no 0.1.x page was ever published and there was nothing to freeze.
+Read the 0.1.x reference from the packages themselves: npm and pub.dev keep
+every published version, and `eigen_api`'s dartdoc is versioned alongside it.
+
+From here on a breaking engine release freezes this line: `0.2.x` moves to
+`/docs/0.2.x/*`, those links keep working, and the root becomes the new line.

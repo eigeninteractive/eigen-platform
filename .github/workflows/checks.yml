@@ -38,6 +38,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
+      # Before install, because it needs nothing but Node and this is the check
+      # most likely to fire on a `sync/api-reference` pull request — that branch
+      # auto-merges, so the engine crossing a release line has to stop it here
+      # or it never gets looked at. See scripts/check-docs-version.mjs.
+      - name: Docs version matches the engine line
+        run: pnpm check-docs-version
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

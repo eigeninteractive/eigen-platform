@@ -87,6 +87,47 @@ and Flutter CI runs `dart doc --dry-run .` with unresolved references promoted
 to errors. After a package release, check the pub.dev Versions tab and then
 verify the `latest` link on `reference/dart.md`.
 
+## Documentation versions
+
+The site is versioned on the **engine's release line** — pre-1.0 that is the
+minor, so `0.2.x` is one line and `0.3.0` starts the next. The label lives in
+`docusaurus.config.ts` under `versions.current.label`, and
+`pnpm check-docs-version` asserts it against `info.version` in the committed
+`api/openapi.json`. CI runs that check on every pull request.
+
+Only the current line is served, at `/docs/*`. Nothing has been frozen into
+`versioned_docs/` yet.
+
+When the engine crosses a line, the sync pull request lands the new spec and
+that check goes red. That is the design — auto-merge stops, and someone decides
+between two answers:
+
+**Freeze the old line** — the answer whenever a reader could still be running it:
+
+```bash
+pnpm docusaurus docs:version 0.2.x   # the line being frozen, not the new one
+```
+
+That snapshots `docs/` into `versioned_docs/version-0.2.x/` at `/docs/0.2.x/*`,
+and `docs/` becomes the new line at `/docs/*`. Then set
+`versions.current.label` to the new line. The generated reference freezes with
+everything else, which is what you want — `sync-api` only ever writes to
+`docs/`, so no part of that pipeline knows versions exist.
+
+**Relabel in place** — only when the old line was never published, or nobody can
+still be on it. Set `versions.current.label` and change nothing else. That is
+what happened at `0.2.x`: the site's first public deploy already described it.
+
+Freezing is not free. A cut copies all of `docs/`, and most of this site by
+volume is the generated TypeScript and HTTP reference, so each frozen line
+roughly adds a full build's worth of pages to the build and the search index.
+That is a reason to keep few lines, not a reason to skip a cut someone needs.
+
+`eigen_flutter` is deliberately **not** a versioning axis here. It ships on its
+own clock against its own `eigen_api` constraint; what pairs with what is stated
+on `docs/reference/compatibility.md`, which is hand-maintained and must be
+updated when any of the three moves.
+
 ## The agent surface
 
 Every page is also served as Markdown (`.md` appended to any doc URL), indexed
