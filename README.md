@@ -83,4 +83,5 @@ published packages without cloning this workspace.
   Changesets, cross-repository changes, and pull requests.
 - [MAINTAINERS.md](MAINTAINERS.md): registry setup, release operations, secrets,
   deployment, and failure recovery.
-- [`docs/todo.md`](docs/todo.md): engine-maintainer backlog.
+- [`docs/blockers.md`](docs/blockers.md): upstream limitations forcing a
+  temporary workaround, across every Eigen repository.
