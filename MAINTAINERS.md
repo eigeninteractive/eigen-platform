@@ -256,7 +256,9 @@ The routine flow is:
 4. Merge the version pull request.
 5. The workflow reruns the full gate and publishes the npm packages with
    provenance.
-6. It pushes `eigen_api-v<version>` and dispatches the documentation refresh.
+6. **If the engine was among them**, it pushes `eigen_api-v<version>` and
+   dispatches the documentation refresh. A scaffolder-only release skips both:
+   `eigen_api` did not move and there is no new API to document.
 
 In CI the `workspace:*` rewriting is the `pack` job's responsibility — it
 resolves those constraints into tarballs that `publish` then uploads, which is
@@ -389,9 +391,16 @@ packages/server/openapi.json → HTTP reference
 package barrels              → TypeScript reference
 ```
 
-After npm publication, `.github/workflows/release.yml` sends the
+After an **engine** publication, `.github/workflows/release.yml` sends the
 `engine-api-changed` repository dispatch. The receiving workflow regenerates
 the references and opens a reviewable pull request.
+
+Specifically after an engine publication, not after any publication. Since
+`create-eigen-game` versions independently, a release can now reach that point
+with `openapi.json` untouched, and dispatching then rewrites every reference's
+permalink SHA for no change in content. The job reads `published-packages` to
+tell the two apart. It got this wrong once, on the first scaffolder-only
+release, and eigen-web merged 389 lines of SHA churn as a result.
 
 A failing dispatch fails the release job. The npm
 publication has already happened at that point, so recover by running eigen-web's
