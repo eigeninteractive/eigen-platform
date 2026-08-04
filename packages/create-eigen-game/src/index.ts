@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ENGINE_PACKAGE, engineRange } from "./engine-range.js";
 
 export type PackageManager = "npm" | "pnpm";
 
@@ -15,13 +16,12 @@ export interface ScaffoldOptions {
    * halves of the combined project.
    */
   bootstrap?: boolean;
-  run?: (command: string, args: string[], cwd: string) => void;
   /**
-   * Reads pub.dev to resolve the compatible `eigen_flutter` release. A test
-   * seam, in the same spirit as `run` — nothing here should reach the network
-   * in a unit test.
+   * Runs the bootstrap subprocesses. A seam: the tests substitute a recorder,
+   * and `scripts/scaffold-e2e.mjs` wraps it to point the generated server at
+   * this workspace's engine rather than npm's copy.
    */
-  fetchJson?: FetchJson;
+  run?: (command: string, args: string[], cwd: string) => void;
 }
 
 export interface ScaffoldResult {
@@ -35,112 +35,46 @@ const templatesRoot = resolve(packageRoot, "templates");
 /**
  * The engine range emitted into a scaffolded project's package.json.
  *
- * Derived from this package's OWN version, which is meaningful only because
- * `create-eigen-game` is a member of the `fixed` group in
- * .changeset/config.json: it carries the same version as
- * @eigeninteractive/rules, kernel, server and testkit. That makes the pin
- * incapable of drifting, because there is no second number anyone could forget
- * to bump — as opposed to a literal in the template, which silently keeps
- * scaffolding the previous engine after a release.
- *
- * It also leaves older scaffolders self-consistent rather than broken:
- * `create-eigen-game@0.1.0` emits `^0.1.0`, which still resolves. `npm create`
- * takes the latest by default, so this only matters to someone who pinned
- * deliberately — and they get a coherent pairing.
+ * Read from this package's `@eigeninteractive/server` devDependency rather than
+ * from its own version — see `engine-range.ts` for why that is the version the
+ * templates are known to compile against, and what it replaced.
  */
-const engineVersion = `^${(JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as { version: string }).version}`;
+const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as { devDependencies?: Record<string, string> }).devDependencies?.[ENGINE_PACKAGE], () => {
+  // Only reached in this workspace, where the manifest still says
+  // `workspace:*`. A published tarball has no sibling here and never asks.
+  const sibling = resolve(packageRoot, "../server/package.json");
+  return existsSync(sibling) ? (JSON.parse(readFileSync(sibling, "utf8")) as { version: string }).version : undefined;
+});
 
 /**
- * The Flutter client range installed into the app half, resolved from pub.dev
- * at scaffold time.
+ * The Flutter client range installed into the app half.
  *
- * It used to be a literal here, and a literal cannot be right for long. Only
- * publishing this package can correct one — and `create-eigen-game` is in the
- * `fixed` changesets group, so that means an engine-wide release for a change
- * the engine did not make. Every scaffolder already on npm also keeps emitting
- * whatever was baked into it, so the pairing rots in versions nobody can reach.
+ * A stated version, not a derived or resolved one. The Dart templates import
+ * `package:eigen_flutter/eigen_flutter.dart` and
+ * `package:eigen_flutter/testing/twin_fixtures.dart` and are written against a
+ * specific Dart API — and `eigen_flutter` lives in another repository, versioned
+ * independently, so nothing in this repository can compute which release that
+ * is. Only compiling a scaffolded app establishes it, which is what the
+ * `scaffold` job in checks.yml does on every change.
  *
- * A lookup has neither problem. `eigen_flutter` already states which engine it
- * speaks, through its own `eigen_api` constraint, and pub.dev serves every
- * version's pubspec — so the newest shell for this engine line is a fact to
- * read rather than one to remember. Old scaffolders keep working and improve.
+ * This briefly resolved from pub.dev instead: "the newest `eigen_flutter` whose
+ * own `eigen_api` constraint targets the engine line being scaffolded". That
+ * predicate is wrong. The `eigen_api` constraint describes the WIRE the shell
+ * speaks, not the Dart API these templates call, and the two move
+ * independently — a future `eigen_flutter` may legitimately keep `eigen_api:
+ * ^0.2.0` while renaming everything the templates touch. It would have been
+ * selected, and the generated app would not compile.
  *
- * There is deliberately NO offline fallback. A stale pin that still resolves is
- * worse than a failed scaffold: it emits a project whose halves quietly
- * disagree, and that surfaces much later as a decode failure against a running
- * server. Bootstrapping already needs the network for `flutter pub add` and the
- * package install, so requiring it here adds no new dependency — only an
- * earlier and much clearer failure.
+ * A caret RANGE rather than an exact version, so it still improves without a
+ * republish: `flutter pub add eigen_flutter@^0.2.0` already picks the newest
+ * 0.2.x at scaffold time, which is the part the pub.dev lookup was duplicating.
+ * What it deliberately cannot do is cross to 0.3.x — the one move that needs a
+ * human to confirm the templates still compile.
+ *
+ * Staleness is therefore a failing check rather than a broken scaffold: this is
+ * only ever a release behind, never wrong.
  */
-const PUB_PACKAGE_API = "https://pub.dev/api/packages/eigen_flutter";
-
-/** Only the fields this resolver reads. pub.dev returns considerably more. */
-interface PubVersion {
-  version: string;
-  retracted?: boolean;
-  pubspec?: { dependencies?: Record<string, unknown> };
-}
-
-export type FetchJson = (url: string) => Promise<unknown>;
-
-/**
- * The compatibility line a version string belongs to. Pre-1.0 that is the minor
- * — `^0.2.0` resolves to `>=0.2.0 <0.3.0` — and from 1.0.0 on it is the major.
- *
- * Unanchored on purpose: it reads a bare version, a caret range, and the
- * `>=0.2.0 <0.3.0` form alike, taking the lower bound in the last case.
- */
-const compatibilityLine = (value: string): string | undefined => {
-  const parsed = /(\d+)\.(\d+)\.\d+/.exec(value);
-  if (!parsed) return undefined;
-  return parsed[1] === "0" ? `0.${parsed[2]}` : parsed[1];
-};
-
-const compareVersions = (left: string, right: string): number => {
-  const parts = (value: string): number[] => (/(\d+)\.(\d+)\.(\d+)/.exec(value) ?? ["", "0", "0", "0"]).slice(1).map(Number);
-  const [leftMajor, leftMinor, leftPatch] = parts(left);
-  const [rightMajor, rightMinor, rightPatch] = parts(right);
-  return leftMajor - rightMajor || leftMinor - rightMinor || leftPatch - rightPatch;
-};
-
-const fetchJsonOverHttps: FetchJson = async (url) => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url} responded ${response.status} ${response.statusText}`);
-  return response.json();
-};
-
-/**
- * The newest published `eigen_flutter` whose own `eigen_api` constraint targets
- * the same engine line this scaffolder emits.
- *
- * Prereleases and retracted versions are skipped: a scaffolded project should
- * start on something a consumer would choose deliberately.
- */
-async function resolveFlutterClientRange(engineRange: string, fetchJson: FetchJson): Promise<string> {
-  const line = compatibilityLine(engineRange);
-  if (!line) throw new Error(`cannot read a compatibility line from the engine range ${engineRange}`);
-
-  let payload: unknown;
-  try {
-    payload = await fetchJson(PUB_PACKAGE_API);
-  } catch (error) {
-    const cause = error instanceof Error ? error.message : String(error);
-    throw new Error(`could not reach pub.dev to find the eigen_flutter release for engine ${line}.x (${cause}). Scaffolding needs network access; nothing was written.`);
-  }
-
-  const newest = ((payload as { versions?: PubVersion[] }).versions ?? [])
-    .filter((entry) => entry.retracted !== true && !entry.version.includes("-"))
-    .filter((entry) => {
-      const constraint = entry.pubspec?.dependencies?.eigen_api;
-      return typeof constraint === "string" && compatibilityLine(constraint) === line;
-    })
-    .sort((left, right) => compareVersions(right.version, left.version))[0];
-
-  if (!newest) {
-    throw new Error(`no published eigen_flutter speaks engine ${line}.x — every release on pub.dev constrains a different eigen_api line. The pairing is documented at https://eigeninteractive.com/docs/reference/compatibility.`);
-  }
-  return `^${newest.version}`;
-}
+const flutterClientVersion = "^0.2.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
@@ -244,20 +178,15 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
   appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "\n" : "\n\n"}${androidDesugaring}\n`);
 }
 
-export async function scaffoldGame(options: ScaffoldOptions): Promise<ScaffoldResult> {
+export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const root = resolve(options.directory);
   const name = gameSlug(basename(root));
   const manager = options.packageManager ?? detectPackageManager() ?? "pnpm";
   const org = options.org?.trim() || "com.example";
   const bootstrap = options.bootstrap ?? true;
   const run = options.run ?? ((command, args, cwd) => execFileSync(command, args, { cwd, stdio: "inherit" }));
-  const fetchJson = options.fetchJson ?? fetchJsonOverHttps;
 
   if (existsSync(root)) throw new Error(`target already exists: ${root}`);
-
-  // Resolved before anything is created, so a network failure costs a failed
-  // command and nothing else — no directory, no partial project to clean up.
-  const flutterClientRange = bootstrap ? await resolveFlutterClientRange(engineVersion, fetchJson) : undefined;
 
   mkdirSync(dirname(root), { recursive: true });
 
@@ -280,7 +209,7 @@ export async function scaffoldGame(options: ScaffoldOptions): Promise<ScaffoldRe
     renderTree(resolve(templatesRoot, "app-overlay"), appRoot, name, manager);
 
     if (bootstrap) {
-      run("flutter", ["pub", "add", `eigen_flutter@${flutterClientRange}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
+      run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
       const [install, installArgs] = packageCommand(manager, "install");
       run(install, installArgs, serverRoot);
       const [contract, contractArgs] = packageCommand(manager, "contract");

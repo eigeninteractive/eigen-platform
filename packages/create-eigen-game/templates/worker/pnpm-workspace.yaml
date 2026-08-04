@@ -1,0 +1,12 @@
+# pnpm refuses to run a dependency's install scripts unless the project names
+# it, and fails the install outright when one is skipped
+# (ERR_PNPM_IGNORED_BUILDS). Two dependencies here need theirs:
+#
+#   esbuild  fetches its platform binary
+#   workerd  is the runtime `vitest` and `wrangler dev` execute against
+#
+# npm runs install scripts by default and ignores this file, so it is correct
+# for both package managers.
+allowBuilds:
+  esbuild: true
+  workerd: true

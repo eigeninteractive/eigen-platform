@@ -213,3 +213,55 @@ jobs:
       - name: Publish dry run
         run: dart pub publish --dry-run
         working-directory: clients/dart
+
+  # Scaffolds a real project and compiles both halves of it.
+  #
+  # Everything else here checks a package. This checks the thing a new user
+  # actually runs, which nothing did before: `templates/app-overlay` — the Dart
+  # files that import `package:eigen_flutter/eigen_flutter.dart` — was never
+  # compiled anywhere, so the `eigen_flutter` range the scaffolder pins was an
+  # assertion no build had tested. eigen-flutter's own `example/` is a different
+  # tree and does not stand in for it.
+  #
+  # That matters more since the range became a stated pin rather than a pub.dev
+  # lookup: a pin is only as good as the build that proves it, and this is that
+  # build. It is also what makes a stale pin a red check rather than a broken
+  # first impression.
+  #
+  # Separate from `check` for the same reason as `dart-client`: it is the only
+  # job that needs the Flutter SDK, and it reaches the real network.
+  scaffold:
+    name: Scaffolded project builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Kept in step with eigen-flutter's `.fvmrc`, since that is the SDK the
+      # published `eigen_flutter` is built and tested against.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The scaffolder runs from `dist`, and the generated server resolves the
+      # engine packages from this workspace, so both have to be built first.
+      - name: Build
+        run: pnpm -r build
+
+      # No Android SDK is installed, and none is needed: `flutter create` only
+      # writes files, and `analyze`/`test` run on the Dart sources. Adding one
+      # would roughly double this job for no extra coverage.
+      - name: Scaffold, build and test a generated project
+        run: node packages/create-eigen-game/scripts/scaffold-e2e.mjs
