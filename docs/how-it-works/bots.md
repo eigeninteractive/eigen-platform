@@ -66,7 +66,7 @@ or, with no code at all:
 echo -n "<botId>" | openssl dgst -sha256 -hmac "<BOT_SIGNING_SECRET>" -binary | base64
 ```
 
-:::warning Rotation is all-or-nothing
+:::warning[Rotation is all-or-nothing]
 
 That key is a **credential** — it authenticates that bot to the engine for as
 long as it is registered. Because every key is derived from the one master

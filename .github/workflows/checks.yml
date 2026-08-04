@@ -45,6 +45,12 @@ jobs:
       - name: Docs version matches the engine line
         run: pnpm check-docs-version
 
+      # Also install-free, and for the same reason as above: a broken admonition
+      # is not a build failure. It renders as a literal `:::tip` paragraph and
+      # the build stays green, so this is the only thing that reports it.
+      - name: Admonitions use the directive-label syntax
+        run: pnpm check-admonitions
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

@@ -58,7 +58,7 @@ install time. So it lives in **three places that must stay in sync**:
 iOS needs no separate path step — the Worker's generated AASA already scopes
 Universal Links to `paths: ["/join/*", "/game/*"]`.
 
-:::warning The Android path prefixes are not optional
+:::warning[The Android path prefixes are not optional]
 
 `assetlinks.json` declares `handle_all_urls`, so the **host** is verified as a
 whole and the `<intent-filter>` is the only thing deciding which paths the app

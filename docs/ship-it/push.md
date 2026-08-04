@@ -60,7 +60,7 @@ because it needs the app's own `DefaultFirebaseOptions`. Web background delivery
 instead runs in `web/firebase-messaging-sw.js`; the Dart handler is not
 registered in a browser.
 
-:::note Unknown categories degrade safely
+:::note[Unknown categories degrade safely]
 
 An unknown or missing `category` falls back to the general notification channel
 and is logged. A newer server can therefore add a category without making an
@@ -81,7 +81,7 @@ later waiting rooms show an inline **Settings** action on native platforms or
 browser site-settings guidance on web; the player is not expected to discover
 the recovery path unaided.
 
-:::note FlutterFire compatibility seam
+:::note[FlutterFire compatibility seam]
 
 Firebase's FID registration APIs landed after the current FlutterFire messaging
 surface. Eigen calls the official Web SDK's `register` through an isolated web

@@ -12,6 +12,20 @@ const config: Config = {
   favicon: "favicon.ico",
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
+  //
+  // `v4: true` turns on every v4 flag, and one of them —
+  // `mdx1CompatDisabledByDefault` — switches off the whole `markdown.mdx1Compat`
+  // block. Two consequences bite when authoring, and neither is a build error:
+  //
+  //   · Admonition titles must be bracketed: `:::tip[Title]`, not `:::tip Title`.
+  //     The unbracketed form is not a directive at all without the shim, so the
+  //     block silently renders as a literal paragraph. `pnpm check-admonitions`
+  //     guards this.
+  //   · HTML comments are gone. Use `{/* ... */}`, which is what the generated
+  //     region markers in docs/reference/compatibility.md are written with.
+  //
+  // (`{#heading-id}` still needs escaping as `\{#heading-id}` — that one does
+  // fail the build, so it catches itself.)
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },

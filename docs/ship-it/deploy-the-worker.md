@@ -94,7 +94,7 @@ Three things make that true:
   middleware, the real Durable Object and the real D1 with no Firebase project
   or outbound FCM calls.
 
-:::tip Tests run in the real runtime
+:::tip[Tests run in the real runtime]
 
 Tests run under `@cloudflare/vitest-pool-workers`, inside the real `workerd`
 runtime — so a passing test has exercised the actual input gate, the actual

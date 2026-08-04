@@ -16,7 +16,7 @@ a unique `shortCode` (a readable 6-char code with a retry loop on the UNIQUE
 index), and writes the games + participants rows with the creator in seat 0.
 The DO is not touched; it will lazy-init on first command or socket.
 
-:::info `rated` is a validated assertion, never a coercion
+:::info[`rated` is a validated assertion, never a coercion]
 
 The client computes it too (via the Dart twin of `ratingPool`), and a mismatch is
 rejected rather than silently "corrected" — that catches twin drift and forged

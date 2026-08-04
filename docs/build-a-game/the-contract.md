@@ -191,7 +191,7 @@ out of your namespace:
   history, replay, offline UX, push registration, deep links, analytics.
 - **Bots infrastructure**, **avatars**, and the entire **HTTP/OpenAPI surface**.
 
-:::tip A useful smell test
+:::tip[A useful smell test]
 
 If you find yourself reaching for a database, a socket, a clock, or a lock inside
 a hook — stop. The engine already did it, and doing it in a hook would break

@@ -22,7 +22,7 @@ None of it is game code — a game never opens a socket or resolves an identity.
   upgrade). Tokens refresh on the Firebase SDK's schedule; the client attaches
   the current one per request.
 
-  :::note Apple Sign-In is scoped but not wired
+  :::note[Apple Sign-In is scoped but not wired]
 
   There is no `sign_in_with_apple` dependency yet.
 

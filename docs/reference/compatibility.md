@@ -9,7 +9,7 @@ description: Which engine, client and docs versions pair with each other, what t
 Four artifacts ship from three repositories. This page says which ones pair,
 and what a version number is actually promising.
 
-:::info Everything here is pre-1.0
+:::info[Everything here is pre-1.0]
 Every package is still on the `0.x` line and the API is moving. Read the
 [breaking axis](#the-breaking-axis-is-the-minor-for-now) section before writing
 a version constraint — it is not where you expect.

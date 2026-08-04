@@ -222,7 +222,7 @@ A shell with indexed-stack branches, and full-screen routes above it:
 Use `go` for auth redirects and branch roots (replaces the stack), `push` for
 anything Back should undo, `pushReplacement` for transient screens.
 
-:::warning Three things that are easy to delete by accident
+:::warning[Three things that are easy to delete by accident]
 
 - **`android:enableOnBackInvokedCallback="true"`** in `AndroidManifest.xml` opts
   into the Android 14+ predictive back API. Its absence silently disables

@@ -82,7 +82,7 @@ seat:
 | `TurnTimerBuilder` | A 1 s ticker toward a deadline, self-cancelling at zero. Hands `Duration remaining` to a `builder`. Pass `isPaused` to freeze the display without losing wall-clock position. |
 | `PlayerTimerBuilder` | One seat's bank — live drain for the acting seat, static for the rest. Hands `(int remainingMs, bool isActive)` to a `builder`. |
 
-:::note Bots imply a timed game
+:::note[Bots imply a timed game]
 
 If a game seats a bot it **must** be timed — the deadline is the backstop for a
 bot that never moves. The engine enforces this at seating, so `botSeatable` does

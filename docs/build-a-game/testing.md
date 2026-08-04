@@ -152,7 +152,7 @@ The scaffold supplies the initial `test/twin.spec.ts`,
 `test/game/twin_fixtures_test.dart`, and v1 fixture. Grow those tests with the
 rules rather than replacing their wiring.
 
-:::danger Do not deploy from CI
+:::danger[Do not deploy from CI]
 
 `wrangler d1 migrations apply --remote` mutates a real database, and a deploy is
 the one action in this system that re-running a job cannot reverse. Keep it a
