@@ -44,14 +44,22 @@ version CI compiled the templates against, since `pnpm -r typecheck` runs
 `workspace:*` to the exact version when it packs the tarball, so the published
 scaffolder simply reads it.
 
-The forward half is kept by `scripts/follow-engine-line.mjs`, which runs first
-in `pnpm version-packages` and adds a `create-eigen-game` changeset whenever the
-engine crosses a compatibility line. Only a line change, because the emitted
-range is a caret: scaffolders already on npm pick up 0.2.7 from `^0.2.0` by
-themselves. Changesets has no one-way form to express this — `linked` would let
-the scaffolder's number drift above the engine's, and a `devDependencies` edge
-never triggers a dependent release — so it lives in a script where it can be
-read.
+The forward half needs no machinery, and briefly had some that was actively
+harmful. A script added a `create-eigen-game` changeset whenever the engine
+crossed a line — which released a scaffolder pairing the **new** engine with the
+**old** shell, since no compatible shell can exist yet at that moment. It
+published the exact mismatch the pin prevents. Doing nothing is strictly better:
+the scaffolder on npm keeps pairing 0.2 with 0.2, a line behind but working.
+
+The moment worth releasing on is not "the engine moved" but "a compatible shell
+now exists" — and that moment already carries a code change here, raising
+`flutterClientVersion`, which needs a changeset like any other. So the
+scaffolder follows the engine by construction, one step later than the naive
+trigger and one step more correct. The **Scaffolded project builds** job turns
+red exactly when that step is due.
+
+Only a line change matters either way: the emitted range is a caret, so
+scaffolders already on npm pick up 0.2.7 from `^0.2.0` by themselves.
 
 The **Flutter** client range is a stated pin in `src/index.ts`, and deliberately
 neither derived nor resolved. `eigen_flutter` lives in another repository, so
@@ -330,14 +338,37 @@ compiles `templates/app-overlay` at all; before it, the Dart templates were
 never built anywhere, in this repository or eigen-flutter.
 
 The **wire** is a separate claim and gets its own assertion: the job reads the
-`eigen_api` version out of the generated `pubspec.lock` and fails unless its
-compatibility line matches the engine range the scaffolder emitted. Analysis
-cannot stand in for this. A shell one line behind can compile perfectly against
+`eigen_api` version out of the generated `pubspec.lock` and compares its
+compatibility line to the engine range the scaffolder emitted. Analysis cannot
+stand in for this. A shell one line behind can compile perfectly against
 templates that barely touch what changed, and the mismatch would then surface as
 a decode failure against a running server, long after anyone connected it to a
-scaffold. Reading the lockfile asserts what the solver decided rather than
-predicting it — which is the check the pub.dev lookup was reaching for and could
-not perform, because it ran before any solver had spoken.
+scaffold.
+
+A mismatch is not automatically a defect, though, and the job asks pub.dev which
+one it is. **The shell cannot match a brand-new engine line**: `eigen_api` ships
+with the engine, so no `eigen_flutter` of any version number can constrain
+`^0.3.0` until `eigen_api 0.3.0` is published — which is the engine release
+itself. An unconditional assertion fails on the version pull request that crosses
+the line, and as a required check would block the merge that publishes the
+`eigen_api` the shell is waiting on. That is a permanent deadlock, not a delay.
+
+So the job distinguishes:
+
+| pub.dev says | Meaning | Result |
+|---|---|---|
+| no shell constrains this engine line | mid-crossing, expected | notice, pass |
+| one does, and the pin misses it | the pin is stale | fail |
+
+The second doubles as the release trigger: the job turns red the moment a
+compatible shell ships, which is exactly when `flutterClientVersion` should be
+raised and the scaffolder released.
+
+This queries the registry the deleted resolver queried, for the opposite
+purpose. *Choosing* a shell by its `eigen_api` constraint is wrong, because the
+constraint cannot see the Dart API the templates call. Asking whether a shell
+for this line exists at all makes no claim about the Dart API — `flutter
+analyze` above already settled that.
 
 It resolves the four engine packages from this workspace rather than npm. That
 is not only closer to what is about to ship; it is required. The scaffolder

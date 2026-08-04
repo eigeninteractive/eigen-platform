@@ -91,6 +91,21 @@ const lockedVersion = (lock, name) => {
   throw new Error(`no version recorded for ${name} in the generated pubspec.lock`);
 };
 
+/** Published releases that declare they speak a given engine line. */
+const shellsSpeaking = async (engineLine) => {
+  const url = "https://pub.dev/api/packages/eigen_flutter";
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} responded ${response.status} ${response.statusText}`);
+  const { versions = [] } = await response.json();
+  return versions
+    .filter((entry) => entry.retracted !== true && !entry.version.includes("-"))
+    .filter((entry) => {
+      const constraint = entry.pubspec?.dependencies?.eigen_api;
+      return typeof constraint === "string" && line(constraint) === engineLine;
+    })
+    .map((entry) => entry.version);
+};
+
 // ── The two halves must speak the same wire ──────────────────────────────────
 //
 // `flutter analyze` below proves the templates match the shell's DART API. It
@@ -100,20 +115,56 @@ const lockedVersion = (lock, name) => {
 // mismatch would surface as a decode failure against a running server, long
 // after the scaffold.
 //
-// So this asserts the resolution rather than predicting it — which is what the
-// pub.dev lookup this pin replaced was reaching for, and could not do, because
-// it ran before any solver had spoken.
+// So this asserts what the solver decided rather than predicting it.
+//
+// ── Why "mismatched" is not automatically "wrong" ────────────────────────────
+//
+// The shell CANNOT match a brand-new engine line, and that is structural rather
+// than an oversight. `eigen_api` is published with the engine, and no
+// `eigen_flutter` of any version number can constrain `^0.3.0` until
+// `eigen_api 0.3.0` exists on pub.dev — which happens when the engine's own
+// release merges.
+//
+// An unconditional assertion therefore fails on the version pull request that
+// crosses the line, and as a required check it would block the very merge that
+// publishes the `eigen_api` the shell is waiting for. The gate would deny
+// entry to the only thing that could satisfy it.
+//
+// Asking pub.dev what exists separates the two states the raw comparison
+// conflates:
+//
+//   no shell speaks this line yet   → mid-crossing, expected, say so and pass
+//   one does, and the pin misses it → the pin is stale, and that is a defect
+//
+// The second is also the signal to raise the pin: this job turns red the moment
+// a compatible shell ships, which is exactly when the scaffolder should be
+// released. Nothing has to notice on its own.
+//
+// This queries the registry the deleted resolver queried, for the opposite
+// purpose. Choosing a shell by its `eigen_api` constraint is wrong, because the
+// constraint cannot see the Dart API the templates call. Checking whether a
+// shell for this line exists at all asks nothing about the Dart API — and the
+// build above already answered that question.
 const emittedEngine = JSON.parse(readFileSync(resolve(serverRoot, "package.json"), "utf8")).dependencies["@eigeninteractive/server"];
 const lock = readFileSync(resolve(appRoot, "pubspec.lock"), "utf8");
 const resolvedShell = lockedVersion(lock, "eigen_flutter");
 const resolvedApi = lockedVersion(lock, "eigen_api");
+const engineLine = line(emittedEngine);
 
 console.log(`\nengine ${emittedEngine} · eigen_flutter ${resolvedShell} · eigen_api ${resolvedApi}`);
 
-if (line(emittedEngine) !== line(resolvedApi)) {
+const speakers = await shellsSpeaking(engineLine);
+
+if (speakers.length === 0) {
+  console.log(
+    `::notice::No published eigen_flutter constrains eigen_api ^${engineLine}.0 yet, so there is no wire pairing to check. ` +
+      `This is the expected state between an engine line crossing and the shell release that follows it — the shell cannot be built for ${engineLine}.x until eigen_api ${engineLine}.0 is on pub.dev.`,
+  );
+} else if (line(resolvedApi) !== engineLine) {
   throw new Error(
     `the scaffolded halves speak different engines: the server takes ${emittedEngine} but eigen_flutter ${resolvedShell} resolved eigen_api ${resolvedApi} (the ${line(resolvedApi)}.x wire). ` +
-      `Raise flutterClientVersion in packages/create-eigen-game/src/index.ts to a shell that constrains eigen_api ^${line(emittedEngine)}.0, and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.`,
+      `eigen_flutter ${speakers.join(", ")} already speaks ${engineLine}.x, so this is a stale pin rather than a shell that has not caught up. ` +
+      `Raise flutterClientVersion in packages/create-eigen-game/src/index.ts, and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.`,
   );
 }
 
