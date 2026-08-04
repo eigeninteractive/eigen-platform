@@ -73,6 +73,41 @@ notification that the engine's API moved.
 Both generated directories are excluded from Biome; formatting them would only
 churn the next regeneration.
 
+### The compatibility table
+
+The "what pairs with what" table on `docs/reference/compatibility.md` is
+generated too, between the `{/* generated:compatibility-table */}` markers.
+Everything outside them is authored prose — edit that freely, and leave the
+table to the generator.
+
+```bash
+pnpm sync-compatibility                            # regenerate now
+pnpm sync-compatibility --expect eigen_flutter@0.3.0   # wait for a fresh publish first
+```
+
+It reads `api/openapi.json` for the line these docs describe, then asks pub.dev
+which `eigen_api` lines exist and which `eigen_flutter` releases declare they
+speak each one. No sibling checkout and no dependencies — just Node.
+
+It usually runs for you: eigen-flutter dispatches to this repo after publishing
+to pub.dev, and `.github/workflows/sync-compatibility.yml` regenerates and opens
+an auto-merging PR. Engine releases move the table too, but only through
+`api/openapi.json`, which `sync-api` already brings in.
+
+Two things worth knowing:
+
+**Retracted versions are skipped**, because a retracted release stays installable
+for anyone already locked to it but the solver will not newly choose it — which
+is the question this table answers. Retraction happens in the pub.dev web UI and
+produces no event anywhere, so a retraction within the seven days it is
+permitted goes unnoticed until the next release. `sync-compatibility.yml`
+carries a commented-out `schedule:` if that ever matters.
+
+**There is no check that the committed table is current**, deliberately. Its
+input is a registry that moves on its own, so such a check would turn unrelated
+pull requests red the moment someone published a client. Staleness here is fixed
+by regenerating, not by blocking.
+
 ### Dart API reference
 
 `docs/reference/dart.md` is an authored link-out, not a copied documentation
@@ -125,8 +160,7 @@ That is a reason to keep few lines, not a reason to skip a cut someone needs.
 
 `eigen_flutter` is deliberately **not** a versioning axis here. It ships on its
 own clock against its own `eigen_api` constraint; what pairs with what is stated
-on `docs/reference/compatibility.md`, which is hand-maintained and must be
-updated when any of the three moves.
+on `docs/reference/compatibility.md`, whose table is generated — see below.
 
 ## The agent surface
 

@@ -17,10 +17,21 @@ a version constraint — it is not where you expect.
 
 ## What pairs with what
 
+{/* generated:compatibility-table — rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}
+
 | Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |
 | --- | --- | --- | --- |
-| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `^0.2.0` |
-| 0.1.x | `^0.1.0` | `^0.1.0` | `^0.1.0` |
+| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `0.2.0` |
+| 0.1.x | `^0.1.0` | `^0.1.0` | `0.1.0` |
+
+{/* /generated:compatibility-table */}
+
+The first three columns are one number. The shell column is not, and is listed
+as exact versions rather than a range for that reason: `eigen_flutter` declares
+which engine it speaks through its own `eigen_api` constraint, so the releases
+pairing with a given line need not be contiguous. Retracted releases are
+omitted — they stay installable for anyone already locked to one, but the
+solver will not choose them for a new project.
 
 `eigen_api` is not versioned independently. It is generated from the engine's
 OpenAPI spec and **stamped with the engine's release version** — that is what the

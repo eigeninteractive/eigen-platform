@@ -6,6 +6,7 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "sync-api": "node scripts/sync-api.mjs",
+    "sync-compatibility": "node scripts/sync-compatibility.mjs",
     "check-docs-version": "node scripts/check-docs-version.mjs",
     "start": "docusaurus start",
     "build": "docusaurus build",

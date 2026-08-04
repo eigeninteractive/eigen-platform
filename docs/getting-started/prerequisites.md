@@ -35,9 +35,15 @@ Dart is not a separate install — it ships inside Flutter, and
 `flutter --version` prints both.
 
 :::info Scaffolding needs network access
-`create-eigen-game` asks pub.dev which `eigen_flutter` release pairs with the
-engine it is scaffolding, so that the two halves cannot start out disagreeing.
-It fails immediately and writes nothing if it cannot reach the network.
+`create-eigen-game` installs both halves as it goes — npm for the Worker,
+pub.dev for the app — so it needs the network throughout, not just at the start.
+An interrupted run leaves a partly installed project on disk; delete the
+directory and start again.
+
+It does not negotiate versions while it runs. The engine and `eigen_flutter`
+releases it pairs are fixed in the scaffolder itself, tested together before it
+ships, and shown in [Versions and
+compatibility](../reference/compatibility.md).
 :::
 
 ## To run the app
