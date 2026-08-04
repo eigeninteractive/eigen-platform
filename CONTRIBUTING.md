@@ -51,6 +51,25 @@ someone building or running a game, it does not belong in `docs/`.
 `key` on the two "Reference" categories: Docusaurus 3.9+ silently collapses
 sibling categories that share a label.
 
+### Markdown syntax this site does not accept
+
+`future.v4: true` in `docusaurus.config.ts` disables Docusaurus' MDX 1
+compatibility shims. Two of them are things people type from habit, and neither
+is a build error — the page just renders wrong:
+
+| Write | Not |
+|---|---|
+| `:::tip[A title]` | `:::tip A title` |
+| `{/* a comment */}` | `<!-- a comment -->` |
+
+The admonition form is the one that bites. Without the shim the unbracketed
+version is not a directive at all, so the whole block renders as a paragraph
+with visible `:::` markers and the build still passes. `pnpm check-admonitions`
+is what catches it; it runs in CI before install.
+
+Explicit heading IDs need escaping too — `\{#my-id}` — but that one fails the
+build if you get it wrong, so it catches itself.
+
 ## The generated API reference
 
 `docs/reference/http-api/` and `docs/reference/typescript/` are **generated and

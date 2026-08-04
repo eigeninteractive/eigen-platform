@@ -34,7 +34,7 @@ run every test. No account, no device, no Android SDK.
 Dart is not a separate install — it ships inside Flutter, and
 `flutter --version` prints both.
 
-:::info Scaffolding needs network access
+:::info[Scaffolding needs network access]
 `create-eigen-game` installs both halves as it goes — npm for the Worker,
 pub.dev for the app — so it needs the network throughout, not just at the start.
 An interrupted run leaves a partly installed project on disk; delete the
@@ -65,7 +65,7 @@ chrome` drives directly. It is the fastest loop and the one to start with.
 Do not install these by hand and hope. `flutter doctor` inspects all of it and
 tells you exactly what is missing — see below.
 
-:::note iOS is not part of a scaffolded project
+:::note[iOS is not part of a scaffolded project]
 The scaffolder runs `flutter create --platforms android,web`, so there is no
 Xcode requirement and no macOS requirement. Nothing prevents you adding the iOS
 platform yourself later; it simply is not set up for you.

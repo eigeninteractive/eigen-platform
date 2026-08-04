@@ -128,7 +128,7 @@ in sync — a mistyped field is a compile error. They describe **only what the
 engine itself collects**: accounts, display names, optional avatars, game
 history, ratings, friend connections, push tokens and crash diagnostics.
 
-:::danger Read them before you publish
+:::danger[Read them before you publish]
 
 They are a starting template, not legal advice, and you are the one on the hook
 for what they say. If you add analytics, advertising, payments, or any other
@@ -154,7 +154,7 @@ site: { /* … */ legal: { terms } },
 
 Your fragment is inserted as-is, so write your own values into it directly.
 
-:::info Batteries included, batteries removable
+:::info[Batteries included, batteries removable]
 
 The scaffold reserves legal and `/download` paths with `run_worker_first`, so
 Flutter's SPA fallback cannot shadow them. To replace generated legal prose,

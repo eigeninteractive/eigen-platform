@@ -42,7 +42,7 @@ The kernel owns four things worth calling out:
   *application* of ratings — reading priors, the CAS write — is in the DO/D1
   layer; see [Data & storage](./storage.md). Only the math is here.)
 
-:::note Version dispatch never happens inside game logic
+:::note[Version dispatch never happens inside game logic]
 
 The engine resolves the game's `schemaVersion` to a `GameRules` unit once, up
 front, and every hook it calls is already the right version. A game author

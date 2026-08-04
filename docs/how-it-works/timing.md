@@ -58,7 +58,7 @@ overrun by at most the grace and still have that final move counted (bounded and
 self-limiting). This replaced an older three-place race symmetry with one
 constant.
 
-:::tip There is no timeout-sweep cron
+:::tip[There is no timeout-sweep cron]
 
 Because the alarm is a durable, per-game, platform-retried timer, the periodic
 scan for overdue turns that a database-backed engine needs simply evaporates —

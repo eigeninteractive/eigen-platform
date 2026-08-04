@@ -80,7 +80,7 @@ helper — every seat sees the full state and the true pending set.
 project simply is not on the device. Note that the shape may differ between live
 play and replay — see [Payload types](./schemas.md#modelling-the-observation).
 
-:::warning This hook silently sets your simultaneous-move policy
+:::warning[This hook silently sets your simultaneous-move policy]
 
 What you reveal here decides which concurrent submissions the engine accepts. See
 [Hidden information](./hidden-information.md).

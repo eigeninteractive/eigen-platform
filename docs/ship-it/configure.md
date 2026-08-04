@@ -53,7 +53,7 @@ deletion. Optional feature blocks still stay off when absent; for example, no
 The full type is in the
 [`@eigeninteractive/server` reference](../reference/typescript/server.md).
 
-:::warning The app-custom-data rule
+:::warning[The app-custom-data rule]
 
 If a game needs its own tables, they go in a **second D1 database** with its own
 `migrations_dir`. Never add tables to the engine's database — the engine owns
@@ -244,7 +244,7 @@ patched around in Dart. Re-emit `openapi.json` and rerun the client generator
 **in the same change**, because the two repos have no other coupling that would
 catch the drift.
 
-:::note Unknown engine enum values
+:::note[Unknown engine enum values]
 
 Generated Dart transport enums decode a new wire member as
 `unknownDefaultOpenApi`, allowing the app to show its update-required state
