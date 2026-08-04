@@ -41,9 +41,14 @@ name: Release
 #
 # ── The four packages, and a fifth artifact ───────────────────────────────────
 #
-# The four npm packages are `fixed` in .changeset/config.json: they share one
+# The four ENGINE packages are `fixed` in .changeset/config.json: they share one
 # version and always bump together, because they are tightly interdependent and
 # an independent-version matrix would be maintained by hand for no benefit.
+#
+# `create-eigen-game` publishes from here too but versions independently, so a
+# scaffolder change does not move the engine. `pnpm version-packages` runs
+# scripts/follow-engine-line.mjs first to keep the other direction — see
+# MAINTAINERS.md, "Why the scaffolder versions on its own".
 #
 # `eigen_api`, the generated Dart client in clients/dart, rides along at the same
 # version. The wire contract is the server's, so the client that speaks it

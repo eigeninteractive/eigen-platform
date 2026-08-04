@@ -92,8 +92,10 @@ update-required state. It must never be serialized back to the server.
 
 ## Describing your change
 
-The four npm packages use Changesets and share one fixed version. Add a
-changeset in the pull request that introduces a user-visible change:
+The four engine packages use Changesets and share one fixed version.
+`create-eigen-game` uses Changesets too but versions on its own, so a change to
+the scaffolder or its templates releases only the scaffolder. Add a changeset in
+the pull request that introduces a user-visible change:
 
 ```bash
 pnpm changeset

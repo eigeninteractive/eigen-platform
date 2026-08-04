@@ -18,37 +18,45 @@ The repository publishes six artifacts:
 | `@eigeninteractive/server` | npm | `packages/server` | fixed group |
 | `@eigeninteractive/testkit` | npm | `packages/testkit` | fixed group |
 | `eigen_api` | pub.dev | `clients/dart` | follows the group |
-| `create-eigen-game` | npm | `packages/create-eigen-game` | fixed group |
+| `create-eigen-game` | npm | `packages/create-eigen-game` | independent |
 
-All five npm packages are fixed together in `.changeset/config.json`: they carry
-one version and always bump together. `eigen_api` carries the same version as
-`@eigeninteractive/server`, whose wire contract it implements.
+The four engine packages are fixed together in `.changeset/config.json`: they
+carry one version and always bump together. `eigen_api` carries the same version
+as `@eigeninteractive/server`, whose wire contract it implements.
 
-`create-eigen-game` is in that group for a specific reason. It scaffolds
-projects that depend on the engine, so it has to emit an engine range — and it
-derives that range from **its own version**, which is only correct because the
-two are the same number:
+### Why the scaffolder versions on its own
 
-```jsonc
-// templates/worker/package.json
-"@eigeninteractive/server": "{{ENGINE_VERSION}}"   // → ^<this package's version>
-```
+`create-eigen-game` was a fifth member of that group, because it emits an engine
+range and derived it from **its own version** — correct only while the two were
+the same number.
 
-That makes the pin incapable of drifting: there is no second number to forget.
-A literal in the template would keep scaffolding the previous engine after every
-release, silently, and pre-1.0 that previous engine is an incompatible one.
+That bought a real guarantee at a price that eventually came due. The
+requirement is one-directional: the scaffolder must follow the engine, but the
+engine must not follow the scaffolder. A `fixed` group is symmetric by
+definition, so a template typo proposed moving four published packages onto a
+new version line — and pre-1.0, a new line is a breaking one that no published
+`eigen_flutter` speaks yet.
 
-It also leaves pinned scaffolders coherent rather than broken —
-`create-eigen-game@0.1.0` emits `^0.1.0`, which still resolves. `npm create`
-takes the latest by default, so only a deliberate pin reaches an older one.
+The range now comes from the scaffolder's own `@eigeninteractive/server`
+devDependency instead. That is not a second number to maintain: it is the
+version CI compiled the templates against, since `pnpm -r typecheck` runs
+`tsc -p templates/worker/tsconfig.json` inside this workspace. pnpm rewrites
+`workspace:*` to the exact version when it packs the tarball, so the published
+scaffolder simply reads it.
 
-The **Flutter** client range cannot be derived that way: `eigen_flutter` lives in
-another repository and versions independently. It is resolved from pub.dev at
-scaffold time instead — the scaffolder picks the newest `eigen_flutter` whose own
-`eigen_api` constraint targets the engine line it emits. Nothing about it needs
-maintaining here; see [after a compatible `eigen_flutter`
-ships](#after-a-compatible-eigen_flutter-ships) for the two consequences that do
-matter, and the [compatibility
+The forward half is kept by `scripts/follow-engine-line.mjs`, which runs first
+in `pnpm version-packages` and adds a `create-eigen-game` changeset whenever the
+engine crosses a compatibility line. Only a line change, because the emitted
+range is a caret: scaffolders already on npm pick up 0.2.7 from `^0.2.0` by
+themselves. Changesets has no one-way form to express this — `linked` would let
+the scaffolder's number drift above the engine's, and a `devDependencies` edge
+never triggers a dependent release — so it lives in a script where it can be
+read.
+
+The **Flutter** client range is a stated pin in `src/index.ts`, and deliberately
+neither derived nor resolved. `eigen_flutter` lives in another repository, so
+nothing here can compute it — see [the scaffolder's Flutter
+pin](#the-scaffolders-flutter-pin) and the [compatibility
 matrix](https://eigeninteractive.com/docs/reference/compatibility).
 
 `create-eigen-game` is also **unscoped**, because that is what makes
@@ -288,36 +296,58 @@ update-required state before Play offers them the compatible application.
 The sentinel is read-side only. Serializing it produces
 `unknown_default_open_api`, which no route accepts.
 
-### After a compatible `eigen_flutter` ships
+### The scaffolder's Flutter pin
 
-Update the matrix in eigen-web's `docs/reference/compatibility.md`. Nothing in
-this repository needs touching.
+`create-eigen-game` emits an npm server and a pub app, resolved by two package
+managers that never see each other, so no solver checks that the halves agree.
+The `eigen_flutter` range in `packages/create-eigen-game/src/index.ts` is where
+that agreement is asserted.
 
-The scaffolder used to carry a `flutterClientVersion` literal, and it was the
-one version number in the project that nothing could derive or enforce — the
-scaffolder emits an npm server and a pub app, resolved by two package managers
-that never see each other, so no solver checks that the two agree. Its failure
-mode was not a wrong value but a forgotten one.
+**After a compatible `eigen_flutter` ships**, raise that pin and update the
+matrix in eigen-web's `docs/reference/compatibility.md`.
 
-It now resolves at scaffold time instead: `create-eigen-game` asks pub.dev for
-the newest `eigen_flutter` whose own `eigen_api` constraint targets the engine
-line it emits. A literal could only ever be corrected by publishing this
-package — which, because `create-eigen-game` is in the `fixed` group, means an
-engine-wide release for a change the engine did not make, while every scaffolder
-already on npm keeps emitting the stale pin regardless.
+It is a caret range, so it only needs raising when `eigen_flutter` crosses a
+line: `flutter pub add eigen_flutter@^0.2.0` already takes the newest 0.2.x at
+scaffold time.
 
-Two consequences to keep in mind:
+This briefly resolved from pub.dev instead — "the newest `eigen_flutter` whose
+own `eigen_api` constraint targets the engine line being scaffolded" — to avoid
+a literal nobody would remember to update. **That predicate is wrong**, and it
+is worth knowing why before anyone reaches for it again. The `eigen_api`
+constraint describes the *wire* a shell speaks; the templates call its *Dart
+API*; the two move independently. A future `eigen_flutter` may legitimately hold
+`eigen_api: ^0.2.0` while renaming everything `lib/game/v1/rules.dart` touches,
+and it would have been selected — emitting a project that does not compile, on
+someone's first contact with the engine.
 
-**Scaffolding requires network access, and fails hard without it.** There is no
-fallback pin, deliberately: a stale pin that still resolves produces a project
-whose halves quietly disagree, which surfaces later as a decode failure against
-a running server. Bootstrapping already needs the network for `flutter pub add`
-and the package install.
+A pin cannot fail that way. It can only be stale, and staleness is now a red
+check rather than a broken scaffold: the **Scaffolded project builds** job in
+`checks.yml` generates a real project on every change and checks it twice.
 
-**A release line with no published shell cannot be scaffolded.** If the engine
-has crossed to a line no `eigen_flutter` speaks yet, `create-eigen-game` refuses
-with an explicit error rather than pairing halves that do not match. So publish
-the Flutter shell for a new line *before* announcing the engine on it.
+`flutter analyze` and `flutter test` cover the **Dart API** — that the templates
+call symbols the shell actually has. That job is also the only thing that
+compiles `templates/app-overlay` at all; before it, the Dart templates were
+never built anywhere, in this repository or eigen-flutter.
+
+The **wire** is a separate claim and gets its own assertion: the job reads the
+`eigen_api` version out of the generated `pubspec.lock` and fails unless its
+compatibility line matches the engine range the scaffolder emitted. Analysis
+cannot stand in for this. A shell one line behind can compile perfectly against
+templates that barely touch what changed, and the mismatch would then surface as
+a decode failure against a running server, long after anyone connected it to a
+scaffold. Reading the lockfile asserts what the solver decided rather than
+predicting it — which is the check the pub.dev lookup was reaching for and could
+not perform, because it ran before any solver had spoken.
+
+It resolves the four engine packages from this workspace rather than npm. That
+is not only closer to what is about to ship; it is required. The scaffolder
+emits the new engine line before that line exists on npm, so resolving from the
+registry would fail on the exact commit that publishes it, deadlocking every
+line-crossing release.
+
+`eigen_flutter` is deliberately not overridden that way. Substituting it would
+defeat the purpose — a real resolution against pub.dev is the only thing that
+makes the pin mean anything.
 
 ## Downstream documentation
 
@@ -354,9 +384,10 @@ Nothing here breaks and nothing needs rerunning — the reference simply waits i
 an open pull request until that decision is made in eigen-web, whose
 `CONTRIBUTING.md` carries the procedure.
 
-Two artifacts still need a hand: the compatibility matrix on
-`docs/reference/compatibility.md`, and `flutterClientVersion` here once a
-compatible `eigen_flutter` ships.
+Two artifacts still need a hand once a compatible `eigen_flutter` ships: the
+compatibility matrix on eigen-web's `docs/reference/compatibility.md`, and
+`flutterClientVersion` in `packages/create-eigen-game/src/index.ts` — see [the
+scaffolder's Flutter pin](#the-scaffolders-flutter-pin).
 
 ## Deployment
 
