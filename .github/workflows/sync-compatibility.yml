@@ -1,0 +1,145 @@
+name: Sync compatibility table
+
+# The "what pairs with what" table on `docs/reference/compatibility.md` is
+# derived, not authored — see `scripts/sync-compatibility.mjs` for why. This
+# regenerates it and opens a PULL REQUEST with auto-merge on, exactly like
+# `sync-api.yml`: generated output lands through the same gate as prose, and
+# `main` needs no bypass for automation.
+#
+# ── Why this is not part of sync-api.yml ─────────────────────────────────────
+#
+# Different input, different trigger, hugely different cost. `sync-api` checks
+# out eigen-server, installs it, builds every package and emits the spec — some
+# minutes — because its input is the engine's source. This reads one committed
+# file and two pub.dev endpoints, needs no dependencies at all, and is driven by
+# a repository it never checks out. Folding it in would make every
+# `eigen_flutter` release pay for a full engine build to regenerate four lines
+# of a table.
+#
+# The branches are separate for the same reason, so a slow engine sync and a
+# fast client sync never wait on or clobber each other. They touch disjoint
+# files, so both can be open at once.
+#
+# ── Triggers ─────────────────────────────────────────────────────────────────
+#
+#   - `repository_dispatch` from eigen-flutter's `release.yml`, sent after it
+#     publishes to pub.dev. That is the event that actually changes this table:
+#     the shell column is the only one carrying independent information, and
+#     pub.dev is its authority.
+#   - `workflow_dispatch` from the Actions tab — the manual path, and the
+#     recovery route when the dispatch fails after eigen-flutter published.
+#
+# NOTE: there is deliberately no `schedule:`. That leaves one real gap.
+# RETRACTION — the only way to withdraw a bad pub.dev version, available for
+# seven days after publishing — happens in a web UI and produces no event in any
+# repository, so nothing here can notice it. A retracted shell keeps being
+# advertised by this table until the next release or a manual run. If that
+# becomes a problem the fix is one line:
+#
+#   schedule:
+#     - cron: "43 6 * * 1"
+#
+# It is left out because a weekly job that almost always finds nothing is noise,
+# and the exposure window it closes is bounded: retraction can only affect a
+# release from the last seven days, and only until the next one.
+on:
+  repository_dispatch:
+    types: [flutter-client-released]
+  workflow_dispatch:
+    inputs:
+      expect:
+        description: "Wait for this to appear on pub.dev first, e.g. eigen_flutter@0.3.0"
+        required: false
+        type: string
+
+concurrency:
+  group: sync-compatibility
+  cancel-in-progress: true
+
+# The App token below carries what this needs. GITHUB_TOKEN gets nothing.
+permissions: {}
+
+jobs:
+  sync:
+    name: Regenerate and open the compatibility pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write # push the sync branch
+          permission-pull-requests: write # open it and enable auto-merge
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      # No `pnpm install`: the generator imports only `node:` builtins and uses
+      # global fetch, so the toolchain is Node and nothing else. Keeping it that
+      # way is what makes this job finish in seconds.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      # `--expect` makes the job wait for the version that triggered it. pub.dev
+      # serves a publish from its API a moment after the publish call returns,
+      # and without waiting this would regenerate from the state just before the
+      # release: an unchanged table, no pull request, and no error to notice.
+      - name: Regenerate the table
+        env:
+          EXPECT: ${{ github.event.client_payload.version && format('eigen_flutter@{0}', github.event.client_payload.version) || inputs.expect }}
+        run: |
+          if [ -n "$EXPECT" ]; then
+            node scripts/sync-compatibility.mjs --expect "$EXPECT"
+          else
+            node scripts/sync-compatibility.mjs
+          fi
+
+      # Nothing to do is the common case — a shell release that stays on the
+      # same engine line adds a version to a cell, but a patch release of the
+      # same line does too, so most runs DO change something. A run that does
+      # not exits quietly rather than opening an empty pull request.
+      - name: Open the compatibility pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TRIGGER: ${{ github.event.client_payload.version && format('eigen_flutter {0}', github.event.client_payload.version) || 'a manual run' }}
+        run: |
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Compatibility table is already current — nothing to publish."
+            exit 0
+          fi
+
+          # -C and --force so a later run refreshes the open pull request rather
+          # than failing on an existing branch.
+          git switch -C sync/compatibility
+          git commit -m "Sync compatibility table after ${TRIGGER}"
+          git push --force -u origin sync/compatibility
+
+          # Only an OPEN pull request is one to refresh. `gh pr view` matches by
+          # branch and answers for closed and merged ones too, so testing mere
+          # existence would make a re-run after a CLOSED sync report success and
+          # create nothing — the branch updates and no pull request exists to
+          # merge. Closing a bad sync and re-running is the recovery path, so
+          # that failure lands at the one moment it matters.
+          state=$(gh pr view sync/compatibility --json state --jq .state 2>/dev/null || echo NONE)
+          if [ "$state" = "OPEN" ]; then
+            echo "Refreshed the existing compatibility pull request."
+          else
+            [ "$state" = "NONE" ] || echo "The previous compatibility pull request is $state — opening a new one."
+            gh pr create --base main \
+              --title "Sync compatibility table" \
+              --body "Regenerated by \`sync-compatibility.yml\` after ${TRIGGER}.
+
+          Deterministic output of \`pnpm sync-compatibility\`, read from \`api/openapi.json\` and pub.dev. No authored prose is touched.
+          Auto-merge is on; this lands as soon as checks pass."
+          fi
+
+          # Lands it the moment the gate goes green, with no human in the loop.
+          gh pr merge sync/compatibility --auto --squash

@@ -12,8 +12,8 @@ ordinary dependencies; game implementors do not clone them.
 ## Prerequisites
 
 Node.js 22 or newer, npm or pnpm, and Flutter 3.44 or newer — which brings the
-Dart 3.12 the client needs. Scaffolding also needs network access: it asks
-pub.dev which `eigen_flutter` release pairs with the engine it is scaffolding.
+Dart 3.12 the client needs. Scaffolding also needs network access: it installs
+both halves as it goes.
 
 A Cloudflare account and Firebase project are needed to run the complete app and
 deploy, but not to scaffold the project or test game rules. The Android
@@ -34,6 +34,12 @@ npm create eigen-game@latest my-game
 
 `my-game` is the only naming input. It is a lowercase kebab-case slug; the
 scaffolder derives `My Game`, `my_game`, and the `MyGame` type prefix from it.
+
+The engine and `eigen_flutter` versions it writes are fixed in the scaffolder,
+built and tested as a pair before it ships. So the version of
+`create-eigen-game` you run decides both — see [Versions and
+compatibility](../reference/compatibility.md). Use `@latest` rather than a
+cached older copy.
 
 The default is a single repository:
 
