@@ -5,7 +5,14 @@
   width: 100%;
 }
 
-.featureSvg {
-  height: 200px;
-  width: 200px;
+/*
+ * Smaller than the 200px illustrations these replaced: line art at that size
+ * reads as an empty box rather than an icon. `color` is what the inline SVGs
+ * draw with — they are all `stroke="currentColor"` — so the theme's primary
+ * carries them in both light and dark mode with nothing to override.
+ */
+.featureIcon {
+  height: 112px;
+  width: 112px;
+  color: var(--ifm-color-primary);
 }

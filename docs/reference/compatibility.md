@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: Versions and compatibility
-description: Which engine, client and docs versions pair with each other, what a breaking bump actually means pre-1.0, and how old apps survive a server deploy.
+description: Which engine, client and docs versions pair with each other, what the scaffolder picks for a new project, what a breaking bump actually means pre-1.0, and how old apps survive a server deploy.
 ---
 
 # Versions and compatibility
@@ -52,6 +52,45 @@ depending on `eigen_api: ^0.2.0` means "this shell speaks the engine's 0.2.x
 wire". There is no lockstep release, and there deliberately isn't one: the engine
 breaks in ways that have no Dart-side consequence at all, and forcing a shell
 release for each would make its version number meaningless.
+
+## What the scaffolder picks
+
+A new project does not choose from the table above — `create-eigen-game` has
+already chosen, and **the version of the scaffolder you run decides both
+halves**. It writes one engine range into `server/package.json` and one
+`eigen_flutter` range into `app/pubspec.yaml`, and it resolves nothing at run
+time. Use `@latest` rather than a cached copy:
+
+```bash
+pnpm create eigen-game my-game
+npm create eigen-game@latest my-game
+```
+
+The two numbers reach it differently, and the difference is the point.
+
+**The engine range is derived, not maintained.** The scaffolder emits a caret on
+the `@eigeninteractive/server` version it was built against — the same engine its
+CI compiled the Worker template with. Nobody types that number, so the templates
+cannot ship paired with an engine no build ever saw.
+
+**The `eigen_flutter` range is a pin, deliberately.** It once resolved "the newest
+shell for this engine's wire line" from pub.dev, which was wrong: a shell
+declares which *wire* it speaks, and says nothing about whether its *Dart API*
+still matches the templates. `eigen_flutter 0.4.0` constraining `eigen_api:
+^0.2.0` is a legal match that would emit code against an API that moved. The pin
+is raised by hand, and only after CI has scaffolded a project and run
+`flutter analyze` against that exact shell.
+
+So a scaffolder release trails an engine release, and that gap is real rather
+than an oversight. When the engine crosses a line, no shell can speak it yet:
+`eigen_flutter` records compatibility through its own `eigen_api` constraint, and
+`eigen_api` for the new line does not exist until the engine's release publishes
+it. The scaffolder keeps emitting the previous line — a pairing that works —
+until a shell for the new one ships and the pin is raised.
+
+If you need a combination the current scaffolder does not emit, take the manual
+path: [Set up without the scaffolder](../getting-started/manual-setup.md) uses
+the same public contracts, and the table above is what to write into it.
 
 ## The breaking axis is the minor, for now
 
