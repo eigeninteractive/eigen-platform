@@ -290,7 +290,35 @@ jobs:
           github-token: ${{ steps.app-token.outputs.token }}
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
 
-      # ── Everything below runs only when npm actually published ─────────────
+      # ── Everything below runs only when the ENGINE published ───────────────
+      #
+      # Not "when anything published", which is what this used to test and is
+      # no longer the same question. `create-eigen-game` versions independently,
+      # so a scaffolder-only release reaches this point having touched neither
+      # `openapi.json` nor `clients/dart` — and both steps below then do the
+      # wrong thing. The dispatch regenerates references that did not change,
+      # and the tag collides with the one the previous engine release pushed.
+      #
+      # The collision is the worse half: it fails the run at the very END, after
+      # npm has irreversibly published, so the failure can never be cleared by
+      # rerunning. That is exactly how the first scaffolder-only release went —
+      # `create-eigen-game@0.3.0` published correctly and the run went red
+      # anyway, on `fatal: tag 'eigen_api-v0.2.0' already exists`.
+      #
+      # `published-packages` names what actually went out, so ask it rather than
+      # inferring. Bracket syntax because the output name is hyphenated.
+      - name: Did the engine publish?
+        id: engine
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          PACKAGES: ${{ steps.changesets.outputs['published-packages'] }}
+        run: |
+          if jq -e '.[] | select(.name == "@eigeninteractive/server")' <<<"$PACKAGES" >/dev/null; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No engine release in this run ($(jq -r '[.[].name] | join(", ")' <<<"$PACKAGES")) — skipping the eigen-web dispatch and the eigen_api tag."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # eigen-web vendors this repo's `openapi.json` and package APIs to build
       # its HTTP and TypeScript references. It cannot notice a change on its
@@ -306,7 +334,7 @@ jobs:
       # Failing here fails the release. That is deliberate: a published engine
       # with an unnotified docs site is a state worth stopping on.
       - name: Notify eigen-web
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.engine.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           SHA: ${{ github.sha }}
@@ -329,10 +357,21 @@ jobs:
       # If this step fails after npm published, push the tag by hand — re-running
       # the workflow finds no pending changesets and will not publish again.
       - name: Tag eigen_api for pub.dev
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.engine.outputs.released == 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           v=$(grep -m1 '^version:' clients/dart/pubspec.yaml | awk '{print $2}')
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Belt to the gate above's braces. The gate is the correct fix and
+          # this is never expected to fire, but tagging is the last thing a
+          # release does and it runs after an irreversible npm publish — so it
+          # should be safe to rerun rather than merely correct to run once.
+          if git ls-remote --exit-code --tags "$remote" "refs/tags/eigen_api-v$v" >/dev/null 2>&1; then
+            echo "::notice::eigen_api-v$v already exists — nothing to tag."
+            exit 0
+          fi
+
           git tag "eigen_api-v$v"
-          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "eigen_api-v$v"
+          git push "$remote" "eigen_api-v$v"
