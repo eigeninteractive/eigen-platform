@@ -13,7 +13,7 @@
     "openapi": "pnpm --filter @eigeninteractive/server openapi",
     "dart-client": "scripts/generate-dart-client.sh",
     "changeset": "changeset",
-    "version-packages": "node scripts/follow-engine-line.mjs && changeset version && pnpm openapi && scripts/generate-dart-client.sh"
+    "version-packages": "changeset version && pnpm openapi && scripts/generate-dart-client.sh"
   },
   "packageManager": "pnpm@11.20.0",
   "devEngines": {

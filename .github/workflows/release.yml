@@ -46,9 +46,10 @@ name: Release
 # an independent-version matrix would be maintained by hand for no benefit.
 #
 # `create-eigen-game` publishes from here too but versions independently, so a
-# scaffolder change does not move the engine. `pnpm version-packages` runs
-# scripts/follow-engine-line.mjs first to keep the other direction — see
-# MAINTAINERS.md, "Why the scaffolder versions on its own".
+# scaffolder change does not move the engine. The other direction needs nothing:
+# it releases when its Flutter pin is raised, which is the first moment both
+# halves it emits are correct. See MAINTAINERS.md, "Why the scaffolder versions
+# on its own".
 #
 # `eigen_api`, the generated Dart client in clients/dart, rides along at the same
 # version. The wire contract is the server's, so the client that speaks it
