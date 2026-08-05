@@ -260,8 +260,24 @@ jobs:
       - name: Build
         run: pnpm -r build
 
-      # No Android SDK is installed, and none is needed: `flutter create` only
-      # writes files, and `analyze`/`test` run on the Dart sources. Adding one
-      # would roughly double this job for no extra coverage.
+      # No Android SDK is installed: `flutter create` only writes files, and
+      # `analyze`/`test` run on the Dart sources.
+      #
+      # This does leave real coverage out, which an earlier version of this
+      # comment denied. The Gradle config the scaffolder appends, the icons it
+      # generates, and the manifest entries `eigen_flutter`'s plugin merges are
+      # none of them Dart sources — and that gap is what let a corrupted wrapper
+      # jar and corrupted launcher PNGs ship in every scaffolded project while
+      # this job stayed green.
+      #
+      # Adding a release build was measured rather than estimated: 9m32s against
+      # this job's 2m06s, or 6m07s with `~/.gradle` cached — and the caching
+      # needs a restore/save split to be worth anything, because every runner is
+      # a fresh VM. `gradle/actions/setup-gradle` does not work here at all; it
+      # keys on a Gradle project in the workspace, and the build happens in a
+      # temp directory.
+      #
+      # Declined for now: too much of a tax on release turnaround at this stage.
+      # Worth revisiting once the engine stops moving weekly.
       - name: Scaffold, build and test a generated project
         run: node packages/create-eigen-game/scripts/scaffold-e2e.mjs
