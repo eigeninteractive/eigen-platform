@@ -111,6 +111,30 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
   return undefined;
 }
 
+/**
+ * Substitutes the scaffold's tokens, of which there are two deliberate kinds.
+ *
+ * `{{BRACED}}` for values that have no valid example — a package manager,
+ * an engine version, an Android package id. They appear only in manifests,
+ * READMEs, workflows and the `Appfile`: files nothing compiles.
+ *
+ * Bare words (`ExampleGame`, `example-game`, …) for names a real example game
+ * genuinely has. This is what keeps `templates/worker` and the Dart templates
+ * VALID, COMPILING SOURCE rather than text with holes in it, which the rest of
+ * this package leans on hard: `typecheck` runs `tsc` over `templates/worker`,
+ * the tests `import` its game module directly and build a real contract from
+ * it, and the `scaffold` job compiles the Dart templates. Bracing these would
+ * trade all of that for a marker.
+ *
+ * The cost, and the one rule for template authors: a template file cannot
+ * contain the literal string `example-game`, `Example Game`, `ExampleGame` or
+ * `example_game` and keep it — every occurrence is rewritten, in prose and in
+ * code alike. Write around it, or brace a new token instead.
+ *
+ * Note this means the set of files carrying a token changes whenever someone
+ * writes one into an existing file. Nothing needs to track that: `renderTree`
+ * decides what to rewrite from the bytes, not from a list of paths.
+ */
 function render(contents: string, name: string, manager: PackageManager, packageId: string): string {
   const replacements: ReadonlyArray<readonly [string, string]> = [
     ["@game/example-game-server", `@game/${name}-server`],
