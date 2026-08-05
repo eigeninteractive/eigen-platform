@@ -17,6 +17,12 @@ export interface ScaffoldOptions {
    */
   bootstrap?: boolean;
   /**
+   * Emit the GitHub Actions workflows. Off by default — see the call site for
+   * why, and `addContinuousIntegration` for adding them to an existing
+   * project later.
+   */
+  ci?: boolean;
+  /**
    * Runs the bootstrap subprocesses. A seam: the tests substitute a recorder,
    * and `scripts/scaffold-e2e.mjs` wraps it to point the generated server at
    * this workspace's engine rather than npm's copy.
@@ -215,18 +221,22 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
 // resolve under AGP 9's Kotlin DSL script compilation
 // (`flutter create`'s current default): "Unresolved reference 'util'".
 // Confirmed by actually building a scaffolded project, not just reading it.
-const androidReleaseSigning = `val releaseKeyProperties = Properties().apply {
-    val f = rootProject.file("key.properties")
-    if (f.exists()) load(f.inputStream())
-}
+const androidReleaseSigning = `val releaseKeyProperties: Map<String, String> =
+    rootProject.file("key.properties")
+        .takeIf { it.exists() }
+        ?.readLines()
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+        ?.associate { it.substringBefore("=").trim() to it.substringAfter("=").trim() }
+        .orEmpty()
 
 android {
     signingConfigs {
         create("release") {
-            storeFile = releaseKeyProperties["storeFile"]?.let { file(it as String) }
-            storePassword = releaseKeyProperties["storePassword"] as String?
-            keyAlias = releaseKeyProperties["keyAlias"] as String?
-            keyPassword = releaseKeyProperties["keyPassword"] as String?
+            storeFile = releaseKeyProperties["storeFile"]?.let { file(it) }
+            storePassword = releaseKeyProperties["storePassword"]
+            keyAlias = releaseKeyProperties["keyAlias"]
+            keyPassword = releaseKeyProperties["keyPassword"]
         }
     }
     buildTypes {
@@ -252,12 +262,14 @@ function enableAndroidReleaseSigning(appRoot: string): void {
   // contains that substring (`signingConfig = signingConfigs.getByName("debug")`),
   // so that check would always short-circuit and never append anything.
   if (gradle.includes("releaseKeyProperties")) return;
-  // Kotlin imports must precede every other top-level declaration, so this is
-  // the one piece that has to go at the very START of the file rather than
-  // the end. Flutter's generated file has no file-level annotations, so
-  // prepending is always syntactically valid here.
-  const withImport = `import java.util.Properties\n\n${gradle}`;
-  writeFileSync(gradlePath, `${withImport.endsWith("\n") ? withImport : `${withImport}\n`}${androidReleaseSigning}\n`);
+  // A pure append. This previously also PREPENDED `import java.util.Properties`,
+  // because Kotlin requires imports before every other top-level declaration —
+  // which meant reaching into the very start of a file this scaffolder does
+  // not own, the most position-dependent edit here and the one already broken
+  // once by an AGP upgrade. Parsing `key.properties` with the Kotlin stdlib
+  // needs no import, so the edit is now append-only and cannot collide with
+  // whatever Flutter or `flutterfire configure` writes above it.
+  appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "" : "\n"}${androidReleaseSigning}\n`);
 }
 
 // `flutter_launcher_icons`/`flutter_native_splash` read these as plain
@@ -305,6 +317,55 @@ function configureLauncherIconsAndSplash(appRoot: string): void {
   appendFileSync(pubspecPath, `${pubspec.endsWith("\n") ? "" : "\n"}${launcherIconsAndSplashConfig}`);
 }
 
+export interface AddContinuousIntegrationOptions {
+  directory: string;
+  /** Overrides the manager recorded in the project's own package.json. */
+  packageManager?: PackageManager;
+}
+
+/**
+ * Adds the GitHub Actions workflows to an existing generated project.
+ *
+ * The companion to `ci: false`: a game can be built and played locally for as
+ * long as its author likes, then gain the same PR gate and signed release
+ * pipeline a `--ci` scaffold would have produced.
+ */
+export function addContinuousIntegration(options: AddContinuousIntegrationOptions): { root: string; files: string[] } {
+  const root = resolve(options.directory);
+  const manifestPath = resolve(root, "package.json");
+  if (!existsSync(manifestPath) || !existsSync(resolve(root, "server")) || !existsSync(resolve(root, "app"))) {
+    throw new Error(`not an Eigen game project (expected package.json, server/ and app/): ${root}`);
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    name?: string;
+    scripts?: Record<string, string>;
+  };
+  const name = gameSlug(manifest.name ?? basename(root));
+
+  // The generated `contract` script embeds the manager the project was
+  // scaffolded with (`cd server && pnpm run contract && …`), which is a more
+  // reliable signal than a lockfile — it is present before anything is
+  // installed, and it is what the project actually uses.
+  const recorded = manifest.scripts?.contract?.includes("pnpm ") ? "pnpm" : manifest.scripts?.contract?.includes("npm ") ? "npm" : undefined;
+  const manager = options.packageManager ?? recorded ?? detectPackageManager() ?? "pnpm";
+
+  // Only `{{PACKAGE_MANAGER}}` appears in these templates, but the real
+  // package id is read back rather than reconstructed, so a project scaffolded
+  // under a different `--org` cannot be silently rewritten to `com.example`.
+  const appfile = resolve(root, "app/fastlane/Appfile");
+  const packageId = existsSync(appfile) ? (/package_name\("([^"]+)"\)/.exec(readFileSync(appfile, "utf8"))?.[1] ?? `com.example.${dartName(name)}`) : `com.example.${dartName(name)}`;
+
+  const workflows = resolve(root, ".github/workflows");
+  const existing = existsSync(workflows) ? readdirSync(workflows).filter((f) => f === "checks.yml" || f === "release.yml") : [];
+  if (existing.length > 0) {
+    throw new Error(`refusing to overwrite existing workflows: ${existing.join(", ")}`);
+  }
+
+  renderTree(resolve(templatesRoot, "ci"), root, name, manager, packageId);
+  return { root, files: [".github/workflows/checks.yml", ".github/workflows/release.yml"] };
+}
+
 export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const root = resolve(options.directory);
   const name = gameSlug(basename(root));
@@ -330,6 +391,11 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
 
     renderTree(resolve(templatesRoot, "worker"), serverRoot, name, manager, packageId);
     renderTree(resolve(templatesRoot, "project"), stagingRoot, name, manager, packageId);
+    // Opt-in. release.yml wants an upload keystore and a Play service account
+    // that a brand-new project does not have, so generating it by default
+    // means a red X on main from the first push until someone sets both up.
+    // `create-eigen-game add ci` writes the same files whenever it is wanted.
+    if (options.ci) renderTree(resolve(templatesRoot, "ci"), stagingRoot, name, manager, packageId);
 
     if (bootstrap) {
       run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);

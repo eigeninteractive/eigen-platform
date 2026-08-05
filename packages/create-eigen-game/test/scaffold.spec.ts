@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { describe, expect, it, vi } from "vitest";
-import { detectPackageManager, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, detectPackageManager, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -121,23 +121,15 @@ describe("scaffoldGame", () => {
       expect(readFileSync(resolve(root, `app/assets/icon/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/assets/icon/${asset}`)));
     }
 
-    // Branding art. `ic_notification.xml` is the one icon no generator
-    // produces — `flutter_launcher_icons` does not emit it — so it has to be
-    // shipped, or the manifest meta-data documented in ship-it/push would
-    // reference a drawable that does not exist.
-    for (const asset of ["icon.png", "icon_foreground.png", "splash.png", "splash_dark.png"]) {
-      expect(readFileSync(resolve(root, `app/assets/icon/${asset}`)).byteLength).toBeGreaterThan(0);
-    }
-    const notificationIcon = readFileSync(resolve(root, "app/android/app/src/main/res/drawable/ic_notification.xml"), "utf8");
-    expect(notificationIcon).toContain("<vector");
-    expect(notificationIcon).toContain('android:strokeColor="#FFFFFF"');
+    // The notification icon is deliberately NOT here: `eigen_flutter`'s
+    // Android plugin ships `ic_notification` and the Firebase meta-data
+    // pointing at it, so the scaffold neither writes the drawable nor edits
+    // the app manifest. A game overrides it by declaring the same resource
+    // name, which Android resource merging resolves in the app's favour.
+    expect(existsSync(resolve(root, "app/android/app/src/main/res/drawable/ic_notification.xml"))).toBe(false);
 
-    const checksWorkflow = readFileSync(resolve(root, ".github/workflows/checks.yml"), "utf8");
-    expect(checksWorkflow).toContain("workflow_call");
-    expect(checksWorkflow).not.toContain("secrets.");
-    const releaseWorkflow = readFileSync(resolve(root, ".github/workflows/release.yml"), "utf8");
-    expect(releaseWorkflow).toContain("uses: ./.github/workflows/checks.yml");
-    expect(releaseWorkflow).toContain("environment: play-store");
+    // CI is opt-in, so a default scaffold has no workflows at all.
+    expect(existsSync(resolve(root, ".github/workflows"))).toBe(false);
 
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.name).toBe("my-game");
@@ -244,6 +236,52 @@ describe("scaffoldGame", () => {
 
     expect(existsSync(root)).toBe(false);
     expect(readdirSync(parent)).toEqual([]);
+  });
+});
+
+describe("continuous integration", () => {
+  const workflows = [".github/workflows/checks.yml", ".github/workflows/release.yml"];
+
+  it("emits the workflows when asked for at scaffold time", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm", ci: true });
+
+    const checks = readFileSync(resolve(root, workflows[0]), "utf8");
+    expect(checks).toContain("workflow_call");
+    // The gate must stay runnable by a fork PR, which is only true while it
+    // references no secrets at all.
+    expect(checks).not.toContain("secrets.");
+    expect(checks).toContain("npm install");
+    const release = readFileSync(resolve(root, workflows[1]), "utf8");
+    expect(release).toContain("uses: ./.github/workflows/checks.yml");
+    expect(release).toContain("environment: play-store");
+  });
+
+  it("adds them to an existing project later, with the manager it was scaffolded with", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "pnpm" });
+    expect(existsSync(resolve(root, ".github"))).toBe(false);
+
+    const result = addContinuousIntegration({ directory: root });
+
+    expect(result.files).toEqual(workflows);
+    // Read back from the project rather than passed in — a project scaffolded
+    // with pnpm must not silently gain npm workflows.
+    expect(readFileSync(resolve(root, workflows[0]), "utf8")).toContain("pnpm install");
+  });
+
+  it("refuses to clobber workflows that already exist", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    scaffoldGame({ directory: root, bootstrap: false, ci: true });
+
+    expect(() => addContinuousIntegration({ directory: root })).toThrow(/refusing to overwrite/);
+  });
+
+  it("rejects a directory that is not a generated project", () => {
+    const parent = temporaryParent();
+
+    expect(() => addContinuousIntegration({ directory: parent })).toThrow(/not an Eigen game project/);
   });
 });
 
