@@ -126,15 +126,35 @@ function render(contents: string, name: string, manager: PackageManager, package
 }
 
 /**
- * True when the bytes survive a UTF-8 round trip.
+ * True when the bytes are valid UTF-8.
  *
- * Token substitution is a string operation, so a file has to be decodable to
- * take part in it. Anything else — PNG, ICO, JAR, OTF — is copied through
- * untouched. Sniffing the content rather than keeping a list of binary
- * extensions means a new asset type cannot silently start being mangled.
+ * This is not a guess at whether a file is "binary" — it is the precondition
+ * of the operation. Token substitution is `String.replaceAll`, so a file that
+ * cannot be decoded cannot take part, and one that can is safe to rewrite.
+ *
+ * Deliberately not an extension list. A DENY list (`.png`, `.jar`, …) fails
+ * silently in the dangerous direction: the day someone adds a `.webp`, it is
+ * corrupted with no error. An ALLOW list fails the safe way but fits this tree
+ * badly — `Gemfile`, `Fastfile`, `.nvmrc`, `.fvmrc` and `.ruby-version` all
+ * need rendering and none carry a usable extension, so it would have to be a
+ * list of extensions *and* a list of bare filenames, both drifting.
+ *
+ * `.template` is not the signal either, despite the name: it marks files a
+ * language server must not claim before they have an enclosing package. Five
+ * of them contain no token at all, and nine token-bearing files are not
+ * marked, so the two concepts are orthogonal here.
+ *
+ * `renderTree`'s test pins the resulting classification for the whole tree, so
+ * this stays a reviewed decision rather than an invisible one.
  */
-function isUtf8Text(bytes: Buffer): boolean {
-  return Buffer.compare(Buffer.from(bytes.toString("utf8"), "utf8"), bytes) === 0;
+const utf8 = new TextDecoder("utf-8", { fatal: true });
+
+export function decodeUtf8(bytes: Buffer): string | undefined {
+  try {
+    return utf8.decode(bytes);
+  } catch {
+    return undefined;
+  }
 }
 
 function renderTree(source: string, destination: string, name: string, manager: PackageManager, packageId: string): void {
@@ -153,9 +173,11 @@ function renderTree(source: string, destination: string, name: string, manager: 
       if (!entry.isFile()) continue;
 
       const rendered = resolve(destination, relative(source, templatePath));
-      const bytes = readFileSync(templatePath);
-      if (isUtf8Text(bytes)) {
-        writeFileSync(rendered, render(bytes.toString("utf8"), name, manager, packageId));
+      const text = decodeUtf8(readFileSync(templatePath));
+      // Undecodable files are already in place from the copy above, byte for
+      // byte. Only decodable ones are rewritten.
+      if (text !== undefined) {
+        writeFileSync(rendered, render(text, name, manager, packageId));
       }
       // Template-only source must not be claimed by language servers before
       // it has an enclosing generated package. Restore the real extension

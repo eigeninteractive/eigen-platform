@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, detectPackageManager, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, decodeUtf8, detectPackageManager, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -236,6 +236,39 @@ describe("scaffoldGame", () => {
 
     expect(existsSync(root)).toBe(false);
     expect(readdirSync(parent)).toEqual([]);
+  });
+});
+
+describe("template rendering", () => {
+  it("pins which files are copied verbatim rather than rendered", () => {
+    // The rule — "render it if it decodes as UTF-8" — is otherwise invisible,
+    // which is how the old traversal mangled every binary for so long without
+    // anyone noticing. This states the outcome for the whole tree, so adding
+    // an asset that lands on the copy-verbatim side shows up as a diff to
+    // approve instead of a silent behaviour change.
+    const templates = resolve(import.meta.dirname, "../templates");
+    const walk = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const path = resolve(directory, entry.name);
+        return entry.isDirectory() ? walk(path) : entry.isFile() ? [relative(templates, path)] : [];
+      });
+
+    const verbatim = walk(templates)
+      .filter((file) => decodeUtf8(readFileSync(resolve(templates, file))) === undefined)
+      .sort();
+
+    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png"]);
+  });
+
+  it("substitutes tokens in text that carries no file extension", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" });
+
+    // Gemfile and Fastfile are the reason this is not an extension allowlist:
+    // they need rendering and have no extension to key one off.
+    expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).not.toContain("example-game");
+    expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
   });
 });
 
