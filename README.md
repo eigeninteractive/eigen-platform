@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://eigeninteractive.com/brand/eigen-lockup-dark-360.png">
+  <img src="https://eigeninteractive.com/brand/eigen-lockup-360.png" alt="EigenInteractive" width="270">
+</picture>
+
 # eigen-web
 
 Source of truth for the documentation at <https://eigeninteractive.com>, plus
