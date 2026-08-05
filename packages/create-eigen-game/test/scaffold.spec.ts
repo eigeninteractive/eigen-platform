@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { describe, expect, it, vi } from "vitest";
-import { detectPackageManager, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, decodeUtf8, detectPackageManager, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -99,6 +99,38 @@ describe("scaffoldGame", () => {
     expect(devVars).not.toContain("WEB_APP_ORIGIN=");
     expect(devVars).toContain("FIREBASE_PRIVATE_KEY=");
 
+    // Native release plumbing — rendered unconditionally by the app-overlay
+    // tree, so present even with `bootstrap: false` (unlike the Gradle/pubspec
+    // appends below, which need a real `flutter create` output to edit).
+    expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("com.example.my_game")');
+    expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).toContain("upload_to_play_store");
+    expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
+    expect(readFileSync(resolve(root, "app/.ruby-version"), "utf8").trim()).not.toBe("");
+    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.44.8");
+    expect(readFileSync(resolve(root, "app/android/app/proguard-rules.pro"), "utf8")).toContain("image_cropper");
+    expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
+    expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");
+
+    // Binary templates must arrive byte-identical. They did not: renderTree
+    // read every file as UTF-8 and wrote it back, so any byte that is not
+    // valid UTF-8 became U+FFFD. A 1024px PNG grew by tens of kilobytes of
+    // replacement characters and stopped decoding — `flutter_launcher_icons`
+    // failed with NoDecoderForImageFormatException. Compare the bytes, not
+    // just the length, and not merely "the file exists".
+    for (const asset of ["icon.png", "icon_foreground.png", "splash.png", "splash_dark.png"]) {
+      expect(readFileSync(resolve(root, `app/assets/icon/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/assets/icon/${asset}`)));
+    }
+
+    // The notification icon is deliberately NOT here: `eigen_flutter`'s
+    // Android plugin ships `ic_notification` and the Firebase meta-data
+    // pointing at it, so the scaffold neither writes the drawable nor edits
+    // the app manifest. A game overrides it by declaring the same resource
+    // name, which Android resource merging resolves in the app's favour.
+    expect(existsSync(resolve(root, "app/android/app/src/main/res/drawable/ic_notification.xml"))).toBe(false);
+
+    // CI is opt-in, so a default scaffold has no workflows at all.
+    expect(existsSync(resolve(root, ".github/workflows"))).toBe(false);
+
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.name).toBe("my-game");
     expect(rootManifest.private).toBe(true);
@@ -135,13 +167,40 @@ describe("scaffoldGame", () => {
     // release on that line, which is the part a scaffold-time pub.dev lookup
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.2.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.3.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
+    // A separate `pub add` (rather than folded into the call above) so a
+    // failure here is legible on its own, and because these are dev
+    // dependencies (`dev:` prefix) while the engine/Firebase packages above
+    // are not.
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], expect.stringMatching(/\/app$/));
+    // Configuring the icon tools is not enough — both write committed files,
+    // so they have to actually run or the app ships Flutter's own blue logo.
+    expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_native_splash:create"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
     const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
     expect(androidGradle).toContain("isCoreLibraryDesugaringEnabled = true");
     expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');
+    expect(androidGradle).toContain("signingConfigs");
+    expect(androidGradle).toContain("proguardFiles(");
+
+    expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("games.example.chess")');
+
+    const appPubspec = readFileSync(resolve(root, "app/pubspec.yaml"), "utf8");
+    expect(appPubspec).toContain("flutter_launcher_icons:");
+    expect(appPubspec).toContain("flutter_native_splash:");
+    // `scaffoldGame` only creates `--platforms android,web` — `ios`/`macos`
+    // keys would make `flutter_launcher_icons` error on a platform directory
+    // that doesn't exist.
+    expect(appPubspec).not.toContain("ios:");
+    expect(appPubspec).not.toContain("macos:");
+    // The shipped adaptive foreground is the reversed, light-on-dark mark, so
+    // the background behind it has to be ink — the previous "#FFFFFF" default
+    // would render it invisible.
+    expect(appPubspec).toContain('adaptive_icon_background: "#1B1E24"');
+    expect(appPubspec).toContain("image_dark: assets/icon/splash_dark.png");
 
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.scripts.contract).toContain("cd server && pnpm run contract");
@@ -177,6 +236,85 @@ describe("scaffoldGame", () => {
 
     expect(existsSync(root)).toBe(false);
     expect(readdirSync(parent)).toEqual([]);
+  });
+});
+
+describe("template rendering", () => {
+  it("pins which files are copied verbatim rather than rendered", () => {
+    // The rule — "render it if it decodes as UTF-8" — is otherwise invisible,
+    // which is how the old traversal mangled every binary for so long without
+    // anyone noticing. This states the outcome for the whole tree, so adding
+    // an asset that lands on the copy-verbatim side shows up as a diff to
+    // approve instead of a silent behaviour change.
+    const templates = resolve(import.meta.dirname, "../templates");
+    const walk = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const path = resolve(directory, entry.name);
+        return entry.isDirectory() ? walk(path) : entry.isFile() ? [relative(templates, path)] : [];
+      });
+
+    const verbatim = walk(templates)
+      .filter((file) => decodeUtf8(readFileSync(resolve(templates, file))) === undefined)
+      .sort();
+
+    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png"]);
+  });
+
+  it("substitutes tokens in text that carries no file extension", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" });
+
+    // Gemfile and Fastfile are the reason this is not an extension allowlist:
+    // they need rendering and have no extension to key one off.
+    expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).not.toContain("example-game");
+    expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
+  });
+});
+
+describe("continuous integration", () => {
+  const workflows = [".github/workflows/checks.yml", ".github/workflows/release.yml"];
+
+  it("emits the workflows when asked for at scaffold time", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm", ci: true });
+
+    const checks = readFileSync(resolve(root, workflows[0]), "utf8");
+    expect(checks).toContain("workflow_call");
+    // The gate must stay runnable by a fork PR, which is only true while it
+    // references no secrets at all.
+    expect(checks).not.toContain("secrets.");
+    expect(checks).toContain("npm install");
+    const release = readFileSync(resolve(root, workflows[1]), "utf8");
+    expect(release).toContain("uses: ./.github/workflows/checks.yml");
+    expect(release).toContain("environment: play-store");
+  });
+
+  it("adds them to an existing project later, with the manager it was scaffolded with", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "pnpm" });
+    expect(existsSync(resolve(root, ".github"))).toBe(false);
+
+    const result = addContinuousIntegration({ directory: root });
+
+    expect(result.files).toEqual(workflows);
+    // Read back from the project rather than passed in — a project scaffolded
+    // with pnpm must not silently gain npm workflows.
+    expect(readFileSync(resolve(root, workflows[0]), "utf8")).toContain("pnpm install");
+  });
+
+  it("refuses to clobber workflows that already exist", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    scaffoldGame({ directory: root, bootstrap: false, ci: true });
+
+    expect(() => addContinuousIntegration({ directory: root })).toThrow(/refusing to overwrite/);
+  });
+
+  it("rejects a directory that is not a generated project", () => {
+    const parent = temporaryParent();
+
+    expect(() => addContinuousIntegration({ directory: parent })).toThrow(/not an Eigen game project/);
   });
 });
 

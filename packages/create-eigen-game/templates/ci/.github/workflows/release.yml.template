@@ -1,0 +1,130 @@
+name: Release
+
+# Ships a signed Android build on every push to main:
+#
+#   1. checks   — the exact PR gate, re-run against the merge commit.
+#   2. build    — a signed, obfuscated AAB.
+#   3. deploy   — fastlane uploads it to the Play Store internal track.
+#
+# Worker deployment is NOT here, on purpose: it applies D1 migrations against
+# a real database, so it stays the deliberate, manual `{{PACKAGE_MANAGER}} run
+# deploy` from a machine with `wrangler login` — the same reasoning the
+# engine's own CI uses for never deploying a Worker automatically.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+# Default deny. Every job below grants itself only what it needs.
+permissions: {}
+
+jobs:
+  # The same gate every pull request clears, re-run against the commit that
+  # is about to ship. Needs no secrets, so it is called without
+  # `secrets: inherit`.
+  checks:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read
+
+  build:
+    name: Build signed AAB
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v5.6.0
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: app/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # The keystore and Play service account are the only things here that
+      # are genuinely secret. `app-config.json`, `firebase_options.dart` and
+      # `google-services.json` are public app identifiers, not credentials —
+      # commit them for real once `firebase:configure` has been run, rather
+      # than reconstructing them from secrets on every build. See
+      # https://eigeninteractive.com/docs/ship-it/configure and
+      # https://eigeninteractive.com/docs/ship-it/store-release.
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > "${{ github.workspace }}/upload-keystore.jks"
+
+      - name: Write key.properties
+        env:
+          STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "storeFile=${{ github.workspace }}/upload-keystore.jks" > android/key.properties
+          echo "storePassword=$STORE_PASSWORD" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=$KEY_PASSWORD" >> android/key.properties
+
+      - name: Build AAB
+        run: |
+          flutter build appbundle --release \
+            --build-number=${{ github.run_number }} \
+            --dart-define-from-file=app-config.json \
+            --obfuscate --split-debug-info=build/debug-info/android/
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-release-${{ github.run_number }}
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: debug-info-android-${{ github.run_number }}
+          path: app/build/debug-info/android/
+          retention-days: 30
+
+  # `environment: play-store` is not decoration: it is where a required
+  # reviewer would be attached if this ever wants one, matching how
+  # eigen-flutter's own release.yml gates its real pub.dev publish job with
+  # `environment: npm`.
+  deploy:
+    name: Deploy to Google Play
+    needs: build
+    runs-on: ubuntu-latest
+    environment: play-store
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+          working-directory: app
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: app-release-${{ github.run_number }}
+          path: app/build/app/outputs/bundle/release/
+
+      - name: Deploy to internal track
+        env:
+          SUPPLY_JSON_KEY_DATA: ${{ secrets.GOOGLE_PLAY_JSON_KEY }}
+        run: bundle exec fastlane android internal
