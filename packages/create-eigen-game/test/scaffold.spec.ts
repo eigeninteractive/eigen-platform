@@ -111,6 +111,16 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
     expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");
 
+    // Binary templates must arrive byte-identical. They did not: renderTree
+    // read every file as UTF-8 and wrote it back, so any byte that is not
+    // valid UTF-8 became U+FFFD. A 1024px PNG grew by tens of kilobytes of
+    // replacement characters and stopped decoding — `flutter_launcher_icons`
+    // failed with NoDecoderForImageFormatException. Compare the bytes, not
+    // just the length, and not merely "the file exists".
+    for (const asset of ["icon.png", "icon_foreground.png", "splash.png", "splash_dark.png"]) {
+      expect(readFileSync(resolve(root, `app/assets/icon/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/assets/icon/${asset}`)));
+    }
+
     // Branding art. `ic_notification.xml` is the one icon no generator
     // produces — `flutter_launcher_icons` does not emit it — so it has to be
     // shipped, or the manifest meta-data documented in ship-it/push would
@@ -182,7 +192,7 @@ describe("scaffoldGame", () => {
     expect(androidGradle).toContain("isCoreLibraryDesugaringEnabled = true");
     expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');
     expect(androidGradle).toContain("signingConfigs");
-    expect(androidGradle).toContain('proguardFiles(');
+    expect(androidGradle).toContain("proguardFiles(");
 
     expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("games.example.chess")');
 

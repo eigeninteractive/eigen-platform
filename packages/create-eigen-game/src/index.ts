@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENGINE_PACKAGE, engineRange } from "./engine-range.js";
 
@@ -119,24 +119,47 @@ function render(contents: string, name: string, manager: PackageManager, package
   return replacements.reduce((result, [from, to]) => result.replaceAll(from, to), contents);
 }
 
+/**
+ * True when the bytes survive a UTF-8 round trip.
+ *
+ * Token substitution is a string operation, so a file has to be decodable to
+ * take part in it. Anything else — PNG, ICO, JAR, OTF — is copied through
+ * untouched. Sniffing the content rather than keeping a list of binary
+ * extensions means a new asset type cannot silently start being mangled.
+ */
+function isUtf8Text(bytes: Buffer): boolean {
+  return Buffer.compare(Buffer.from(bytes.toString("utf8"), "utf8"), bytes) === 0;
+}
+
 function renderTree(source: string, destination: string, name: string, manager: PackageManager, packageId: string): void {
   cpSync(source, destination, { recursive: true });
+  // Walks the TEMPLATE, not the destination. The app overlay renders on top of
+  // a `flutter create` result, so walking the destination meant rewriting
+  // every file Flutter had just generated — including its binaries — for files
+  // this scaffolder does not own and has no business touching.
   const visit = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = resolve(directory, entry.name);
-      if (entry.isDirectory()) visit(path);
-      else if (entry.isFile()) {
-        writeFileSync(path, render(readFileSync(path, "utf8"), name, manager, packageId));
-        // Template-only source must not be claimed by language servers before
-        // it has an enclosing generated package. Restore the real extension
-        // only in the rendered project.
-        if (entry.name.endsWith(".template")) {
-          renameSync(path, path.slice(0, -".template".length));
-        }
+      const templatePath = resolve(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(templatePath);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+
+      const rendered = resolve(destination, relative(source, templatePath));
+      const bytes = readFileSync(templatePath);
+      if (isUtf8Text(bytes)) {
+        writeFileSync(rendered, render(bytes.toString("utf8"), name, manager, packageId));
+      }
+      // Template-only source must not be claimed by language servers before
+      // it has an enclosing generated package. Restore the real extension
+      // only in the rendered project.
+      if (entry.name.endsWith(".template")) {
+        renameSync(rendered, rendered.slice(0, -".template".length));
       }
     }
   };
-  visit(destination);
+  visit(source);
 
   // npm deliberately excludes files named `.gitignore` from package
   // tarballs. Their packaged twins live outside the C3 template so a direct
