@@ -101,12 +101,19 @@ and
 
 Android API 21+ ignores colour in notification icons — it composites the alpha
 channel against its own tint. Using the full-colour launcher icon renders a solid
-white box. The correct asset is a **monochrome silhouette vector drawable** at
-`android/app/src/main/res/drawable/ic_notification.xml`, referenced in three
-places: the manifest's `default_notification_icon` meta-data (background and
-terminated delivery), `AndroidInitializationSettings` (foreground banners), and
+white box. The correct asset is a **monochrome silhouette vector drawable** named
+`ic_notification`, referenced in three places: the manifest's
+`default_notification_icon` meta-data (background and terminated delivery),
+`AndroidInitializationSettings` (foreground banners), and
 `AndroidNotificationDetails(icon:)` (per-notification, for consistency).
 
-It is a `<vector>`, so no per-density variants are needed — and
-`flutter_launcher_icons` does **not** generate it. This is a one-time,
-hand-maintained, **per-app** asset: replace it when the app rebrands.
+**`eigen_flutter` ships a default, and the manifest meta-data that points at
+it.** Notifications work with no manifest to edit and no drawable to create —
+the engine names the resource, so the engine provides it.
+
+To use your own silhouette, add
+`android/app/src/main/res/drawable/ic_notification.xml` to the app. Android
+resolves resources in the application module's favour over a library's, so
+declaring that name *is* the override — nothing to delete, no `tools:replace`.
+It is a `<vector>`, so no per-density variants are needed, and
+`flutter_launcher_icons` does **not** generate it.
