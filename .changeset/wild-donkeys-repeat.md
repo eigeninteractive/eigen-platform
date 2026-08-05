@@ -27,3 +27,6 @@ collide with what `flutterfire configure` writes. The notification icon and its
 Firebase meta-data now come from `eigen_flutter`'s Android plugin via manifest
 and resource merging, so the scaffold no longer writes a drawable or touches
 the app manifest at all.
+
+The pinned `eigen_flutter` range moves to `^0.3.0`, which is where the
+notification icon and its Firebase meta-data now live.

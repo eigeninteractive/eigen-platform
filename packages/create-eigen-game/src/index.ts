@@ -72,15 +72,19 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * selected, and the generated app would not compile.
  *
  * A caret RANGE rather than an exact version, so it still improves without a
- * republish: `flutter pub add eigen_flutter@^0.2.0` already picks the newest
- * 0.2.x at scaffold time, which is the part the pub.dev lookup was duplicating.
- * What it deliberately cannot do is cross to 0.3.x — the one move that needs a
+ * republish: `flutter pub add eigen_flutter@^0.3.0` already picks the newest
+ * 0.3.x at scaffold time, which is the part the pub.dev lookup was duplicating.
+ * What it deliberately cannot do is cross to 0.4.x — the one move that needs a
  * human to confirm the templates still compile.
  *
  * Staleness is therefore a failing check rather than a broken scaffold: this is
  * only ever a release behind, never wrong.
+ *
+ * Raised to 0.3.0 because the notification icon moved into `eigen_flutter`'s
+ * Android plugin: the scaffold stopped shipping `ic_notification.xml`, so a
+ * game resolving 0.2.x would reference a drawable nothing provides.
  */
-const flutterClientVersion = "^0.2.0";
+const flutterClientVersion = "^0.3.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
