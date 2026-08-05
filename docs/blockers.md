@@ -27,7 +27,9 @@ even when nothing has changed.
 **Status:** Adopted deliberately. `release.yml` pins the `select-mode`,
 `version`, `pack` and `publish` sub-actions to commit
 `c47fa68bd43bb8ae0bae7e558622593deebf5955` (`v2.0.0-next.3`). Move to a stable
-`v2` tag when one is published. Last checked: 2026-08-01.
+`v2` tag when one is published. Last checked: 2026-08-05 — still none. The line
+advanced to `v2.0.0-next.4` on 2026-08-03; the newest non-prerelease is
+`v1.9.0`.
 
 These sub-actions are the only way to publish to npm with **trusted publishing**
 (OIDC), which is why they were adopted before the stable release. The
@@ -56,13 +58,20 @@ The prerelease risk is bounded rather than absent:
   something wrong.
 
 The known cost is that inputs are still moving: v1's `version:` input is already
-renamed to `script:` on this line. Expect input adjustments when migrating to
-stable, not a re-architecture — the four-job topology is the part being bought,
-and that is settled.
+renamed to `script:` on this line, and `next.4` removed `setup-git-user` and
+replaced `commit-mode` with a boolean `push-with-git-cli`. Neither reaches
+`release.yml`, which passes only `github-token` — the one input `next.4` now
+requires to be explicit, since it stops accepting the `GITHUB_TOKEN` environment
+variable and `actions/checkout` credentials as substitutes. Expect input
+adjustments when migrating to stable, not a re-architecture — the four-job
+topology is the part being bought, and that is settled.
 
 This pin has a second half. `@changesets/cli` is pinned to `3.0.0-next.10`
 because `select-mode` calls `changeset publish-plan`, which does not exist on
-the stable 2.x line. Both move together or neither does.
+the stable 2.x line. Both move together or neither does — and `next.4` now
+*enforces* that, failing outright against a v2 CLI and directing those projects
+to `changesets/action@v1`. The CLI has not stabilised either: `latest` is
+`2.31.1` and `next` is `3.0.0-next.11`.
 
 #### Unblock and remove
 
@@ -109,7 +118,10 @@ Upstream references:
 ### Flutter Android built-in Kotlin migration
 
 **Status:** Blocked on a compatible `in_app_review` release and a project
-upgrade to Flutter 3.47 or later. Last checked: 2026-07-31.
+upgrade to Flutter 3.47 or later. Last checked: 2026-08-05 — neither has moved.
+`in_app_review` is still 2.0.12 (published 2026-05-15), and 3.47 has not reached
+stable: the current stable is 3.44.8 and 3.47 exists only on beta
+(`3.47.0-0.3.pre`).
 
 Flutter is migrating Android apps and plugins from the separately applied
 Kotlin Gradle plugin to Gradle's built-in Kotlin support. The workspace
@@ -157,7 +169,9 @@ Upstream references:
 
 **Status:** Blocked until FlutterFire publishes the proposed API in a released
 package. [Issue #18479][flutterfire-issue] and
-[PR #18482][flutterfire-pr] were both open when last checked on 2026-07-31.
+[PR #18482][flutterfire-pr] were both still open when last checked on
+2026-08-05. The PR is not merged and carries only bot review activity, and
+`firebase_messaging` has published since without it (16.5.0, 2026-08-03).
 
 The current Firebase Cloud Messaging API in the released `firebase_messaging`
 package does not expose Firebase's FID-based `register`, `unregister`,
