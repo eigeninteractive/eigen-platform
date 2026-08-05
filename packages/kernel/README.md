@@ -1,4 +1,4 @@
-# @eigeninteractive/kernel
+# <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/kernel
 
 The pure decision core of the [Eigen engine](https://eigeninteractive.com).
 

@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Example Game">
   <title>Example Game</title>
+  <!-- `flutter_launcher_icons` generates favicon.png and web/icons/ from
+       assets/icon/icon.png, and rewrites this href in place. -->
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>

@@ -1,4 +1,4 @@
-# @eigeninteractive/testkit
+# <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/testkit
 
 Test helpers for games built on the [Eigen engine](https://eigeninteractive.com).
 

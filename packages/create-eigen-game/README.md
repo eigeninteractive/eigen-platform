@@ -1,4 +1,4 @@
-# create-eigen-game
+# <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> create-eigen-game
 
 Creates one repository containing an Eigen Cloudflare Worker and Flutter app:
 

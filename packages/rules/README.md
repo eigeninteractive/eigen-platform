@@ -1,4 +1,4 @@
-# @eigeninteractive/rules
+# <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/rules
 
 The game-rules contract for the [Eigen engine](https://eigeninteractive.com) — a
 server-authoritative engine for turn-based multiplayer games.

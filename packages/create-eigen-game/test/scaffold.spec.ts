@@ -99,6 +99,36 @@ describe("scaffoldGame", () => {
     expect(devVars).not.toContain("WEB_APP_ORIGIN=");
     expect(devVars).toContain("FIREBASE_PRIVATE_KEY=");
 
+    // Native release plumbing — rendered unconditionally by the app-overlay
+    // tree, so present even with `bootstrap: false` (unlike the Gradle/pubspec
+    // appends below, which need a real `flutter create` output to edit).
+    expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("com.example.my_game")');
+    expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).toContain("upload_to_play_store");
+    expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
+    expect(readFileSync(resolve(root, "app/.ruby-version"), "utf8").trim()).not.toBe("");
+    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.44.8");
+    expect(readFileSync(resolve(root, "app/android/app/proguard-rules.pro"), "utf8")).toContain("image_cropper");
+    expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
+    expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");
+
+    // Branding art. `ic_notification.xml` is the one icon no generator
+    // produces — `flutter_launcher_icons` does not emit it — so it has to be
+    // shipped, or the manifest meta-data documented in ship-it/push would
+    // reference a drawable that does not exist.
+    for (const asset of ["icon.png", "icon_foreground.png", "splash.png", "splash_dark.png"]) {
+      expect(readFileSync(resolve(root, `app/assets/icon/${asset}`)).byteLength).toBeGreaterThan(0);
+    }
+    const notificationIcon = readFileSync(resolve(root, "app/android/app/src/main/res/drawable/ic_notification.xml"), "utf8");
+    expect(notificationIcon).toContain("<vector");
+    expect(notificationIcon).toContain('android:strokeColor="#FFFFFF"');
+
+    const checksWorkflow = readFileSync(resolve(root, ".github/workflows/checks.yml"), "utf8");
+    expect(checksWorkflow).toContain("workflow_call");
+    expect(checksWorkflow).not.toContain("secrets.");
+    const releaseWorkflow = readFileSync(resolve(root, ".github/workflows/release.yml"), "utf8");
+    expect(releaseWorkflow).toContain("uses: ./.github/workflows/checks.yml");
+    expect(releaseWorkflow).toContain("environment: play-store");
+
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.name).toBe("my-game");
     expect(rootManifest.private).toBe(true);
@@ -136,12 +166,39 @@ describe("scaffoldGame", () => {
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
     expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.2.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
+    // A separate `pub add` (rather than folded into the call above) so a
+    // failure here is legible on its own, and because these are dev
+    // dependencies (`dev:` prefix) while the engine/Firebase packages above
+    // are not.
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], expect.stringMatching(/\/app$/));
+    // Configuring the icon tools is not enough — both write committed files,
+    // so they have to actually run or the app ships Flutter's own blue logo.
+    expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_native_splash:create"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
     const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
     expect(androidGradle).toContain("isCoreLibraryDesugaringEnabled = true");
     expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');
+    expect(androidGradle).toContain("signingConfigs");
+    expect(androidGradle).toContain('proguardFiles(');
+
+    expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("games.example.chess")');
+
+    const appPubspec = readFileSync(resolve(root, "app/pubspec.yaml"), "utf8");
+    expect(appPubspec).toContain("flutter_launcher_icons:");
+    expect(appPubspec).toContain("flutter_native_splash:");
+    // `scaffoldGame` only creates `--platforms android,web` — `ios`/`macos`
+    // keys would make `flutter_launcher_icons` error on a platform directory
+    // that doesn't exist.
+    expect(appPubspec).not.toContain("ios:");
+    expect(appPubspec).not.toContain("macos:");
+    // The shipped adaptive foreground is the reversed, light-on-dark mark, so
+    // the background behind it has to be ink — the previous "#FFFFFF" default
+    // would render it invisible.
+    expect(appPubspec).toContain('adaptive_icon_background: "#1B1E24"');
+    expect(appPubspec).toContain("image_dark: assets/icon/splash_dark.png");
 
     const rootManifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
     expect(rootManifest.scripts.contract).toContain("cd server && pnpm run contract");

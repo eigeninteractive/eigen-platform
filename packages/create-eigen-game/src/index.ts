@@ -105,10 +105,11 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
   return undefined;
 }
 
-function render(contents: string, name: string, manager: PackageManager): string {
+function render(contents: string, name: string, manager: PackageManager, packageId: string): string {
   const replacements: ReadonlyArray<readonly [string, string]> = [
     ["@game/example-game-server", `@game/${name}-server`],
     ["{{PACKAGE_MANAGER}}", manager],
+    ["{{PACKAGE_ID}}", packageId],
     ["{{ENGINE_VERSION}}", engineVersion],
     ["ExampleGame", identifier(name)],
     ["Example Game", title(name)],
@@ -118,14 +119,14 @@ function render(contents: string, name: string, manager: PackageManager): string
   return replacements.reduce((result, [from, to]) => result.replaceAll(from, to), contents);
 }
 
-function renderTree(source: string, destination: string, name: string, manager: PackageManager): void {
+function renderTree(source: string, destination: string, name: string, manager: PackageManager, packageId: string): void {
   cpSync(source, destination, { recursive: true });
   const visit = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = resolve(directory, entry.name);
       if (entry.isDirectory()) visit(path);
       else if (entry.isFile()) {
-        writeFileSync(path, render(readFileSync(path, "utf8"), name, manager));
+        writeFileSync(path, render(readFileSync(path, "utf8"), name, manager, packageId));
         // Template-only source must not be claimed by language servers before
         // it has an enclosing generated package. Restore the real extension
         // only in the rendered project.
@@ -142,7 +143,7 @@ function renderTree(source: string, destination: string, name: string, manager: 
   // Git-based C3 render does not inherit a scaffolder-only helper file.
   const packagedGitignore = resolve(templatesRoot, "scaffold", `${basename(source)}.gitignore`);
   if (existsSync(packagedGitignore)) {
-    writeFileSync(resolve(destination, ".gitignore"), render(readFileSync(packagedGitignore, "utf8"), name, manager));
+    writeFileSync(resolve(destination, ".gitignore"), render(readFileSync(packagedGitignore, "utf8"), name, manager, packageId));
   }
 }
 
@@ -178,11 +179,118 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
   appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "\n" : "\n\n"}${androidDesugaring}\n`);
 }
 
+// A second top-level `android { }` block is valid Gradle Kotlin DSL — Gradle
+// merges repeated extension-configuration blocks in one file, which is what
+// lets this stay a pure append, same as the desugaring block above. A second
+// top-level `plugins { }` block is NOT valid (Gradle allows exactly one per
+// script), which is why the Crashlytics Gradle plugin registration —
+// `flutterfire configure`'s own territory — is deliberately left alone here.
+//
+// `Properties` needs a real `import`, prepended separately below — a
+// fully-qualified `java.util.Properties()` reference here was tried first,
+// to avoid needing to touch the top of the file at all, but fails to
+// resolve under AGP 9's Kotlin DSL script compilation
+// (`flutter create`'s current default): "Unresolved reference 'util'".
+// Confirmed by actually building a scaffolded project, not just reading it.
+const androidReleaseSigning = `val releaseKeyProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
+android {
+    signingConfigs {
+        create("release") {
+            storeFile = releaseKeyProperties["storeFile"]?.let { file(it as String) }
+            storePassword = releaseKeyProperties["storePassword"] as String?
+            keyAlias = releaseKeyProperties["keyAlias"] as String?
+            keyPassword = releaseKeyProperties["keyPassword"] as String?
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig = if (releaseKeyProperties["storeFile"] != null)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+        }
+    }
+}`;
+
+function enableAndroidReleaseSigning(appRoot: string): void {
+  const gradlePath = resolve(appRoot, "android/app/build.gradle.kts");
+  const gradle = readFileSync(gradlePath, "utf8");
+  // Not `gradle.includes("signingConfigs")` — Flutter's own template already
+  // contains that substring (`signingConfig = signingConfigs.getByName("debug")`),
+  // so that check would always short-circuit and never append anything.
+  if (gradle.includes("releaseKeyProperties")) return;
+  // Kotlin imports must precede every other top-level declaration, so this is
+  // the one piece that has to go at the very START of the file rather than
+  // the end. Flutter's generated file has no file-level annotations, so
+  // prepending is always syntactically valid here.
+  const withImport = `import java.util.Properties\n\n${gradle}`;
+  writeFileSync(gradlePath, `${withImport.endsWith("\n") ? withImport : `${withImport}\n`}${androidReleaseSigning}\n`);
+}
+
+// `flutter_launcher_icons`/`flutter_native_splash` read these as plain
+// top-level pubspec keys, so appending is safe regardless of what
+// `flutter create` already wrote under `flutter:`. Deliberately omits
+// `ios`/`macos` — `scaffoldGame` only creates `--platforms android,web`, and
+// `flutter_launcher_icons` errors if told to target a platform whose
+// directory doesn't exist.
+// The colours are the Eigen palette (ink #1B1E24, paper #F4F1EA) because the
+// shipped placeholder art is the Eigen mark: the adaptive foreground is the
+// reversed, light-on-dark variant, so an ink background is what makes it
+// legible. Rebranding a game means replacing the four PNGs *and* these
+// colours together — see https://eigeninteractive.com/docs/ship-it/branding.
+const launcherIconsAndSplashConfig = `
+flutter_launcher_icons:
+  android: true
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#1B1E24"
+  adaptive_icon_foreground: "assets/icon/icon_foreground.png"
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#F4F1EA"
+  color_dark: "#1B1E24"
+  image: assets/icon/splash.png
+  image_dark: assets/icon/splash_dark.png
+  fullscreen: true
+  android_12:
+    color: "#F4F1EA"
+    color_dark: "#1B1E24"
+    image: assets/icon/splash.png
+    image_dark: assets/icon/splash_dark.png
+    icon_background_color: "#F4F1EA"
+    icon_background_color_dark: "#1B1E24"
+  web: true
+`;
+
+function configureLauncherIconsAndSplash(appRoot: string): void {
+  const pubspecPath = resolve(appRoot, "pubspec.yaml");
+  const pubspec = readFileSync(pubspecPath, "utf8");
+  if (pubspec.includes("flutter_launcher_icons:")) return;
+  appendFileSync(pubspecPath, `${pubspec.endsWith("\n") ? "" : "\n"}${launcherIconsAndSplashConfig}`);
+}
+
 export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const root = resolve(options.directory);
   const name = gameSlug(basename(root));
   const manager = options.packageManager ?? detectPackageManager() ?? "pnpm";
   const org = options.org?.trim() || "com.example";
+  // Mirrors how `flutter create --org` derives the real Android
+  // `applicationId`/iOS bundle id, so Fastlane's `Appfile` names the same
+  // package the build actually produces.
+  const packageId = `${org}.${dartName(name)}`;
   const bootstrap = options.bootstrap ?? true;
   const run = options.run ?? ((command, args, cwd) => execFileSync(command, args, { cwd, stdio: "inherit" }));
 
@@ -197,19 +305,28 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     const serverRoot = resolve(stagingRoot, "server");
     const appRoot = resolve(stagingRoot, "app");
 
-    renderTree(resolve(templatesRoot, "worker"), serverRoot, name, manager);
-    renderTree(resolve(templatesRoot, "project"), stagingRoot, name, manager);
+    renderTree(resolve(templatesRoot, "worker"), serverRoot, name, manager, packageId);
+    renderTree(resolve(templatesRoot, "project"), stagingRoot, name, manager, packageId);
 
     if (bootstrap) {
       run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
       enableAndroidCoreLibraryDesugaring(appRoot);
+      enableAndroidReleaseSigning(appRoot);
     } else {
       mkdirSync(appRoot, { recursive: true });
     }
-    renderTree(resolve(templatesRoot, "app-overlay"), appRoot, name, manager);
+    renderTree(resolve(templatesRoot, "app-overlay"), appRoot, name, manager, packageId);
 
     if (bootstrap) {
+      configureLauncherIconsAndSplash(appRoot);
       run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
+      run("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
+      // Actually apply the icons rather than only configuring them. Both tools
+      // write generated files (mipmaps, `web/icons/`, splash drawables and
+      // styles) that are committed, not built — leaving them unrun would ship
+      // Flutter's own blue logo until a game author happened to notice.
+      run("dart", ["run", "flutter_launcher_icons"], appRoot);
+      run("dart", ["run", "flutter_native_splash:create"], appRoot);
       const [install, installArgs] = packageCommand(manager, "install");
       run(install, installArgs, serverRoot);
       const [contract, contractArgs] = packageCommand(manager, "contract");
