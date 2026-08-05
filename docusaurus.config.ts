@@ -40,6 +40,29 @@ const config: Config = {
       tagName: "link",
       attributes: { rel: "manifest", href: "/site.webmanifest" },
     },
+    // Tints mobile browser chrome. The manifest's `theme_color` only applies
+    // once installed, so a browsing visitor never sees it without these.
+    //
+    // Declared here rather than in `themeConfig.metadata` on purpose: two
+    // tags share the name `theme-color` and differ only by `media`, and
+    // react-helmet de-duplicates meta by name — it would keep just one of
+    // them. `headTags` is emitted verbatim, so both survive.
+    {
+      tagName: "meta",
+      attributes: {
+        name: "theme-color",
+        media: "(prefers-color-scheme: light)",
+        content: "#F4F1EA",
+      },
+    },
+    {
+      tagName: "meta",
+      attributes: {
+        name: "theme-color",
+        media: "(prefers-color-scheme: dark)",
+        content: "#1B1E24",
+      },
+    },
   ],
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -239,10 +262,26 @@ const config: Config = {
   themeConfig: {
     // Default social/OG card (1200x630), emitted as og:image + twitter:image.
     image: "brand/og-card.png",
+    // Docusaurus emits og:image/twitter:image/og:title/og:description/og:url
+    // and the canonical link on its own. It does NOT emit any of the five
+    // below, so they are declared here.
+    //
+    // The dimensions are safe to state globally only because no page
+    // overrides `image` in its front matter — every page shares the one
+    // 1200x630 card. A page-level override would need its own width/height
+    // beside it, since react-helmet would replace og:image but leave these.
     metadata: [
       {
         name: "description",
         content: "Eigen Interactive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "Eigen Interactive" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      {
+        property: "og:image:alt",
+        content: "EigenInteractive — the open-source engine for turn-based multiplayer games",
       },
     ],
     colorMode: {
