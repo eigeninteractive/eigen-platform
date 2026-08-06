@@ -11,7 +11,7 @@ Every `/api/engine/*` route requires a Firebase bearer; `/api/bot/action` is
 HMAC-authenticated; the web routes are public.
 
 This page is the map. For per-operation request/response schemas, see the
-generated [HTTP API reference](./http-api/eigen-engine-api.info.mdx), or read
+generated [HTTP API reference](./http-api/eigeninteractive-engine-api.info.mdx), or read
 the [`openapi.json`](pathname:///openapi.json) spec directly.
 
 ## Client API — `/api/engine`

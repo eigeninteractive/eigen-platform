@@ -60,7 +60,7 @@ request surface is three cleanly separated spaces on one host:
 The two API groups are **separate hono sub-apps** so their auth never mixes: the
 engine group's Firebase middleware is scoped to `/api/engine/*` and never runs
 for a bot or a public request. Both groups emit into one OpenAPI document (each
-with its own security scheme) — the [HTTP API reference](../reference/http-api/eigen-engine-api.info.mdx)
+with its own security scheme) — the [HTTP API reference](../reference/http-api/eigeninteractive-engine-api.info.mdx)
 is generated from it, and the typed Dart client is generated from it in this
 same repository and published to pub.dev.
 

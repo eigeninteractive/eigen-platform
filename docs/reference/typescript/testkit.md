@@ -8,7 +8,7 @@ assert on the resulting transitions and per-seat observations.
 
 ### ActionCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:82](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L82)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:82](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L82)
 
 A game-action case — exercises schemas, `applyAction`, and (through
 `expected.observation`) `computeObservation` for the acting seat.
@@ -21,7 +21,7 @@ A game-action case — exercises schemas, `applyAction`, and (through
 action: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L93)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L93)
 
 ##### config
 
@@ -29,7 +29,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:93](https://gith
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:85](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L85)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:85](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L85)
 
 ##### expected
 
@@ -43,7 +43,7 @@ expected: {
 };
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:94](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L94)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:94](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L94)
 
 ###### observation?
 
@@ -81,7 +81,7 @@ valid: boolean;
 kind: "action";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:83](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L83)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:83](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L83)
 
 ##### name
 
@@ -89,7 +89,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:83](https://gith
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L84)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L84)
 
 ##### obs?
 
@@ -97,7 +97,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:84](https://gith
 optional obs?: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:88](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L88)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:88](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L88)
 
 Dart-side observation payload; unused here (defaults to `state`).
 
@@ -107,7 +107,7 @@ Dart-side observation payload; unused here (defaults to `state`).
 optional participantCount?: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L91)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L91)
 
 ##### pending
 
@@ -115,7 +115,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:91](https://gith
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:89](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L89)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:89](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L89)
 
 ##### playerIndex
 
@@ -123,7 +123,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:89](https://gith
 playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L90)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L90)
 
 ##### rngSeed?
 
@@ -131,7 +131,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:90](https://gith
 optional rngSeed?: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L92)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L92)
 
 ##### state
 
@@ -139,13 +139,13 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:92](https://gith
 state: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:86](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L86)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:86](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L86)
 
 ***
 
 ### BotSeatableCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:118](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L118)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:118](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L118)
 
 A `botSeatable` predicate case.
 
@@ -157,7 +157,7 @@ A `botSeatable` predicate case.
 botConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L122)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L122)
 
 ##### expected
 
@@ -165,7 +165,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:122](https://git
 expected: boolean;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L123)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L123)
 
 ##### gameConfig
 
@@ -173,7 +173,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:123](https://git
 gameConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:121](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L121)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:121](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L121)
 
 ##### kind
 
@@ -181,7 +181,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:121](https://git
 kind: "botSeatable";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:119](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L119)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:119](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L119)
 
 ##### name
 
@@ -189,13 +189,13 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:119](https://git
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:120](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L120)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:120](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L120)
 
 ***
 
 ### BuildGameContractOptions
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:45](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L45)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:45](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L45)
 
 Inputs for building a [GameContract](#gamecontract) without writing it.
 
@@ -211,7 +211,7 @@ Inputs for building a [GameContract](#gamecontract) without writing it.
 optional fixturesRoot?: any;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L51)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L51)
 
 Root containing `v<N>/*.json` twin fixtures.
 
@@ -221,7 +221,7 @@ Root containing `v<N>/*.json` twin fixtures.
 game: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:47](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L47)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:47](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L47)
 
 Stable display name used as the generated Dart type prefix.
 
@@ -231,7 +231,7 @@ Stable display name used as the generated Dart type prefix.
 gameModule: GameModule;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:49](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L49)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:49](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L49)
 
 Authoritative TypeScript rules registry.
 
@@ -404,7 +404,7 @@ the host delivers them as a follow-up versioned ratings transition.
 
 ### EmitGameContractOptions
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:55](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L55)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:55](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L55)
 
 Inputs for emitting or checking a [GameContract](#gamecontract) file.
 
@@ -420,7 +420,7 @@ Inputs for emitting or checking a [GameContract](#gamecontract) file.
 optional fixturesRoot?: any;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L51)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L51)
 
 Root containing `v<N>/*.json` twin fixtures.
 
@@ -434,7 +434,7 @@ Root containing `v<N>/*.json` twin fixtures.
 game: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:47](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L47)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:47](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L47)
 
 Stable display name used as the generated Dart type prefix.
 
@@ -448,7 +448,7 @@ Stable display name used as the generated Dart type prefix.
 gameModule: GameModule;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:49](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L49)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:49](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L49)
 
 Authoritative TypeScript rules registry.
 
@@ -462,7 +462,7 @@ Authoritative TypeScript rules registry.
 output: any;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:57](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L57)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:57](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L57)
 
 Destination `game-contract.json` path.
 
@@ -470,7 +470,7 @@ Destination `game-contract.json` path.
 
 ### GameContract
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:37](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L37)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:37](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L37)
 
 Language-neutral schemas and fixtures shared by a game's Worker and app.
 
@@ -482,7 +482,7 @@ Language-neutral schemas and fixtures shared by a game's Worker and app.
 fixtures: GameContractFixture[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:41](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L41)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:41](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L41)
 
 ##### formatVersion
 
@@ -490,7 +490,7 @@ Defined in: [eigen-server/packages/testkit/src/game-contract.ts:41](https://gith
 formatVersion: 1;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:38](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L38)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:38](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L38)
 
 ##### game
 
@@ -498,7 +498,7 @@ Defined in: [eigen-server/packages/testkit/src/game-contract.ts:38](https://gith
 game: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:39](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L39)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:39](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L39)
 
 ##### versions
 
@@ -506,13 +506,13 @@ Defined in: [eigen-server/packages/testkit/src/game-contract.ts:39](https://gith
 versions: Record<string, GameContractVersion>;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:40](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L40)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:40](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L40)
 
 ***
 
 ### GameContractFixture
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:19](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L19)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:19](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L19)
 
 One validated twin-fixture document embedded in a [GameContract](#gamecontract).
 
@@ -524,7 +524,7 @@ One validated twin-fixture document embedded in a [GameContract](#gamecontract).
 document: unknown;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:23](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L23)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:23](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L23)
 
 Validated fixture document, retained in its original JSON shape.
 
@@ -534,7 +534,7 @@ Validated fixture document, retained in its original JSON shape.
 path: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:21](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L21)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:21](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L21)
 
 POSIX-style path relative to the supplied fixtures root.
 
@@ -542,7 +542,7 @@ POSIX-style path relative to the supplied fixtures root.
 
 ### GameContractVersion
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:27](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L27)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:27](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L27)
 
 The four JSON Schemas emitted for one game `schemaVersion`.
 
@@ -559,7 +559,7 @@ schemas: {
 };
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:28](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L28)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:28](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L28)
 
 ###### action
 
@@ -701,7 +701,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:116
 
 ### RatingPoolCase
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:104](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L104)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:104](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L104)
 
 A `ratingPool` predicate case. Omitted timing fields mean null.
 
@@ -713,7 +713,7 @@ A `ratingPool` predicate case. Omitted timing fields mean null.
 access: GameAccess;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L107)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L107)
 
 ##### budgetSeconds?
 
@@ -721,7 +721,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:107](https://git
 optional budgetSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:109](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L109)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:109](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L109)
 
 ##### config
 
@@ -729,7 +729,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:109](https://git
 config: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L113)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L113)
 
 ##### expected
 
@@ -737,7 +737,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:113](https://git
 expected: string | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L114)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L114)
 
 ##### incrementSeconds?
 
@@ -745,7 +745,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:114](https://git
 optional incrementSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L110)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L110)
 
 ##### kind
 
@@ -753,7 +753,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:110](https://git
 kind: "ratingPool";
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:105](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L105)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:105](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L105)
 
 ##### maxPlayers
 
@@ -761,7 +761,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:105](https://git
 maxPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L112)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L112)
 
 ##### minPlayers
 
@@ -769,7 +769,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:112](https://git
 minPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L111)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L111)
 
 ##### name
 
@@ -777,7 +777,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:111](https://git
 name: string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L106)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L106)
 
 ##### turnSeconds?
 
@@ -785,7 +785,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:106](https://git
 optional turnSeconds?: number | null;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:108](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L108)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:108](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L108)
 
 ***
 
@@ -968,7 +968,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:246
 
 ### TwinFixtureFile
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:75](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L75)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:75](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L75)
 
 One fixture file: cases targeting one `schemaVersion` unit.
 
@@ -980,7 +980,7 @@ One fixture file: cases targeting one `schemaVersion` unit.
 cases: TwinFixtureCase[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:77](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L77)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:77](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L77)
 
 ##### schemaVersion
 
@@ -988,7 +988,7 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:77](https://gith
 schemaVersion: number;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:76](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L76)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:76](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L76)
 
 ## Type Aliases
 
@@ -1186,7 +1186,7 @@ type TwinFixtureCase =
   | BotSeatableCase;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:126](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L126)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:126](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L126)
 
 ## Variables
 
@@ -1196,9 +1196,9 @@ Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:126](https://git
 const GAME_CONTRACT_FORMAT_VERSION: 1 = 1;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:16](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L16)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:16](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L16)
 
-Current format of the language-neutral contract consumed by Eigen's Dart generator.
+Current format of the language-neutral contract consumed by EigenInteractive's Dart generator.
 
 ## Functions
 
@@ -1208,7 +1208,7 @@ Current format of the language-neutral contract consumed by Eigen's Dart generat
 function buildGameContract(options): GameContract;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:121](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L121)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:121](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L121)
 
 Build a deterministic in-memory contract without touching the filesystem.
 
@@ -1230,7 +1230,7 @@ Build a deterministic in-memory contract without touching the filesystem.
 function checkConfiguredGameContract(root?): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/contract-command.ts:76](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/contract-command.ts#L76)
+Defined in: [eigen-server/packages/testkit/src/contract-command.ts:76](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/contract-command.ts#L76)
 
 Fails when the conventionally configured contract is absent or stale.
 
@@ -1254,7 +1254,7 @@ Use this in CI through `eigen-contract --check`.
 function checkGameContract(options): void;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:165](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L165)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:165](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L165)
 
 Fail when an emitted contract is missing or differs from its inputs.
 
@@ -1296,7 +1296,7 @@ Defined in: eigen-server/packages/kernel/dist/index.d.ts:372
 function deepEquals(a, b): boolean;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:480](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L480)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:480](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L480)
 
 Structural JSON equality. Object keys with `undefined` values count as
 absent (matching how schema libraries model optional fields); array order
@@ -1349,9 +1349,9 @@ derivation is fixed, so recorded games stay replayable.
 function emitConfiguredGameContract(root?): Promise<void>;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/contract-command.ts:67](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/contract-command.ts#L67)
+Defined in: [eigen-server/packages/testkit/src/contract-command.ts:67](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/contract-command.ts#L67)
 
-Emits `game-contract.json` from an Eigen package's conventional layout.
+Emits `game-contract.json` from an EigenInteractive package's conventional layout.
 
 This is the programmatic form of the `eigen-contract` executable. Most
 games should invoke the executable through their package script.
@@ -1374,7 +1374,7 @@ games should invoke the executable through their package script.
 function emitGameContract(options): void;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:159](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L159)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:159](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L159)
 
 Emit one deterministic, newline-terminated `game-contract.json`.
 
@@ -1396,7 +1396,7 @@ Emit one deterministic, newline-terminated `game-contract.json`.
 function evaluateTwinCase(rules, kase): string[];
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:274](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L274)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:274](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L274)
 
 Run one fixture case against a rules unit, returning failure descriptions
 (empty ⇒ the case passes). Pure — the file-reading test registrar is
@@ -1421,7 +1421,7 @@ Run one fixture case against a rules unit, returning failure descriptions
 function gameContractFilename(game): string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:173](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L173)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:173](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L173)
 
 A useful default filename for scripts that accept an output directory.
 
@@ -1443,7 +1443,7 @@ A useful default filename for scripts that accept an output directory.
 function gameContractJson(options): string;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/game-contract.ts:154](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/game-contract.ts#L154)
+Defined in: [eigen-server/packages/testkit/src/game-contract.ts:154](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/game-contract.ts#L154)
 
 Render one deterministic, newline-terminated contract document.
 
@@ -1487,7 +1487,7 @@ Type guard: did `commit()` refuse the intent?
 function parseTwinFixtureFile(path, json): TwinFixtureFile;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:247](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L247)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:247](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L247)
 
 Validate one fixture file's parsed JSON, or throw naming the offending
 file, case, and field. Exported so a repo can lint its fixtures without
@@ -1512,7 +1512,7 @@ running them.
 function projectView(rules, args): SeatView;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/kernel-scenarios.ts:39](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/kernel-scenarios.ts#L39)
+Defined in: [eigen-server/packages/testkit/src/kernel-scenarios.ts:39](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/kernel-scenarios.ts#L39)
 
 Project one seat's view of a state — the stored-frame shape the same-view
 rule compares (`commit()`'s `staleViews` input). Convenience for scenario
@@ -1562,7 +1562,7 @@ never expose it: the whole randomness of the game is derivable from it).
 function twinFixtureTests(gameModule, fixturesRoot): void;
 ```
 
-Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:290](https://github.com/eigeninteractive/eigen-server/blob/ede46491e0a839f6b6173a254d8d3dfa6e09bb9b/packages/testkit/src/twin-fixtures.ts#L290)
+Defined in: [eigen-server/packages/testkit/src/twin-fixtures.ts:290](https://github.com/eigeninteractive/eigen-server/blob/428ecf5cc528790767de6a95ce4b815765399e75/packages/testkit/src/twin-fixtures.ts#L290)
 
 Register one vitest test per fixture case found under `fixturesRoot`
 (layout: `<root>/v<N>/*.json`). Call at the top level of a test module

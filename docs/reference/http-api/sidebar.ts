@@ -4,7 +4,7 @@ const sidebar: SidebarsConfig = {
   apisidebar: [
     {
       type: "doc",
-      id: "reference/http-api/eigen-engine-api",
+      id: "reference/http-api/eigeninteractive-engine-api",
     },
     {
       type: "category",

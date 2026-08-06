@@ -40,7 +40,7 @@ member, or type:
 
 `eigen_api` is the generated transport package used inside `eigen_flutter`.
 Game apps do not depend on or import it directly. For wire-level lookup, use
-the [HTTP API reference](./http-api/eigen-engine-api.info.mdx) or
+the [HTTP API reference](./http-api/eigeninteractive-engine-api.info.mdx) or
 [`openapi.json`](pathname:///openapi.json).
 
 ## Versioned docs

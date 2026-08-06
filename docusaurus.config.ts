@@ -344,7 +344,13 @@ const config: Config = {
         {
           title: "Reference",
           items: [
-            { label: "HTTP API", to: "/docs/reference/http-api/eigen-engine-api" },
+            // This slug is the kebab-cased `info.title` of the engine's
+            // openapi.json — `docusaurus-plugin-openapi-docs` derives the info
+            // page's id from it and offers no way to pin it. So renaming the
+            // spec's title moves this page, and every hand-written link to it
+            // breaks on the next `sync-api`. Grep for the old slug when that
+            // happens; the generated `.api.mdx` front matter fixes itself.
+            { label: "HTTP API", to: "/docs/reference/http-api/eigeninteractive-engine-api" },
             { label: "TypeScript API", to: "/docs/reference/typescript" },
             { label: "Dart API", href: "https://pub.dev/documentation/eigen_flutter/latest/" },
             // `pathname://` opts out of the SPA router *and* the broken-link
