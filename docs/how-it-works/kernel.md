@@ -6,9 +6,10 @@ description: The pure decision core — a function from inputs to a commit plan,
 
 # The kernel — the pure decision core
 
-`@eigeninteractive/kernel` is the crown jewel: a pure function from inputs to a commit
-plan. It touches no platform API, so it is exhaustively unit-testable and
-identical in every environment.
+`@eigeninteractive/kernel` is where every decision about a game is made: a pure
+function from inputs to a commit plan. It touches no platform API, so it behaves
+identically in every environment — which is why your hooks can be tested without
+a Worker, a socket or a database anywhere in sight.
 
 ```text
 commit({ game, state, roster, intent, now, rules, staleViews }) →
