@@ -2,15 +2,15 @@
 sidebar_position: 1
 slug: /intro
 title: Introduction
-description: What the Eigen engine is, what building a game on it actually involves, and how these docs are organised around that.
+description: What the EigenInteractive engine is, what building a game on it actually involves, and how these docs are organised around that.
 ---
 
 # Introduction
 
-**Eigen** is an open-source, server-authoritative engine for **turn-based
-multiplayer games**. Your game ships as a single Cloudflare Worker that owns its
-own domain, database and players, plus a Flutter app for Android and the web
-that is almost entirely the engine's. You supply the rules.
+**EigenInteractive** is an open-source, server-authoritative engine for
+**turn-based multiplayer games**. Your game ships as a single Cloudflare Worker
+that owns its own domain, database and players, plus a Flutter app for Android
+and the web that is almost entirely the engine's. You supply the rules.
 
 The rules run on the server, so a client's move is always a proposal the server
 validates — hidden information never leaves the server except as a per-seat
@@ -37,7 +37,7 @@ versions, persistence or ratings.
 | If you want to… | Go to |
 |---|---|
 | Run both halves in the next five minutes | [Quickstart](./getting-started/quickstart.md) |
-| Add Eigen to existing or separate repositories | [Manual setup](./getting-started/manual-setup.md) |
+| Add EigenInteractive to existing or separate repositories | [Manual setup](./getting-started/manual-setup.md) |
 | See a whole game, both languages | [Your first game](./getting-started/your-first-game.md) |
 | Write your own game | [Build a game](./build-a-game/the-contract.md) |
 | Get it in front of players | [Ship it](./ship-it/deploy-the-worker.md) |

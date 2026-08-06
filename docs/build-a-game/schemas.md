@@ -37,7 +37,7 @@ export const rules: GameRules<State, Observation, Action, Config> = {
 };
 ```
 
-Eigen requests the Standard JSON Schema `draft-2020-12` target. It is the
+The engine requests the Standard JSON Schema `draft-2020-12` target. It is the
 current JSON Schema meta-schema and one of the two targets Standard JSON Schema
 strongly recommends implementors support. Using one explicit modern dialect
 keeps `$defs`, nullable unions, arrays, and references deterministic across

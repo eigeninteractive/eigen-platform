@@ -7,7 +7,7 @@ import { themes as prismThemes } from "prism-react-renderer";
 const GITHUB = "https://github.com/eigeninteractive/eigen-server";
 
 const config: Config = {
-  title: "Eigen Interactive",
+  title: "EigenInteractive",
   tagline: "Build games, not boilerplate",
   // The .ico is only the legacy fallback; `headTags` below links the SVG that
   // actually adapts to the reader's colour scheme. Every brand asset lives in
@@ -168,7 +168,7 @@ const config: Config = {
         blog: {
           showReadingTime: true,
           blogTitle: "Changelog",
-          blogDescription: "Releases and notable changes to the Eigen engine.",
+          blogDescription: "Releases and notable changes to the EigenInteractive engine.",
           feedOptions: {
             type: ["rss", "atom"],
             xslt: true,
@@ -221,7 +221,7 @@ const config: Config = {
     [
       "docusaurus-plugin-llms",
       {
-        title: "Eigen",
+        title: "EigenInteractive",
         description: "An open-source, server-authoritative engine for turn-based multiplayer games. A game ships as a single Cloudflare Worker that owns its own domain, database and players, plus a Flutter app for Android and the web. The implementor writes the rules; the engine owns everything else.",
         generateLLMsTxt: true,
         generateLLMsFullTxt: true,
@@ -273,10 +273,10 @@ const config: Config = {
     metadata: [
       {
         name: "description",
-        content: "Eigen Interactive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.",
+        content: "EigenInteractive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Eigen Interactive" },
+      { property: "og:site_name", content: "EigenInteractive" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       {
@@ -288,9 +288,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: "Eigen Interactive",
+      title: "EigenInteractive",
       logo: {
-        alt: "Eigen Interactive",
+        alt: "EigenInteractive",
         src: "brand/eigen-mark.svg",
         // The mark is two-colour and must not sit on a mid-tone; the reversed
         // variant is what carries it against the dark navbar.
@@ -366,7 +366,7 @@ const config: Config = {
           items: [{ label: "Privacy Policy", to: "/privacy" }],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Eigen Interactive. MIT-licensed. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} EigenInteractive. MIT-licensed. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

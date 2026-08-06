@@ -43,7 +43,8 @@ hook with *what reaches the client*; the bots page states outright that
 client-side bots do not exist.
 
 Two things this repo is deliberately **not** for: the release process of the
-Eigen repositories themselves (each engine repo's `MAINTAINERS.md` covers
+EigenInteractive repositories themselves (each engine repo's `MAINTAINERS.md`
+covers
 that), and anything only an engine maintainer needs. If a page would not help
 someone building or running a game, it does not belong in `docs/`.
 

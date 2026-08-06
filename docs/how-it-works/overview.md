@@ -6,11 +6,13 @@ description: The single principle the whole system is built around, and the thre
 
 # What the engine is
 
-Eigen is a **whitelabel, server-authoritative, turn-based multiplayer game
+EigenInteractive is a **whitelabel, server-authoritative, turn-based multiplayer
+game
 engine**. Your game deploys as a single Cloudflare Worker that owns its own
 domain, database, and players.
 
-An Eigen game is a sequence of **versioned, server-authoritative transitions**.
+An EigenInteractive game is a sequence of **versioned, server-authoritative
+transitions**.
 The server — never the client — decides what each move does, whose turn it is,
 what each player is allowed to see, when a clock expires, and how a finished
 game is rated. Clients render state and submit intents; they hold no authority.

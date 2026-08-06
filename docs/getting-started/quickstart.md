@@ -6,7 +6,8 @@ description: Scaffold a game Worker and Flutter app, generate the shared payload
 
 # Quickstart
 
-You build an Eigen game in your own repository. The engine repositories are
+You build an EigenInteractive game in your own repository. The engine
+repositories are
 ordinary dependencies; game implementors do not clone them.
 
 ## Prerequisites
@@ -32,8 +33,25 @@ pnpm create eigen-game my-game
 npm create eigen-game@latest my-game
 ```
 
-`my-game` is the only naming input. It is a lowercase kebab-case slug; the
+`my-game` is the only naming argument. It is a lowercase kebab-case slug; the
 scaffolder derives `My Game`, `my_game`, and the `MyGame` type prefix from it.
+
+It then asks one question — your organization in reverse domain notation,
+defaulting to `com.example`:
+
+```text
+Organization in reverse domain notation [com.example]: dev.yourname.games
+```
+
+That becomes the Android `applicationId`, which is worth getting right at
+scaffold time: Google Play treats it as the permanent identity of the app and it
+cannot be changed after the first upload. Pass `--org dev.yourname.games` to
+answer it up front, which is also how it works with no terminal attached.
+
+The scaffold is committed when it finishes, so your first `git diff` is your
+first game change rather than the ninety generated files underneath it —
+launcher icons, splash screens and web icons are all written at scaffold time.
+`--no-git` skips it, as does scaffolding inside a repository you already have.
 
 The engine and `eigen_flutter` versions it writes are fixed in the scaffolder,
 built and tested as a pair before it ships. So the version of
@@ -57,7 +75,8 @@ initial Dart payload types and rules base. The generated files use only public
 npm/pub.dev contracts, so teams that prefer separate repositories can create
 either half by hand. The scaffold is convenience, not a runtime requirement.
 
-Prefer to create the repositories yourself or add Eigen to an existing app?
+Prefer to create the repositories yourself or add EigenInteractive to an
+existing app?
 Follow [Set up without the scaffolder](./manual-setup.md). It uses the same
 public contracts and supports independent Worker and app repositories.
 

@@ -1,14 +1,14 @@
 ---
 sidebar_position: 1
 title: Prerequisites
-description: The system-level tools an Eigen game needs — Node, a package manager, Flutter, the Android and web toolchains, and the Cloudflare and Firebase accounts — with one command block that verifies the lot.
+description: The system-level tools an EigenInteractive game needs — Node, a package manager, Flutter, the Android and web toolchains, and the Cloudflare and Firebase accounts — with one command block that verifies the lot.
 ---
 
 # Prerequisites
 
-You build an Eigen game in your own repository, and the engine ships as ordinary
-packages. **You never clone the Eigen repositories**, and there is nothing to
-install globally from Eigen itself — `create-eigen-game` runs through
+You build an EigenInteractive game in your own repository, and the engine
+ships as ordinary packages. **You never clone the engine repositories**, and
+there is nothing to install globally — `create-eigen-game` runs through
 `npm create`, and `wrangler` arrives as a project dependency.
 
 What you do need is the toolchain underneath both halves: a JavaScript runtime
@@ -140,7 +140,8 @@ flutterfire --version
 locally. [Your first game](./your-first-game.md) writes Rock–Paper–Scissors end
 to end, in both languages.
 
-Adding Eigen to an app you already have, or want to lay the project out
+Adding EigenInteractive to an app you already have, or want to lay the project
+out
 yourself? [Set up without the scaffolder](./manual-setup.md) uses the same
 public packages and skips `create-eigen-game` entirely — which also means it
 does not need network access at project-creation time.

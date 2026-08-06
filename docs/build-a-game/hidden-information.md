@@ -15,8 +15,9 @@ which concurrent submissions the engine accepts.
 
 ## The same-view rule
 
-Simultaneous moves are the classic source of turn-based race bugs. Eigen resolves
-them with a rule that needs **zero game code**, driven entirely by what your
+Simultaneous moves are the classic source of turn-based race bugs. The engine
+resolves them with a rule that needs **zero game code**, driven entirely by what
+your
 `computeObservation` reveals:
 
 > A stale-version action (one computed against an older version) is accepted **if
