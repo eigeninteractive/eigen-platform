@@ -1,8 +1,8 @@
 # <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/server
 
-The deployable half of the [Eigen engine](https://eigeninteractive.com) — a
-server-authoritative engine for turn-based multiplayer games on Cloudflare
-Workers.
+The deployable half of the
+[EigenInteractive engine](https://eigeninteractive.com) — a server-authoritative
+engine for turn-based multiplayer games on Cloudflare Workers.
 
 One deployment is a single Worker that owns its own domain, database and
 players. You write pure game rules; this package owns persistence, timing,
@@ -47,4 +47,4 @@ Full documentation: **<https://eigeninteractive.com/docs/ship-it/configure>**
 
 ## License
 
-MIT © Eigen Interactive
+MIT © EigenInteractive

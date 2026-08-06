@@ -38,7 +38,7 @@ async function configuredGameContractOptions(root: string) {
   const config = manifest.eigen ?? {};
   const game = configuredString(config.game, "", "game");
   if (game.length === 0) {
-    throw new Error('package.json must declare an Eigen game name, e.g. "eigen": { "game": "Chess" }');
+    throw new Error('package.json must declare an EigenInteractive game name, e.g. "eigen": { "game": "Chess" }');
   }
 
   const modulePath = configuredString(config.module, "src/module/index.ts", "module");
@@ -47,7 +47,7 @@ async function configuredGameContractOptions(root: string) {
   const imported = (await tsImport(pathToFileURL(resolve(root, modulePath)).href, import.meta.url)) as { default?: unknown };
 
   if (!isGameModule(imported.default)) {
-    throw new Error(`${modulePath} must default-export an Eigen GameModule`);
+    throw new Error(`${modulePath} must default-export an EigenInteractive GameModule`);
   }
 
   return {
@@ -59,7 +59,7 @@ async function configuredGameContractOptions(root: string) {
 }
 
 /**
- * Emits `game-contract.json` from an Eigen package's conventional layout.
+ * Emits `game-contract.json` from an EigenInteractive package's conventional layout.
  *
  * This is the programmatic form of the `eigen-contract` executable. Most
  * games should invoke the executable through their package script.

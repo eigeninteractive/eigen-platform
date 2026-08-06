@@ -6,6 +6,8 @@ import { ENGINE_PACKAGE, engineRange } from "./engine-range.js";
 
 export type PackageManager = "npm" | "pnpm";
 
+export type Runner = (command: string, args: string[], cwd: string) => void;
+
 export interface ScaffoldOptions {
   directory: string;
   org?: string;
@@ -23,11 +25,16 @@ export interface ScaffoldOptions {
    */
   ci?: boolean;
   /**
+   * Initialise a repository and commit the scaffold. Defaults to `bootstrap`,
+   * because the commit is only worth having once the generated files exist.
+   */
+  git?: boolean;
+  /**
    * Runs the bootstrap subprocesses. A seam: the tests substitute a recorder,
    * and `scripts/scaffold-e2e.mjs` wraps it to point the generated server at
    * this workspace's engine rather than npm's copy.
    */
-  run?: (command: string, args: string[], cwd: string) => void;
+  run?: Runner;
 }
 
 export interface ScaffoldResult {
@@ -328,8 +335,8 @@ function enableAndroidReleaseSigning(appRoot: string): void {
 // `ios`/`macos` — `scaffoldGame` only creates `--platforms android,web`, and
 // `flutter_launcher_icons` errors if told to target a platform whose
 // directory doesn't exist.
-// The colours are the Eigen palette (ink #1B1E24, paper #F4F1EA) because the
-// shipped placeholder art is the Eigen mark: the adaptive foreground is the
+// The colours are the EigenInteractive palette (ink #1B1E24, paper #F4F1EA) because the
+// shipped placeholder art is the EigenInteractive mark: the adaptive foreground is the
 // reversed, light-on-dark variant, so an ink background is what makes it
 // legible. Rebranding a game means replacing the four PNGs *and* these
 // colours together — see https://eigeninteractive.com/docs/ship-it/branding.
@@ -384,7 +391,7 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
   const root = resolve(options.directory);
   const manifestPath = resolve(root, "package.json");
   if (!existsSync(manifestPath) || !existsSync(resolve(root, "server")) || !existsSync(resolve(root, "app"))) {
-    throw new Error(`not an Eigen game project (expected package.json, server/ and app/): ${root}`);
+    throw new Error(`not an EigenInteractive game project (expected package.json, server/ and app/): ${root}`);
   }
 
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
@@ -414,6 +421,48 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
 
   renderTree(resolve(templatesRoot, "ci"), root, name, manager, packageId);
   return { root, files: [".github/workflows/checks.yml", ".github/workflows/release.yml"] };
+}
+
+/**
+ * Commits the scaffold, so the first `git diff` is the first game change.
+ *
+ * This matters more here than in a scaffolder that only writes source. The
+ * bootstrap runs `flutter_launcher_icons` and `flutter_native_splash`, which
+ * write generated-but-committed files across `android/`, `web/` and
+ * `assets/`; without a baseline the first branding change is indistinguishable
+ * from the ninety files the scaffolder happened to produce.
+ *
+ * Nothing here is fatal. The project is complete and valid before this runs,
+ * so a missing `git`, or the unconfigured `user.email` that a fresh CI image
+ * has, warns and leaves the tree alone rather than discarding a scaffold that
+ * took two minutes of Flutter and pub to produce.
+ */
+function initialiseRepository(root: string, name: string, run: Runner): void {
+  // Scaffolding inside an existing checkout — a monorepo, or a repository
+  // created ahead of time — is a legitimate thing to do, and a nested
+  // repository there is silent breakage: the outer `git add` records a gitlink
+  // and the app's files never leave the machine. Asked directly rather than
+  // through `run`, because it is a question, not a step.
+  try {
+    execFileSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: root, stdio: "ignore" });
+    return;
+  } catch {
+    // Not inside a work tree, which is the case this function is for.
+  }
+
+  try {
+    run("git", ["init", "--quiet"], root);
+    run("git", ["add", "--all"], root);
+  } catch {
+    console.warn("create-eigen-game: could not initialise a git repository. The project is complete — run `git init` yourself when ready.");
+    return;
+  }
+
+  try {
+    run("git", ["commit", "--quiet", "--message", `Scaffold ${name}`], root);
+  } catch {
+    console.warn(`create-eigen-game: initialised a repository and staged the scaffold, but could not commit it. Set \`user.name\` and \`user.email\`, then \`git commit -m "Scaffold ${name}"\`.`);
+  }
 }
 
 export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
@@ -474,9 +523,15 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     }
 
     renameSync(stagingRoot, root);
-    return { root, name };
   } catch (error) {
     rmSync(stagingRoot, { recursive: true, force: true });
     throw error;
   }
+
+  // Deliberately outside the staging guard: the project is published by this
+  // point, and a repository that failed to initialise is not a reason to
+  // delete it.
+  if (options.git ?? bootstrap) initialiseRepository(root, name, run);
+
+  return { root, name };
 }

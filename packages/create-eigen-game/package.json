@@ -2,7 +2,7 @@
   "name": "create-eigen-game",
   "version": "0.4.0",
   "license": "MIT",
-  "description": "Scaffold an Eigen game Worker and Flutter app without cloning the engine repositories.",
+  "description": "Scaffold an EigenInteractive game Worker and Flutter app without cloning the engine repositories.",
   "type": "module",
   "bin": {
     "create-eigen-game": "./dist/cli.js"

@@ -1,6 +1,6 @@
 name: eigen_api
 description: >-
-  Generated dart-dio REST client for the Eigen game engine. Its lib/ sources are
+  Generated dart-dio REST client for the EigenInteractive game engine. Its lib/ sources are
   regenerated wholesale from openapi.json by scripts/generate-dart-client.sh;
   THIS manifest is hand-owned and the generator is told to skip it (see
   .openapi-generator-ignore).

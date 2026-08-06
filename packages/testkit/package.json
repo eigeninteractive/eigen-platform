@@ -2,7 +2,7 @@
   "name": "@eigeninteractive/testkit",
   "version": "0.2.0",
   "license": "MIT",
-  "description": "Test helpers for games built on the Eigen engine: drive rules through the real kernel and run shared twin fixtures, with no Worker, database or network.",
+  "description": "Test helpers for games built on the EigenInteractive engine: drive rules through the real kernel and run shared twin fixtures, with no Worker, database or network.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -31,7 +31,7 @@
     "cloudflare-workers",
     "durable-objects"
   ],
-  "author": "Eigen Interactive",
+  "author": "EigenInteractive",
   "type": "module",
   "dependencies": {
     "@eigeninteractive/kernel": "workspace:*",

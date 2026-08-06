@@ -1,12 +1,13 @@
 ---
 name: building-a-game
-description: Write or review a game on the Eigen engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
+description: Write or review a game on the EigenInteractive engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
 ---
 
-# Building a game on Eigen
+# Building a game on EigenInteractive
 
-Eigen is a server-authoritative engine for turn-based multiplayer games. The
-implementor writes **pure rules**; the engine owns persistence, serialization,
+EigenInteractive is a server-authoritative engine for turn-based multiplayer
+games. The implementor writes **pure rules**; the engine owns persistence,
+serialization,
 timing, sockets, reconnection, ratings, bots, auth, history and the API.
 
 Retrieve current documentation rather than relying on memory of this file:
@@ -22,13 +23,19 @@ Do not assemble a project by hand. The scaffolder writes both halves — Worker
 and Flutter app — in one repository, wired together and already playable:
 
 ```sh
-npx create-eigen-game my-game        # --org com.example, --package-manager npm|pnpm
+npx create-eigen-game my-game --org dev.yourname.games
 ```
 
+Pass `--org` rather than letting it prompt: it becomes the Android
+`applicationId`, which Google Play makes permanent at first upload, and an
+agent's session may not have a terminal to answer on. The other flags are
+`--package-manager npm|pnpm` and `--no-git`.
+
 It installs an engine release and the `eigen_flutter` release tested against it,
-so the two halves start on a known-good pair. CI is **not** emitted by default,
-because `release.yml` needs an upload keystore and a Play service account and
-fails on every push until both exist; add it when shipping is the next step:
+so the two halves start on a known-good pair, and commits the result. CI is
+**not** emitted by default, because `release.yml` needs an upload keystore and a
+Play service account and fails on every push until both exist; add it when
+shipping is the next step:
 
 ```sh
 npx create-eigen-game add ci         # or pass --ci at scaffold time

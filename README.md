@@ -3,9 +3,9 @@
   <img src="https://eigeninteractive.com/brand/eigen-lockup-360.png" alt="EigenInteractive" width="270">
 </picture>
 
-# Eigen Server
+# EigenInteractive Server
 
-The server half of [Eigen](https://eigeninteractive.com): a
+The server half of [EigenInteractive](https://eigeninteractive.com): a
 server-authoritative engine for turn-based multiplayer games on Cloudflare
 Workers.
 
@@ -89,4 +89,4 @@ published packages without cloning this workspace.
 - [MAINTAINERS.md](MAINTAINERS.md): registry setup, release operations, secrets,
   deployment, and failure recovery.
 - [`docs/blockers.md`](docs/blockers.md): upstream limitations forcing a
-  temporary workaround, across every Eigen repository.
+  temporary workaround, across every EigenInteractive repository.

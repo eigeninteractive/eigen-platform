@@ -7,3 +7,5 @@ server/.env*
 server/public/*
 !server/public/.gitkeep
 *.log
+
+app/pubspec_overrides.yaml

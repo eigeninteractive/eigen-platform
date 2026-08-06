@@ -1,7 +1,7 @@
 # Upstream blockers
 
 Upstream limitations that force temporary compatibility choices, across every
-Eigen repository. It is for engine maintainers, not game implementors.
+EigenInteractive repository. It is for engine maintainers, not game implementors.
 
 One file rather than one per repository, because these are read at the same
 moments — planning a release, or deciding whether an upstream package has moved
@@ -175,7 +175,7 @@ package. [Issue #18479][flutterfire-issue] and
 
 The current Firebase Cloud Messaging API in the released `firebase_messaging`
 package does not expose Firebase's FID-based `register`, `unregister`,
-`onRegistered`, or `onUnregistered` operations. Eigen uses FIDs as the
+`onRegistered`, or `onUnregistered` operations. EigenInteractive uses FIDs as the
 installation identity sent to its server, so token-only FlutterFire APIs are
 not an adequate replacement.
 
@@ -210,7 +210,7 @@ without changing the notification service or game implementor API.
 2. Upgrade the compatible FlutterFire package set together.
 3. Replace `FirebaseMessagingRegistration` usage with
    `FirebaseMessaging.instance.register`, `onRegistered`, and
-   `onUnregistered`, and use `unregister` where Eigen explicitly opts an
+   `onUnregistered`, and use `unregister` where the engine explicitly opts an
    installation out.
 4. Remove the adapter and its platform implementations.
 5. Remove the Android manifest metadata, Firebase BoM pin, direct

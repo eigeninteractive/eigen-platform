@@ -12,7 +12,7 @@ import { basename, relative, resolve } from "node:path";
 import type { GameModule, StandardJSONSchemaV1 } from "@eigeninteractive/rules";
 import { parseTwinFixtureFile } from "./twin-fixtures.js";
 
-/** Current format of the language-neutral contract consumed by Eigen's Dart generator. */
+/** Current format of the language-neutral contract consumed by EigenInteractive's Dart generator. */
 export const GAME_CONTRACT_FORMAT_VERSION = 1;
 
 /** One validated twin-fixture document embedded in a {@link GameContract}. */
