@@ -8,8 +8,9 @@ description: The system-level tools an EigenInteractive game needs — Node, a p
 
 You build an EigenInteractive game in your own repository, and the engine
 ships as ordinary packages. **You never clone the engine repositories**, and
-there is nothing to install globally — `create-eigen-game` runs through
-`npm create`, and `wrangler` arrives as a project dependency.
+nothing about the engine installs globally — `create-eigen-game` runs through
+`npm create`, and `wrangler` arrives as a project dependency. The two Firebase
+CLIs are the only global installs on this page.
 
 What you do need is the toolchain underneath both halves: a JavaScript runtime
 for the Worker, Flutter for the app, and accounts at the two services the engine
@@ -50,7 +51,39 @@ pairs, and is where to look when you later upgrade one half.
 ## To run the app
 
 The Worker runs locally with no extra tooling — `wrangler dev` is enough. The
-Flutter app needs a platform to run on, and a scaffolded project targets two:
+Flutter app needs two things: a Firebase project, and a platform to run on.
+
+### A Firebase project
+
+**A [Firebase project](https://console.firebase.google.com/)** for player
+identity and push notifications. One project serves both, and it is free to
+start. This is not something to defer until you deploy: a scaffolded app throws
+`Firebase is not configured` the moment it launches, because identity is how a
+player gets a seat at all.
+
+Connecting one needs two command-line tools, and this is the one place something
+is installed globally:
+
+```bash
+npm install -g firebase-tools                    # the `firebase` CLI
+dart pub global activate flutterfire_cli         # the `flutterfire` CLI
+```
+
+`pnpm firebase:configure` in a scaffolded project drives both. `dart pub global
+activate` does not put `flutterfire` on your `PATH`, so if your shell cannot
+find it afterwards, add Dart's global package directory:
+
+```bash
+export PATH="$PATH":"$HOME/.pub-cache/bin"
+```
+
+See [Configure a game](../ship-it/configure.md) for what the configuration step
+actually writes, and [Push notifications](../ship-it/push.md) for the messaging
+half.
+
+### A platform
+
+A scaffolded project targets two.
 
 **Web** needs [Chrome](https://www.google.com/chrome/), which `flutter run -d
 chrome` drives directly. It is the fastest loop and the one to start with.
@@ -74,34 +107,11 @@ platform yourself later; it simply is not set up for you.
 
 ## To deploy it
 
-Both are free to start, and neither is needed until you deploy.
-
 **A [Cloudflare account](https://dash.cloudflare.com/sign-up)** for the Worker,
-its D1 database and its Durable Objects. You do *not* install `wrangler`
+its D1 database and its Durable Objects. Free to start, and the one thing on
+this page genuinely not needed until you deploy. You do *not* install `wrangler`
 globally — a scaffolded project depends on it directly, and `wrangler login`
 authenticates through your browser on first use.
-
-**A [Firebase project](https://console.firebase.google.com/)** for player
-identity and push notifications. One project serves both. Configuring it needs
-two command-line tools, and this is the one place something is installed
-globally:
-
-```bash
-npm install -g firebase-tools                    # the `firebase` CLI
-dart pub global activate flutterfire_cli         # the `flutterfire` CLI
-```
-
-`pnpm firebase:configure` in a scaffolded project drives both. If your shell
-cannot find `flutterfire` afterwards, add Dart's global package directory to
-your `PATH`:
-
-```bash
-export PATH="$PATH":"$HOME/.pub-cache/bin"
-```
-
-See [Configure a game](../ship-it/configure.md) for what the configuration step
-actually writes, and [Push notifications](../ship-it/push.md) for the messaging
-half.
 
 ## Check everything at once
 
@@ -127,7 +137,8 @@ toolchain** and **Chrome** is everything a scaffolded project needs; unrelated
 categories — Xcode, Linux desktop, Visual Studio — are expected to be missing
 and do not affect you.
 
-If you have already set up Firebase:
+Then the two Firebase CLIs, which are separate installs and the pair that
+`firebase:configure` drives:
 
 ```bash
 firebase --version
