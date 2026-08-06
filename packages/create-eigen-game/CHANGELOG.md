@@ -1,5 +1,34 @@
 # create-eigen-game
 
+## 0.5.0
+
+### Minor Changes
+
+- [#19](https://github.com/eigeninteractive/eigen-server/pull/19) [`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094) Thanks [@seenu-k](https://github.com/seenu-k)! - Initialise a git repository and commit the scaffold, and ask for the Android
+  organization when it is not given.
+  
+  The scaffold runs `flutter_launcher_icons` and `flutter_native_splash`, which
+  write generated-but-committed files across `android/`, `web/` and `assets/`.
+  Without a first commit there is no baseline, so the first branding change is
+  indistinguishable from the files the scaffolder happened to produce. `--no-git`
+  opts out, and a scaffold created inside an existing checkout is left alone
+  rather than given a nested repository.
+  
+  `--org` is now asked for interactively when omitted and there is a terminal,
+  because it becomes the Android `applicationId` — which Google Play makes
+  permanent at first upload. Both the flag and the answer are validated as
+  reverse domain notation, so `com.example-games` fails at scaffold time rather
+  than at the first Gradle build. An empty value still falls back to
+  `com.example`, and non-interactive use is unchanged.
+
+### Patch Changes
+
+- [#19](https://github.com/eigeninteractive/eigen-server/pull/19) [`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094) Thanks [@seenu-k](https://github.com/seenu-k)! - Use **EigenInteractive** as the product name throughout, matching the domain,
+  the npm scope and the GitHub organization. Package descriptions, READMEs and
+  the OpenAPI document title change; every identifier — `@eigeninteractive/*`,
+  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header — is
+  untouched.
+
 ## 0.4.0
 
 ### Minor Changes

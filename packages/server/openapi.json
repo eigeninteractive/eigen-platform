@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "EigenInteractive Engine API",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."
   },
   "tags": [

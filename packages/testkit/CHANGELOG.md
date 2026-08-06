@@ -1,5 +1,18 @@
 # @eigeninteractive/testkit
 
+## 0.2.1
+
+### Patch Changes
+
+- [#19](https://github.com/eigeninteractive/eigen-server/pull/19) [`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094) Thanks [@seenu-k](https://github.com/seenu-k)! - Use **EigenInteractive** as the product name throughout, matching the domain,
+  the npm scope and the GitHub organization. Package descriptions, READMEs and
+  the OpenAPI document title change; every identifier — `@eigeninteractive/*`,
+  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header — is
+  untouched.
+- Updated dependencies [[`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094)]:
+  - @eigeninteractive/kernel@0.2.1
+  - @eigeninteractive/rules@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
