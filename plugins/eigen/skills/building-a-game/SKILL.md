@@ -16,6 +16,27 @@ Retrieve current documentation rather than relying on memory of this file:
 - Any page as Markdown: append `.md` to its URL
 - HTTP contract: <https://eigeninteractive.com/openapi.json>
 
+## Starting from nothing
+
+Do not assemble a project by hand. The scaffolder writes both halves — Worker
+and Flutter app — in one repository, wired together and already playable:
+
+```sh
+npx create-eigen-game my-game        # --org com.example, --package-manager npm|pnpm
+```
+
+It installs an engine release and the `eigen_flutter` release tested against it,
+so the two halves start on a known-good pair. CI is **not** emitted by default,
+because `release.yml` needs an upload keystore and a Play service account and
+fails on every push until both exist; add it when shipping is the next step:
+
+```sh
+npx create-eigen-game add ci         # or pass --ci at scaffold time
+```
+
+The result is a working game to edit into the intended one — start from its
+rules, not from a blank file.
+
 ## The four invariants
 
 Every mistake in a game module traces back to breaking one of these.
