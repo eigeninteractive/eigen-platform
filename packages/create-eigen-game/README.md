@@ -1,6 +1,7 @@
 # <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> create-eigen-game
 
-Creates one repository containing an Eigen Cloudflare Worker and Flutter app:
+Creates one repository containing an EigenInteractive Cloudflare Worker and
+Flutter app:
 
 ```sh
 pnpm create eigen-game my-game
@@ -44,8 +45,8 @@ public values from `app/app-config.json` through Flutter's native
 
 `templates/worker` is a valid standalone Cloudflare C3-style Worker template:
 it contains its own `package.json`, `wrangler.jsonc`, TypeScript entry point,
-generated Wrangler types, and game module. The combined Eigen CLI renders that
-same template under `server/`; it does not maintain a second Worker skeleton.
+generated Wrangler types, and game module. The combined CLI renders that same
+template under `server/`; it does not maintain a second Worker skeleton.
 
 `templates/app-overlay` is applied after
 `flutter create --empty --platforms android,web`. It supplies the Firebase

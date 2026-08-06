@@ -1,6 +1,6 @@
 # Example Game Worker
 
-The authoritative game rules and Cloudflare Worker for an Eigen game.
+The authoritative game rules and Cloudflare Worker for an EigenInteractive game.
 
 ## Develop
 

@@ -509,7 +509,7 @@ export function openApiDocument(version: string): OpenAPIObject {
   return app.getOpenAPI31Document({
     openapi: "3.1.0",
     info: {
-      title: "Eigen Engine API",
+      title: "EigenInteractive Engine API",
       version,
       description: "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated.",
     },

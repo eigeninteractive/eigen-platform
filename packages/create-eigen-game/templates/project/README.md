@@ -1,8 +1,8 @@
 # Example Game
 
-This repository contains the two application-owned halves of an Eigen game.
-The engine itself is consumed from npm and pub.dev; its repositories are not
-part of this project.
+This repository contains the two application-owned halves of an
+EigenInteractive game. The engine itself is consumed from npm and pub.dev; its
+repositories are not part of this project.
 
 ## Worker
 
@@ -147,8 +147,9 @@ hand-maintained in the Console.
 
 ### Replace the placeholder branding
 
-A fresh scaffold is already branded — with the **Eigen mark**, not this game's.
-The launcher icon, splash and web icons were generated at scaffold time so the
+A fresh scaffold is already branded — with the **EigenInteractive mark**, not
+this game's. The launcher icon, splash and web icons were generated at scaffold
+time so the
 app looks finished from the first run, but shipping them to a store would put
 the engine's mark on your listing. Replace them before a first release:
 
@@ -166,8 +167,8 @@ leave it. To use your own, add
 over the package, so there is nothing to delete or override explicitly.
 
 Also update the palette in `pubspec.yaml` — `adaptive_icon_background` and the
-`flutter_native_splash` colours are the Eigen ink/paper pair, which will not
-suit different artwork. Then regenerate:
+`flutter_native_splash` colours are the EigenInteractive ink/paper pair, which
+will not suit different artwork. Then regenerate:
 
 ```bash
 dart run flutter_launcher_icons

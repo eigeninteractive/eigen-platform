@@ -1,8 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { addContinuousIntegration, decodeUtf8, detectPackageManager, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
@@ -239,6 +240,81 @@ describe("scaffoldGame", () => {
   });
 });
 
+describe("repository initialisation", () => {
+  // A checked-out CI image has no `user.name` or `user.email`, and these are
+  // the identity git reads when the config is silent. Stubbed here so the
+  // tests assert the scaffolder's behaviour rather than the runner's git
+  // configuration.
+  beforeEach(() => {
+    vi.stubEnv("GIT_AUTHOR_NAME", "Scaffold Test");
+    vi.stubEnv("GIT_AUTHOR_EMAIL", "scaffold@example.com");
+    vi.stubEnv("GIT_COMMITTER_NAME", "Scaffold Test");
+    vi.stubEnv("GIT_COMMITTER_EMAIL", "scaffold@example.com");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("commits the scaffold, so the first diff is the first game change", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+
+    scaffoldGame({ directory: root, bootstrap: false, git: true });
+
+    expect(existsSync(resolve(root, ".git"))).toBe(true);
+    expect(execFileSync("git", ["log", "-1", "--format=%s"], { cwd: root, encoding: "utf8" }).trim()).toBe("Scaffold go-fish");
+    // Nothing left behind: the generated `.gitignore` files have to cover
+    // everything the scaffolder writes, or the commit is not a usable baseline.
+    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe("");
+  });
+
+  it("stays out of the way inside an existing checkout", () => {
+    // A nested repository here is silent breakage rather than clutter: the
+    // outer repository records a gitlink and none of the app's files are ever
+    // pushed.
+    const parent = temporaryParent();
+    execFileSync("git", ["init", "--quiet"], { cwd: parent });
+    const root = resolve(parent, "go-fish");
+
+    scaffoldGame({ directory: root, bootstrap: false, git: true });
+
+    expect(existsSync(resolve(root, ".git"))).toBe(false);
+  });
+
+  it("leaves the project alone when asked not to, and when not bootstrapping", () => {
+    const declined = resolve(temporaryParent(), "go-fish");
+    scaffoldGame({ directory: declined, bootstrap: false, git: false });
+    expect(existsSync(resolve(declined, ".git"))).toBe(false);
+
+    // `bootstrap: false` is the programmatic seam, and its default follows:
+    // a repository of half a project is not worth committing.
+    const unbootstrapped = resolve(temporaryParent(), "go-fish");
+    scaffoldGame({ directory: unbootstrapped, bootstrap: false });
+    expect(existsSync(resolve(unbootstrapped, ".git"))).toBe(false);
+  });
+
+  it("keeps a scaffold that git could not commit", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: true,
+      run: (command) => {
+        if (command === "git") throw new Error("git: command not found");
+      },
+    });
+
+    // The project cost two minutes of Flutter and pub to produce. A missing
+    // `git`, or the unconfigured `user.email` of a fresh CI image, is not a
+    // reason to discard it.
+    expect(existsSync(resolve(root, "server/package.json"))).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("git init"));
+    warn.mockRestore();
+  });
+});
+
 describe("template rendering", () => {
   it("pins which files are copied verbatim rather than rendered", () => {
     // The rule — "render it if it decodes as UTF-8" — is otherwise invisible,
@@ -314,7 +390,7 @@ describe("continuous integration", () => {
   it("rejects a directory that is not a generated project", () => {
     const parent = temporaryParent();
 
-    expect(() => addContinuousIntegration({ directory: parent })).toThrow(/not an Eigen game project/);
+    expect(() => addContinuousIntegration({ directory: parent })).toThrow(/not an EigenInteractive game project/);
   });
 });
 

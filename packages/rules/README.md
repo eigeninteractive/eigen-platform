@@ -1,7 +1,8 @@
 # <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/rules
 
-The game-rules contract for the [Eigen engine](https://eigeninteractive.com) — a
-server-authoritative engine for turn-based multiplayer games.
+The game-rules contract for the
+[EigenInteractive engine](https://eigeninteractive.com) — a server-authoritative
+engine for turn-based multiplayer games.
 
 This package is **pure types plus two helpers**, with zero engine dependencies.
 A game author reads only this: `GameRules`, `GameModule`, the six hooks, and the
@@ -23,4 +24,4 @@ Full documentation: **<https://eigeninteractive.com/docs/build-a-game/the-contra
 
 ## License
 
-MIT © Eigen Interactive
+MIT © EigenInteractive

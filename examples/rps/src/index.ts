@@ -48,10 +48,10 @@ export const engineConfig = {
   // and OG tags then share them.
   // the engine's default paths are exactly those names.
   site: {
-    tagline: "Rock, paper, scissors — the smallest complete game on the Eigen engine.",
+    tagline: "Rock, paper, scissors — the smallest complete game on the EigenInteractive engine.",
     primaryColor: "#3f51b5",
     operator: {
-      name: "Eigen Interactive",
+      name: "EigenInteractive",
       jurisdiction: "India",
       contactEmail: "hello@eigeninteractive.com",
       effectiveDate: "1 July 2026",

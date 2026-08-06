@@ -2,7 +2,7 @@
   "name": "@eigeninteractive/kernel",
   "version": "0.2.0",
   "license": "MIT",
-  "description": "The pure decision core of the Eigen engine: given a game, state, roster and intent it returns a commit plan or a rejection. No I/O, no platform APIs.",
+  "description": "The pure decision core of the EigenInteractive engine: given a game, state, roster and intent it returns a commit plan or a rejection. No I/O, no platform APIs.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -27,7 +27,7 @@
     "cloudflare-workers",
     "durable-objects"
   ],
-  "author": "Eigen Interactive",
+  "author": "EigenInteractive",
   "type": "module",
   "dependencies": {
     "@standard-schema/spec": "^1.1.0",

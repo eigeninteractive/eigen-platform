@@ -2,7 +2,7 @@
   "name": "@eigeninteractive/server",
   "version": "0.2.0",
   "license": "MIT",
-  "description": "The deployable half of the Eigen engine: the createEngine Worker factory, the BaseGameDO Durable Object base class, the D1 schema and appliers, auth, bots and push.",
+  "description": "The deployable half of the EigenInteractive engine: the createEngine Worker factory, the BaseGameDO Durable Object base class, the D1 schema and appliers, auth, bots and push.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -36,7 +36,7 @@
     "cloudflare-workers",
     "durable-objects"
   ],
-  "author": "Eigen Interactive",
+  "author": "EigenInteractive",
   "type": "module",
   "dependencies": {
     "@eigeninteractive/kernel": "workspace:*",

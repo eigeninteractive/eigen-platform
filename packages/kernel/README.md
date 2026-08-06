@@ -1,6 +1,7 @@
 # <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/kernel
 
-The pure decision core of the [Eigen engine](https://eigeninteractive.com).
+The pure decision core of the
+[EigenInteractive engine](https://eigeninteractive.com).
 
 Given a game, its state, the roster and an intent, `commit()` returns a commit
 plan or a rejection. It touches no platform API and reads no clock, so it is
@@ -25,4 +26,4 @@ Full documentation: **<https://eigeninteractive.com/docs/how-it-works/kernel>**
 
 ## License
 
-MIT © Eigen Interactive
+MIT © EigenInteractive
