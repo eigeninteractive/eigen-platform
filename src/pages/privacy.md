@@ -8,8 +8,8 @@ description: How eigeninteractive.com handles data when you visit.
 **Last updated: 24 July 2026**
 
 This policy covers **eigeninteractive.com** — this website, where we publish the
-Eigen open-source game engine, its documentation, and the games we build with it.
-It is deliberately short, because the site collects very little.
+EigenInteractive open-source game engine, its documentation, and the games we
+build with it. It is deliberately short, because the site collects very little.
 
 This policy does **not** cover the games themselves. Each game is a separate app
 with its own privacy policy, shown inside the app and on the game's own website.

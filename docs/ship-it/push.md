@@ -84,8 +84,8 @@ the recovery path unaided.
 :::note[FlutterFire compatibility seam]
 
 Firebase's FID registration APIs landed after the current FlutterFire messaging
-surface. Eigen calls the official Web SDK's `register` through an isolated web
-adapter and enables Android's native FID auto-registration. Game code never
+surface. The engine calls the official Web SDK's `register` through an isolated
+web adapter and enables Android's native FID auto-registration. Game code never
 calls `getToken`, handles `onTokenRefresh`, or stores a registration token.
 Remove the adapter when FlutterFire exposes the same APIs; the app/server
 contract remains `{ fid, platform }`.

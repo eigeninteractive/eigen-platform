@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: Set up without the scaffolder
-description: Create the Worker and Flutter halves by hand, in one repository or two, using only the published Eigen packages and game-contract.json.
+description: Create the Worker and Flutter halves by hand, in one repository or two, using only the published EigenInteractive packages and game-contract.json.
 ---
 
 # Set up without the scaffolder
@@ -11,7 +11,8 @@ valid when its Worker and app satisfy the two public package contracts and
 share one generated `game-contract.json`; the directories may live together or
 in separate repositories.
 
-Use this path when you are adding Eigen to an existing app, need independent
+Use this path when you are adding EigenInteractive to an existing app, need
+independent
 Worker and app release cycles, or want to own the project layout yourself.
 
 ## Create the Worker
@@ -160,7 +161,7 @@ For web, add the Firebase Messaging service worker and register it from a custom
 `web/flutter_bootstrap.js`; configure a fixed local origin in the Worker and
 Firebase. The scaffold supplies those files automatically. Manual projects can
 copy the small setup from [Deploy the web app](../ship-it/deploy-the-web-app.md).
-Pass the project's public VAPID key into `EngineConfig`; Eigen web treats a
+Pass the project's public VAPID key into `EngineConfig`; the web app treats a
 missing key as deployment misconfiguration rather than disabling notifications.
 
 On the Worker, set `FIREBASE_PROJECT_ID` and store that project's

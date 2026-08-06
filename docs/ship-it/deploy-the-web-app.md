@@ -109,8 +109,8 @@ Generate or copy the public Web Push certificate key from Firebase Console →
 Project Settings → Cloud Messaging → Web configuration, then put it in
 `app-config.json` before running the command from step 1.
 
-The VAPID key is public but required for Eigen's web target. An empty key stops
-web startup with an actionable configuration error; it is not treated as a
+The VAPID key is public but required for the engine's web target. An empty key
+stops web startup with an actionable configuration error; it is not treated as a
 player-facing “notifications unavailable” state. A browser that does not
 support Web Push still degrades gracefully. On a supported browser, the app
 requests permission only after the player taps **Enable notifications** in the

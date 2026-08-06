@@ -1,7 +1,7 @@
 ---
 sidebar_position: 12
 title: Working with an agent
-description: The Claude Code skill for writing Eigen games, the retrieval surface behind these docs, and the mistakes an agent makes on this contract that a reviewer should look for.
+description: The Claude Code skill for writing EigenInteractive games, the retrieval surface behind these docs, and the mistakes an agent makes on this contract that a reviewer should look for.
 ---
 
 # Working with an agent
@@ -22,7 +22,8 @@ The engine repository is a plugin marketplace. Install it once:
 ```
 
 That adds the `building-a-game` skill, which loads when the work is writing or
-reviewing an Eigen game — implementing rules, adding a schema version, writing a
+reviewing an EigenInteractive game — implementing rules, adding a schema
+version, writing a
 bot brain, or debugging a rejected move. It carries the parts of this contract
 that are easy to get wrong and expensive to discover late: the four invariants,
 what the engine has already validated before your hook runs, the

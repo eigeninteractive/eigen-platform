@@ -11,7 +11,7 @@ import styles from "./index.module.css";
 
 /**
  * The homepage is written for someone deciding whether to build their game on
- * Eigen — not for someone maintaining the engine. The split section below is
+ * EigenInteractive — not for someone maintaining the engine. The split section below is
  * the page's argument: the list on the right is long, and none of it is their
  * game.
  *
@@ -34,7 +34,7 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <p className={styles.heroLede}>A turn-based multiplayer game needs accounts, a lobby, sockets, reconnection, turn clocks, ratings, push and a store release before it needs a single rule of its own. Eigen ships all of it as one Cloudflare Worker and one Flutter app. You write the rules.</p>
+        <p className={styles.heroLede}>A turn-based multiplayer game needs accounts, a lobby, sockets, reconnection, turn clocks, ratings, push and a store release before it needs a single rule of its own. EigenInteractive ships all of it as one Cloudflare Worker and one Flutter app. You write the rules.</p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/getting-started/quickstart">
             Quickstart
@@ -106,7 +106,7 @@ function WhatYouWrite(): ReactNode {
 export default function Home(): ReactNode {
   const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout title={siteConfig.title} description="Eigen ships the server and the app for a turn-based multiplayer game. You write the rules.">
+    <Layout title={siteConfig.title} description="EigenInteractive ships the server and the app for a turn-based multiplayer game. You write the rules.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />
