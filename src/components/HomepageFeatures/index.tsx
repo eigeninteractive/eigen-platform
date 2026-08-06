@@ -1,10 +1,19 @@
 import Heading from "@theme/Heading";
-import clsx from "clsx";
 import type { ReactNode } from "react";
 import styles from "./styles.module.css";
 
 /**
  * The three homepage features.
+ *
+ * They name the three things a project is handed — a server, an app — and then
+ * the one part that is the implementor's. Two earlier headings are worth not
+ * repeating: "Bring your own game" described the whole product rather than one
+ * feature of it, and "One codebase runs many games" stated a property of the
+ * engine's source tree that changes nothing for the person reading it.
+ *
+ * The markup is Infima's own `card card--full-height` with a `card__body`,
+ * inside the standard `row`/`col` grid — surface, radius, shadow and padding
+ * all come from the theme, in both colour schemes.
  *
  * The icons are inline SVG rather than files under `static/img`, and drawn in
  * `currentColor` so they follow the theme instead of carrying their own palette
@@ -14,25 +23,13 @@ import styles from "./styles.module.css";
  * They replace the three stock Docusaurus mascot illustrations, which were not
  * merely off-brand: each shipped an embedded `<title>` from the template, and
  * `<title>` on an inline SVG is what a screen reader announces. The homepage
- * was reading out "Easy to Use", "Focus on What Matters" and — under "Bring
- * your own game", on a TypeScript and Flutter product — "Powered by React".
+ * was reading out "Easy to Use", "Focus on What Matters" and — on a TypeScript
+ * and Flutter product — "Powered by React".
  *
  * These carry `aria-hidden` instead. Every one of them restates the heading
  * beside it, so announcing them would only repeat the text: decorative is the
  * honest role, and silence is what a screen reader should do with them.
  */
-
-/** A board: the state the server owns, and what "abstract strategy" looks like. */
-function BoardIcon(props: React.ComponentProps<"svg">) {
-  return (
-    <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
-      <rect x="14" y="14" width="68" height="68" rx="6" />
-      <path d="M31 14v68M48 14v68M65 14v68M14 31h68M14 48h68M14 65h68" opacity={0.45} />
-      <circle cx="39.5" cy="39.5" r="6.5" fill="currentColor" stroke="none" />
-      <circle cx="65" cy="65" r="6.5" />
-    </svg>
-  );
-}
 
 /** One isolated cell holding its own data and players — not a shared cluster. */
 function WorkerIcon(props: React.ComponentProps<"svg">) {
@@ -44,6 +41,20 @@ function WorkerIcon(props: React.ComponentProps<"svg">) {
       <circle cx="14" cy="48" r="7" />
       <circle cx="82" cy="48" r="7" />
       <path d="M48 21v9M48 66v9M21 48h9M66 48h9" opacity={0.55} />
+    </svg>
+  );
+}
+
+/** A handset with a board on it: the app half, already assembled. */
+function AppIcon(props: React.ComponentProps<"svg">) {
+  return (
+    <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+      <rect x="26" y="8" width="44" height="80" rx="8" />
+      <path d="M42 18h12" opacity={0.55} />
+      <rect x="36" y="32" width="24" height="24" rx="3" opacity={0.45} />
+      <circle cx="42" cy="38" r="3" fill="currentColor" stroke="none" />
+      <circle cx="54" cy="50" r="3" fill="currentColor" stroke="none" />
+      <path d="M36 68h24" opacity={0.55} />
     </svg>
   );
 }
@@ -66,31 +77,31 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: "Server-authoritative",
-    Icon: BoardIcon,
-    description: <>The rules run on the server. Every move is validated against the true state, hidden information stays hidden, and clocks are authoritative.</>,
-  },
-  {
-    title: "One Worker per game",
+    title: "The server is already written",
     Icon: WorkerIcon,
-    description: <>Each game deploys as a single Cloudflare Worker that owns its own domain, database, and players — no shared infrastructure to operate.</>,
+    description: <>One Cloudflare Worker with its own domain, database and players. Sockets, reconnection, turn clocks, ratings and replay are in it.</>,
   },
   {
-    title: "Bring your own game",
+    title: "So is the app",
+    Icon: AppIcon,
+    description: <>A Flutter app for Android and the web. Sign-in, lobby, friends, profiles, avatars, push and deep links all ship with it.</>,
+  },
+  {
+    title: "You write the rules",
     Icon: RulesIcon,
-    description: <>Implement a small rules module and deploy. The engine handles identity, matchmaking, ratings, history, and the game&apos;s website for you.</>,
+    description: <>Six pure functions and a board widget. One command scaffolds both halves and leaves a game running on your machine.</>,
   },
 ];
 
 function Feature({ title, Icon, description }: FeatureItem) {
   return (
-    <div className={clsx("col col--4")}>
-      <div className="text--center">
-        <Icon className={styles.featureIcon} />
-      </div>
-      <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
-        <p>{description}</p>
+    <div className="col col--4 margin-bottom--lg">
+      <div className="card card--full-height">
+        <div className="card__body">
+          <Icon className={styles.featureIcon} />
+          <Heading as="h3">{title}</Heading>
+          <p>{description}</p>
+        </div>
       </div>
     </div>
   );
@@ -98,7 +109,7 @@ function Feature({ title, Icon, description }: FeatureItem) {
 
 export default function HomepageFeatures(): ReactNode {
   return (
-    <section className={styles.features}>
+    <section className="margin-vert--xl">
       <div className="container">
         <div className="row">
           {FeatureList.map((props) => (

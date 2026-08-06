@@ -39,12 +39,13 @@ Dart is not a separate install — it ships inside Flutter, and
 pub.dev for the app — so it needs the network throughout, not just at the start.
 An interrupted run leaves a partly installed project on disk; delete the
 directory and start again.
-
-It does not negotiate versions while it runs. The engine and `eigen_flutter`
-releases it pairs are fixed in the scaffolder itself, tested together before it
-ships, and shown in [Versions and
-compatibility](../reference/compatibility.md).
 :::
+
+You do not pick versions. The scaffolder installs one engine release and the
+`eigen_flutter` release that was tested against it, so a new project starts on a
+pair already known to work together rather than on whatever was newest that
+morning. [Versions and compatibility](../reference/compatibility.md) lists the
+pairs, and is where to look when you later upgrade one half.
 
 ## To run the app
 

@@ -8,9 +8,9 @@ description: What the Eigen engine is, what building a game on it actually invol
 # Introduction
 
 **Eigen** is an open-source, server-authoritative engine for **turn-based
-multiplayer games**. One codebase runs many games; each deployment is a single
-Cloudflare Worker that owns its own domain, database and players, plus a Flutter
-app that is almost entirely the engine's.
+multiplayer games**. Your game ships as a single Cloudflare Worker that owns its
+own domain, database and players, plus a Flutter app for Android and the web
+that is almost entirely the engine's. You supply the rules.
 
 The rules run on the server, so a client's move is always a proposal the server
 validates — hidden information never leaves the server except as a per-seat
@@ -69,5 +69,8 @@ is an [`/llms.txt`](pathname:///llms.txt) index and an
 [`/llms-full.txt`](pathname:///llms-full.txt) single-file bundle, and the HTTP
 contract is available as a raw spec at
 [`/openapi.json`](pathname:///openapi.json).
+
+There is also a Claude Code skill that carries this contract — see [Working with
+an agent](./build-a-game/with-an-agent.md).
 
 :::

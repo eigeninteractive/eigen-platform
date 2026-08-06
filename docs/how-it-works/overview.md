@@ -7,8 +7,8 @@ description: The single principle the whole system is built around, and the thre
 # What the engine is
 
 Eigen is a **whitelabel, server-authoritative, turn-based multiplayer game
-engine**. One codebase runs many games; each deployment is a single Cloudflare
-Worker that owns its own domain, database, and players.
+engine**. Your game deploys as a single Cloudflare Worker that owns its own
+domain, database, and players.
 
 An Eigen game is a sequence of **versioned, server-authoritative transitions**.
 The server — never the client — decides what each move does, whose turn it is,
@@ -23,6 +23,75 @@ That owner is a Cloudflare Durable Object (DO). One DO per game, addressed by
 the game's id, is the authoritative session *and* the game's permanent history.
 Everything else — the API, the global database, push, avatars — orbits that.
 
+## The game model
+
+Four nouns carry the whole system. Three of them are yours to define; the fourth
+is the engine's.
+
+| | What it is | Who defines its shape |
+|---|---|---|
+| **State** | Everything true about the game right now — board, deck, scores, fog. One JSON payload | You |
+| **Action** | What a player proposes: "play the 7", "resign". A request, not a fact | You |
+| **Observation** | What *one seat* is allowed to see of the state. Derived, never stored | You |
+| **Transition** | One committed step: state at version *N* becomes version *N+1* | The engine |
+
+State is **opaque** to the engine. It stores and versions your payload but never
+looks inside it, and it holds *only* your game — whose turn it is, the deadline,
+the roster and the result are engine-owned and live outside it. That boundary is
+why you never write persistence code.
+
+The loop is one line long:
+
+> A player submits an **action**. The engine checks everything that is not about
+> your game — the right seat, the right version, inside the deadline — then calls
+> your `applyAction`, which returns the next **state**. The engine commits it as
+> a new **transition**, projects one **observation** per seat, and sends each
+> player only their own.
+
+Two consequences worth internalising early:
+
+- **Hidden information is a property of `computeObservation`, not of storage.**
+  A face-down card is in the state; it is simply absent from the observation of
+  every seat that may not see it. Nothing hidden is ever sent and then hidden in
+  the UI.
+- **A version is a fact, not a suggestion.** A client submits against the version
+  it last saw. If the game has moved on, the action is normally rejected — unless
+  the acting seat's observation is unchanged between the two versions, which is
+  precisely what makes simultaneous moves work. See [The game
+  lifecycle](./lifecycle.md).
+
+Randomness comes from an engine-supplied `rng`, not from `Math.random()`, so a
+game is a pure function of its seed and its ordered actions. That is what makes
+replay, reconnection and optimistic preview all sound at once.
+
+## Server and client
+
+They are one game written twice, with an unequal split of authority.
+
+| | Server (TypeScript, in the Worker) | Client (Dart, in the app) |
+|---|---|---|
+| Decides a move's legality | **Yes** — the only answer that counts | Guesses, to grey out a button |
+| Holds full state | Yes | Never — only this seat's observation |
+| Owns turn order, clocks, results | Yes | Displays them |
+| Draws the board | — | Yes |
+
+The client keeps a **rules twin**: a Dart transcription of just enough of the
+rules to answer "is this tappable?" and "what would this look like?" before the
+server replies. It exists for latency, not for truth — the board can move
+immediately, and reconciles when the real transition arrives. When the two
+disagree the server wins, silently and always.
+
+Keeping the twin honest is a test, not a discipline: shared JSON fixtures run
+against both halves and fail if they diverge. See [Testing](../build-a-game/testing.md).
+
+The transport is one WebSocket per game, held open for its whole lifetime,
+carrying one frame per transition — a single seat's observation at a single
+version. Frames are strictly serial, so a client always knows whether it is
+current: opening cold mid-game snaps straight to the present, while a client
+that missed a span fetches exactly that span and animates through it. It
+reconciles against a version the server states, never one it guesses. See
+[Transport](./transport.md).
+
 ## Three properties fall out of it
 
 - **Server authority.** The rules run on the server. A client's move is a
@@ -31,7 +100,7 @@ Everything else — the API, the global database, push, avatars — orbits that.
   except as a per-seat projection.
 - **Strong per-game consistency.** A DO processes its commands one at a time
   under an input gate. There are no lost updates, no torn writes, no
-  distributed-lock dance — the platform serializes access to each game for us.
+  distributed-lock dance — the platform serializes access to each game.
 - **Determinism & replayability.** State is a pure function of `(base seed,
   ordered action log)`. The action log is append-only and immutable; replaying
   it reproduces the game exactly. This is what makes [history](./storage.md),

@@ -51,11 +51,11 @@ the classic concurrent-finish lost-update bug:
 
 1. Read each identity's `(mu, sigma, revision)` and compute the posteriors in TS.
 2. Write each history row with revision-guarded subselects for its before-values
-   (`SELECT mu FROM player_ratings WHERE …revision = <the one we read>`), and
+   (`SELECT mu FROM player_ratings WHERE …revision = <the one just read>`), and
    UPDATE the rating `WHERE revision = <that>`, bumping it.
 3. If a concurrent finish already moved the revision, the subselect returns NULL,
-   the NOT-NULL column rejects the row, the **whole batch rolls back**, and we
-   re-read fresh priors and recompute (bounded retry).
+   the NOT-NULL column rejects the row, the **whole batch rolls back**, and the
+   engine re-reads fresh priors and recomputes (bounded retry).
 
 The display rating shown on leaderboards is `max(0, round((mu − 3σ) · 40))` —
 computed in one place in the kernel.
