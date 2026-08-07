@@ -1,5 +1,5 @@
 ---
-"@eigeninteractive/server": minor
+"@eigeninteractive/server": patch
 ---
 
 Give the engine-rendered public pages the EigenInteractive look: Space Grotesk
