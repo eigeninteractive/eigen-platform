@@ -23,8 +23,10 @@ Nothing is requested from a font CDN, so an operator's domain gains no third
 party. Together they are roughly 90KB of the worker's 3MB compressed budget,
 subset to latin plus punctuation, currency and arrows.
 
-Each face is a generated TypeScript module holding its base64 rather than a
-bundler asset import. `tsup` could inline a `.woff2`, but
+Each face is committed twice: the `.woff2` a font tool can open, and a generated
+`.ts` module holding its base64, which is what the worker imports. `pnpm run
+fonts` regenerates the second from the first and `fonts:check` verifies it in
+CI, so the two cannot drift. `tsup` could inline a `.woff2`, but
 `vitest-pool-workers` resolves worker-side modules outside vite's plugin graph,
 so the route would have answered 500 in the test suite while working in
 production — the same reason `site.css` renders empty under test today.

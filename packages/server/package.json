@@ -22,12 +22,14 @@
   ],
   "scripts": {
     "build": "tsup",
+    "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts",
+    "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
     "dev": "tsup --watch",
+    "fonts": "node scripts/encode-fonts.mjs",
+    "fonts:check": "node scripts/encode-fonts.mjs --check",
     "openapi": "tsup && node scripts/emit-openapi.mjs",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json",
-    "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
-    "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json"
   },
   "keywords": [
     "eigen",
