@@ -79,8 +79,10 @@ pnpm firebase:configure
 ```
 
 That configures Android and web with FlutterFire and writes the service worker's
-Firebase configuration. Then fill in the public values and VAPID key in
-`app/app-config.json` — see
+Firebase configuration. It asks which Firebase project to use, and can create
+one; pass `-- --project my-project-id` to answer that up front.
+
+Then fill in the public values and VAPID key in `app/app-config.json` — see
 [Deploy the web app](../ship-it/deploy-the-web-app.md) — and copy
 `server/.dev.vars.example` to `server/.dev.vars` with the Firebase Admin
 credentials, which the Worker needs to verify player tokens.

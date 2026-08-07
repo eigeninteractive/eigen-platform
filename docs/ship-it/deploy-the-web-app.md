@@ -74,8 +74,26 @@ pnpm firebase:configure
 For an app maintained in its own repository, run
 `dart run eigen_flutter:configure_firebase` from the Flutter root. Both forms
 run FlutterFire for Android and Web, then derive the service worker
-configuration from the Web app FlutterFire selected. Use the generated options
-in `runEngineApp`:
+configuration from the Web app FlutterFire selected.
+
+The first run prompts you to pick a Firebase project — or create one — since
+there is nothing yet to tell it which. Name the project instead to skip the
+prompts, which is also how you drive this from CI:
+
+```bash
+pnpm firebase:configure -- --project my-project-id
+# or: npm run firebase:configure -- --project my-project-id
+```
+
+After that first run there is nothing to pass: the project is recorded in
+`app/firebase.json` and reused, so re-running to pick up a new configuration is
+non-interactive. `--account <email>` picks the Google account on a machine
+signed in to several, and `--help` lists the lot.
+
+Platforms are not configurable here — the app is Android and Web, and the
+service worker configuration is derived from the Web app. For anything outside
+that, run `flutterfire configure` yourself. Use the generated options in
+`runEngineApp`:
 
 ```dart
 firebaseOptions: DefaultFirebaseOptions.currentPlatform,
