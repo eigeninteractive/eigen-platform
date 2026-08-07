@@ -1,161 +1,89 @@
 ---
 sidebar_position: 2
 title: Quickstart
-description: Scaffold a game Worker and Flutter app, generate the shared payload contract, and run both halves locally.
+description: Scaffold a game, run both halves locally, and make your first rules change.
 ---
 
 # Quickstart
 
-You build an EigenInteractive game in your own repository. The engine
-repositories are
-ordinary dependencies; game implementors do not clone them.
+One command scaffolds both halves of a game — the Cloudflare Worker that owns
+the rules and the Flutter app that draws them — into your own repository. You
+never clone the engine; it arrives as ordinary npm and pub.dev packages.
 
-## Prerequisites
+## Before you start
 
-Node.js 22 or newer, npm or pnpm, and Flutter 3.44 or newer — which brings the
-Dart 3.12 the client needs. Scaffolding also needs network access: it installs
-both halves as it goes.
+Node.js 22 or newer, npm or pnpm, and Flutter 3.44 or newer, which brings the
+Dart 3.12 the client needs. Scaffolding installs both halves as it goes, so it
+needs network access.
 
-A Cloudflare account and Firebase project are needed to run the complete app and
-deploy, but not to scaffold the project or test game rules. The Android
-toolchain is needed only to run on Android.
+A Cloudflare account and a Firebase project are needed to run the whole app, but
+not to scaffold it or to test game rules.
+[Prerequisites](./prerequisites.md) covers each of these with install links and
+one command block that checks the lot.
 
-[Prerequisites](./prerequisites.md) covers each of these with install links, and
-gives you one command block that checks the lot.
-
-## Scaffold both halves
+## Scaffold
 
 ```bash
-# pnpm
 pnpm create eigen-game my-game
-
-# or npm
-npm create eigen-game@latest my-game
+# or: npm create eigen-game@latest my-game
 ```
 
-`my-game` is the only naming argument. It is a lowercase kebab-case slug; the
-scaffolder derives `My Game`, `my_game`, and the `MyGame` type prefix from it.
+`my-game` is the only naming argument — a lowercase kebab-case slug, from which
+the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 
-It then asks one question — your organization in reverse domain notation,
-defaulting to `com.example`:
+It asks one question:
 
 ```text
 Organization in reverse domain notation [com.example]: dev.yourname.games
 ```
 
 That becomes the Android `applicationId`, which is worth getting right at
-scaffold time: Google Play treats it as the permanent identity of the app and it
-cannot be changed after the first upload. Pass `--org dev.yourname.games` to
-answer it up front, which is also how it works with no terminal attached.
+scaffold time: Google Play treats it as the app's permanent identity and it
+cannot be changed after the first upload. `--org dev.yourname.games` answers it
+up front, which is also how it works with no terminal attached.
 
-The scaffold is committed when it finishes, so your first `git diff` is your
-first game change rather than the ninety generated files underneath it —
-launcher icons, splash screens and web icons are all written at scaffold time.
-`--no-git` skips it, as does scaffolding inside a repository you already have.
-
-The engine and `eigen_flutter` versions it writes are fixed in the scaffolder,
-built and tested as a pair before it ships. So the version of
-`create-eigen-game` you run decides both — see [Versions and
-compatibility](../reference/compatibility.md). Use `@latest` rather than a
-cached older copy.
-
-The default is a single repository:
+You get one repository holding both halves:
 
 ```text
 my-game/
-├── server/   # Cloudflare Worker and authoritative TypeScript rules
-└── app/      # Flutter app and presentation rules
+├── server/   # Cloudflare Worker — the authoritative rules
+└── app/      # Flutter app — the screens
 ```
 
-The scaffold intentionally supports only this combined layout. It composes a
-  canonical C3-style Cloudflare Worker template with
-  `flutter create --empty --platforms android,web`,
-installs both halves, emits the initial `game-contract.json`, and generates the
-initial Dart payload types and rules base. The generated files use only public
-npm/pub.dev contracts, so teams that prefer separate repositories can create
-either half by hand. The scaffold is convenience, not a runtime requirement.
+The scaffold commits itself when it finishes, so your first `git diff` is your
+first game change rather than the ninety generated files underneath it. Pass
+`--no-git` to skip that, as does scaffolding inside a repository you already
+have.
 
-Prefer to create the repositories yourself or add EigenInteractive to an
-existing app?
-Follow [Set up without the scaffolder](./manual-setup.md). It uses the same
-public contracts and supports independent Worker and app repositories.
+The engine and `eigen_flutter` versions are pinned inside the scaffolder and
+released as a tested pair, so the `create-eigen-game` you run decides both — use
+`@latest` rather than a cached older copy. See
+[Versions and compatibility](../reference/compatibility.md).
 
-## Generate the game contract
-
-The scaffold has already performed the first generation. After changing
-`state`, `observation`, `action`, `config`, or a shared fixture, regenerate:
-
-```bash
-pnpm run contract            # from the generated repository root
-# npm run contract is supported too
-```
-
-`game-contract.json` is the game-owned boundary between repositories. It
-contains every schema version plus the validated twin fixtures. Commit it,
-publish it as a release artifact, or copy it into the app build; no particular
-repository layout is assumed.
-
-The root command also generates the Dart payload library and fixture copies.
-The underlying commands remain independently usable when the halves live in
-separate repositories:
-
-```bash
-cd app
-dart run eigen_flutter:generate_payloads \
-  --contract ../server/game-contract.json \
-  --output lib/game/generated/payloads.dart \
-  --fixtures-output test/fixtures
-flutter test
-```
-
-The output is immutable plain Dart with deep value equality, field-aware decode
-errors, and a typed abstract rules base. A game does not install Freezed,
-`json_serializable`, `build_runner`, `code_builder`, or `dart_style` for these
-payloads; the executable owns its generation implementation.
-
-## The development loop
-
-The scaffold includes one v1 fixture and both fixture runners. Keep the
-TypeScript runner watching while editing rules:
+## Run it
 
 ```bash
 cd server
-pnpm run test:watch          # or: npm run test:watch
-```
-
-After changing a schema or fixture, refresh the cross-language artifact and
-the generated Dart side:
-
-```bash
-cd ..                        # repository root
-pnpm run contract
-
-cd app
-flutter test
-```
-
-Changing only TypeScript hook behavior does not necessarily change the
-schemas, but update its shared fixture and run the same sequence: fixtures are
-part of `game-contract.json`. `wrangler dev` reloads Worker source; it does not
-regenerate the contract or Dart files.
-
-Before anything has shipped, freely edit the seeded v1 unit. Once persisted
-games or released clients depend on v1, make an incompatible change in a new
-v2 unit and keep both registry entries.
-
-## Run locally
-
-```bash
-cd server
-pnpm dev
+pnpm dev                              # applies the D1 migrations, then wrangler dev
 curl http://localhost:8787/health
 ```
 
-`wrangler dev` simulates the Worker resources locally. Running the full Flutter
-app against it additionally requires Firebase configuration; pure rules,
-fixture, and widget tests do not.
+`wrangler dev` simulates D1, the Durable Objects and the cron trigger locally.
+`/health` answering `{"status":"ok"}` means the whole Worker stack is up, and
+rules and fixture tests need nothing more than this.
 
-Run the browser at the stable origin already allowed by the Worker scaffold:
+The Flutter app needs Firebase first. From the repository root:
+
+```bash
+pnpm firebase:configure
+```
+
+That configures Android and web with FlutterFire and writes the service worker's
+Firebase configuration. Then fill in the public values and VAPID key in
+`app/app-config.json` — see
+[Deploy the web app](../ship-it/deploy-the-web-app.md) — and copy
+`server/.dev.vars.example` to `server/.dev.vars` with the Firebase Admin
+credentials, which the Worker needs to verify player tokens.
 
 ```bash
 cd app
@@ -163,30 +91,74 @@ flutter run -d chrome --web-hostname localhost --web-port 7357 \
   --dart-define-from-file=app-config.json
 ```
 
-Run `pnpm firebase:configure` (or `npm run firebase:configure`) from the
-generated repository root. It configures Android and Web with FlutterFire and
-generates the service worker's matching public Firebase configuration. Then
-finish the required public values and VAPID key in `app-config.json` as shown in
-[Deploy the web app](../ship-it/deploy-the-web-app.md). Copy
-`server/.dev.vars.example` to `server/.dev.vars` and fill the Admin credentials
-from that same Firebase project before running authenticated Worker traffic.
+Port 7357 is the origin the Worker scaffold already trusts, so leave it as it is.
 
-The Worker template uses Wrangler-generated `Env` types and a stable `GAME_DB`
-binding. Wrangler automatically provisions its D1 database on first remote
-use; the deploy script applies the engine migrations before deploying.
+## The development loop
 
-## Keep generation honest
+`wrangler dev` reloads Worker source on save, which covers most rules work.
+What it does not do is regenerate anything: `game-contract.json` and the Dart it
+produces are build outputs, not watched files.
 
-Run generation in write mode during development and check mode in CI:
+Keep the fixture runner going while you edit rules:
 
 ```bash
-pnpm run contract:check      # generated repository root
+cd server
+pnpm run test:watch
 ```
 
-When the two halves are separate repositories, promote one exact
-`game-contract.json` by checksum. Deploy an Android build supporting a new game
-schema before server responses start requiring it. Web clients can show the
-same update state and reload to fetch the latest deployed bundle.
+Then run `pnpm run contract` from the repository root whenever a schema or a
+fixture changes, and `flutter test` in `app/` to check the Dart side agrees.
 
-Next, read [Your first game](./your-first-game.md) and
-[Payload types](../build-a-game/schemas.md).
+## What a game is
+
+A game is four Zod schemas and a handful of pure hooks, in one
+[`GameRules`](../build-a-game/the-contract.md) unit:
+
+- **`state`** is the authoritative truth, held by the Worker and never sent to a
+  player.
+- **`observation`** is the slice one seat is allowed to see, computed from
+  `state`. It is what the app draws, and it is where
+  [hidden information](../build-a-game/hidden-information.md) is enforced.
+- **`action`** is what a player submits; `config` is what the creator chose
+  before the game started.
+
+Each unit is registered under a **schema version**, and shipped versions are
+immutable — an incompatible change becomes a new `v2` unit beside `v1`, so games
+already in progress keep the rules they started under. See
+[Payload types](../build-a-game/schemas.md),
+[The hooks](../build-a-game/hooks.md) and
+[Versions](../build-a-game/versions.md).
+
+## Change the rules
+
+The seeded game is a race to a target count. Open
+`server/src/module/v1.ts` and bound what a player may add per turn:
+
+```ts
+const actionSchema = z.object({ amount: z.int().min(1).max(3) }).meta({ id: "ExampleGameV1Action" });
+```
+
+That is a schema change, so regenerate the contract from the repository root:
+
+```bash
+pnpm run contract
+```
+
+It rewrites `server/game-contract.json` — every schema version plus the shared
+fixtures — and from it the Dart payload types and fixture copies in `app/`.
+Commit both: they are the boundary between the two halves, and the app now
+rejects `amount: 4` before it ever reaches the Worker.
+
+Changing hook *behaviour* rather than a schema works the same way, except that
+you update the fixture in `server/src/module/fixtures/v1/` alongside it. The
+fixtures are part of the contract, and both languages run them — that is what
+keeps the app's prediction and the Worker's ruling from drifting apart.
+
+Before anything has shipped, edit the seeded v1 unit freely.
+
+---
+
+Next: [Your first game](./your-first-game.md) walks through Rock–Paper–Scissors
+in both languages. Prefer to wire the two halves up yourself, or add
+EigenInteractive to an app you already have? See
+[Set up without the scaffolder](./manual-setup.md).
