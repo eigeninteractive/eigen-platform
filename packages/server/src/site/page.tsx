@@ -15,6 +15,7 @@
  */
 
 import type { PropsWithChildren } from "hono/jsx";
+import { fontFaceCss } from "./fonts.js";
 import styles from "./site.css";
 
 /** Icon paths, defaulted to what `flutter_launcher_icons` already emits into a
@@ -102,7 +103,10 @@ export function Page(props: PropsWithChildren<PageProps>) {
         <link rel="icon" href={ICONS.favicon} />
         <link rel="apple-touch-icon" href={ICONS.appleTouch} />
         <link rel="manifest" href="/site.webmanifest" />
-        <style dangerouslySetInnerHTML={{ __html: styles }} />
+        {/* The faces first, so the rules that use them are already declared by
+            the time the cascade reaches them. Generated from the same table the
+            routes serve, so a URL cannot drift from what answers it. */}
+        <style dangerouslySetInnerHTML={{ __html: fontFaceCss + styles }} />
         {props.jsonLd !== undefined && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: props.jsonLd }} />}
       </head>
       <body>

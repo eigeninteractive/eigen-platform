@@ -22,6 +22,7 @@
 
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
 import type { ResolvedSite } from "../site/config.js";
+import { FONTS, fontBytes } from "../site/fonts.js";
 import { ICONS, Page, RawHtml, renderDocument } from "../site/page.js";
 
 /** Cached for a day: crawler files change only on redeploy. */
@@ -140,7 +141,11 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // Icon paths match Flutter's web build. Keep the engine manifest available
   // even before legal-site configuration, because Page links it from the
   // out-of-box download page.
-  const color = ctx.site?.primaryColor ?? "#6750a4";
+  // The EigenInteractive primary, matching site.css and the Flutter shell's
+  // default seed. It reaches the manifest and so the browser's install UI, and
+  // a game that has not configured `site` yet should still look like something
+  // rather than like Material's baseline purple.
+  const color = ctx.site?.primaryColor ?? "#006a60";
   const manifest = JSON.stringify({
     name,
     short_name: name,
@@ -156,6 +161,34 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
       { src: ICONS.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   });
+
+  // The brand faces, ungated: every page the engine renders references them,
+  // including the legal documents and the `/j` share page, and a worker running
+  // `deepLink` without `site` still serves `/download`.
+  //
+  // Fronted by `caches.default` for the same reason the avatar route is: a
+  // Worker response is not edge-cached automatically, so the immutable header
+  // below only reaches the device. Without this, every first-time visitor to
+  // every game would decode both faces from base64 again. The URL is the cache
+  // key and carries a version segment, so replacing a font is a natural miss
+  // rather than something to invalidate.
+  for (const font of FONTS) {
+    app.get(font.url, async (c) => {
+      const cache = caches.default;
+      const cacheKey = new Request(c.req.url);
+      const hit = await cache.match(cacheKey);
+      if (hit !== undefined) return hit;
+
+      const response = new Response(fontBytes(font.base64) as unknown as BodyInit, {
+        headers: {
+          "Content-Type": "font/woff2",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+      c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+      return response;
+    });
+  }
 
   // Static Assets serves Flutter's index at `/` before the Worker runs. This
   // redirect is the graceful fallback when there is no matching web asset.

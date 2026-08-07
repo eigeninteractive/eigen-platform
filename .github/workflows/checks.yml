@@ -84,6 +84,13 @@ jobs:
       - name: Test
         run: pnpm -r test
 
+      # The bundled fonts are committed twice: the .woff2 a font tool can open
+      # and the .ts the worker actually imports, because a bundler-loaded binary
+      # is empty under vitest-pool-workers. Two copies of the same bytes drift,
+      # so the one that is generated is verified.
+      - name: Bundled fonts match their modules
+        run: pnpm --filter @eigeninteractive/server fonts:check
+
       # The generated spec is the contract the Dart client is generated from, so
       # it is committed and must never lag the routes. Re-emitting it from the
       # freshly built worker and diffing catches a route or zod schema change

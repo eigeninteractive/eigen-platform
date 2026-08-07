@@ -7,6 +7,16 @@
  * defaults so these assertions cover the shipped prose). The unit half covers
  * token substitution, which fails startup rather than a request and so has no
  * request path to test through.
+ *
+ * KNOWN GAP: `site.css` is not covered by any of this. `tsup` inlines it as
+ * text at build time via its `.css` loader, but under `vitest-pool-workers`
+ * `import styles from "./site.css"` resolves to an empty module, so every page
+ * here renders with an empty `<style>` — the palette, the inlined display face
+ * and the layout are all absent from what these assertions see. A vite `load`
+ * plugin, a `transform` plugin and a workerd `Text` module rule were all tried;
+ * the pool resolves worker-side modules outside vite's plugin graph, so none of
+ * them reach it. Anything asserted about the stylesheet has to be asserted
+ * about the file's contents directly, not through a response.
  */
 
 import { exports } from "cloudflare:workers";
@@ -144,6 +154,53 @@ describe("crawler files", () => {
     // implementor copies that folder rather than authoring a second icon set.
     expect(manifest.icons.map((i) => i.src)).toEqual(["/icons/Icon-192.png", "/icons/Icon-512.png", "/icons/Icon-maskable-192.png", "/icons/Icon-maskable-512.png"]);
     expect(manifest.icons.filter((i) => i.purpose === "maskable")).toHaveLength(2);
+  });
+
+  it("lets a game's configured colour win over the brand default", async () => {
+    const html = await (await get("/download")).text();
+
+    // An inline style on the root element, which beats both the light and dark
+    // `:root` blocks in the stylesheet, so a configured game keeps its colour
+    // in either scheme.
+    expect(html).toContain("--primary:#1a237e");
+  });
+
+  it("declares both brand faces and serves them itself", async () => {
+    const html = await (await get("/download")).text();
+
+    // Generated in TypeScript rather than written into site.css, so unlike the
+    // rest of the stylesheet these rules are visible here — and generated from
+    // the same table the routes below serve, so the two cannot drift.
+    expect(html).toContain('font-family:"Inter"');
+    expect(html).toContain('font-family:"Space Grotesk"');
+    expect(html).toContain("font-display:swap");
+
+    // No third party on an operator's domain, and nothing to consent to.
+    expect(html).not.toContain("fonts.googleapis.com");
+    expect(html).not.toContain("fonts.gstatic.com");
+
+    for (const path of ["/_eigen/font/v1/inter.woff2", "/_eigen/font/v1/space-grotesk.woff2"]) {
+      expect(html).toContain(`url(${path})`);
+
+      const res = await get(path);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("font/woff2");
+      // Immutable is only honest because the path carries a version segment
+      // that changes when the bytes do.
+      expect(res.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+
+      // Real woff2, not a base64 string that survived as text: the format's
+      // magic number is `wOF2`.
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      expect(String.fromCharCode(...bytes.subarray(0, 4))).toBe("wOF2");
+      expect(bytes.byteLength).toBeGreaterThan(10_000);
+
+      // Again, because the response is cloned into `caches.default` and the
+      // original returned. Getting that pair the wrong way round serves an
+      // already-consumed body, which is empty rather than an error.
+      const repeat = new Uint8Array(await (await get(path)).arrayBuffer());
+      expect(repeat.byteLength).toBe(bytes.byteLength);
+    }
   });
 });
 

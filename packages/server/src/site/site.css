@@ -20,27 +20,50 @@
   padding: 0;
 }
 
+/*
+ * The EigenInteractive palette, which is the Material 3 scheme generated from
+ * `Colors.teal` — the same seed the Flutter shell defaults to, so a game that
+ * has configured nothing looks like one product across the app and its pages.
+ * These are `ColorScheme.fromSeed` output rather than hand-picked neighbours,
+ * including the neutrals, which carry the seed's hue and are why the greys here
+ * are faintly green.
+ *
+ * `--primary` is overridden on the root element from `site.primaryColor`, and
+ * an inline style beats both blocks below, so a configured game keeps its own
+ * colour in either scheme.
+ */
 :root {
-  --primary: #4f46e5;
-  --bg: #fffbfe;
-  --surface: #f3edf7;
-  --fg: #1c1b1f;
-  --muted: #49454f;
-  --outline: #cac4d0;
+  --primary: #006a60;
+  --bg: #f4fbf8;
+  --surface: #e3e9e6;
+  --fg: #161d1c;
+  --muted: #3f4947;
+  --outline: #6f7977;
+
+  /*
+   * The same pairing and the same split as the app: Space Grotesk is drawn for
+   * size and reads as noise in a paragraph, so it takes the headings and the
+   * call to action while Inter takes everything read at length. Both are served
+   * by the worker (see site/fonts.ts); the stacks behind them are what renders
+   * during the swap.
+   */
+  --display-font: "Space Grotesk", system-ui, sans-serif;
+  --body-font: Inter, system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #141218;
-    --surface: #211f26;
-    --fg: #e6e0e9;
-    --muted: #cac4d0;
-    --outline: #49454f;
+    --primary: #82d5c8;
+    --bg: #0e1513;
+    --surface: #1b2220;
+    --fg: #dde4e1;
+    --muted: #bec9c5;
+    --outline: #899390;
   }
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--body-font);
   background: var(--bg);
   color: var(--fg);
   line-height: 1.6;
@@ -56,6 +79,7 @@ body {
 }
 
 h1 {
+  font-family: var(--display-font);
   font-size: clamp(2rem, 7vw, 2.75rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -64,8 +88,9 @@ h1 {
 }
 
 h2 {
+  font-family: var(--display-font);
   font-size: 1.15rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 2rem 0 0.5rem;
 }
 
@@ -111,7 +136,8 @@ strong {
   text-decoration: none;
   padding: 0.8rem 1.75rem;
   border-radius: 100px;
-  font-weight: 500;
+  font-family: var(--display-font);
+  font-weight: 600;
   margin: 0.25rem 0.5rem 0.25rem 0;
 }
 
