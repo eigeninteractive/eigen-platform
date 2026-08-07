@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="25.3 19 149 149" width="160" height="160" fill="none">
   <style>
-    .followed { stroke: #2F6B5E }
+    .followed { stroke: #006A60 }
     .pruned { stroke: #1B1E24 }
     @media (prefers-color-scheme: dark) {
-      .followed { stroke: #4E9B89 }
+      .followed { stroke: #82D5C8 }
       .pruned { stroke: #F4F1EA }
     }
   </style>

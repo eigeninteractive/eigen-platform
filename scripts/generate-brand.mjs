@@ -15,10 +15,24 @@ import { fileURLToPath } from "node:url";
 import opentype from "opentype.js";
 import sharp from "sharp";
 
+// The accent is Material 3's `primary` for a `Colors.teal` seed, one value per
+// brightness — literally what `ColorScheme.fromSeed` hands the Flutter shell,
+// and what the engine's public pages set `--primary` to.
+//
+// It is defined there and copied here, rather than the other way round, because
+// a UI has to derive a whole scheme from the accent and a mark only has to be
+// drawn in it. M3 pulls any seed to tone 40 and rebuilds the ramp around it, so
+// a hand-picked brand hex comes back as something near itself but not itself: a
+// logo can match a generated palette, a generated palette cannot be talked into
+// matching a logo.
+//
+// Ink and paper are the mark's own and carry no such obligation — they are the
+// two grounds it is drawn on, which is also why the game scaffolder uses them
+// for launcher icons and splash screens.
 const INK = "#1B1E24";
 const PAPER = "#F4F1EA";
-const ACCENT_LIGHT = "#2F6B5E";
-const ACCENT_DARK = "#4E9B89";
+const ACCENT_LIGHT = "#006A60";
+const ACCENT_DARK = "#82D5C8";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, "../static/brand");
