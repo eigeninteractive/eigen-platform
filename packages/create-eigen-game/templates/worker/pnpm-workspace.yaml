@@ -1,28 +1,3 @@
-# pnpm refuses to run a dependency's install scripts unless the project names
-# it, and fails the install outright when one is skipped
-# (ERR_PNPM_IGNORED_BUILDS). Two dependencies here need theirs:
-#
-#   esbuild  fetches its platform binary
-#   workerd  is the runtime `vitest` and `wrangler dev` execute against
-#
-# npm runs install scripts by default and ignores this file, so it is correct
-# for both package managers.
 allowBuilds:
   esbuild: true
   workerd: true
-
-# pnpm 11 will not install a version published less than a day ago
-# (`minimumReleaseAge`, default 1440 minutes), which is a quarantine against a
-# compromised publish. The engine packages are subject to it like any other
-# dependency.
-#
-# You do not have to do anything about that. When a range can only be satisfied
-# by a release younger than the quarantine — `^0.3.0` on the day 0.3.0 ships —
-# pnpm installs it anyway and writes the exact version it allowed into a
-# `minimumReleaseAgeExclude` list in this file. Those entries are pnpm's, not
-# yours: each names one version, so the exemption expires with it rather than
-# opening the scope permanently. Leave them, and commit them.
-#
-# The one place the quarantine is silent is `pnpm create eigen-game`, where
-# there is no manifest to record an exemption in and an older scaffolder
-# satisfies `latest` perfectly well. Pass an exact version there on release day.

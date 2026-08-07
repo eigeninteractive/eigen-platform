@@ -48,3 +48,28 @@ The combined scaffold builds Flutter directly into `public/`. Static assets
 bypass Worker execution; `/api/*`, `/join/*`, `/game/*`, `/download`, legal,
 and verification paths run Worker-first. `npm run deploy` applies the engine
 migrations before deploying the Worker and whatever is already in `public/`.
+
+## `pnpm-workspace.yaml`
+
+Two things live in that file, and both are pnpm's rather than yours. It is kept
+free of comments because pnpm rewrites it in place, and because a YAML
+formatter is free to move anything written there.
+
+`allowBuilds` names the dependencies permitted to run install scripts. pnpm
+refuses to run them unless the project asks, and fails the install outright
+when one is skipped (`ERR_PNPM_IGNORED_BUILDS`). Two need theirs: `esbuild`
+fetches its platform binary, and `workerd` is the runtime `vitest` and
+`wrangler dev` execute against. npm runs install scripts by default and ignores
+the file entirely, so the scaffold is correct under both.
+
+`minimumReleaseAgeExclude` appears on its own. pnpm 11 will not install a
+version published less than a day ago — a quarantine against a compromised
+publish — and the engine packages are subject to it like any other dependency.
+When a range can only be satisfied by a release younger than that, as `^0.3.0`
+is on the day 0.3.0 ships, pnpm installs it anyway and records the exact
+version it allowed. Each entry names one version, so the exemption expires with
+it rather than opening the scope. Leave them, and commit them.
+
+The one place the quarantine is silent is `pnpm create eigen-game`, where there
+is no manifest to record an exemption in and an older scaffolder satisfies
+`latest` perfectly well. Pass an exact version there on release day.
