@@ -15,6 +15,7 @@
  */
 
 import type { PropsWithChildren } from "hono/jsx";
+import { DEFAULT_CREDIT } from "./config.js";
 import { fontFaceCss } from "./fonts.js";
 import styles from "./site.css";
 
@@ -50,31 +51,74 @@ export interface PageProps {
   noindex?: boolean;
   /** Already-serialised JSON-LD. */
   jsonLd?: string;
-  /** Legal entity for the footer. Omitted → no footer, which is the case for a
-   * worker running `deepLink` without `site`. */
+  /** Legal entity for the footer's copyright and legal links. Omitted → neither
+   * is rendered, which is the case for a worker running `deepLink` without
+   * `site`: the legal routes do not exist to link to. */
   operatorName?: string;
+  /** Footer credit line. Omitted → {@link DEFAULT_CREDIT}; `null` removes it. */
+  madeByCredit?: string | null;
 }
 
-/** The engine's footer: the legal links every page must carry, plus the
- * operator's copyright. Rendered only when `site` is configured, since the
- * legal routes do not exist otherwise. */
-function Footer({ operatorName }: { operatorName: string }) {
+/** The engine's footer: the legal links every page must carry, the operator's
+ * copyright, and the credit.
+ *
+ * The two halves are independent. Legal links need `site` — without it the
+ * routes are not mounted and linking to them would be a 404 — but the credit
+ * does not, so a worker that has configured nothing still ends its pages with
+ * a line rather than with whitespace. */
+function Footer({ operatorName, credit }: { operatorName?: string; credit: string | null }) {
   return (
     <footer>
-      <span>
-        &copy; {new Date().getUTCFullYear()} {operatorName}
-      </span>
-      <a href="/terms">Terms of Service</a>
-      <a href="/privacy">Privacy Policy</a>
-      <a href="/delete-account">Delete Account</a>
+      {operatorName !== undefined && (
+        <>
+          <span>
+            &copy; {new Date().getUTCFullYear()} {operatorName}
+          </span>
+          <a href="/terms">Terms of Service</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/delete-account">Delete Account</a>
+        </>
+      )}
+      {credit !== null && (
+        <a class="credit" href="https://eigeninteractive.com" rel="noopener">
+          {credit}
+        </a>
+      )}
     </footer>
   );
 }
 
+/**
+ * The readable ink for text sitting on `--primary`.
+ *
+ * The stylesheet pairs its own primary with an `--on-primary` per colour
+ * scheme, but a game that configures `site.primaryColor` overrides only half of
+ * that pair — and the two schemes disagree about which ink is right, so no
+ * single fallback works. Deriving the partner here keeps the call-to-action
+ * legible whatever colour an implementor picks, including colours light enough
+ * that white-on-primary would fail.
+ *
+ * WCAG relative luminance. The threshold is where contrast against white and
+ * against the near-black below cross, both a little above 4.5:1. A malformed
+ * hex yields `NaN`, which fails the comparison and lands on white — today's
+ * unconditional behaviour.
+ */
+export function onPrimary(hex: string): string {
+  const value = hex.replace("#", "");
+  const full = value.length === 3 ? [...value].map((c) => c + c).join("") : value;
+  const linear = (index: number): number => {
+    const channel = Number.parseInt(full.slice(index * 2, index * 2 + 2), 16) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = 0.2126 * linear(0) + 0.7152 * linear(1) + 0.0722 * linear(2);
+  return luminance > 0.18 ? "#0d1211" : "#ffffff";
+}
+
 export function Page(props: PropsWithChildren<PageProps>) {
   const siteName = props.siteName ?? props.title;
+  const credit = props.madeByCredit === undefined ? DEFAULT_CREDIT : props.madeByCredit;
   return (
-    <html lang="en" style={props.primaryColor === undefined ? undefined : `--primary:${props.primaryColor}`}>
+    <html lang="en" style={props.primaryColor === undefined ? undefined : `--primary:${props.primaryColor};--on-primary:${onPrimary(props.primaryColor)}`}>
       <head>
         {/* Lowercase: hono/jsx passes attribute names through verbatim, unlike
             React's charSet→charset mapping. */}
@@ -112,7 +156,7 @@ export function Page(props: PropsWithChildren<PageProps>) {
       <body>
         <div class="wrap">
           {props.children}
-          {props.operatorName !== undefined && <Footer operatorName={props.operatorName} />}
+          {(props.operatorName !== undefined || credit !== null) && <Footer operatorName={props.operatorName} credit={credit} />}
         </div>
       </body>
     </html>

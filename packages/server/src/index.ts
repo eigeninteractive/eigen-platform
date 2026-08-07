@@ -20,7 +20,7 @@ export { deriveBotKey } from "./bot/bot-auth.js";
 export { applyFinish, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readGameRow, updateSummary } from "./d1/apply.js";
 export { isTransientD1Error, type RetryOptions, withRetry } from "./d1/retry.js";
 export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";
-export { createEngine, type EngineConfig, type LegalConfig, type OperatorConfig, openApiDocument, type SiteConfig } from "./engine.js";
+export { createEngine, DEFAULT_CREDIT, type EngineConfig, type LegalConfig, type OperatorConfig, openApiDocument, type SiteConfig } from "./engine.js";
 export type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 export { HttpError } from "./http.js";
 export type { Command, CommandResult, FrameMessage, LobbyRejectCode, Principal, RosterSnapshot } from "./protocol.js";

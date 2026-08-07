@@ -41,15 +41,39 @@ function storeLinks(deepLink: DeepLinkConfig | null): { label: string; url: stri
   return links;
 }
 
-function StoreButtons({ links }: { links: { label: string; url: string }[] }) {
+/** The first action is the page's call to action and takes the filled button;
+ * the rest are outlined. Which one comes first depends on what the game has —
+ * a game with no web build leads with its store link. */
+function Actions({ links }: { links: { label: string; url: string }[] }) {
   return (
-    <div>
-      {links.map((l) => (
-        <a class="btn" href={l.url}>
+    <div class="actions">
+      {links.map((l, i) => (
+        <a class={i === 0 ? "btn" : "btn ghost"} href={l.url}>
           {l.label}
         </a>
       ))}
     </div>
+  );
+}
+
+/** The EigenInteractive mark, shown when the game has no icon of its own to
+ * show yet — which is every game until a Flutter web build reaches `public/`.
+ *
+ * Inline rather than a served file: it is two paths, so a request for it would
+ * cost more than the bytes it saves, and inline is what lets it be *drawn* in
+ * the page's own tokens. So it takes a configured `site.primaryColor` and
+ * follows the visitor's colour scheme without a second copy existing anywhere.
+ *
+ * Same reasoning as the shell's default seed and credit line: a game looks like
+ * an EigenInteractive game until its author says otherwise, and saying
+ * otherwise here means shipping an icon. Attribute names are passed through
+ * verbatim by hono/jsx, so these are the SVG spellings, not React's. */
+function EigenMark() {
+  return (
+    <svg class="logo" viewBox="25.3 19 149 149" width="96" height="96" fill="none" aria-hidden="true">
+      <path d="M80 109L150.711 33.289" stroke="var(--primary)" stroke-width="26" stroke-linecap="butt" />
+      <path d="M80 160V104L48.887 72.887" stroke="var(--fg)" stroke-width="26" stroke-linejoin="miter" stroke-linecap="butt" />
+    </svg>
   );
 }
 
@@ -98,7 +122,7 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
     app.get(path, (c) =>
       c.html(
         renderDocument(
-          <Page title={`${title} — ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name}>
+          <Page title={`${title} — ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name} madeByCredit={site.madeByCredit}>
             <RawHtml html={fragment} />
           </Page>,
         ),
@@ -194,25 +218,63 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // redirect is the graceful fallback when there is no matching web asset.
   app.get("/", (c) => (enabled(c.env) ? c.redirect("/download", 302) : c.notFound()));
 
-  app.get("/download", (c) => {
+  // Whether a Flutter web build is actually deployed, which two things on the
+  // page depend on: the "Play on the web" button, and the app icon.
+  //
+  // The ASSETS binding alone cannot answer this — the scaffold binds it whether
+  // or not `public/` has anything in it, so it is bound from the first
+  // `wrangler dev`. Offering "Play on the web" on that evidence sends the
+  // visitor to `/`, which has no asset to serve and so redirects back here.
+  // Asking the binding for the SPA entry point answers it properly: with no
+  // `index.html` there is nothing for the fallback to serve, so it 404s.
+  //
+  // The icons are the same question, because `flutter build web` emits
+  // `favicon.png` and `icons/` beside `index.html` — one bundle, so one probe.
+  const hasWebBuild = async (env: unknown, origin: string): Promise<boolean> => {
+    const assets = ctx.webAssets(env);
+    if (assets === null) return false;
+    const res = await assets.fetch(new Request(`${origin}/index.html`));
+    await res.body?.cancel();
+    return res.ok;
+  };
+
+  app.get("/download", async (c) => {
     if (!enabled(c.env)) return c.notFound();
 
     const origin = new URL(c.req.url).origin;
     const site = ctx.site;
     const ogImage = site === null ? undefined : `${origin}${site.ogImage}`;
+    const web = await hasWebBuild(c.env, origin);
+    const actions = [...(web ? [{ label: "Play on the web", url: "/" }] : []), ...stores];
     return c.html(
       renderDocument(
-        <Page title={`${name} — ${tagline}`} description={tagline} siteName={name} primaryColor={site?.primaryColor} canonicalUrl={`${origin}/download`} ogImage={ogImage} operatorName={site?.operator.name} jsonLd={site === null || ogImage === undefined ? undefined : jsonLdFor(site, ctx.deepLink, origin, ogImage)}>
-          <h1>{name}</h1>
-          <p class="lead">{tagline}</p>
-          {site !== null && site.description !== site.tagline && <p>{site.description}</p>}
-          {site !== null && site.screenshots.length > 0 && <Screenshots site={site} />}
-          <div>
-            <a class="btn" href="/">
-              Play on the web
-            </a>
-            {stores.length > 0 && <StoreButtons links={stores} />}
-          </div>
+        <Page
+          title={`${name} — ${tagline}`}
+          description={tagline}
+          siteName={name}
+          primaryColor={site?.primaryColor}
+          canonicalUrl={`${origin}/download`}
+          ogImage={ogImage}
+          operatorName={site?.operator.name}
+          madeByCredit={site?.madeByCredit}
+          jsonLd={site === null || ogImage === undefined ? undefined : jsonLdFor(site, ctx.deepLink, origin, ogImage)}
+        >
+          <main class="hero">
+            {/* The app's own launcher icon, at twice its rendered size, falling
+                back to the engine's mark before there is a build to take one
+                from. Decorative either way: the name it stands for is the <h1>
+                directly below it. */}
+            {web ? <img class="logo" src={ICONS.icon192} alt="" width="96" height="96" /> : <EigenMark />}
+            <h1>{name}</h1>
+            <p class="lead">{tagline}</p>
+            {site !== null && site.description !== site.tagline && <p>{site.description}</p>}
+            {/* Nothing to click means nothing is published: no web build in
+                `public/`, and no store URLs in `deepLink`. True of every game
+                between its first `wrangler dev` and its first release, so the
+                page says so rather than trailing off after the tagline. */}
+            {actions.length > 0 ? <Actions links={actions} /> : <p class="note">Coming soon.</p>}
+            {site !== null && site.screenshots.length > 0 && <Screenshots site={site} />}
+          </main>
         </Page>,
       ),
       200,

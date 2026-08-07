@@ -32,6 +32,11 @@ export interface LegalConfig {
   deleteAccount?: string;
 }
 
+/** The credit line in every page footer, matching the Flutter shell's
+ * `Branding.madeByCredit` default so the app and its website say the same
+ * thing. Set `site.madeByCredit` to your own string, or to `null` to drop it. */
+export const DEFAULT_CREDIT = "Made with ❤️ by EigenInteractive";
+
 /** The public web surface a deployed game serves on its own host: download page,
  * legal documents, and the crawler files. Absent → none of it is mounted and
  * the worker stays API-only.
@@ -55,6 +60,8 @@ export interface SiteConfig {
    * prescribes for the Flutter app's own share card — one image, both
    * surfaces. The engine never generates images. */
   ogImage?: string;
+  /** Footer credit line. Defaults to {@link DEFAULT_CREDIT}; `null` removes it. */
+  madeByCredit?: string | null;
   operator: OperatorConfig;
   legal?: LegalConfig;
 }
@@ -69,6 +76,7 @@ export interface ResolvedSite {
   primaryColor: string;
   screenshots: string[];
   ogImage: string;
+  madeByCredit: string | null;
   operator: OperatorConfig;
   legal: { terms: string; privacy: string; deleteAccount: string };
 }
