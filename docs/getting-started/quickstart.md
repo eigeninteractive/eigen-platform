@@ -34,11 +34,18 @@ the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 It asks one question:
 
 ```text
+The organization prefixes the Android applicationId, which Google Play makes permanent at first upload.
+Leaving it gives com.example.my_game.
+
 Organization in reverse domain notation [com.example]: dev.yourname.games
+applicationId: dev.yourname.games.my_game
 ```
 
-That becomes the Android `applicationId`, which is worth getting right at
-scaffold time: Google Play treats it as the app's permanent identity and it
+Note the shape: the organization is the **prefix**, and the game name is
+appended to it, exactly as `flutter create --org` does. Answering
+`dev.yourname.games.my_game` — which reads like the whole identifier — produces
+`dev.yourname.games.my_game.my_game`. Worth getting right at scaffold time,
+because Google Play treats the result as the app's permanent identity and it
 cannot be changed after the first upload. `--org dev.yourname.games` answers it
 up front, which is also how it works with no terminal attached.
 
@@ -81,6 +88,22 @@ pnpm firebase:configure
 That configures Android and web with FlutterFire and writes the service worker's
 Firebase configuration. It asks which Firebase project to use, and can create
 one; pass `-- --project my-project-id` to answer that up front.
+
+Commit everything it writes — `app/firebase.json`,
+`app/android/app/google-services.json`, `app/lib/firebase_options.dart`,
+`app/web/firebase-config.js` and FlutterFire's two Android Gradle edits. They
+are public app identifiers, not credentials, and Android and web builds fail
+without them. Adding `--firebase` to the scaffold command runs this step before
+the scaffold commit instead, so all of it lands in the first commit:
+
+```bash
+pnpm create eigen-game my-game --firebase
+# or name the project: --firebase-project my-project-id
+```
+
+That needs the two CLIs and a Google login up front, which is why it is opt-in
+rather than the default — everything else in this page works without a Firebase
+project at all.
 
 Then fill in the public values and VAPID key in `app/app-config.json` — see
 [Deploy the web app](../ship-it/deploy-the-web-app.md) — and copy

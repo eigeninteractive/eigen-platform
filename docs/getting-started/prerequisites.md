@@ -77,6 +77,10 @@ find it afterwards, add Dart's global package directory:
 export PATH="$PATH":"$HOME/.pub-cache/bin"
 ```
 
+Then `firebase login` once — the two CLIs share one set of stored Google
+credentials. The configure step checks for all three, each CLI and the sign-in,
+before it writes anything.
+
 See [Configure a game](../ship-it/configure.md) for what the configuration step
 actually writes, and [Push notifications](../ship-it/push.md) for the messaging
 half.
