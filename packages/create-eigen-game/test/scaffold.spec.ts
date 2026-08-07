@@ -295,6 +295,39 @@ describe("repository initialisation", () => {
     expect(existsSync(resolve(unbootstrapped, ".git"))).toBe(false);
   });
 
+  // Here rather than with the other template assertions because it needs a
+  // commit to be meaningful — an uncommitted tree reports every file — and the
+  // committer identity this block stubs is what a CI image does not have.
+  it("ignores what a root script leaves behind", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, git: true });
+
+    // The root package.json forwards scripts into server/ and app/ and declares
+    // no dependencies of its own, so `pnpm contract` is the first thing to
+    // create a root node_modules/ and an empty lockfile — after the scaffold's
+    // commit, which is why nothing here caught it until a game was run.
+    mkdirSync(resolve(root, "node_modules"), { recursive: true });
+    writeFileSync(resolve(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    writeFileSync(resolve(root, "node_modules/.modules.yaml"), "");
+
+    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe("");
+
+    // Anchored rather than bare, so the halves that do have dependencies keep
+    // committing theirs. `check-ignore` answers by exit status.
+    const ignored = (path: string): boolean => {
+      try {
+        execFileSync("git", ["check-ignore", path], { cwd: root, stdio: "ignore" });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    expect(ignored("pnpm-lock.yaml")).toBe(true);
+    expect(ignored("server/pnpm-lock.yaml")).toBe(false);
+    expect(ignored("app/pubspec.lock")).toBe(false);
+  });
+
   it("keeps a scaffold that git could not commit", () => {
     const root = resolve(temporaryParent(), "go-fish");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -352,36 +385,6 @@ describe("template rendering", () => {
     ]) {
       expect(readFileSync(resolve(templates, tree, ".gitignore"), "utf8"), `${tree}/.gitignore`).toBe(readFileSync(resolve(templates, packaged), "utf8"));
     }
-  });
-
-  it("ignores what a root script leaves behind", () => {
-    const root = resolve(temporaryParent(), "my-game");
-
-    scaffoldGame({ directory: root, bootstrap: false, git: true });
-
-    // The root package.json forwards scripts into server/ and app/ and declares
-    // no dependencies of its own, so `pnpm contract` is the first thing to
-    // create a root node_modules/ and an empty lockfile — after the scaffold's
-    // commit, which is why nothing here caught it until a game was run.
-    mkdirSync(resolve(root, "node_modules"), { recursive: true });
-    writeFileSync(resolve(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
-    writeFileSync(resolve(root, "node_modules/.modules.yaml"), "");
-
-    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe("");
-
-    // Anchored rather than bare, so the halves that do have dependencies keep
-    // committing theirs. `check-ignore` answers by exit status.
-    const ignored = (path: string): boolean => {
-      try {
-        execFileSync("git", ["check-ignore", path], { cwd: root, stdio: "ignore" });
-        return true;
-      } catch {
-        return false;
-      }
-    };
-    expect(ignored("pnpm-lock.yaml")).toBe(true);
-    expect(ignored("server/pnpm-lock.yaml")).toBe(false);
-    expect(ignored("app/pubspec.lock")).toBe(false);
   });
 
   it("substitutes tokens in text that carries no file extension", () => {
