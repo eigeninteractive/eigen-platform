@@ -2,7 +2,7 @@
 
 This package is generated from the Eigen engine's OpenAPI specification and its
 version tracks [`@eigeninteractive/server`](https://www.npmjs.com/package/@eigeninteractive/server)
-exactly — 0.2.1 here is 0.2.1 there. It has no changes of its own.
+exactly — 0.2.2 here is 0.2.2 there. It has no changes of its own.
 
 See the engine's changelog:
 <https://github.com/eigeninteractive/eigen-server/blob/main/packages/server/CHANGELOG.md>
