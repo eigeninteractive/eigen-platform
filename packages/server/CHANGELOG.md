@@ -1,5 +1,20 @@
 # @eigeninteractive/server
 
+## 0.2.4
+
+### Patch Changes
+
+- [#34](https://github.com/eigeninteractive/eigen-server/pull/34) [`905b841`](https://github.com/eigeninteractive/eigen-server/commit/905b841158238c21bd7086d9a73e23a7a0fb4ba3) Thanks [@seenu-k](https://github.com/seenu-k)! - Reword the footer credit to `Built with EigenInteractive`, linking only the
+  name — accent-coloured, no underline. A custom `madeByCredit` that names the
+  engine keeps the link on that word; one that does not renders as plain text.
+  
+  Every link the engine renders — the legal pages, the store buttons, the credit
+  — now opens in a new tab, and the `/j` share page honours `madeByCredit`
+  instead of always showing the default.
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.2.4
+  - @eigeninteractive/rules@0.2.4
+
 ## 0.2.3
 
 ### Patch Changes
