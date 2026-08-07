@@ -21,6 +21,42 @@ not to scaffold it or to test game rules.
 [Prerequisites](./prerequisites.md) covers each of these with install links and
 one command block that checks the lot.
 
+Two Firebase command-line tools are worth installing **before** you scaffold,
+because the scaffolder connects Firebase for you when it finds them — and
+quietly skips that step, with a note, when it does not.
+
+<details>
+<summary>The two Firebase CLIs, and the sign-in</summary>
+
+Neither ships with Flutter or Node, and this is the one place the setup
+installs something globally:
+
+```bash
+npm install -g firebase-tools                # the `firebase` CLI
+dart pub global activate flutterfire_cli     # the `flutterfire` CLI
+export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
+firebase login                               # both CLIs share these credentials
+```
+
+`dart pub global activate` puts `flutterfire` somewhere that is not on `PATH`
+by default, which is why the third line is there — add it to your shell profile
+rather than typing it once. Check all three with:
+
+```bash
+firebase --version
+flutterfire --version
+firebase login:list
+```
+
+You do not need a Firebase *project* yet. The scaffolder's first run offers to
+create one.
+
+Skipping this section is fine — everything on this page except launching the
+app works without it, and [Configure a game](../ship-it/configure.md) picks the
+step up later.
+
+</details>
+
 ## Scaffold
 
 ```bash
@@ -31,16 +67,29 @@ pnpm create eigen-game my-game
 `my-game` is the only naming argument — a lowercase kebab-case slug, from which
 the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 
-It asks one question:
+It asks one question of its own:
 
 ```text
-Organization in reverse domain notation [com.example]: dev.yourname.games
+│  Prefixes the Android applicationId, which Google Play makes permanent at first upload.
+│  Also the Android app registered in the Firebase project you pick next.
+│
+◆  Organization in reverse domain notation
+│  dev.yourname.games.my_game
+└
 ```
 
-That becomes the Android `applicationId`, which is worth getting right at
-scaffold time: Google Play treats it as the app's permanent identity and it
-cannot be changed after the first upload. `--org dev.yourname.games` answers it
-up front, which is also how it works with no terminal attached.
+The `.my_game` is dimmed, and grows as you type: the organization is the
+**prefix**, and the game name is appended to it, exactly as `flutter create
+--org` does. So answering `dev.yourname.games.my_game` — which reads like the
+whole identifier — produces `dev.yourname.games.my_game.my_game`, and the CLI
+offers to shorten it if you do. Worth getting right at scaffold time, because
+Google Play treats the result as the app's permanent identity and it cannot be
+changed after the first upload. `--org dev.yourname.games` answers it up front,
+which is also how it works with no terminal attached.
+
+Then FlutterFire asks which Firebase project to use, and offers to create one.
+That is the second half of the same decision: the `applicationId` above is what
+gets registered there.
 
 You get one repository holding both halves:
 
@@ -53,7 +102,21 @@ my-game/
 The scaffold commits itself when it finishes, so your first `git diff` is your
 first game change rather than the ninety generated files underneath it. Pass
 `--no-git` to skip that, as does scaffolding inside a repository you already
-have.
+have. Firebase is configured before that commit, which is why it happens here
+rather than as your first diff — six files, four of them edits to files the
+scaffold had just written.
+
+Two flags steer it:
+
+```bash
+pnpm create eigen-game my-game --no-firebase                       # scaffold only
+pnpm create eigen-game my-game --firebase-project my-project-id    # no prompts
+```
+
+`--firebase-project` names the project rather than being asked, which is also
+the form that works with no terminal attached — CI, or anything piping input.
+Without a terminal and without that flag, the step is skipped, because there is
+nothing to answer the project prompt on.
 
 The engine and `eigen_flutter` versions are pinned inside the scaffolder and
 released as a tested pair, so the `create-eigen-game` you run decides both — use
@@ -72,7 +135,9 @@ curl http://localhost:8787/health
 `/health` answering `{"status":"ok"}` means the whole Worker stack is up, and
 rules and fixture tests need nothing more than this.
 
-The Flutter app needs Firebase first. From the repository root:
+The Flutter app needs Firebase, which the scaffolder has already done unless it
+told you otherwise. If it was skipped — no CLIs, no sign-in, no terminal, or
+`--no-firebase` — do it now, from the repository root:
 
 ```bash
 pnpm firebase:configure
@@ -80,7 +145,14 @@ pnpm firebase:configure
 
 That configures Android and web with FlutterFire and writes the service worker's
 Firebase configuration. It asks which Firebase project to use, and can create
-one; pass `-- --project my-project-id` to answer that up front.
+one; pass `-- --project my-project-id` to answer that up front. Each run ends by
+naming the project and the two app IDs it configured against.
+
+Commit everything it writes — `app/firebase.json`,
+`app/android/app/google-services.json`, `app/lib/firebase_options.dart`,
+`app/web/firebase-config.js` and FlutterFire's two Android Gradle edits. They
+are public app identifiers, not credentials, and Android and web builds fail
+without them.
 
 Then fill in the public values and VAPID key in `app/app-config.json` — see
 [Deploy the web app](../ship-it/deploy-the-web-app.md) — and copy

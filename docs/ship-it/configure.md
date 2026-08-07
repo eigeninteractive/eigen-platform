@@ -119,7 +119,8 @@ Firebase is mandatory on the client. A fresh scaffold contains a throwing
 `firebase_options.dart` seam so analysis works before project setup, but the app
 will not start until FlutterFire replaces it with real platform configuration.
 
-1. **Create the project** at console.firebase.google.com with Analytics enabled.
+1. **Create the project** at console.firebase.google.com with Analytics enabled,
+   or let step 2 do it — the first run offers to.
 2. Install and authenticate the official tooling:
 
    ```bash
@@ -128,6 +129,10 @@ will not start until FlutterFire replaces it with real platform configuration.
    dart pub global activate flutterfire_cli
    ```
 
+   Both are checked before anything is written, including the sign-in: the two
+   CLIs share one set of stored Google credentials, and a missing one is named
+   with the command that fixes it rather than surfacing several steps later.
+
    From a scaffolded repository root, run:
 
    ```bash
@@ -135,9 +140,26 @@ will not start until FlutterFire replaces it with real platform configuration.
    # or: npm run firebase:configure
    ```
 
-   It prompts for the Firebase project on a first run; pass
-   `-- --project my-project-id` to answer that up front. Later runs reuse the
-   project recorded in `app/firebase.json`.
+   Scaffolding runs this step already, so on a project created with the two
+   CLIs installed and signed in this is the command for *changing* the
+   configuration rather than establishing it. `create-eigen-game
+   --no-firebase`, a machine without the tooling, and a run with no terminal
+   all leave it for here.
+
+   It prompts for the Firebase project when none has been chosen, and creating
+   one is an option there; pass `-- --project my-project-id` to answer up
+   front. Later runs reuse the project recorded in `app/firebase.json`, so
+   re-running to pick up a configuration change asks nothing.
+
+   Each run ends by naming the project and the Android and Web app IDs it
+   configured against. Read them when the project already had apps in it:
+   FlutterFire matches an existing Android app on the `applicationId` and an
+   existing Web app on its display name, and **adopts either without comment**,
+   so those IDs are the only thing separating "reused what was there" from
+   "registered something new". Adopting is usually what you want — it is how
+   re-pointing an app at its own project works — but it is also how two games
+   that resolve to the same `applicationId` end up sharing one Firebase app,
+   and with it their push, Analytics and Crashlytics.
 
    The engine executable runs FlutterFire for Android and Web, reads the Web
    app ID FlutterFire records in `app/firebase.json`, asks the Firebase CLI for
@@ -147,6 +169,13 @@ will not start until FlutterFire replaces it with real platform configuration.
    Firebase Web app without copying identifiers. In a standalone app
    repository, run `dart run eigen_flutter:configure_firebase` from the Flutter
    root.
+
+   **Commit what it writes.** `app/firebase.json`,
+   `app/android/app/google-services.json`, `app/lib/firebase_options.dart`,
+   `app/web/firebase-config.js` and FlutterFire's two Android Gradle edits are
+   all public app identifiers, none of them are git-ignored, and Android and
+   web builds fail without them. The Firebase secrets are the Worker's
+   service-account email and private key, which never appear in `app/`.
 3. **Add SHA fingerprints** to the Android app. `flutterfire` does *not* do this,
    and Google Sign-In validates the calling app's certificate at runtime:
    - **Now:** the debug key, so Sign-In works in dev builds.
