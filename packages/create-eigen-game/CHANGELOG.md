@@ -1,5 +1,52 @@
 # create-eigen-game
 
+## 0.7.0
+
+### Minor Changes
+
+- [#25](https://github.com/eigeninteractive/eigen-server/pull/25) [`1e8923e`](https://github.com/eigeninteractive/eigen-server/commit/1e8923e89b19cd2f0c9c4688b9a97f634508a12b) Thanks [@seenu-k](https://github.com/seenu-k)! - Give a generated project the lint, format and editor configuration the engine
+  uses on itself.
+  
+  A scaffold shipped ninety files and no opinion about how they should be
+  formatted, so every editor did something different to them and an implementor's
+  first `format` would have rewritten code they never wrote. Projects now get
+  `biome.json` with this repository's rules, `.editorconfig`, and a `.vscode/`
+  that recommends the Biome extension and sets it as the formatter for the
+  languages it owns. `lint` and `format` scripts run from the repository root,
+  where Biome is installed. No language is exempted from formatting: nothing
+  generated depends on a comment surviving in a file a formatter may rewrite.
+  
+  The Flutter half is excluded: `dart format` owns it.
+  
+  A test scaffolds a project and runs Biome inside it, so the generated files are
+  held to the configuration they ship with. Its first run found two violations —
+  in the `biome.json` this change adds.
+  
+  `pnpm-lock.yaml` at the root is no longer ignored. It described nothing when the
+  root had no dependencies; now that it pins Biome, it is a lockfile like any
+  other and is committed. Only the installed tree is ignored.
+
+- [#24](https://github.com/eigeninteractive/eigen-server/pull/24) [`e3f94cd`](https://github.com/eigeninteractive/eigen-server/commit/e3f94cd70125b472cdee5ac5ba83fd6eaede3f5b) Thanks [@seenu-k](https://github.com/seenu-k)! - Apply the engine's D1 migrations to the local database before `wrangler dev`,
+  and describe what pnpm's release quarantine actually does.
+  
+  A generated project's `dev` script started a Worker against an empty local D1,
+  so the scheduled handler failed on its first run with
+  `D1_ERROR: no such table: users` and again with `no such table: games` — two
+  screens of stack trace before the first request, on a project that had done
+  nothing wrong. `dev` now runs the new `db:migrate:local` script first, which is
+  idempotent: it applies `0000_init.sql` once and does nothing thereafter.
+  
+  `pnpm-workspace.yaml` is now comments-free, and what it used to say has moved
+  into `server/README.md`. The comment offered a commented-out
+  `minimumReleaseAgeExclude` block to uncomment, which was wrong twice over: pnpm
+  writes that key itself, directly above the comment explaining why it was
+  commented out, and pins one exact version per entry so the exemption expires
+  with the version instead of opening the whole scope. Prose in that file could
+  not survive anyway — pnpm rewrites it in place, and a YAML formatter is free to
+  move whatever is left. The README says what both keys are for, including the
+  one place the release quarantine is silent: `pnpm create eigen-game`, where
+  there is no manifest to record an exemption in.
+
 ## 0.6.0
 
 ### Minor Changes
