@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, decodeUtf8, detectPackageManager, firebaseReadiness, type Probe, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, capturingRunner, decodeUtf8, detectPackageManager, firebaseReadiness, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -243,6 +243,129 @@ describe("scaffoldGame", () => {
   });
 });
 
+describe("reporting", () => {
+  /** A reporter that records the shape of a run rather than drawing it. */
+  const recorder = () => {
+    const steps: string[] = [];
+    const output: string[] = [];
+    const warnings: string[] = [];
+    let interactive = false;
+    const reporter: Reporter = {
+      step(label, body) {
+        steps.push(label);
+        return body();
+      },
+      handOver(label, body) {
+        steps.push(`${label} (interactive)`);
+        interactive = true;
+        try {
+          return body();
+        } finally {
+          interactive = false;
+        }
+      },
+      emit: (chunk) => output.push(chunk),
+      warn: (message) => warnings.push(message),
+      get interactive() {
+        return interactive;
+      },
+    };
+    return { reporter, steps, output, warnings };
+  };
+
+  it("names every step it runs, in order", () => {
+    const { reporter, steps } = recorder();
+
+    scaffoldGame({
+      directory: resolve(temporaryParent(), "go-fish"),
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      reporter,
+      run: () => {},
+    });
+
+    // The interactive one is the whole reason the seam distinguishes them:
+    // FlutterFire asks which project to use, so its output cannot be captured.
+    expect(steps).toEqual(["Preparing the Firebase configurator", "Configuring Firebase (interactive)"]);
+  });
+
+  it("routes survivable failures to the reporter rather than the console", () => {
+    const { reporter, warnings } = recorder();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: resolve(temporaryParent(), "go-fish"),
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      reporter,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("firebase:configure");
+    // Otherwise it lands in the middle of the CLI's own output, breaking it.
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("captures a step's output, and hands it over when the step prompts", () => {
+    const { reporter, output } = recorder();
+    const run = capturingRunner(reporter);
+    const root = temporaryParent();
+
+    reporter.step("quiet", () => run("node", ["-e", "console.log('resolved 179 packages')"], root));
+    expect(output.join("")).toContain("resolved 179 packages");
+
+    // Inherited instead, so nothing is captured to report.
+    output.length = 0;
+    reporter.handOver("loud", () => run("node", ["-e", "console.log('')"], root));
+    expect(output).toEqual([]);
+  });
+
+  it("keeps what a failing step said, on both streams", () => {
+    const { reporter, output } = recorder();
+    const run = capturingRunner(reporter);
+
+    expect(() => reporter.step("failing", () => run("node", ["-e", "console.log('partial work'); console.error('the actual reason'); process.exit(1)"], temporaryParent()))).toThrow();
+
+    // The one time the output is worth having. pub explains itself on stdout
+    // and Gradle on stderr, so neither can be the one that is kept.
+    expect(output.join("")).toContain("partial work");
+    expect(output.join("")).toContain("the actual reason");
+  });
+});
+
+describe("normaliseTerminalWidth", () => {
+  it("gives a width to a terminal that reports none", () => {
+    // The crash this exists for: clack defaults to 80 for a stream with no
+    // `columns`, but a pty reporting 0 satisfies its `typeof === number` check,
+    // so the box rule is drawn from a negative width and the scaffold dies
+    // partway through with `RangeError: Invalid string length`.
+    const stream = { isTTY: true, columns: 0 };
+    normaliseTerminalWidth(stream);
+    expect(stream.columns).toBe(80);
+
+    const absent: { isTTY?: boolean; columns?: number } = { isTTY: true };
+    normaliseTerminalWidth(absent);
+    expect(absent.columns).toBe(80);
+  });
+
+  it("leaves a real width, and anything that is not a terminal, alone", () => {
+    const narrow = { isTTY: true, columns: 40 };
+    normaliseTerminalWidth(narrow);
+    expect(narrow.columns).toBe(40);
+
+    // A pipe has no drawing to size, and clack declines to draw into one.
+    const pipe: { isTTY?: boolean; columns?: number } = { isTTY: false };
+    normaliseTerminalWidth(pipe);
+    expect(pipe.columns).toBeUndefined();
+  });
+});
+
 describe("firebaseReadiness", () => {
   /** A machine with both CLIs and one signed-in account, minus whatever `absent` names. */
   const machine = (absent?: string, accounts = '{"status":"success","result":[{"user":{"email":"tester@example.com"}}]}'): Probe => {
@@ -381,7 +504,9 @@ describe("repository initialisation", () => {
     });
 
     expect(result.firebase).toBe("configured");
-    const configure = calls.findIndex(([command]) => command === "dart");
+    // Not the `--help` warm-up ahead of it, which exists only to move `dart
+    // run`'s "Building package executable" out of the interactive step.
+    const configure = calls.findIndex(([command, args]) => command === "dart" && !args.includes("--help"));
     expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--project", "example-project"], resolve(root, "app")]);
     // The whole reason for doing this here: `firebase.json`,
     // `google-services.json`, the generated `firebase_options.dart` and
@@ -399,8 +524,8 @@ describe("repository initialisation", () => {
       bootstrap: false,
       git: false,
       firebase: true,
-      run: (command, _args, cwd) => {
-        if (command !== "dart") return;
+      run: (command, args, cwd) => {
+        if (command !== "dart" || args.includes("--help")) return;
         placeholderAtRunTime = existsSync(resolve(cwd, "lib/firebase_options.dart"));
         // Stand in for what FlutterFire writes.
         writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
@@ -444,8 +569,8 @@ describe("repository initialisation", () => {
       bootstrap: false,
       git: false,
       firebase: true,
-      run: (command, _args, cwd) => {
-        if (command !== "dart") return;
+      run: (command, args, cwd) => {
+        if (command !== "dart" || args.includes("--help")) return;
         // FlutterFire writes this, then the service worker configuration is
         // derived from it — so the second half can fail with the first half
         // done, and a real file is worth more than the placeholder.

@@ -22,7 +22,11 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p templates/worker/tsconfig.json"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@clack/core": "^1.4.3",
+    "@clack/prompts": "^1.7.0",
+    "picocolors": "^1.1.1"
+  },
   "devDependencies": {
     "@eigeninteractive/rules": "workspace:*",
     "@eigeninteractive/server": "workspace:*",

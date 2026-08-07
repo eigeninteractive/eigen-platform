@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-import { createInterface } from "node:readline/promises";
+import { basename, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { addContinuousIntegration, applicationId, detectPackageManager, firebaseReadiness, type PackageManager, scaffoldGame } from "./index.js";
+import { cancel, intro, isCI, isTTY, log, note, outro, taskLog } from "@clack/prompts";
+import color from "picocolors";
+import { addContinuousIntegration, applicationId, detectPackageManager, firebaseReadiness, normaliseTerminalWidth, type PackageManager, plainReporter, type Reporter, scaffoldGame } from "./index.js";
+import { askForOrg, DEFAULT_ORG, ORG } from "./prompt.js";
 import { summarise } from "./summary.js";
 
 const help = `Usage: create-eigen-game <game-slug> [options]
@@ -36,6 +39,42 @@ Commands:
                          you are ready to ship rather than at scaffold time.
                          Defaults to the current directory.`;
 
+normaliseTerminalWidth(process.stdout);
+
+/**
+ * Whether to draw, using clack's own predicates rather than a hand-rolled
+ * `isTTY` — the same pair `taskLog` consults internally. A pipe has nowhere to
+ * put a redraw, and a CI log is read after the fact, in full, by someone who
+ * wants every line a tool printed.
+ */
+const decorated = isTTY(process.stdout) && !isCI();
+
+/**
+ * The CLI's voice, in whichever of the two registers this terminal supports.
+ *
+ * Every message goes through here so the undecorated path cannot drift into
+ * being the untested one.
+ */
+const ui = decorated
+  ? {
+      open: () => intro(color.inverse(" create-eigen-game ")),
+      info: (message: string) => log.info(message),
+      warn: (message: string) => log.warn(message),
+      success: (message: string) => log.success(message),
+      block: (body: string) => note(body, "Next"),
+      close: (message: string) => outro(color.bold(message)),
+      stop: (message: string) => cancel(message),
+    }
+  : {
+      open: () => console.log("\ncreate-eigen-game\n"),
+      info: (message: string) => console.log(message),
+      warn: (message: string) => console.warn(message),
+      success: (message: string) => console.log(message),
+      block: (body: string) => console.log(`\n${body}\n`),
+      close: (message: string) => console.log(message),
+      stop: (message: string) => console.error(message),
+    };
+
 function resolveManager(requested: string | undefined): PackageManager | undefined {
   if (requested === undefined) return undefined;
   if (requested !== "npm" && requested !== "pnpm") {
@@ -69,77 +108,84 @@ function chooseFirebase(disabled: boolean | undefined, project: string | undefin
   if (disabled === true) return false;
 
   if (!process.stdin.isTTY) {
-    console.log("No terminal to choose a Firebase project on, so Firebase is left unconfigured. Name one with --firebase-project <id>, or run `firebase:configure` later.");
+    ui.info("No terminal to choose a Firebase project on, so Firebase is left unconfigured.\nName one with --firebase-project <id>, or configure it later.");
     return false;
   }
 
   const readiness = firebaseReadiness();
   if (readiness.ready) return true;
 
-  console.log(`\nSkipping Firebase: ${readiness.reason}. Install it with:\n\n  ${readiness.fix}\n\nThe scaffold does not need it — you will be reminded how to configure Firebase at the end.`);
+  ui.warn(`Skipping Firebase: ${readiness.reason}.\n\n  ${color.cyan(readiness.fix)}\n\nThe scaffold does not need it, and ends by naming the command that finishes the job.`);
   return false;
 }
-
-/**
- * Two or more dot-separated Java identifiers. `flutter create --org` accepts
- * anything and defers the complaint to Gradle, which reports it as a manifest
- * error in a generated file — so `com.example-games` costs a full scaffold and
- * a first build before anyone learns that a hyphen is not legal in a package
- * segment.
- */
-const ORG = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$/;
 
 /** `--org ""` falls through to the default rather than failing, matching what an empty answer to the prompt does. */
 function resolveOrg(value: string): string | undefined {
   if (value.trim() === "") return undefined;
   if (!ORG.test(value)) {
-    throw new Error(`invalid organization: ${value}\n\nUse reverse domain notation — two or more dot-separated segments of letters, digits and underscores, each starting with a letter, as in com.example or dev.yourname.games.`);
+    throw new Error(`invalid organization: ${value}\n\nUse reverse domain notation — two or more dot-separated segments of letters, digits and underscores, each starting with a letter, as in ${DEFAULT_ORG} or dev.yourname.games.`);
   }
   return value;
 }
 
 /**
- * The one value worth interrupting for. It prefixes the Android
- * `applicationId`, which Google Play treats as the permanent identity of the
- * app: it cannot be changed after the first upload, and a game published under
- * the wrong one has to be relisted, losing its install base and reviews.
- * Everything else the scaffolder decides is a find-and-replace away.
+ * Shows each step running, and keeps its output only when it fails.
  *
- * So the question shows the identifier each answer produces rather than
- * describing how one is derived. `--org com.acme.chess` for a game called
- * `chess` reads like the whole id and is not — it yields
- * `com.acme.chess.chess`, and by the time that is visible in the Play Console
- * it is too late.
+ * Every tool a scaffold drives has plenty to say — pub resolving 179
+ * dependencies, two icon generators, a package manager — and none of it is
+ * read while it scrolls past. `taskLog` is exactly that bargain: the stream is
+ * visible while the step runs, cleared when it succeeds, and left on screen
+ * when it does not, so a failure is still debuggable from what is in the
+ * terminal.
  *
- * Skipped when there is no terminal, so `--org` remains the whole interface
- * for CI, `scripts/scaffold-e2e.mjs` and anything piping input.
+ * `handOver` is the exception, and the reason `interactive` exists at all.
+ * FlutterFire asks which Firebase project to use, so that step needs the
+ * terminal rather than a captured pipe.
  */
-async function askForOrg(directory: string, registering: boolean): Promise<string | undefined> {
-  if (!process.stdin.isTTY) return undefined;
+function clackReporter(): Reporter {
+  // `taskLog` redraws by clearing lines, which is an escape-sequence storm in
+  // anything that is not a terminal — a CI log, a pipe, `scaffold-e2e.mjs`.
+  // There, the honest thing is the plain reporter: every tool's output, in
+  // full, which is what a log gets read for anyway.
+  if (!decorated) return plainReporter;
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    console.log(
-      `\nThe organization prefixes the Android applicationId, which Google Play makes permanent at first upload.\nLeaving it gives ${applicationId(directory)}.${
-        // The moment the answer stops being local. FlutterFire matches an
-        // existing Android app on exactly this string, so it decides whether
-        // the run adopts an app the chosen project already has or registers a
-        // new one — and it is worth knowing that before answering, not after.
-        registering ? "\nThis is also the Android app registered in the Firebase project you pick next." : ""
-      }`,
-    );
-    for (;;) {
-      const answer = (await rl.question("Organization in reverse domain notation [com.example]: ")).trim();
-      if (answer === "" || ORG.test(answer)) {
-        const org = answer === "" ? undefined : answer;
-        console.log(`applicationId: ${applicationId(directory, org)}\n`);
-        return org;
+  let task: ReturnType<typeof taskLog> | undefined;
+  let interactive = false;
+
+  return {
+    step(label, body) {
+      task = taskLog({ title: label });
+      try {
+        const value = body();
+        task.success(label);
+        return value;
+      } catch (error) {
+        task.error(label);
+        throw error;
+      } finally {
+        task = undefined;
       }
-      console.log("Two or more dot-separated segments, as in com.example or dev.yourname.games.\n");
-    }
-  } finally {
-    rl.close();
-  }
+    },
+    handOver(label, body) {
+      log.step(`${label} ${color.dim("— FlutterFire takes over here")}`);
+      interactive = true;
+      try {
+        return body();
+      } finally {
+        interactive = false;
+      }
+    },
+    emit(output) {
+      const text = output.trimEnd();
+      if (text !== "") task?.message(text);
+    },
+    warn(message) {
+      ui.warn(message);
+    },
+    get interactive() {
+      return interactive;
+    },
+  };
 }
 
 async function main(args: string[]): Promise<void> {
@@ -155,8 +201,6 @@ async function main(args: string[]): Promise<void> {
       // has no boolean negation.
       "no-firebase": { type: "boolean" },
       "firebase-project": { type: "string" },
-      // Node's `parseArgs` has no boolean negation, so the flag is declared
-      // under the name it is typed with rather than as `git: false`.
       "no-git": { type: "boolean" },
       "package-manager": { type: "string" },
     },
@@ -189,11 +233,31 @@ async function main(args: string[]): Promise<void> {
   }
 
   const directory = positionals[0];
-  // Before the organization question, so both answers about what this run will
-  // do are settled before any of it starts.
-  const firebase = chooseFirebase(values["no-firebase"], values["firebase-project"]);
-  const org = values.org === undefined ? await askForOrg(directory, firebase !== false) : resolveOrg(values.org);
   const manager = requestedManager ?? detectPackageManager() ?? "pnpm";
+
+  ui.open();
+
+  // Both decisions about what this run will do, settled before any of it
+  // starts. `applicationId` validates the slug on the way, so a destination
+  // that cannot be a game name fails here rather than after the first prompt.
+  const game = basename(resolve(directory));
+  applicationId(directory);
+  const firebase = chooseFirebase(values["no-firebase"], values["firebase-project"]);
+
+  let org: string | undefined;
+  if (values.org === undefined && process.stdin.isTTY) {
+    const answer = await askForOrg(game.replaceAll("-", "_"), firebase !== false);
+    if (answer === null) {
+      ui.stop("Nothing was written.");
+      process.exitCode = 130;
+      return;
+    }
+    org = answer;
+  } else if (values.org !== undefined) {
+    org = resolveOrg(values.org);
+  }
+
+  ui.success(`applicationId ${color.bold(applicationId(directory, org))}`);
 
   const result = scaffoldGame({
     directory,
@@ -202,14 +266,20 @@ async function main(args: string[]): Promise<void> {
     ci: values.ci,
     git: !values["no-git"],
     firebase,
+    reporter: clackReporter(),
   });
-  console.log(summarise(result, manager, values.ci === true));
+
+  const { status, next, footnotes, headline } = summarise(result, manager, values.ci === true);
+  for (const line of status) ui.success(line);
+  ui.block(next);
+  for (const line of footnotes) ui.info(line);
+  ui.close(headline);
 }
 
 try {
   await main(process.argv.slice(2));
 } catch (error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`create-eigen-game: ${message}`);
+  ui.stop(`create-eigen-game: ${message}`);
   process.exitCode = 1;
 }
