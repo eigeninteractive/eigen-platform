@@ -32,10 +32,17 @@ export interface LegalConfig {
   deleteAccount?: string;
 }
 
-/** The credit line in every page footer, matching the Flutter shell's
- * `Branding.madeByCredit` default so the app and its website say the same
- * thing. Set `site.madeByCredit` to your own string, or to `null` to drop it. */
-export const DEFAULT_CREDIT = "Made with ❤️ by EigenInteractive";
+/** The credit line in every page footer. Set `site.madeByCredit` to your own
+ * string, or to `null` to drop it.
+ *
+ * The footer links whichever part of the line reads {@link CREDIT_BRAND}, so a
+ * custom credit that names the engine gets the link too, and one that does not
+ * renders as plain text rather than pointing somewhere it never mentioned. */
+export const DEFAULT_CREDIT = "Built with EigenInteractive";
+
+/** The linked span inside {@link DEFAULT_CREDIT}, and its destination. */
+export const CREDIT_BRAND = "EigenInteractive";
+export const CREDIT_URL = "https://eigeninteractive.com";
 
 /** The public web surface a deployed game serves on its own host: download page,
  * legal documents, and the crawler files. Absent → none of it is mounted and

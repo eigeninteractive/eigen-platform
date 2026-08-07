@@ -33,7 +33,7 @@ import type { GameWithRoster } from "../d1/reads.js";
 import { readGame, readGameByCode, readPlayers } from "../d1/reads.js";
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
 import { renderFlutterShell } from "../site/flutter-shell.js";
-import { Page, renderDocument } from "../site/page.js";
+import { NEW_TAB, Page, renderDocument } from "../site/page.js";
 
 /** Native-only fallback when no Flutter asset binding exists. It still carries
  * the OG tags a chat client unfurls. `noindex` because it is ephemeral and
@@ -43,12 +43,12 @@ import { Page, renderDocument } from "../site/page.js";
  * unfurl scrapers require. */
 function SharePage({ appName, title, description, stores, ctx, origin }: { appName: string; title: string; description: string; stores: { label: string; url: string }[]; ctx: RouteContext; origin: string }) {
   return (
-    <Page title={title} description={description} siteName={appName} noindex primaryColor={ctx.site?.primaryColor} operatorName={ctx.site?.operator.name} ogImage={ctx.site === null ? undefined : `${origin}${ctx.site.ogImage}`}>
+    <Page title={title} description={description} siteName={appName} noindex primaryColor={ctx.site?.primaryColor} operatorName={ctx.site?.operator.name} madeByCredit={ctx.site?.madeByCredit} ogImage={ctx.site === null ? undefined : `${origin}${ctx.site.ogImage}`}>
       <h1>{title}</h1>
       <p class="lead">{description}</p>
       <div>
         {stores.map((s) => (
-          <a class="btn" href={s.url}>
+          <a class="btn" href={s.url} {...NEW_TAB}>
             {s.label}
           </a>
         ))}

@@ -15,7 +15,7 @@
  */
 
 import type { PropsWithChildren } from "hono/jsx";
-import { DEFAULT_CREDIT } from "./config.js";
+import { CREDIT_BRAND, CREDIT_URL, DEFAULT_CREDIT } from "./config.js";
 import { fontFaceCss } from "./fonts.js";
 import styles from "./site.css";
 
@@ -59,6 +59,16 @@ export interface PageProps {
   madeByCredit?: string | null;
 }
 
+/** Every link the engine renders leaves the page it is on rather than replacing
+ * it — the legal pages, the stores, the credit. A visitor reading Terms is
+ * mid-download, and a store link on iOS hands the tab to the store app.
+ *
+ * `noopener` because `_blank` otherwise gives the opened page a handle back to
+ * this one. Modern browsers imply it; it is still spelled out, since the
+ * destinations here are configured by the operator. Spread into a JSX tag:
+ * `<a href="…" {...NEW_TAB}>`. */
+export const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
+
 /** The engine's footer: the legal links every page must carry, the operator's
  * copyright, and the credit.
  *
@@ -74,17 +84,39 @@ function Footer({ operatorName, credit }: { operatorName?: string; credit: strin
           <span>
             &copy; {new Date().getUTCFullYear()} {operatorName}
           </span>
-          <a href="/terms">Terms of Service</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/delete-account">Delete Account</a>
+          <a href="/terms" {...NEW_TAB}>
+            Terms of Service
+          </a>
+          <a href="/privacy" {...NEW_TAB}>
+            Privacy Policy
+          </a>
+          <a href="/delete-account" {...NEW_TAB}>
+            Delete Account
+          </a>
         </>
       )}
-      {credit !== null && (
-        <a class="credit" href="https://eigeninteractive.com" rel="noopener">
-          {credit}
-        </a>
-      )}
+      {credit !== null && <Credit credit={credit} />}
     </footer>
+  );
+}
+
+/** The engine's credit line, with the brand inside it linked and nothing else.
+ *
+ * A whole-line link would make "Build with" clickable too, which is not what it
+ * points at. Splitting on the brand keeps the sentence as prose and marks only
+ * the name — and leaves a custom credit that never mentions the engine as plain
+ * text, rather than silently linking someone else's words to us. */
+function Credit({ credit }: { credit: string }) {
+  const at = credit.indexOf(CREDIT_BRAND);
+  if (at === -1) return <span class="credit">{credit}</span>;
+  return (
+    <span class="credit">
+      {credit.slice(0, at)}
+      <a href={CREDIT_URL} {...NEW_TAB}>
+        {CREDIT_BRAND}
+      </a>
+      {credit.slice(at + CREDIT_BRAND.length)}
+    </span>
   );
 }
 

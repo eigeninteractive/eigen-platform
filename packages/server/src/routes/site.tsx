@@ -23,7 +23,7 @@
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
 import type { ResolvedSite } from "../site/config.js";
 import { FONTS, fontBytes } from "../site/fonts.js";
-import { ICONS, Page, RawHtml, renderDocument } from "../site/page.js";
+import { ICONS, NEW_TAB, Page, RawHtml, renderDocument } from "../site/page.js";
 
 /** Cached for a day: crawler files change only on redeploy. */
 const CRAWLER_CACHE = "public, max-age=86400";
@@ -48,7 +48,7 @@ function Actions({ links }: { links: { label: string; url: string }[] }) {
   return (
     <div class="actions">
       {links.map((l, i) => (
-        <a class={i === 0 ? "btn" : "btn ghost"} href={l.url}>
+        <a class={i === 0 ? "btn" : "btn ghost"} href={l.url} {...NEW_TAB}>
           {l.label}
         </a>
       ))}
