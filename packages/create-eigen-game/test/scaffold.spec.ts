@@ -390,6 +390,75 @@ describe("repository initialisation", () => {
     expect(configure).toBeLessThan(calls.findIndex(([command, args]) => command === "git" && args[0] === "init"));
   });
 
+  it("does not make FlutterFire ask about the placeholder it is there to replace", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    let placeholderAtRunTime = true;
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command, _args, cwd) => {
+        if (command !== "dart") return;
+        placeholderAtRunTime = existsSync(resolve(cwd, "lib/firebase_options.dart"));
+        // Stand in for what FlutterFire writes.
+        writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
+      },
+    });
+
+    // "Overwrite the file whose only purpose is to be overwritten?" has one
+    // right answer, so it is not worth asking.
+    expect(placeholderAtRunTime).toBe(false);
+    expect(result.firebase).toBe("configured");
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toBe("// generated\n");
+  });
+
+  it("puts the placeholder back when nothing replaced it", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    // Without it the app does not compile, which is worse than the throwing
+    // seam it was.
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toContain("Firebase is not configured");
+    expect(existsSync(resolve(root, "app/lib/firebase_options.dart.placeholder"))).toBe(false);
+    warn.mockRestore();
+  });
+
+  it("keeps what a late failure had already written", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command, _args, cwd) => {
+        if (command !== "dart") return;
+        // FlutterFire writes this, then the service worker configuration is
+        // derived from it — so the second half can fail with the first half
+        // done, and a real file is worth more than the placeholder.
+        writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
+        throw new Error("firebase: HTTP 503");
+      },
+    });
+
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toBe("// generated\n");
+    expect(existsSync(resolve(root, "app/lib/firebase_options.dart.placeholder"))).toBe(false);
+    warn.mockRestore();
+  });
+
   it("lets FlutterFire ask which project, when none was named", () => {
     const root = resolve(temporaryParent(), "go-fish");
     const calls: string[][] = [];

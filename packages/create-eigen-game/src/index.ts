@@ -526,10 +526,29 @@ export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadines
  * re-run and lets the commit happen.
  */
 function configureFirebase(appRoot: string, project: boolean | string, run: Runner): "configured" | "failed" {
+  // FlutterFire asks before overwriting `firebase_options.dart`, and the
+  // scaffold has just written one — a throwing placeholder whose entire
+  // purpose is to be replaced by this step. Answering that is a question with
+  // one right answer, so the placeholder is moved out of the way and the
+  // question never gets asked.
+  const placeholder = resolve(appRoot, "lib/firebase_options.dart");
+  const parked = `${placeholder}.placeholder`;
+  const parking = existsSync(placeholder);
+  if (parking) renameSync(placeholder, parked);
+
   try {
     run("dart", ["run", "eigen_flutter:configure_firebase", ...(typeof project === "string" ? ["--project", project] : [])], appRoot);
+    if (parking) rmSync(parked, { force: true });
     return "configured";
   } catch {
+    // Back only if nothing took its place. FlutterFire writes
+    // `firebase_options.dart` before the service worker configuration is
+    // derived from it, so a late failure leaves a real one that is worth more
+    // than the placeholder.
+    if (parking) {
+      if (existsSync(placeholder)) rmSync(parked, { force: true });
+      else renameSync(parked, placeholder);
+    }
     console.warn("create-eigen-game: could not configure Firebase. The project is complete — run `firebase:configure` yourself, then commit what it writes.");
     return "failed";
   }
