@@ -140,11 +140,26 @@ will not start until FlutterFire replaces it with real platform configuration.
    # or: npm run firebase:configure
    ```
 
-   It prompts for the Firebase project on a first run, and creating one is an
-   option there; pass `-- --project my-project-id` to answer up front. Later
-   runs reuse the project recorded in `app/firebase.json`, so re-running to
-   pick up a configuration change asks nothing. `create-eigen-game --firebase`
-   runs the whole step during scaffolding, before the scaffold commit.
+   Scaffolding runs this step already, so on a project created with the two
+   CLIs installed and signed in this is the command for *changing* the
+   configuration rather than establishing it. `create-eigen-game
+   --no-firebase`, a machine without the tooling, and a run with no terminal
+   all leave it for here.
+
+   It prompts for the Firebase project when none has been chosen, and creating
+   one is an option there; pass `-- --project my-project-id` to answer up
+   front. Later runs reuse the project recorded in `app/firebase.json`, so
+   re-running to pick up a configuration change asks nothing.
+
+   Each run ends by naming the project and the Android and Web app IDs it
+   configured against. Read them when the project already had apps in it:
+   FlutterFire matches an existing Android app on the `applicationId` and an
+   existing Web app on its display name, and **adopts either without comment**,
+   so those IDs are the only thing separating "reused what was there" from
+   "registered something new". Adopting is usually what you want — it is how
+   re-pointing an app at its own project works — but it is also how two games
+   that resolve to the same `applicationId` end up sharing one Firebase app,
+   and with it their push, Analytics and Crashlytics.
 
    The engine executable runs FlutterFire for Android and Web, reads the Web
    app ID FlutterFire records in `app/firebase.json`, asks the Firebase CLI for

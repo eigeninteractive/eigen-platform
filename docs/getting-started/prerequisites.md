@@ -78,8 +78,12 @@ export PATH="$PATH":"$HOME/.pub-cache/bin"
 ```
 
 Then `firebase login` once — the two CLIs share one set of stored Google
-credentials. The configure step checks for all three, each CLI and the sign-in,
-before it writes anything.
+credentials.
+
+Install these **before scaffolding** if you can. `create-eigen-game` checks for
+all three, each CLI and the sign-in, and connects Firebase as part of the
+scaffold when it finds them; without them it says which is missing and leaves
+`firebase:configure` as a step for later. Neither path fails the scaffold.
 
 See [Configure a game](../ship-it/configure.md) for what the configuration step
 actually writes, and [Push notifications](../ship-it/push.md) for the messaging

@@ -88,9 +88,9 @@ pnpm firebase:configure -- --project my-project-id
 After that first run there is nothing to pass: the project is recorded in
 `app/firebase.json` and reused, so re-running to pick up a new configuration is
 non-interactive. `--account <email>` picks the Google account on a machine
-signed in to several, and `--help` lists the lot. `create-eigen-game
---firebase` runs the same step during scaffolding, so what it generates is part
-of the scaffold commit rather than the project's first diff.
+signed in to several, and `--help` lists the lot. Scaffolding runs this step
+before the scaffold commit, so on a project created with the tooling in place
+this is the command for changing the configuration, not establishing it.
 
 Platforms are not configurable here — the app is Android and Web, and the
 service worker configuration is derived from the Web app. For anything outside
