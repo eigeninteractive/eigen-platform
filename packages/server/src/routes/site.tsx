@@ -22,6 +22,7 @@
 
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
 import type { ResolvedSite } from "../site/config.js";
+import { FONTS, fontBytes } from "../site/fonts.js";
 import { ICONS, Page, RawHtml, renderDocument } from "../site/page.js";
 
 /** Cached for a day: crawler files change only on redeploy. */
@@ -160,6 +161,23 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
       { src: ICONS.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
   });
+
+  // The brand faces, ungated: every page the engine renders references them,
+  // including the legal documents and the `/j` share page, and a worker running
+  // `deepLink` without `site` still serves `/download`. Cached hard because the
+  // path carries a version segment that changes when the bytes do.
+  for (const font of FONTS) {
+    app.get(
+      font.url,
+      () =>
+        new Response(fontBytes(font.base64) as unknown as BodyInit, {
+          headers: {
+            "Content-Type": "font/woff2",
+            "Cache-Control": "public, max-age=31536000, immutable",
+          },
+        }),
+    );
+  }
 
   // Static Assets serves Flutter's index at `/` before the Worker runs. This
   // redirect is the graceful fallback when there is no matching web asset.

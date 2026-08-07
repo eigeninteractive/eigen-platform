@@ -16,9 +16,15 @@ neutrals, which were tinted for a purple brand. The neutrals here are
 a dark ground. A game that sets `site.primaryColor` still wins in both schemes —
 that arrives as an inline style on the root element, which beats the stylesheet.
 
-The display face is subset to latin plus punctuation, currency and arrows,
-converted to woff2, and inlined into the stylesheet as a data URI: 20KB for the
-whole 300–700 weight range, and no second round trip on a page that is usually
-someone's first and only request. Nothing is fetched from a font CDN. Inter,
-which the app uses for body text, is deliberately not inlined — it subsets to
-72KB, and body copy on these pages stays on the system stack.
+Both faces are served by the worker at versioned, immutable paths and declared
+with `font-display: swap`, so nothing blocks the first paint and one fetch is
+reused across every page, every game on the origin and every later session.
+Nothing is requested from a font CDN, so an operator's domain gains no third
+party. Together they are roughly 90KB of the worker's 3MB compressed budget,
+subset to latin plus punctuation, currency and arrows.
+
+Each face is a generated TypeScript module holding its base64 rather than a
+bundler asset import. `tsup` could inline a `.woff2`, but
+`vitest-pool-workers` resolves worker-side modules outside vite's plugin graph,
+so the route would have answered 500 in the test suite while working in
+production — the same reason `site.css` renders empty under test today.

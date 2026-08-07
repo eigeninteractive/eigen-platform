@@ -163,13 +163,38 @@ describe("crawler files", () => {
     // `:root` blocks in the stylesheet, so a configured game keeps its colour
     // in either scheme.
     expect(html).toContain("--primary:#1a237e");
+  });
 
-    // Nothing is fetched from a font CDN: the display face is inlined into the
-    // stylesheet, which keeps these pages to a single request and off a third
-    // party. Assertable here even though the stylesheet itself is not — see the
-    // note above `describe`.
+  it("declares both brand faces and serves them itself", async () => {
+    const html = await (await get("/download")).text();
+
+    // Generated in TypeScript rather than written into site.css, so unlike the
+    // rest of the stylesheet these rules are visible here — and generated from
+    // the same table the routes below serve, so the two cannot drift.
+    expect(html).toContain('font-family:"Inter"');
+    expect(html).toContain('font-family:"Space Grotesk"');
+    expect(html).toContain("font-display:swap");
+
+    // No third party on an operator's domain, and nothing to consent to.
     expect(html).not.toContain("fonts.googleapis.com");
     expect(html).not.toContain("fonts.gstatic.com");
+
+    for (const path of ["/_eigen/font/v1/inter.woff2", "/_eigen/font/v1/space-grotesk.woff2"]) {
+      expect(html).toContain(`url(${path})`);
+
+      const res = await get(path);
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toBe("font/woff2");
+      // Immutable is only honest because the path carries a version segment
+      // that changes when the bytes do.
+      expect(res.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
+
+      // Real woff2, not a base64 string that survived as text: the format's
+      // magic number is `wOF2`.
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      expect(String.fromCharCode(...bytes.subarray(0, 4))).toBe("wOF2");
+      expect(bytes.byteLength).toBeGreaterThan(10_000);
+    }
   });
 });
 
