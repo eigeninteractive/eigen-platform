@@ -164,19 +164,30 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
 
   // The brand faces, ungated: every page the engine renders references them,
   // including the legal documents and the `/j` share page, and a worker running
-  // `deepLink` without `site` still serves `/download`. Cached hard because the
-  // path carries a version segment that changes when the bytes do.
+  // `deepLink` without `site` still serves `/download`.
+  //
+  // Fronted by `caches.default` for the same reason the avatar route is: a
+  // Worker response is not edge-cached automatically, so the immutable header
+  // below only reaches the device. Without this, every first-time visitor to
+  // every game would decode both faces from base64 again. The URL is the cache
+  // key and carries a version segment, so replacing a font is a natural miss
+  // rather than something to invalidate.
   for (const font of FONTS) {
-    app.get(
-      font.url,
-      () =>
-        new Response(fontBytes(font.base64) as unknown as BodyInit, {
-          headers: {
-            "Content-Type": "font/woff2",
-            "Cache-Control": "public, max-age=31536000, immutable",
-          },
-        }),
-    );
+    app.get(font.url, async (c) => {
+      const cache = caches.default;
+      const cacheKey = new Request(c.req.url);
+      const hit = await cache.match(cacheKey);
+      if (hit !== undefined) return hit;
+
+      const response = new Response(fontBytes(font.base64) as unknown as BodyInit, {
+        headers: {
+          "Content-Type": "font/woff2",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
+      c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+      return response;
+    });
   }
 
   // Static Assets serves Flutter's index at `/` before the Worker runs. This

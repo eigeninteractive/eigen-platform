@@ -19,8 +19,10 @@ that arrives as an inline style on the root element, which beats the stylesheet.
 Both faces are served by the worker at versioned, immutable paths and declared
 with `font-display: swap`, so nothing blocks the first paint and one fetch is
 reused across every page, every game on the origin and every later session.
-Nothing is requested from a font CDN, so an operator's domain gains no third
-party. Together they are roughly 90KB of the worker's 3MB compressed budget,
+They are fronted by `caches.default`, because a Worker response is not
+edge-cached automatically and the immutable header alone only reaches the
+device. Nothing is requested from a font CDN, so an operator's domain gains no
+third party. Together they are roughly 90KB of the worker's 3MB compressed budget,
 subset to latin plus punctuation, currency and arrows.
 
 Each face is committed twice: the `.woff2` a font tool can open, and a generated

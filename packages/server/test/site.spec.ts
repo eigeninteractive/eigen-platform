@@ -194,6 +194,12 @@ describe("crawler files", () => {
       const bytes = new Uint8Array(await res.arrayBuffer());
       expect(String.fromCharCode(...bytes.subarray(0, 4))).toBe("wOF2");
       expect(bytes.byteLength).toBeGreaterThan(10_000);
+
+      // Again, because the response is cloned into `caches.default` and the
+      // original returned. Getting that pair the wrong way round serves an
+      // already-consumed body, which is empty rather than an error.
+      const repeat = new Uint8Array(await (await get(path)).arrayBuffer());
+      expect(repeat.byteLength).toBe(bytes.byteLength);
     }
   });
 });
