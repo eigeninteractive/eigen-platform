@@ -528,6 +528,10 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
       run("dart", ["run", "flutter_native_splash:create"], appRoot);
       const [install, installArgs] = packageCommand(manager, "install");
       run(install, installArgs, serverRoot);
+      // The root holds Biome, which lints and formats both the Worker and the
+      // repository's own JSON. Installed after the server so a failure here
+      // costs the cheaper of the two.
+      run(install, installArgs, stagingRoot);
       const [contract, contractArgs] = packageCommand(manager, "contract");
       run(contract, contractArgs, serverRoot);
       run("dart", ["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json", "--output", "lib/game/generated/payloads.dart", "--fixtures-output", "test/fixtures"], appRoot);

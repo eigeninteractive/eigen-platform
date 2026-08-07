@@ -179,6 +179,9 @@ describe("scaffoldGame", () => {
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_native_splash:create"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
+    // The root install is Biome's, and is what makes `pnpm lint` work from the
+    // directory an implementor is standing in.
+    expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.not.stringMatching(/\/(server|app)$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
     const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
@@ -303,18 +306,15 @@ describe("repository initialisation", () => {
 
     scaffoldGame({ directory: root, bootstrap: false, git: true });
 
-    // The root package.json forwards scripts into server/ and app/ and declares
-    // no dependencies of its own, so `pnpm contract` is the first thing to
-    // create a root node_modules/ and an empty lockfile — after the scaffold's
-    // commit, which is why nothing here caught it until a game was run.
+    // Installing at the root — which the scaffolder does, for Biome — leaves a
+    // node_modules/ that must not be committed, beside a lockfile that must.
     mkdirSync(resolve(root, "node_modules"), { recursive: true });
-    writeFileSync(resolve(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
     writeFileSync(resolve(root, "node_modules/.modules.yaml"), "");
 
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe("");
 
-    // Anchored rather than bare, so the halves that do have dependencies keep
-    // committing theirs. `check-ignore` answers by exit status.
+    // `check-ignore` answers by exit status. Every lockfile is committed; it is
+    // only the installed trees that are ignored, and those are named per path.
     const ignored = (path: string): boolean => {
       try {
         execFileSync("git", ["check-ignore", path], { cwd: root, stdio: "ignore" });
@@ -323,7 +323,9 @@ describe("repository initialisation", () => {
         return false;
       }
     };
-    expect(ignored("pnpm-lock.yaml")).toBe(true);
+    expect(ignored("node_modules/.modules.yaml")).toBe(true);
+    expect(ignored("server/node_modules/x")).toBe(true);
+    expect(ignored("pnpm-lock.yaml")).toBe(false);
     expect(ignored("server/pnpm-lock.yaml")).toBe(false);
     expect(ignored("app/pubspec.lock")).toBe(false);
   });
@@ -385,6 +387,23 @@ describe("template rendering", () => {
     ]) {
       expect(readFileSync(resolve(templates, tree, ".gitignore"), "utf8"), `${tree}/.gitignore`).toBe(readFileSync(resolve(templates, packaged), "utf8"));
     }
+  });
+
+  it("passes the lint and format rules it ships with", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "pnpm" });
+
+    // The point of shipping a biome.json is that the generated files satisfy
+    // it. If they do not, the implementor's first `format` rewrites code they
+    // did not write, and their first diff is noise.
+    //
+    // Run from inside the generated project so Biome resolves the config it
+    // was given, not this workspace's — they differ, and the generated one is
+    // the only one that matters here. The binary comes from this workspace
+    // because `bootstrap: false` installs nothing.
+    const biome = resolve(import.meta.dirname, "../../../node_modules/.bin/biome");
+    expect(() => execFileSync(biome, ["check", "."], { cwd: root, encoding: "utf8", stdio: "pipe" })).not.toThrow();
   });
 
   it("substitutes tokens in text that carries no file extension", () => {

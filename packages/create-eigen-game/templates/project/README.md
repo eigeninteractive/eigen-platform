@@ -34,6 +34,22 @@ the repository root, then `flutter test` from `app/`. Use
 app commands remain independently usable if the two halves later move to
 separate repositories.
 
+Biome lints and formats the Worker and this repository's JSON, with the rules
+in `biome.json`:
+
+```sh
+{{PACKAGE_MANAGER}} run lint      # from the repository root
+{{PACKAGE_MANAGER}} run format    # writes the fixes
+```
+
+The Flutter half is `dart format`'s and is excluded. `.editorconfig` covers
+whitespace everywhere, including the YAML that Biome does not format, and
+`.vscode/` recommends the Biome extension and turns formatting on save on for
+the languages it owns. Nothing generated depends on a comment surviving in a
+file a formatter or a tool may rewrite, so nothing is exempted from formatting.
+Change any of it — it is your repository — but the generated files are written
+to satisfy it as shipped.
+
 ## Flutter app
 
 The initial scaffold already generates Dart payloads from the Worker contract.

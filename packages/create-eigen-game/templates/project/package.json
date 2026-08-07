@@ -7,6 +7,11 @@
     "contract": "cd server && {{PACKAGE_MANAGER}} run contract && cd ../app && dart run eigen_flutter:generate_payloads --contract ../server/game-contract.json --output lib/game/generated/payloads.dart --fixtures-output test/fixtures",
     "contract:check": "cd server && {{PACKAGE_MANAGER}} run contract:check && cd ../app && dart run eigen_flutter:generate_payloads --contract ../server/game-contract.json --output lib/game/generated/payloads.dart --fixtures-output test/fixtures --check",
     "deploy": "{{PACKAGE_MANAGER}} run build:web && cd server && {{PACKAGE_MANAGER}} run deploy",
-    "firebase:configure": "cd app && dart run eigen_flutter:configure_firebase"
+    "firebase:configure": "cd app && dart run eigen_flutter:configure_firebase",
+    "format": "biome check --write .",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3"
   }
 }
