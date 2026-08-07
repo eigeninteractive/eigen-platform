@@ -11,19 +11,18 @@ allowBuilds:
   esbuild: true
   workerd: true
 
-# pnpm 11 refuses to install any version published less than a day ago
-# (`minimumReleaseAge`, default 1440 minutes) — a quarantine against a
-# compromised publish. The engine packages are subject to it like anything else.
+# pnpm 11 will not install a version published less than a day ago
+# (`minimumReleaseAge`, default 1440 minutes), which is a quarantine against a
+# compromised publish. The engine packages are subject to it like any other
+# dependency.
 #
-# It is left commented out because nothing here needs it. A range that only a
-# fresh release satisfies still resolves: `minimumReleaseAgeStrict` defaults to
-# false unless `minimumReleaseAge` is set explicitly, so pnpm falls back to the
-# new version rather than failing. What it costs is real — the exclusion drops
-# the quarantine on packages that execute during your build.
+# You do not have to do anything about that. When a range can only be satisfied
+# by a release younger than the quarantine — `^0.3.0` on the day 0.3.0 ships —
+# pnpm installs it anyway and writes the exact version it allowed into a
+# `minimumReleaseAgeExclude` list in this file. Those entries are pnpm's, not
+# yours: each names one version, so the exemption expires with it rather than
+# opening the scope permanently. Leave them, and commit them.
 #
-# Uncomment it if you, or your organization, set `minimumReleaseAge` explicitly.
-# Strict resolution is then on, and an install on the day an engine release
-# ships fails outright instead of falling back.
-#
-# minimumReleaseAgeExclude:
-#   - "@eigeninteractive/*"
+# The one place the quarantine is silent is `pnpm create eigen-game`, where
+# there is no manifest to record an exemption in and an older scaffolder
+# satisfies `latest` perfectly well. Pass an exact version there on release day.
