@@ -2,6 +2,7 @@
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
 import { addContinuousIntegration, detectPackageManager, type PackageManager, scaffoldGame } from "./index.js";
+import { summarise } from "./summary.js";
 
 const help = `Usage: create-eigen-game <game-slug> [options]
        create-eigen-game add ci [directory] [options]
@@ -123,18 +124,16 @@ async function main(args: string[]): Promise<void> {
   }
 
   const org = values.org === undefined ? await askForOrg() : resolveOrg(values.org);
+  const manager = requestedManager ?? detectPackageManager() ?? "pnpm";
 
   const result = scaffoldGame({
     directory: positionals[0],
     org,
-    packageManager: requestedManager ?? detectPackageManager() ?? "pnpm",
+    packageManager: manager,
     ci: values.ci,
     git: !values["no-git"],
   });
-  console.log(`Created ${result.name} in ${result.root}`);
-  if (!values.ci) {
-    console.log("No CI workflows were generated. Run `create-eigen-game add ci` inside the project when you want them.");
-  }
+  console.log(summarise(result, manager, values.ci === true));
 }
 
 try {

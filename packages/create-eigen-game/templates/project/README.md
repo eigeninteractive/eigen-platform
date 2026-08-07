@@ -64,12 +64,24 @@ That builds Flutter into `server/public/` and deploys one Worker containing the
 SPA and API. The app is `/`; invite and game URLs open the installed native app
 or the browser SPA; the native install landing page is `/download`.
 
-Install and authenticate the Firebase and FlutterFire CLIs, then configure
-Android, Flutter Web, and the messaging service worker together:
+Configure Android, Flutter Web, and the messaging service worker together:
 
 ```sh
 {{PACKAGE_MANAGER}} run firebase:configure
 ```
+
+That drives two CLIs, which are separate global installs and neither of which
+comes with Flutter or Node:
+
+```sh
+npm install -g firebase-tools                # the `firebase` CLI
+dart pub global activate flutterfire_cli     # the `flutterfire` CLI
+export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
+```
+
+Then `firebase login`. Nothing before this point needs either tool — rules,
+fixtures and `wrangler dev` all run without them — but the app itself throws
+`Firebase is not configured` on launch until this has run once.
 
 The command uses FlutterFire's selected Web app to generate both
 `lib/firebase_options.dart` and `web/firebase-config.js`; do not copy Firebase

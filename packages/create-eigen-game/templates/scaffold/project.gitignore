@@ -9,3 +9,11 @@ server/public/*
 *.log
 
 app/pubspec_overrides.yaml
+
+# The root package.json declares no dependencies — it only forwards scripts into
+# server/ and app/. Running one of them still leaves a node_modules/ holding
+# nothing but the package manager's own bookkeeping, and a lockfile describing
+# no packages. Anchored, so server/pnpm-lock.yaml stays committed.
+/node_modules/
+/pnpm-lock.yaml
+/package-lock.json

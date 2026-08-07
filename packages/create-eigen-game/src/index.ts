@@ -37,9 +37,17 @@ export interface ScaffoldOptions {
   run?: Runner;
 }
 
+/**
+ * What became of the repository, so the CLI's closing summary can say rather
+ * than guess. `failed` has already warned by the time it is returned, and
+ * carries no advice of its own.
+ */
+export type GitOutcome = "committed" | "existing" | "skipped" | "failed";
+
 export interface ScaffoldResult {
   root: string;
   name: string;
+  git: GitOutcome;
 }
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -437,7 +445,7 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
  * has, warns and leaves the tree alone rather than discarding a scaffold that
  * took two minutes of Flutter and pub to produce.
  */
-function initialiseRepository(root: string, name: string, run: Runner): void {
+function initialiseRepository(root: string, name: string, run: Runner): GitOutcome {
   // Scaffolding inside an existing checkout — a monorepo, or a repository
   // created ahead of time — is a legitimate thing to do, and a nested
   // repository there is silent breakage: the outer `git add` records a gitlink
@@ -445,7 +453,7 @@ function initialiseRepository(root: string, name: string, run: Runner): void {
   // through `run`, because it is a question, not a step.
   try {
     execFileSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: root, stdio: "ignore" });
-    return;
+    return "existing";
   } catch {
     // Not inside a work tree, which is the case this function is for.
   }
@@ -455,14 +463,17 @@ function initialiseRepository(root: string, name: string, run: Runner): void {
     run("git", ["add", "--all"], root);
   } catch {
     console.warn("create-eigen-game: could not initialise a git repository. The project is complete — run `git init` yourself when ready.");
-    return;
+    return "failed";
   }
 
   try {
     run("git", ["commit", "--quiet", "--message", `Scaffold ${name}`], root);
   } catch {
     console.warn(`create-eigen-game: initialised a repository and staged the scaffold, but could not commit it. Set \`user.name\` and \`user.email\`, then \`git commit -m "Scaffold ${name}"\`.`);
+    return "failed";
   }
+
+  return "committed";
 }
 
 export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
@@ -531,7 +542,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   // Deliberately outside the staging guard: the project is published by this
   // point, and a repository that failed to initialise is not a reason to
   // delete it.
-  if (options.git ?? bootstrap) initialiseRepository(root, name, run);
+  const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run) : "skipped";
 
-  return { root, name };
+  return { root, name, git };
 }

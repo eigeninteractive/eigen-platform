@@ -259,7 +259,9 @@ describe("repository initialisation", () => {
   it("commits the scaffold, so the first diff is the first game change", () => {
     const root = resolve(temporaryParent(), "go-fish");
 
-    scaffoldGame({ directory: root, bootstrap: false, git: true });
+    // The outcome is asserted alongside each effect because the CLI's closing
+    // summary reports from it rather than looking at the tree itself.
+    expect(scaffoldGame({ directory: root, bootstrap: false, git: true }).git).toBe("committed");
 
     expect(existsSync(resolve(root, ".git"))).toBe(true);
     expect(execFileSync("git", ["log", "-1", "--format=%s"], { cwd: root, encoding: "utf8" }).trim()).toBe("Scaffold go-fish");
@@ -276,28 +278,61 @@ describe("repository initialisation", () => {
     execFileSync("git", ["init", "--quiet"], { cwd: parent });
     const root = resolve(parent, "go-fish");
 
-    scaffoldGame({ directory: root, bootstrap: false, git: true });
+    expect(scaffoldGame({ directory: root, bootstrap: false, git: true }).git).toBe("existing");
 
     expect(existsSync(resolve(root, ".git"))).toBe(false);
   });
 
   it("leaves the project alone when asked not to, and when not bootstrapping", () => {
     const declined = resolve(temporaryParent(), "go-fish");
-    scaffoldGame({ directory: declined, bootstrap: false, git: false });
+    expect(scaffoldGame({ directory: declined, bootstrap: false, git: false }).git).toBe("skipped");
     expect(existsSync(resolve(declined, ".git"))).toBe(false);
 
     // `bootstrap: false` is the programmatic seam, and its default follows:
     // a repository of half a project is not worth committing.
     const unbootstrapped = resolve(temporaryParent(), "go-fish");
-    scaffoldGame({ directory: unbootstrapped, bootstrap: false });
+    expect(scaffoldGame({ directory: unbootstrapped, bootstrap: false }).git).toBe("skipped");
     expect(existsSync(resolve(unbootstrapped, ".git"))).toBe(false);
+  });
+
+  // Here rather than with the other template assertions because it needs a
+  // commit to be meaningful — an uncommitted tree reports every file — and the
+  // committer identity this block stubs is what a CI image does not have.
+  it("ignores what a root script leaves behind", () => {
+    const root = resolve(temporaryParent(), "my-game");
+
+    scaffoldGame({ directory: root, bootstrap: false, git: true });
+
+    // The root package.json forwards scripts into server/ and app/ and declares
+    // no dependencies of its own, so `pnpm contract` is the first thing to
+    // create a root node_modules/ and an empty lockfile — after the scaffold's
+    // commit, which is why nothing here caught it until a game was run.
+    mkdirSync(resolve(root, "node_modules"), { recursive: true });
+    writeFileSync(resolve(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    writeFileSync(resolve(root, "node_modules/.modules.yaml"), "");
+
+    expect(execFileSync("git", ["status", "--porcelain"], { cwd: root, encoding: "utf8" })).toBe("");
+
+    // Anchored rather than bare, so the halves that do have dependencies keep
+    // committing theirs. `check-ignore` answers by exit status.
+    const ignored = (path: string): boolean => {
+      try {
+        execFileSync("git", ["check-ignore", path], { cwd: root, stdio: "ignore" });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    expect(ignored("pnpm-lock.yaml")).toBe(true);
+    expect(ignored("server/pnpm-lock.yaml")).toBe(false);
+    expect(ignored("app/pubspec.lock")).toBe(false);
   });
 
   it("keeps a scaffold that git could not commit", () => {
     const root = resolve(temporaryParent(), "go-fish");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    scaffoldGame({
+    const result = scaffoldGame({
       directory: root,
       bootstrap: false,
       git: true,
@@ -310,6 +345,7 @@ describe("repository initialisation", () => {
     // `git`, or the unconfigured `user.email` of a fresh CI image, is not a
     // reason to discard it.
     expect(existsSync(resolve(root, "server/package.json"))).toBe(true);
+    expect(result.git).toBe("failed");
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("git init"));
     warn.mockRestore();
   });
@@ -334,6 +370,21 @@ describe("template rendering", () => {
       .sort();
 
     expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png"]);
+  });
+
+  it("keeps each packaged .gitignore identical to the one it stands in for", () => {
+    // npm strips files named `.gitignore` from tarballs, so every tree that
+    // ships one keeps a second copy under `scaffold/` that the published
+    // scaffolder writes instead. Two copies of the same file drift silently —
+    // this one already had, losing `app/pubspec_overrides.yaml` from the
+    // Git-rendered side — and only the `scaffold/` copy reaches a real project.
+    const templates = resolve(import.meta.dirname, "../templates");
+    for (const [tree, packaged] of [
+      ["project", "scaffold/project.gitignore"],
+      ["worker", "scaffold/worker.gitignore"],
+    ]) {
+      expect(readFileSync(resolve(templates, tree, ".gitignore"), "utf8"), `${tree}/.gitignore`).toBe(readFileSync(resolve(templates, packaged), "utf8"));
+    }
   });
 
   it("substitutes tokens in text that carries no file extension", () => {
