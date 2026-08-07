@@ -8,6 +8,81 @@ export type PackageManager = "npm" | "pnpm";
 
 export type Runner = (command: string, args: string[], cwd: string) => void;
 
+/**
+ * Where a scaffold says what it is doing, so that presentation belongs to the
+ * caller and this module only has to name things.
+ *
+ * The default is the behaviour a library caller expects with no opinion:
+ * subprocesses inherit the terminal and warnings go to `console.warn`. The CLI
+ * substitutes one that captures each step's output and shows it only if the
+ * step fails.
+ */
+export interface Reporter {
+  /** Runs `body` as one named step. Its subprocesses can be captured. */
+  step<T>(label: string, body: () => T): T;
+  /**
+   * Runs `body` as a step that owns the terminal, because something inside it
+   * asks questions. FlutterFire is the only one.
+   */
+  handOver<T>(label: string, body: () => T): T;
+  /** Output from a subprocess inside the current step. */
+  emit(output: string): void;
+  /** A failure the scaffold survives. */
+  warn(message: string): void;
+  /** Whether subprocesses must inherit the terminal rather than be captured. */
+  readonly interactive: boolean;
+}
+
+/**
+ * Gives a terminal that reports no width the width clack would have assumed.
+ *
+ * A pty can report itself as a TTY and set `columns` to 0 — `script` does, and
+ * so do some container terminals. clack falls back to 80 for a stream with no
+ * `columns` at all, but `0` is a number and satisfies that check, so the width
+ * it draws its rules from goes negative and a scaffold dies partway through
+ * with `RangeError: Invalid string length`. Supplying the default its check
+ * misses is better than giving up the drawing.
+ */
+export function normaliseTerminalWidth(stream: { isTTY?: boolean; columns?: number }): void {
+  if (stream.isTTY === true && (stream.columns ?? 0) < 1) stream.columns = 80;
+}
+
+/** Runs every step plainly, which is what a library caller gets by default. */
+export const plainReporter: Reporter = {
+  step: (_label, body) => body(),
+  handOver: (_label, body) => body(),
+  emit: (output) => process.stdout.write(output),
+  warn: (message) => console.warn(`create-eigen-game: ${message}`),
+  interactive: true,
+};
+
+/**
+ * The runner a scaffold uses when the caller has not supplied one: it asks the
+ * reporter whether the terminal is spoken for.
+ *
+ * `interactive` inherits, which is the only way FlutterFire can put a question
+ * on screen and read the answer. Otherwise both streams are captured and
+ * handed to the reporter — on success so it can discard them, and on failure
+ * so the reason survives.
+ */
+export function capturingRunner(reporter: Reporter): Runner {
+  return (command, args, cwd) => {
+    if (reporter.interactive) {
+      execFileSync(command, args, { cwd, stdio: "inherit" });
+      return;
+    }
+    try {
+      reporter.emit(execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
+    } catch (error: unknown) {
+      // Both streams, because which one a tool failed on is its own business:
+      // pub explains itself on stdout, Gradle on stderr.
+      const { stdout, stderr } = error as { stdout?: string; stderr?: string };
+      reporter.emit(`${stdout ?? ""}${stderr ?? ""}`);
+      throw error;
+    }
+  };
+}
+
 export interface ScaffoldOptions {
   directory: string;
   org?: string;
@@ -30,11 +105,27 @@ export interface ScaffoldOptions {
    */
   git?: boolean;
   /**
+   * Configure Firebase before the first commit, by running the Flutter
+   * client's `configure_firebase`. A string names the project to use; `true`
+   * lets FlutterFire ask, which is also where a project can be created.
+   *
+   * Explicit here, though the CLI turns it on by default: this is the one step
+   * that reaches outside the destination directory, and a library caller
+   * should say so rather than discover it. {@link firebaseReadiness} is how
+   * the CLI decides.
+   */
+  firebase?: boolean | string;
+  /**
    * Runs the bootstrap subprocesses. A seam: the tests substitute a recorder,
    * and `scripts/scaffold-e2e.mjs` wraps it to point the generated server at
    * this workspace's engine rather than npm's copy.
    */
   run?: Runner;
+  /**
+   * Where the scaffold says what it is doing. See {@link Reporter}; the
+   * default runs every step plainly.
+   */
+  reporter?: Reporter;
 }
 
 /**
@@ -48,6 +139,11 @@ export interface ScaffoldResult {
   root: string;
   name: string;
   git: GitOutcome;
+  /**
+   * Whether Firebase was configured, so the summary can either stop naming the
+   * step or spell it out. `failed` has already warned.
+   */
+  firebase: "configured" | "failed" | "skipped";
 }
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -109,6 +205,18 @@ const gameSlug = (value: string): string => {
 };
 
 const dartName = (value: string): string => value.replaceAll("-", "_");
+
+/**
+ * The Android `applicationId` — and iOS bundle id — a scaffold at `directory`
+ * will produce, so the CLI can show it rather than describe it.
+ *
+ * `flutter create --org X --project-name Y` derives `X.Y`. The organization is
+ * the *prefix*, not the whole identifier, which is the part worth seeing
+ * before answering: Google Play makes it permanent at first upload.
+ */
+export function applicationId(directory: string, org?: string): string {
+  return `${org?.trim() || "com.example"}.${dartName(gameSlug(basename(resolve(directory))))}`;
+}
 
 const title = (value: string): string =>
   value
@@ -431,6 +539,106 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
   return { root, files: [".github/workflows/checks.yml", ".github/workflows/release.yml"] };
 }
 
+/** Asks a command a question. `ok` is "ran and succeeded"; a tool that is not installed and one that fails are both `false`, because neither can be used. */
+export type Probe = (command: string, args: string[]) => { ok: boolean; stdout: string };
+
+const probeCommand: Probe = (command, args) => {
+  try {
+    return { ok: true, stdout: execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }) };
+  } catch {
+    return { ok: false, stdout: "" };
+  }
+};
+
+/** What each Firebase tool needs, for a machine that has neither. */
+const firebaseTools: Record<string, string> = {
+  flutterfire: "dart pub global activate flutterfire_cli",
+  firebase: "npm install -g firebase-tools",
+};
+
+export type FirebaseReadiness = { ready: true } | { ready: false; reason: string; fix: string };
+
+/**
+ * Whether this machine can configure Firebase, asked *before* the scaffold
+ * rather than after it.
+ *
+ * `configure_firebase` runs the same three checks and is the authority on
+ * them; this one exists only to move the answer earlier. Learning that
+ * `flutterfire` is missing costs nothing here and costs two minutes of Flutter
+ * and pub at the far end, which is where the step actually runs.
+ *
+ * The sign-in check fails open, for the same reason it does there: only an
+ * answer that positively reports no accounts counts as "no", so a `firebase`
+ * that errors or grows a different output shape is left to the command that
+ * actually needs the credentials.
+ */
+export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadiness {
+  for (const [tool, fix] of Object.entries(firebaseTools)) {
+    if (!probe(tool, ["--version"]).ok) return { ready: false, reason: `\`${tool}\` is not installed`, fix };
+  }
+
+  const accounts = probe("firebase", ["login:list", "--json"]);
+  if (accounts.ok) {
+    try {
+      const { result } = JSON.parse(accounts.stdout) as { result?: unknown };
+      if (Array.isArray(result) && result.length === 0) {
+        return { ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" };
+      }
+    } catch {
+      // Unparseable is not evidence of anything.
+    }
+  }
+
+  return { ready: true };
+}
+
+/**
+ * Runs the Flutter client's `configure_firebase` against the generated app.
+ *
+ * The command owns everything about how Firebase is configured — which
+ * platforms, which CLIs must exist, whether anyone is signed in, and what to
+ * do when no project has been chosen yet. This only decides *when*: before the
+ * scaffold commit, so a configured project is committed configured.
+ *
+ * Not fatal. Every failure here — a missing `flutterfire`, no Google login, a
+ * cancelled picker — leaves a complete and usable project that is exactly what
+ * a scaffold without `--firebase` produces, so it warns with the command to
+ * re-run and lets the commit happen.
+ */
+function configureFirebase(appRoot: string, project: boolean | string, run: Runner, reporter: Reporter): "configured" | "failed" {
+  // FlutterFire asks before overwriting `firebase_options.dart`, and the
+  // scaffold has just written one — a throwing placeholder whose entire
+  // purpose is to be replaced by this step. Answering that is a question with
+  // one right answer, so the placeholder is moved out of the way and the
+  // question never gets asked.
+  const placeholder = resolve(appRoot, "lib/firebase_options.dart");
+  const parked = `${placeholder}.placeholder`;
+  const parking = existsSync(placeholder);
+  if (parking) renameSync(placeholder, parked);
+
+  try {
+    // `dart run` compiles the package executable on first use and says so.
+    // Doing it against `--help`, which returns immediately, moves that noise
+    // into a step whose output can be captured — the real run cannot be, since
+    // FlutterFire prompts through it.
+    reporter.step("Preparing the Firebase configurator", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--help"], appRoot));
+    reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_flutter:configure_firebase", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
+    if (parking) rmSync(parked, { force: true });
+    return "configured";
+  } catch {
+    // Back only if nothing took its place. FlutterFire writes
+    // `firebase_options.dart` before the service worker configuration is
+    // derived from it, so a late failure leaves a real one that is worth more
+    // than the placeholder.
+    if (parking) {
+      if (existsSync(placeholder)) rmSync(parked, { force: true });
+      else renameSync(parked, placeholder);
+    }
+    reporter.warn("Could not configure Firebase. The project is complete — run `firebase:configure` yourself, then commit what it writes.");
+    return "failed";
+  }
+}
+
 /**
  * Commits the scaffold, so the first `git diff` is the first game change.
  *
@@ -445,7 +653,7 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
  * has, warns and leaves the tree alone rather than discarding a scaffold that
  * took two minutes of Flutter and pub to produce.
  */
-function initialiseRepository(root: string, name: string, run: Runner): GitOutcome {
+function initialiseRepository(root: string, name: string, run: Runner, reporter: Reporter): GitOutcome {
   // Scaffolding inside an existing checkout — a monorepo, or a repository
   // created ahead of time — is a legitimate thing to do, and a nested
   // repository there is silent breakage: the outer `git add` records a gitlink
@@ -462,14 +670,14 @@ function initialiseRepository(root: string, name: string, run: Runner): GitOutco
     run("git", ["init", "--quiet"], root);
     run("git", ["add", "--all"], root);
   } catch {
-    console.warn("create-eigen-game: could not initialise a git repository. The project is complete — run `git init` yourself when ready.");
+    reporter.warn("Could not initialise a git repository. The project is complete — run `git init` yourself when ready.");
     return "failed";
   }
 
   try {
     run("git", ["commit", "--quiet", "--message", `Scaffold ${name}`], root);
   } catch {
-    console.warn(`create-eigen-game: initialised a repository and staged the scaffold, but could not commit it. Set \`user.name\` and \`user.email\`, then \`git commit -m "Scaffold ${name}"\`.`);
+    reporter.warn(`Initialised a repository and staged the scaffold, but could not commit it. Set \`user.name\` and \`user.email\`, then \`git commit -m "Scaffold ${name}"\`.`);
     return "failed";
   }
 
@@ -481,12 +689,12 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const name = gameSlug(basename(root));
   const manager = options.packageManager ?? detectPackageManager() ?? "pnpm";
   const org = options.org?.trim() || "com.example";
-  // Mirrors how `flutter create --org` derives the real Android
-  // `applicationId`/iOS bundle id, so Fastlane's `Appfile` names the same
-  // package the build actually produces.
-  const packageId = `${org}.${dartName(name)}`;
+  // Fastlane's `Appfile` names the same package the build actually produces,
+  // and the CLI shows the same one before asking.
+  const packageId = applicationId(root, org);
   const bootstrap = options.bootstrap ?? true;
-  const run = options.run ?? ((command, args, cwd) => execFileSync(command, args, { cwd, stdio: "inherit" }));
+  const reporter = options.reporter ?? plainReporter;
+  const run = options.run ?? capturingRunner(reporter);
 
   if (existsSync(root)) throw new Error(`target already exists: ${root}`);
 
@@ -508,33 +716,43 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     if (options.ci) renderTree(resolve(templatesRoot, "ci"), stagingRoot, name, manager, packageId);
 
     if (bootstrap) {
-      run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
-      enableAndroidCoreLibraryDesugaring(appRoot);
-      enableAndroidReleaseSigning(appRoot);
+      reporter.step("Creating the Flutter app", () => {
+        run("flutter", ["create", "--empty", "--platforms", "android,web", "--project-name", dartName(name), "--org", org, appRoot], stagingRoot);
+        enableAndroidCoreLibraryDesugaring(appRoot);
+        enableAndroidReleaseSigning(appRoot);
+      });
     } else {
       mkdirSync(appRoot, { recursive: true });
     }
     renderTree(resolve(templatesRoot, "app-overlay"), appRoot, name, manager, packageId);
 
     if (bootstrap) {
-      configureLauncherIconsAndSplash(appRoot);
-      run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
-      run("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
+      reporter.step("Adding the Flutter packages", () => {
+        configureLauncherIconsAndSplash(appRoot);
+        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
+        run("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
+      });
       // Actually apply the icons rather than only configuring them. Both tools
       // write generated files (mipmaps, `web/icons/`, splash drawables and
       // styles) that are committed, not built — leaving them unrun would ship
       // Flutter's own blue logo until a game author happened to notice.
-      run("dart", ["run", "flutter_launcher_icons"], appRoot);
-      run("dart", ["run", "flutter_native_splash:create"], appRoot);
+      reporter.step("Generating the icons and splash", () => {
+        run("dart", ["run", "flutter_launcher_icons"], appRoot);
+        run("dart", ["run", "flutter_native_splash:create"], appRoot);
+      });
       const [install, installArgs] = packageCommand(manager, "install");
-      run(install, installArgs, serverRoot);
-      // The root holds Biome, which lints and formats both the Worker and the
-      // repository's own JSON. Installed after the server so a failure here
-      // costs the cheaper of the two.
-      run(install, installArgs, stagingRoot);
+      reporter.step("Installing the Worker packages", () => {
+        run(install, installArgs, serverRoot);
+        // The root holds Biome, which lints and formats both the Worker and
+        // the repository's own JSON. Installed after the server so a failure
+        // here costs the cheaper of the two.
+        run(install, installArgs, stagingRoot);
+      });
       const [contract, contractArgs] = packageCommand(manager, "contract");
-      run(contract, contractArgs, serverRoot);
-      run("dart", ["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json", "--output", "lib/game/generated/payloads.dart", "--fixtures-output", "test/fixtures"], appRoot);
+      reporter.step("Generating the contract and payloads", () => {
+        run(contract, contractArgs, serverRoot);
+        run("dart", ["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json", "--output", "lib/game/generated/payloads.dart", "--fixtures-output", "test/fixtures"], appRoot);
+      });
     }
 
     renameSync(stagingRoot, root);
@@ -543,10 +761,18 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     throw error;
   }
 
-  // Deliberately outside the staging guard: the project is published by this
-  // point, and a repository that failed to initialise is not a reason to
-  // delete it.
-  const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run) : "skipped";
+  // Both steps below are deliberately outside the staging guard: the project
+  // is published by this point, and neither a Firebase project that could not
+  // be configured nor a repository that failed to initialise is a reason to
+  // delete two minutes of Flutter and pub.
+  //
+  // Firebase first, so what it writes — `firebase.json`,
+  // `android/app/google-services.json`, the real `firebase_options.dart` and
+  // `web/firebase-config.js` in place of the throwing placeholders, and
+  // FlutterFire's two Gradle edits — lands in the scaffold commit rather than
+  // arriving as the project's first diff.
+  const firebase = options.firebase ? configureFirebase(resolve(root, "app"), options.firebase, run, reporter) : "skipped";
+  const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run, reporter) : "skipped";
 
-  return { root, name, git };
+  return { root, name, git, firebase };
 }

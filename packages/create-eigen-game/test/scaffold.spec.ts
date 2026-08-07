@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, decodeUtf8, detectPackageManager, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, capturingRunner, decodeUtf8, detectPackageManager, firebaseReadiness, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -243,6 +243,165 @@ describe("scaffoldGame", () => {
   });
 });
 
+describe("reporting", () => {
+  /** A reporter that records the shape of a run rather than drawing it. */
+  const recorder = () => {
+    const steps: string[] = [];
+    const output: string[] = [];
+    const warnings: string[] = [];
+    let interactive = false;
+    const reporter: Reporter = {
+      step(label, body) {
+        steps.push(label);
+        return body();
+      },
+      handOver(label, body) {
+        steps.push(`${label} (interactive)`);
+        interactive = true;
+        try {
+          return body();
+        } finally {
+          interactive = false;
+        }
+      },
+      emit: (chunk) => output.push(chunk),
+      warn: (message) => warnings.push(message),
+      get interactive() {
+        return interactive;
+      },
+    };
+    return { reporter, steps, output, warnings };
+  };
+
+  it("names every step it runs, in order", () => {
+    const { reporter, steps } = recorder();
+
+    scaffoldGame({
+      directory: resolve(temporaryParent(), "go-fish"),
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      reporter,
+      run: () => {},
+    });
+
+    // The interactive one is the whole reason the seam distinguishes them:
+    // FlutterFire asks which project to use, so its output cannot be captured.
+    expect(steps).toEqual(["Preparing the Firebase configurator", "Configuring Firebase (interactive)"]);
+  });
+
+  it("routes survivable failures to the reporter rather than the console", () => {
+    const { reporter, warnings } = recorder();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: resolve(temporaryParent(), "go-fish"),
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      reporter,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("firebase:configure");
+    // Otherwise it lands in the middle of the CLI's own output, breaking it.
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("captures a step's output, and hands it over when the step prompts", () => {
+    const { reporter, output } = recorder();
+    const run = capturingRunner(reporter);
+    const root = temporaryParent();
+
+    reporter.step("quiet", () => run("node", ["-e", "console.log('resolved 179 packages')"], root));
+    expect(output.join("")).toContain("resolved 179 packages");
+
+    // Inherited instead, so nothing is captured to report.
+    output.length = 0;
+    reporter.handOver("loud", () => run("node", ["-e", "console.log('')"], root));
+    expect(output).toEqual([]);
+  });
+
+  it("keeps what a failing step said, on both streams", () => {
+    const { reporter, output } = recorder();
+    const run = capturingRunner(reporter);
+
+    expect(() => reporter.step("failing", () => run("node", ["-e", "console.log('partial work'); console.error('the actual reason'); process.exit(1)"], temporaryParent()))).toThrow();
+
+    // The one time the output is worth having. pub explains itself on stdout
+    // and Gradle on stderr, so neither can be the one that is kept.
+    expect(output.join("")).toContain("partial work");
+    expect(output.join("")).toContain("the actual reason");
+  });
+});
+
+describe("normaliseTerminalWidth", () => {
+  it("gives a width to a terminal that reports none", () => {
+    // The crash this exists for: clack defaults to 80 for a stream with no
+    // `columns`, but a pty reporting 0 satisfies its `typeof === number` check,
+    // so the box rule is drawn from a negative width and the scaffold dies
+    // partway through with `RangeError: Invalid string length`.
+    const stream = { isTTY: true, columns: 0 };
+    normaliseTerminalWidth(stream);
+    expect(stream.columns).toBe(80);
+
+    const absent: { isTTY?: boolean; columns?: number } = { isTTY: true };
+    normaliseTerminalWidth(absent);
+    expect(absent.columns).toBe(80);
+  });
+
+  it("leaves a real width, and anything that is not a terminal, alone", () => {
+    const narrow = { isTTY: true, columns: 40 };
+    normaliseTerminalWidth(narrow);
+    expect(narrow.columns).toBe(40);
+
+    // A pipe has no drawing to size, and clack declines to draw into one.
+    const pipe: { isTTY?: boolean; columns?: number } = { isTTY: false };
+    normaliseTerminalWidth(pipe);
+    expect(pipe.columns).toBeUndefined();
+  });
+});
+
+describe("firebaseReadiness", () => {
+  /** A machine with both CLIs and one signed-in account, minus whatever `absent` names. */
+  const machine = (absent?: string, accounts = '{"status":"success","result":[{"user":{"email":"tester@example.com"}}]}'): Probe => {
+    return (command, args) => {
+      if (command === absent) return { ok: false, stdout: "" };
+      if (args[0] === "login:list") return { ok: true, stdout: accounts };
+      return { ok: true, stdout: "1.0.0" };
+    };
+  };
+
+  it("passes a machine that has both tools and a signed-in account", () => {
+    expect(firebaseReadiness(machine())).toEqual({ ready: true });
+  });
+
+  it("names the missing tool and the command that installs it", () => {
+    // Asked here rather than left to `configure_firebase`, which runs at the
+    // far end of two minutes of Flutter and pub.
+    expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, reason: "`flutterfire` is not installed", fix: "dart pub global activate flutterfire_cli" });
+    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, reason: "`firebase` is not installed", fix: "npm install -g firebase-tools" });
+  });
+
+  it("catches a machine that has the tools but is signed out", () => {
+    const readiness = firebaseReadiness(machine(undefined, '{"status":"success","result":[]}'));
+
+    expect(readiness).toEqual({ ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" });
+  });
+
+  it("treats an answer it cannot read as no answer", () => {
+    // Fails open, as the same check does in `configure_firebase`: a `firebase`
+    // whose output grows a different shape must not stop a scaffold on a
+    // machine that is perfectly well signed in.
+    expect(firebaseReadiness(machine(undefined, "not json at all"))).toEqual({ ready: true });
+    expect(firebaseReadiness(machine(undefined, '{"status":"success"}'))).toEqual({ ready: true });
+  });
+});
+
 describe("repository initialisation", () => {
   // A checked-out CI image has no `user.name` or `user.email`, and these are
   // the identity git reads when the config is silent. Stubbed here so the
@@ -328,6 +487,143 @@ describe("repository initialisation", () => {
     expect(ignored("pnpm-lock.yaml")).toBe(false);
     expect(ignored("server/pnpm-lock.yaml")).toBe(false);
     expect(ignored("app/pubspec.lock")).toBe(false);
+  });
+
+  it("configures Firebase before the commit, not after it", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const calls: [string, string[], string][] = [];
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: true,
+      firebase: "example-project",
+      run: (command, args, cwd) => {
+        calls.push([command, args, cwd]);
+      },
+    });
+
+    expect(result.firebase).toBe("configured");
+    // Not the `--help` warm-up ahead of it, which exists only to move `dart
+    // run`'s "Building package executable" out of the interactive step.
+    const configure = calls.findIndex(([command, args]) => command === "dart" && !args.includes("--help"));
+    expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--project", "example-project"], resolve(root, "app")]);
+    // The whole reason for doing this here: `firebase.json`,
+    // `google-services.json`, the generated `firebase_options.dart` and
+    // FlutterFire's two Gradle edits are in the scaffold commit rather than
+    // being the project's first diff.
+    expect(configure).toBeLessThan(calls.findIndex(([command, args]) => command === "git" && args[0] === "init"));
+  });
+
+  it("does not make FlutterFire ask about the placeholder it is there to replace", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    let placeholderAtRunTime = true;
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command, args, cwd) => {
+        if (command !== "dart" || args.includes("--help")) return;
+        placeholderAtRunTime = existsSync(resolve(cwd, "lib/firebase_options.dart"));
+        // Stand in for what FlutterFire writes.
+        writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
+      },
+    });
+
+    // "Overwrite the file whose only purpose is to be overwritten?" has one
+    // right answer, so it is not worth asking.
+    expect(placeholderAtRunTime).toBe(false);
+    expect(result.firebase).toBe("configured");
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toBe("// generated\n");
+  });
+
+  it("puts the placeholder back when nothing replaced it", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    // Without it the app does not compile, which is worse than the throwing
+    // seam it was.
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toContain("Firebase is not configured");
+    expect(existsSync(resolve(root, "app/lib/firebase_options.dart.placeholder"))).toBe(false);
+    warn.mockRestore();
+  });
+
+  it("keeps what a late failure had already written", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (command, args, cwd) => {
+        if (command !== "dart" || args.includes("--help")) return;
+        // FlutterFire writes this, then the service worker configuration is
+        // derived from it — so the second half can fail with the first half
+        // done, and a real file is worth more than the placeholder.
+        writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
+        throw new Error("firebase: HTTP 503");
+      },
+    });
+
+    expect(readFileSync(resolve(root, "app/lib/firebase_options.dart"), "utf8")).toBe("// generated\n");
+    expect(existsSync(resolve(root, "app/lib/firebase_options.dart.placeholder"))).toBe(false);
+    warn.mockRestore();
+  });
+
+  it("lets FlutterFire ask which project, when none was named", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const calls: string[][] = [];
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (_command, args) => {
+        calls.push(args);
+      },
+    });
+
+    // Passing no `--project` is what makes FlutterFire prompt, which is also
+    // the only route to creating a project from here.
+    expect(calls).toContainEqual(["run", "eigen_flutter:configure_firebase"]);
+  });
+
+  it("keeps a scaffold that Firebase could not be configured for", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: true,
+      firebase: true,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    // A cancelled picker or a missing CLI leaves exactly what a scaffold
+    // without `--firebase` produces, so the commit still happens and the
+    // summary goes back to naming the step.
+    expect(result.firebase).toBe("failed");
+    expect(result.git).toBe("committed");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("firebase:configure"));
+    warn.mockRestore();
   });
 
   it("keeps a scaffold that git could not commit", () => {
