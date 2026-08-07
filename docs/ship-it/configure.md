@@ -135,6 +135,10 @@ will not start until FlutterFire replaces it with real platform configuration.
    # or: npm run firebase:configure
    ```
 
+   It prompts for the Firebase project on a first run; pass
+   `-- --project my-project-id` to answer that up front. Later runs reuse the
+   project recorded in `app/firebase.json`.
+
    The engine executable runs FlutterFire for Android and Web, reads the Web
    app ID FlutterFire records in `app/firebase.json`, asks the Firebase CLI for
    that app's SDK configuration, and writes

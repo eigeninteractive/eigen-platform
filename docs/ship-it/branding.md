@@ -145,13 +145,17 @@ host, disable the `workers.dev` route in production. Store buttons come from you
 `SoftwareApplication` JSON-LD with `applicationCategory: "GameApplication"`.
 
 Every page ends in a footer carrying your copyright, the three legal links, and
-a credit line — `Made with ❤️ by EigenInteractive`, the same default the Flutter
-shell's `Branding.madeByCredit` uses. Set `madeByCredit` to your own string, or
-to `null` to drop it:
+a credit line — `Built with EigenInteractive`, where only the name is a link.
+Set `madeByCredit` to your own string, or to `null` to drop it:
 
 ```ts
 site: { /* … */ madeByCredit: null },
 ```
+
+A custom credit that still names EigenInteractive keeps the link on that word;
+one that does not renders as plain text. Every link the engine puts on these
+pages — legal, store buttons, the credit — opens in a new tab, so a visitor
+mid-download does not lose the page.
 
 ### Before `site` is configured
 
