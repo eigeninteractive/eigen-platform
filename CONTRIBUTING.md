@@ -75,6 +75,29 @@ committed generated artifacts:
 If a drift guard fails, run the command it names and commit the result. Never
 hand-edit generated artifacts to make the check pass.
 
+## Running the scaffolder from source
+
+Publishing to npm is not part of the loop. Build it and run the CLI directly —
+same arguments as `pnpm create eigen-game`:
+
+```bash
+pnpm --filter create-eigen-game build
+node packages/create-eigen-game/dist/cli.js ../my-game
+```
+
+The generated project resolves the engine from npm, which is what you want while
+iterating on the CLI and its templates: it is exactly what a user gets.
+
+To test the templates against the engine in your working tree instead — an
+unreleased engine change, seen from a game author's side — run the CI gate,
+which scaffolds into a temp directory with the four engine packages overridden
+to `link:` this workspace:
+
+```bash
+pnpm -r build
+node packages/create-eigen-game/scripts/scaffold-e2e.mjs
+```
+
 ## The generated Dart client
 
 `clients/dart` is the published `eigen_api` package. It is generated from

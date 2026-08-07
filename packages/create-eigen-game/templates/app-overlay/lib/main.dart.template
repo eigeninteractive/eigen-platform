@@ -1,7 +1,6 @@
 import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'game/module.dart';
@@ -15,9 +14,15 @@ Future<void> main() async {
   await runEngineApp(
     module: const ExampleGameModule(),
     config: AppConfig(
+      // `seedColor` is left at its default, the EigenInteractive teal that the
+      // placeholder icon and the worker's own pages are drawn in. To make the
+      // app yours, import 'package:flutter/material.dart' and add
+      // `seedColor: Colors.deepPurple` (or any Color) — Material 3 rebuilds the
+      // whole light and dark scheme from it. Do it alongside the launcher-icon
+      // and splash colours in pubspec.yaml, which cannot read Dart:
+      // https://eigeninteractive.com/docs/ship-it/branding
       branding: const Branding(
         appName: 'Example Game',
-        seedColor: Colors.indigo,
       ),
       engine: EngineConfig(
         apiBaseUrl: _apiBaseUrl,

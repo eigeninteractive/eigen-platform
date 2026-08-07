@@ -34,6 +34,7 @@
  */
 :root {
   --primary: #006a60;
+  --on-primary: #ffffff;
   --bg: #f4fbf8;
   --surface: #e3e9e6;
   --fg: #161d1c;
@@ -51,9 +52,16 @@
   --body-font: Inter, system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
 }
 
+/*
+ * The dark scheme flips the primary to its light tone, which is why
+ * `--on-primary` has to move with it: white on `#82d5c8` is the one pairing in
+ * this palette that fails contrast outright. A game that configures its own
+ * colour overrides both together, from an inline style computed in page.tsx.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
     --primary: #82d5c8;
+    --on-primary: #00382f;
     --bg: #0e1513;
     --surface: #1b2220;
     --fg: #dde4e1;
@@ -68,14 +76,21 @@ body {
   color: var(--fg);
   line-height: 1.6;
   padding: 3rem 1.5rem;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
+/* A column tall enough to reach the viewport's bottom, so `footer` can be
+   pushed there rather than trailing whatever content happens to end above it.
+   The subtraction is the body padding, which is outside this box. */
 .wrap {
   width: 100%;
   max-width: 44rem;
+  min-height: calc(100dvh - 6rem);
+  display: flex;
+  flex-direction: column;
 }
 
 h1 {
@@ -129,19 +144,98 @@ strong {
   margin-bottom: 2rem;
 }
 
+/*
+ * The download page only — the legal documents are prose and stay left-aligned.
+ * It is a short page with one job, so it takes the leftover height and centres
+ * itself in it rather than clinging to the top of a mostly empty viewport.
+ */
+.hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding: 2rem 0 3rem;
+}
+
+/* Overriding the document rhythm rather than adding to it: `gap` owns the
+   spacing inside the hero, and margins from `p`/`.lead` would double it. */
+.hero h1,
+.hero p,
+.hero .lead {
+  margin-bottom: 0;
+}
+
+.hero .lead {
+  max-width: 32rem;
+}
+
+/* The app's own launcher icon, or the engine's mark standing in for it. The
+   radius is a proportion so it keeps the squircle at any size, and the shadow
+   is what separates it from a flat background when the icon's own edges are
+   pale. */
+.logo {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 24%;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 12px 28px -12px rgb(0 0 0 / 35%);
+}
+
+/* A raster launcher icon is drawn edge to edge and needs the whole plate. The
+   mark is not — it is a bare glyph, so it needs the margin an icon designer
+   would have drawn into the file. */
+svg.logo {
+  padding: 1.15rem;
+}
+
+/* The pre-launch state: quieter than the tagline above it, since it is a
+   status rather than something to read. */
+.note {
+  color: var(--outline);
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
 .btn {
   display: inline-block;
   background: var(--primary);
-  color: #fff;
+  color: var(--on-primary);
   text-decoration: none;
   padding: 0.8rem 1.75rem;
   border-radius: 100px;
   font-family: var(--display-font);
   font-weight: 600;
+  border: 1px solid transparent;
   margin: 0.25rem 0.5rem 0.25rem 0;
 }
 
+/* Secondary actions. The border replaces the fill rather than sitting on top of
+   it, so both variants occupy the same box and the row stays on one baseline. */
+.btn.ghost {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--outline);
+}
+
+/* `gap` owns the spacing here; the buttons' own margins are for the legal
+   pages, which have no flex row around them. */
+.actions .btn {
+  margin: 0;
+}
+
 .shots {
+  align-self: stretch;
   display: flex;
   gap: 0.75rem;
   overflow-x: auto;
@@ -158,17 +252,30 @@ strong {
   border: 1px solid var(--outline);
 }
 
+/* `margin-top: auto` pins this to the bottom of `.wrap`, which is at least a
+   viewport tall — so a short page ends in a footer rather than in a void. */
 footer {
-  margin-top: 3.5rem;
+  margin-top: auto;
   padding-top: 1.5rem;
   border-top: 1px solid var(--outline);
   font-size: 0.8rem;
   color: var(--muted);
   display: flex;
-  gap: 1.25rem;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
   flex-wrap: wrap;
 }
 
 footer a {
   color: var(--muted);
+}
+
+/* Pushed to the trailing edge, away from the operator's own links: it is the
+   engine's line, not theirs. It wraps under them on a narrow screen, where
+   `auto` collapses to nothing.
+   Only when there is something to be pushed away from — on a game with no
+   `site` yet the credit is the whole footer, and a lone right-aligned line
+   reads as a leftover rather than a choice. */
+.credit:not(:first-child) {
+  margin-left: auto;
 }

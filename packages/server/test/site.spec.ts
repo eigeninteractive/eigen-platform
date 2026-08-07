@@ -19,9 +19,12 @@
  * about the file's contents directly, not through a response.
  */
 
+import { createExecutionContext } from "cloudflare:test";
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { createEngine } from "../src/engine.js";
 import { renderLegal } from "../src/site/legal/index.js";
+import { ICONS, onPrimary } from "../src/site/page.js";
 
 const get = (path: string) => exports.default.fetch(`https://x${path}`);
 
@@ -68,6 +71,42 @@ describe("landing page", () => {
     const html = await (await get("/download")).text();
     expect(html).toContain("https://apps.apple.com/app/id000000000");
     expect(html).toContain("https://play.google.com/store/apps/details?id=com.eigen.test");
+  });
+
+  it("leads with the first available action and outlines the rest", async () => {
+    const html = await (await get("/download")).text();
+    // The test worker binds no ASSETS, so there is no web build and the first
+    // store link is the call to action.
+    expect(html).toContain('<a class="btn" href="https://apps.apple.com/app/id000000000">');
+    expect(html).toContain('<a class="btn ghost" href="https://play.google.com/store/apps/details?id=com.eigen.test">');
+  });
+
+  it("offers neither the web button nor the app icon without a deployed web build", async () => {
+    // Both would be broken promises: `/` has no asset to serve and would bounce
+    // straight back here, and the icons ship inside the same Flutter bundle.
+    //
+    // KNOWN GAP: the other side of this branch is untested. Proving it needs an
+    // `ASSETS` binding with a real `index.html`, which would also make Static
+    // Assets answer `/` and invalidate the web-root fallback test below.
+    const html = await (await get("/download")).text();
+    expect(html).not.toContain("Play on the web");
+    // Not `ICONS.icon192` on its own: the same path is the apple-touch-icon in
+    // every page's <head>, which is unconditional and correct. Only the hero
+    // image is gated.
+    expect(html).not.toContain(`<img class="logo" src="${ICONS.icon192}"`);
+  });
+
+  it("stands the engine's mark in for the icon it does not have yet", async () => {
+    const html = await (await get("/download")).text();
+    expect(html).toContain('<svg class="logo"');
+    // Drawn in the page's own tokens rather than in fixed hexes, so it takes
+    // the game's configured colour and follows the visitor's colour scheme.
+    expect(html).toContain('stroke="var(--primary)"');
+    // Attribute names reach the document verbatim: hono/jsx does not carry
+    // React's camelCase mapping, so `strokeWidth` would render as-is and be
+    // ignored by every renderer.
+    expect(html).toContain("stroke-width=");
+    expect(html).not.toContain("strokeWidth");
   });
 });
 
@@ -118,6 +157,14 @@ describe("legal documents", () => {
       expect(html).toContain('href="/delete-account"');
     }
   });
+
+  it("credits the engine in the same footer, on every page", async () => {
+    for (const path of ["/download", "/terms", "/privacy", "/delete-account"]) {
+      const html = await (await get(path)).text();
+      expect(html).toContain('href="https://eigeninteractive.com"');
+      expect(html).toContain("Made with ❤️ by EigenInteractive");
+    }
+  });
 });
 
 describe("crawler files", () => {
@@ -163,6 +210,10 @@ describe("crawler files", () => {
     // `:root` blocks in the stylesheet, so a configured game keeps its colour
     // in either scheme.
     expect(html).toContain("--primary:#1a237e");
+    // And the ink to put on it moves with it. Overriding `--primary` alone
+    // would leave whichever `--on-primary` the visitor's scheme happened to
+    // set — for a colour this dark, the dark scheme's near-black.
+    expect(html).toContain("--on-primary:#ffffff");
   });
 
   it("declares both brand faces and serves them itself", async () => {
@@ -209,6 +260,72 @@ describe("web root", () => {
     const res = await exports.default.fetch(new Request("https://x/", { redirect: "manual" }));
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toBe("/download");
+  });
+});
+
+describe("before anything is published", () => {
+  // The scaffold's own state on its first `wrangler dev`: `site` unconfigured,
+  // no `deepLink`, and ASSETS bound to an empty `public/` — bound, so the page
+  // mounts, but answering 404 for everything, so there is nothing to link to.
+  // The suite's main worker cannot show this: it has both a site and store URLs.
+  const scaffold = createEngine({
+    gameModule: { versions: {} },
+    appName: "Sustained",
+    d1: () => {
+      throw new Error("/download reads no D1");
+    },
+    gameDO: () => {
+      throw new Error("/download reaches no Durable Object");
+    },
+  });
+  const empty = { ASSETS: { fetch: () => Promise.resolve(new Response(null, { status: 404 })) } };
+  // `ExportedHandler` declares every handler optional; `createEngine` always
+  // returns this one. Narrowed once here rather than asserted at each call.
+  const handle = scaffold.fetch;
+  if (handle === undefined) throw new Error("createEngine returned no fetch handler");
+
+  const download = async (): Promise<string> => {
+    const res = await handle(new Request("https://x/download"), empty as never, createExecutionContext());
+    expect(res.status).toBe(200);
+    return await res.text();
+  };
+
+  it("says so, rather than trailing off after the tagline with nothing to click", async () => {
+    const html = await download();
+    expect(html).toContain("Coming soon.");
+    expect(html).not.toContain("Play on the web");
+    expect(html).not.toContain('class="actions"');
+  });
+
+  it("still has a mark, a name and a footer", async () => {
+    const html = await download();
+    expect(html).toContain('<svg class="logo"');
+    expect(html).toContain("<h1>Sustained</h1>");
+    expect(html).toContain("Made with ❤️ by EigenInteractive");
+    // No `site`, so the legal routes are not mounted and must not be linked.
+    expect(html).not.toContain('href="/terms"');
+  });
+});
+
+describe("onPrimary", () => {
+  it("picks the ink that stays readable on the configured colour", () => {
+    // Both ends of the engine's own palette: the light scheme's primary is dark
+    // enough for white, the dark scheme's is not — which is the pairing that
+    // failed before this existed.
+    expect(onPrimary("#006a60")).toBe("#ffffff");
+    expect(onPrimary("#82d5c8")).toBe("#0d1211");
+    // Luminance, not lightness: a saturated yellow is far brighter than a
+    // saturated blue at the same nominal tone.
+    expect(onPrimary("#ffd600")).toBe("#0d1211");
+    expect(onPrimary("#1a237e")).toBe("#ffffff");
+  });
+
+  it("accepts shorthand hex and falls back to white on anything it cannot read", () => {
+    expect(onPrimary("#fff")).toBe("#0d1211");
+    expect(onPrimary("#000")).toBe("#ffffff");
+    // Unparseable, so the comparison against NaN fails — which lands on white,
+    // the behaviour every page had before the pairing was computed at all.
+    expect(onPrimary("rebeccapurple")).toBe("#ffffff");
   });
 });
 

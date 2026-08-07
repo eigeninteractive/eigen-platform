@@ -50,7 +50,7 @@ import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
 import { registerDownloadRoute, registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
-import type { ResolvedSite, SiteConfig } from "./site/config.js";
+import { DEFAULT_CREDIT, type ResolvedSite, type SiteConfig } from "./site/config.js";
 import { renderLegal } from "./site/legal/index.js";
 
 // ── Public config ─────────────────────────────────────────────────────────────
@@ -152,6 +152,7 @@ export interface ResolvedAvatars {
 }
 
 export type { LegalConfig, OperatorConfig, ResolvedSite, SiteConfig } from "./site/config.js";
+export { DEFAULT_CREDIT } from "./site/config.js";
 
 // ── Internal route context (erases the implementor's Env generics) ────────────
 
@@ -386,6 +387,9 @@ function resolveSite(cfg: SiteConfig, appName: string): ResolvedSite {
     primaryColor: cfg.primaryColor,
     screenshots: cfg.screenshots ?? [],
     ogImage: ogImage.startsWith("/") ? ogImage : `/${ogImage}`,
+    // `?? DEFAULT_CREDIT` would be wrong: an explicit `null` means "no credit",
+    // and is exactly the value nullish coalescing would swallow.
+    madeByCredit: cfg.madeByCredit === undefined ? DEFAULT_CREDIT : cfg.madeByCredit,
     operator: cfg.operator,
     legal: renderLegal(cfg.legal, { appName: name, operator: cfg.operator }),
   };
