@@ -1,5 +1,13 @@
 # create-eigen-game
 
+## 0.7.3
+
+### Patch Changes
+
+- [#34](https://github.com/eigeninteractive/eigen-server/pull/34) [`905b841`](https://github.com/eigeninteractive/eigen-server/commit/905b841158238c21bd7086d9a73e23a7a0fb4ba3) Thanks [@seenu-k](https://github.com/seenu-k)! - Say in the generated README that `firebase:configure` asks which Firebase
+  project to use, and how to name it up front with
+  `run firebase:configure -- --project my-project-id`.
+
 ## 0.7.2
 
 ### Patch Changes
