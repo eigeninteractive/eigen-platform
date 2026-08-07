@@ -30,6 +30,18 @@ export interface ScaffoldOptions {
    */
   git?: boolean;
   /**
+   * Configure Firebase before the first commit, by running the Flutter
+   * client's `configure_firebase`. A string names the project to use; `true`
+   * lets FlutterFire ask, which is also where a project can be created.
+   *
+   * Off by default, and deliberately: this is the one step that reaches
+   * outside the destination directory. It registers apps in a Google account —
+   * possibly creating a project — and needs two globally installed CLIs and a
+   * browser login, none of which anything else here requires. A game's rules,
+   * its twin fixtures and `wrangler dev` all run without a Firebase project.
+   */
+  firebase?: boolean | string;
+  /**
    * Runs the bootstrap subprocesses. A seam: the tests substitute a recorder,
    * and `scripts/scaffold-e2e.mjs` wraps it to point the generated server at
    * this workspace's engine rather than npm's copy.
@@ -48,6 +60,11 @@ export interface ScaffoldResult {
   root: string;
   name: string;
   git: GitOutcome;
+  /**
+   * Whether Firebase was configured, so the summary can either stop naming the
+   * step or spell it out. `failed` has already warned.
+   */
+  firebase: "configured" | "failed" | "skipped";
 }
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -109,6 +126,18 @@ const gameSlug = (value: string): string => {
 };
 
 const dartName = (value: string): string => value.replaceAll("-", "_");
+
+/**
+ * The Android `applicationId` — and iOS bundle id — a scaffold at `directory`
+ * will produce, so the CLI can show it rather than describe it.
+ *
+ * `flutter create --org X --project-name Y` derives `X.Y`. The organization is
+ * the *prefix*, not the whole identifier, which is the part worth seeing
+ * before answering: Google Play makes it permanent at first upload.
+ */
+export function applicationId(directory: string, org?: string): string {
+  return `${org?.trim() || "com.example"}.${dartName(gameSlug(basename(resolve(directory))))}`;
+}
 
 const title = (value: string): string =>
   value
@@ -432,6 +461,29 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
 }
 
 /**
+ * Runs the Flutter client's `configure_firebase` against the generated app.
+ *
+ * The command owns everything about how Firebase is configured — which
+ * platforms, which CLIs must exist, whether anyone is signed in, and what to
+ * do when no project has been chosen yet. This only decides *when*: before the
+ * scaffold commit, so a configured project is committed configured.
+ *
+ * Not fatal. Every failure here — a missing `flutterfire`, no Google login, a
+ * cancelled picker — leaves a complete and usable project that is exactly what
+ * a scaffold without `--firebase` produces, so it warns with the command to
+ * re-run and lets the commit happen.
+ */
+function configureFirebase(appRoot: string, project: boolean | string, run: Runner): "configured" | "failed" {
+  try {
+    run("dart", ["run", "eigen_flutter:configure_firebase", ...(typeof project === "string" ? ["--project", project] : [])], appRoot);
+    return "configured";
+  } catch {
+    console.warn("create-eigen-game: could not configure Firebase. The project is complete — run `firebase:configure` yourself, then commit what it writes.");
+    return "failed";
+  }
+}
+
+/**
  * Commits the scaffold, so the first `git diff` is the first game change.
  *
  * This matters more here than in a scaffolder that only writes source. The
@@ -481,10 +533,9 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const name = gameSlug(basename(root));
   const manager = options.packageManager ?? detectPackageManager() ?? "pnpm";
   const org = options.org?.trim() || "com.example";
-  // Mirrors how `flutter create --org` derives the real Android
-  // `applicationId`/iOS bundle id, so Fastlane's `Appfile` names the same
-  // package the build actually produces.
-  const packageId = `${org}.${dartName(name)}`;
+  // Fastlane's `Appfile` names the same package the build actually produces,
+  // and the CLI shows the same one before asking.
+  const packageId = applicationId(root, org);
   const bootstrap = options.bootstrap ?? true;
   const run = options.run ?? ((command, args, cwd) => execFileSync(command, args, { cwd, stdio: "inherit" }));
 
@@ -543,10 +594,18 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     throw error;
   }
 
-  // Deliberately outside the staging guard: the project is published by this
-  // point, and a repository that failed to initialise is not a reason to
-  // delete it.
+  // Both steps below are deliberately outside the staging guard: the project
+  // is published by this point, and neither a Firebase project that could not
+  // be configured nor a repository that failed to initialise is a reason to
+  // delete two minutes of Flutter and pub.
+  //
+  // Firebase first, so what it writes — `firebase.json`,
+  // `android/app/google-services.json`, the real `firebase_options.dart` and
+  // `web/firebase-config.js` in place of the throwing placeholders, and
+  // FlutterFire's two Gradle edits — lands in the scaffold commit rather than
+  // arriving as the project's first diff.
+  const firebase = options.firebase ? configureFirebase(resolve(root, "app"), options.firebase, run) : "skipped";
   const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run) : "skipped";
 
-  return { root, name, git };
+  return { root, name, git, firebase };
 }

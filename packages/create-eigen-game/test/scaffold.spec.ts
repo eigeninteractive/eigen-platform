@@ -330,6 +330,72 @@ describe("repository initialisation", () => {
     expect(ignored("app/pubspec.lock")).toBe(false);
   });
 
+  it("configures Firebase before the commit, not after it", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const calls: [string, string[], string][] = [];
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: true,
+      firebase: "example-project",
+      run: (command, args, cwd) => {
+        calls.push([command, args, cwd]);
+      },
+    });
+
+    expect(result.firebase).toBe("configured");
+    const configure = calls.findIndex(([command]) => command === "dart");
+    expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--project", "example-project"], resolve(root, "app")]);
+    // The whole reason for doing this here: `firebase.json`,
+    // `google-services.json`, the generated `firebase_options.dart` and
+    // FlutterFire's two Gradle edits are in the scaffold commit rather than
+    // being the project's first diff.
+    expect(configure).toBeLessThan(calls.findIndex(([command, args]) => command === "git" && args[0] === "init"));
+  });
+
+  it("lets FlutterFire ask which project, when none was named", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const calls: string[][] = [];
+
+    scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: false,
+      firebase: true,
+      run: (_command, args) => {
+        calls.push(args);
+      },
+    });
+
+    // Passing no `--project` is what makes FlutterFire prompt, which is also
+    // the only route to creating a project from here.
+    expect(calls).toContainEqual(["run", "eigen_flutter:configure_firebase"]);
+  });
+
+  it("keeps a scaffold that Firebase could not be configured for", () => {
+    const root = resolve(temporaryParent(), "go-fish");
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = scaffoldGame({
+      directory: root,
+      bootstrap: false,
+      git: true,
+      firebase: true,
+      run: (command) => {
+        if (command === "dart") throw new Error("flutterfire: command not found");
+      },
+    });
+
+    // A cancelled picker or a missing CLI leaves exactly what a scaffold
+    // without `--firebase` produces, so the commit still happens and the
+    // summary goes back to naming the step.
+    expect(result.firebase).toBe("failed");
+    expect(result.git).toBe("committed");
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("firebase:configure"));
+    warn.mockRestore();
+  });
+
   it("keeps a scaffold that git could not commit", () => {
     const root = resolve(temporaryParent(), "go-fish");
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

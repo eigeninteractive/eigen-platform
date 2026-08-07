@@ -28,6 +28,9 @@ export function summarise(result: ScaffoldResult, manager: PackageManager, ci: b
   // already warned, in more detail than a summary line could carry.
   if (result.git === "committed") lines.push(`Committed as "Scaffold ${result.name}".`);
   if (result.git === "existing") lines.push("Created inside a repository you already had, so nothing was committed.");
+  // `failed` has warned already, and the step reappears below as the next
+  // thing to run, which is the whole of the advice.
+  if (result.firebase === "configured") lines.push(result.git === "committed" ? "Firebase is configured, and everything it generated is in that commit." : "Firebase is configured.");
 
   lines.push(
     "",
@@ -42,6 +45,11 @@ export function summarise(result: ScaffoldResult, manager: PackageManager, ci: b
       [`cd server && ${run} test:watch`, "rules and twin fixtures"],
       [`cd server && ${run} dev`, "the Worker, on http://localhost:8787"],
       [`${run} contract`, "regenerate after a schema change"],
+      // Named here because it is the one step the game itself cannot do
+      // without: rules, fixtures and the Worker all run unconfigured, and the
+      // app throws `Firebase is not configured` at launch until this has run
+      // once. It lived only in the README, which is read after the failure.
+      ...(result.firebase === "configured" ? [] : [[`${run} firebase:configure`, "connect Firebase, before the app will launch"] as [string, string]]),
     ]),
     "",
   );

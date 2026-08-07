@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
-import { addContinuousIntegration, detectPackageManager, type PackageManager, scaffoldGame } from "./index.js";
+import { addContinuousIntegration, applicationId, detectPackageManager, type PackageManager, scaffoldGame } from "./index.js";
 import { summarise } from "./summary.js";
 
 const help = `Usage: create-eigen-game <game-slug> [options]
@@ -16,8 +16,16 @@ Options:
   --ci                   Also emit the GitHub Actions workflows (off by
                          default: release.yml needs an upload keystore and a
                          Play service account, so it fails until both exist)
-  --org <reverse-domain> Android/iOS organization (default: com.example).
-                         Asked for interactively when omitted.
+  --org <reverse-domain> Android/iOS organization (default: com.example). The
+                         applicationId is this plus the game name, as in
+                         com.example.my_game. Asked for when omitted.
+  --firebase             Configure Firebase before the first commit, so what it
+                         generates is committed with the scaffold. Needs the
+                         firebase and flutterfire CLIs and a Google login
+  --firebase-project <id>
+                         The Firebase project to configure against; implies
+                         --firebase. Omit to be asked, which is also where a
+                         project can be created
   --no-git               Do not initialise a repository or commit the scaffold
   --package-manager <pm> npm or pnpm (defaults to the invoking package manager)
   -h, --help             Show this help
@@ -33,6 +41,13 @@ function resolveManager(requested: string | undefined): PackageManager | undefin
     throw new Error("--package-manager must be npm or pnpm");
   }
   return requested;
+}
+
+/** Naming a project implies wanting the step it is for, so `--firebase-project x` stands alone. */
+function resolveFirebase(flag: boolean | undefined, project: string | undefined): boolean | string {
+  if (project === undefined) return flag === true;
+  if (project.trim() === "") throw new Error("--firebase-project needs a project id");
+  return project.trim();
 }
 
 /**
@@ -54,26 +69,34 @@ function resolveOrg(value: string): string | undefined {
 }
 
 /**
- * The one value worth interrupting for. It becomes the Android
+ * The one value worth interrupting for. It prefixes the Android
  * `applicationId`, which Google Play treats as the permanent identity of the
- * app: it cannot be changed after the first upload, and a game published as
- * `com.example.my-game` has to be relisted under a new identity, losing its
- * install base and reviews. Everything else the scaffolder decides is a
- * find-and-replace away.
+ * app: it cannot be changed after the first upload, and a game published under
+ * the wrong one has to be relisted, losing its install base and reviews.
+ * Everything else the scaffolder decides is a find-and-replace away.
+ *
+ * So the question shows the identifier each answer produces rather than
+ * describing how one is derived. `--org com.acme.chess` for a game called
+ * `chess` reads like the whole id and is not — it yields
+ * `com.acme.chess.chess`, and by the time that is visible in the Play Console
+ * it is too late.
  *
  * Skipped when there is no terminal, so `--org` remains the whole interface
  * for CI, `scripts/scaffold-e2e.mjs` and anything piping input.
  */
-async function askForOrg(): Promise<string | undefined> {
+async function askForOrg(directory: string): Promise<string | undefined> {
   if (!process.stdin.isTTY) return undefined;
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    console.log("\nThe organization becomes the Android applicationId, which Google Play makes permanent at first upload.");
+    console.log(`\nThe organization prefixes the Android applicationId, which Google Play makes permanent at first upload.\nLeaving it gives ${applicationId(directory)}.`);
     for (;;) {
       const answer = (await rl.question("Organization in reverse domain notation [com.example]: ")).trim();
-      if (answer === "") return undefined;
-      if (ORG.test(answer)) return answer;
+      if (answer === "" || ORG.test(answer)) {
+        const org = answer === "" ? undefined : answer;
+        console.log(`applicationId: ${applicationId(directory, org)}\n`);
+        return org;
+      }
       console.log("Two or more dot-separated segments, as in com.example or dev.yourname.games.\n");
     }
   } finally {
@@ -90,6 +113,11 @@ async function main(args: string[]): Promise<void> {
       help: { type: "boolean", short: "h" },
       ci: { type: "boolean" },
       org: { type: "string" },
+      firebase: { type: "boolean" },
+      // Separate rather than an optional value for `--firebase`, which
+      // `parseArgs` has no way to express: an option is either required to
+      // carry a value or forbidden from taking one.
+      "firebase-project": { type: "string" },
       // Node's `parseArgs` has no boolean negation, so the flag is declared
       // under the name it is typed with rather than as `git: false`.
       "no-git": { type: "boolean" },
@@ -123,15 +151,17 @@ async function main(args: string[]): Promise<void> {
     throw new Error(`expected exactly one destination directory\n\n${help}`);
   }
 
-  const org = values.org === undefined ? await askForOrg() : resolveOrg(values.org);
+  const directory = positionals[0];
+  const org = values.org === undefined ? await askForOrg(directory) : resolveOrg(values.org);
   const manager = requestedManager ?? detectPackageManager() ?? "pnpm";
 
   const result = scaffoldGame({
-    directory: positionals[0],
+    directory,
     org,
     packageManager: manager,
     ci: values.ci,
     git: !values["no-git"],
+    firebase: resolveFirebase(values.firebase, values["firebase-project"]),
   });
   console.log(summarise(result, manager, values.ci === true));
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { GitOutcome, ScaffoldResult } from "../src/index.js";
 import { summarise } from "../src/summary.js";
 
-const result = (git: GitOutcome): ScaffoldResult => ({ root: "/tmp/go-fish", name: "go-fish", git });
+const result = (git: GitOutcome, firebase: ScaffoldResult["firebase"] = "skipped"): ScaffoldResult => ({ root: "/tmp/go-fish", name: "go-fish", git, firebase });
 
 describe("summarise", () => {
   it("names both halves of the project it just wrote", () => {
@@ -32,6 +32,21 @@ describe("summarise", () => {
   it("quotes commands in the manager the project was scaffolded with", () => {
     expect(summarise(result("committed"), "pnpm", false)).toContain("cd server && pnpm test:watch");
     expect(summarise(result("committed"), "npm", false)).toContain("cd server && npm run test:watch");
+  });
+
+  it("keeps naming the Firebase step until it has been done", () => {
+    // The app throws `Firebase is not configured` at launch until this has run
+    // once, so it belongs with the other things to run next — and stops
+    // belonging there the moment the scaffold did it.
+    expect(summarise(result("committed"), "pnpm", false)).toContain("pnpm firebase:configure");
+    expect(summarise(result("committed", "failed"), "pnpm", false)).toContain("pnpm firebase:configure");
+    expect(summarise(result("committed", "configured"), "pnpm", false)).not.toContain("firebase:configure");
+  });
+
+  it("says what the Firebase step left behind, when it ran", () => {
+    expect(summarise(result("committed", "configured"), "pnpm", false)).toContain("everything it generated is in that commit");
+    // Nothing to be in, so nothing to claim.
+    expect(summarise(result("skipped", "configured"), "pnpm", false)).toContain("Firebase is configured.");
   });
 
   it("mentions the missing workflows only when they were not emitted", () => {

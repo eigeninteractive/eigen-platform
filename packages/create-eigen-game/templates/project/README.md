@@ -107,7 +107,18 @@ up front to skip the prompts, which is also how CI runs this:
 ```
 
 Later runs reuse the project recorded in `app/firebase.json`, so there is
-nothing to pass again. Add `--help` for the rest.
+nothing to pass again. Add `--help` for the rest. `create-eigen-game
+--firebase` does this during scaffolding instead, so what it generates is part
+of the first commit.
+
+It writes `app/firebase.json`, `app/android/app/google-services.json`,
+`app/lib/firebase_options.dart` and `app/web/firebase-config.js` — the last two
+replacing scaffolded placeholders that throw — and lets FlutterFire add the
+Google Services plugin to the two Android Gradle files. **Commit all of it.**
+Every one is a public app identifier rather than a credential, nothing here is
+git-ignored, and an Android or web build fails without them. The Firebase
+secrets are the Worker's service-account email and private key, which live in
+`server/.dev.vars` and `wrangler secret put`, and never in `app/`.
 
 The command uses FlutterFire's selected Web app to generate both
 `lib/firebase_options.dart` and `web/firebase-config.js`; do not copy Firebase
