@@ -86,20 +86,23 @@ Configure Android, Flutter Web, and the messaging service worker together:
 {{PACKAGE_MANAGER}} run firebase:configure
 ```
 
-That drives two CLIs, which are separate global installs and neither of which
+Scaffolding does this for you, so a project created with the tooling in place
+is already configured and this is the command for changing it afterwards — a
+different project, or picking up a configuration change. If it was skipped, the
+app throws `Firebase is not configured` the moment it launches; rules, fixtures
+and `wrangler dev` all run regardless.
+
+It drives two CLIs, which are separate global installs and neither of which
 comes with Flutter or Node:
 
 ```sh
 npm install -g firebase-tools                # the `firebase` CLI
 dart pub global activate flutterfire_cli     # the `flutterfire` CLI
 export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
+firebase login                               # both CLIs share this
 ```
 
-Then `firebase login`. Nothing before this point needs either tool — rules,
-fixtures and `wrangler dev` all run without them — but the app itself throws
-`Firebase is not configured` on launch until this has run once.
-
-The first run asks which Firebase project to use, and can create one. Name it
+A run with no project chosen yet asks which to use, and can create one. Name it
 up front to skip the prompts, which is also how CI runs this:
 
 ```sh
@@ -107,9 +110,7 @@ up front to skip the prompts, which is also how CI runs this:
 ```
 
 Later runs reuse the project recorded in `app/firebase.json`, so there is
-nothing to pass again. Add `--help` for the rest. `create-eigen-game
---firebase` does this during scaffolding instead, so what it generates is part
-of the first commit.
+nothing to pass again. Add `--help` for the rest.
 
 It writes `app/firebase.json`, `app/android/app/google-services.json`,
 `app/lib/firebase_options.dart` and `app/web/firebase-config.js` — the last two
@@ -119,6 +120,13 @@ Every one is a public app identifier rather than a credential, nothing here is
 git-ignored, and an Android or web build fails without them. The Firebase
 secrets are the Worker's service-account email and private key, which live in
 `server/.dev.vars` and `wrangler secret put`, and never in `app/`.
+
+Each run ends by naming the project and the two app IDs it configured against.
+Worth reading when the project is one that already had apps in it: FlutterFire
+matches an existing Android app on the `applicationId` and an existing Web app
+on its display name, and adopts either without comment, so those IDs are the
+only thing distinguishing "reused what was there" from "registered something
+new".
 
 The command uses FlutterFire's selected Web app to generate both
 `lib/firebase_options.dart` and `web/firebase-config.js`; do not copy Firebase

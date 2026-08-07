@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, decodeUtf8, detectPackageManager, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, decodeUtf8, detectPackageManager, firebaseReadiness, type Probe, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -240,6 +240,42 @@ describe("scaffoldGame", () => {
 
     expect(existsSync(root)).toBe(false);
     expect(readdirSync(parent)).toEqual([]);
+  });
+});
+
+describe("firebaseReadiness", () => {
+  /** A machine with both CLIs and one signed-in account, minus whatever `absent` names. */
+  const machine = (absent?: string, accounts = '{"status":"success","result":[{"user":{"email":"tester@example.com"}}]}'): Probe => {
+    return (command, args) => {
+      if (command === absent) return { ok: false, stdout: "" };
+      if (args[0] === "login:list") return { ok: true, stdout: accounts };
+      return { ok: true, stdout: "1.0.0" };
+    };
+  };
+
+  it("passes a machine that has both tools and a signed-in account", () => {
+    expect(firebaseReadiness(machine())).toEqual({ ready: true });
+  });
+
+  it("names the missing tool and the command that installs it", () => {
+    // Asked here rather than left to `configure_firebase`, which runs at the
+    // far end of two minutes of Flutter and pub.
+    expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, reason: "`flutterfire` is not installed", fix: "dart pub global activate flutterfire_cli" });
+    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, reason: "`firebase` is not installed", fix: "npm install -g firebase-tools" });
+  });
+
+  it("catches a machine that has the tools but is signed out", () => {
+    const readiness = firebaseReadiness(machine(undefined, '{"status":"success","result":[]}'));
+
+    expect(readiness).toEqual({ ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" });
+  });
+
+  it("treats an answer it cannot read as no answer", () => {
+    // Fails open, as the same check does in `configure_firebase`: a `firebase`
+    // whose output grows a different shape must not stop a scaffold on a
+    // machine that is perfectly well signed in.
+    expect(firebaseReadiness(machine(undefined, "not json at all"))).toEqual({ ready: true });
+    expect(firebaseReadiness(machine(undefined, '{"status":"success"}'))).toEqual({ ready: true });
   });
 });
 

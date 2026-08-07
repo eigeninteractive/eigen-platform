@@ -34,11 +34,10 @@ export interface ScaffoldOptions {
    * client's `configure_firebase`. A string names the project to use; `true`
    * lets FlutterFire ask, which is also where a project can be created.
    *
-   * Off by default, and deliberately: this is the one step that reaches
-   * outside the destination directory. It registers apps in a Google account —
-   * possibly creating a project — and needs two globally installed CLIs and a
-   * browser login, none of which anything else here requires. A game's rules,
-   * its twin fixtures and `wrangler dev` all run without a Firebase project.
+   * Explicit here, though the CLI turns it on by default: this is the one step
+   * that reaches outside the destination directory, and a library caller
+   * should say so rather than discover it. {@link firebaseReadiness} is how
+   * the CLI decides.
    */
   firebase?: boolean | string;
   /**
@@ -458,6 +457,59 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
 
   renderTree(resolve(templatesRoot, "ci"), root, name, manager, packageId);
   return { root, files: [".github/workflows/checks.yml", ".github/workflows/release.yml"] };
+}
+
+/** Asks a command a question. `ok` is "ran and succeeded"; a tool that is not installed and one that fails are both `false`, because neither can be used. */
+export type Probe = (command: string, args: string[]) => { ok: boolean; stdout: string };
+
+const probeCommand: Probe = (command, args) => {
+  try {
+    return { ok: true, stdout: execFileSync(command, args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }) };
+  } catch {
+    return { ok: false, stdout: "" };
+  }
+};
+
+/** What each Firebase tool needs, for a machine that has neither. */
+const firebaseTools: Record<string, string> = {
+  flutterfire: "dart pub global activate flutterfire_cli",
+  firebase: "npm install -g firebase-tools",
+};
+
+export type FirebaseReadiness = { ready: true } | { ready: false; reason: string; fix: string };
+
+/**
+ * Whether this machine can configure Firebase, asked *before* the scaffold
+ * rather than after it.
+ *
+ * `configure_firebase` runs the same three checks and is the authority on
+ * them; this one exists only to move the answer earlier. Learning that
+ * `flutterfire` is missing costs nothing here and costs two minutes of Flutter
+ * and pub at the far end, which is where the step actually runs.
+ *
+ * The sign-in check fails open, for the same reason it does there: only an
+ * answer that positively reports no accounts counts as "no", so a `firebase`
+ * that errors or grows a different output shape is left to the command that
+ * actually needs the credentials.
+ */
+export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadiness {
+  for (const [tool, fix] of Object.entries(firebaseTools)) {
+    if (!probe(tool, ["--version"]).ok) return { ready: false, reason: `\`${tool}\` is not installed`, fix };
+  }
+
+  const accounts = probe("firebase", ["login:list", "--json"]);
+  if (accounts.ok) {
+    try {
+      const { result } = JSON.parse(accounts.stdout) as { result?: unknown };
+      if (Array.isArray(result) && result.length === 0) {
+        return { ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" };
+      }
+    } catch {
+      // Unparseable is not evidence of anything.
+    }
+  }
+
+  return { ready: true };
 }
 
 /**

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
-import { addContinuousIntegration, applicationId, detectPackageManager, type PackageManager, scaffoldGame } from "./index.js";
+import { addContinuousIntegration, applicationId, detectPackageManager, firebaseReadiness, type PackageManager, scaffoldGame } from "./index.js";
 import { summarise } from "./summary.js";
 
 const help = `Usage: create-eigen-game <game-slug> [options]
@@ -19,13 +19,14 @@ Options:
   --org <reverse-domain> Android/iOS organization (default: com.example). The
                          applicationId is this plus the game name, as in
                          com.example.my_game. Asked for when omitted.
-  --firebase             Configure Firebase before the first commit, so what it
-                         generates is committed with the scaffold. Needs the
-                         firebase and flutterfire CLIs and a Google login
+  --no-firebase          Do not configure Firebase. Firebase is configured
+                         before the first commit by default, whenever the two
+                         CLIs are installed and signed in; this skips it and
+                         prints the command to run later
   --firebase-project <id>
-                         The Firebase project to configure against; implies
-                         --firebase. Omit to be asked, which is also where a
-                         project can be created
+                         The Firebase project to configure against, instead of
+                         being asked. Works without a terminal, which is how
+                         CI drives the step
   --no-git               Do not initialise a repository or commit the scaffold
   --package-manager <pm> npm or pnpm (defaults to the invoking package manager)
   -h, --help             Show this help
@@ -43,11 +44,40 @@ function resolveManager(requested: string | undefined): PackageManager | undefin
   return requested;
 }
 
-/** Naming a project implies wanting the step it is for, so `--firebase-project x` stands alone. */
-function resolveFirebase(flag: boolean | undefined, project: string | undefined): boolean | string {
-  if (project === undefined) return flag === true;
-  if (project.trim() === "") throw new Error("--firebase-project needs a project id");
-  return project.trim();
+/**
+ * Whether this run configures Firebase, and against which project.
+ *
+ * On by default, because a scaffold that stops short of it is not a runnable
+ * app: `firebase_options.dart` is a throwing placeholder until this has run,
+ * so the first `flutter run` ends at `Firebase is not configured`. Doing it
+ * before the scaffold commit also keeps the six files it writes out of the
+ * project's first diff.
+ *
+ * Never at the cost of the scaffold, though. Everything that would make the
+ * step fail — no CLIs, no login, no terminal to answer the project prompt on —
+ * turns it off and says so, here, before the two minutes of Flutter and pub
+ * rather than after them. What is left is exactly a `--no-firebase` scaffold,
+ * and the summary ends by naming the command that finishes the job.
+ */
+function chooseFirebase(disabled: boolean | undefined, project: string | undefined): boolean | string {
+  // An explicitly named project settles it: FlutterFire has nothing to ask, so
+  // this is also the form that works on a machine with no terminal.
+  if (project !== undefined) {
+    if (project.trim() === "") throw new Error("--firebase-project needs a project id");
+    return project.trim();
+  }
+  if (disabled === true) return false;
+
+  if (!process.stdin.isTTY) {
+    console.log("No terminal to choose a Firebase project on, so Firebase is left unconfigured. Name one with --firebase-project <id>, or run `firebase:configure` later.");
+    return false;
+  }
+
+  const readiness = firebaseReadiness();
+  if (readiness.ready) return true;
+
+  console.log(`\nSkipping Firebase: ${readiness.reason}. Install it with:\n\n  ${readiness.fix}\n\nThe scaffold does not need it — you will be reminded how to configure Firebase at the end.`);
+  return false;
 }
 
 /**
@@ -84,12 +114,20 @@ function resolveOrg(value: string): string | undefined {
  * Skipped when there is no terminal, so `--org` remains the whole interface
  * for CI, `scripts/scaffold-e2e.mjs` and anything piping input.
  */
-async function askForOrg(directory: string): Promise<string | undefined> {
+async function askForOrg(directory: string, registering: boolean): Promise<string | undefined> {
   if (!process.stdin.isTTY) return undefined;
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    console.log(`\nThe organization prefixes the Android applicationId, which Google Play makes permanent at first upload.\nLeaving it gives ${applicationId(directory)}.`);
+    console.log(
+      `\nThe organization prefixes the Android applicationId, which Google Play makes permanent at first upload.\nLeaving it gives ${applicationId(directory)}.${
+        // The moment the answer stops being local. FlutterFire matches an
+        // existing Android app on exactly this string, so it decides whether
+        // the run adopts an app the chosen project already has or registers a
+        // new one — and it is worth knowing that before answering, not after.
+        registering ? "\nThis is also the Android app registered in the Firebase project you pick next." : ""
+      }`,
+    );
     for (;;) {
       const answer = (await rl.question("Organization in reverse domain notation [com.example]: ")).trim();
       if (answer === "" || ORG.test(answer)) {
@@ -113,10 +151,9 @@ async function main(args: string[]): Promise<void> {
       help: { type: "boolean", short: "h" },
       ci: { type: "boolean" },
       org: { type: "string" },
-      firebase: { type: "boolean" },
-      // Separate rather than an optional value for `--firebase`, which
-      // `parseArgs` has no way to express: an option is either required to
-      // carry a value or forbidden from taking one.
+      // Declared under the name it is typed with, as `no-git` is: `parseArgs`
+      // has no boolean negation.
+      "no-firebase": { type: "boolean" },
       "firebase-project": { type: "string" },
       // Node's `parseArgs` has no boolean negation, so the flag is declared
       // under the name it is typed with rather than as `git: false`.
@@ -152,7 +189,10 @@ async function main(args: string[]): Promise<void> {
   }
 
   const directory = positionals[0];
-  const org = values.org === undefined ? await askForOrg(directory) : resolveOrg(values.org);
+  // Before the organization question, so both answers about what this run will
+  // do are settled before any of it starts.
+  const firebase = chooseFirebase(values["no-firebase"], values["firebase-project"]);
+  const org = values.org === undefined ? await askForOrg(directory, firebase !== false) : resolveOrg(values.org);
   const manager = requestedManager ?? detectPackageManager() ?? "pnpm";
 
   const result = scaffoldGame({
@@ -161,7 +201,7 @@ async function main(args: string[]): Promise<void> {
     packageManager: manager,
     ci: values.ci,
     git: !values["no-git"],
-    firebase: resolveFirebase(values.firebase, values["firebase-project"]),
+    firebase,
   });
   console.log(summarise(result, manager, values.ci === true));
 }
