@@ -389,6 +389,22 @@ describe("template rendering", () => {
     }
   });
 
+  it("ships the generated Biome config under a name Biome will not load here", () => {
+    // Biome refuses to run at all when it finds a nested root configuration —
+    // both the CLI and the editor's language server, which fails with an empty
+    // error message and simply stops working on the whole repository. A
+    // template named `biome.json` is exactly that, and the scaffolder already
+    // strips `.template`, so the suffix does double duty.
+    const templates = resolve(import.meta.dirname, "../templates");
+    const walk = (directory: string): string[] =>
+      readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const path = resolve(directory, entry.name);
+        return entry.isDirectory() ? walk(path) : [relative(templates, path)];
+      });
+
+    expect(walk(templates).filter((file) => /(^|\/)biome\.jsonc?$/.test(file))).toEqual([]);
+  });
+
   it("passes the lint and format rules it ships with", () => {
     const root = resolve(temporaryParent(), "my-game");
 
