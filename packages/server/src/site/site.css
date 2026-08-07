@@ -279,3 +279,21 @@ footer a {
 .credit:not(:first-child) {
   margin-left: auto;
 }
+
+/* Only the brand inside the line is a link, and it is marked by colour alone —
+   an underline here would compete with the operator's legal links, which are
+   the footer's actual navigation. Colour-only is legible because the two are
+   the accent and the muted body tone, far enough apart in both schemes to read
+   as different kinds of thing rather than as one link and its hover state. */
+.credit a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* The one place the underline comes back, because colour alone is not a cue a
+   keyboard user or a colour-blind visitor can act on, and this is the moment
+   they need it. At rest the line stays clean. */
+.credit a:hover,
+.credit a:focus-visible {
+  text-decoration: underline;
+}

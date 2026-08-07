@@ -99,6 +99,16 @@ Then `firebase login`. Nothing before this point needs either tool — rules,
 fixtures and `wrangler dev` all run without them — but the app itself throws
 `Firebase is not configured` on launch until this has run once.
 
+The first run asks which Firebase project to use, and can create one. Name it
+up front to skip the prompts, which is also how CI runs this:
+
+```sh
+{{PACKAGE_MANAGER}} run firebase:configure -- --project my-project-id
+```
+
+Later runs reuse the project recorded in `app/firebase.json`, so there is
+nothing to pass again. Add `--help` for the rest.
+
 The command uses FlutterFire's selected Web app to generate both
 `lib/firebase_options.dart` and `web/firebase-config.js`; do not copy Firebase
 identifiers by hand. Put the public VAPID key in `app-config.json` separately —

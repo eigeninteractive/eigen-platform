@@ -23,6 +23,7 @@ import { createExecutionContext } from "cloudflare:test";
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createEngine } from "../src/engine.js";
+import { CREDIT_URL } from "../src/site/config.js";
 import { renderLegal } from "../src/site/legal/index.js";
 import { ICONS, onPrimary } from "../src/site/page.js";
 
@@ -77,8 +78,8 @@ describe("landing page", () => {
     const html = await (await get("/download")).text();
     // The test worker binds no ASSETS, so there is no web build and the first
     // store link is the call to action.
-    expect(html).toContain('<a class="btn" href="https://apps.apple.com/app/id000000000">');
-    expect(html).toContain('<a class="btn ghost" href="https://play.google.com/store/apps/details?id=com.eigen.test">');
+    expect(html).toContain('<a class="btn" href="https://apps.apple.com/app/id000000000"');
+    expect(html).toContain('<a class="btn ghost" href="https://play.google.com/store/apps/details?id=com.eigen.test"');
   });
 
   it("offers neither the web button nor the app icon without a deployed web build", async () => {
@@ -149,7 +150,7 @@ describe("legal documents", () => {
     expect(html).toContain("legal@test.example.com");
   });
 
-  it("links the legal pages from every page footer", async () => {
+  it("links the legal pages from every page footer, the download page included", async () => {
     for (const path of ["/download", "/terms", "/privacy"]) {
       const html = await (await get(path)).text();
       expect(html).toContain('href="/terms"');
@@ -158,11 +159,19 @@ describe("legal documents", () => {
     }
   });
 
-  it("credits the engine in the same footer, on every page", async () => {
+  it("credits the engine in the same footer, on every page, with only the name linked", async () => {
     for (const path of ["/download", "/terms", "/privacy", "/delete-account"]) {
       const html = await (await get(path)).text();
-      expect(html).toContain('href="https://eigeninteractive.com"');
-      expect(html).toContain("Made with ❤️ by EigenInteractive");
+      // The sentence stays prose; the brand inside it is the anchor. A single
+      // anchor wrapping the whole line would make "Build with" clickable too.
+      expect(html).toContain(`<span class="credit">Built with <a href="${CREDIT_URL}" target="_blank" rel="noopener">EigenInteractive</a></span>`);
+    }
+  });
+
+  it("opens every outbound and legal link in its own tab", async () => {
+    const html = await (await get("/download")).text();
+    for (const href of ["/terms", "/privacy", "/delete-account", "https://apps.apple.com/app/id000000000", "https://play.google.com/store/apps/details?id=com.eigen.test"]) {
+      expect(html).toContain(`href="${href}" target="_blank" rel="noopener"`);
     }
   });
 });
@@ -301,7 +310,8 @@ describe("before anything is published", () => {
     const html = await download();
     expect(html).toContain('<svg class="logo"');
     expect(html).toContain("<h1>Sustained</h1>");
-    expect(html).toContain("Made with ❤️ by EigenInteractive");
+    expect(html).toContain("Built with ");
+    expect(html).toContain(">EigenInteractive</a>");
     // No `site`, so the legal routes are not mounted and must not be linked.
     expect(html).not.toContain('href="/terms"');
   });
