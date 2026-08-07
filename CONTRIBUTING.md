@@ -25,6 +25,20 @@ pnpm exec biome check .
 Build before typechecking or testing: workspace packages resolve each other
 through their published `exports`, which point at `dist`.
 
+That is also true of a game repository pointed at this checkout, so while you
+are changing the engine, leave a watcher running rather than rebuilding by
+hand — a forgotten `pnpm -r build` means the game is testing a stale engine,
+which fails as a puzzle rather than as an error:
+
+```bash
+pnpm dev          # tsup --watch in every library, rebuilds in milliseconds
+```
+
+`dist` is deliberately not cleaned between watch rebuilds. It is emptied and
+rewritten on a one-shot `pnpm -r build`, which has no concurrent reader; during
+a watch a linked game does, and a reader that arrives mid-rebuild would find
+nothing there at all.
+
 No Cloudflare account, Firebase project, or payment method is needed. Wrangler
 simulates Durable Objects, D1, R2, and cron locally, while
 `@eigeninteractive/server/testing` mints tokens accepted by the real auth

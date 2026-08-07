@@ -6,6 +6,7 @@
   "description": "Monorepo and workspace for the EigenInteractive Backend",
   "scripts": {
     "build": "pnpm -r run build",
+    "dev": "pnpm -r --parallel run dev",
     "test": "pnpm -r run test",
     "typecheck": "pnpm -r run typecheck",
     "lint": "biome check .",
