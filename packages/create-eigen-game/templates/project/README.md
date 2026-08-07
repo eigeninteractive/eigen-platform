@@ -45,8 +45,10 @@ in `biome.json`:
 The Flutter half is `dart format`'s and is excluded. `.editorconfig` covers
 whitespace everywhere, including the YAML that Biome does not format, and
 `.vscode/` recommends the Biome extension and turns formatting on save on for
-the languages it owns. Change any of it — it is your repository — but the
-generated files are written to satisfy it as shipped.
+the languages it owns. Nothing generated depends on a comment surviving in a
+file a formatter or a tool may rewrite, so nothing is exempted from formatting.
+Change any of it — it is your repository — but the generated files are written
+to satisfy it as shipped.
 
 ## Flutter app
 
