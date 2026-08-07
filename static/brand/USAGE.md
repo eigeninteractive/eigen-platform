@@ -56,9 +56,21 @@ is why `favicon.svg` exists and supersedes the pair.
 ```
 ink      #1B1E24
 paper    #F4F1EA
-accent   #2F6B5E   (on light)
-accent   #4E9B89   (on dark)
+accent   #006A60   (on light)
+accent   #82D5C8   (on dark)
 ```
+
+The accent is Material 3's `primary` for a `Colors.teal` seed, one value per
+brightness — the same value the Flutter shell derives its whole scheme from and
+the engine's public pages set `--primary` to. It is defined there and copied
+here rather than the other way round: M3 pulls any seed to tone 40 and rebuilds
+the ramp around it, so a hand-picked brand hex comes back as something near
+itself but not itself. A mark can be drawn in a generated colour; a generated
+palette cannot be talked into matching a mark.
+
+Ink and paper carry no such obligation. They are the two grounds the mark is
+drawn on, which is why the game scaffolder also uses them for launcher icons and
+splash screens.
 
 ## Rules
 
@@ -107,7 +119,7 @@ needs no font loaded.
 One colour that follows text colour:
 
 ```html
-<span style="color:#2F6B5E">
+<span style="color:#006A60">
   <img src="/brand/eigen-mark-mono.svg" width="24" height="24" alt="">
 </span>
 ```
