@@ -140,7 +140,11 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // Icon paths match Flutter's web build. Keep the engine manifest available
   // even before legal-site configuration, because Page links it from the
   // out-of-box download page.
-  const color = ctx.site?.primaryColor ?? "#6750a4";
+  // The EigenInteractive primary, matching site.css and the Flutter shell's
+  // default seed. It reaches the manifest and so the browser's install UI, and
+  // a game that has not configured `site` yet should still look like something
+  // rather than like Material's baseline purple.
+  const color = ctx.site?.primaryColor ?? "#006a60";
   const manifest = JSON.stringify({
     name,
     short_name: name,
