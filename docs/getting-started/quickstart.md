@@ -70,21 +70,22 @@ the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 It asks one question of its own:
 
 ```text
-The organization prefixes the Android applicationId, which Google Play makes permanent at first upload.
-Leaving it gives com.example.my_game.
-This is also the Android app registered in the Firebase project you pick next.
-
-Organization in reverse domain notation [com.example]: dev.yourname.games
-applicationId: dev.yourname.games.my_game
+│  Prefixes the Android applicationId, which Google Play makes permanent at first upload.
+│  Also the Android app registered in the Firebase project you pick next.
+│
+◆  Organization in reverse domain notation
+│  dev.yourname.games.my_game
+└
 ```
 
-Note the shape: the organization is the **prefix**, and the game name is
-appended to it, exactly as `flutter create --org` does. Answering
-`dev.yourname.games.my_game` — which reads like the whole identifier — produces
-`dev.yourname.games.my_game.my_game`. Worth getting right at scaffold time,
-because Google Play treats the result as the app's permanent identity and it
-cannot be changed after the first upload. `--org dev.yourname.games` answers it
-up front, which is also how it works with no terminal attached.
+The `.my_game` is dimmed, and grows as you type: the organization is the
+**prefix**, and the game name is appended to it, exactly as `flutter create
+--org` does. So answering `dev.yourname.games.my_game` — which reads like the
+whole identifier — produces `dev.yourname.games.my_game.my_game`, and the CLI
+offers to shorten it if you do. Worth getting right at scaffold time, because
+Google Play treats the result as the app's permanent identity and it cannot be
+changed after the first upload. `--org dev.yourname.games` answers it up front,
+which is also how it works with no terminal attached.
 
 Then FlutterFire asks which Firebase project to use, and offers to create one.
 That is the second half of the same decision: the `applicationId` above is what
