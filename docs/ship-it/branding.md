@@ -14,6 +14,48 @@ authored twice.
 Author the marks in any vector tool and export the PNG sources below; every
 platform-specific size is generated from them.
 
+## Replacing the placeholder artwork
+
+A scaffolded game ships with the EigenInteractive mark and seed colour, so it
+looks deliberate before you have drawn anything. Swapping in your own is these
+seven steps, in this order — the later ones consume what the earlier ones write:
+
+1. **Replace the sources** in `app/assets/icon/`: `icon.png` and
+   `icon_foreground.png` at 1024 × 1024, and `splash.png` / `splash_dark.png`
+   if your splash mark differs. See [the app icon](#the-app-icon) for what the
+   foreground has to keep clear of.
+2. **Match the colours in `app/pubspec.yaml`** —
+   `flutter_launcher_icons.adaptive_icon_background` and every
+   `flutter_native_splash` colour. [These cannot read Dart](#the-splash), so
+   nothing keeps them in step with your theme but you.
+3. **Regenerate**, from `app/`:
+
+   ```bash
+   dart run flutter_launcher_icons
+   dart run flutter_native_splash:create
+   ```
+
+4. **Set the seed** in `app/lib/main.dart` — `Branding(seedColor: …)` — and, if
+   you have configured a `site`, its `primaryColor` in `server/src/index.ts`.
+   Material 3 rebuilds both schemes from the seed, so this one value is the
+   app's whole palette.
+5. **Draw the share card**: `app/web/og-image.png` at 1200 × 630, and fill in
+   the [OG tags](#the-apps-web-build) in `app/web/index.html`. It is the only
+   hand-made file in the pipeline.
+6. **Build the web bundle**, from the repository root:
+
+   ```bash
+   pnpm run build:web
+   ```
+
+   This is the step that carries the regenerated icons into the Worker's
+   `public/`, which is where the download page and the manifest read them from.
+   Skip it and the website keeps showing the mark it had before.
+7. **Commit the generated files.** Launcher icons, splash drawables and web
+   icons are generated once and committed, not rebuilt on each build.
+
+Everything below is the detail behind those steps.
+
 ## The app icon
 
 Two 1024 × 1024 PNGs in `assets/icon/`. They are build-time inputs, so they are
@@ -73,7 +115,7 @@ artwork:
 
 | Route | What it is |
 |---|---|
-| `GET /` | Landing page: name, tagline, screenshots, store buttons |
+| `GET /` | Landing page: app icon, name, tagline, screenshots, store buttons |
 | `GET /terms`, `/privacy`, `/delete-account` | The legal documents |
 | `GET /sitemap.xml`, `GET /robots.txt` | Crawler directives |
 | `GET /site.webmanifest` | Web app manifest |
@@ -101,6 +143,34 @@ Absolute URLs in canonical links, OG tags and the sitemap are built from the
 host, disable the `workers.dev` route in production. Store buttons come from your
 `deepLink` block, so store URLs are configured once. The `/download` page emits
 `SoftwareApplication` JSON-LD with `applicationCategory: "GameApplication"`.
+
+Every page ends in a footer carrying your copyright, the three legal links, and
+a credit line — `Made with ❤️ by EigenInteractive`, the same default the Flutter
+shell's `Branding.madeByCredit` uses. Set `madeByCredit` to your own string, or
+to `null` to drop it:
+
+```ts
+site: { /* … */ madeByCredit: null },
+```
+
+### Before `site` is configured
+
+`/download` serves without it, so a game has a working web/native handoff from
+the first deploy. What it does *not* have is the legal half: those routes are
+not mounted, so the footer carries only the credit until you fill in `operator`.
+
+The page also waits for a Flutter web build to reach `public/` before it shows
+your app icon or a "Play on the web" button, because both would otherwise be
+broken — the icons ship inside that bundle, and `/` would bounce straight back
+to `/download`. Until then it stands the EigenInteractive mark in for the icon,
+drawn in your `primaryColor`, exactly as the Flutter shell defaults to the
+EigenInteractive seed and credit. Run `pnpm run build:web` and your own icon
+replaces it.
+
+A game with no web build *and* no store URLs in `deepLink` has nothing to offer
+at all, and the page says `Coming soon.` rather than trailing off after the
+tagline. That is the state a freshly scaffolded game is in, so seeing it on your
+first `wrangler dev` is correct, not a misconfiguration.
 
 ### The web asset handoff
 
