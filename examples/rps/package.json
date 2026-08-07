@@ -9,11 +9,12 @@
   "scripts": {
     "contract": "eigen-contract",
     "deploy": "wrangler d1 migrations apply rps_dev --remote && wrangler deploy",
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
+    "dev": "pnpm run db:migrate:local && wrangler dev",
+    "start": "pnpm run db:migrate:local && wrangler dev",
     "cf-typegen": "wrangler types",
     "test": "vitest run && vitest run -c vitest.unit.config.mts",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json",
+    "db:migrate:local": "wrangler d1 migrations apply rps_dev --local"
   },
   "devDependencies": {
     "@eigeninteractive/testkit": "workspace:*",

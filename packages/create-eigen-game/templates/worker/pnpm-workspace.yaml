@@ -1,29 +1,3 @@
-# pnpm refuses to run a dependency's install scripts unless the project names
-# it, and fails the install outright when one is skipped
-# (ERR_PNPM_IGNORED_BUILDS). Two dependencies here need theirs:
-#
-#   esbuild  fetches its platform binary
-#   workerd  is the runtime `vitest` and `wrangler dev` execute against
-#
-# npm runs install scripts by default and ignores this file, so it is correct
-# for both package managers.
 allowBuilds:
   esbuild: true
   workerd: true
-
-# pnpm 11 refuses to install any version published less than a day ago
-# (`minimumReleaseAge`, default 1440 minutes) — a quarantine against a
-# compromised publish. The engine packages are subject to it like anything else.
-#
-# It is left commented out because nothing here needs it. A range that only a
-# fresh release satisfies still resolves: `minimumReleaseAgeStrict` defaults to
-# false unless `minimumReleaseAge` is set explicitly, so pnpm falls back to the
-# new version rather than failing. What it costs is real — the exclusion drops
-# the quarantine on packages that execute during your build.
-#
-# Uncomment it if you, or your organization, set `minimumReleaseAge` explicitly.
-# Strict resolution is then on, and an install on the day an engine release
-# ships fails outright instead of falling back.
-#
-# minimumReleaseAgeExclude:
-#   - "@eigeninteractive/*"
