@@ -21,7 +21,7 @@ a version constraint — it is not where you expect.
 
 | Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |
 | --- | --- | --- | --- |
-| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `0.3.1`, `0.3.0`, `0.2.0` |
+| **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `0.3.2`, `0.3.1`, `0.3.0`, `0.2.0` |
 | 0.1.x | `^0.1.0` | `^0.1.0` | `0.1.0` |
 
 {/* /generated:compatibility-table */}
