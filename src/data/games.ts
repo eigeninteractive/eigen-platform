@@ -5,7 +5,7 @@
  * (landing page + legal), which the engine generates from its `site` config;
  * the store links are the same URLs that worker puts on its landing page.
  *
- * Add a game by adding an entry — the showcase page renders whatever is here.
+ * Add a game by adding an entry; the showcase page renders whatever is here.
  */
 
 export type Game = {
@@ -25,7 +25,7 @@ export const games: Game[] = [
   {
     name: "Rock Paper Scissors",
     tagline: "The reference game",
-    description: "Simultaneous commitment with hidden information — the engine's hardest-case-first example, shipped as `examples/rps`. Both seats commit each round; neither sees the other's move until both have played.",
+    description: "Simultaneous commitment with hidden information, the engine's hardest-case-first example, shipped as `examples/rps`. Both seats commit each round; neither sees the other's move until both have played.",
     emoji: "✊",
     source: "https://github.com/eigeninteractive/eigen-server/tree/main/examples/rps",
     status: "live",

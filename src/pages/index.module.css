@@ -3,7 +3,7 @@
  * and scoped locally.
  *
  * Nothing in here sets a colour. Infima owns every surface, border
- * and text colour on this page — including the hero's, which is why the header
+ * and text colour on this page, including the hero's, which is why the header
  * is left as a plain `.hero`: unmodified it paints itself with
  * `--ifm-background-surface-color` and mutes its text to
  * `--ifm-color-emphasis-800`, and that is the theme's call to make.

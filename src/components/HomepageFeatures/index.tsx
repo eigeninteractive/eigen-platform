@@ -5,33 +5,33 @@ import styles from "./styles.module.css";
 /**
  * The three homepage features.
  *
- * They name the three things a project is handed — a server, an app — and then
+ * They name the three things a project is handed, a server and an app, and then
  * the one part that is the implementor's. Two earlier headings are worth not
  * repeating: "Bring your own game" described the whole product rather than one
  * feature of it, and "One codebase runs many games" stated a property of the
  * engine's source tree that changes nothing for the person reading it.
  *
  * The markup is Infima's own `card card--full-height` with a `card__body`,
- * inside the standard `row`/`col` grid — surface, radius, shadow and padding
+ * inside the standard `row`/`col` grid, so surface, radius, shadow and padding
  * all come from the theme, in both colour schemes.
  *
  * The icons are inline SVG rather than files under `static/img`, and drawn in
- * `currentColor` so they follow the theme instead of carrying their own palette
- * — the site respects `prefers-color-scheme`, and a two-tone illustration only
+ * `currentColor` so they follow the theme instead of carrying their own palette.
+ * The site respects `prefers-color-scheme`, and a two-tone illustration only
  * looks right in whichever mode it was drawn for.
  *
  * They replace the three stock Docusaurus mascot illustrations, which were not
  * merely off-brand: each shipped an embedded `<title>` from the template, and
  * `<title>` on an inline SVG is what a screen reader announces. The homepage
- * was reading out "Easy to Use", "Focus on What Matters" and — on a TypeScript
- * and Flutter product — "Powered by React".
+ * was reading out "Easy to Use", "Focus on What Matters" and, on a TypeScript
+ * and Flutter product, "Powered by React".
  *
  * These carry `aria-hidden` instead. Every one of them restates the heading
  * beside it, so announcing them would only repeat the text: decorative is the
  * honest role, and silence is what a screen reader should do with them.
  */
 
-/** One isolated cell holding its own data and players — not a shared cluster. */
+/** One isolated cell holding its own data and players, not a shared cluster. */
 function WorkerIcon(props: React.ComponentProps<"svg">) {
   return (
     <svg viewBox="0 0 96 96" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>

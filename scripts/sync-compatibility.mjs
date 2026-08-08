@@ -69,7 +69,7 @@ const pagePath = join(siteDir, "docs", "reference", "compatibility.md");
 // MDX comments, not HTML ones. Docusaurus v3 defaults `markdown.format` to
 // `mdx` for `.md` as well as `.mdx`, and MDX has no HTML comment syntax — a
 // `<!-- -->` here fails the build with "Unexpected character `!` before name".
-const BEGIN = "{/* generated:compatibility-table — rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}";
+const BEGIN = "{/* generated:compatibility-table, rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}";
 const END = "{/* /generated:compatibility-table */}";
 
 // pub.dev asks clients to identify themselves, and an unattributed script
@@ -177,7 +177,7 @@ const row = (line) => {
   return `| ${label} | \`^${line}.0\` | \`^${line}.0\` | ${shell} |`;
 };
 
-const table = [BEGIN, "", "| Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |", "| --- | --- | --- | --- |", ...lines.map(row), "", END].join("\n");
+const table = [BEGIN, "", "| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter shell (`eigen_flutter`) |", "| --- | --- | --- | --- |", ...lines.map(row), "", END].join("\n");
 
 const page = readFileSync(pagePath, "utf8");
 const begin = page.indexOf(BEGIN);

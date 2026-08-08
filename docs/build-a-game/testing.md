@@ -1,7 +1,7 @@
 ---
 sidebar_position: 9
 title: Testing
-description: One fixture file, two runners, two repos — plus the widget and integration layers, the CI that runs them, and the coupling CI cannot see.
+description: One fixture file, two runners, two repos, plus the widget and integration layers, the CI that runs them, and the coupling CI cannot see.
 ---
 
 # Testing
@@ -47,17 +47,17 @@ file and check different things:
 
 | Field | TypeScript runner | Dart runner |
 |---|---|---|
-| `state` | input to `applyAction` | — |
+| `state` | input to `applyAction` | n/a |
 | **`obs`** | ignored | input to `isValidAction` / `previewAction` |
 | `action` | parsed by `schemas.action` | parsed and serialized by the generated rules base |
 | `expected.valid` | `applyAction` throws or not | `isValidAction` |
-| `expected.state` / `pending` / `outcome` | the returned envelope | — |
+| `expected.state` / `pending` / `outcome` | the returned envelope | n/a |
 | `expected.observation` | `computeObservation` output | `previewAction` output, **when non-null** |
 
 ### `obs` is the field hidden-information games need
 
 It defaults to `state`, which is correct only for a perfect-information game
-where the two coincide. **A game with fog must set it explicitly** — otherwise
+where the two coincide. **A game with fog must set it explicitly**, or else
 the Dart runner hands your codec a payload `computeObservation` would never
 produce, and the failure looks like a codec bug rather than a missing field.
 
@@ -65,7 +65,7 @@ produce, and the failure looks like a codec bug rather than a missing field.
 
 Both sides are compared through one recorded value: the TypeScript side must
 *project* to it, and a Dart `previewAction` that returns non-null must *predict*
-it. A `previewAction` returning null skips the check — that is a correct answer,
+it. A `previewAction` returning null skips the check; that is a correct answer,
 not a gap, so a game like RPS simply has no preview coverage here.
 
 ## Wiring the two runners
@@ -106,7 +106,7 @@ file. `eigen-contract` rejects a path such as `v2/case.json` whose document says
 
 ## What to cover
 
-Write fixtures for the interesting states — especially hidden-information reveals
+Write fixtures for the interesting states, especially hidden-information reveals
 and `computeObservation` masking, because those are exactly where the two halves
 drift. At minimum: one legal move with its expected observation, one illegal
 move, one game-ending move, and one case per `ratingPool` / `botSeatable` branch.
@@ -115,13 +115,13 @@ Grow the suite with the rules.
 ## The other layers
 
 **Widget tests for the screen.** `buildContent` takes a plain value object, so a
-hand-built `GameContentContext` is the whole harness — no server, no socket, no
+hand-built `GameContentContext` is the whole harness: no server, no socket, no
 auth. See [Rendering](./rendering.md#testing-the-screen).
 
 **Integration tests against the real runtime.** Drive the actual Worker (routes +
 Durable Object + D1) with `@cloudflare/vitest-pool-workers`, using
 `@eigeninteractive/server/testing` to mint local tokens. The engine's own suites cover the
-plumbing — lobby, sockets, timing, finish, ratings, purge — so your job is *your
+plumbing (lobby, sockets, timing, finish, ratings, purge) so your job is *your
 game* end to end: a full match, a timeout resolution, a bot game.
 
 ## CI
@@ -156,7 +156,7 @@ rules rather than replacing their wiring.
 
 `wrangler d1 migrations apply --remote` mutates a real database, and a deploy is
 the one action in this system that re-running a job cannot reverse. Keep it a
-deliberate, credentialed `pnpm deploy` from a machine — or, if you want
+deliberate, credentialed `pnpm deploy` from a machine, or, if you want
 push-button deploys, connect the repo to Cloudflare **Workers Builds** so the
 deploy is owned by Cloudflare rather than by a long-lived API token sitting in
 GitHub secrets.

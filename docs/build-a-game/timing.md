@@ -1,13 +1,13 @@
 ---
 sidebar_position: 6
 title: Timing
-description: Two server touchpoints and a display-only client — deciding what a timeout costs, widening one action's window, and rendering a clock that cannot disagree with the server's alarm.
+description: Two server touchpoints and a display-only client. Deciding what a timeout costs, widening one action's window, and rendering a clock that cannot disagree with the server's alarm.
 ---
 
 # Timing
 
-You mostly get timing for free. A game is created in one of three modes —
-per-action window, chess-clock bank with optional increment, or untimed — the
+You mostly get timing for free. A game is created in one of three modes
+(per-action window, chess-clock bank with optional increment, or untimed). The
 creation UI picks the values, and the engine enforces the deadline with a durable
 per-game alarm.
 
@@ -29,8 +29,8 @@ if (type === "timeout") {
 }
 ```
 
-**The envelope's `turnSeconds`** widens the deadline for *one* action only — a
-longer window for a special phase — without touching any player's bank. Omit it
+**The envelope's `turnSeconds`** widens the deadline for *one* action only, a
+longer window for a special phase, without touching any player's bank. Omit it
 to use the game's configured timing.
 
 That is the whole server surface. Deadlines, the bank, the grace window and the
@@ -50,12 +50,12 @@ Four things to know:
   offset from the `Date` header every response already carries, and
   `deviceTimeFor()` converts a server timestamp into device time so a countdown
   ticks correctly on a device whose clock is minutes out. Deadlines are absolute
-  **server** timestamps — the same value the server's own alarm fires on — so
+  **server** timestamps, the same value the server's own alarm fires on, so
   display and expiry cannot diverge.
 - **Only one bank drains at a time.** Budget mode permits a single pending seat,
   so the turn deadline and the acting seat's bank are the same quantity.
 - **The soft margin nudges honest players to submit early.**
-  `softDeadlineMarginFor(window)` returns `min(1s, 25% × window)` — capped as a
+  `softDeadlineMarginFor(window)` returns `min(1s, 25% × window)`, capped as a
   fraction so a short window (a 3 s reaction phase) is not swallowed.
   `TurnCountdown` subtracts it so the displayed countdown reaches zero slightly
   early. `BudgetClock` uses it only to raise a "submit!" cue, because subtracting
@@ -73,18 +73,18 @@ Two shells handle the common cases, and the game screen picks by timing mode:
 `TurnCountdown` (per-action) and `BudgetClock` (a row of per-seat cells). Both
 pause automatically when the device goes offline.
 
-Two headless builders sit underneath, for a game that needs custom placement —
+Two headless builders sit underneath, for a game that needs custom placement:
 chess clocks beside captured pieces, or an N-player game showing only the active
 seat:
 
 | Builder | What it owns |
 |---|---|
 | `TurnTimerBuilder` | A 1 s ticker toward a deadline, self-cancelling at zero. Hands `Duration remaining` to a `builder`. Pass `isPaused` to freeze the display without losing wall-clock position. |
-| `PlayerTimerBuilder` | One seat's bank — live drain for the acting seat, static for the rest. Hands `(int remainingMs, bool isActive)` to a `builder`. |
+| `PlayerTimerBuilder` | One seat's bank: live drain for the acting seat, static for the rest. Hands `(int remainingMs, bool isActive)` to a `builder`. |
 
 :::note[Bots imply a timed game]
 
-If a game seats a bot it **must** be timed — the deadline is the backstop for a
+If a game seats a bot it **must** be timed, because the deadline is the backstop for a
 bot that never moves. The engine enforces this at seating, so `botSeatable` does
 not need to, but the creation UI should not offer an untimed option for a game
 that allows bots. See [Creation UI](./creation-ui.md).

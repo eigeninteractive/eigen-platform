@@ -12,14 +12,14 @@ and what a version number is actually promising.
 :::info[Everything here is pre-1.0]
 Every package is still on the `0.x` line and the API is moving. Read the
 [breaking axis](#the-breaking-axis-is-the-minor-for-now) section before writing
-a version constraint — it is not where you expect.
+a version constraint; it is not where you expect.
 :::
 
 ## What pairs with what
 
-{/* generated:compatibility-table — rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}
+{/* generated:compatibility-table, rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}
 
-| Docs | Engine — `@eigeninteractive/*` | Wire client — `eigen_api` | Flutter shell — `eigen_flutter` |
+| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter shell (`eigen_flutter`) |
 | --- | --- | --- | --- |
 | **0.2.x** *(this version)* | `^0.2.0` | `^0.2.0` | `0.3.5`, `0.3.4`, `0.3.3`, `0.3.2`, `0.3.1`, `0.3.0`, `0.2.0` |
 | 0.1.x | `^0.1.0` | `^0.1.0` | `0.1.0` |
@@ -30,23 +30,23 @@ The first three columns are one number. The shell column is not, and is listed
 as exact versions rather than a range for that reason: `eigen_flutter` declares
 which engine it speaks through its own `eigen_api` constraint, so the releases
 pairing with a given line need not be contiguous. Retracted releases are
-omitted — they stay installable for anyone already locked to one, but the
+omitted, since they stay installable for anyone already locked to one, but the
 solver will not choose them for a new project.
 
 `eigen_api` is not versioned independently. It is generated from the engine's
-OpenAPI spec and **stamped with the engine's release version** — that is what the
-spec carries as `info.version` — so `0.2.4` there is `0.2.4` here, and they
+OpenAPI spec and **stamped with the engine's release version**, which is what the
+spec carries as `info.version`, so `0.2.4` there is `0.2.4` here, and they
 cannot drift.
 
 The engine bumps that version for any breaking change it ships, including ones
-with no wire consequence — a change to what `@eigeninteractive/rules` exports
+with no wire consequence: a change to what `@eigeninteractive/rules` exports
 moves it just as a changed response body does. So a new `eigen_api` is not by
 itself evidence that the wire moved, and upgrading it may cost you nothing.
 Constrain on the version anyway: it is the number your package managers can
 actually enforce.
 
-`eigen_flutter` moves on its own clock. Its version describes its Dart API — the
-widgets, the providers, the `GameModule` contract — and it records which engines
+`eigen_flutter` moves on its own clock. Its version describes its Dart API (the
+widgets, the providers, the `GameModule` contract) and it records which engines
 it works against through its own `eigen_api` constraint. So `eigen_flutter 0.4.0`
 depending on `eigen_api: ^0.2.0` means "this shell speaks the engine's 0.2.x
 wire". There is no lockstep release, and there deliberately isn't one: the engine
@@ -55,7 +55,7 @@ release for each would make its version number meaningless.
 
 ## What the scaffolder picks
 
-A new project does not choose from the table above — `create-eigen-game` has
+A new project does not choose from the table above. `create-eigen-game` has
 already chosen, and **the version of the scaffolder you run decides both
 halves**. It writes one engine range into `server/package.json` and one
 `eigen_flutter` range into `app/pubspec.yaml`, and it resolves nothing at run
@@ -69,7 +69,7 @@ npm create eigen-game@latest my-game
 The two numbers reach it differently, and the difference is the point.
 
 **The engine range is derived, not maintained.** The scaffolder emits a caret on
-the `@eigeninteractive/server` version it was built against — the same engine its
+the `@eigeninteractive/server` version it was built against, the same engine its
 CI compiled the Worker template with. Nobody types that number, so the templates
 cannot ship paired with an engine no build ever saw.
 
@@ -85,7 +85,7 @@ So a scaffolder release trails an engine release, and that gap is real rather
 than an oversight. When the engine crosses a line, no shell can speak it yet:
 `eigen_flutter` records compatibility through its own `eigen_api` constraint, and
 `eigen_api` for the new line does not exist until the engine's release publishes
-it. The scaffolder keeps emitting the previous line — a pairing that works —
+it. The scaffolder keeps emitting the previous line, a pairing that works,
 until a shell for the new one ships and the pin is raised.
 
 If you need a combination the current scaffolder does not emit, take the manual
@@ -129,8 +129,8 @@ old rules forever. It is not tied to the engine's version, and bumping one never
 implies bumping the other. See [Versions](../build-a-game/versions.md).
 
 **The docs are versioned on the engine's release line**, because that is what
-decides whether a page is still true. A page describes a task end to end — the
-TypeScript rules and the Dart client together — so either half going breaking
+decides whether a page is still true. A page describes a task end to end, the
+TypeScript rules and the Dart client together, so either half going breaking
 invalidates it, and the engine's release line is the one number that moves for
 both. That is why it is the release line and not the wire specifically: `0.2.0`
 left the wire untouched and still rewrote what a `GameModule` imports.
@@ -158,7 +158,7 @@ does not know. Removing a field, renaming one, or changing its type is breaking.
 
 A library consumer upgrades when they choose to. **An installed app does not.**
 Once a release is in the stores, those binaries keep talking to your server for
-as long as people leave them installed — so an old client meeting a new server
+as long as people leave them installed, so an old client meeting a new server
 is the normal case, not the edge case, and it is a case you cannot fix by
 shipping a patch.
 
@@ -196,7 +196,7 @@ decode crash; it cannot make an unpublished or ineligible update available.
 ## Reading the docs at the right version
 
 The version selector in the navbar names the engine line these pages describe.
-Only `0.2.x` is served, and it is served at the root — so every `/docs/*` URL is
+Only `0.2.x` is served, and it is served at the root, so every `/docs/*` URL is
 a 0.2.x URL.
 
 There is no `/docs/0.1.x/`. This site's first public deploy already described

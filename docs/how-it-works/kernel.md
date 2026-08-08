@@ -1,14 +1,14 @@
 ---
 sidebar_position: 3
 title: The kernel
-description: The pure decision core — a function from inputs to a commit plan, with no I/O and no platform APIs.
+description: The pure decision core, a function from inputs to a commit plan, with no I/O and no platform APIs.
 ---
 
-# The kernel — the pure decision core
+# The kernel: the pure decision core
 
 `@eigeninteractive/kernel` is where every decision about a game is made: a pure
 function from inputs to a commit plan. It touches no platform API, so it behaves
-identically in every environment — which is why your hooks can be tested without
+identically in every environment, which is why your hooks can be tested without
 a Worker, a socket or a database anywhere in sight.
 
 ```text
@@ -31,16 +31,16 @@ commit({ game, state, roster, intent, now, rules, staleViews }) →
 
 The kernel owns four things worth calling out:
 
-- **Timing & grace** — computing the next deadline, the per-player time bank,
+- **Timing & grace**: computing the next deadline, the per-player time bank,
   and whether a late submission is still inside the grace window. See
   [Timing & the deadline alarm](./timing.md).
-- **The same-view rule** — whether a stale-version action is still valid. See
+- **The same-view rule**: whether a stale-version action is still valid. See
   [The game lifecycle](./lifecycle.md).
-- **Observation fan-out** — calling `computeObservation` once per seat to build
+- **Observation fan-out**: calling `computeObservation` once per seat to build
   the frames, and enforcing that a seat's projection stays truthful about
   itself.
-- **Rating math** — OpenSkill posteriors, given priors and placements. (The
-  *application* of ratings — reading priors, the CAS write — is in the DO/D1
+- **Rating math**: OpenSkill posteriors, given priors and placements. (The
+  *application* of ratings, reading priors and the CAS write, is in the DO/D1
   layer; see [Data & storage](./storage.md). Only the math is here.)
 
 :::note[Version dispatch never happens inside game logic]

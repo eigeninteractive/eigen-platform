@@ -18,7 +18,7 @@ next request resurrect the user. So:
    applies its ratings while the user row still exists).
 2. Delete the Firebase account (Identity Toolkit admin `accounts:delete`). On
    failure this throws **before** any D1 write, so nothing is half-deleted and a
-   retry is clean — the route surfaces a 502 ("intact, retry"), never a partial
+   retry is clean: the route surfaces a 502 ("intact, retry"), never a partial
    deletion.
 3. Purge D1 as one explicit `batch()`: anonymize the seats and `createdBy` (so
    finished-game history stays readable as "Deleted User"), delete ratings,
@@ -27,13 +27,13 @@ next request resurrect the user. So:
 
 ## The cron backstop
 
-The `scheduled` handler does only what has no per-entity timer of its own —
+The `scheduled` handler does only what has no per-entity timer of its own,
 notably **not** a timeout sweep (the [DO alarm](./timing.md) owns that):
 
 - **Stale-guest purge**: anonymous accounts past an age with no recent game
   activity, torn down through `purgeUser`.
 - **Abandoned-game reap**: never-started lobbies past a TTL, and untimed active
-  games (which have no alarm) idle past a longer TTL — `abort`ed so they stop
+  games (which have no alarm) idle past a longer TTL, `abort`ed so they stop
   occupying the lobby and release their DO storage.
 
 Both jobs are best-effort, isolated (one failing never blocks the other), and

@@ -63,6 +63,61 @@ const config: Config = {
         content: "#1B1E24",
       },
     },
+    // Structured data. Search engines and LLM crawlers read this to work out
+    // *what kind of thing* this site is, which no amount of prose in a meta
+    // description tells them. Three nodes in one graph, cross-referenced by
+    // @id: the publisher, the site itself, and the engine as a piece of
+    // software. `applicationCategory: DeveloperApplication` plus
+    // `SoftwareSourceCode` is what distinguishes an engine you build on from a
+    // game you play, and that distinction is the whole ranking problem here.
+    //
+    // Emitted on every page, which is correct for site-level entities: the
+    // graph describes the site, not the page. Anything page-level (a
+    // BreadcrumbList, a TechArticle) would have to be emitted per page
+    // instead, and Docusaurus already gives search engines the breadcrumb
+    // trail through the sidebar markup.
+    {
+      tagName: "script",
+      attributes: { type: "application/ld+json" },
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://eigeninteractive.com/#organization",
+            name: "EigenInteractive",
+            url: "https://eigeninteractive.com",
+            logo: "https://eigeninteractive.com/brand/eigen-lockup-360.png",
+            sameAs: ["https://github.com/eigeninteractive"],
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://eigeninteractive.com/#website",
+            name: "EigenInteractive",
+            url: "https://eigeninteractive.com",
+            publisher: { "@id": "https://eigeninteractive.com/#organization" },
+            inLanguage: "en",
+          },
+          {
+            "@type": ["SoftwareApplication", "SoftwareSourceCode"],
+            "@id": "https://eigeninteractive.com/#engine",
+            name: "EigenInteractive",
+            applicationCategory: "DeveloperApplication",
+            operatingSystem: "Android, Web",
+            programmingLanguage: ["TypeScript", "Dart"],
+            runtimePlatform: ["Cloudflare Workers", "Cloudflare Durable Objects", "Flutter"],
+            codeRepository: GITHUB,
+            license: "https://opensource.org/licenses/MIT",
+            isAccessibleForFree: true,
+            url: "https://eigeninteractive.com",
+            publisher: { "@id": "https://eigeninteractive.com/#organization" },
+            description:
+              "An open-source, server-authoritative engine for turn-based multiplayer games: board games, card games and abstract strategy. A game ships as one Cloudflare Worker, using Durable Objects for each live session, plus one Flutter app for Android and the web. The implementor writes the rules; the engine owns accounts, lobby, sockets, turn clocks, ratings, push and the store release.",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+          },
+        ],
+      }),
+    },
   ],
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -181,6 +236,13 @@ const config: Config = {
         theme: {
           customCss: "./src/css/custom.css",
         },
+        // `/search` is the local search plugin's results page. It has no
+        // content of its own, and Google's own guidance is to keep internal
+        // search results out of the index, so it does not belong in the
+        // sitemap either. Everything else here is a real page.
+        sitemap: {
+          ignorePatterns: ["/search"],
+        },
       } satisfies Preset.Options,
     ],
   ],
@@ -271,9 +333,15 @@ const config: Config = {
     // 1200x630 card. A page-level override would need its own width/height
     // beside it, since react-helmet would replace og:image but leave these.
     metadata: [
+      // The site-wide fallback: what any page without its own front-matter
+      // `description` gets, and what a link to the bare domain unfurls as. It
+      // carries the terms someone would actually search — open source,
+      // turn-based multiplayer, Cloudflare Workers, Durable Objects, Flutter,
+      // Android — because "engine for turn-based multiplayer games" alone
+      // competes with every board-game app ever listed.
       {
         name: "description",
-        content: "EigenInteractive builds an open-source, server-authoritative engine for turn-based multiplayer games, and the games made with it.",
+        content: "Open-source engine for turn-based multiplayer games: board, card and abstract strategy. One Cloudflare Worker with Durable Objects, one Flutter app for Android and the web.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "EigenInteractive" },
@@ -281,7 +349,7 @@ const config: Config = {
       { property: "og:image:height", content: "630" },
       {
         property: "og:image:alt",
-        content: "EigenInteractive — the open-source engine for turn-based multiplayer games",
+        content: "EigenInteractive, the open-source engine for turn-based multiplayer games",
       },
     ],
     colorMode: {

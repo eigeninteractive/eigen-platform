@@ -38,7 +38,7 @@ Push is infra-owned; game code never registers anything. On startup the service:
    it from `onUnregistered`; native also reconciles on `onIdChange`, sign-in
    and app resume. On web this step runs only after permission is granted and
    passes the required VAPID key.
-5. On native platforms, a foreground message shows a local banner — **except**
+5. On native platforms, a foreground message shows a local banner, **except**
    a `your_turn` push for the game currently on screen (it reads the router's
    current URI and suppresses a banner for a matching `/game/{id}`). Web does
    not synthesize an OS notification while the page is foregrounded; the open
@@ -48,13 +48,13 @@ Push is infra-owned; game code never registers anything. On startup the service:
 
 **Sign-out** calls `DELETE /api/engine/me/devices/{fid}` (scoped to the caller, so
 a device already reassigned to another account is left alone) and clears the local
-guard. It deliberately does **not** delete the Firebase installation — that
-would reset Crashlytics/Analytics identity — or unregister the installation
+guard. It deliberately does **not** delete the Firebase installation (that
+would reset Crashlytics/Analytics identity) or unregister the installation
 from FCM, which would break same-session re-sign-in. Account deletion removes
 the device rows server-side.
 
 The **background handler** must be a top-level `@pragma('vm:entry-point')`
-function that re-initialises Firebase and does nothing else — the OS renders the
+function that re-initialises Firebase and does nothing else; the OS renders the
 notification from the payload. It is passed into `runEngineApp` by the app,
 because it needs the app's own `DefaultFirebaseOptions`. Web background delivery
 instead runs in `web/firebase-messaging-sw.js`; the Dart handler is not
@@ -71,7 +71,7 @@ older app discard the notification.
 The service worker, VAPID key and production-origin checklist are in
 [Deploy the web app](./deploy-the-web-app.md).
 
-Delivery is best-effort and there is no retry — the game state is the truth and
+Delivery is best-effort and there is no retry. The game state is the truth and
 the app catches up on open, so the client must never depend on a push arriving.
 The server half is [Push notifications](../how-it-works/notifications.md).
 
@@ -99,7 +99,7 @@ and
 
 ## The Android notification icon
 
-Android API 21+ ignores colour in notification icons — it composites the alpha
+Android API 21+ ignores colour in notification icons; it composites the alpha
 channel against its own tint. Using the full-colour launcher icon renders a solid
 white box. The correct asset is a **monochrome silhouette vector drawable** named
 `ic_notification`, referenced in three places: the manifest's
@@ -108,12 +108,12 @@ white box. The correct asset is a **monochrome silhouette vector drawable** name
 `AndroidNotificationDetails(icon:)` (per-notification, for consistency).
 
 **`eigen_flutter` ships a default, and the manifest meta-data that points at
-it.** Notifications work with no manifest to edit and no drawable to create —
+it.** Notifications work with no manifest to edit and no drawable to create:
 the engine names the resource, so the engine provides it.
 
 To use your own silhouette, add
 `android/app/src/main/res/drawable/ic_notification.xml` to the app. Android
 resolves resources in the application module's favour over a library's, so
-declaring that name *is* the override — nothing to delete, no `tools:replace`.
+declaring that name *is* the override, with nothing to delete and no `tools:replace`.
 It is a `<vector>`, so no per-density variants are needed, and
 `flutter_launcher_icons` does **not** generate it.

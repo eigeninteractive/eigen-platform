@@ -2,7 +2,7 @@
 sidebar_position: 1
 slug: /intro
 title: Introduction
-description: What the EigenInteractive engine is, what building a game on it actually involves, and how these docs are organised around that.
+description: What the open-source EigenInteractive engine is, what building a turn-based multiplayer game on Cloudflare Workers and Flutter actually involves, and how these docs are organised around that.
 ---
 
 # Introduction
@@ -13,7 +13,7 @@ that owns its own domain, database and players, plus a Flutter app for Android
 and the web that is almost entirely the engine's. You supply the rules.
 
 The rules run on the server, so a client's move is always a proposal the server
-validates — hidden information never leaves the server except as a per-seat
+validates. Hidden information never leaves the server except as a per-seat
 projection, clocks are authoritative, and finished games are replayable from an
 immutable log.
 
@@ -24,12 +24,12 @@ rules and a screen that draw. That is the whole surface.
 
 | You write | The engine owns |
 |---|---|
-| The rules — six hooks, on the server | Persistence, sockets, reconnection, timing, ratings, history, replay |
+| The rules: six hooks, on the server | Persistence, sockets, reconnection, timing, ratings, history, replay |
 | Client-side legality, optimism, and the board, in Dart | Sign-in, home, lobby, friends, profile, settings, push, deep links |
 | A creation dialog's declaration | The dialog, the countdown, the finished banner, the whole app shell |
 
 For scale: Rock–Paper–Scissors, the reference game, is about 220 lines of
-TypeScript and 500 of Dart — and none of it mentions turns, deadlines, sockets,
+TypeScript and 500 of Dart, and none of it mentions turns, deadlines, sockets,
 versions, persistence or ratings.
 
 ## Start here
@@ -47,30 +47,30 @@ versions, persistence or ratings.
 ## How these docs are organised
 
 **Task-first, and each page carries both halves.** A page is a thing you are
-trying to do — model your payloads, render the board, handle hidden information,
-ship to a store — and it covers the server *and* the client side of that task
+trying to do (model your payloads, render the board, handle hidden information,
+ship to a store) and it covers the server *and* the client side of that task
 together, because they are one change.
 
-- **Getting started** — run it, then read it.
-- **Build a game** — the contract, and each task within it, from payload types
+- **Getting started**: run it, then read it.
+- **Build a game**: the contract, and each task within it, from payload types
   through to changing a game that has already shipped.
-- **Ship it** — deploying the Worker, configuring both halves, deep links,
+- **Ship it**: deploying the Worker, configuring both halves, deep links,
   branding, push, and the store.
-- **How it works** — the engine itself: the kernel, Durable Objects, storage,
+- **How it works**: the engine itself, the kernel, Durable Objects, storage,
   identity, security, the failure model, the client transport and the app shell.
   Explanation only; you can build a game without reading any of it.
-- **Reference** — the HTTP API (generated from `openapi.json`), the TypeScript
+- **Reference**: the HTTP API (generated from `openapi.json`), the TypeScript
   API (generated from source), the Envelope contract and the error model.
 
 :::tip[Reading this with an agent]
 
-Every page is also served as plain Markdown — append `.md` to any doc URL. There
+Every page is also served as plain Markdown: append `.md` to any doc URL. There
 is an [`/llms.txt`](pathname:///llms.txt) index and an
 [`/llms-full.txt`](pathname:///llms-full.txt) single-file bundle, and the HTTP
 contract is available as a raw spec at
 [`/openapi.json`](pathname:///openapi.json).
 
-There is also a Claude Code skill that carries this contract — see [Working with
+There is also a Claude Code skill that carries this contract; see [Working with
 an agent](./build-a-game/with-an-agent.md).
 
 :::
