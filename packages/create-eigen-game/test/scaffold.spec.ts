@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, capturingRunner, decodeUtf8, detectPackageManager, firebaseReadiness, insideWorkTree, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, capturingRunner, decodeUtf8, destinationProblem, detectPackageManager, firebaseReadiness, insideWorkTree, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -21,6 +21,27 @@ const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eige
 const expectedEngineRange = `^${(JSON.parse(readFileSync(resolve(import.meta.dirname, "../../server/package.json"), "utf8")) as { version: string }).version}`;
 
 describe("scaffoldGame", () => {
+  it("scaffolds into a directory that exists but is empty", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    mkdirSync(root);
+
+    scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" });
+
+    expect(existsSync(resolve(root, "server/package.json"))).toBe(true);
+  });
+
+  it("refuses a directory with anything in it, and leaves it exactly as it was", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    mkdirSync(root);
+    writeFileSync(resolve(root, "notes.txt"), "mine");
+
+    expect(() => scaffoldGame({ directory: root, bootstrap: false, packageManager: "npm" })).toThrow(/already exists, and is not empty/);
+    // The refusal is the whole feature: nothing here is worth less than a
+    // scaffold, and only the person who can see it knows that.
+    expect(readdirSync(root)).toEqual(["notes.txt"]);
+    expect(readFileSync(resolve(root, "notes.txt"), "utf8")).toBe("mine");
+  });
+
   it("renders the canonical templates as a combined repository", () => {
     const root = resolve(temporaryParent(), "my-game");
 
@@ -426,6 +447,46 @@ describe("firebaseReadiness", () => {
     // machine that is perfectly well signed in.
     expect(firebaseReadiness(machine(undefined, "not json at all"))).toEqual({ ready: true });
     expect(firebaseReadiness(machine(undefined, '{"status":"success"}'))).toEqual({ ready: true });
+  });
+});
+
+describe("destinationProblem", () => {
+  it("has nothing to say about a destination that does not exist", () => {
+    expect(destinationProblem(resolve(temporaryParent(), "my-game"))).toBeUndefined();
+  });
+
+  it("treats an existing but empty directory as free", () => {
+    // Made out of habit, or left by cloning a repository with no first commit
+    // in it. Refusing over nothing would be its own papercut.
+    const root = resolve(temporaryParent(), "my-game");
+    mkdirSync(root);
+
+    expect(destinationProblem(root)).toBeUndefined();
+  });
+
+  it("names what is in the way rather than saying it is not empty", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    mkdirSync(root);
+    for (const entry of ["README.md", "app", "server", "notes.txt"]) writeFileSync(resolve(root, entry), "");
+
+    const problem = destinationProblem(root);
+
+    // Three of them, because that usually settles whether this was a mistyped
+    // path or a directory that has already been scaffolded once — where "not
+    // empty" only invites an `ls`.
+    expect(problem).toContain("README.md, app, notes.txt");
+    expect(problem).toContain("and 1 more");
+    // No offer to delete it: this run would write ninety files and call
+    // `flutter create`, and the answer being wrong against a mistyped path
+    // costs more than any other question here.
+    expect(problem).toContain("will not delete a directory you already had");
+  });
+
+  it("catches a destination that is a file", () => {
+    const root = resolve(temporaryParent(), "my-game");
+    writeFileSync(root, "");
+
+    expect(destinationProblem(root)).toContain("is a file");
   });
 });
 

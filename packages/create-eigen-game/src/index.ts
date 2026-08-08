@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENGINE_PACKAGE, engineRange } from "./engine-range.js";
@@ -626,6 +626,43 @@ function signedOut(probe: Probe): boolean {
  * declines to nest a repository — but to stop the CLI asking a question whose
  * answer cannot matter.
  */
+/**
+ * Why this destination cannot be scaffolded into, said as a whole message, or
+ * `undefined` when there is nothing in the way.
+ *
+ * A directory that exists and is *empty* is not in the way. People make one out
+ * of habit, and cloning a repository that has not had its first commit yet
+ * leaves exactly that — so it is removed and rewritten rather than refused over
+ * nothing. Anything with contents in it is refused.
+ *
+ * Refused, and deliberately not offered as a "remove it and continue?"
+ * question, which is where several scaffolders in this family go. This one
+ * writes ninety-odd files and runs `flutter create`; the cost of getting that
+ * answer wrong against a mistyped path has no upper bound, and `rm -rf` is one
+ * command that belongs to the person who can see what is in there. Every other
+ * question this CLI asks is reversible. This one would not be.
+ *
+ * Exported so the CLI can ask it before the first question rather than after
+ * the last one — {@link scaffoldGame} asks it again, for callers that are not
+ * the CLI.
+ */
+export function destinationProblem(directory: string): string | undefined {
+  const root = resolve(directory);
+  if (!existsSync(root)) return undefined;
+
+  if (!statSync(root).isDirectory()) return `${root} already exists, and is a file.`;
+
+  const entries = readdirSync(root);
+  if (entries.length === 0) return undefined;
+
+  // Named, not counted. "not empty" invites an `ls`; the three that are
+  // actually there usually settle whether this was the wrong path or a
+  // directory that has already been scaffolded once.
+  const shown = entries.slice(0, 3).sort().join(", ");
+  const rest = entries.length > 3 ? `, and ${entries.length - 3} more` : "";
+  return `${root} already exists, and is not empty — it holds ${shown}${rest}.\n\nScaffold somewhere else, or clear it out yourself. This will not delete a directory you already had.`;
+}
+
 export function insideWorkTree(directory: string, probe: Probe = probeCommand): boolean {
   let candidate = resolve(directory);
   while (!existsSync(candidate)) {
@@ -740,7 +777,12 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   const reporter = options.reporter ?? plainReporter;
   const run = options.run ?? capturingRunner(reporter);
 
-  if (existsSync(root)) throw new Error(`target already exists: ${root}`);
+  const occupied = destinationProblem(root);
+  if (occupied !== undefined) throw new Error(occupied);
+  // Empty, or `destinationProblem` would have said so. Removed rather than
+  // scaffolded into, because the rename below publishes the staging directory
+  // *as* this path and cannot do that while something is standing there.
+  if (existsSync(root)) rmdirSync(root);
 
   mkdirSync(dirname(root), { recursive: true });
 

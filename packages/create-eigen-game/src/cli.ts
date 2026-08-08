@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { cancel, intro, isCI, isTTY, log, note, outro, taskLog } from "@clack/prompts";
 import color from "picocolors";
-import { addContinuousIntegration, applicationId, detectPackageManager, type FirebaseProblem, firebaseReadiness, insideWorkTree, normaliseTerminalWidth, type PackageManager, plainReporter, type Reporter, scaffoldGame } from "./index.js";
+import { addContinuousIntegration, applicationId, destinationProblem, detectPackageManager, type FirebaseProblem, firebaseReadiness, insideWorkTree, normaliseTerminalWidth, type PackageManager, plainReporter, type Reporter, scaffoldGame } from "./index.js";
 import { askForGit, askForOrg, askForPackageManager, askForWorkflows, askToScaffoldWithoutFirebase, DEFAULT_ORG, ORG } from "./prompt.js";
 import { summarise } from "./summary.js";
 
@@ -292,12 +292,18 @@ async function main(args: string[]): Promise<void> {
 
   const directory = positionals[0];
 
-  greet();
-
-  // `applicationId` validates the slug, so a destination that cannot be a game
-  // name fails before the first question rather than after the last one.
+  // Everything that makes the command impossible, before the greeting rather
+  // than after the last question. `applicationId` validates the slug;
+  // `destinationProblem` is the one `scaffoldGame` would raise at the far end,
+  // asked here instead — being told the directory was occupied *after* giving
+  // an organization is the same insult as being told about `flutterfire` after
+  // two minutes of Flutter and pub.
   const game = basename(resolve(directory));
   applicationId(directory);
+  const occupied = destinationProblem(directory);
+  if (occupied !== undefined) throw new Error(occupied);
+
+  greet();
 
   // Every question this run will ask, settled before any of it starts. A flag
   // is an answer already given; anything left over is asked, or — with nothing
