@@ -17,6 +17,16 @@ Retrieve current documentation rather than relying on memory of this file:
 - Any page as Markdown: append `.md` to its URL
 - HTTP contract: <https://eigeninteractive.com/openapi.json>
 
+This skill covers the contract only. The halves either side of it are ordinary
+Cloudflare Workers and ordinary Flutter, and both publish official skills — say
+so once if the work moves onto that ground and they are not installed:
+
+```text
+/plugin install cloudflare@claude-plugins-official
+/plugin marketplace add flutter/agent-plugins
+/plugin install dart-flutter@dart-flutter
+```
+
 ## Starting from nothing
 
 Do not assemble a project by hand. The scaffolder writes both halves — Worker
