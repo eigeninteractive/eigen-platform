@@ -51,9 +51,11 @@ firebase login:list
 You do not need a Firebase *project* yet. The scaffolder's first run offers to
 create one.
 
-Skipping this section is fine — everything on this page except launching the
-app works without it, and [Configure a game](../ship-it/configure.md) picks the
-step up later.
+Skipping this section is fine, but the scaffolder will notice and ask. Its
+default is to stop, because everything on this page except launching the app
+works without Firebase and launching the app does not — so it is offering you
+two commands now rather than a puzzle later. Answer yes to scaffold anyway;
+[Configure a game](../ship-it/configure.md) picks the step up.
 
 </details>
 
@@ -67,7 +69,20 @@ pnpm create eigen-game my-game
 `my-game` is the only naming argument — a lowercase kebab-case slug, from which
 the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 
-It asks one question of its own:
+Everything else it asks. **Each question has exactly one flag that answers it**,
+so passing the flag skips the question — which is why the list below is both
+the questions and the options:
+
+| Question | Flag | Default |
+| --- | --- | --- |
+| The organization, which prefixes the permanent `applicationId` | `--org <reverse-domain>` | `com.example` |
+| Whether to scaffold without Firebase — asked only when the CLIs are missing | `--no-firebase` | no, stop and set them up |
+| Which Firebase project to configure against | `--firebase-project <id>` | FlutterFire asks |
+| Initialise a repository and commit the scaffold | `--git`, `--no-git` | yes |
+| Emit the GitHub Actions workflows | `--workflows`, `--no-workflows` | no |
+| Which package manager the generated scripts use | `--package-manager npm\|pnpm` | whichever invoked it |
+
+The organization is the one worth reading twice:
 
 ```text
 │  Prefixes the Android applicationId, which Google Play makes permanent at first upload.
@@ -84,8 +99,7 @@ The `.my_game` is dimmed, and grows as you type: the organization is the
 whole identifier — produces `dev.yourname.games.my_game.my_game`, and the CLI
 offers to shorten it if you do. Worth getting right at scaffold time, because
 Google Play treats the result as the app's permanent identity and it cannot be
-changed after the first upload. `--org dev.yourname.games` answers it up front,
-which is also how it works with no terminal attached.
+changed after the first upload.
 
 Then FlutterFire asks which Firebase project to use, and offers to create one.
 That is the second half of the same decision: the `applicationId` above is what
@@ -100,23 +114,26 @@ my-game/
 ```
 
 The scaffold commits itself when it finishes, so your first `git diff` is your
-first game change rather than the ninety generated files underneath it. Pass
-`--no-git` to skip that, as does scaffolding inside a repository you already
-have. Firebase is configured before that commit, which is why it happens here
-rather than as your first diff — six files, four of them edits to files the
-scaffold had just written.
+first game change rather than the ninety generated files underneath it. That is
+the git question, defaulted to yes — and not asked at all when you are already
+inside a repository, since it declines to nest one there anyway. Firebase is
+configured before that commit, which is why it happens here rather than as your
+first diff — six files, four of them edits to files the scaffold had just
+written.
 
-Two flags steer it:
+:::warning[With no terminal, an unanswered question is an error]
+CI, a pipe, an agent session: there is nowhere to ask, so every answer has to
+arrive as a flag, and a missing one stops the run rather than being chosen for
+you. `--org` is why. A non-interactive run that quietly defaulted it would ship
+`com.example.my_game`, and Google Play makes that permanent at the first upload.
+
+The error prints the whole command to re-run, with each default already filled
+in, so the fix is one paste — and the value worth changing is visible in it:
 
 ```bash
-pnpm create eigen-game my-game --no-firebase                       # scaffold only
-pnpm create eigen-game my-game --firebase-project my-project-id    # no prompts
+npx create-eigen-game my-game --no-firebase --org com.example --git --no-workflows
 ```
-
-`--firebase-project` names the project rather than being asked, which is also
-the form that works with no terminal attached — CI, or anything piping input.
-Without a terminal and without that flag, the step is skipped, because there is
-nothing to answer the project prompt on.
+:::
 
 The engine and `eigen_flutter` versions are pinned inside the scaffolder and
 released as a tested pair, so the `create-eigen-game` you run decides both — use
@@ -136,8 +153,8 @@ curl http://localhost:8787/health
 rules and fixture tests need nothing more than this.
 
 The Flutter app needs Firebase, which the scaffolder has already done unless it
-told you otherwise. If it was skipped — no CLIs, no sign-in, no terminal, or
-`--no-firebase` — do it now, from the repository root:
+told you otherwise. If it was skipped — because you answered yes to scaffolding
+without it, or passed `--no-firebase` — do it now, from the repository root:
 
 ```bash
 pnpm firebase:configure
