@@ -1,5 +1,25 @@
 # create-eigen-game
 
+## 0.9.0
+
+### Minor Changes
+
+- [#41](https://github.com/eigeninteractive/eigen-server/pull/41) [`3f65f4c`](https://github.com/eigeninteractive/eigen-server/commit/3f65f4cfbf5f3092381f6864e79cbb09e8eba268) Thanks [@seenu-k](https://github.com/seenu-k)! - Ask, rather than assume: every decision a scaffold makes is now a question, and every question has exactly one flag that answers it.
+  
+  The run opens by saying what it is about to build and **why Firebase is part of it** — that the Worker verifies Firebase ID tokens to decide who holds a seat, that turn notifications go through the same project, that it is free and one project serves every game. A second service arriving unannounced in a scaffold looks like an imposition; the reason costs four lines and it is not.
+  
+  It then checks the two CLIs and the Google sign-in and reports **every** problem at once, in the order they have to be fixed in, rather than the first one — a machine with neither CLI used to learn about `flutterfire` only after installing `firebase-tools` and running the whole thing again. If anything is missing, the question is whether to scaffold anyway and connect Firebase later, and the default is **no**: the tools are two commands away, and the alternative is an app that throws `Firebase is not configured` the moment it launches. Answering no writes nothing and prints the commands, including the `PATH` line that `dart pub global activate` needs and does not set.
+  
+  Git and the GitHub Actions workflows are questions too, defaulted yes and no respectively, each with its reason next to it. The package manager is asked only when nothing else can say, which replaces a silent fallback to pnpm that was written into every script in the generated project.
+  
+  **Breaking, and deliberately so: a run with no terminal now fails on an unanswered question instead of choosing for you.** The default that made this necessary is `--org`: a non-interactive run without it used to ship `com.example.my_game`, and Google Play makes that permanent at the first upload. A default is fine as the pre-filled answer to a question someone is looking at; it is not fine as a decision made in a pipe. The error prints the complete command to re-run with every default already filled in, so the fix is one paste and the value worth changing is visible in it.
+  
+  `--ci` is gone. It read as "I am running in CI" — which is what it means in `npm ci`, in Jest, and in this CLI's own `isCI` check — while actually meaning "emit GitHub Actions workflows". It is now `--workflows` / `--no-workflows`, and the subcommand is `add workflows`. `add ci` still works, undocumented, because it is written into the README of every project already scaffolded.
+  
+  An occupied destination is refused **before** the first question rather than by `scaffoldGame` after the last one. Being told the directory was taken after carefully giving an organization is the same insult as being told about `flutterfire` after two minutes of Flutter and pub. The message names the first three things standing in the way, which usually settles whether the path was mistyped or already scaffolded once — where "not empty" only invites an `ls`. There is deliberately no offer to delete it: every other question here is reversible and that one is not. A directory that exists and is *empty* is no longer refused at all, since people make one out of habit. A cloned repository is not that case — `.git` stands in the way like any other entry, and the message names it — so `git clone` then scaffold still means scaffolding beside it and moving the result in.
+  
+  Also adds `--version`, and stops asking about git at all when the destination is already inside a repository, since the scaffold declines to nest one there whatever it is told.
+
 ## 0.8.1
 
 ### Patch Changes
