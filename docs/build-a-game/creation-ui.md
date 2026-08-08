@@ -1,13 +1,13 @@
 ---
 sidebar_position: 8
 title: The creation UI
-description: Declaring valid player counts, timing modes and game-specific options — and why the rated flag is an assertion the server checks rather than a preference it trusts.
+description: Declaring valid player counts, timing modes and game-specific options, and why the rated flag is an assertion the server checks rather than a preference it trusts.
 ---
 
 # The creation UI
 
-Creation is version-independent — a new game is always created at the newest
-version your build ships — so it lives on the Dart `GameModule` rather than on a
+Creation is version-independent, since a new game is always created at the newest
+version your build ships, so it lives on the Dart `GameModule` rather than on a
 `GameRules` unit. Three members, none of which you write a dialog for: the shell
 renders the dialog from what you declare.
 
@@ -48,18 +48,18 @@ class RpsModule extends GameModule {
 - **`BudgetConfig` is only valid for strictly sequential games.** The server
   rejects a hook envelope with more than one pending seat in a budget-timed game
   as a game bug. If any phase has multiple pending seats, use a per-action mode
-  for it — or a `turnSeconds` override on that envelope.
+  for it, or a `turnSeconds` override on that envelope.
 - **`defaultConfig`** seeds the config map before the player touches anything, so
   a game with no custom UI still creates a valid game.
 - **`playersForConfig`** overrides the range when it depends on a creation-time
-  choice — a party game where the host picks 4 or 6, and min == max so joining
+  choice: a party game where the host picks 4 or 6, and min == max so joining
   flips the game to `ready` at exactly the right threshold.
 
 ## `buildCreationConfig`
 
 Returns a widget for game-specific options, or null if timing and player count
 are the whole story. It calls `onChanged` on every edit; the dialog stores the
-latest value in a plain field — not state, since it is never displayed — and
+latest value in a plain field (not state, since it is never displayed) and
 sends it with the create request at submit time.
 
 Whatever it produces is the game's `config`, and **the server validates it
@@ -68,7 +68,7 @@ widget is a convenience, not a gate.
 
 ## `buildRules`
 
-Non-scrolling how-to-play content for the About page — the page supplies the
+Non-scrolling how-to-play content for the About page. The page supplies the
 scroll container, padding and chrome. It is free to be interactive (an animated
 board example) and to read `Theme.of`.
 

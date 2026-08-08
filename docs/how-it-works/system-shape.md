@@ -14,7 +14,7 @@ by feature:
 ```text
 @eigeninteractive/rules    The implementor contract: GameRules, GameModule, the six hooks,
                 the JSON/Envelope/Observation types. Pure types + 2 helpers.
-                Zero engine dependencies — a game author reads only this.
+                Zero engine dependencies; a game author reads only this.
 
 @eigeninteractive/kernel   The pure decision core. Given (game, state, roster, intent, now)
                 it returns a commit plan or a rejection. No I/O, no platform
@@ -52,7 +52,7 @@ request surface is three cleanly separated spaces on one host:
                 /.well-known/assetlinks.json + apple-app-site-association
                 (deep-link verification), /join/:shortCode and /game/:gameId
                 (dynamic metadata + Flutter shell),
-                /avatars/:uid (opt-in avatar serving), and the `site` group —
+                /avatars/:uid (opt-in avatar serving), and the `site` group:
                 /download, /terms, /privacy, /delete-account, /sitemap.xml,
                 /robots.txt, /site.webmanifest. Plus static assets.
 ```
@@ -60,7 +60,7 @@ request surface is three cleanly separated spaces on one host:
 The two API groups are **separate hono sub-apps** so their auth never mixes: the
 engine group's Firebase middleware is scoped to `/api/engine/*` and never runs
 for a bot or a public request. Both groups emit into one OpenAPI document (each
-with its own security scheme) — the [HTTP API reference](../reference/http-api/eigeninteractive-engine-api.info.mdx)
+with its own security scheme). The [HTTP API reference](../reference/http-api/eigeninteractive-engine-api.info.mdx)
 is generated from it, and the typed Dart client is generated from it in this
 same repository and published to pub.dev.
 

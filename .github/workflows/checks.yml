@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
 
-# Correctness only — this workflow never deploys. Deployment is owned by
+# Correctness only. This workflow never deploys; deployment is owned by
 # Cloudflare Workers Builds, which watches `main` directly: it clones the repo,
 # runs the build, and deploys with its own credentials. That means no Cloudflare
 # API token ever has to live in GitHub secrets.
@@ -39,7 +39,7 @@ jobs:
           cache: pnpm
 
       # Before install, because it needs nothing but Node and this is the check
-      # most likely to fire on a `sync/api-reference` pull request — that branch
+      # most likely to fire on a `sync/api-reference` pull request, since that branch
       # auto-merges, so the engine crossing a release line has to stop it here
       # or it never gets looked at. See scripts/check-docs-version.mjs.
       - name: Docs version matches the engine line

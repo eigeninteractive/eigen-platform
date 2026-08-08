@@ -7,7 +7,7 @@ description: How eigeninteractive.com handles data when you visit.
 
 **Last updated: 24 July 2026**
 
-This policy covers **eigeninteractive.com** — this website, where we publish the
+This policy covers **eigeninteractive.com**, this website, where we publish the
 EigenInteractive open-source game engine, its documentation, and the games we
 build with it. It is deliberately short, because the site collects very little.
 

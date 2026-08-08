@@ -11,7 +11,7 @@ import styles from "./index.module.css";
 
 /**
  * The homepage is written for someone deciding whether to build their game on
- * EigenInteractive — not for someone maintaining the engine. The split section below is
+ * EigenInteractive, not for someone maintaining the engine. The split section below is
  * the page's argument: the list on the right is long, and none of it is their
  * game.
  *
@@ -19,7 +19,7 @@ import styles from "./index.module.css";
  * `button button--*`, `CodeBlock`), taken as it comes.
  *
  * One button, and it is `button--secondary`. On `hero--primary` that is not the
- * quiet choice — it is the only correct one: the modifier fills the banner with
+ * quiet choice but the only correct one: the modifier fills the banner with
  * `--ifm-color-primary`, the same variable `button--primary` paints itself
  * with, so a primary button here would be teal on teal and collapse to a
  * floating label. Near-white is what reads as emphatic on a coloured band.
@@ -34,7 +34,7 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <p className={styles.heroLede}>A turn-based multiplayer game needs accounts, a lobby, sockets, reconnection, turn clocks, ratings, push and a store release before it needs a single rule of its own. EigenInteractive ships all of it as one Cloudflare Worker and one Flutter app. You write the rules.</p>
+        <p className={styles.heroLede}>Accounts, lobby, sockets, turn clocks, ratings, push, Play Store. EigenInteractive ships all of it as one Cloudflare Worker and one Flutter app. You write the rules.</p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/getting-started/quickstart">
             Quickstart
@@ -60,7 +60,7 @@ const YOU_WRITE: { title: string; body: string }[] = [
   },
   {
     title: "The board, in Dart",
-    body: "One widget that draws the current view and proposes moves — plus a rules twin, so the board can respond before the server has answered.",
+    body: "One widget that draws the current view and proposes moves, plus a rules twin, so the board can respond before the server has answered.",
   },
   {
     title: "What a new game can be set to",
@@ -94,7 +94,7 @@ function WhatYouWrite(): ReactNode {
               ))}
             </ul>
             <p>
-              For scale: Rock–Paper–Scissors, the reference game, is about <strong>220 lines of TypeScript and 500 of Dart</strong> — and none of it mentions turns, deadlines, sockets, versions, persistence or ratings.
+              For scale: Rock–Paper–Scissors, the reference game, is about <strong>220 lines of TypeScript and 500 of Dart</strong>, and none of it mentions turns, deadlines, sockets, versions, persistence or ratings.
             </p>
           </div>
         </div>
@@ -103,10 +103,16 @@ function WhatYouWrite(): ReactNode {
   );
 }
 
+/**
+ * The `title` prop is what the browser tab and the search result read, and
+ * Docusaurus appends the site title to it, so this renders as "Open-source
+ * engine … | EigenInteractive". Passing `siteConfig.title` here instead, which
+ * is the scaffold's default, produces a homepage whose entire `<title>` is the
+ * brand name: the one page most likely to rank says nothing about what it is.
+ */
 export default function Home(): ReactNode {
-  const { siteConfig } = useDocusaurusContext();
   return (
-    <Layout title={siteConfig.title} description="EigenInteractive ships the server and the app for a turn-based multiplayer game. You write the rules.">
+    <Layout title="Open-source engine for turn-based multiplayer games" description="Build turn-based multiplayer board, card and abstract strategy games on an open-source, server-authoritative engine. One Cloudflare Worker with Durable Objects, one Flutter app for Android and the web. You write the rules.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

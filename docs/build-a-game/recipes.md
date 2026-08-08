@@ -1,10 +1,10 @@
 ---
 sidebar_position: 11
-title: Recipes — common game shapes
-description: Sequential, simultaneous, team, elimination and phased games — all expressed through pendingPlayers and computeObservation.
+title: Recipes for common game shapes
+description: Sequential, simultaneous, team, elimination and phased games, all expressed through pendingPlayers and computeObservation.
 ---
 
-# Recipes — common game shapes
+# Recipes for common game shapes
 
 The whole game is expressed through `pendingPlayers` and what
 `computeObservation` reveals. A few canonical shapes:
@@ -13,7 +13,7 @@ The whole game is expressed through `pendingPlayers` and what
 
 Checkers, Connect Four. One seat pending at a time; each move hands the turn to
 the next seat. Use `passthroughObservation` (everyone sees everything). The
-same-view rule is automatically strict — no stale move survives an opponent's
+same-view rule is automatically strict; no stale move survives an opponent's
 turn.
 
 ```ts
@@ -31,7 +31,7 @@ computeObservation: passthroughObservation,
 RPS, blind bidding. *All* actors pending each round; store each commit in the
 state and hide the opponents' commits in `computeObservation`, also masking their
 pending status so a hidden commit doesn't change anyone else's view (that's what
-lets both submissions land in either order — see
+lets both submissions land in either order; see
 [the same-view rule](./hidden-information.md)). Resolve when the last commit
 arrives.
 
@@ -50,7 +50,7 @@ Shrink `pendingPlayers` as seats bust out; give an eliminated seat
 
 Carry a "what just happened" field (RPS's `lastRound`) in the projected `data` so
 clients can animate the transition. Decide per seat what that reveal shows using
-`cause` and `playerIndex` — see [Rendering](./rendering.md).
+`cause` and `playerIndex`; see [Rendering](./rendering.md).
 
 ## Phased turns / variable clocks
 

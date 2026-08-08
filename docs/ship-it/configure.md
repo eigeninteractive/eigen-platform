@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: Configuration
-description: Both halves of a deployment's runtime config — the Worker's bindings and secrets, the app's AppConfig, and the Firebase project they share.
+description: Both halves of a deployment's runtime config. The Worker's bindings and secrets, the app's AppConfig, and the Firebase project they share.
 ---
 
 # Configuration
@@ -20,7 +20,7 @@ the Worker verifies the resulting tokens against the same project id.
 ## The Worker
 
 An implementor's entire runtime surface is one `createEngine` call plus a
-`BaseGameDO` subclass — see [Deploy the Worker](./deploy-the-worker.md) for the
+`BaseGameDO` subclass; see [Deploy the Worker](./deploy-the-worker.md) for the
 code. Optional blocks (`deepLink`, `avatars`, `site`, `lifecycle`) are simply
 absent when a feature is not wanted; the corresponding routes are then not
 mounted.
@@ -56,7 +56,7 @@ The full type is in the
 :::warning[The app-custom-data rule]
 
 If a game needs its own tables, they go in a **second D1 database** with its own
-`migrations_dir`. Never add tables to the engine's database — the engine owns
+`migrations_dir`. Never add tables to the engine's database, since the engine owns
 that schema, and its migrations will not know about them.
 
 :::
@@ -102,7 +102,7 @@ flutter build appbundle --release \
 
 | Var | Required | Purpose |
 |---|---|---|
-| `API_BASE_URL` | **yes** | Origin of the Worker — scheme + host only, **no path, no trailing slash**. Routes carry their own `/api/engine` prefix; the socket is this origin with `ws`/`wss`. |
+| `API_BASE_URL` | **yes** | Origin of the Worker: scheme + host only, **no path, no trailing slash**. Routes carry their own `/api/engine` prefix; the socket is this origin with `ws`/`wss`. |
 | `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. |
 | `APP_HOST` | optional | This game's hostname, without scheme. In the default deployment it is the host part of `API_BASE_URL`; it enables invite/replay sharing and legal links. `/download` is the native install page. |
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
@@ -113,21 +113,25 @@ scaffold. `runEngineApp` validates all of them before initializing Firebase and
 reports every missing or malformed value together. Worker service-account keys,
 bot signing keys, and other real credentials stay in Worker secrets.
 
-## Firebase — once per deployment
+## Firebase, once per deployment
 
 Firebase is mandatory on the client. A fresh scaffold contains a throwing
 `firebase_options.dart` seam so analysis works before project setup, but the app
 will not start until FlutterFire replaces it with real platform configuration.
 
 1. **Create the project** at console.firebase.google.com with Analytics enabled,
-   or let step 2 do it — the first run offers to.
+   or let step 2 do it: the first run offers to.
 2. Install and authenticate the official tooling:
 
    ```bash
-   npm install --global firebase-tools
+   curl -sL https://firebase.tools | bash
    firebase login
    dart pub global activate flutterfire_cli
    ```
+
+   That first line is Google's own installer;
+   [the Firebase CLI reference](https://firebase.google.com/docs/cli) has the
+   other ways, including Windows.
 
    Both are checked before anything is written, including the sign-in: the two
    CLIs share one set of stored Google credentials, and a missing one is named
@@ -143,8 +147,8 @@ will not start until FlutterFire replaces it with real platform configuration.
    Scaffolding runs this step already, so on a project created with the two
    CLIs installed and signed in this is the command for *changing* the
    configuration rather than establishing it. Only `create-eigen-game
-   --no-firebase` — or answering yes when it asked whether to scaffold without
-   the tooling — leaves it for here.
+   --no-firebase`, or answering yes when it asked whether to scaffold without
+   the tooling, leaves it for here.
 
    It prompts for the Firebase project when none has been chosen, and creating
    one is an option there; pass `-- --project my-project-id` to answer up
@@ -156,8 +160,8 @@ will not start until FlutterFire replaces it with real platform configuration.
    FlutterFire matches an existing Android app on the `applicationId` and an
    existing Web app on its display name, and **adopts either without comment**,
    so those IDs are the only thing separating "reused what was there" from
-   "registered something new". Adopting is usually what you want — it is how
-   re-pointing an app at its own project works — but it is also how two games
+   "registered something new". Adopting is usually what you want, since it is
+   how re-pointing an app at its own project works, but it is also how two games
    that resolve to the same `applicationId` end up sharing one Firebase app,
    and with it their push, Analytics and Crashlytics.
 
@@ -187,7 +191,7 @@ will not start until FlutterFire replaces it with real platform configuration.
 
    - **After the first Play upload:** the **Play App Signing** certificate
      (Play Console → Release → Setup → App signing). Play re-signs your bundle
-     with *their* key, so the app on users' devices is not signed with yours —
+     with *their* key, so the app on users' devices is not signed with yours.
      **omitting this is why Sign-In "works in dev and fails in production."**
 4. Enable **Crashlytics** for Android and verify **Cloud Messaging** is on.
    Crashlytics has no Flutter web implementation; use your hosting/browser
@@ -211,7 +215,7 @@ will not start until FlutterFire replaces it with real platform configuration.
    `FIREBASE_VAPID_KEY`.
 8. **Server-side Firebase credentials:** Project Settings → Service Accounts →
    Generate new private key. The Worker needs only `client_email` and
-   `private_key` from that JSON — set them as Worker secrets and **delete the
+   `private_key` from that JSON. Set them as Worker secrets and **delete the
    downloaded file**; it grants full Firebase Admin access.
 
 FCM is a no-cost Firebase product on both Spark and Blaze plans. Requiring it
@@ -243,7 +247,7 @@ per-user access control: a raw-binary `PUT /api/engine/me/avatar`
 (type- and size-validated) stores the image under key = uid, and a public
 `GET /avatars/:uid` serves it with a long immutable cache. The stored
 `avatar_url` carries a `?v=<ts>` cache-buster, since the key is overwritten on
-re-upload — which is also what makes the client's cached images refresh with no
+re-upload, which is also what makes the client's cached images refresh with no
 manual invalidation.
 
 An optional `avatars.publicBaseUrl` points the URL straight at a bucket custom
@@ -252,7 +256,7 @@ a config value, not a code change. The default worker-served path is the only on
 that works on a zoneless `workers.dev` deploy.
 
 On the client, every avatar routes through `PlayerAvatar`, which resolves a
-relative URL against the API origin — so both setups work with no app change.
+relative URL against the API origin, so both setups work with no app change.
 `cached_network_image` has no package-managed disk cache in a browser; the
 browser's HTTP cache honors the Worker's immutable response, and the versioned
 URL makes an upload a new cache entry.
@@ -262,17 +266,17 @@ URL makes an upload a new cache entry.
 Two, both engine-owned. You consume them; you never author them:
 
 - **D1 migrations** ship inside `@eigeninteractive/server` and are applied with
-  `wrangler d1 migrations apply` — **never at runtime**. The **Durable Object
+  `wrangler d1 migrations apply`, **never at runtime**. The **Durable Object
   SQLite schema self-applies** on activation (`blockConcurrencyWhile`), which is
   what lets a finished game woken years later migrate itself before serving
   anything.
 - **`openapi.json`** is emitted from the engine's route definitions. The typed
   Dart client is generated from it, committed, and published to pub.dev as
-  `eigen_api` at the engine's version — so an app consumes it as an ordinary
+  `eigen_api` at the engine's version, so an app consumes it as an ordinary
   dependency rather than regenerating it from a copied spec.
 
 The wire loop is a **standing rule, not a suggestion**: a shape the generated
-client consumes badly gets fixed in the server's schemas and regenerated — never
+client consumes badly gets fixed in the server's schemas and regenerated, never
 patched around in Dart. Re-emit `openapi.json` and rerun the client generator
 **in the same change**, because the two repos have no other coupling that would
 catch the drift.
@@ -288,7 +292,7 @@ send it back to a route.
 
 ## Registering bots
 
-There is no provisioning route — a bot is a row an operator inserts into D1, one
+There is no provisioning route. A bot is a row an operator inserts into D1, one
 time, by hand:
 
 ```sql
@@ -303,14 +307,14 @@ VALUES (lower(hex(randomblob(16))), 'hard_ai', 'Hard AI', 'external', 1,
         'https://my-bot.example/wake', 1, '{}');
 ```
 
-`type` is CHECK-enforced against the transport it implies — an `external` bot
+`type` is CHECK-enforced against the transport it implies: an `external` bot
 must carry a `webhook_url`, an `engine` bot must not. `schema_version` is the
 highest game schema the bot supports; seating refuses a bot below the game's
 version, mirroring the human join gate. `rated_eligible` is required for a rated
 game. `config` is **public read-only reference data** consumed by the
-`botSeatable` hook and the client's pickers — never put a secret in it.
+`botSeatable` hook and the client's pickers, so never put a secret in it.
 
-Then hand the bot's owner **one derived key** —
+Then hand the bot's owner **one derived key**,
 `await deriveBotKey(BOT_SIGNING_SECRET, botId)` from `@eigeninteractive/server`, or the
-[`openssl` one-liner](../how-it-works/bots.md#external-bot-hmac) — and never the
+[`openssl` one-liner](../how-it-works/bots.md#external-bot-hmac), and never the
 master secret. Adding a bot therefore needs no new secret and no redeploy.

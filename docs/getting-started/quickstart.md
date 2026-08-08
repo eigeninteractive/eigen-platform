@@ -1,13 +1,13 @@
 ---
 sidebar_position: 2
 title: Quickstart
-description: Scaffold a game, run both halves locally, and make your first rules change.
+description: Scaffold a turn-based multiplayer game, run both halves locally (the Cloudflare Worker and the Flutter app), and make your first rules change.
 ---
 
 # Quickstart
 
-One command scaffolds both halves of a game — the Cloudflare Worker that owns
-the rules and the Flutter app that draws them — into your own repository. You
+One command scaffolds both halves of a game into your own repository: the
+Cloudflare Worker that owns the rules, and the Flutter app that draws them. You
 never clone the engine; it arrives as ordinary npm and pub.dev packages.
 
 ## Before you start
@@ -22,7 +22,7 @@ not to scaffold it or to test game rules.
 one command block that checks the lot.
 
 Two Firebase command-line tools are worth installing **before** you scaffold,
-because the scaffolder connects Firebase for you when it finds them — and
+because the scaffolder connects Firebase for you when it finds them, and
 quietly skips that step, with a note, when it does not.
 
 <details>
@@ -32,14 +32,19 @@ Neither ships with Flutter or Node, and this is the one place the setup
 installs something globally:
 
 ```bash
-npm install -g firebase-tools                # the `firebase` CLI
+curl -sL https://firebase.tools | bash       # the `firebase` CLI
 dart pub global activate flutterfire_cli     # the `flutterfire` CLI
 export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
 firebase login                               # both CLIs share these credentials
 ```
 
+The first line is Google's own installer, and it picks a standalone binary or
+npm to suit the machine;
+[the Firebase CLI reference](https://firebase.google.com/docs/cli) has the other
+ways, including Windows.
+
 `dart pub global activate` puts `flutterfire` somewhere that is not on `PATH`
-by default, which is why the third line is there — add it to your shell profile
+by default, which is why the third line is there. Add it to your shell profile
 rather than typing it once. Check all three with:
 
 ```bash
@@ -53,7 +58,7 @@ create one.
 
 Skipping this section is fine, but the scaffolder will notice and ask. Its
 default is to stop, because everything on this page except launching the app
-works without Firebase and launching the app does not — so it is offering you
+works without Firebase and launching the app does not, so it is offering you
 two commands now rather than a puzzle later. Answer yes to scaffold anyway;
 [Configure a game](../ship-it/configure.md) picks the step up.
 
@@ -66,17 +71,17 @@ pnpm create eigen-game my-game
 # or: npm create eigen-game@latest my-game
 ```
 
-`my-game` is the only naming argument — a lowercase kebab-case slug, from which
+`my-game` is the only naming argument: a lowercase kebab-case slug, from which
 the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 
 Everything else it asks. **Each question has exactly one flag that answers it**,
-so passing the flag skips the question — which is why the list below is both
+so passing the flag skips the question, which is why the list below is both
 the questions and the options:
 
 | Question | Flag | Default |
 | --- | --- | --- |
 | The organization, which prefixes the permanent `applicationId` | `--org <reverse-domain>` | `com.example` |
-| Whether to scaffold without Firebase — asked only when the CLIs are missing | `--no-firebase` | no, stop and set them up |
+| Whether to scaffold without Firebase (asked only when the CLIs are missing) | `--no-firebase` | no, stop and set them up |
 | Which Firebase project to configure against | `--firebase-project <id>` | FlutterFire asks |
 | Initialise a repository and commit the scaffold | `--git`, `--no-git` | yes |
 | Emit the GitHub Actions workflows | `--workflows`, `--no-workflows` | no |
@@ -95,8 +100,8 @@ The organization is the one worth reading twice:
 
 The `.my_game` is dimmed, and grows as you type: the organization is the
 **prefix**, and the game name is appended to it, exactly as `flutter create
---org` does. So answering `dev.yourname.games.my_game` — which reads like the
-whole identifier — produces `dev.yourname.games.my_game.my_game`, and the CLI
+--org` does. So answering `dev.yourname.games.my_game`, which reads like the
+whole identifier, produces `dev.yourname.games.my_game.my_game`, and the CLI
 offers to shorten it if you do. Worth getting right at scaffold time, because
 Google Play treats the result as the app's permanent identity and it cannot be
 changed after the first upload.
@@ -109,16 +114,16 @@ You get one repository holding both halves:
 
 ```text
 my-game/
-├── server/   # Cloudflare Worker — the authoritative rules
-└── app/      # Flutter app — the screens
+├── server/   # Cloudflare Worker: the authoritative rules
+└── app/      # Flutter app: the screens
 ```
 
 The scaffold commits itself when it finishes, so your first `git diff` is your
 first game change rather than the ninety generated files underneath it. That is
-the git question, defaulted to yes — and not asked at all when you are already
+the git question, defaulted to yes, and not asked at all when you are already
 inside a repository, since it declines to nest one there anyway. Firebase is
 configured before that commit, which is why it happens here rather than as your
-first diff — six files, four of them edits to files the scaffold had just
+first diff: six files, four of them edits to files the scaffold had just
 written.
 
 :::warning[With no terminal, an unanswered question is an error]
@@ -128,7 +133,7 @@ you. `--org` is why. A non-interactive run that quietly defaulted it would ship
 `com.example.my_game`, and Google Play makes that permanent at the first upload.
 
 The error prints the whole command to re-run, with each default already filled
-in, so the fix is one paste — and the value worth changing is visible in it:
+in, so the fix is one paste, and the value worth changing is visible in it:
 
 ```bash
 npx create-eigen-game my-game --no-firebase --org com.example --git --no-workflows
@@ -136,7 +141,7 @@ npx create-eigen-game my-game --no-firebase --org com.example --git --no-workflo
 :::
 
 The engine and `eigen_flutter` versions are pinned inside the scaffolder and
-released as a tested pair, so the `create-eigen-game` you run decides both — use
+released as a tested pair, so the `create-eigen-game` you run decides both. Use
 `@latest` rather than a cached older copy. See
 [Versions and compatibility](../reference/compatibility.md).
 
@@ -153,8 +158,8 @@ curl http://localhost:8787/health
 rules and fixture tests need nothing more than this.
 
 The Flutter app needs Firebase, which the scaffolder has already done unless it
-told you otherwise. If it was skipped — because you answered yes to scaffolding
-without it, or passed `--no-firebase` — do it now, from the repository root:
+told you otherwise. If it was skipped, because you answered yes to scaffolding
+without it or passed `--no-firebase`, do it now, from the repository root:
 
 ```bash
 pnpm firebase:configure
@@ -165,14 +170,14 @@ Firebase configuration. It asks which Firebase project to use, and can create
 one; pass `-- --project my-project-id` to answer that up front. Each run ends by
 naming the project and the two app IDs it configured against.
 
-Commit everything it writes — `app/firebase.json`,
+Commit everything it writes: `app/firebase.json`,
 `app/android/app/google-services.json`, `app/lib/firebase_options.dart`,
 `app/web/firebase-config.js` and FlutterFire's two Android Gradle edits. They
 are public app identifiers, not credentials, and Android and web builds fail
 without them.
 
-Then fill in the public values and VAPID key in `app/app-config.json` — see
-[Deploy the web app](../ship-it/deploy-the-web-app.md) — and copy
+Then fill in the public values and VAPID key in `app/app-config.json` (see
+[Deploy the web app](../ship-it/deploy-the-web-app.md)), and copy
 `server/.dev.vars.example` to `server/.dev.vars` with the Firebase Admin
 credentials, which the Worker needs to verify player tokens.
 
@@ -214,7 +219,7 @@ A game is four Zod schemas and a handful of pure hooks, in one
   before the game started.
 
 Each unit is registered under a **schema version**, and shipped versions are
-immutable — an incompatible change becomes a new `v2` unit beside `v1`, so games
+immutable: an incompatible change becomes a new `v2` unit beside `v1`, so games
 already in progress keep the rules they started under. See
 [Payload types](../build-a-game/schemas.md),
 [The hooks](../build-a-game/hooks.md) and
@@ -235,14 +240,14 @@ That is a schema change, so regenerate the contract from the repository root:
 pnpm run contract
 ```
 
-It rewrites `server/game-contract.json` — every schema version plus the shared
-fixtures — and from it the Dart payload types and fixture copies in `app/`.
+It rewrites `server/game-contract.json` (every schema version plus the shared
+fixtures), and from it the Dart payload types and fixture copies in `app/`.
 Commit both: they are the boundary between the two halves, and the app now
 rejects `amount: 4` before it ever reaches the Worker.
 
 Changing hook *behaviour* rather than a schema works the same way, except that
 you update the fixture in `server/src/module/fixtures/v1/` alongside it. The
-fixtures are part of the contract, and both languages run them — that is what
+fixtures are part of the contract, and both languages run them. That is what
 keeps the app's prediction and the Worker's ruling from drifting apart.
 
 Before anything has shipped, edit the seeded v1 unit freely.

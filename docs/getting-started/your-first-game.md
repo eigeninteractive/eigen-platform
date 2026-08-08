@@ -1,15 +1,15 @@
 ---
 sidebar_position: 3
 title: Your first game
-description: Rock–Paper–Scissors in both languages — the rules that decide, the screen that draws, and the fixture file that keeps them agreeing.
+description: Rock–Paper–Scissors in both languages. The rules that decide, the screen that draws, and the fixture file that keeps them agreeing.
 ---
 
 # Your first game
 
 Rock–Paper–Scissors is the reference implementation, and it is deliberately the
 *hardest* small case: both players commit at the same time, and neither may see
-the other's throw. Simultaneous turns, hidden information, and — as it turns out
-— nothing worth predicting.
+the other's throw. Simultaneous turns, hidden information, and, as it turns out,
+nothing worth predicting.
 
 This page is the whole game, both halves. Roughly 500 lines of Dart and 220 of
 TypeScript, and none of it mentions turns, deadlines, sockets, versions,
@@ -60,7 +60,7 @@ class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
 
   computeObservation({ state, pending, playerIndex, isReplay }: ComputeObservationArgs<…>): ObservationSlice {
     if (isReplay || playerIndex === null) {
-      // The match is over — reveal everything.
+      // The match is over, so reveal everything.
       return { data: { round: state.round, wins: state.wins, lastRound: state.lastRound, commits: state.commits },
                pendingPlayers: pending };
     }
@@ -84,14 +84,14 @@ about what it leaves out.
 
 ## The screen that draws
 
-`eigen-flutter/example/lib/src/v1/rules.dart` — the same version, the other
+`eigen-flutter/example/lib/src/v1/rules.dart` is the same version in the other
 language:
 
 ```dart
 class RpsRulesV1 extends RpsV1RulesBase {
   const RpsRulesV1();
 
-  // The legality half of applyAction, transcribed — this is what greys out a button.
+  // The legality half of applyAction, transcribed. This is what greys out a button.
   @override
   bool isValidAction({
     required RpsV1Observation obs,
@@ -101,7 +101,7 @@ class RpsRulesV1 extends RpsV1RulesBase {
     required RpsV1Config config,
   }) => pending.contains(playerIndex) && !obs.committedBy(playerIndex);
 
-  // Always null. See below — this is the interesting one.
+  // Always null. See below; this is the interesting one.
   @override
   RpsV1Observation? previewAction({ /* same parameters */ }) => null;
 
@@ -120,7 +120,7 @@ class RpsRulesV1 extends RpsV1RulesBase {
 
 The board itself is a `StatefulWidget` reading `context.frame.observation`,
 drawing three buttons, and calling `context.onAction(...)`. Everything around it
-— sign-in, home, the lobby, the countdown, the finished banner, replay — is the
+(sign-in, home, the lobby, the countdown, the finished banner, replay) is the
 shell's.
 
 ## Three things worth taking away
@@ -128,7 +128,7 @@ shell's.
 ### The observation is not the state
 
 The server stores `commits: [move, move]`. The client never sees that field
-during play — it sees `yourMove`, its own commit echoed back. The opponent's
+during play; it sees `yourMove`, its own commit echoed back. The opponent's
 throw is not hidden by the UI; **it is not in the bytes that reach the device**.
 
 The cost of that on the client is one nullable field, because
@@ -141,7 +141,7 @@ the mechanism.
 
 Because a hidden commit does not change your projected view, the engine's
 same-view rule accepts your in-flight submission even though it was computed
-against an older version — so both players can commit in either order and both
+against an older version, so both players can commit in either order and both
 land. When the *second* commit resolves the round, the reveal changes every
 seat's view, so a stale submission is correctly rejected.
 
@@ -152,8 +152,8 @@ and the concurrency policy followed. See
 ### Sometimes the honest answer is "I cannot predict this"
 
 `previewAction` returns null, unconditionally. After you throw, you cannot tell
-whether the opponent has thrown yet — that is exactly what the masking above
-hides — so you cannot tell whether your next frame is a quiet echo or a full
+whether the opponent has thrown yet, which is exactly what the masking above
+hides, so you cannot tell whether your next frame is a quiet echo or a full
 reveal with a new score. Predicting either would be wrong half the time.
 
 The board still feels instant: it holds the tapped move in widget state and
@@ -186,7 +186,7 @@ Both repos carry a byte-identical `fixtures/v1/rps.json`, and both run it:
 ```
 
 The TypeScript runner drives `applyAction` and `computeObservation` with `state`;
-the Dart runner drives the codec and `isValidAction` with **`obs`** — the acting
+the Dart runner drives the codec and `isValidAction` with **`obs`**, the acting
 seat's actual view, which for a game with fog is a different payload. A
 divergence fails a test in whichever language drifted.
 

@@ -8,12 +8,12 @@ description: Firebase ID tokens verified in-worker, guest accounts, usernames, a
 
 ## Firebase ID tokens, verified in-worker
 
-Every `/api/engine/*` request carries a Firebase ID token — as `Authorization:
+Every `/api/engine/*` request carries a Firebase ID token, either as `Authorization:
 Bearer <token>`, or as `?token=` on WebSocket upgrades (browsers can't set
 headers on upgrades). The Worker verifies it with jose against Google's
 securetoken JWKS: RS256 pinned (no algorithm confusion), issuer and audience
 checked against the configured `FIREBASE_PROJECT_ID`, expiry enforced. A failure
-is a deliberately unspecific 401 — signature, expiry, issuer, and audience
+is a deliberately unspecific 401: signature, expiry, issuer, and audience
 failures all read the same to a client ("re-authenticate").
 
 The verified claims carry the uid, `isAnonymous` (the `anonymous`
@@ -29,7 +29,7 @@ a collision-retry loop.
 
 Guests are first-class: anonymous sign-in gives a real uid and a real (ephemeral)
 account. Because `linkWithCredential` preserves the uid, guest→permanent
-conversion is an in-place backfill on the same row — the provider's display name
+conversion is an in-place backfill on the same row, and the provider's display name
 and avatar overwrite the guest's, while the stable username handle survives.
 Guest capability is deliberately narrowed: guests may play (including vs bots,
 unrated) but cannot create friends-access games or join rated games. Inactive
@@ -44,7 +44,7 @@ user changes their picture.
 
 ## The social graph
 
-Friendships, search, and blocking are **cross-game and D1-only** — they never
+Friendships, search, and blocking are **cross-game and D1-only**; they never
 touch a Durable Object. The `relationships` table stores one row per unordered
 pair in canonical order (`user_id_1 < user_id_2`) with a `status`
 (`pending` / `accepted` / `blocked`) and an `initiated_by` actor, so a single
@@ -52,7 +52,7 @@ shared row encodes the relationship and the direction of a request or block is
 recovered from `initiated_by`.
 
 - **Requests.** `POST /friends/requests {targetUserId}` inserts a `pending`
-  row — unless the target already has a pending request out to the caller, in
+  row, unless the target already has a pending request out to the caller, in
   which case it **auto-accepts** (sending back is accepting). `accept`
   transitions the request the *other* party initiated. `DELETE /friends/{id}`
   is the single idempotent unfriend / withdraw / decline. All writes require a
@@ -66,11 +66,11 @@ recovered from `initiated_by`.
   relationship with the caller, ranked exact → prefix → substring. `LIKE` today,
   D1 FTS5 later; the `%` wildcard is stripped so a caller can't force a scan.
 - **Discovery.** `GET /friends/games` lists joinable games created by the
-  caller's accepted friends — the lobby that makes `friends`-access games
+  caller's accepted friends, the lobby that makes `friends`-access games
   reachable.
 
 Friend-event pushes (`friend_request`, `friend_accepted`) fire from the route
 through the shared, required FCM path. Because these
 run in a **stateless Worker** (not the always-alive DO), they ride
-`executionCtx.waitUntil` so a slow FCM call never delays the response — the one
+`executionCtx.waitUntil` so a slow FCM call never delays the response, the one
 place the engine uses `waitUntil` deliberately.

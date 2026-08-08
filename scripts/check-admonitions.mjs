@@ -11,7 +11,7 @@
  * during preprocessing, but that shim lives behind `markdown.mdx1Compat.admonitions`,
  * and `future.v4: true` in docusaurus.config.ts turns the whole mdx1Compat block
  * off. Without the rewrite, `remark-directive` does not recognise a directive
- * name followed by bare text, so the block is not a directive at all — it falls
+ * name followed by bare text, so the block is not a directive at all; it falls
  * through to an ordinary paragraph and the page ships `:::tip` as visible text.
  *
  * This check exists because nothing else catches that. It is not a parse error,

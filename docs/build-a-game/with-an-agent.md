@@ -6,7 +6,7 @@ description: The Claude Code skill for writing EigenInteractive games, the retri
 
 # Working with an agent
 
-A game is a small, sharply-specified module — six pure functions and a widget —
+A game is a small, sharply-specified module of six pure functions and a widget,
 which is the kind of thing a coding agent does well, provided it knows the
 contract. Two things make that true rather than hopeful: a skill that states the
 contract, and a retrieval surface so the agent reads current documentation
@@ -22,7 +22,7 @@ The engine repository is a plugin marketplace. Install it once:
 ```
 
 That adds the `building-a-game` skill, which loads when the work is writing or
-reviewing an EigenInteractive game — implementing rules, adding a schema
+reviewing an EigenInteractive game: implementing rules, adding a schema
 version, writing a
 bot brain, or debugging a rejected move. It carries the parts of this contract
 that are easy to get wrong and expensive to discover late: the four invariants,
@@ -34,7 +34,7 @@ drifting behind it.
 
 ## The two platforms underneath
 
-The skill above covers the contract and nothing else — deliberately, because
+The skill above covers the contract and nothing else, deliberately, because
 the two halves it sits between are ordinary Cloudflare Workers and ordinary
 Flutter, and both platforms publish their own official skills. Installing them
 alongside is what makes an agent useful on the other 90% of a game repository:
@@ -46,7 +46,7 @@ rebuilds too often.
 ```
 
 Cloudflare's covers Workers, Durable Objects, Wrangler and the Agents SDK, and
-brings MCP servers that search Cloudflare's live documentation — which matters
+brings MCP servers that search Cloudflare's live documentation, which matters
 here for the same reason the retrieval surface below does. It is listed in the
 marketplace Claude Code already knows about, so there is nothing to add first.
 
@@ -75,7 +75,7 @@ work from what the engine does *now*:
 | Any page as Markdown | append `.md` to its URL |
 | The HTTP contract | [`/openapi.json`](pathname:///openapi.json) |
 
-The generated HTTP reference is deliberately excluded from the `llms` bundles —
+The generated HTTP reference is deliberately excluded from the `llms` bundles:
 those pages are component trees, and the raw spec is the better input.
 
 Worth putting in your project's `AGENTS.md` or `CLAUDE.md`: an instruction to
@@ -93,7 +93,7 @@ produces code that looks correct and passes a casual read:
   A hand-written `if (playerIndex !== state.turn)` is not a safety net; it is a
   second, divergent source of truth. See [The hooks](./hooks.md).
 - **Reaching for wall-clock time or `Math.random()`.** Determinism is not a
-  style preference here — replay, reconnection and optimistic preview all
+  style preference here; replay, reconnection and optimistic preview all
   depend on it. Randomness comes from the injected `rng`, drawn in a fixed
   order.
 - **Branching on `schemaVersion` inside a hook.** The engine resolves the
@@ -117,11 +117,11 @@ rather than shipping as a UI that greys out the wrong button:
 
 ```bash
 pnpm run contract:check   # from the repository root
-pnpm test                 # in server/ — the TypeScript half
-flutter test              # in app/ — the Dart half, on the same fixtures
+pnpm test                 # in server/, the TypeScript half
+flutter test              # in app/, the Dart half, on the same fixtures
 ```
 
-Ask for fixtures alongside rules, not after them — at minimum one legal move
+Ask for fixtures alongside rules, not after them: at minimum one legal move
 with its expected observation, one illegal move, one game-ending move, and a
 case for each `ratingPool` and `botSeatable` branch. A generated hook with no
 fixture is the part of the diff to read closely; a generated hook with a fixture

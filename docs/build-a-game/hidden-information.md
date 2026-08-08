@@ -27,12 +27,12 @@ your
 
 Work through Rock–Paper–Scissors. Both players commit "simultaneously":
 
-- Player 0 commits. The state changes and the version bumps — but because
+- Player 0 commits. The state changes and the version bumps, but because
   `computeObservation` **hides player 1's commit and masks player 1's pending
   status**, *player 1's projected view is unchanged*. So player 1's in-flight
   commit, computed against the older version, still lands. Order does not matter.
 - When the *second* commit resolves the round, the reveal (`lastRound`, the new
-  `wins`) changes *every* seat's view — so any submission still computed against
+  `wins`) changes *every* seat's view, so any submission still computed against
   the pre-resolution round is correctly rejected.
 
 You never wrote a lock, a "both players ready" check, or a retry. You chose what
@@ -41,7 +41,7 @@ using `passthroughObservation` gets the *strict* policy automatically: any
 opponent move changes everyone's view, so no stale submission survives.
 
 Two invariants to rely on: versions stay strictly serial (the rule governs
-*acceptance*, never ordering — every accepted move is still the next version),
+*acceptance*, never ordering; every accepted move is still the next version),
 and a seat's projection must stay truthful about itself, which the engine
 enforces.
 
@@ -52,7 +52,7 @@ enforces.
 There is no client-side masking to write, because the hidden data never arrives.
 `computeObservation` runs on the server; what it omits is absent from the bytes.
 The only client-side consequence is that the observation shape can differ by
-audience — RPS carries `yourMove` live and `commits` in replay — so the codec
+audience (RPS carries `yourMove` live and `commits` in replay) so the codec
 accepts both. That is covered in
 [Payload types](./schemas.md#modelling-the-observation).
 
@@ -70,24 +70,24 @@ in `frame.pendingPlayers`, never the opponent's. So:
 
 `previewAction` is the game's optimistic projection of its own next observation,
 and returning `null` means "this move is server-driven". Null is always a correct
-answer — never drift, never a gap in the implementation.
+answer, never drift and never a gap in the implementation.
 
 RPS returns null unconditionally, and the reason is exactly the masking above.
 After you throw, you cannot tell which of two futures you are in: the opponent
 has not thrown yet, so your next frame just echoes `yourMove`; or they threw
 first, so your throw resolves the round and your next frame is a full reveal with
 a new score. Predicting either is wrong half the time, and a prediction that is
-wrong half the time is worse than none — it shows a reveal that never happened.
+wrong half the time is worse than none: it shows a reveal that never happened.
 
 ```dart
-/// Always null — RPS cannot predict its own next observation, and saying so
+/// Always null. RPS cannot predict its own next observation, and saying so
 /// is the correct answer rather than a gap.
 @override
 RpsV1Observation? previewAction({ /* … */ }) => null;
 ```
 
 The board still feels instant. It holds the tapped move in widget state and
-resolves it against the `ActionSubmitResult` the submit returns — optimism about
+resolves it against the `ActionSubmitResult` the submit returns: optimism about
 *your own action*, which you can always know, rather than about *the resulting
 position*, which here you cannot. See
 [Rendering](./rendering.md#optimistic-preview).

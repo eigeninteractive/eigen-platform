@@ -14,7 +14,7 @@ the company landing page and games showcase. Built with
 ```bash
 pnpm install
 pnpm start       # dev server
-pnpm build       # production build — this is also the link checker
+pnpm build       # production build, and also the link checker
 pnpm lint
 pnpm typecheck
 ```
@@ -26,7 +26,7 @@ reference is regenerated.
 
 ## Deployment
 
-Cloudflare Workers Builds watches `main` directly and deploys on every push —
+Cloudflare Workers Builds watches `main` directly and deploys on every push, so
 there's no deploy step to run from here. The site is a static-assets-only
 Worker (see `wrangler.jsonc`), served entirely by Cloudflare's asset server.
 

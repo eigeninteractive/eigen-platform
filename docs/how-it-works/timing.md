@@ -22,7 +22,7 @@ without touching any player's bank.
 
 After every transition the kernel computes the next `deadline` and
 `turnStartedAt` by a fixed precedence chain (all instants are injected epoch
-milliseconds — the kernel never reads a clock):
+milliseconds, since the kernel never reads a clock):
 
 1. **Game over** → both `null` (no deadline).
 2. **Hook per-action override** (`envelope.turnSeconds = N`) → `now + N·1000`,
@@ -47,13 +47,13 @@ request *arrives*, not when the player tapped, so a move made on time can land
 just past the deadline through pure network latency. One grace constant in the
 kernel (`DEADLINE_GRACE_MS = 750ms`) compensates, with exactly two call sites: the
 kernel accepts an action while `now ≤ deadline + grace`, and the DO arms its alarm
-at `deadline + grace`. Whichever arrives first — the latent action or the alarm —
+at `deadline + grace`. Whichever arrives first, the latent action or the alarm,
 commits; the loser sees already-advanced state and no-ops. When the alarm fires it
 commits a `timeout` lifecycle with a deterministic `commandId` (so a double-fire
 dedupes, and a real move that arrived first simply wins).
 
 The grace forgives **acceptance, not time charged**: in budget mode the elapsed
-deduction still runs, so flag-fall is honoured — a player whose bank hits 0 can
+deduction still runs, so flag-fall is honoured: a player whose bank hits 0 can
 overrun by at most the grace and still have that final move counted (bounded and
 self-limiting). This replaced an older three-place race symmetry with one
 constant.
@@ -61,8 +61,8 @@ constant.
 :::tip[There is no timeout-sweep cron]
 
 Because the alarm is a durable, per-game, platform-retried timer, the periodic
-scan for overdue turns that a database-backed engine needs simply evaporates —
-the database has no per-row timer, but the DO alarm *is* that timer.
+scan for overdue turns that a database-backed engine needs simply evaporates.
+The database has no per-row timer, but the DO alarm *is* that timer.
 
 The deadline alarm is the **only** code that sets an alarm on the DO. A stray
 `setAlarm` elsewhere would silently disarm a turn deadline.

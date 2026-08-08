@@ -1,15 +1,15 @@
 ---
 sidebar_position: 4
 title: Branding & the website
-description: One set of source images becomes the app icon, the splash, the web assets and the game's whole public website — plus the legal documents you must actually read.
+description: One set of source images becomes the app icon, the splash, the web assets and the game's whole public website, plus the legal documents you must actually read.
 ---
 
 # Branding & the website
 
 Branding is app-owned: the engine ships none, because it has no app to ship. What
-it does do is make **one set of source images** serve everything — the app icon,
-the splash, the web assets, and the game's public website — so nothing is
-authored twice.
+it does do is make **one set of source images** serve everything: the app icon,
+the splash, the web assets, and the game's public website. Nothing is authored
+twice.
 
 Author the marks in any vector tool and export the PNG sources below; every
 platform-specific size is generated from them.
@@ -18,13 +18,13 @@ platform-specific size is generated from them.
 
 A scaffolded game ships with the EigenInteractive mark and seed colour, so it
 looks deliberate before you have drawn anything. Swapping in your own is these
-seven steps, in this order — the later ones consume what the earlier ones write:
+seven steps, in this order, because the later ones consume what the earlier ones write:
 
 1. **Replace the sources** in `app/assets/icon/`: `icon.png` and
    `icon_foreground.png` at 1024 × 1024, and `splash.png` / `splash_dark.png`
    if your splash mark differs. See [the app icon](#the-app-icon) for what the
    foreground has to keep clear of.
-2. **Match the colours in `app/pubspec.yaml`** —
+2. **Match the colours in `app/pubspec.yaml`**:
    `flutter_launcher_icons.adaptive_icon_background` and every
    `flutter_native_splash` colour. [These cannot read Dart](#the-splash), so
    nothing keeps them in step with your theme but you.
@@ -35,7 +35,7 @@ seven steps, in this order — the later ones consume what the earlier ones writ
    dart run flutter_native_splash:create
    ```
 
-4. **Set the seed** in `app/lib/main.dart` — `Branding(seedColor: …)` — and, if
+4. **Set the seed** in `app/lib/main.dart`, `Branding(seedColor: …)`, and, if
    you have configured a `site`, its `primaryColor` in `server/src/index.ts`.
    Material 3 rebuilds both schemes from the seed, so this one value is the
    app's whole palette.
@@ -63,7 +63,7 @@ Two 1024 × 1024 PNGs in `assets/icon/`. They are build-time inputs, so they are
 
 | File | Notes |
 |---|---|
-| `icon.png` | Full square icon, artwork edge-to-edge, opaque. Used for iOS, macOS, web and the legacy Android icon. iOS rejects alpha — set `remove_alpha_ios: true` if the source has any. |
+| `icon.png` | Full square icon, artwork edge-to-edge, opaque. Used for iOS, macOS, web and the legacy Android icon. iOS rejects alpha, so set `remove_alpha_ios: true` if the source has any. |
 | `icon_foreground.png` | Adaptive-icon foreground: the mark alone on **transparent**, inside the inner ~66%. Android masks it to a circle or squircle and parallaxes it, so anything near the edge is cropped. Also reused as the splash image. |
 
 `dart run flutter_launcher_icons` writes the Android mipmaps and adaptive XML,
@@ -90,7 +90,7 @@ Two things to know:
 
 For a splash mark that differs from the launcher icon, add
 `assets/splash/logo.png` (plus `logo_dark.png`) at 1152 × 1152 with artwork
-inside the inner 640 px — the outer ring is cropped by Android 12's circular
+inside the inner 640 px, because the outer ring is cropped by Android 12's circular
 mask.
 
 ## The app's web build
@@ -101,17 +101,17 @@ carries Flutter's default `#0175C2`. Replace all of them.
 
 Flutter's web template also has **no Open Graph tags**, so a pasted link renders
 as a bare URL. Add `og:*` and `twitter:*` to `<head>`, with `og:image` an
-**absolute** URL at 1200 × 630 (`web/og-image.png`) — a relative `og:image` is
+**absolute** URL at 1200 × 630 (`web/og-image.png`). A relative `og:image` is
 the usual reason a preview renders blank, since scrapers do not resolve them.
 Keep text centred; some clients crop to a square. Verify with the Facebook
-Sharing Debugger after deploying, and re-scrape after changes — both it and Slack
+Sharing Debugger after deploying, and re-scrape after changes, since both it and Slack
 cache hard.
 
 ## The game's website
 
 The Worker's `site` block generates the rest of the game's public web presence,
-and **it consumes exactly the files above** — no second icon set, no extra
-artwork:
+and **it consumes exactly the files above**, with no second icon set and no
+extra artwork:
 
 | Route | What it is |
 |---|---|
@@ -135,7 +135,7 @@ site: {
 ```
 
 The point is that you get a complete, indexable, store-compliant site by
-configuration — the alternative is every game hand-rolling the same four pages
+configuration. The alternative is every game hand-rolling the same four pages
 and getting the store requirements subtly wrong.
 
 Absolute URLs in canonical links, OG tags and the sitemap are built from the
@@ -145,7 +145,7 @@ host, disable the `workers.dev` route in production. Store buttons come from you
 `SoftwareApplication` JSON-LD with `applicationCategory: "GameApplication"`.
 
 Every page ends in a footer carrying your copyright, the three legal links, and
-a credit line — `Built with EigenInteractive`, where only the name is a link.
+a credit line, `Built with EigenInteractive`, where only the name is a link.
 Set `madeByCredit` to your own string, or to `null` to drop it:
 
 ```ts
@@ -154,7 +154,7 @@ site: { /* … */ madeByCredit: null },
 
 A custom credit that still names EigenInteractive keeps the link on that word;
 one that does not renders as plain text. Every link the engine puts on these
-pages — legal, store buttons, the credit — opens in a new tab, so a visitor
+pages (legal, store buttons, the credit) opens in a new tab, so a visitor
 mid-download does not lose the page.
 
 ### Before `site` is configured
@@ -165,7 +165,7 @@ not mounted, so the footer carries only the credit until you fill in `operator`.
 
 The page also waits for a Flutter web build to reach `public/` before it shows
 your app icon or a "Play on the web" button, because both would otherwise be
-broken — the icons ship inside that bundle, and `/` would bounce straight back
+broken: the icons ship inside that bundle, and `/` would bounce straight back
 to `/download`. Until then it stands the EigenInteractive mark in for the icon,
 drawn in your `primaryColor`, exactly as the Flutter shell defaults to the
 EigenInteractive seed and credit. Run `pnpm run build:web` and your own icon
@@ -198,7 +198,7 @@ file in the whole pipeline, and the app's own share card already asks for it.
 
 All three default to templates the engine ships. They take your `operator` block
 as **typed props**, so there are no placeholders to fill in and nothing to keep
-in sync — a mistyped field is a compile error. They describe **only what the
+in sync, and a mistyped field is a compile error. They describe **only what the
 engine itself collects**: accounts, display names, optional avatars, game
 history, ratings, friend connections, push tokens and crash diagnostics.
 
@@ -212,11 +212,11 @@ delete-account steps describe the reference Flutter shell's Settings screen.
 
 :::
 
-To supply your own prose, pass an HTML **fragment** — body content only, since
+To supply your own prose, pass an HTML **fragment**, body content only, since
 the engine supplies the shell, styling and footer:
 
 ```jsonc
-// wrangler.jsonc — lets you import .html files as strings
+// wrangler.jsonc: lets you import .html files as strings
 "rules": [{ "type": "Text", "globs": ["**/*.html"], "fallthrough": true }]
 ```
 
@@ -244,7 +244,7 @@ use the typed `site.legal` fragments above.
       regenerate
 - [ ] `flutter_native_splash:` colours match the theme → regenerate
 - [ ] *(optional)* `ic_notification.xml` declared to override `eigen_flutter`'s
-      default silhouette — notifications work without it
+      default silhouette; notifications work without it
 - [ ] `web/index.html`: real title, description and OG/Twitter tags, absolute
       `og:image`; `web/og-image.png` at 1200 × 630
 - [ ] `web/manifest.json`: real `name`, `short_name`, `description`,
@@ -252,4 +252,4 @@ use the typed `site.legal` fragments above.
 - [ ] `pnpm run build:web` places the complete Flutter bundle in Worker assets
 - [ ] `site.operator` filled in, and the three legal documents actually read
 - [ ] App Links `<intent-filter>` carries an `android:pathPrefix` for both
-      `/join` and `/game` — see [Deep links](./deep-links.md)
+      `/join` and `/game`; see [Deep links](./deep-links.md)

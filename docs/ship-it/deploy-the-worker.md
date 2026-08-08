@@ -31,7 +31,7 @@ export default createEngine({
   appName: "Rock Paper Scissors",
   d1:     (env: Env) => env.MY_D1,
   gameDO: (env: Env) => env.GAME_DO,
-  // Optional feature blocks — omit to leave a feature off:
+  // Optional feature blocks, omit to leave a feature off:
   // deepLink:  { android: {…}, apple: {…} },
   // avatars:   { bucket: (env) => env.AVATARS },
   // site:      { tagline: "…", primaryColor: "#…", operator: {…} },
@@ -39,15 +39,15 @@ export default createEngine({
 });
 ```
 
-You pass **accessors, not binding names** — the engine reads each binding off
+You pass **accessors, not binding names**. The engine reads each binding off
 *your* `Env`, so you can call them whatever you like in `wrangler.jsonc`, and the
 config's type parameters infer from the accessors.
 
 ## What `wrangler.jsonc` declares
 
 The `GameDO` Durable Object (SQLite storage, via the `exports` field), your D1
-database, a daily `cron` trigger (the lifecycle backstop), `nodejs_compat`, and —
-if you use them — an R2 bucket for avatars and a `public/` assets directory. Set
+database, a daily `cron` trigger (the lifecycle backstop), `nodejs_compat`, and,
+if you use them, an R2 bucket for avatars and a `public/` assets directory. Set
 the required Firebase trio (`FIREBASE_PROJECT_ID`,
 `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`) from the same project used
 by the app. Set `WEB_APP_ORIGIN` for absolute web-notification links and as the
@@ -58,7 +58,7 @@ non-standard browser origins. Add `BOT_SIGNING_SECRET` to enable external bots.
 You do **not** write D1 migrations. The engine owns its schema and ships them;
 you apply them at deploy. The per-game Durable Object schema self-applies. If you
 need your own app-specific tables, that is a *separate* D1 database with its own
-migrations — never the engine's.
+migrations, never the engine's.
 
 The full binding table is in [Configuration](./configure.md).
 
@@ -75,7 +75,7 @@ pnpm -r test
 pnpm -r typecheck
 
 cd examples/rps         # or your own worker
-pnpm dev                # wrangler dev — local DO, D1, R2 and cron simulation
+pnpm dev                # wrangler dev: local DO, D1, R2 and cron simulation
 ```
 
 Three things make that true:
@@ -97,22 +97,22 @@ Three things make that true:
 :::tip[Tests run in the real runtime]
 
 Tests run under `@cloudflare/vitest-pool-workers`, inside the real `workerd`
-runtime — so a passing test has exercised the actual input gate, the actual
+runtime, so a passing test has exercised the actual input gate, the actual
 SQLite and the actual alarm scheduler, not a mock of them.
 
 :::
 
 ## Rate limiting (optional)
 
-The engine per-user rate-limits the write endpoints that are cheap to spam — game
-creation, friend requests, user search and avatar uploads — using the Workers
+The engine per-user rate-limits the write endpoints that are cheap to spam (game
+creation, friend requests, user search and avatar uploads) using the Workers
 [`ratelimit`](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/)
 binding. It is **off until you bind it, and needs no code**: the engine resolves
 each limiter by a fixed binding name, so declaring the block below is the entire
 setup. A limiter you do not bind is simply unlimited.
 
 ```jsonc
-// wrangler.jsonc — recommended starting values
+// wrangler.jsonc: recommended starting values
 "ratelimits": [
   { "name": "EIGEN_RATE_LIMIT_AVATAR_UPLOAD",  "namespace_id": "1001", "simple": { "limit": 5,  "period": 60 } },
   { "name": "EIGEN_RATE_LIMIT_GAME_CREATE",    "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
@@ -121,13 +121,13 @@ setup. A limiter you do not bind is simply unlimited.
 ]
 ```
 
-The **`name`** must match exactly — that is how the engine finds the binding. The
+The **`name`** must match exactly; that is how the engine finds the binding. The
 **`limit`/`period`** are yours to tune; the engine never reads them, the platform
 enforces them, and `period` may only be `10` or `60`. Each **`namespace_id`** is
 a positive integer that **must be unique within your Cloudflare account**, since
 ids are account-scoped and reusing one across two Workers makes them share
 counters. A limited caller gets `429` with `code: "rateLimited"` and a
-`Retry-After` header. The binding is per-colo and eventually consistent — an
+`Retry-After` header. The binding is per-colo and eventually consistent: an
 abuse dampener, not a hard quota.
 
 ## Deploying
@@ -144,7 +144,7 @@ schema. Secrets persist across deploys and do not need re-setting.
 
 ### First-deploy checklist
 
-- [ ] `FIREBASE_PROJECT_ID` set to the real project — an empty value 500s every
+- [ ] `FIREBASE_PROJECT_ID` set to the real project; an empty value 500s every
       authed request and is the single most common misconfiguration.
 - [ ] `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` stored as Worker
       secrets from that same project's service-account JSON. Missing values
@@ -155,7 +155,7 @@ schema. Secrets persist across deploys and do not need re-setting.
 - [ ] Cron trigger declared. Without it the guest purge and abandoned-game reap
       never run, and untimed abandoned games accumulate forever.
 - [ ] `deepLink` block filled with the **release** signing cert's SHA-256 and the
-      real store URLs, matching the app's own declarations — see
+      real store URLs, matching the app's own declarations; see
       [Deep links](./deep-links.md).
 - [ ] Bots inserted for any game that offers solo play.
 - [ ] If avatars are enabled: `wrangler r2 bucket create`. **This is the point a
@@ -164,19 +164,19 @@ schema. Secrets persist across deploys and do not need re-setting.
 
 ### What `/health` proves
 
-`GET /health` is public, unauthed and returns `{"status":"ok"}` — the thing to
+`GET /health` is public, unauthed and returns `{"status":"ok"}`. It is the thing to
 curl after a deploy, and the endpoint to point an uptime monitor at.
 
 Be clear about what it proves: **the Worker is deployed and routable, nothing
-more.** It performs no I/O by design — no D1 query, no Durable Object wake, no
-config disclosure — which is exactly what makes it safe to leave open. It costs
+more.** It performs no I/O by design (no D1 query, no Durable Object wake, no
+config disclosure), which is exactly what makes it safe to leave open. It costs
 one invocation, the same as the 404 any unknown path already returns, so it adds
 no amplification surface and needs no rate limiting. It answers 200 even with a
 garbage `Authorization` header, so a monitor never mistakes an auth problem for
 an outage, and it is served `no-store` so a cached 200 cannot keep reporting
 healthy after the Worker stops being able to serve.
 
-What it therefore does **not** catch is the most common misconfiguration —
+What it therefore does **not** catch is the most common misconfiguration:
 missing Firebase project or Admin values, which 500 every authed request while
 `/health` stays green. Verifying that needs a real authed call, which is why the
 checklist leads with it. A deeper readiness check that pinged D1 and asserted

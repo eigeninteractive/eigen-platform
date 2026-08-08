@@ -5,8 +5,8 @@
  *
  * Smaller than the 200px illustrations these replaced, and smaller again inside
  * a card: line art at that size reads as an empty box rather than an icon.
- * `color` is what the inline SVGs draw with — they are all
- * `stroke="currentColor"` — so the theme's primary carries them in both light
+ * `color` is what the inline SVGs draw with (they are all
+ * `stroke="currentColor"`) so the theme's primary carries them in both light
  * and dark mode with nothing to override.
  */
 .featureIcon {
