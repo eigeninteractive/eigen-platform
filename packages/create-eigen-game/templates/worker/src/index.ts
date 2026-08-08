@@ -19,7 +19,7 @@ export default createEngine({
   // tagline, screenshots and structured data, and /terms, /privacy and
   // /delete-account start serving the engine's default documents with your
   // details in them. The app stores require all three, so this is not optional
-  // for long — but read what they say before you publish, because you are the
+  // for long, but read what they say before you publish, because you are the
   // one on the hook for it. https://eigeninteractive.com/docs/ship-it/branding
   //
   // site: {

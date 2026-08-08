@@ -63,8 +63,8 @@ fetches its platform binary, and `workerd` is the runtime `vitest` and
 the file entirely, so the scaffold is correct under both.
 
 `minimumReleaseAgeExclude` appears on its own. pnpm 11 will not install a
-version published less than a day ago — a quarantine against a compromised
-publish — and the engine packages are subject to it like any other dependency.
+version published less than a day ago, a quarantine against a compromised
+publish, and the engine packages are subject to it like any other dependency.
 When a range can only be satisfied by a release younger than that, as `^0.3.0`
 is on the day 0.3.0 ships, pnpm installs it anyway and records the exact
 version it allowed. Each entry names one version, so the exemption expires with

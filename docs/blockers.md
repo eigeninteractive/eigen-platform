@@ -4,7 +4,7 @@ Upstream limitations that force temporary compatibility choices, across every
 EigenInteractive repository. It is for engine maintainers, not game implementors.
 
 One file rather than one per repository, because these are read at the same
-moments — planning a release, or deciding whether an upstream package has moved
+moments: planning a release, or deciding whether an upstream package has moved
 far enough to act on. A blocker in `eigen_flutter` and a blocker in the release
 pipeline both answer "what are we still working around?", and splitting them by
 repository only meant neither list got re-checked.
@@ -27,7 +27,7 @@ even when nothing has changed.
 **Status:** Adopted deliberately. `release.yml` pins the `select-mode`,
 `version`, `pack` and `publish` sub-actions to commit
 `c47fa68bd43bb8ae0bae7e558622593deebf5955` (`v2.0.0-next.3`). Move to a stable
-`v2` tag when one is published. Last checked: 2026-08-05 — still none. The line
+`v2` tag when one is published. Last checked: 2026-08-05, still none. The line
 advanced to `v2.0.0-next.4` on 2026-08-03; the newest non-prerelease is
 `v1.9.0`.
 
@@ -41,7 +41,7 @@ is now no npm credential anywhere in the pipeline.
 That alternative is also closing. npm [restricted bypass-2FA
 tokens][npm-bypass-restrict] on 2026-07-31 and has announced that they lose
 direct publish access in January 2027. Trusted publishing is becoming the only
-supported way to publish from CI, so this is not a preference to revisit —
+supported way to publish from CI, so this is not a preference to revisit;
 only the pinned prerelease below is.
 
 The prerelease risk is bounded rather than absent:
@@ -49,7 +49,7 @@ The prerelease risk is bounded rather than absent:
 - **Pinned by commit, so it cannot shift underneath us.** The usual hazard of a
   `next` line does not apply.
 - **Changesets runs this exact layout in production** to publish its own
-  packages — 52 of its last 60 runs succeeded when checked.
+  packages: 52 of its last 60 runs succeeded when checked.
 - **The failures observed upstream were in pre-mode handling**
   (`ENOENT: .changeset/pre/changes.md` in `select-mode`), which only executes
   after `changeset pre enter`. This repo does not use prerelease mode.
@@ -60,15 +60,15 @@ The prerelease risk is bounded rather than absent:
 The known cost is that inputs are still moving: v1's `version:` input is already
 renamed to `script:` on this line, and `next.4` removed `setup-git-user` and
 replaced `commit-mode` with a boolean `push-with-git-cli`. Neither reaches
-`release.yml`, which passes only `github-token` — the one input `next.4` now
+`release.yml`, which passes only `github-token`, the one input `next.4` now
 requires to be explicit, since it stops accepting the `GITHUB_TOKEN` environment
 variable and `actions/checkout` credentials as substitutes. Expect input
-adjustments when migrating to stable, not a re-architecture — the four-job
+adjustments when migrating to stable, not a re-architecture: the four-job
 topology is the part being bought, and that is settled.
 
 This pin has a second half. `@changesets/cli` is pinned to `3.0.0-next.10`
 because `select-mode` calls `changeset publish-plan`, which does not exist on
-the stable 2.x line. Both move together or neither does — and `next.4` now
+the stable 2.x line. Both move together or neither does, and `next.4` now
 *enforces* that, failing outright against a v2 CLI and directing those projects
 to `changesets/action@v1`. The CLI has not stabilised either: `latest` is
 `2.31.1` and `next` is `3.0.0-next.11`.
@@ -82,7 +82,7 @@ to `changesets/action@v1`. The CLI has not stabilised either: `latest` is
 3. Replace the four pinned commits with the stable ref.
 4. Move `@changesets/cli` to the matching stable release, and confirm
    `changeset publish-plan` exists there before dropping the prerelease pin.
-5. Verify with a real release, not a dry run — the publish path is the one that
+5. Verify with a real release, not a dry run. The publish path is the one that
    cannot be exercised any other way.
 
 #### Related constraints that are NOT blockers
@@ -111,14 +111,14 @@ Upstream references:
 - [npm: trusted publishers][npm-trusted]
 - [npm: classic tokens revoked][npm-classic-revoked]
 - [Changesets' own publish workflow][cs-publish-yml]
-- [changesets/action#515 — separate publish workflow for OIDC][ca-515]
+- [changesets/action#515, separate publish workflow for OIDC][ca-515]
 
 ## `eigen-flutter`
 
 ### Flutter Android built-in Kotlin migration
 
 **Status:** Blocked on a compatible `in_app_review` release and a project
-upgrade to Flutter 3.47 or later. Last checked: 2026-08-05 — neither has moved.
+upgrade to Flutter 3.47 or later. Last checked: 2026-08-05, neither has moved.
 `in_app_review` is still 2.0.12 (published 2026-05-15), and 3.47 has not reached
 stable: the current stable is 3.44.8 and 3.47 exists only on beta
 (`3.47.0-0.3.pre`).
@@ -151,7 +151,7 @@ SDK. That would select an unsupported configuration while
    new major version.
 3. Upgrade the development and CI Flutter SDKs to 3.47 or later. The pinned
    version is `eigen-flutter/.fvmrc`, which CI reads through
-   `flutter-version-file` — changing it moves both at once.
+   `flutter-version-file`; changing it moves both at once.
 4. Follow Flutter's app migration guide: enable built-in Kotlin, remove the
    temporary opt-out properties, and remove obsolete Kotlin plugin/version
    declarations from generated Android apps.

@@ -24,13 +24,13 @@ so passing the flag skips the question:
 | Emit the GitHub Actions workflows | `--workflows`, `--no-workflows` |
 | Which package manager the generated scripts use | `--package-manager npm\|pnpm` |
 
-The package manager is only asked when nothing else can say — `npm create` and
+The package manager is only asked when nothing else can say. `npm create` and
 `pnpm create` both announce themselves. The Firebase question only appears when
 the `firebase` and `flutterfire` CLIs are not both installed and signed in, and
 its default is to stop rather than scaffold, since a scaffolded app throws
 `Firebase is not configured` at launch until a project is connected.
 
-With no terminal to ask on — CI, a pipe, an agent session — an unanswered
+With no terminal to ask on (CI, a pipe, an agent session) an unanswered
 question is an error rather than a default chosen where nobody can see it, and
 the message prints the whole command to re-run with each default filled in.
 `--org` is why: `com.example.my_game` is permanent once Google Play has taken

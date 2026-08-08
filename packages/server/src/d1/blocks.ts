@@ -1,5 +1,5 @@
 /**
- * Block enforcement — the interaction and visibility effects of a `blocked`
+ * Block enforcement: the interaction and visibility effects of a `blocked`
  * relationship, shared by the read filters (lobby, friends' games) and the
  * seating boundary (join / join-by-code).
  *
@@ -10,7 +10,7 @@
  * - **Forward-only.** Nothing here touches a game already in progress; the
  *   effects gate future visibility and future seating, never eviction.
  * - **Never redacts history.** Finished games and the `players?ids=` identity
- *   lookup are untouched — you already played a blocked user, and rewriting
+ *   lookup are untouched: you already played a blocked user, and rewriting
  *   that record would break rendering a game you both appear in.
  *
  * The `relationships` row is stored once per unordered pair in canonical order
@@ -28,7 +28,7 @@ export function pair(a: string, b: string): { u1: string; u2: string } {
 }
 
 /** A pair-matching predicate that works regardless of which argument is
- * smaller — for the search/read paths where the candidate id is a column. */
+ * smaller, for the search/read paths where the candidate id is a column. */
 export function samePair(colA: AnyColumn, colB: AnyColumn, x: string | AnyColumn, y: string | AnyColumn) {
   return or(and(eq(colA, x), eq(colB, y)), and(eq(colA, y), eq(colB, x)));
 }

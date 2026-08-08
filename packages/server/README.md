@@ -1,7 +1,7 @@
 # <img src="https://eigeninteractive.com/brand/favicon-32.png" width="16" align="top"> @eigeninteractive/server
 
 The deployable half of the
-[EigenInteractive engine](https://eigeninteractive.com) — a server-authoritative
+[EigenInteractive engine](https://eigeninteractive.com), a server-authoritative
 engine for turn-based multiplayer games on Cloudflare Workers.
 
 One deployment is a single Worker that owns its own domain, database and
@@ -33,7 +33,7 @@ export default createEngine({
 client. Set `clientOrigins` only when a deployment needs multiple or
 non-standard browser origins.
 
-Ships the engine's D1 migrations under `migrations/` — point your
+Ships the engine's D1 migrations under `migrations/`; point your
 `migrations_dir` at `node_modules/@eigeninteractive/server/migrations` and apply them with
 `wrangler d1 migrations apply`. You never author them.
 

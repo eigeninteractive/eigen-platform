@@ -1,15 +1,15 @@
 /**
- * Account deletion & guest purge — the one path shared
+ * Account deletion & guest purge: the one path shared
  * by the `DELETE /api/engine/me` route and the cron guest sweep.
  *
  * Order is **games → Firebase → D1**, and it matters: Firebase is a separate
  * system, and our auth middleware re-provisions a `users` row on any valid
- * token — so deleting the D1 row while the Firebase account still lives would
+ * token, so deleting the D1 row while the Firebase account still lives would
  * let the very next request RESURRECT the user. We therefore:
  *
  *   1. resolve the user's live games and forfeit / cancel / leave each (a
  *      rated forfeit applies ratings while the user row still exists);
- *   2. delete the Firebase account (single attempt) — on failure we throw
+ *   2. delete the Firebase account (single attempt); on failure we throw
  *      BEFORE touching D1, so nothing is half-deleted and a retry is clean;
  *   3. run the D1 purge as one `batch()`.
  *
@@ -25,14 +25,14 @@ import { deviceInstallations, games, participants, playerRatings, ratingHistory,
 import type { FirebaseAdminEffects } from "../firebase/admin-effects.js";
 import type { Command, GameStub } from "../protocol.js";
 
-/** The engine surface the lifecycle paths need — supplied by `createEngine`
+/** The engine surface the lifecycle paths need, supplied by `createEngine`
  * (route handlers and the `scheduled` handler alike). */
 export interface EngineOps {
   d1: D1Database;
   stub(gameId: string): GameStub;
   /** Required Firebase Admin effects, real in production and explicit in tests. */
   firebaseAdmin: FirebaseAdminEffects;
-  /** The avatars R2 bucket, or null when uploads aren't enabled — the user's
+  /** The avatars R2 bucket, or null when uploads aren't enabled. The user's
    * avatar object (key = uid) is deleted on purge when present. */
   avatarBucket: R2Bucket | null;
 }
@@ -45,7 +45,7 @@ interface LiveSeat {
   seat: number;
 }
 
-/** The user's live games (waiting/ready/active) with their seat — through the
+/** The user's live games (waiting/ready/active) with their seat, through the
  * participants index. No limit: a deletion must clear every one. */
 async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]> {
   const rows = await orm(d1)
@@ -58,7 +58,7 @@ async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]
 }
 
 /** Clear the user from one live game: forfeit an active game, cancel a lobby
- * they created, else leave it. Single attempt — a failure logs and the
+ * they created, else leave it. Single attempt: a failure logs and the
  * rest of the purge continues (an orphaned seat is caught by the cron reap /
  * timeout, never blocking the account deletion). */
 async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promise<void> {
@@ -89,7 +89,7 @@ async function purgeD1(d1: D1Database, userId: string): Promise<void> {
 }
 
 /** Delete `userId` end to end. Throws only if the Firebase delete
- * fails — the D1 purge is then intentionally skipped so the account stays
+ * fails, in which case the D1 purge is skipped so the account stays
  * fully retriable (never resurrectable). The caller decides what a throw
  * means: the route surfaces an error; the cron logs and moves on. */
 export async function purgeUser(ops: EngineOps, userId: string): Promise<void> {
@@ -101,7 +101,7 @@ export async function purgeUser(ops: EngineOps, userId: string): Promise<void> {
   await purgeD1(ops.d1, userId);
 
   // Best-effort: the avatar object outlives the D1 row otherwise. A
-  // failure just leaves an orphaned blob — harmless, no identity points at it.
+  // failure just leaves an orphaned blob: harmless, no identity points at it.
   if (ops.avatarBucket !== null) {
     await ops.avatarBucket.delete(userId).catch((error) => console.error(`purge: deleting avatar for ${userId} failed`, error));
   }

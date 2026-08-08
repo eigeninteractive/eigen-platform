@@ -1,10 +1,10 @@
 /**
- * Account lifecycle — the caller deleting their own
+ * Account lifecycle: the caller deleting their own
  * account. Runs the shared {@link purgeUser} path: forfeit/cancel/leave the
  * caller's live games, delete the Firebase account, then purge D1.
  *
  * A Firebase-delete failure throws BEFORE the D1 purge (see purge.ts ordering),
- * so the account is left fully intact and retriable — we surface that to the
+ * so the account is left fully intact and retriable, and we surface that to the
  * client as a 502 rather than half-deleting.
  */
 
@@ -19,19 +19,19 @@ import { purgeUser } from "../lifecycle/purge.js";
 import { invalidateAvatarCache } from "./avatars.js";
 import { displayNameBody, errorShape, usernameBody } from "./wire.js";
 
-/** The username charset — the same one provisioning sanitizes to: lowercase
+/** The username charset, the same one provisioning sanitizes to: lowercase
  * letters, digits, underscore, and dot, 3–20 chars. */
 const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 
 /** The only UNIQUE column this UPDATE can violate is `username`, so the
- * un-narrowed {@link isUniqueViolation} is exactly right here — no column name
+ * un-narrowed {@link isUniqueViolation} is exactly right here, with no column name
  * to keep in sync with the schema. */
 const isUsernameCollision = isUniqueViolation;
 
 export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
   // The caller changes their own username (the stable handle; distinct from the
-  // provider display name). Charset-validated for a precise error, and unique —
-  // a clash is a clean 409.
+  // provider display name). Charset-validated for a precise error, and unique,
+  // so a clash is a clean 409.
   app.openapi(
     createRoute({
       method: "put",
@@ -62,7 +62,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // The caller changes their own display name — the free-form label shown
+  // The caller changes their own display name: the free-form label shown
   // beside their moves, seeded from the identity provider at provisioning.
   // Unlike the username it is neither unique nor charset-constrained, so there
   // is no failure here beyond the length bound the schema already enforces.
@@ -95,7 +95,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       responses: {
         204: { description: "The account and its data were deleted" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
-        502: { content: { "application/json": { schema: errorShape } }, description: "Deletion failed — the account is intact; retry" },
+        502: { content: { "application/json": { schema: errorShape } }, description: "Deletion failed; the account is intact, retry" },
       },
     }),
     async (c) => {
@@ -105,7 +105,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
         await purgeUser({ d1: ctx.d1(c.env), stub: (gameId) => ctx.stub(c.env, gameId), firebaseAdmin: ctx.firebaseAdmin(c.env), avatarBucket: ctx.avatars === null ? null : ctx.avatars.bucket(c.env) }, userId);
       } catch (error) {
         console.error(`delete-account for ${userId} failed`, error);
-        throw new HttpError(502, "Account deletion failed — please try again");
+        throw new HttpError(502, "Account deletion failed. Please try again");
       }
       // The R2 object is gone; drop any edge-cached copy so the (immutable)
       // versioned URL stops serving it. Awaited so deletion completes fully.

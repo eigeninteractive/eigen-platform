@@ -1,6 +1,6 @@
 # This package is 100% generated. Analysis here is a COMPILE CHECK, not a style
 # gate: it exists to catch the generator emitting Dart that does not typecheck
-# — which has happened (an undefined-class reference slipped through once). It
+# which has happened (an undefined-class reference slipped through once). It
 # does not hold generated code to the engine's lint standards.
 #
 # The two relaxations are for output the dart-dio + json_serializable templates

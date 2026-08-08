@@ -48,7 +48,7 @@
     {
       "binding": "rps_dev",
       "database_name": "rps-dev",
-      // Placeholder. Local development and the test suite never read this —
+      // Placeholder. Local development and the test suite never read this;
       // `wrangler dev` and vitest-pool-workers simulate D1 locally against the
       // binding name. Replace it with your own before deploying:
       //     wrangler d1 create rps-dev
@@ -56,7 +56,7 @@
       // Engine-owned schema, like the DO's: migrations ship inside
       // @eigeninteractive/server and `deploy` applies them before the code goes out.
       // App-custom data belongs in a SEPARATE second d1_databases entry with
-      // its own migrations_dir — never in this database.
+      // its own migrations_dir, never in this database.
       "migrations_dir": "node_modules/@eigeninteractive/server/migrations"
     }
   ],
@@ -67,13 +67,13 @@
     }
   ],
   // Per-user write rate limits. The engine wires each entry by its conventional
-  // `EIGEN_RATE_LIMIT_*` name, so no code is needed in index.ts — this block is
+  // `EIGEN_RATE_LIMIT_*` name, so no code is needed in index.ts. This block is
   // the entire setup, and the limits below are the recommended starting values.
   // The `limit`/`period` here are the source of truth (the engine reads
   // neither); `period` is 10 or 60 only. `namespace_id` is a positive integer
-  // that must be unique WITHIN your Cloudflare account — ids are account-scoped,
+  // that must be unique WITHIN your Cloudflare account, since ids are account-scoped,
   // so a value reused by another Worker would share counters. Per-colo,
-  // eventually consistent — an abuse dampener, not a hard quota.
+  // eventually consistent: an abuse dampener, not a hard quota.
   "ratelimits": [
     { "name": "EIGEN_RATE_LIMIT_AVATAR_UPLOAD", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
     { "name": "EIGEN_RATE_LIMIT_GAME_CREATE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },

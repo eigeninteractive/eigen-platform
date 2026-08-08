@@ -1,9 +1,9 @@
 /**
  * The leak test: the kernel's per-seat projection is the ONLY thing keeping
- * hidden state server-side — nothing downstream re-filters it. This
+ * hidden state server-side; nothing downstream re-filters it. This
  * drives a full lifecycle of the hidden-info version-2 game (whose raw state
  * carries `LEAK_SENTINEL`, stripped by `computeObservation`) and asserts the
- * sentinel escapes through no response body and no socket frame — live play,
+ * sentinel escapes through no response body and no socket frame: live play,
  * command responses, the summary read, and post-finish replay alike.
  */
 
@@ -50,7 +50,7 @@ describe("leak test", () => {
 
     // Play to a finish: seat 0 (A) opens, then seat 1 (B) closes it out.
     await clean(await api(a, "POST", `/games/${gameId}/action`, { seat: 0, expectedVersion: 0, data: { add: 2 } }), "action A");
-    // A pulls its own live frames mid-game — the gap-recovery path.
+    // A pulls its own live frames mid-game: the gap-recovery path.
     await clean(await api(a, "GET", `/games/${gameId}/frames?from=0`), "frames (live)");
     await clean(await api(b, "POST", `/games/${gameId}/action`, { seat: 1, expectedVersion: 1, data: { add: 2 } }), "action B");
 
@@ -63,7 +63,7 @@ describe("leak test", () => {
     ws.close();
     for (const frame of socketFrames) expect(frame, "socket frame leaked the hidden state").not.toContain(LEAK_SENTINEL);
 
-    // Sanity: the sentinel really was in play (else the test proves nothing) —
+    // Sanity: the sentinel really was in play (else the test proves nothing):
     // the hidden game reveals `count`, never `secret`.
     expect(socketFrames.some((f) => f.includes('"count"'))).toBe(true);
   });

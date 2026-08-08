@@ -1,14 +1,14 @@
 /**
  * The test worker: a minimal sequential game ("race to the target") wired
- * through a BaseGameDO subclass, exercising the full DO surface — turn
- * alternation, timing, finish, ratings — with none of a real game's noise.
+ * through a BaseGameDO subclass, exercising the full DO surface (turn
+ * alternation, timing, finish, ratings) with none of a real game's noise.
  */
 
 import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
 import { BaseGameDO, createEngine } from "../src/index.js";
 import { testFirebaseAdmin, testVerifier } from "../src/testing.js";
 
-/** The worker-side Env — the global namespace declared in env.d.ts. */
+/** The worker-side Env: the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
 
 /** Hand-rolled Standard Schema: sync validate via a predicate. */
@@ -74,12 +74,12 @@ const rules: GameRules = {
   botSeatable: () => true,
   // In-DO brains, keyed by bot username: the `test-engine-bot` always
   // adds 1, so a human-vs-bot race advances two versions per human move.
-  // Deterministic — no rng needed.
+  // Deterministic, so no rng needed.
   botActions: { "test-engine-bot": () => ({ add: 1 }) },
 };
 
 /** A second version with HIDDEN state (leak test): `secret` rides the raw
- * state through every transition but `computeObservation` never projects it —
+ * state through every transition but `computeObservation` never projects it,
  * not even in replay. `leak.spec.ts` asserts the sentinel escapes through no
  * response body or socket frame. */
 export const LEAK_SENTINEL = "SUPER-SECRET-do-not-leak-42";
@@ -121,7 +121,7 @@ const hiddenRules: GameRules = {
       ],
     };
   },
-  // Hidden-info projection: only `count` is ever revealed — `secret` never is.
+  // Hidden-info projection: only `count` is ever revealed; `secret` never is.
   computeObservation: ({ state, pending }) => ({ data: { count: (state as HiddenState).count }, pendingPlayers: pending }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
@@ -151,7 +151,7 @@ export default createEngine({
     firebaseAdmin: () => testFirebaseAdmin,
   },
   clientOrigins: ["https://app.example", "http://localhost:7357"],
-  // deep linking + avatars — exercised by web.spec.ts. Avatars use
+  // deep linking + avatars, exercised by web.spec.ts. Avatars use
   // the simulated AVATARS bucket; publicBaseUrl is left unset (the worker-serve
   // default), so avatarUrl is the relative /avatars/{uid} route.
   deepLink: {
@@ -159,13 +159,13 @@ export default createEngine({
     apple: { appId: "TEAMID1234.com.eigen.test", storeUrl: "https://apps.apple.com/app/id000000000" },
   },
   avatars: { bucket: (env: TestEnv) => env.AVATARS, maxBytes: 4096 },
-  // The public web surface — exercised by site.spec.ts. Legal documents are
+  // The public web surface, exercised by site.spec.ts. Legal documents are
   // left at the engine defaults so the tests assert the shipped prose and its
   // token substitution, not a fixture.
   site: {
     tagline: "Race an opponent to the target.",
     primaryColor: "#1a237e",
-    // canonicalOrigin deliberately omitted — the suite exercises the inferred
+    // canonicalOrigin deliberately omitted: the suite exercises the inferred
     // origin (the single-custom-domain default), so absolute URLs read as the
     // request origin (`https://x`).
     screenshots: ["one.png", "two.png"],

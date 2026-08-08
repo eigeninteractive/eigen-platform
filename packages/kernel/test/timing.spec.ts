@@ -46,7 +46,7 @@ describe("deductBank", () => {
     expect(times[0]).toBe(60_000);
   });
 
-  it("throws on a null turnStartedAt — a game bug", () => {
+  it("throws on a null turnStartedAt, which is a game bug", () => {
     expect(() => deductBank([60_000], 0, NOW, null, null)).toThrow(GameBugError);
   });
 

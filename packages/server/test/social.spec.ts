@@ -1,5 +1,5 @@
 /**
- * The social graph — friend requests, accept/auto-accept, remove, block, user
+ * The social graph: friend requests, accept/auto-accept, remove, block, user
  * search, friends' open games, and username edit. D1-only (no DO); every write
  * requires a registered caller and friend targets must be registered too.
  */

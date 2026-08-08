@@ -1,5 +1,5 @@
 /**
- * GameDO skeleton suite — the folded-in Phase 0 spike, minus the two
+ * GameDO skeleton suite: the folded-in Phase 0 spike, minus the two
  * checks only a real deploy can make (hibernation billing, forced eviction):
  * lazy init, the gated command loop, dedupe, the deadline alarm, hibernating
  * socket fan-out, and the finish sequence (compaction → outbox → D1 apply →
@@ -19,7 +19,7 @@ import { type Command, createGame, type FrameMessage } from "../src/index.js";
 import type { SyncMessage } from "../src/protocol.js";
 import { userRow } from "./factories.js";
 
-/** Typed D1 access for seeds and assertions — the DO's own SQLite is
+/** Typed D1 access for seeds and assertions. The DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
  * what is physically on disk beneath the ORM. */
 const db = orm(env.DB);
@@ -36,7 +36,7 @@ let gameCounter = 0;
  * (the waiting room is a later milestone). */
 async function seedGame(opts: SeedOptions = {}): Promise<string> {
   const gameId = `game-${++gameCounter}-${crypto.randomUUID()}`;
-  // Both seats have real `users` rows, as any authed player would — the finish
+  // Both seats have real `users` rows, as any authed player would, so the finish
   // apply's purge guard only rates identities that still exist.
   await db
     .insert(users)
@@ -274,7 +274,7 @@ describe("finish sequence", () => {
     await db.delete(games).where(eq(games.id, gameId));
 
     await playToFinish(gameId, stub);
-    // The waitUntil apply fails (no games row); outbox must survive — and
+    // The waitUntil apply fails (no games row); outbox must survive, and
     // with it the uncompacted live tables (they drain together).
     await runInDurableObject(stub, async (_i, state) => {
       await vi.waitFor(() => {

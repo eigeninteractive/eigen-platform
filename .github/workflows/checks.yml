@@ -11,14 +11,14 @@ name: Checks
 #
 # `workflow_call` re-executes these jobs; it does not look up whether they
 # already passed on this SHA (GitHub has no such mechanism, and it would be the
-# wrong thing anyway — main is a different commit from the PR head as soon as
+# wrong thing anyway: main is a different commit from the PR head as soon as
 # anything else merges). What is shared is the definition, not the run.
 on:
   pull_request:
     branches: [main]
   workflow_call:
 
-# Correctness only — this workflow never deploys and needs no Cloudflare
+# Correctness only. This workflow never deploys and needs no Cloudflare
 # credentials. Deploying is a deliberate `pnpm --filter <worker> deploy` from a
 # machine with `wrangler login`, because it applies D1 migrations against a real
 # database. Nothing here talks to the network beyond the package registry.
@@ -27,11 +27,11 @@ on:
 # `secrets: inherit`.
 #
 # The Workers tests run under @cloudflare/vitest-pool-workers, which boots the
-# real `workerd` runtime with local D1/R2/DO simulation — no account, no
+# real `workerd` runtime with local D1/R2/DO simulation: no account, no
 # bindings to provision, and the same runtime semantics as production. That is
 # why `pnpm -r test` is the whole story and there is no separate integration job.
 
-# Superseding a pull request's run is free — only the newest push matters. A
+# Superseding a pull request's run is free, since only the newest push matters. A
 # run reached through `workflow_call` is NOT cancellable: it gates a release, so
 # cancelling it because a second commit landed on main would abort a publish
 # mid-flight. Keying on the SHA rather than the ref keeps those runs from
@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           # The changesets guard at the end of this job diffs against
-          # `origin/main`, which needs a merge base — a shallow clone has none.
+          # `origin/main`, which needs a merge base, and a shallow clone has none.
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
@@ -104,7 +104,7 @@ jobs:
       # Same shape of guard, higher stakes: migrations are generated from the
       # drizzle schemas and applied at deploy, so a schema edit that skipped
       # `db:generate` ships code expecting columns the database does not have.
-      # Nothing else catches it — the tests run against migrations, so schema
+      # Nothing else catches it: the tests run against migrations, so schema
       # and migrations drift together silently until a real deploy.
       #
       # `< /dev/null` matters: drizzle-kit prompts when a change is ambiguous
@@ -120,7 +120,7 @@ jobs:
           # A brand-new migration is an untracked file, which `git diff` alone
           # would not see.
           test -z "$(git status --porcelain -- packages/server/migrations packages/server/src/do/migrations)" \
-            || { echo "::error::db:generate produced a new migration file — commit it."; git status --short -- packages/server/migrations packages/server/src/do/migrations; exit 1; }
+            || { echo "::error::db:generate produced a new migration file. Commit it."; git status --short -- packages/server/migrations packages/server/src/do/migrations; exit 1; }
 
       # worker-configuration.d.ts is generated from wrangler.jsonc bindings and
       # committed. Typecheck only catches a binding that is *used* and missing;
@@ -128,7 +128,7 @@ jobs:
       #
       # IF THIS FAILS AND `wrangler types` SHOWS NO DIFF LOCALLY: you have an
       # `examples/rps/.dev.vars`. It is gitignored, absent here, and `wrangler
-      # types` READS IT — so generating locally bakes your local secret names
+      # types` READS IT, so generating locally bakes your local secret names
       # into the committed file and it stops being reproducible from committed
       # inputs. Move `.dev.vars` aside, regenerate, commit that, and move it
       # back. This guard exists precisely to catch that contamination.
@@ -142,7 +142,7 @@ jobs:
       # actually SHIP, which nothing else here can see.
       #
       # A change to a published package with no `.changeset/*.md` merges green,
-      # produces no version pull request, and is never released — silently, with
+      # produces no version pull request, and is never released, silently, with
       # no artifact anywhere to notice. That is the failure mode worth
       # automating against; forgetting to MERGE the version PR is not, because
       # it leaves an open pull request titled "Release: version packages" at the
@@ -154,11 +154,11 @@ jobs:
       #
       # Skipped on the version pull request itself, which by construction edits
       # every published package while deleting the changesets that describe
-      # them — exactly the shape this guard rejects. Without the exclusion it is
+      # them, which is exactly the shape this guard rejects. Without the exclusion it is
       # a required check that branch can never satisfy.
       #
-      # For a change that genuinely should not release — a comment, a test, an
-      # internal refactor — `pnpm changeset --empty` records that decision as a
+      # For a change that genuinely should not release (a comment, a test, an
+      # internal refactor) `pnpm changeset --empty` records that decision as a
       # committed file rather than leaving the guard to be argued with.
       - name: Changes to published packages are described by a changeset
         if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
@@ -168,7 +168,7 @@ jobs:
 
   # The Dart client is generated from openapi.json and committed, so that a
   # breaking wire change arrives as a reviewable Dart diff in the same pull
-  # request that changed the schema — rather than surfacing days later in
+  # request that changed the schema, rather than surfacing days later in
   # another repository. This job is what makes "committed" mean "current".
   #
   # It is separate from `check` because it is the only thing here that needs
@@ -209,10 +209,10 @@ jobs:
           git diff --exit-code -- clients/dart \
             || { echo "::error::The Dart client is stale. Run 'pnpm dart-client' and commit clients/dart."; exit 1; }
           test -z "$(git status --porcelain -- clients/dart)" \
-            || { echo "::error::Generation produced new files under clients/dart — commit them."; git status --short -- clients/dart; exit 1; }
+            || { echo "::error::Generation produced new files under clients/dart. Commit them."; git status --short -- clients/dart; exit 1; }
 
       # Proves the artifact we would publish actually compiles, and keeps the
-      # pub.dev score honest — `dart analyze` is what pana grades.
+      # pub.dev score honest, since `dart analyze` is what pana grades.
       - name: Analyze
         run: dart analyze
         working-directory: clients/dart
@@ -224,8 +224,8 @@ jobs:
   # Scaffolds a real project and compiles both halves of it.
   #
   # Everything else here checks a package. This checks the thing a new user
-  # actually runs, which nothing did before: `templates/app-overlay` — the Dart
-  # files that import `package:eigen_flutter/eigen_flutter.dart` — was never
+  # actually runs, which nothing did before: `templates/app-overlay`, the Dart
+  # files that import `package:eigen_flutter/eigen_flutter.dart`, was never
   # compiled anywhere, so the `eigen_flutter` range the scaffolder pins was an
   # assertion no build had tested. eigen-flutter's own `example/` is a different
   # tree and does not stand in for it.
@@ -273,12 +273,12 @@ jobs:
       # This does leave real coverage out, which an earlier version of this
       # comment denied. The Gradle config the scaffolder appends, the icons it
       # generates, and the manifest entries `eigen_flutter`'s plugin merges are
-      # none of them Dart sources — and that gap is what let a corrupted wrapper
+      # none of them Dart sources, and that gap is what let a corrupted wrapper
       # jar and corrupted launcher PNGs ship in every scaffolded project while
       # this job stayed green.
       #
       # Adding a release build was measured rather than estimated: 9m32s against
-      # this job's 2m06s, or 6m07s with `~/.gradle` cached — and the caching
+      # this job's 2m06s, or 6m07s with `~/.gradle` cached, and the caching
       # needs a restore/save split to be worth anything, because every runner is
       # a fresh VM. `gradle/actions/setup-gradle` does not work here at all; it
       # keys on a Gradle project in the workspace, and the build happens in a

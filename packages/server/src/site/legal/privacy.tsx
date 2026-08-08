@@ -1,7 +1,7 @@
 /**
  * Default Privacy Policy.
  *
- * A neutral starting template, NOT legal advice — the operator publishing the
+ * A neutral starting template, NOT legal advice. The operator publishing the
  * game is responsible for its accuracy and for having it reviewed. It describes
  * ONLY what the engine itself collects; if you add analytics, advertising,
  * payments, or any other processing, you must say so here. To replace it, pass
@@ -10,7 +10,7 @@
  * Two entries to check against what you actually ship: the “Diagnostics” bullet
  * assumes crash reporting (remove it if you have none), and “What we do not
  * collect” is deliberately scoped to advertising rather than denying analytics
- * outright — do not widen it into a claim your app cannot support.
+ * outright, so do not widen it into a claim your app cannot support.
  */
 
 import type { LegalProps } from "./props.js";
@@ -71,8 +71,8 @@ export function Privacy({ appName, operator }: LegalProps) {
 
       <h2>Sharing</h2>
       <p>
-        We do not sell your personal data. We share it only with service providers who operate the Service on our behalf — authentication, hosting and storage, and push-notification delivery — and only as far as needed to provide it. We may also disclose data where legally required, or to protect the rights and safety
-        of players and {operator.name}.
+        We do not sell your personal data. We share it only with service providers who operate the Service on our behalf (authentication, hosting and storage, and push-notification delivery) and only as far as needed to provide it. We may also disclose data where legally required, or to protect the rights and safety of
+        players and {operator.name}.
       </p>
 
       <h2>Retention</h2>
@@ -87,7 +87,7 @@ export function Privacy({ appName, operator }: LegalProps) {
           <strong>Access and correction.</strong> You can view and edit your display name and profile image in the app.
         </li>
         <li>
-          <strong>Deletion.</strong> You can delete your account from within the app — see <a href="/delete-account">Delete Account</a>.
+          <strong>Deletion.</strong> You can delete your account from within the app; see <a href="/delete-account">Delete Account</a>.
         </li>
         <li>
           <strong>Notifications.</strong> You can turn notifications off in the app or in your device settings.

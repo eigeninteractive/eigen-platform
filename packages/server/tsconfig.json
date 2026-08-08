@@ -4,7 +4,7 @@
     "types": ["@cloudflare/workers-types"],
     // The public web pages are hono/jsx components: JSX escapes interpolated
     // values automatically, so there is no hand-rolled escaper to forget to
-    // call. hono is already a dependency — no new runtime is added.
+    // call. hono is already a dependency, so no new runtime is added.
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
   },

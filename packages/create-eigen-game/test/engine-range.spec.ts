@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { engineRange } from "../src/engine-range.js";
 
-// The published branch — a manifest whose `workspace:*` has already been
-// rewritten by pnpm — never executes anywhere else. `scaffold.spec.ts` only
+// The published branch, a manifest whose `workspace:*` has already been
+// rewritten by pnpm, never executes anywhere else. `scaffold.spec.ts` only
 // ever runs the workspace branch, and by the time the other one is wrong the
 // package is on npm.
 describe("engineRange", () => {

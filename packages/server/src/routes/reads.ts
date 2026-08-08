@@ -1,5 +1,5 @@
 /**
- * The read routes: worker → D1, never a DO — lobby,
+ * The read routes: worker → D1, never a DO. Lobby,
  * my-games (through the participants index), the game summary, the batch
  * players endpoint, the bot catalog, and the caller's profile + ratings.
  */
@@ -69,7 +69,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "getGame",
       tags: ["Games"],
       request: { params: z.object({ gameId: z.string().min(1) }) },
-      responses: okResponse(gameSummaryShape, "The game summary — never state"),
+      responses: okResponse(gameSummaryShape, "The game summary, never state"),
     }),
     async (c) => {
       const game = await readGame(ctx.d1(c.env), c.req.valid("param").gameId);
@@ -78,7 +78,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // The batch identity endpoint — why games rows carry no denormalized
+  // The batch identity endpoint, and why games rows carry no denormalized
   // identity: a renamed user is correct everywhere on the next fetch, with no
   // history rewrite. The client's persisted cache keeps this warm.
   app.openapi(
@@ -140,7 +140,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // Any player's finished public games — the replay list on a profile. Public
+  // Any player's finished public games: the replay list on a profile. Public
   // and finished only, so this exposes nothing about someone that was not
   // already replayable by anyone holding the game's id.
   app.openapi(
@@ -159,7 +159,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // Any player's ratings, human or bot — the profile sheet shown for an
+  // Any player's ratings, human or bot: the profile sheet shown for an
   // opponent, and the rating line on a bot in the picker. Display ratings are
   // public (they are visible on every finished game), so this needs no
   // relationship check; it is tagged `Players` alongside the batch identity

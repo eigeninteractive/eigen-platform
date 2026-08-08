@@ -1,5 +1,5 @@
 /**
- * Schema version 1 of Rock–Paper–Scissors — one self-contained
+ * Schema version 1 of Rock–Paper–Scissors: one self-contained
  * {@link GameRules} unit: the Zod payload contracts plus all six hooks, typed
  * to this version's shapes.
  *
@@ -9,11 +9,11 @@
  * `computeObservation`, which also masks the *opponent's* pending status.
  * That masking is what makes the same-view rule work with zero game code: an
  * opponent's hidden commit doesn't change your projected view, so your
- * in-flight submission still lands — while the round *resolution* (reveal)
+ * in-flight submission still lands, while the round *resolution* (reveal)
  * does change it, correctly invalidating anything computed against the
  * previous round.
  *
- * ## Payload typing — schema-first
+ * ## Payload typing, schema-first
  *
  * Declare a Zod schema per payload (`state`, `action`, `config`) and derive
  * the types with `z.infer`. The engine parses every payload with this unit's
@@ -21,9 +21,9 @@
  * values, and it re-validates the state a hook returns before committing.
  * Conventions: derive payload types as `type` aliases via `z.infer` (an
  * `interface` fails the engine's `JsonObject` constraint); keep schemas
- * transform-free — what parses is what persists.
+ * transform-free, since what parses is what persists.
  *
- * When rules or shapes change incompatibly, don't edit this file's semantics —
+ * When rules or shapes change incompatibly, don't edit this file's semantics:
  * copy it to `v2.ts` (importing whatever didn't change from here), make the
  * change there, and register it in `index.ts`. Games created under v1 keep
  * running against this unit until they drain.
@@ -49,7 +49,7 @@ const stateSchema = z.object({
   wins: z.tuple([z.int().min(0), z.int().min(0)]),
   /** The current round's hidden commits, per seat. */
   commits: z.tuple([moveSchema.nullable(), moveSchema.nullable()]),
-  /** The last resolved round — the reveal the clients animate. */
+  /** The last resolved round: the reveal the clients animate. */
   lastRound: roundSchema.nullable(),
 });
 
@@ -188,7 +188,7 @@ class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
       };
     }
     const seat = playerIndex as 0 | 1;
-    // Live projection — two deliberate omissions that ARE the game:
+    // Live projection, with two deliberate omissions that ARE the game:
     //  - the opponent's commit is hidden (only your own comes back);
     //  - the opponent's pending status is masked (you see only your own),
     //    so their hidden commit never changes your view and the same-view
@@ -228,7 +228,7 @@ class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
 
 /** The v1 rules unit, registered under key `1` in `index.ts`. The class is
  * authored against its concrete payload types (`implements GameRules<State,
- * Observation, Action, Config>` above — fully type-checked); annotating the export as
+ * Observation, Action, Config>` above, fully type-checked); annotating the export as
  * {@link AnyGameRules} erases those types for the registry with no cast, since
  * the engine re-validates every payload against `schemas` before a hook runs. */
 export const rulesV1: AnyGameRules = new RpsRulesV1();

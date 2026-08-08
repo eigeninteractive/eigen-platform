@@ -1,12 +1,12 @@
 /**
- * The game's public web surface — everything a deployed game serves on its own
+ * The game's public web surface: everything a deployed game serves on its own
  * host besides the API. Unauthed, outside `/api`, and absent from the OpenAPI
  * document, exactly like the deep-link routes in `links.tsx`:
  *
- *   - `GET /download` — the native app download page, rendered from `site`.
- *   - `GET /terms`, `/privacy`, `/delete-account` — the legal documents.
- *   - `GET /sitemap.xml`, `GET /robots.txt` — crawler directives.
- *   - `GET /site.webmanifest` — the web app manifest.
+ *   - `GET /download`: the native app download page, rendered from `site`.
+ *   - `GET /terms`, `/privacy`, `/delete-account`: the legal documents.
+ *   - `GET /sitemap.xml`, `GET /robots.txt`: crawler directives.
+ *   - `GET /site.webmanifest`: the web app manifest.
  *
  * The scaffold lists these in Static Assets' `run_worker_first`, keeping
  * Flutter's SPA fallback from swallowing legal, download, and crawler routes.
@@ -15,7 +15,7 @@
  * **Path note.** These live on the game's own host alongside the app's deep
  * links (`/join/:code`, `/game/:id`), so the app's Android App Links
  * intent-filter must be scoped with `android:pathPrefix="/join"` and
- * `android:pathPrefix="/game"` — otherwise Android claims *every* path on the
+ * `android:pathPrefix="/game"`, or else Android claims *every* path on the
  * host and a tap on "Terms of Service" bounces back into the app, which has no
  * such route. iOS is already scoped by the AASA `paths` entry.
  */
@@ -42,7 +42,7 @@ function storeLinks(deepLink: DeepLinkConfig | null): { label: string; url: stri
 }
 
 /** The first action is the page's call to action and takes the filled button;
- * the rest are outlined. Which one comes first depends on what the game has —
+ * the rest are outlined. Which one comes first depends on what the game has:
  * a game with no web build leads with its store link. */
 function Actions({ links }: { links: { label: string; url: string }[] }) {
   return (
@@ -57,7 +57,7 @@ function Actions({ links }: { links: { label: string; url: string }[] }) {
 }
 
 /** The EigenInteractive mark, shown when the game has no icon of its own to
- * show yet — which is every game until a Flutter web build reaches `public/`.
+ * show yet, which is every game until a Flutter web build reaches `public/`.
  *
  * Inline rather than a served file: it is two paths, so a request for it would
  * cost more than the bytes it saves, and inline is what lets it be *drawn* in
@@ -87,7 +87,7 @@ function Screenshots({ site }: { site: ResolvedSite }) {
   );
 }
 
-/** `SoftwareApplication`/`GameApplication` rather than `Organization` — this
+/** `SoftwareApplication`/`GameApplication` rather than `Organization`, because this
  * page is a game, and that is what a search engine should understand it to be. */
 function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, origin: string, ogImage: string): string {
   const os = [deepLink?.android !== undefined ? "Android" : null, deepLink?.apple !== undefined ? "iOS" : null].filter((v) => v !== null);
@@ -122,7 +122,7 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
     app.get(path, (c) =>
       c.html(
         renderDocument(
-          <Page title={`${title} — ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name} madeByCredit={site.madeByCredit}>
+          <Page title={`${title}: ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name} madeByCredit={site.madeByCredit}>
             <RawHtml html={fragment} />
           </Page>,
         ),
@@ -221,7 +221,7 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // Whether a Flutter web build is actually deployed, which two things on the
   // page depend on: the "Play on the web" button, and the app icon.
   //
-  // The ASSETS binding alone cannot answer this — the scaffold binds it whether
+  // The ASSETS binding alone cannot answer this: the scaffold binds it whether
   // or not `public/` has anything in it, so it is bound from the first
   // `wrangler dev`. Offering "Play on the web" on that evidence sends the
   // visitor to `/`, which has no asset to serve and so redirects back here.
@@ -229,7 +229,7 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // `index.html` there is nothing for the fallback to serve, so it 404s.
   //
   // The icons are the same question, because `flutter build web` emits
-  // `favicon.png` and `icons/` beside `index.html` — one bundle, so one probe.
+  // `favicon.png` and `icons/` beside `index.html`: one bundle, so one probe.
   const hasWebBuild = async (env: unknown, origin: string): Promise<boolean> => {
     const assets = ctx.webAssets(env);
     if (assets === null) return false;
@@ -249,7 +249,7 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
     return c.html(
       renderDocument(
         <Page
-          title={`${name} — ${tagline}`}
+          title={`${name}: ${tagline}`}
           description={tagline}
           siteName={name}
           primaryColor={site?.primaryColor}

@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 
 // Workers-pool tests only (run inside workerd against the real bindings).
 // Pure rules tests live under test/unit/ and run in Node via
-// vitest.unit.config.mts — see the `test` script.
+// vitest.unit.config.mts; see the `test` script.
 export default defineConfig(async () => {
   const migrations = await readD1Migrations(new URL("./node_modules/@eigeninteractive/server/migrations", import.meta.url).pathname);
   return {

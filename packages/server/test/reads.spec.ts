@@ -1,11 +1,11 @@
 /**
- * The batched single-game readers — `readGame` (by id) and `readGameByCode`
+ * The batched single-game readers: `readGame` (by id) and `readGameByCode`
  * (by short code). Both fold the games row and its roster into one D1 round
  * trip; `readGameByCode` does it through a subquery because it does not hold
  * the id. This pins that the roster each returns is correct, not just that it
  * is non-empty (the join-by-code route asserts the DO's roster, and the
- * deep-link landing page — the one consumer of `readGameByCode.participants`,
- * for its "seats open" copy — is not otherwise covered).
+ * deep-link landing page, the one consumer of `readGameByCode.participants`
+ * for its "seats open" copy, is not otherwise covered).
  */
 
 import { env } from "cloudflare:workers";
@@ -59,7 +59,7 @@ describe("single-game readers", () => {
     const { gameId, shortCode, a, b } = await seedTwoSeatGame();
     const game = await readGameByCode(env.DB, shortCode);
     expect(game?.id).toBe(gameId);
-    // The subquery must resolve this game's seats — not none, not another
+    // The subquery must resolve this game's seats: not none, not another
     // game's. Both seats, in playerIndex order.
     expect(game?.participants).toEqual([
       { playerIndex: 0, userId: a, botId: null, type: "human" },

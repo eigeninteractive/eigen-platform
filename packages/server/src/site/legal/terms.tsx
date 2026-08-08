@@ -1,7 +1,7 @@
 /**
  * Default Terms of Service.
  *
- * A neutral starting template, NOT legal advice — the operator publishing the
+ * A neutral starting template, NOT legal advice. The operator publishing the
  * game is responsible for its accuracy and for having it reviewed. To depart
  * from these terms, pass your own HTML fragment as `site.legal.terms`.
  *
@@ -42,14 +42,14 @@ export function Terms({ appName, operator }: LegalProps) {
 
       <h2>Content you provide</h2>
       <p>
-        You keep ownership of the display name, profile image, and other content you provide. You grant {operator.name} a non-exclusive, worldwide, royalty-free licence to store, reproduce, and display that content for the limited purpose of operating the Service — for example, showing your name and avatar to your
+        You keep ownership of the display name, profile image, and other content you provide. You grant {operator.name} a non-exclusive, worldwide, royalty-free licence to store, reproduce, and display that content for the limited purpose of operating the Service, for example showing your name and avatar to your
         opponents.
       </p>
       <p>You confirm that you have the rights necessary to grant this licence for anything you upload.</p>
 
       <h2>Our content</h2>
       <p>
-        The Service — including its software, design, artwork, and text — belongs to {operator.name} or its licensors and is protected by intellectual-property law. These terms give you a personal, non-exclusive, non-transferable right to use the Service for personal, non-commercial purposes, and nothing more. You may
+        The Service, including its software, design, artwork, and text, belongs to {operator.name} or its licensors and is protected by intellectual-property law. These terms give you a personal, non-exclusive, non-transferable right to use the Service for personal, non-commercial purposes, and nothing more. You may
         not copy, modify, reverse engineer, or redistribute any part of it, and nothing here grants you rights in {operator.name}'s trademarks or logos.
       </p>
 
@@ -62,7 +62,7 @@ export function Terms({ appName, operator }: LegalProps) {
 
       <h2>Ending your use</h2>
       <p>
-        You may stop using the Service and delete your account at any time — see <a href="/delete-account">Delete Account</a>. We may suspend or end your access if you breach these terms, if required by law, or if we discontinue the Service.
+        You may stop using the Service and delete your account at any time; see <a href="/delete-account">Delete Account</a>. We may suspend or end your access if you breach these terms, if required by law, or if we discontinue the Service.
       </p>
 
       <h2>Disclaimers</h2>

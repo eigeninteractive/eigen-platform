@@ -173,7 +173,7 @@ describe("avatars", () => {
     const me = (await (await api(a, "GET", "/me")).json()) as { avatarUrl: string };
     expect(me.avatarUrl).toBe(avatarUrl);
 
-    // Public serve — no auth, right content type, immutable cache.
+    // Public serve: no auth, right content type, immutable cache.
     const served = await exports.default.fetch(`https://x${avatarUrl}`);
     expect(served.status).toBe(200);
     expect(served.headers.get("content-type")).toBe("image/png");
@@ -198,13 +198,13 @@ describe("avatars", () => {
     expect(new Uint8Array(await first.arrayBuffer())).toEqual(png);
 
     // Remove the object out of band. A read of a DIFFERENT (uncached) URL for
-    // the same uid now 404s — proof R2 is genuinely empty...
+    // the same uid now 404s, proof R2 is genuinely empty...
     await env.AVATARS.delete(a);
     expect((await exports.default.fetch(`https://x/avatars/${a}?v=0`)).status).toBe(404);
 
     // ...yet the original versioned URL still serves the bytes: it came from
     // the cache, never R2. (This is exactly why account deletion must
-    // invalidate the entry — see the next test.)
+    // invalidate the entry; see the next test.)
     const second = await exports.default.fetch(`https://x${avatarUrl}`);
     expect(second.status).toBe(200);
     expect(new Uint8Array(await second.arrayBuffer())).toEqual(png);
@@ -225,7 +225,7 @@ describe("health", () => {
     const res = await exports.default.fetch("https://x/health");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ status: "ok" });
-    // Must not be cacheable — a cached 200 would keep reporting healthy after
+    // Must not be cacheable: a cached 200 would keep reporting healthy after
     // the worker stopped being able to serve.
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
@@ -233,12 +233,12 @@ describe("health", () => {
   it("discloses nothing about configuration", async () => {
     const body = await (await exports.default.fetch("https://x/health")).text();
     // The whole body is the literal status. No project id, no feature flags,
-    // no version — anything more is a config leak on an unauthed route.
+    // no version. Anything more is a config leak on an unauthed route.
     expect(body).toBe('{"status":"ok"}');
   });
 
   it("needs no auth header at all", async () => {
-    // Explicitly not just "unauthenticated works" — a bad token must not turn
+    // Explicitly not just "unauthenticated works": a bad token must not turn
     // liveness into a 401, or a monitor reports an outage that isn't one.
     const res = await exports.default.fetch("https://x/health", { headers: { authorization: "Bearer garbage" } });
     expect(res.status).toBe(200);

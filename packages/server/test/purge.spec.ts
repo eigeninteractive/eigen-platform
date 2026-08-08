@@ -61,7 +61,7 @@ describe("delete-account", () => {
     expect(game?.createdBy).toBeNull();
   });
 
-  it("forfeits an active game — the seat is anonymized, the opponent plays on", async () => {
+  it("forfeits an active game: the seat is anonymized, the opponent plays on", async () => {
     const a = uid("del-a");
     const b = uid("del-b");
     const { gameId } = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);

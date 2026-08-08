@@ -1,13 +1,13 @@
 /**
- * The wire vocabulary — zod schemas for every request and response body, and
+ * The wire vocabulary: zod schemas for every request and response body, and
  * the D1-row → wire projections. camelCase on the wire throughout, matching
  * the engine's TypeScript and the client's Dart; the D1 columns stay
  * snake_case behind the ORM (`casing: "snake_case"`). The OpenAPI document is
  * generated from exactly these schemas and vendored into the Dart repo.
  *
- * Leak-test discipline: no projection here ever touches a state field — raw
+ * Leak-test discipline: no projection here ever touches a state field. Raw
  * state never leaves the DO, and the games row carries none. The projections
- * are an explicit field whitelist — they list every key that reaches the wire
+ * are an explicit field whitelist: they list every key that reaches the wire
  * and so deliberately omit internal row columns like `rngSeed`, which is why
  * they stay spelled out even now that property and wire names line up 1:1.
  */
@@ -32,15 +32,15 @@ const jsonObjectShape = z.custom<JsonObject>((v) => typeof v === "object" && v !
  * fails to compile, and a code listed here that no longer exists does too.
  */
 const errorCodeDocs: Record<ErrorCode, string> = {
-  // Kernel rejections — the command reached the game and it refused.
+  // Kernel rejections: the command reached the game and it refused.
   notActive: "The game is not in a status that accepts this intent",
   notReady: "Start was requested but the game is not ready",
   expired: "The turn deadline (plus grace) had already passed",
   notPending: "The acting seat is not in the pending set",
-  stateUpdated: "The board advanced past the version acted against — resync and retry",
+  stateUpdated: "The board advanced past the version acted against; resync and retry",
   invalidPayload: "The action payload failed the version unit's action schema",
   illegalMove: "The game's applyAction refused the move",
-  // Lobby rejections — the waiting-room commands.
+  // Lobby rejections: the waiting-room commands.
   unknownGame: "No game with this id exists",
   notJoinable: "The game is no longer in a lobby status",
   gameFull: "Every seat is taken",
@@ -56,7 +56,7 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   registrationRequired: "The action needs a registered account; the caller is a guest",
   imageTooLarge: "The uploaded avatar exceeds the size limit",
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
-  rateLimited: "Too many requests in a short window — retry after the interval in the Retry-After header",
+  rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can
@@ -72,7 +72,7 @@ export const errorCodeShape = z.enum(Object.keys(errorCodeDocs) as [ErrorCode, .
 /** The one error envelope for every non-2xx response: a human message plus an
  * optional stable `code` the client keys typed handling off. Named
  * `ErrorResponse` (not `Error`) to avoid colliding with Dart's `dart:core.Error`
- * in the generated client. The message is display copy and may be reworded —
+ * in the generated client. The message is display copy and may be reworded, so
  * dispatch on `code`, never on `error`. */
 export const errorShape = z.object({ error: z.string(), code: errorCodeShape.optional() }).openapi("ErrorResponse");
 
@@ -104,7 +104,7 @@ export const outcomeShape = z
 
 export const ratingDeltaShape = z
   .object({
-    /** Exactly one id is set — the same nullable-pair shape as `Seat`. */
+    /** Exactly one id is set: the same nullable-pair shape as `Seat`. */
     identity: z.object({ userId: z.string().nullable(), botId: z.string().nullable() }).openapi("RatingIdentity"),
     pool: z.string(),
     muBefore: z.number(),
@@ -121,7 +121,7 @@ export const frameShape = z
   .object({
     type: z.literal("frame"),
     version: z.number().int(),
-    /** The seat's projected observation — game-defined, never raw state. */
+    /** The seat's projected observation: game-defined, never raw state. */
     data: jsonObjectShape,
     pendingPlayers: z.array(z.number().int()),
     deadline: z.number().int().nullable(),
@@ -157,7 +157,7 @@ export const lobbyAcceptedShape = z
 
 /** An accepted join, by id or by short code.
  *
- * Both forms answer identically — they are the same operation from the caller's
+ * Both forms answer identically; they are the same operation from the caller's
  * side ("seat me in this game"), and only differ in how the game was named. The
  * id is echoed rather than assumed because the by-code caller never had it, and
  * a single shape means one client path from either entry point instead of two
@@ -216,7 +216,7 @@ export const profileShape = playerShape
   })
   .openapi("Profile");
 
-/** The other user's public identity plus when the relationship formed — the
+/** The other user's public identity plus when the relationship formed: the
  * shared base of an accepted friend and a pending request. */
 const friendBase = playerShape.extend({ userId: z.string(), since: z.number().int() }).omit({ id: true });
 
@@ -234,7 +234,7 @@ export const friendTargetBody = z.object({ targetUserId: z.string().min(1) }).op
 export const usernameBody = z.object({ username: z.string().min(3).max(20) }).openapi("UsernameUpdate");
 
 /** A display-name change. Free-form (it seeds from the identity provider's
- * name), so only length is constrained; uniqueness is deliberately not — two
+ * name), so only length is constrained; uniqueness is deliberately not, since two
  * players may share a display name, which is what the username disambiguates. */
 export const displayNameBody = z.object({ displayName: z.string().trim().min(1).max(40) }).openapi("DisplayNameUpdate");
 
@@ -273,8 +273,8 @@ export const createGameBody = z
     config: jsonObjectShape,
     minPlayers: z.number().int().min(1),
     maxPlayers: z.number().int().min(1),
-    /** The client's concrete rated assertion (Dart twin of `ratingPool`) —
-     * validated, never coerced. Absent ⇒ rated when eligible. */
+    /** The client's concrete rated assertion (Dart twin of `ratingPool`),
+     * validated and never coerced. Absent ⇒ rated when eligible. */
     rated: z.boolean().optional(),
     ...timingFields,
   })
@@ -287,7 +287,7 @@ export const createdShape = z.object({ gameId: z.string(), shortCode: z.string()
 
 /** Create-solo: a private game seated with the caller plus one or more
  * bots, created and started in one call. Same timing/config fields as
- * `createGameBody` (no `access` — solo games are always private) plus the
+ * `createGameBody` (no `access`, since solo games are always private) plus the
  * bots to seat. */
 export const createSoloBody = z
   .object({
@@ -313,13 +313,13 @@ export const createSoloBody = z
  * same ride-along an action response carries). */
 export const soloStartedShape = z.object({ gameId: z.string(), shortCode: z.string(), version: z.number().int(), frame: frameShape.nullable() }).openapi("SoloStarted");
 
-/** Client retries reuse the same commandId — the DO replays the stored
+/** Client retries reuse the same commandId, so the DO replays the stored
  * response instead of re-executing. */
 const commandId = z.string().min(1).max(128).optional();
 
 export const joinBody = z
   .object({
-    /** The newest schemaVersion this client build ships rules for — the
+    /** The newest schemaVersion this client build ships rules for: the
      * schema gate (an old app cannot join a newer game). */
     clientSchemaVersion: z.number().int(),
     commandId: commandId,
@@ -334,7 +334,7 @@ export const addBotBody = z.object({ botId: z.string(), commandId: commandId }).
 
 export const actionBody = z
   .object({
-    /** The caller's own seat — verified against the roster at the DO;
+    /** The caller's own seat, verified against the roster at the DO;
      * a seat the caller doesn't hold is rejected. Carried uniformly with bots. */
     seat: z.number().int().min(0),
     /** Game-defined move payload; parsed by the version unit's action schema. */
@@ -382,8 +382,8 @@ export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "a
 }
 
 /** The bot catalog projection. Unlike the ratings/history reads (whose SELECT
- * already names exactly the wire fields), `readBots` returns the whole row —
- * `games.ts` needs `type` and the secret `webhookUrl` to seat bots — so the
+ * already names exactly the wire fields), `readBots` returns the whole row,
+ * since `games.ts` needs `type` and the secret `webhookUrl` to seat bots, so the
  * public shape is carved out here, at the wire boundary, and `webhookUrl` never
  * leaves. */
 export function botOf(b: BotRow): z.infer<typeof botShape> {

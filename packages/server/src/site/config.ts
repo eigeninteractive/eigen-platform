@@ -14,11 +14,11 @@ export interface OperatorConfig {
   /** Support and privacy contact address. */
   contactEmail: string;
   /** Effective date of the legal documents, as displayed. A plain string, not a
-   * Date — it is prose, and its format is the operator's choice. */
+   * Date, since it is prose and its format is the operator's choice. */
   effectiveDate: string;
 }
 
-/** Legal document overrides. Each is an HTML **fragment** — body content only,
+/** Legal document overrides. Each is an HTML **fragment**: body content only,
  * no document wrapper; the engine supplies the shell, styling and footer.
  * Omitted documents fall back to the engine's generic templates.
  *
@@ -64,7 +64,7 @@ export interface SiteConfig {
   /** Path under `public/` to the 1200x630 OG image. Defaults to
    * `/og-image.png`, the name the
    * {@link https://eigeninteractive.com/docs/ship-it/branding | branding guide}
-   * prescribes for the Flutter app's own share card — one image, both
+   * prescribes for the Flutter app's own share card: one image, both
    * surfaces. The engine never generates images. */
   ogImage?: string;
   /** Footer credit line. Defaults to {@link DEFAULT_CREDIT}; `null` removes it. */
@@ -74,7 +74,7 @@ export interface SiteConfig {
 }
 
 /** {@link SiteConfig} with every default applied and every legal document
- * already rendered to an HTML fragment — what the routes see. Rendering happens
+ * already rendered to an HTML fragment: what the routes see. Rendering happens
  * once, at startup, so a request never builds prose. */
 export interface ResolvedSite {
   name: string;

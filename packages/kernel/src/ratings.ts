@@ -1,5 +1,5 @@
 /**
- * OpenSkill rating computation — pure, store-agnostic. Multi-seat bots collapse
+ * OpenSkill rating computation: pure and store-agnostic. Multi-seat bots collapse
  * to a single rated identity, and purged seats are excluded.
  *
  * Invoked on a rated game's finishing transition: the applier fetches each
@@ -14,14 +14,14 @@
 import type { Rating } from "openskill";
 import { rate, rating } from "openskill";
 
-/** OpenSkill Gaussian rating parameters (`mu`, `sigma`) — openskill's own
+/** OpenSkill Gaussian rating parameters (`mu`, `sigma`): openskill's own
  * type, re-exported (type-only, erased at runtime) so the seat types below
  * can never drift from what `rate()` consumes and produces. */
 export type { Rating };
 
 /** A player seat to be rated. Self-contained: each seat's current
  * `mu`/`sigma` is bundled, so this module never reads a store.
- * `displayRating` is intentionally NOT carried — it is derived from
+ * `displayRating` is intentionally NOT carried; it is derived from
  * `mu`/`sigma` so the formula lives in one place per side of the wire. */
 export interface PlayerInput extends Rating {
   playerIndex: number;
@@ -34,7 +34,7 @@ export interface PlayerInput extends Rating {
   teamIndex: number;
 }
 
-/** Who a rating belongs to. Exactly one id is set — the same nullable-pair
+/** Who a rating belongs to. Exactly one id is set: the same nullable-pair
  * shape as the server's `Principal` and the wire's `Seat`, so the three read
  * alike and the wire projection is the identity function. */
 export interface RatingIdentity {
@@ -42,7 +42,7 @@ export interface RatingIdentity {
   botId: string | null;
 }
 
-/** One identity's newly computed rating — the pure OpenSkill posterior,
+/** One identity's newly computed rating: the pure OpenSkill posterior,
  * before the store-owned CAS revision is attached by the applier. */
 export interface RatingResult extends Rating {
   identity: RatingIdentity;
@@ -63,7 +63,7 @@ export interface RatingDelta {
   displayChange: number;
 }
 
-/** max(0, round((mu − 3σ) · 40)) — the one server-side home of the display
+/** max(0, round((mu − 3σ) · 40)): the one server-side home of the display
  * formula (the client mirrors it for optimistic display only). */
 export function displayRating(mu: number, sigma: number): number {
   return Math.max(0, Math.round((mu - 3 * sigma) * 40));
@@ -83,14 +83,14 @@ function keyOf(player: PlayerInput): string {
   return `x:${player.playerIndex}`;
 }
 
-/** Whether the seat still has a ratable identity — a purged seat shapes the
+/** Whether the seat still has a ratable identity. A purged seat shapes the
  * field's posteriors but gets no {@link RatingResult} of its own. */
 function hasIdentity(player: PlayerInput): boolean {
   return player.userId !== null || player.botId !== null;
 }
 
 /** The identity payload written to the update. Only called for seats that
- * passed {@link hasIdentity} — anything else is a bug here. */
+ * passed {@link hasIdentity}; anything else is a bug here. */
 function identityOf(player: PlayerInput): RatingIdentity {
   if (player.userId) return { userId: player.userId, botId: null };
   if (player.botId) return { userId: null, botId: player.botId };
@@ -127,7 +127,7 @@ function rateField(field: PlayerInput[]) {
 }
 
 /** A seat's posterior, asserting rateField's invariant that it returns every
- * seat it was given. A miss means the seat was dropped — a bug, not a no-op. */
+ * seat it was given. A miss means the seat was dropped: a bug, not a no-op. */
 function posteriorFor(posteriors: Map<number, Rating>, index: number) {
   const posterior = posteriors.get(index);
   if (posterior === undefined) {
@@ -152,11 +152,11 @@ function singleSeatUpdate(seat: PlayerInput, fieldPosteriors: Map<number, Rating
  *
  * Each seat is an independent game result for the same identity, applied in
  * seat order to a *running* rating, and scored only against the **other**
- * identities — an entity is never rated against itself. Because the seats'
+ * identities, since an entity is never rated against itself. Because the seats'
  * moves share no information, every result legitimately moves the rating.
  *
  * All seats move one underlying rating, so the identity yields exactly ONE
- * result — prior → final. That matches the store's one row per
+ * result: prior → final. That matches the store's one row per
  * (game, identity); emitting per-seat updates would collide on that unique
  * key and roll back the whole apply. The running rating is the one piece of
  * sequential state and never escapes this function.
@@ -180,7 +180,7 @@ function multiSeatUpdate(seats: PlayerInput[], field: PlayerInput[]): RatingResu
 
 /** Compute every identity's new rating for one finished game.
  *
- * Exactly one result per identity — humans and bots alike — matching the one
+ * Exactly one result per identity, humans and bots alike, matching the one
  * rating row per (game, identity) the store keeps. The field is rated once;
  * single-seat identities read their posterior straight from that rating,
  * while a multi-seat identity is re-rated seat-by-seat into a single net
@@ -188,7 +188,7 @@ function multiSeatUpdate(seats: PlayerInput[], field: PlayerInput[]): RatingResu
  * what every single-seat player is scored against, so a human who faced a
  * two-seat bot is correctly rated against two distinct opponents.
  *
- * A seat with no identity — its account was purged mid-game — stays in the
+ * A seat with no identity, because its account was purged mid-game, stays in the
  * field (opponents' posteriors must account for everyone they actually faced,
  * at that seat's supplied baseline) but yields no result: there is no rating
  * row left to update.

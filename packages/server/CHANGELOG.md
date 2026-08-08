@@ -5,11 +5,11 @@
 ### Patch Changes
 
 - [#34](https://github.com/eigeninteractive/eigen-server/pull/34) [`905b841`](https://github.com/eigeninteractive/eigen-server/commit/905b841158238c21bd7086d9a73e23a7a0fb4ba3) Thanks [@seenu-k](https://github.com/seenu-k)! - Reword the footer credit to `Built with EigenInteractive`, linking only the
-  name — accent-coloured, no underline. A custom `madeByCredit` that names the
+  name, accent-coloured and without an underline. A custom `madeByCredit` that names the
   engine keeps the link on that word; one that does not renders as plain text.
   
-  Every link the engine renders — the legal pages, the store buttons, the credit
-  — now opens in a new tab, and the `/j` share page honours `madeByCredit`
+  Every link the engine renders (the legal pages, the store buttons, the credit)
+  now opens in a new tab, and the `/j` share page honours `madeByCredit`
   instead of always showing the default.
 - Updated dependencies []:
   - @eigeninteractive/kernel@0.2.4
@@ -22,13 +22,13 @@
 - [#32](https://github.com/eigeninteractive/eigen-server/pull/32) [`258c2d7`](https://github.com/eigeninteractive/eigen-server/commit/258c2d7c53f31dfcfa8fa22832f378c0eaf3c4be) Thanks [@seenu-k](https://github.com/seenu-k)! - Give the download page something to look at, and stop it offering links it cannot honour.
   
   The page now leads with the app's own launcher icon, centres itself rather than
-  clinging to the top of an empty viewport, and ends in a footer on every page —
+  clinging to the top of an empty viewport, and ends in a footer on every page:
   the operator's copyright and legal links when `site` is configured, and a credit
   line either way. `site.madeByCredit` overrides that line or removes it with
   `null`, mirroring the Flutter shell's `Branding.madeByCredit`.
   
   Before a web build exists there is no app icon to show, so the EigenInteractive
-  mark stands in — inline SVG drawn in the page's own tokens, so it takes a
+  mark stands in: inline SVG drawn in the page's own tokens, so it takes a
   configured `primaryColor` and follows the visitor's colour scheme. A game with
   neither a web build nor store URLs has nothing to offer at all, and now says
   `Coming soon.` instead of ending after the tagline.
@@ -38,7 +38,7 @@
   bound from the first `wrangler dev` whether or not `public/` has anything in it,
   so the button was sending visitors to `/`, which redirected straight back. And
   `--on-primary` is now paired with `--primary` per colour scheme, computed from
-  luminance for a game that configures its own — white on the dark scheme's light
+  luminance for a game that configures its own: white on the dark scheme's light
   teal was the one pairing in the palette that failed contrast outright.
 - Updated dependencies []:
   - @eigeninteractive/kernel@0.2.3
@@ -50,7 +50,7 @@
 
 - [#27](https://github.com/eigeninteractive/eigen-server/pull/27) [`c7e1172`](https://github.com/eigeninteractive/eigen-server/commit/c7e1172497088a38e5d09167b12e60b3f402f9c5) Thanks [@seenu-k](https://github.com/seenu-k)! - Give the engine-rendered public pages the EigenInteractive look: Space Grotesk
   on headings and the call to action, and the Material 3 palette generated from
-  `Colors.teal` — the same seed the Flutter shell now defaults to, so a game that
+  `Colors.teal`, the same seed the Flutter shell now defaults to, so a game that
   has configured nothing reads as one product across its app and its pages.
   
   The palette replaces three unrelated defaults: `#4f46e5` in the stylesheet,
@@ -59,7 +59,7 @@
   `ColorScheme.fromSeed` output too, which is why the greys are faintly green.
   
   `--primary` also gets a dark-scheme value. It previously kept its light value on
-  a dark ground. A game that sets `site.primaryColor` still wins in both schemes —
+  a dark ground. A game that sets `site.primaryColor` still wins in both schemes,
   that arrives as an inline style on the root element, which beats the stylesheet.
   
   Both faces are served by the worker at versioned, immutable paths and declared
@@ -77,7 +77,7 @@
   CI, so the two cannot drift. `tsup` could inline a `.woff2`, but
   `vitest-pool-workers` resolves worker-side modules outside vite's plugin graph,
   so the route would have answered 500 in the test suite while working in
-  production — the same reason `site.css` renders empty under test today.
+  production, the same reason `site.css` renders empty under test today.
 - Updated dependencies []:
   - @eigeninteractive/kernel@0.2.2
   - @eigeninteractive/rules@0.2.2
@@ -88,8 +88,8 @@
 
 - [#19](https://github.com/eigeninteractive/eigen-server/pull/19) [`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094) Thanks [@seenu-k](https://github.com/seenu-k)! - Use **EigenInteractive** as the product name throughout, matching the domain,
   the npm scope and the GitHub organization. Package descriptions, READMEs and
-  the OpenAPI document title change; every identifier — `@eigeninteractive/*`,
-  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header — is
+  the OpenAPI document title change; every identifier (`@eigeninteractive/*`,
+  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header) is
   untouched.
 - Updated dependencies [[`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094)]:
   - @eigeninteractive/kernel@0.2.1
@@ -109,7 +109,7 @@
 
 ## 0.1.0
 
-Initial release. The Eigen engine — a server-authoritative engine for turn-based
+Initial release. The Eigen engine, a server-authoritative engine for turn-based
 multiplayer games on Cloudflare Workers.
 
 Documentation: <https://eigeninteractive.com>

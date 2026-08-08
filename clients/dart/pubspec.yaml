@@ -7,13 +7,13 @@ description: >-
 #
 # Why owned (beyond the version-stamping below): the dart-dio template stamps
 # `environment.sdk: '>=3.5.0 <4.0.0'`, but the `.g.dart` that json_serializable
-# emits uses the Dart 3.8 `null-aware-elements` feature — verified, those files
-# fail to analyze below 3.8 — so the real floor is ^3.8.0. json_serializable
+# emits uses the Dart 3.8 `null-aware-elements` feature (verified: those files
+# fail to analyze below 3.8) so the real floor is ^3.8.0. json_serializable
 # emits that syntax regardless of the declared lower bound, so lowering it only
 # breaks generation. Relax to match once the template stamps a 3.8 bound itself.
 #
 # `version:` is stamped by the generation script from @eigeninteractive/server's
-# package.json — the wire contract is the server's, so the client carries the
+# package.json. The wire contract is the server's, so the client carries the
 # server's version. Do not edit it by hand.
 version: 0.2.4
 homepage: https://eigeninteractive.com

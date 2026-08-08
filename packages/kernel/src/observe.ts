@@ -1,5 +1,5 @@
 /**
- * Per-seat observation fan-out — the projection boundary. No raw state
+ * Per-seat observation fan-out: the projection boundary. No raw state
  * escapes the kernel except through `computeObservation`.
  */
 
@@ -15,7 +15,7 @@ export interface ObservationFrame {
   pendingPlayers: number[];
 }
 
-/** Project the new state into one slice per seat — the eager fan-out the host
+/** Project the new state into one slice per seat: the eager fan-out the host
  * persists per transition (frames serve live delivery and the same-view
  * compare, so they stay eager). `rules` is the game's own version unit,
  * already resolved by the caller. `args` is the hook's own contract minus the
@@ -38,7 +38,7 @@ export function fanOutObservations(rules: GameRules, args: Omit<ComputeObservati
     // A projection may mask OTHER seats' pending status (hidden info), but it
     // must be truthful about the seat itself: the frame is what gates that
     // seat's input and turn display, while the commit enforces the
-    // authoritative set — a lie here soft-locks the client or produces taps
+    // authoritative set; a lie here soft-locks the client or produces taps
     // that always reject. Caught at the source, like assertHookState.
     if (slice.pendingPlayers.includes(seat) !== args.pending.includes(seat)) {
       throw new GameBugError(`computeObservation for seat ${seat} misreports the seat's own pending status`);

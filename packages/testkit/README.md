@@ -4,7 +4,7 @@ Test helpers for games built on the
 [EigenInteractive engine](https://eigeninteractive.com).
 
 Drive a game's rules through the real kernel with no Worker, no database and no
-network — and run the shared JSON fixtures that keep the TypeScript and Dart
+network, and run the shared JSON fixtures that keep the TypeScript and Dart
 halves of a game from drifting apart.
 
 ```ts

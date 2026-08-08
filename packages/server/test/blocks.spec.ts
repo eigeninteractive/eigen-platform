@@ -1,8 +1,8 @@
 /**
  * Blocking's interaction and visibility effects: a blocked pair never sees each
  * other's games in the lobby or friends' games, and never gets seated in the
- * same game (join, join-by-code, either direction). All bidirectional — the
- * blocker and the blocked are affected the same way — and reversible by
+ * same game (join, join-by-code, either direction). All bidirectional (the
+ * blocker and the blocked are affected the same way) and reversible by
  * unblocking.
  *
  * The seating refusal answers `unknownGame` on purpose: the lobby already
@@ -55,7 +55,7 @@ async function block(blocker: TestTokenOptions, target: TestTokenOptions): Promi
   expect((await api(blocker, "POST", `/friends/${target.uid}/block`)).status).toBe(204);
 }
 
-describe("blocking — lobby visibility", () => {
+describe("blocking: lobby visibility", () => {
   it("hides a blocked user's game from the lobby, both directions, and restores on unblock", async () => {
     const a = await user("a");
     const b = await user("b");
@@ -83,12 +83,12 @@ describe("blocking — lobby visibility", () => {
     const b = await user("b");
     const game = await createGame(a);
     await block(b, a); // B blocks A this time.
-    // B still cannot see A's game — the effect does not depend on direction.
+    // B still cannot see A's game; the effect does not depend on direction.
     expect(await lobbyIds(b)).not.toContain(game.gameId);
   });
 });
 
-describe("blocking — the seating boundary", () => {
+describe("blocking: the seating boundary", () => {
   it("refuses a blocked user joining the game as unknownGame (by id and by code)", async () => {
     const a = await user("a");
     const b = await user("b");
@@ -104,7 +104,7 @@ describe("blocking — the seating boundary", () => {
     expect(((await byCode.json()) as { code: string }).code).toBe("unknownGame");
   });
 
-  it("refuses in the other direction too — the blocker cannot join the blocked user's game", async () => {
+  it("refuses in the other direction too: the blocker cannot join the blocked user's game", async () => {
     const a = await user("a");
     const b = await user("b");
     const game = await createGame(b); // B hosts.
@@ -124,7 +124,7 @@ describe("blocking — the seating boundary", () => {
   });
 });
 
-describe("blocking — friends' open games", () => {
+describe("blocking: friends' open games", () => {
   it("hides a friend's game once a blocked user takes a seat in it", async () => {
     const a = await user("a");
     const c = await user("c"); // A's friend, the host

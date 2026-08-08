@@ -36,7 +36,7 @@ export interface Reporter {
 /**
  * Gives a terminal that reports no width the width clack would have assumed.
  *
- * A pty can report itself as a TTY and set `columns` to 0 — `script` does, and
+ * A pty can report itself as a TTY and set `columns` to 0. `script` does, and
  * so do some container terminals. clack falls back to 80 for a stream with no
  * `columns` at all, but `0` is a number and satisfies that check, so the width
  * it draws its rules from goes negative and a scaffold dies partway through
@@ -62,7 +62,7 @@ export const plainReporter: Reporter = {
  *
  * `interactive` inherits, which is the only way FlutterFire can put a question
  * on screen and read the answer. Otherwise both streams are captured and
- * handed to the reporter — on success so it can discard them, and on failure
+ * handed to the reporter: on success so it can discard them, and on failure
  * so the reason survives.
  */
 export function capturingRunner(reporter: Reporter): Runner {
@@ -94,7 +94,7 @@ export interface ScaffoldOptions {
    */
   bootstrap?: boolean;
   /**
-   * Emit the GitHub Actions workflows. Off by default — see the call site for
+   * Emit the GitHub Actions workflows. Off by default; see the call site for
    * why, and `addContinuousIntegration` for adding them to an existing
    * project later.
    */
@@ -153,7 +153,7 @@ const templatesRoot = resolve(packageRoot, "templates");
  * The engine range emitted into a scaffolded project's package.json.
  *
  * Read from this package's `@eigeninteractive/server` devDependency rather than
- * from its own version — see `engine-range.ts` for why that is the version the
+ * from its own version. See `engine-range.ts` for why that is the version the
  * templates are known to compile against, and what it replaced.
  */
 const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as { devDependencies?: Record<string, string> }).devDependencies?.[ENGINE_PACKAGE], () => {
@@ -169,7 +169,7 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * A stated version, not a derived or resolved one. The Dart templates import
  * `package:eigen_flutter/eigen_flutter.dart` and
  * `package:eigen_flutter/testing/twin_fixtures.dart` and are written against a
- * specific Dart API — and `eigen_flutter` lives in another repository, versioned
+ * specific Dart API, and `eigen_flutter` lives in another repository, versioned
  * independently, so nothing in this repository can compute which release that
  * is. Only compiling a scaffolded app establishes it, which is what the
  * `scaffold` job in checks.yml does on every change.
@@ -178,14 +178,14 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * own `eigen_api` constraint targets the engine line being scaffolded". That
  * predicate is wrong. The `eigen_api` constraint describes the WIRE the shell
  * speaks, not the Dart API these templates call, and the two move
- * independently — a future `eigen_flutter` may legitimately keep `eigen_api:
+ * independently: a future `eigen_flutter` may legitimately keep `eigen_api:
  * ^0.2.0` while renaming everything the templates touch. It would have been
  * selected, and the generated app would not compile.
  *
  * A caret RANGE rather than an exact version, so it still improves without a
  * republish: `flutter pub add eigen_flutter@^0.3.0` already picks the newest
  * 0.3.x at scaffold time, which is the part the pub.dev lookup was duplicating.
- * What it deliberately cannot do is cross to 0.4.x — the one move that needs a
+ * What it deliberately cannot do is cross to 0.4.x, the one move that needs a
  * human to confirm the templates still compile.
  *
  * Staleness is therefore a failing check rather than a broken scaffold: this is
@@ -207,7 +207,7 @@ const gameSlug = (value: string): string => {
 const dartName = (value: string): string => value.replaceAll("-", "_");
 
 /**
- * The Android `applicationId` — and iOS bundle id — a scaffold at `directory`
+ * The Android `applicationId`, and iOS bundle id, a scaffold at `directory`
  * will produce, so the CLI can show it rather than describe it.
  *
  * `flutter create --org X --project-name Y` derives `X.Y`. The organization is
@@ -241,7 +241,7 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
 /**
  * Substitutes the scaffold's tokens, of which there are two deliberate kinds.
  *
- * `{{BRACED}}` for values that have no valid example — a package manager,
+ * `{{BRACED}}` for values that have no valid example: a package manager,
  * an engine version, an Android package id. They appear only in manifests,
  * READMEs, workflows and the `Appfile`: files nothing compiles.
  *
@@ -255,7 +255,7 @@ export function detectPackageManager(userAgent = process.env.npm_config_user_age
  *
  * The cost, and the one rule for template authors: a template file cannot
  * contain the literal string `example-game`, `Example Game`, `ExampleGame` or
- * `example_game` and keep it — every occurrence is rewritten, in prose and in
+ * `example_game` and keep it; every occurrence is rewritten, in prose and in
  * code alike. Write around it, or brace a new token instead.
  *
  * Note this means the set of files carrying a token changes whenever someone
@@ -279,14 +279,14 @@ function render(contents: string, name: string, manager: PackageManager, package
 /**
  * True when the bytes are valid UTF-8.
  *
- * This is not a guess at whether a file is "binary" — it is the precondition
+ * This is not a guess at whether a file is "binary"; it is the precondition
  * of the operation. Token substitution is `String.replaceAll`, so a file that
  * cannot be decoded cannot take part, and one that can is safe to rewrite.
  *
  * Deliberately not an extension list. A DENY list (`.png`, `.jar`, …) fails
  * silently in the dangerous direction: the day someone adds a `.webp`, it is
  * corrupted with no error. An ALLOW list fails the safe way but fits this tree
- * badly — `Gemfile`, `Fastfile`, `.nvmrc`, `.fvmrc` and `.ruby-version` all
+ * badly: `Gemfile`, `Fastfile`, `.nvmrc`, `.fvmrc` and `.ruby-version` all
  * need rendering and none carry a usable extension, so it would have to be a
  * list of extensions *and* a list of bare filenames, both drifting.
  *
@@ -312,7 +312,7 @@ function renderTree(source: string, destination: string, name: string, manager: 
   cpSync(source, destination, { recursive: true });
   // Walks the TEMPLATE, not the destination. The app overlay renders on top of
   // a `flutter create` result, so walking the destination meant rewriting
-  // every file Flutter had just generated — including its binaries — for files
+  // every file Flutter had just generated, including its binaries, for files
   // this scaffolder does not own and has no business touching.
   const visit = (directory: string): void => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -381,14 +381,14 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
   appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "\n" : "\n\n"}${androidDesugaring}\n`);
 }
 
-// A second top-level `android { }` block is valid Gradle Kotlin DSL — Gradle
+// A second top-level `android { }` block is valid Gradle Kotlin DSL, since Gradle
 // merges repeated extension-configuration blocks in one file, which is what
 // lets this stay a pure append, same as the desugaring block above. A second
 // top-level `plugins { }` block is NOT valid (Gradle allows exactly one per
-// script), which is why the Crashlytics Gradle plugin registration —
-// `flutterfire configure`'s own territory — is deliberately left alone here.
+// script), which is why the Crashlytics Gradle plugin registration,
+// `flutterfire configure`'s own territory, is deliberately left alone here.
 //
-// `Properties` needs a real `import`, prepended separately below — a
+// `Properties` needs a real `import`, prepended separately below. A
 // fully-qualified `java.util.Properties()` reference here was tried first,
 // to avoid needing to touch the top of the file at all, but fails to
 // resolve under AGP 9's Kotlin DSL script compilation
@@ -431,12 +431,12 @@ android {
 function enableAndroidReleaseSigning(appRoot: string): void {
   const gradlePath = resolve(appRoot, "android/app/build.gradle.kts");
   const gradle = readFileSync(gradlePath, "utf8");
-  // Not `gradle.includes("signingConfigs")` — Flutter's own template already
+  // Not `gradle.includes("signingConfigs")`, because Flutter's own template already
   // contains that substring (`signingConfig = signingConfigs.getByName("debug")`),
   // so that check would always short-circuit and never append anything.
   if (gradle.includes("releaseKeyProperties")) return;
   // A pure append. This previously also PREPENDED `import java.util.Properties`,
-  // because Kotlin requires imports before every other top-level declaration —
+  // because Kotlin requires imports before every other top-level declaration,
   // which meant reaching into the very start of a file this scaffolder does
   // not own, the most position-dependent edit here and the one already broken
   // once by an AGP upgrade. Parsing `key.properties` with the Kotlin stdlib
@@ -448,14 +448,14 @@ function enableAndroidReleaseSigning(appRoot: string): void {
 // `flutter_launcher_icons`/`flutter_native_splash` read these as plain
 // top-level pubspec keys, so appending is safe regardless of what
 // `flutter create` already wrote under `flutter:`. Deliberately omits
-// `ios`/`macos` — `scaffoldGame` only creates `--platforms android,web`, and
+// `ios`/`macos`, since `scaffoldGame` only creates `--platforms android,web`, and
 // `flutter_launcher_icons` errors if told to target a platform whose
 // directory doesn't exist.
 // The colours are the EigenInteractive palette (ink #1B1E24, paper #F4F1EA) because the
 // shipped placeholder art is the EigenInteractive mark: the adaptive foreground is the
 // reversed, light-on-dark variant, so an ink background is what makes it
 // legible. Rebranding a game means replacing the four PNGs *and* these
-// colours together — see https://eigeninteractive.com/docs/ship-it/branding.
+// colours together. See https://eigeninteractive.com/docs/ship-it/branding.
 const launcherIconsAndSplashConfig = `
 flutter_launcher_icons:
   android: true
@@ -518,7 +518,7 @@ export function addContinuousIntegration(options: AddContinuousIntegrationOption
 
   // The generated `contract` script embeds the manager the project was
   // scaffolded with (`cd server && pnpm run contract && …`), which is a more
-  // reliable signal than a lockfile — it is present before anything is
+  // reliable signal than a lockfile: it is present before anything is
   // installed, and it is what the project actually uses.
   const recorded = manifest.scripts?.contract?.includes("pnpm ") ? "pnpm" : manifest.scripts?.contract?.includes("npm ") ? "npm" : undefined;
   const manager = options.packageManager ?? recorded ?? detectPackageManager() ?? "pnpm";
@@ -569,8 +569,8 @@ export type FirebaseReadiness = { ready: true } | { ready: false; problems: Fire
  * `flutterfire` is missing costs nothing here and costs two minutes of Flutter
  * and pub at the far end, which is where the step actually runs.
  *
- * Every problem, not the first one. The checks are independent — two CLIs from
- * two ecosystems, plus a sign-in — so short-circuiting turns one setup into a
+ * Every problem, not the first one. The checks are independent (two CLIs from
+ * two ecosystems, plus a sign-in) so short-circuiting turns one setup into a
  * sequence of runs that each reveal the next missing piece. Reported in the
  * order they have to be fixed in: the CLI, then the sign-in it stores, then
  * the bridge that consumes both.
@@ -607,7 +607,7 @@ export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadines
  *
  * `login:list --json` prints the stored refresh and access tokens along with
  * the account list. Read the shape, count the entries, and never surface the
- * output — not in a warning, not in a captured stream, not on the failure
+ * output: not in a warning, not in a captured stream, not on the failure
  * path. That is why this returns a boolean rather than the response.
  */
 function signedOut(probe: Probe): boolean {
@@ -626,21 +626,21 @@ function signedOut(probe: Probe): boolean {
  * Whether the scaffold would land inside a repository that already exists.
  *
  * Asked of the nearest ancestor that exists, because the destination does not
- * yet. The point is not to change what {@link scaffoldGame} does — it already
- * declines to nest a repository — but to stop the CLI asking a question whose
+ * yet. The point is not to change what {@link scaffoldGame} does, which already
+ * declines to nest a repository, but to stop the CLI asking a question whose
  * answer cannot matter.
  */
 /**
  * Why this destination cannot be scaffolded into, said as a whole message, or
  * `undefined` when there is nothing in the way.
  *
- * A directory that exists and is *empty* is not in the way — people make one
- * out of habit — so it is removed and rewritten rather than refused over
+ * A directory that exists and is *empty* is not in the way, since people make
+ * one out of habit, so it is removed and rewritten rather than refused over
  * nothing. Anything with contents in it is refused, and a cloned repository is
  * not an exception: `.git` is in the way like any other entry, and the message
  * names it. Publishing into one would mean parking `.git`, renaming staging
  * over the top and putting it back, with a failure in the middle able to
- * orphan a remote — which is a lot of care to spend on a flow that has a
+ * orphan a remote, which is a lot of care to spend on a flow that has a
  * one-line alternative.
  *
  * Refused, and deliberately not offered as a "remove it and continue?"
@@ -651,7 +651,7 @@ function signedOut(probe: Probe): boolean {
  * question this CLI asks is reversible. This one would not be.
  *
  * Exported so the CLI can ask it before the first question rather than after
- * the last one — {@link scaffoldGame} asks it again, for callers that are not
+ * the last one. {@link scaffoldGame} asks it again, for callers that are not
  * the CLI.
  */
 export function destinationProblem(directory: string): string | undefined {
@@ -668,7 +668,7 @@ export function destinationProblem(directory: string): string | undefined {
   // directory that has already been scaffolded once.
   const shown = entries.slice(0, 3).sort().join(", ");
   const rest = entries.length > 3 ? `, and ${entries.length - 3} more` : "";
-  return `${root} already exists, and is not empty — it holds ${shown}${rest}.\n\nScaffold somewhere else, or clear it out yourself. This will not delete a directory you already had.`;
+  return `${root} already exists, and is not empty: it holds ${shown}${rest}.\n\nScaffold somewhere else, or clear it out yourself. This will not delete a directory you already had.`;
 }
 
 export function insideWorkTree(directory: string, probe: Probe = probeCommand): boolean {
@@ -684,19 +684,19 @@ export function insideWorkTree(directory: string, probe: Probe = probeCommand): 
 /**
  * Runs the Flutter client's `configure_firebase` against the generated app.
  *
- * The command owns everything about how Firebase is configured — which
+ * The command owns everything about how Firebase is configured: which
  * platforms, which CLIs must exist, whether anyone is signed in, and what to
  * do when no project has been chosen yet. This only decides *when*: before the
  * scaffold commit, so a configured project is committed configured.
  *
- * Not fatal. Every failure here — a missing `flutterfire`, no Google login, a
- * cancelled picker — leaves a complete and usable project that is exactly what
+ * Not fatal. Every failure here (a missing `flutterfire`, no Google login, a
+ * cancelled picker) leaves a complete and usable project that is exactly what
  * a scaffold without `--firebase` produces, so it warns with the command to
  * re-run and lets the commit happen.
  */
 function configureFirebase(appRoot: string, project: boolean | string, run: Runner, reporter: Reporter): "configured" | "failed" {
   // FlutterFire asks before overwriting `firebase_options.dart`, and the
-  // scaffold has just written one — a throwing placeholder whose entire
+  // scaffold has just written one, a throwing placeholder whose entire
   // purpose is to be replaced by this step. Answering that is a question with
   // one right answer, so the placeholder is moved out of the way and the
   // question never gets asked.
@@ -708,7 +708,7 @@ function configureFirebase(appRoot: string, project: boolean | string, run: Runn
   try {
     // `dart run` compiles the package executable on first use and says so.
     // Doing it against `--help`, which returns immediately, moves that noise
-    // into a step whose output can be captured — the real run cannot be, since
+    // into a step whose output can be captured; the real run cannot be, since
     // FlutterFire prompts through it.
     reporter.step("Preparing the Firebase configurator", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--help"], appRoot));
     reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_flutter:configure_firebase", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
@@ -723,7 +723,7 @@ function configureFirebase(appRoot: string, project: boolean | string, run: Runn
       if (existsSync(placeholder)) rmSync(parked, { force: true });
       else renameSync(parked, placeholder);
     }
-    reporter.warn("Could not configure Firebase. The project is complete — run `firebase:configure` yourself, then commit what it writes.");
+    reporter.warn("Could not configure Firebase. The project is complete. Run `firebase:configure` yourself, then commit what it writes.");
     return "failed";
   }
 }
@@ -743,8 +743,8 @@ function configureFirebase(appRoot: string, project: boolean | string, run: Runn
  * took two minutes of Flutter and pub to produce.
  */
 function initialiseRepository(root: string, name: string, run: Runner, reporter: Reporter): GitOutcome {
-  // Scaffolding inside an existing checkout — a monorepo, or a repository
-  // created ahead of time — is a legitimate thing to do, and a nested
+  // Scaffolding inside an existing checkout (a monorepo, or a repository
+  // created ahead of time) is a legitimate thing to do, and a nested
   // repository there is silent breakage: the outer `git add` records a gitlink
   // and the app's files never leave the machine. Asked directly rather than
   // through `run`, because it is a question, not a step.
@@ -759,7 +759,7 @@ function initialiseRepository(root: string, name: string, run: Runner, reporter:
     run("git", ["init", "--quiet"], root);
     run("git", ["add", "--all"], root);
   } catch {
-    reporter.warn("Could not initialise a git repository. The project is complete — run `git init` yourself when ready.");
+    reporter.warn("Could not initialise a git repository. The project is complete. Run `git init` yourself when ready.");
     return "failed";
   }
 
@@ -828,7 +828,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
       });
       // Actually apply the icons rather than only configuring them. Both tools
       // write generated files (mipmaps, `web/icons/`, splash drawables and
-      // styles) that are committed, not built — leaving them unrun would ship
+      // styles) that are committed, not built; leaving them unrun would ship
       // Flutter's own blue logo until a game author happened to notice.
       reporter.step("Generating the icons and splash", () => {
         run("dart", ["run", "flutter_launcher_icons"], appRoot);
@@ -842,7 +842,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
         // workerd version that produced the runtime types. `wrangler` floats
         // on a caret and Cloudflare ships workerd about weekly, so the copy in
         // `templates/worker` is stale for every scaffold made more than a few
-        // days after it was last regenerated — and `wrangler dev` opens by
+        // days after it was last regenerated, and `wrangler dev` opens by
         // saying the types might be out of date. Regenerating against the
         // wrangler that was just installed, rather than the one this package
         // was built with, is what makes that true. It has to follow the server
@@ -872,10 +872,10 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   // be configured nor a repository that failed to initialise is a reason to
   // delete two minutes of Flutter and pub.
   //
-  // Firebase first, so what it writes — `firebase.json`,
+  // Firebase first, so what it writes (`firebase.json`,
   // `android/app/google-services.json`, the real `firebase_options.dart` and
   // `web/firebase-config.js` in place of the throwing placeholders, and
-  // FlutterFire's two Gradle edits — lands in the scaffold commit rather than
+  // FlutterFire's two Gradle edits) lands in the scaffold commit rather than
   // arriving as the project's first diff.
   const firebase = options.firebase ? configureFirebase(resolve(root, "app"), options.firebase, run, reporter) : "skipped";
   const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run, reporter) : "skipped";

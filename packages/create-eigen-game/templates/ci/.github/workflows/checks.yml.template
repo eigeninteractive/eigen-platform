@@ -37,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # `corepack enable`, not `pnpm/action-setup` — this project can be
+      # `corepack enable`, not `pnpm/action-setup`, because this project can be
       # scaffolded with either npm or pnpm (see the {{PACKAGE_MANAGER}}
       # commands below), and corepack puts both on PATH regardless of which
       # one a game author actually chose.
@@ -72,9 +72,9 @@ jobs:
           node-version-file: .nvmrc
           cache: {{PACKAGE_MANAGER}}
 
-      # `contract:check` (below) round-trips through both halves — it
+      # `contract:check` (below) round-trips through both halves: it
       # invokes the server's own contract generator, then verifies the app's
-      # generated payloads still match — so the server's Node dependencies
+      # generated payloads still match, so the server's Node dependencies
       # have to exist here too, not just in the `server` job's own runner.
       - name: Install server dependencies
         working-directory: server
@@ -110,7 +110,7 @@ jobs:
 
       # A VM widget test can pass while a dependency still imports dart:io or
       # calls an unsupported plugin. Compiling the real web entrypoint is
-      # what actually proves it ships — mirrors eigen-flutter's own `example`
+      # what actually proves it ships, mirroring eigen-flutter's own `example`
       # job, which does the same for the RPS reference app.
       #
       # No Android SDK step in this job, for the same reason

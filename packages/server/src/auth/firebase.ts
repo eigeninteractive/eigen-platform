@@ -1,5 +1,5 @@
 /**
- * Firebase ID-token verification — jose against Google's
+ * Firebase ID-token verification: jose against Google's
  * securetoken JWKS, plus the Firebase claim checks. ~40 lines of our code, by
  * design: the user explicitly rejected `firebase-auth-cloudflare-workers`.
  * Only `FIREBASE_PROJECT_ID` is needed to verify; the service-account trio is
@@ -8,7 +8,7 @@
 
 import { createRemoteJWKSet, type JWTVerifyGetKey, jwtVerify } from "jose";
 
-/** Verification failure — always the caller's fault; the app maps it to 401. */
+/** Verification failure, always the caller's fault; the app maps it to 401. */
 export class AuthError extends Error {}
 
 /** What a verified ID token asserts. `isAnonymous` (the
@@ -34,7 +34,7 @@ export interface TokenVerifier {
 /** Google's JWKS for securetoken (the Firebase ID-token signer). */
 const FIREBASE_JWKS_URL = "https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com";
 
-/** Cached per isolate — jose caches the fetched keys (and refetches on
+/** Cached per isolate. jose caches the fetched keys (and refetches on
  * rotation) inside this resolver, so every verifier shares one cache. */
 let remoteJwks: JWTVerifyGetKey | undefined;
 

@@ -1,5 +1,5 @@
 /**
- * The createEngine HTTP drive — the deployed shape end to end over the worker:
+ * The createEngine HTTP drive: the deployed shape end to end over the worker:
  * create (policy + short code) waiting room (join/leave/cancel/
  * add-bot/start, roster snapshots over the socket, D1 mirror) active
  * play (action with the own-frame ride-along, forfeit) frames, and the
@@ -19,7 +19,7 @@ const BOT_SECRET = "test-bot-signing-secret";
 const db = orm(env.DB);
 
 let userCounter = 0;
-/** Fresh identities per test — provisioning is exercised implicitly. */
+/** Fresh identities per test; provisioning is exercised implicitly. */
 function makeUsers() {
   const n = ++userCounter;
   return { a: `alice-${n}-${crypto.randomUUID()}`, b: `bob-${n}-${crypto.randomUUID()}`, c: `cesar-${n}-${crypto.randomUUID()}` };
@@ -69,7 +69,7 @@ describe("create", () => {
   });
 
   // The short-code retry loop. Codes are random and 31^6 wide, so a natural
-  // collision is never observed in a test run — it has to be forced. This is
+  // collision is never observed in a test run; it has to be forced. This is
   // the only coverage of `isShortCodeCollision`, which classifies the SQLite
   // UNIQUE failure; if it stops matching (a physical column rename, or a
   // change in how `createGame` issues the statement that re-wraps the error),
@@ -220,7 +220,7 @@ describe("active play & frames", () => {
   async function readyGame(u: ReturnType<typeof makeUsers>, overrides: Record<string, unknown> = {}) {
     const { gameId } = await createGame(u.a, overrides);
     await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
-    // No mirror wait: the DO resolves seats from its own roster — the
+    // No mirror wait: the DO resolves seats from its own roster, so the
     // joiner can act the moment the join response lands.
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
     return gameId;
@@ -271,7 +271,7 @@ describe("active play & frames", () => {
     expect(ratings.ratings).toHaveLength(1);
 
     // The summary carries every identity's delta, so a history list needs no
-    // second read to annotate a row — and the same projection is correct when
+    // second read to annotate a row, and the same projection is correct when
     // viewing someone else's games, since this is per-game not per-viewer.
     const summary = await json<{ ratings?: { identity: { userId: string | null }; displayChange: number }[] }>(await api(u.c, "GET", `/games/${gameId}`));
     expect((summary.ratings ?? []).map((r) => r.identity.userId).sort()).toEqual([u.a, u.b].sort());
@@ -337,7 +337,7 @@ describe("socket (roster snapshots → frames)", () => {
     expect(messages[0]).toMatchObject({ type: "roster", status: "waiting" });
     expect(messages[0]?.players).toHaveLength(1);
 
-    // Joining pushes the new snapshot to every socket — including this one,
+    // Joining pushes the new snapshot to every socket, including this one,
     // whose principal just became seat 1.
     await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     await vi.waitFor(() => expect(messages).toHaveLength(2));
@@ -354,18 +354,18 @@ describe("socket (roster snapshots → frames)", () => {
 describe("bots", () => {
   // Fixed registry rows: engine brains are keyed by username, so the engine
   // bot's username must match the test game's `botActions`. Seeded once
-  // (idempotent) — bots are global registry data, seatable across games.
+  // (idempotent); bots are global registry data, seatable across games.
   const ENGINE = "test-engine-bot";
   const EXTERNAL = "test-external-bot";
   const LOCAL = "test-local-bot";
   // The external bot's wake target. Intercepted below so the DO's fire-and-forget
   // wake resolves instantly (202) instead of making a real outbound fetch to an
-  // unresolvable host — that call fails nondeterministically slowly under load,
+  // unresolvable host, because that call fails nondeterministically slowly under load,
   // and until it settles the bot's follow-up `bot/action` command queues behind
   // it on the same DO, so the move sometimes doesn't land before `vi.waitFor`
   // gives up. This version of vitest-pool-workers dropped the `fetchMock`
   // MockAgent, so we wrap `globalThis.fetch` exactly as the pool itself does for
-  // MSW — the test and the DO share one workerd isolate, so the DO's `fetch`
+  // MSW. The test and the DO share one workerd isolate, so the DO's `fetch`
   // picks up the override.
   const WAKE_ORIGIN = "https://wake.test";
   const realFetch = globalThis.fetch;
@@ -462,18 +462,18 @@ describe("bots", () => {
 
   it("deriveBotKey yields exactly the key a bot owner signs with", async () => {
     // The operator utility: what you hand a bot's owner at registration. This
-    // asserts the contract from the OWNER's side — sign with nothing but the
+    // asserts the contract from the OWNER's side: sign with nothing but the
     // derived key, using plain WebCrypto the way their own code would, and the
     // engine must accept it. If this passes, the documented onboarding works.
     const derived = await deriveBotKey(BOT_SECRET, EXTERNAL);
 
-    // It is HMAC-SHA256(master, botId), base64 — the same bytes the documented
+    // It is HMAC-SHA256(master, botId), base64: the same bytes the documented
     // `openssl dgst -sha256 -hmac` one-liner produces.
     const master = await crypto.subtle.importKey("raw", new TextEncoder().encode(BOT_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const expected = new Uint8Array(await crypto.subtle.sign("HMAC", master, new TextEncoder().encode(EXTERNAL))).toBase64();
     expect(derived).toBe(expected);
 
-    // Sign a body with the derived key alone — no master secret in sight.
+    // Sign a body with the derived key alone, no master secret in sight.
     const u = makeUsers();
     const solo = await json<{ gameId: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
     await json<CommandOk>(await api(u.a, "POST", `/games/${solo.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));

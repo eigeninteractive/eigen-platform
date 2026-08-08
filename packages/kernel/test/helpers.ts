@@ -1,5 +1,5 @@
 /**
- * Test fixtures: a hand-rolled Standard Schema (no schema library — the
+ * Test fixtures: a hand-rolled Standard Schema (no schema library, because the
  * kernel only speaks the spec) and a tiny deterministic turn game exercising
  * every commit path: sequential turns, a per-action override, outcomes,
  * illegal moves.
@@ -24,7 +24,7 @@ export function schemaOf<T>(check: (value: unknown) => boolean): GamePayloadSche
   };
 }
 
-/** A Standard Schema whose validate returns a Promise — for the sync-only
+/** A Standard Schema whose validate returns a Promise, for the sync-only
  * enforcement test. */
 export function asyncSchema<T>(): GamePayloadSchema<T> {
   return {

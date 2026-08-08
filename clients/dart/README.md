@@ -6,7 +6,7 @@
 > the wire types a game needs and keeps the `*Api` classes out of your
 > namespace.
 >
-> It is published only because pub.dev rejects path dependencies — the same
+> It is published only because pub.dev rejects path dependencies, the same
 > reason Flutter's federated plugins publish `*_platform_interface` packages
 > nobody imports. Documentation lives at
 > <https://eigeninteractive.com/docs/reference/http-surface>.

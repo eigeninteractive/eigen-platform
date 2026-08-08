@@ -14,8 +14,8 @@ name: Publish eigen_api
 # Do not restructure this workflow expecting the constraint to lift.
 #
 # Hence the handoff: release.yml publishes to npm, then pushes an
-# `eigen_api-v<version>` tag with a PAT — a tag pushed by the built-in
-# GITHUB_TOKEN would deliberately not trigger anything — and that tag fires this
+# `eigen_api-v<version>` tag with a PAT (a tag pushed by the built-in
+# GITHUB_TOKEN would deliberately not trigger anything) and that tag fires this
 # workflow, whose OIDC token now carries a tag ref that pub.dev accepts.
 #
 # The alternative is storing a long-lived pub.dev credential in GitHub secrets
@@ -25,7 +25,7 @@ name: Publish eigen_api
 # pub.dev setup, once (eigen_api → Admin → Automated publishing):
 #   - Repository:   eigeninteractive/eigen-server
 #   - Tag pattern:  eigen_api-v{{version}}
-# No credential is stored anywhere — the OIDC identity is the authentication.
+# No credential is stored anywhere: the OIDC identity is the authentication.
 on:
   push:
     tags: ["eigen_api-v*"]
@@ -49,7 +49,7 @@ jobs:
 
       # The tag names the version; the committed pubspec must already carry it
       # (version-packages stamped it in the version PR). A mismatch means the
-      # tag was pushed against the wrong commit — fail rather than publish it.
+      # tag was pushed against the wrong commit, so fail rather than publish it.
       - name: Tag matches pubspec version
         working-directory: clients/dart
         run: |
@@ -58,7 +58,7 @@ jobs:
           [ "$tag" = "$pkg" ] || {
             echo "::error::tag eigen_api-v$tag does not match pubspec version $pkg"; exit 1; }
 
-      # The generated code is committed, so nothing is generated here — publish
+      # The generated code is committed, so nothing is generated here. Publish
       # exactly what the tag points at.
       - name: Dry run
         run: dart pub publish --dry-run

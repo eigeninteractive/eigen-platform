@@ -3,7 +3,7 @@
  * through the real kernel `commit()` with the real RPS rules:
  *
  * - ACCEPT: an opponent's hidden commit doesn't change your projected view,
- *   so your stale-version submission still lands — RPS works with zero game
+ *   so your stale-version submission still lands. RPS works with zero game
  *   code, and versions stay strictly serial (A commits N+1, stale-but-same B
  *   commits N+2).
  * - REJECT: the round *resolution* (reveal) changes your view, so anything
@@ -71,7 +71,7 @@ function expectPlan(result: CommitPlan | { rejected: true }): CommitPlan {
 }
 
 describe("same-view rule over real RPS rules", () => {
-  it("accepts the second simultaneous commit at a stale version — strictly serial", () => {
+  it("accepts the second simultaneous commit at a stale version, strictly serial", () => {
     // A commits rock against v4 → commits as v5.
     const planA = expectPlan(commit(action(0, "rock", 4)));
     expect(planA.nextState.version).toBe(5);
@@ -81,7 +81,7 @@ describe("same-view rule over real RPS rules", () => {
     // is masked. B submits paper still expecting v4.
     const expected = frameFor(v4, 1);
     const current = frameFor(v5, 1);
-    expect(current).toEqual(expected); // the crux — B literally can't tell
+    expect(current).toEqual(expected); // the crux: B literally can't tell
 
     const planB = expectPlan(
       commit(
@@ -91,7 +91,7 @@ describe("same-view rule over real RPS rules", () => {
         }),
       ),
     );
-    // Accepted, and committed as the NEXT serial version — no forks, no gaps.
+    // Accepted, and committed as the NEXT serial version: no forks, no gaps.
     expect(planB.nextState.version).toBe(6);
     // The round resolved: paper beats rock.
     expect(planB.nextState.state).toMatchObject({
@@ -101,7 +101,7 @@ describe("same-view rule over real RPS rules", () => {
     });
   });
 
-  it("rejects a submission computed before the reveal — the view genuinely changed", () => {
+  it("rejects a submission computed before the reveal, since the view genuinely changed", () => {
     // Play the round out to v6 (resolved, revealed).
     const planA = expectPlan(commit(action(0, "rock", 4)));
     const v5 = planA.nextState;
@@ -115,7 +115,7 @@ describe("same-view rule over real RPS rules", () => {
     );
     const v6 = planB.nextState;
 
-    // Seat 0 now submits a round-2 move it computed back at v4 — but its view
+    // Seat 0 now submits a round-2 move it computed back at v4, but its view
     // moved (lastRound revealed, wins changed): genuine conflict.
     const result = commit(
       action(0, "scissors", 4, {

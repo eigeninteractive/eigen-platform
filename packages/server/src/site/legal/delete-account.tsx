@@ -9,7 +9,7 @@
  * The steps below match the reference Flutter shell, where "Delete Account" is
  * a standalone tile at the bottom of Settings opening a confirmation dialog. If
  * your app puts it elsewhere, pass your own fragment as
- * `site.legal.deleteAccount` — a wrong path here is an app-store rejection.
+ * `site.legal.deleteAccount`; a wrong path here is an app-store rejection.
  */
 
 import type { LegalProps } from "./props.js";
@@ -53,7 +53,7 @@ export function DeleteAccount({ appName, operator }: LegalProps) {
 
       <h2>What is retained</h2>
       <p>
-        Records of completed games are retained in a form that no longer identifies you — your seat shows as a deleted user. Those games are also part of your opponents' history and ratings, so they cannot be removed without altering another player's record. We may also retain limited information where the law requires
+        Records of completed games are retained in a form that no longer identifies you: your seat shows as a deleted user. Those games are also part of your opponents' history and ratings, so they cannot be removed without altering another player's record. We may also retain limited information where the law requires
         it, or to resolve disputes and prevent abuse.
       </p>
 

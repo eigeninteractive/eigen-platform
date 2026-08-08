@@ -12,8 +12,8 @@
 
 - [#19](https://github.com/eigeninteractive/eigen-server/pull/19) [`993883f`](https://github.com/eigeninteractive/eigen-server/commit/993883f8bb71ebfb36708e2badd7ae98859b7094) Thanks [@seenu-k](https://github.com/seenu-k)! - Use **EigenInteractive** as the product name throughout, matching the domain,
   the npm scope and the GitHub organization. Package descriptions, READMEs and
-  the OpenAPI document title change; every identifier — `@eigeninteractive/*`,
-  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header — is
+  the OpenAPI document title change; every identifier (`@eigeninteractive/*`,
+  `eigen_flutter`, `create-eigen-game`, the `Eigen-Signature` header) is
   untouched.
 
 ## 0.2.0
@@ -24,7 +24,7 @@
 
 ## 0.1.0
 
-Initial release. The Eigen engine — a server-authoritative engine for turn-based
+Initial release. The Eigen engine, a server-authoritative engine for turn-based
 multiplayer games on Cloudflare Workers.
 
 Documentation: <https://eigeninteractive.com>

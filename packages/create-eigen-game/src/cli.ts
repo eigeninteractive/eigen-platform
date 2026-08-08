@@ -22,8 +22,8 @@ kebab-case game slug; the CLI derives the display name, Dart package name, and
 Dart/TypeScript type prefix from it.
 
 Every option below answers a question the CLI would otherwise ask. Pass it to
-skip the question; leave it out to be asked. With no terminal to ask on — CI, a
-pipe, an agent session — an unanswered question is an error rather than a
+skip the question; leave it out to be asked. With no terminal to ask on (CI, a
+pipe, an agent session) an unanswered question is an error rather than a
 default quietly chosen for you, and the message prints the command to re-run.
 
 Options:
@@ -56,7 +56,7 @@ normaliseTerminalWidth(process.stdout);
 
 /**
  * Whether to draw, using clack's own predicates rather than a hand-rolled
- * `isTTY` — the same pair `taskLog` consults internally. A pipe has nowhere to
+ * `isTTY`, the same pair `taskLog` consults internally. A pipe has nowhere to
  * put a redraw, and a CI log is read after the fact, in full, by someone who
  * wants every line a tool printed.
  */
@@ -102,18 +102,18 @@ function resolveManager(requested: string | undefined): PackageManager | undefin
  *
  * Firebase is not an integration this engine offers; it is where a player
  * comes from. Somebody meeting that for the first time deserves the reason in
- * the same breath as the requirement, and deserves to know the size of it —
+ * the same breath as the requirement, and deserves to know the size of it:
  * one free project, shared by every game they build.
  */
 function greet(): void {
   ui.open();
   ui.info("A game is one repository with two halves: a Cloudflare Worker that owns the rules,\nand a Flutter app for Android and the web. This writes both, wired together and\nalready playable.");
   ui.info(
-    `Firebase signs your players in. The Worker verifies Firebase ID tokens to decide who\nholds a seat, and sends turn notifications through the same project — so a scaffolded\napp throws ${color.dim("Firebase is not configured")} at launch until one is connected.\n\nIt is free to start, one project serves every game you build, and this connects yours\nas it goes. ${color.dim(PREREQUISITES)}`,
+    `Firebase signs your players in. The Worker verifies Firebase ID tokens to decide who\nholds a seat, and sends turn notifications through the same project, so a scaffolded\napp throws ${color.dim("Firebase is not configured")} at launch until one is connected.\n\nIt is free to start, one project serves every game you build, and this connects yours\nas it goes. ${color.dim(PREREQUISITES)}`,
   );
 }
 
-/** What is missing, and the one command that fixes each — the same list the warning and the parting message are both built from. */
+/** What is missing, and the one command that fixes each: the same list the warning and the parting message are both built from. */
 function firebaseReport(problems: FirebaseProblem[]): string {
   const lines = problems.flatMap((problem) => [`  ${problem.reason}`, `    ${color.cyan(problem.fix)}`]);
   // `dart pub global activate` does not put the binary on PATH, which is the
@@ -126,7 +126,7 @@ function firebaseReport(problems: FirebaseProblem[]): string {
 
 /**
  * The parting message when someone answers "no" to scaffolding without
- * Firebase — every command they need, in the order they run in.
+ * Firebase: every command they need, in the order they run in.
  *
  * Deliberately not a failure of the scaffold: nothing has been written, they
  * asked for that, and the exit code is non-zero only so a script that wrapped
@@ -134,7 +134,7 @@ function firebaseReport(problems: FirebaseProblem[]): string {
  */
 function stopForFirebase(problems: FirebaseProblem[]): void {
   // The commands only. What each one is for is in the warning directly above,
-  // and a `note` draws a box sized to its longest line — so repeating the
+  // and a `note` draws a box sized to its longest line, so repeating the
   // reasons here is what makes it wrap into something unreadable at 80
   // columns, which is exactly the width this is most likely to be read at.
   note(`${problems.map((problem) => `  ${color.cyan(problem.fix)}`).join("\n")}\n\nThen run this again.\n${color.dim(PREREQUISITES)}`, "Set up Firebase");
@@ -145,7 +145,7 @@ function stopForFirebase(problems: FirebaseProblem[]): void {
 /**
  * The error for a run with no terminal and an unanswered question.
  *
- * The strictness is the point — a default applied where nobody can see it is
+ * The strictness is the point: a default applied where nobody can see it is
  * how `com.example.my_game` reaches Google Play, which freezes it at the first
  * upload. What keeps that from being merely annoying is this message: the
  * whole command, with every default already filled in, so the fix is one
@@ -153,7 +153,7 @@ function stopForFirebase(problems: FirebaseProblem[]): void {
  */
 function unanswered(directory: string, missing: { flags: string; suggestion: string }[]): string {
   const command = ["npx create-eigen-game", directory, ...missing.map((question) => question.suggestion)].join(" ");
-  return [`No terminal to ask on, so every answer has to come from a flag. These were not given:`, "", ...missing.map((question) => `  ${question.flags}`), "", "That command, with each default filled in — read them before you run it:", "", `  ${command}`].join("\n");
+  return [`No terminal to ask on, so every answer has to come from a flag. These were not given:`, "", ...missing.map((question) => `  ${question.flags}`), "", "That command, with each default filled in. Read them before you run it:", "", `  ${command}`].join("\n");
 }
 
 /** `--foo` and `--no-foo`, which `parseArgs` has no notion of: `undefined` means nobody said, which is what makes it a question. */
@@ -168,7 +168,7 @@ function flagPair(yes: boolean | undefined, no: boolean | undefined, name: strin
 function resolveOrg(value: string): string | undefined {
   if (value.trim() === "") return undefined;
   if (!ORG.test(value)) {
-    throw new Error(`invalid organization: ${value}\n\nUse reverse domain notation — two or more dot-separated segments of letters, digits and underscores, each starting with a letter, as in ${DEFAULT_ORG} or dev.yourname.games.`);
+    throw new Error(`invalid organization: ${value}\n\nUse reverse domain notation: two or more dot-separated segments of letters, digits and underscores, each starting with a letter, as in ${DEFAULT_ORG} or dev.yourname.games.`);
   }
   return value;
 }
@@ -176,8 +176,8 @@ function resolveOrg(value: string): string | undefined {
 /**
  * Shows each step running, and keeps its output only when it fails.
  *
- * Every tool a scaffold drives has plenty to say — pub resolving 179
- * dependencies, two icon generators, a package manager — and none of it is
+ * Every tool a scaffold drives has plenty to say (pub resolving 179
+ * dependencies, two icon generators, a package manager) and none of it is
  * read while it scrolls past. `taskLog` is exactly that bargain: the stream is
  * visible while the step runs, cleared when it succeeds, and left on screen
  * when it does not, so a failure is still debuggable from what is in the
@@ -189,7 +189,7 @@ function resolveOrg(value: string): string | undefined {
  */
 function clackReporter(): Reporter {
   // `taskLog` redraws by clearing lines, which is an escape-sequence storm in
-  // anything that is not a terminal — a CI log, a pipe, `scaffold-e2e.mjs`.
+  // anything that is not a terminal: a CI log, a pipe, `scaffold-e2e.mjs`.
   // There, the honest thing is the plain reporter: every tool's output, in
   // full, which is what a log gets read for anyway.
   if (!decorated) return plainReporter;
@@ -212,7 +212,7 @@ function clackReporter(): Reporter {
       }
     },
     handOver(label, body) {
-      log.step(`${label} ${color.dim("— FlutterFire takes over here")}`);
+      log.step(`${label} ${color.dim("(FlutterFire takes over here)")}`);
       interactive = true;
       try {
         return body();
@@ -245,7 +245,7 @@ async function main(args: string[]): Promise<void> {
       "firebase-project": { type: "string" },
       // Each negation is declared under the name it is typed with, because
       // `parseArgs` has no boolean negation of its own. `flagPair` puts the
-      // two halves back together, and the third state — neither given — is the
+      // two halves back together, and the third state, neither given, is the
       // one that matters: it is what turns the flag into a question.
       "no-firebase": { type: "boolean" },
       git: { type: "boolean" },
@@ -295,7 +295,7 @@ async function main(args: string[]): Promise<void> {
   // Everything that makes the command impossible, before the greeting rather
   // than after the last question. `applicationId` validates the slug;
   // `destinationProblem` is the one `scaffoldGame` would raise at the far end,
-  // asked here instead — being told the directory was occupied *after* giving
+  // asked here instead. Being told the directory was occupied *after* giving
   // an organization is the same insult as being told about `flutterfire` after
   // two minutes of Flutter and pub.
   const game = basename(resolve(directory));
@@ -306,8 +306,8 @@ async function main(args: string[]): Promise<void> {
   greet();
 
   // Every question this run will ask, settled before any of it starts. A flag
-  // is an answer already given; anything left over is asked, or — with nothing
-  // to ask on — collected here and reported together, so one re-run can carry
+  // is an answer already given; anything left over is asked, or, with nothing
+  // to ask on, collected here and reported together, so one re-run can carry
   // all of them.
   const interactive = process.stdin.isTTY === true;
   const missing: { flags: string; suggestion: string }[] = [];
@@ -318,8 +318,8 @@ async function main(args: string[]): Promise<void> {
 
   /**
    * Records a question that could not be asked, and hands back the default it
-   * suggested. The value is never used — `missing` throws before anything is
-   * written — but returning it keeps each answer definitely typed instead of
+   * suggested. The value is never used, since `missing` throws before anything
+   * is written, but returning it keeps each answer definitely typed instead of
    * carrying a `| undefined` all the way to the scaffold call.
    */
   const needsFlag = <T>(flags: string, suggestion: string, fallback: T): T => {
@@ -393,7 +393,7 @@ async function main(args: string[]): Promise<void> {
     }
   }
 
-  // Reached only when nothing else could say — `npm create` and `pnpm create`
+  // Reached only when nothing else could say. `npm create` and `pnpm create`
   // both announce themselves in `npm_config_user_agent`. What is left is a
   // global install, where the old silent fallback to pnpm was a guess written
   // into every script in the generated project.
