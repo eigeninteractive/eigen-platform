@@ -168,11 +168,12 @@ upload keystore and a Play service account that a new project does not have
 ship, from the project root:
 
 ```sh
-npx create-eigen-game add ci
+npx create-eigen-game add workflows
 ```
 
-That writes `.github/workflows/checks.yml` and `release.yml`. (Passing
-`--ci` at scaffold time does the same thing up front.)
+That writes `.github/workflows/checks.yml` and `release.yml`. (Answering yes to
+the workflows question at scaffold time, or passing `--workflows`, does the same
+thing up front.)
 
 `release.yml` builds a signed, obfuscated Android App
 Bundle on every push to `main` and uploads it to the Play Store internal

@@ -33,22 +33,25 @@ Do not assemble a project by hand. The scaffolder writes both halves — Worker
 and Flutter app — in one repository, wired together and already playable:
 
 ```sh
-npx create-eigen-game my-game --org dev.yourname.games
+npx create-eigen-game my-game --org dev.yourname.games --git --no-workflows --firebase-project my-firebase-project
 ```
 
-Pass `--org` rather than letting it prompt: it becomes the Android
-`applicationId`, which Google Play makes permanent at first upload, and an
-agent's session may not have a terminal to answer on. The other flags are
-`--package-manager npm|pnpm` and `--no-git`.
+Every flag answers a question the CLI would otherwise ask, and **an agent
+session usually has no terminal to answer on** — where it does not, an
+unanswered question is an error, not a default. So pass them all. Confirm
+`--org` with the implementor first: it becomes the Android `applicationId`,
+which Google Play makes permanent at first upload. Use `--no-firebase` when
+there is no Firebase project to name yet; `--package-manager npm|pnpm` is
+needed only when `npx` is not what invoked it.
 
 It installs an engine release and the `eigen_flutter` release tested against it,
-so the two halves start on a known-good pair, and commits the result. CI is
-**not** emitted by default, because `release.yml` needs an upload keystore and a
-Play service account and fails on every push until both exist; add it when
-shipping is the next step:
+so the two halves start on a known-good pair, and commits the result. The
+workflows are **not** emitted by default, because `release.yml` needs an upload
+keystore and a Play service account and fails on every push until both exist;
+add them when shipping is the next step:
 
 ```sh
-npx create-eigen-game add ci         # or pass --ci at scaffold time
+npx create-eigen-game add workflows
 ```
 
 The result is a working game to edit into the intended one — start from its

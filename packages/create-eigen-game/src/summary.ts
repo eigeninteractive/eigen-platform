@@ -31,7 +31,7 @@ function columns(rows: [string, string][]): string[] {
   return rows.map(([left, right]) => `  ${left.padEnd(width)}  ${right}`);
 }
 
-export function summarise(result: ScaffoldResult, manager: PackageManager, ci: boolean): Summary {
+export function summarise(result: ScaffoldResult, manager: PackageManager, workflows: boolean): Summary {
   const run = manager === "npm" ? "npm run" : "pnpm";
   const status: string[] = [];
 
@@ -64,7 +64,7 @@ export function summarise(result: ScaffoldResult, manager: PackageManager, ci: b
   ].join("\n");
 
   const footnotes = ["Docs: https://eigeninteractive.com"];
-  if (!ci) footnotes.unshift("No CI workflows yet: `create-eigen-game add ci` writes them when shipping is the next step.");
+  if (!workflows) footnotes.unshift("No CI workflows yet: `create-eigen-game add workflows` writes them when shipping is the next step.");
 
   return { status, next, footnotes, headline: `${result.name} is ready, at ${result.root}` };
 }

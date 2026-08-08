@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { addContinuousIntegration, capturingRunner, decodeUtf8, detectPackageManager, firebaseReadiness, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
+import { addContinuousIntegration, capturingRunner, decodeUtf8, detectPackageManager, firebaseReadiness, insideWorkTree, normaliseTerminalWidth, type Probe, type Reporter, scaffoldGame } from "../src/index.js";
 import gameModule from "../templates/worker/src/module/index.js";
 
 const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eigen-game-"));
@@ -376,12 +376,19 @@ describe("normaliseTerminalWidth", () => {
 
 describe("firebaseReadiness", () => {
   /** A machine with both CLIs and one signed-in account, minus whatever `absent` names. */
-  const machine = (absent?: string, accounts = '{"status":"success","result":[{"user":{"email":"tester@example.com"}}]}'): Probe => {
+  const machine = (absent?: string | string[], accounts = '{"status":"success","result":[{"user":{"email":"tester@example.com"}}]}'): Probe => {
+    const gone = new Set(typeof absent === "string" ? [absent] : (absent ?? []));
     return (command, args) => {
-      if (command === absent) return { ok: false, stdout: "" };
+      if (gone.has(command)) return { ok: false, stdout: "" };
       if (args[0] === "login:list") return { ok: true, stdout: accounts };
       return { ok: true, stdout: "1.0.0" };
     };
+  };
+
+  /** What is wrong, without the fixes, which is what most of these are about. */
+  const reasons = (probe: Probe): string[] => {
+    const readiness = firebaseReadiness(probe);
+    return readiness.ready ? [] : readiness.problems.map((problem) => problem.reason);
   };
 
   it("passes a machine that has both tools and a signed-in account", () => {
@@ -391,14 +398,26 @@ describe("firebaseReadiness", () => {
   it("names the missing tool and the command that installs it", () => {
     // Asked here rather than left to `configure_firebase`, which runs at the
     // far end of two minutes of Flutter and pub.
-    expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, reason: "`flutterfire` is not installed", fix: "dart pub global activate flutterfire_cli" });
-    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, reason: "`firebase` is not installed", fix: "npm install -g firebase-tools" });
+    expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, problems: [{ reason: "the `flutterfire` CLI is not installed", fix: "dart pub global activate flutterfire_cli" }] });
+    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, problems: [{ reason: "the `firebase` CLI is not installed", fix: "npm install -g firebase-tools" }] });
   });
 
   it("catches a machine that has the tools but is signed out", () => {
-    const readiness = firebaseReadiness(machine(undefined, '{"status":"success","result":[]}'));
+    expect(firebaseReadiness(machine(undefined, '{"status":"success","result":[]}'))).toEqual({ ready: false, problems: [{ reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" }] });
+  });
 
-    expect(readiness).toEqual({ ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" });
+  it("reports every problem at once, in the order they have to be fixed in", () => {
+    // The point of collecting rather than short-circuiting: a machine with
+    // neither CLI would otherwise learn about `flutterfire` only after
+    // installing `firebase-tools` and running the whole thing again.
+    expect(reasons(machine(["firebase", "flutterfire"]))).toEqual(["the `firebase` CLI is not installed", "the `flutterfire` CLI is not installed"]);
+    expect(reasons(machine("flutterfire", '{"status":"success","result":[]}'))).toEqual(["no Google account is signed in to the Firebase CLI", "the `flutterfire` CLI is not installed"]);
+  });
+
+  it("says nothing about the sign-in when the CLI that would answer is missing", () => {
+    // `login:list` cannot be run, so there is no evidence either way — and
+    // installing firebase-tools leads to `firebase login` regardless.
+    expect(reasons(machine("firebase", '{"status":"success","result":[]}'))).toEqual(["the `firebase` CLI is not installed"]);
   });
 
   it("treats an answer it cannot read as no answer", () => {
@@ -407,6 +426,26 @@ describe("firebaseReadiness", () => {
     // machine that is perfectly well signed in.
     expect(firebaseReadiness(machine(undefined, "not json at all"))).toEqual({ ready: true });
     expect(firebaseReadiness(machine(undefined, '{"status":"success"}'))).toEqual({ ready: true });
+  });
+});
+
+describe("insideWorkTree", () => {
+  it("asks the nearest ancestor that exists, since the destination does not yet", () => {
+    const parent = temporaryParent();
+    const asked: string[][] = [];
+    const probe: Probe = (command, args) => {
+      asked.push([command, ...args]);
+      return { ok: true, stdout: "true\n" };
+    };
+
+    expect(insideWorkTree(resolve(parent, "not-created-yet/nor-this"), probe)).toBe(true);
+    // `git -C` rather than a cwd, because `Probe` has nowhere to put one — and
+    // the directory it names has to be one that already exists.
+    expect(asked).toEqual([["git", "-C", parent, "rev-parse", "--is-inside-work-tree"]]);
+  });
+
+  it("is false outside a repository", () => {
+    expect(insideWorkTree(temporaryParent(), () => ({ ok: false, stdout: "" }))).toBe(false);
   });
 });
 

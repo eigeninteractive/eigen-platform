@@ -550,13 +550,15 @@ const probeCommand: Probe = (command, args) => {
   }
 };
 
-/** What each Firebase tool needs, for a machine that has neither. */
-const firebaseTools: Record<string, string> = {
-  flutterfire: "dart pub global activate flutterfire_cli",
-  firebase: "npm install -g firebase-tools",
-};
+/** One thing standing between this machine and a configured Firebase project, and the single command that clears it. */
+export interface FirebaseProblem {
+  /** Said as a sentence fragment, so it reads after "Firebase is not set up here:". */
+  reason: string;
+  /** The one command that fixes this, and nothing else. */
+  fix: string;
+}
 
-export type FirebaseReadiness = { ready: true } | { ready: false; reason: string; fix: string };
+export type FirebaseReadiness = { ready: true } | { ready: false; problems: FirebaseProblem[] };
 
 /**
  * Whether this machine can configure Firebase, asked *before* the scaffold
@@ -567,29 +569,71 @@ export type FirebaseReadiness = { ready: true } | { ready: false; reason: string
  * `flutterfire` is missing costs nothing here and costs two minutes of Flutter
  * and pub at the far end, which is where the step actually runs.
  *
+ * Every problem, not the first one. The checks are independent — two CLIs from
+ * two ecosystems, plus a sign-in — so short-circuiting turns one setup into a
+ * sequence of runs that each reveal the next missing piece. Reported in the
+ * order they have to be fixed in: the CLI, then the sign-in it stores, then
+ * the bridge that consumes both.
+ *
  * The sign-in check fails open, for the same reason it does there: only an
  * answer that positively reports no accounts counts as "no", so a `firebase`
  * that errors or grows a different output shape is left to the command that
  * actually needs the credentials.
  */
 export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadiness {
-  for (const [tool, fix] of Object.entries(firebaseTools)) {
-    if (!probe(tool, ["--version"]).ok) return { ready: false, reason: `\`${tool}\` is not installed`, fix };
+  const problems: FirebaseProblem[] = [];
+
+  if (probe("firebase", ["--version"]).ok) {
+    if (signedOut(probe)) problems.push({ reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" });
+  } else {
+    // Nothing to say about the sign-in: the CLI that would answer is the one
+    // that is missing, and `firebase login` is what installing leads to anyway.
+    problems.push({ reason: "the `firebase` CLI is not installed", fix: "npm install -g firebase-tools" });
   }
 
+  if (!probe("flutterfire", ["--version"]).ok) {
+    problems.push({ reason: "the `flutterfire` CLI is not installed", fix: "dart pub global activate flutterfire_cli" });
+  }
+
+  return problems.length === 0 ? { ready: true } : { ready: false, problems };
+}
+
+/**
+ * Whether the Firebase CLI holds no credentials.
+ *
+ * `login:list --json` prints the stored refresh and access tokens along with
+ * the account list. Read the shape, count the entries, and never surface the
+ * output — not in a warning, not in a captured stream, not on the failure
+ * path. That is why this returns a boolean rather than the response.
+ */
+function signedOut(probe: Probe): boolean {
   const accounts = probe("firebase", ["login:list", "--json"]);
-  if (accounts.ok) {
-    try {
-      const { result } = JSON.parse(accounts.stdout) as { result?: unknown };
-      if (Array.isArray(result) && result.length === 0) {
-        return { ready: false, reason: "no Google account is signed in to the Firebase CLI", fix: "firebase login" };
-      }
-    } catch {
-      // Unparseable is not evidence of anything.
-    }
+  if (!accounts.ok) return false;
+  try {
+    const { result } = JSON.parse(accounts.stdout) as { result?: unknown };
+    return Array.isArray(result) && result.length === 0;
+  } catch {
+    // Unparseable is not evidence of anything.
+    return false;
   }
+}
 
-  return { ready: true };
+/**
+ * Whether the scaffold would land inside a repository that already exists.
+ *
+ * Asked of the nearest ancestor that exists, because the destination does not
+ * yet. The point is not to change what {@link scaffoldGame} does — it already
+ * declines to nest a repository — but to stop the CLI asking a question whose
+ * answer cannot matter.
+ */
+export function insideWorkTree(directory: string, probe: Probe = probeCommand): boolean {
+  let candidate = resolve(directory);
+  while (!existsSync(candidate)) {
+    const parent = dirname(candidate);
+    if (parent === candidate) return false;
+    candidate = parent;
+  }
+  return probe("git", ["-C", candidate, "rev-parse", "--is-inside-work-tree"]).ok;
 }
 
 /**
