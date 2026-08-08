@@ -349,9 +349,9 @@ function renderTree(source: string, destination: string, name: string, manager: 
   }
 }
 
-function packageCommand(manager: PackageManager, operation: "install" | "contract"): [string, string[]] {
+function packageCommand(manager: PackageManager, operation: "install" | "contract" | "cf-typegen"): [string, string[]] {
   if (operation === "install") return [manager, ["install"]];
-  return [manager, ["run", "contract"]];
+  return [manager, ["run", operation]];
 }
 
 const androidDesugaring = `// flutter_local_notifications requires desugaring in the application module.
@@ -741,8 +741,20 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
         run("dart", ["run", "flutter_native_splash:create"], appRoot);
       });
       const [install, installArgs] = packageCommand(manager, "install");
+      const [typegen, typegenArgs] = packageCommand(manager, "cf-typegen");
       reporter.step("Installing the Worker packages", () => {
         run(install, installArgs, serverRoot);
+        // `worker-configuration.d.ts` is committed, and its header stamps the
+        // workerd version that produced the runtime types. `wrangler` floats
+        // on a caret and Cloudflare ships workerd about weekly, so the copy in
+        // `templates/worker` is stale for every scaffold made more than a few
+        // days after it was last regenerated — and `wrangler dev` opens by
+        // saying the types might be out of date. Regenerating against the
+        // wrangler that was just installed, rather than the one this package
+        // was built with, is what makes that true. It has to follow the server
+        // install for the same reason it is worth doing: it reads the wrangler
+        // that install resolved.
+        run(typegen, typegenArgs, serverRoot);
         // The root holds Biome, which lints and formats both the Worker and
         // the repository's own JSON. Installed after the server so a failure
         // here costs the cheaper of the two.
