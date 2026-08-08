@@ -142,9 +142,9 @@ will not start until FlutterFire replaces it with real platform configuration.
 
    Scaffolding runs this step already, so on a project created with the two
    CLIs installed and signed in this is the command for *changing* the
-   configuration rather than establishing it. `create-eigen-game
-   --no-firebase`, a machine without the tooling, and a run with no terminal
-   all leave it for here.
+   configuration rather than establishing it. Only `create-eigen-game
+   --no-firebase` — or answering yes when it asked whether to scaffold without
+   the tooling — leaves it for here.
 
    It prompts for the Firebase project when none has been chosen, and creating
    one is an option there; pass `-- --project my-project-id` to answer up

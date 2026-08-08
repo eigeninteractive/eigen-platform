@@ -80,10 +80,18 @@ export PATH="$PATH":"$HOME/.pub-cache/bin"
 Then `firebase login` once — the two CLIs share one set of stored Google
 credentials.
 
-Install these **before scaffolding** if you can. `create-eigen-game` checks for
-all three, each CLI and the sign-in, and connects Firebase as part of the
-scaffold when it finds them; without them it says which is missing and leaves
-`firebase:configure` as a step for later. Neither path fails the scaffold.
+Install these **before scaffolding**. `create-eigen-game` checks all three —
+each CLI and the sign-in — and connects Firebase as part of the scaffold when it
+finds them. When it does not, it lists everything that is missing at once and
+asks whether to scaffold anyway, and **the default is no**: the two commands
+above are quicker than the alternative, which is an app that throws `Firebase is
+not configured` the moment it launches. Answer yes and it scaffolds without
+Firebase, leaving `firebase:configure` as a step for later.
+
+With no terminal to ask on, `--no-firebase` is how you say yes in advance, and
+`--firebase-project <id>` is how you configure without a prompt. Passing neither
+is an error rather than a silent skip — see
+[the scaffold section of the Quickstart](./quickstart.md#scaffold).
 
 See [Configure a game](../ship-it/configure.md) for what the configuration step
 actually writes, and [Push notifications](../ship-it/push.md) for the messaging

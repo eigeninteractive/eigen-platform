@@ -40,15 +40,17 @@ is unreadable, so keep the retention long enough to outlive a release.
 
 A scaffolded project has **no workflows until you ask for one**. The release
 path needs an upload keystore and a Play service account that a new game does
-not have, so generating it up front would only put a failing build on `main`.
-Add it when shipping becomes the goal:
+not have, so generating it up front would only put a failing build on `main` —
+which is why the scaffolder asks, and defaults to no. Add them when shipping
+becomes the goal:
 
 ```sh
-npx create-eigen-game add ci
+npx create-eigen-game add workflows
 ```
 
-That writes `.github/workflows/checks.yml` and `release.yml`; `--ci` at scaffold
-time does the same thing up front. The Android release path has three jobs:
+That writes `.github/workflows/checks.yml` and `release.yml`; answering yes at
+scaffold time, or passing `--workflows`, does the same thing up front. The
+Android release path has three jobs:
 
 - **test** — checks out the app, supplies `app-config.json`, restores or
   generates `firebase_options.dart` and `web/firebase-config.js`, then format,
