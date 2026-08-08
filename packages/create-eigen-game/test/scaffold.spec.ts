@@ -420,7 +420,7 @@ describe("firebaseReadiness", () => {
     // Asked here rather than left to `configure_firebase`, which runs at the
     // far end of two minutes of Flutter and pub.
     expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, problems: [{ reason: "the `flutterfire` CLI is not installed", fix: "dart pub global activate flutterfire_cli" }] });
-    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, problems: [{ reason: "the `firebase` CLI is not installed", fix: "npm install -g firebase-tools" }] });
+    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, problems: [{ reason: "the `firebase` CLI is not installed", fix: "curl -sL https://firebase.tools | bash" }] });
   });
 
   it("catches a machine that has the tools but is signed out", () => {

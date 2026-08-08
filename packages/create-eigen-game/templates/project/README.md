@@ -96,11 +96,15 @@ It drives two CLIs, which are separate global installs and neither of which
 comes with Flutter or Node:
 
 ```sh
-npm install -g firebase-tools                # the `firebase` CLI
+curl -sL https://firebase.tools | bash       # the `firebase` CLI
 dart pub global activate flutterfire_cli     # the `flutterfire` CLI
 export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
 firebase login                               # both CLIs share this
 ```
+
+The first line is Google's own installer; [the Firebase CLI
+reference](https://firebase.google.com/docs/cli) has the other ways, including
+Windows.
 
 A run with no project chosen yet asks which to use, and can create one. Name it
 up front to skip the prompts, which is also how CI runs this:

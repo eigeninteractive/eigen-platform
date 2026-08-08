@@ -588,7 +588,11 @@ export function firebaseReadiness(probe: Probe = probeCommand): FirebaseReadines
   } else {
     // Nothing to say about the sign-in: the CLI that would answer is the one
     // that is missing, and `firebase login` is what installing leads to anyway.
-    problems.push({ reason: "the `firebase` CLI is not installed", fix: "npm install -g firebase-tools" });
+    // Google's own installer, which picks a standalone binary or npm to suit
+    // the machine. `npm install -g firebase-tools` also works and is what this
+    // used to print, but it needs a global npm prefix the reader may not have
+    // write access to, and it is not the install the Firebase docs lead with.
+    problems.push({ reason: "the `firebase` CLI is not installed", fix: "curl -sL https://firebase.tools | bash" });
   }
 
   if (!probe("flutterfire", ["--version"]).ok) {
