@@ -1,5 +1,5 @@
 /**
- * Test-only worker config for the vitest-pool-workers suite — the deployable
+ * Test-only worker config for the vitest-pool-workers suite. The deployable
  * wrangler.jsonc with `main` pointed at the test worker (production config +
  * test auth). Never deployed.
  */

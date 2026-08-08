@@ -1,14 +1,14 @@
 /**
- * Deep linking & share pages — the game worker is the link host. Three
+ * Deep linking & share pages, where the game worker is the link host. Three
  * unauthed, non-OpenAPI routes, generated from the `deepLink` config so there
  * is one source of truth and no hand-maintained JSON:
  *
- *   - `GET /.well-known/assetlinks.json` — Android App Links verification.
- *   - `GET /.well-known/apple-app-site-association` — iOS Universal Links
- *     (extensionless, served as `application/json` — the historic gotcha a
+ *   - `GET /.well-known/assetlinks.json`: Android App Links verification.
+ *   - `GET /.well-known/apple-app-site-association`: iOS Universal Links
+ *     (extensionless, served as `application/json`, the historic gotcha a
  *     static file gets wrong).
- *   - `GET /join/:shortCode` — the invite/share landing page.
- *   - `GET /game/:gameId` — a specific game's landing page (replay / spectate).
+ *   - `GET /join/:shortCode`: the invite/share landing page.
+ *   - `GET /game/:gameId`: a specific game's landing page (replay / spectate).
  *
  *     Both return Flutter's SPA shell when an `ASSETS` binding is present,
  *     enriched with real OG tags from the D1 summary. An installed native app
@@ -22,9 +22,9 @@
  * invite/share landing; `/game/:id` is a specific game (the app's replay links
  * and its push-notification deep links). `assetlinks.json` grants
  * `handle_all_urls` for the whole host, so the app claims only the paths its
- * `<intent-filter>` declares — `android:pathPrefix="/join"` and
- * `android:pathPrefix="/game"`. Everything else on the host — the `site`
- * group's `/`, `/terms`, `/privacy`, `/delete-account` — is deliberately left
+ * `<intent-filter>` declares: `android:pathPrefix="/join"` and
+ * `android:pathPrefix="/game"`. Everything else on the host (the `site`
+ * group's `/`, `/terms`, `/privacy`, `/delete-account`) is deliberately left
  * unclaimed so it opens in the browser. iOS mirrors this in the AASA `paths`
  * below.
  */
@@ -37,9 +37,9 @@ import { NEW_TAB, Page, renderDocument } from "../site/page.js";
 
 /** Native-only fallback when no Flutter asset binding exists. It still carries
  * the OG tags a chat client unfurls. `noindex` because it is ephemeral and
- * per-game — unfurl scrapers still read the OG tags, which is what matters.
+ * per-game; unfurl scrapers still read the OG tags, which is what matters.
  *
- * `origin` is the request origin, so the OG image URL is absolute — which
+ * `origin` is the request origin, so the OG image URL is absolute, which
  * unfurl scrapers require. */
 function SharePage({ appName, title, description, stores, ctx, origin }: { appName: string; title: string; description: string; stores: { label: string; url: string }[]; ctx: RouteContext; origin: string }) {
   return (
@@ -87,7 +87,7 @@ export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
   }
 
   if (cfg?.apple !== undefined) {
-    // Extensionless AASA — the content type MUST be application/json. Legacy
+    // Extensionless AASA: the content type MUST be application/json. Legacy
     // `paths` form, broadly supported. Both app prefixes are listed; the site
     // group's pages are deliberately absent, which is what keeps Universal
     // Links off `/terms` and friends.
@@ -142,14 +142,14 @@ export function registerLinkRoutes(app: EngineApp, ctx: RouteContext): void {
     if (game === undefined) {
       return renderAppLinkResponse(c.req.raw, assets, appName, "This game link is no longer valid.", 404);
     }
-    // A private game's roster must not leak to an unauthenticated visitor — the
+    // A private game's roster must not leak to an unauthenticated visitor. The
     // app authorizes the viewer before showing a replay, this page cannot. Show
     // a generic card and let the app do the gating.
     if (game.access !== "public") {
       return renderAppLinkResponse(c.req.raw, assets, appName, `Open this game in ${appName}.`, 200);
     }
     const vs = await versusLine(ctx.d1(c.env), game);
-    const suffix = vs === null ? "" : ` — ${vs}`;
+    const suffix = vs === null ? "" : `, ${vs}`;
     const description = game.status === "finished" ? `See how this game of ${appName} played out${suffix}.` : `Watch this game of ${appName}${suffix}.`;
     return renderAppLinkResponse(c.req.raw, assets, vs === null ? appName : `${vs} · ${appName}`, description, 200);
   });

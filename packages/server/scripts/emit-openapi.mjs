@@ -1,4 +1,4 @@
-// Emits the engine's OpenAPI 3.1 document (run `pnpm openapi`; builds first —
+// Emits the engine's OpenAPI 3.1 document (run `pnpm openapi`; builds first,
 // the import below is the built, node-safe entry).
 //
 // `info.version` is read from package.json rather than written into the

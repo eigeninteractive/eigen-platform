@@ -4,7 +4,7 @@
 // diff can be reasoned about, and what the docs site serves byte-for-byte. The
 // `.ts` exists because `vitest-pool-workers` resolves worker-side modules
 // outside vite's plugin graph, so a bundler-loaded binary import is empty under
-// test — the font route would answer 500 in the suite while working in
+// test: the font route would answer 500 in the suite while working in
 // production. A string literal is the one representation every pipeline agrees
 // on. See `src/site/fonts/README.md`.
 //

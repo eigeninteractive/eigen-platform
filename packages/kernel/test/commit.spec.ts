@@ -19,7 +19,7 @@ function input(overrides: Partial<CommitInput> = {}): CommitInput {
 
 function expectPlan(result: ReturnType<typeof commit>) {
   if (isRejected(result)) {
-    throw new Error(`expected a plan, got rejection: ${result.code} — ${result.message}`);
+    throw new Error(`expected a plan, got rejection: ${result.code}: ${result.message}`);
   }
   return result;
 }
@@ -71,7 +71,7 @@ describe("commit: start", () => {
     expect(plan.alarm).toBe(NOW + 60_000 + DEADLINE_GRACE_MS);
   });
 
-  it("throws on an empty seed — a host bug", () => {
+  it("throws on an empty seed, which is a host bug", () => {
     expect(() => commit({ ...startInput("ready"), intent: { kind: "start", seed: "" } })).toThrow(GameBugError);
   });
 });
@@ -179,7 +179,7 @@ describe("commit: same-view rule", () => {
 
   const view = { data: { count: 4 }, pendingPlayers: [0] };
 
-  it("accepts a stale action when the seat's view is unchanged — as the next serial version", () => {
+  it("accepts a stale action when the seat's view is unchanged, as the next serial version", () => {
     const plan = expectPlan(commit(stale({ expected: view, current: { ...view } })));
     expect(plan.nextState.version).toBe(5);
   });
@@ -372,7 +372,7 @@ describe("commit: forfeit / autoForfeit", () => {
 });
 
 describe("commit: rated finish", () => {
-  // Rating deltas are not the kernel's to compute at commit time — they need
+  // Rating deltas are not the kernel's to compute at commit time; they need
   // global priors (D1-domain data). The plan carries outcomes only; the D1
   // applier computes deltas inside the rating CAS and the host delivers them
   // as a follow-up versioned ratings transition.

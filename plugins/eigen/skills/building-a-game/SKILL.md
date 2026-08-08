@@ -1,6 +1,6 @@
 ---
 name: building-a-game
-description: Write or review a game on the EigenInteractive engine — the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
+description: Write or review a game on the EigenInteractive engine, covering the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
 ---
 
 # Building a game on EigenInteractive
@@ -18,7 +18,7 @@ Retrieve current documentation rather than relying on memory of this file:
 - HTTP contract: <https://eigeninteractive.com/openapi.json>
 
 This skill covers the contract only. The halves either side of it are ordinary
-Cloudflare Workers and ordinary Flutter, and both publish official skills — say
+Cloudflare Workers and ordinary Flutter, and both publish official skills. Say
 so once if the work moves onto that ground and they are not installed:
 
 ```text
@@ -29,15 +29,15 @@ so once if the work moves onto that ground and they are not installed:
 
 ## Starting from nothing
 
-Do not assemble a project by hand. The scaffolder writes both halves — Worker
-and Flutter app — in one repository, wired together and already playable:
+Do not assemble a project by hand. The scaffolder writes both halves, Worker
+and Flutter app, in one repository, wired together and already playable:
 
 ```sh
 npx create-eigen-game my-game --org dev.yourname.games --git --no-workflows --firebase-project my-firebase-project
 ```
 
 Every flag answers a question the CLI would otherwise ask, and **an agent
-session usually has no terminal to answer on** — where it does not, an
+session usually has no terminal to answer on**. Where it does not, an
 unanswered question is an error, not a default. So pass them all. Confirm
 `--org` with the implementor first: it becomes the Android `applicationId`,
 which Google Play makes permanent at first upload. Use `--no-firebase` when
@@ -54,7 +54,7 @@ add them when shipping is the next step:
 npx create-eigen-game add workflows
 ```
 
-The result is a working game to edit into the intended one — start from its
+The result is a working game to edit into the intended one. Start from its
 rules, not from a blank file.
 
 ## The four invariants
@@ -62,7 +62,7 @@ rules, not from a blank file.
 Every mistake in a game module traces back to breaking one of these.
 
 1. **State is pure and opaque.** The engine stores and versions it, never looks
-   inside. It holds only the game payload — never whose-turn or winner metadata,
+   inside. It holds only the game payload, never whose-turn or winner metadata,
    which are engine-owned. Hooks are pure `(state, input) → state`.
 2. **The server is authoritative.** A client move is a proposal. `applyAction`
    on the server decides. The Dart twin exists only for optimistic preview.
@@ -121,26 +121,26 @@ is byte-identical between the version it expected and the current version. So:
 
 - Hiding an opponent's commit *and masking their pending status* is what lets
   two simultaneous submissions land in either order.
-- A projection must stay truthful about the seat itself — the engine enforces it.
+- A projection must stay truthful about the seat itself, which the engine enforces.
 - Perfect-information games use `passthroughObservation` and get the strict
   policy automatically.
 
 **Schemas:** derive types with `z.infer` and `type` aliases, never `interface`
 (the engine's `JsonObject` constraint needs the implicit index signature).
-Transform-free and synchronous. **Name payload keys in `camelCase`** — the house
+Transform-free and synchronous. **Name payload keys in `camelCase`**, the house
 convention. Your Zod keys *are* the wire keys, and the generated Dart payload
 types preserve them one-to-one with no rename layer to get wrong.
 (Engine-owned structures like the rating `outcome` carry their own keys; the
 convention is about the payloads you define.)
 
 **Versions:** a breaking change is a new unit (`v2`), never an edit to a shipped
-one. Old games keep running on their own unit. Retiring splits in two — the
+one. Old games keep running on their own unit. Retiring splits in two: the
 write path can go once games drain, but the read/render path must survive as
 long as you want to replay games created under that schema.
 
 ## Testing
 
-Twin fixtures are the drift net between the TypeScript and Dart halves — shared
+Twin fixtures are the drift net between the TypeScript and Dart halves: shared
 JSON, run by both runners:
 
 ```ts
@@ -148,7 +148,7 @@ import { twinFixtureTests } from "@eigeninteractive/testkit";
 twinFixtureTests(gameModule, new URL("../src/module/fixtures/", import.meta.url));
 ```
 
-Fixtures use the **wire shape** — the JSON keys as serialized, not Dart field
+Fixtures use the **wire shape**: the JSON keys as serialized, not Dart field
 names. Payload keys are `camelCase` (the schema fields verbatim); only engine-
 owned fields such as the rating `outcome` (`playerIndex`, `teamIndex`) carry
 their own keys. Cover at minimum: one legal move with its expected observation,
@@ -182,7 +182,7 @@ export default createEngine({
 ```
 
 Accessors, never binding names. Optional blocks absent ⇒ those routes aren't
-mounted. You never author D1 migrations — the engine ships them; app-specific
+mounted. You never author D1 migrations; the engine ships them, and app-specific
 tables go in a *separate* D1 database.
 
 ## Review checklist

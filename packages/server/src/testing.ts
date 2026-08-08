@@ -1,9 +1,9 @@
 /**
- * `@eigeninteractive/server/testing` — the test-auth recipe, for the engine's own
+ * `@eigeninteractive/server/testing`: the test-auth recipe, for the engine's own
  * suite and for implementor test workers alike:
  *
  * ```ts
- * // test/worker.ts — your production entry with explicit Firebase fakes:
+ * // test/worker.ts, your production entry with explicit Firebase fakes:
  * export default createEngine({
  *   ...sameConfig,
  *   testing: {
@@ -17,11 +17,11 @@
  * ```
  *
  * (`exports.default` is the loopback binding to the test worker's default
- * export — the supported replacement for the deprecated `SELF` fetcher. It
+ * export, the supported replacement for the deprecated `SELF` fetcher. It
  * needs `Cloudflare.GlobalProps` to declare `mainModule`; see the engine's
  * own `test/env.d.ts` for the hand-rolled version, or use `wrangler types`.)
  *
- * Tokens are verified through the SAME jose code path production uses — only
+ * Tokens are verified through the SAME jose code path production uses; only
  * the JWKS is local. The RS256 keypair below is a public fixture (checked in,
  * shipped in the package); it protects nothing and must never reach a
  * production config: pass `testing` ONLY in test workers.

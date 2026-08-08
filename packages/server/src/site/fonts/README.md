@@ -18,7 +18,7 @@ unstyled in the suite; for a font it would be a route that answers 500 in every
 test while working in production.
 
 A vite `load` plugin, a vite `transform` plugin, a workerd `Text` module rule
-and a wrangler `rules` entry were all tried. None reach it — wrangler's `rules`
+and a wrangler `rules` entry were all tried. None reach it; wrangler's `rules`
 are documented as not applying under the Vite plugin. A string literal in a
 `.ts` file is the one representation every pipeline agrees on.
 
@@ -27,7 +27,7 @@ are documented as not applying under the Vite plugin. A string literal in a
 The `.woff2` is the source of truth; the `.ts` beside it is generated from it
 by `scripts/encode-fonts.mjs` and verified in CI, so the two cannot drift.
 
-Download the family from Google Fonts — [Inter], [Space Grotesk] — and take the
+Download the family from Google Fonts ([Inter], [Space Grotesk]) and take the
 `*-VariableFont_*.ttf` from the top level of the archive, not from `static/`.
 Then subset, convert, and re-encode:
 
@@ -42,7 +42,7 @@ python3 -m fontTools.subset Inter-VariableFont_opsz,wght.ttf \
 pnpm run fonts
 ```
 
-Then bump `VERSION` in `../fonts.ts` — the URLs are served `immutable`, so a
+Then bump `VERSION` in `../fonts.ts`, since the URLs are served `immutable`, so a
 returning visitor keeps the old bytes for a year otherwise.
 
 The subset is latin, punctuation, currency and arrows. `tnum` is kept because
@@ -50,7 +50,7 @@ the share page renders game codes. Inter's `opsz` axis is retained and nothing
 sets it, so it rests at its default of 14, the text optical size.
 
 The docs site serves the same two files from its own `static/fonts/`. They are
-separate repositories, so nothing enforces that — replace both together.
+separate repositories, so nothing enforces that. Replace both together.
 
 Both faces are SIL Open Font License 1.1; the notices are in `OFL-Inter.txt` and
 `OFL-SpaceGrotesk.txt`.

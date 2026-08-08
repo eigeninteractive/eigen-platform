@@ -1,5 +1,5 @@
 /**
- * Google service-account OAuth — the shared token step
+ * Google service-account OAuth: the shared token step
  * for every Google API the engine calls: FCM (`notify/fcm.ts`) and the
  * Firebase Auth admin delete (`auth/admin.ts`). We sign the
  * service-account JWT (RS256) with `jose` and exchange it at Google's token
@@ -24,7 +24,7 @@ const TOKEN_SKEW_MS = 60_000;
 export interface ServiceAccount {
   projectId: string;
   clientEmail: string;
-  /** PKCS#8 PEM. Env storage often escapes newlines — {@link readServiceAccount}
+  /** PKCS#8 PEM. Env storage often escapes newlines, so {@link readServiceAccount}
    * un-escapes them. */
   privateKey: string;
 }
@@ -47,11 +47,11 @@ interface CachedToken {
   token: string;
   expiresAt: number;
 }
-/** Keyed by `${clientEmail}\n${scope}` — FCM and admin use different scopes off
+/** Keyed by `${clientEmail}\n${scope}`, since FCM and admin use different scopes off
  * the same account, so they must not share a cache slot. */
 const cache = new Map<string, CachedToken>();
 
-/** A bearer for `scope` — cached per (account, scope) in the isolate, minted
+/** A bearer for `scope`, cached per (account, scope) in the isolate, minted
  * via a signed service-account JWT exchanged at Google's token endpoint. */
 export async function accessToken(sa: ServiceAccount, scope: string): Promise<string> {
   const now = Date.now();

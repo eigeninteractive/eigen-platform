@@ -7,7 +7,7 @@
  * regex/fail-fast machinery that guarded the old scheme is gone.
  *
  * Each is rendered to an HTML fragment once, at startup, so a request never
- * builds prose — and `LegalConfig` overrides stay plain HTML strings, which
+ * builds prose, and `LegalConfig` overrides stay plain HTML strings, which
  * need no props because the implementor writes their own values in directly.
  */
 
@@ -22,7 +22,7 @@ import { Terms } from "./terms.js";
 export function renderLegal(legal: LegalConfig | undefined, props: LegalProps): { terms: string; privacy: string; deleteAccount: string } {
   const override = legal ?? {};
   // Every default is a synchronous component, so the JSX node stringifies
-  // synchronously — no await, and nothing to resolve per request.
+  // synchronously: no await, and nothing to resolve per request.
   const render = (Component: (p: LegalProps) => unknown): string => String(Component(props));
   return {
     terms: override.terms ?? render(Terms),

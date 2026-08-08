@@ -2,13 +2,13 @@ name: Release
 
 # Ships a signed Android build on every push to main:
 #
-#   1. checks   — the exact PR gate, re-run against the merge commit.
-#   2. build    — a signed, obfuscated AAB.
-#   3. deploy   — fastlane uploads it to the Play Store internal track.
+#   1. checks   : the exact PR gate, re-run against the merge commit.
+#   2. build    : a signed, obfuscated AAB.
+#   3. deploy   : fastlane uploads it to the Play Store internal track.
 #
 # Worker deployment is NOT here, on purpose: it applies D1 migrations against
 # a real database, so it stays the deliberate, manual `{{PACKAGE_MANAGER}} run
-# deploy` from a machine with `wrangler login` — the same reasoning the
+# deploy` from a machine with `wrangler login`, the same reasoning the
 # engine's own CI uses for never deploying a Worker automatically.
 on:
   push:
@@ -60,7 +60,7 @@ jobs:
 
       # The keystore and Play service account are the only things here that
       # are genuinely secret. `app-config.json`, `firebase_options.dart` and
-      # `google-services.json` are public app identifiers, not credentials —
+      # `google-services.json` are public app identifiers, not credentials, so
       # commit them for real once `firebase:configure` has been run, rather
       # than reconstructing them from secrets on every build. See
       # https://eigeninteractive.com/docs/ship-it/configure and

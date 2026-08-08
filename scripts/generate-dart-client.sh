@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Regenerates `clients/dart` — the eigen_api Dart REST client — from
+# Regenerates `clients/dart`, the eigen_api Dart REST client, from
 # packages/server/openapi.json.
 #
 # The client lives here, in the repo that owns the wire contract, and is
@@ -16,20 +16,20 @@
 #
 # The generator is openapi-generator, run through its official npm wrapper with
 # `pnpm dlx @openapitools/openapi-generator-cli`. The wrapper owns the one thing
-# not worth hand-maintaining — downloading and version-pinning the JAR — reading
+# not worth hand-maintaining (downloading and version-pinning the JAR) reading
 # the pin from ./openapitools.json. `pnpm dlx` runs it from an ephemeral isolated
 # install rather than a workspace devDependency on purpose: added to the
 # workspace, the wrapper breaks under pnpm's isolated linker (its build-script
 # approval gate blocks the wrapper's self-install, and the wrapper's phantom
 # `tslib` fails to resolve); dlx's throwaway install sidesteps both and leaves no
 # devDependency behind. The JDK is provided by the environment (CI's setup-java,
-# or your local install) — nothing here installs it.
+# or your local install); nothing here installs it.
 #
 # Everything under clients/dart is generated EXCEPT pubspec.yaml,
 # analysis_options.yaml and .openapi-generator-ignore (which lists exactly those
 # protected files). The pubspec is hand-owned because the dart-dio template
 # stamps `sdk: >=3.5.0` while its own json_serializable output uses Dart 3.8
-# null-aware elements — OpenAPITools/openapi-generator#21815.
+# null-aware elements. See OpenAPITools/openapi-generator#21815.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -39,7 +39,7 @@ OUT="$ROOT/clients/dart"
 # The published version tracks the engine's, read from the same package.json
 # field changesets owns (and that `emit-openapi.mjs` stamps into the spec's
 # `info.version`). The wire contract is the server's, so a breaking server
-# release *is* a breaking client release — and a consumer's `eigen_api: ^0.1.0`
+# release *is* a breaking client release, and a consumer's `eigen_api: ^0.1.0`
 # then carries exactly the compatibility statement it should.
 #
 # Pre-1.0, "breaking" lives in the MINOR position: `^0.1.0` resolves to
@@ -68,7 +68,7 @@ echo "==> build_runner"
 ( cd "$OUT" && dart pub get >/dev/null && dart run build_runner build --delete-conflicting-outputs >/dev/null )
 
 # openapi-generator's output is not `dart format` clean, and these sources are
-# committed — so format them here, in the script that owns the artifact.
+# committed, so format them here, in the script that owns the artifact.
 # Formatting rather than excluding also normalises generator reflow, so a
 # generator upgrade diffs as real changes instead of line-breaking churn.
 echo "==> dart format"
@@ -76,7 +76,7 @@ echo "==> dart format"
 
 # pub.dev refuses to publish without a LICENSE, and renders CHANGELOG.md as a
 # tab. Both are derived here rather than hand-maintained: the licence is the
-# repository's, and this package has no changes of its own to describe — its
+# repository's, and this package has no changes of its own to describe: its
 # version *is* the engine's.
 echo "==> licence, changelog, README banner"
 cp "$ROOT/LICENSE" "$OUT/LICENSE"
@@ -86,12 +86,12 @@ cat > "$OUT/CHANGELOG.md" <<EOF
 
 This package is generated from the Eigen engine's OpenAPI specification and its
 version tracks [\`@eigeninteractive/server\`](https://www.npmjs.com/package/@eigeninteractive/server)
-exactly — $VERSION here is $VERSION there. It has no changes of its own.
+exactly: $VERSION here is $VERSION there. It has no changes of its own.
 
 See the engine's changelog:
 <https://github.com/eigeninteractive/eigen-server/blob/main/packages/server/CHANGELOG.md>
 
-While the engine is pre-1.0, a breaking wire change bumps the **minor** — a
+While the engine is pre-1.0, a breaking wire change bumps the **minor**. A
 constraint of \`^0.1.0\` resolves to \`>=0.1.0 <0.2.0\`, so 0.1.x is additive and
 0.2.0 is the break. From 1.0.0 on it is the major, as usual.
 
@@ -112,7 +112,7 @@ cat > "$OUT/README.tmp" <<'EOF'
 > the wire types a game needs and keeps the `*Api` classes out of your
 > namespace.
 >
-> It is published only because pub.dev rejects path dependencies — the same
+> It is published only because pub.dev rejects path dependencies, the same
 > reason Flutter's federated plugins publish `*_platform_interface` packages
 > nobody imports. Documentation lives at
 > <https://eigeninteractive.com/docs/reference/http-surface>.

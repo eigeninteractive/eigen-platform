@@ -1,7 +1,7 @@
 /**
- * The D1 failure predicates. D1 exposes no structured error code — the thrown
+ * The D1 failure predicates. D1 exposes no structured error code: the thrown
  * Error carries only `message` and a nested `cause` (verified against the live
- * binding; Cloudflare documents `e.message` as the only thing to inspect) — so
+ * binding; Cloudflare documents `e.message` as the only thing to inspect) so
  * these match text, and these tests pin the exact shapes they must classify.
  *
  * The message shapes below are transcribed from real failures raised by the
@@ -21,7 +21,7 @@ function batchShape(constraint: string): Error {
 }
 
 /** The real query-builder shape: drizzle's `DrizzleQueryError` message carries
- * the SQL — which names `short_code` as a column — and does NOT carry the
+ * the SQL, which names `short_code` as a column, and does NOT carry the
  * constraint text. That only appears one `cause` deeper. */
 function queryBuilderShape(constraint: string): Error {
   const sql = 'insert into "games" ("id", "status", "short_code", "created_at") values (?, ?, ?, ?)';

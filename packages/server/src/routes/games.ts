@@ -32,7 +32,7 @@ const errorResponses = {
   401: error("Missing or invalid token"),
   403: error("Not allowed"),
   404: error("Not found"),
-  409: error("State conflict — resync and retry"),
+  409: error("State conflict; resync and retry"),
   422: error("Assertion mismatch"),
 } as const;
 
@@ -41,7 +41,7 @@ function responses<T extends z.ZodType>(schema: T, description: string) {
   return { 200: { content: { "application/json": { schema } }, description }, ...errorResponses } as const;
 }
 
-/** A 201 Created carrying `schema` — for the endpoints that create a resource. */
+/** A 201 Created carrying `schema`, for the endpoints that create a resource. */
 function createdResponses<T extends z.ZodType>(schema: T, description: string) {
   return { 201: { content: { "application/json": { schema } }, description }, ...errorResponses } as const;
 }
@@ -49,7 +49,7 @@ function createdResponses<T extends z.ZodType>(schema: T, description: string) {
 const gameIdParam = z.object({ gameId: z.string().min(1) });
 
 /** Narrow an accepted result to the lobby (roster) variant, stripping the
- * internal `ok` discriminator — success is the HTTP 200, not a body field. */
+ * internal `ok` discriminator; success is the HTTP 200, not a body field. */
 function lobbyResult(result: CommandResult) {
   const value = unwrap(result);
   if (!("roster" in value)) throw new HttpError(500, "engine bug: expected a roster response");
@@ -57,7 +57,7 @@ function lobbyResult(result: CommandResult) {
 }
 
 /** Narrow an accepted result to the versioned (frame) variant, stripping the
- * internal `ok` discriminator — success is the HTTP 200, not a body field. */
+ * internal `ok` discriminator; success is the HTTP 200, not a body field. */
 function commandResult(result: CommandResult) {
   const value = unwrap(result);
   if (!("version" in value)) throw new HttpError(500, "engine bug: expected a versioned response");
@@ -71,7 +71,7 @@ function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
 }
 
 /** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
- * anything with the game's timing/rated/schema/config — a stored row or a
+ * anything with the game's timing/rated/schema/config: a stored row or a
  * to-be-created spec. Throws an `HttpError` on any failed gate. */
 interface BotSeatingGame {
   schemaVersion: number;
@@ -84,7 +84,7 @@ interface BotSeatingGame {
 function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow): void {
   // SERVER-seated bots ⇒ timed. Dispatch is single-attempt, so a brain that
   // throws, an external webhook that never answers, or a DO evicted mid-turn is
-  // resolved only by the turn deadline firing the alarm — the one liveness
+  // resolved only by the turn deadline firing the alarm, the one liveness
   // backstop. Untimed means no deadline, no alarm, and a game wedged forever.
   //
   // Scoped to *server* seating on purpose: a client-driven bot has no dispatch
@@ -134,7 +134,7 @@ async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promis
 
 // ── Short codes (D1 UNIQUE + retry loop) ────────────────────────────────
 
-/** No 0/O/1/I/L — these codes are read aloud and typed. */
+/** No 0/O/1/I/L, because these codes are read aloud and typed. */
 const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 const CODE_LENGTH = 6;
 const CODE_ATTEMPTS = 5;
@@ -147,7 +147,7 @@ function generateShortCode(): string {
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
-  // Create — the one worker-direct write, and the only place game policy is
+  // Create: the one worker-direct write, and the only place game policy is
   // decided outside a DO: guest gates, config parse, ratingPool, and the
   // client's `rated` assertion (validated, never coerced).
   app.openapi(
@@ -183,7 +183,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         config,
       });
       // `rated` is a concrete assertion the client also computes (the Dart
-      // twin) — a mismatch means twin drift or a forged client; reject it
+      // twin). A mismatch means twin drift or a forged client; reject it
       // rather than silently coercing. There is no forced-rated, so a sent
       // `false` is always valid.
       const canBeRated = pool !== null && !auth.claims.isAnonymous;
@@ -217,7 +217,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
             now,
           });
           // Friends-access game: fan out an invite push to the creator's
-          // accepted friends. Best-effort and off the response path — a friend
+          // accepted friends. Best-effort and off the response path: a friend
           // with notifications off (or none at all) costs nothing, and a push
           // failure never affects the create.
           if (body.access === "friends") {
@@ -233,7 +233,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // create-solo — create a private game seated with the caller plus bots,
+  // create-solo: create a private game seated with the caller plus bots,
   // and start it, in one call. Guests may play bots (unrated); the same
   // create policy and bot-seating gates apply, then an immediate `start`.
   app.openapi(
@@ -254,7 +254,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
       const config = parsedConfig.value as JsonObject;
 
-      // Solo games are always private — no lobby, no invites.
+      // Solo games are always private: no lobby, no invites.
       const pool = rules.ratingPool({
         access: "private",
         turnSeconds: body.turnSeconds,
@@ -317,7 +317,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // Start immediately: the DO lazy-inits from D1 (bots included) and
       // commits v0; a bot due to open plays via its in-DO brain post-commit
       // (arriving over the socket). A start has no single acting seat, so its
-      // response carries no frame — read the creator's opening projection back
+      // response carries no frame, so read the creator's opening projection back
       // so the client has the initial board without a round trip.
       const stub = ctx.stub(c.env, gameId);
       const started = commandResult(await stub.handle(mint(auth, "start", gameId, undefined)));
@@ -326,7 +326,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // join — worker policy: guest-vs-rated, friends access, schema gate.
+  // join: worker policy is guest-vs-rated, friends access, schema gate.
   const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, commandId: string | undefined) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
@@ -343,7 +343,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }
     // The seating boundary: the caller and anyone they have blocked (either
     // direction) must never share a game. Answered as `unknownGame`, not a
-    // "blocked" code — the lobby already hides this game from the pair, so a
+    // "blocked" code, because the lobby already hides this game from the pair, so a
     // direct attempt (a shared code, a deep link) sees the same "no such game"
     // a genuine miss would, leaking nothing and needing no new wire code.
     const seatedUserIds = game.participants.flatMap((p) => (p.userId !== null ? [p.userId] : []));
@@ -360,7 +360,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(joinBody) },
-      responses: responses(joinedShape, "Seated — the game's id and the post-join roster"),
+      responses: responses(joinedShape, "Seated: the game's id and the post-join roster"),
     }),
     async (c) => {
       const body = c.req.valid("json");
@@ -377,7 +377,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGameByCode",
       tags: ["Games"],
       request: { body: jsonBody(joinByCodeBody) },
-      responses: responses(joinedShape, "Seated — the game's id and the post-join roster"),
+      responses: responses(joinedShape, "Seated: the game's id and the post-join roster"),
     }),
     async (c) => {
       const body = c.req.valid("json");
@@ -395,7 +395,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "leaveGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
-      responses: responses(lobbyAcceptedShape, "Left — the post-leave roster"),
+      responses: responses(lobbyAcceptedShape, "Left: the post-leave roster"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
@@ -420,7 +420,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // add-bot — worker policy: registry gates (schema, rated eligibility,
+  // add-bot: worker policy is the registry gates (schema, rated eligibility,
   // timed invariant, brain-or-webhook) and botSeatable. Guests may add bots
   // (unrated only, enforced at create/join); the timed invariant and rated
   // gate are shared with create-solo via `assertBotSeatable`.
@@ -431,7 +431,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "addBot",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(addBotBody) },
-      responses: responses(lobbyAcceptedShape, "Bot seated — the new roster"),
+      responses: responses(lobbyAcceptedShape, "Bot seated: the new roster"),
     }),
     async (c) => {
       const auth = c.var.auth;
@@ -453,7 +453,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "startGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
-      responses: responses(commandAcceptedShape, "Started — version 0 committed"),
+      responses: responses(commandAcceptedShape, "Started: version 0 committed"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
@@ -462,9 +462,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // Act — a player's move. The client sends its own seat (uniform with bots);
+  // Act: a player's move. The client sends its own seat (uniform with bots);
   // the DO verifies it belongs to the caller against its own roster (the
-  // authoritative copy — the D1 participants mirror only displays) and the
+  // authoritative copy, since the D1 participants mirror only displays) and the
   // caller's committed frame rides the response. No D1 read on this path.
   app.openapi(
     createRoute({
@@ -473,7 +473,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "submitAction",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(actionBody) },
-      responses: responses(commandAcceptedShape, "Committed — the acting seat's frame"),
+      responses: responses(commandAcceptedShape, "Committed: the acting seat's frame"),
     }),
     async (c) => {
       const body = c.req.valid("json");
@@ -515,7 +515,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // Transitions — the range fetch: live gap recovery AND finished-game replay, one
+  // Transitions, the range fetch: live gap recovery AND finished-game replay, one
   // path. Participants read their own seat; a finished PUBLIC game is
   // replayable by anyone as the null-seat viewer projection.
   app.openapi(
@@ -545,16 +545,16 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       }
       const page = 1000;
       const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);
-      // Finished games replay through the HistoryStore seam — DO-backed
+      // Finished games replay through the HistoryStore seam: DO-backed
       // in v1, R2-backed later; live gap recovery stays a direct DO fetch.
       const frames = finished ? await ctx.history(c.env).replay(gameId, { seat: mySeat, from, to: cappedTo }) : await ctx.stub(c.env, gameId).frames({ seat: mySeat, from, to: cappedTo, isReplay: false });
       return c.json({ frames }, 200);
     },
   );
 
-  // The WebSocket — one socket for the game's whole lifetime.
+  // The WebSocket: one socket for the game's whole lifetime.
   // Not an OpenAPI route (documents can't describe the upgrade); auth rides
-  // the `?token=` query. The worker stamps the principal header itself —
+  // the `?token=` query. The worker stamps the principal header itself;
   // inbound x-eigen-* headers are dropped wholesale.
   app.get("/games/:gameId/socket", async (c) => {
     if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {

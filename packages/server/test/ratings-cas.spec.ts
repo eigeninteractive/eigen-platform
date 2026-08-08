@@ -3,7 +3,7 @@
  *
  * The hazard is a lost update across two DIFFERENT games that share a player
  * and finish at the same moment: both read the same prior, both compute from
- * it, and whichever commits second overwrites the first — the player's rating
+ * it, and whichever commits second overwrites the first, so the player's rating
  * moves as if only one game happened.
  *
  * The guard is `idx_rating_history_{user,bot}_cas`: every history row is
@@ -80,7 +80,7 @@ function finish(gameId: string, a: string, b: string) {
 }
 
 describe("rating CAS", () => {
-  // NOTE: this does not reproduce the race — local D1 serializes the two
+  // NOTE: this does not reproduce the race; local D1 serializes the two
   // applies, so both observe the other's commit and neither has to retry.
   // It pins the *shape* the CAS produces (a gapless revision chain, each
   // delta computed from the previous one's result), which is what a lost
@@ -118,7 +118,7 @@ describe("rating CAS", () => {
   });
 
   it("rejects a second history row computed against an already-consumed revision", async () => {
-    // The index in isolation — the mechanism every recompute above depends on.
+    // The index in isolation: the mechanism every recompute above depends on.
     const user = `dup-${crypto.randomUUID()}`;
     const now = Date.now();
     const row = {
@@ -137,7 +137,7 @@ describe("rating CAS", () => {
     };
     await db.insert(ratingHistory).values({ ...row, id: crypto.randomUUID(), gameId: `g1-${user}`, finishId: `f1-${user}` });
 
-    // A different game, same identity+pool, same revision — the lost-update
+    // A different game, same identity+pool, same revision: the lost-update
     // shape. It must not be storable, and `applyFinish` must recognise the
     // rejection as retryable. Note the constraint text is NOT in the
     // top-level message: drizzle rethrows with its own "Failed query: ...",

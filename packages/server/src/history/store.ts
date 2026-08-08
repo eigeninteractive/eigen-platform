@@ -3,8 +3,8 @@
  * replay fetches its projected transitions through this ~20-line interface, so
  * the source of history can change without touching the replay route.
  *
- * V1 ships exactly ONE implementation — {@link doHistoryStore}, the game's own
- * DO range-fetch — and no dispatch logic. The future cold-tier sweep adds an
+ * V1 ships exactly ONE implementation, {@link doHistoryStore}, the game's own
+ * DO range-fetch, and no dispatch logic. The future cold-tier sweep adds an
  * R2-backed implementation and a DO-if-present-else-R2 composition behind this
  * same interface; the route never changes.
  *
@@ -17,7 +17,7 @@ import type { FrameMessage, GameStub } from "../protocol.js";
 
 export interface HistoryStore {
   /** Projected frames for a finished game's version range, for the caller's
-   * seat (null = public-viewer projection). Raw state never leaves the DO —
+   * seat (null = public-viewer projection). Raw state never leaves the DO;
    * the projection happens at the source. */
   replay(gameId: string, args: { seat: number | null; from: number; to: number }): Promise<FrameMessage[]>;
 }

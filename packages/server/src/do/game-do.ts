@@ -1,7 +1,7 @@
 /**
- * The game's Durable Object — its serialized session AND its permanent
+ * The game's Durable Object: its serialized session AND its permanent
  * database. One DO per gameId, addressed by
- * `idFromName(gameId)`. Implementors subclass {@link BaseGameDO} — the
+ * `idFromName(gameId)`. Implementors subclass {@link BaseGameDO}, the
  * platform-idiomatic shape (cf. `agents`' `Agent`, partyserver's `Server`):
  *
  * ```ts
@@ -18,12 +18,12 @@
  * post-commit) strictly after the SQLite commit. All storage access goes
  * through drizzle's durable-sqlite driver, which is fully SYNCHRONOUS
  * (`.get()`/`.all()`/`.run()`, and `db.transaction` wraps
- * `storage.transactionSync` with a non-async callback — an `await` inside it
+ * `storage.transactionSync` with a non-async callback, so an `await` inside it
  * is a syntax error, which is the guarantee made structural). The one
  * sanctioned non-storage await near the gate is the lazy init, inside
  * `blockConcurrencyWhile` on first contact.
  *
- * The deadline alarm is the ONLY `setAlarm` client — a stray call would
+ * The deadline alarm is the ONLY `setAlarm` client; a stray call would
  * silently unarm the turn deadline.
  */
 
@@ -63,7 +63,7 @@ import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
 /** Caps how long the fire-and-forget wake holds its outbound connection for a
- * slow or hanging bot webhook. Not a correctness deadline — we never wait
+ * slow or hanging bot webhook. Not a correctness deadline: we never wait
  * for the bot's move (it arrives on `/api/bot/action`) and a lost wake rides
  * the turn deadline; this is purely a resource bound. */
 const WAKE_TIMEOUT_MS = 10_000;
@@ -74,7 +74,7 @@ type TransitionRow = typeof t.transitions.$inferSelect;
 /** What each hibernating socket remembers: the authenticated
  * principal only. Seats are resolved against the CURRENT roster at every
  * send, so a socket opened pre-join starts receiving its seat's frames the
- * moment its user is seated — no re-tagging machinery. */
+ * moment its user is seated, with no re-tagging machinery. */
 interface SocketAttachment {
   userId: string | null;
 }
@@ -102,9 +102,9 @@ interface SocketAttachment {
  * ```
  */
 export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements GameStub {
-  /** The implementor's game — the `versions` map the engine dispatches on. */
+  /** The implementor's game: the `versions` map the engine dispatches on. */
   protected abstract readonly gameModule: GameModule;
-  /** The EngineConfig seam: the engine never assumes binding names — the
+  /** The EngineConfig seam: the engine never assumes binding names, so the
    * subclass picks the D1 database off its own Env. */
   protected abstract d1(env: TEnv): D1Database;
   /** Required Firebase Admin effects. Tests override this with the explicit
@@ -150,7 +150,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   // ── Waiting room: integrity under the gate ─────────────────────────
 
   /** The DO column for join/leave/add-bot: status + seat integrity
-   * checks, roster rewrite, ready/waiting threshold — one synchronous storage
+   * checks, roster rewrite, ready/waiting threshold: one synchronous storage
    * transaction, then the snapshot push and the D1 mirror post-commit.
    * Refusals here are *expected* lobby races (accepted staleness: the lobby
    * may show a game that just filled), so they come back as values. */
@@ -183,7 +183,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         if (seat === undefined) {
           return { ok: false, code: "notParticipant", message: "Not seated in this game" };
         }
-        // Compact the indexes — safe pre-start only, which lobby
+        // Compact the indexes, safe pre-start only, which lobby
         // statuses guarantee: no frames or transitions reference seats yet.
         nextRoster = roster.filter((s) => s.playerIndex !== seat.playerIndex).map((s, i) => ({ ...s, playerIndex: i }));
         break;
@@ -219,7 +219,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const gameId = meta.gameId;
     // Background D1 mirror, off the response path. No ctx.waitUntil: a Durable
     // Object stays alive while a promise is pending, so an unawaited (but
-    // .catch-guarded) promise runs to completion on its own — waitUntil is a
+    // .catch-guarded) promise runs to completion on its own; waitUntil is a
     // stateless-Worker idiom that's redundant here.
     this.#mirrorD1(`roster mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }));
     // A join that just filled the lobby: nudge the away creator to start. Skip
@@ -232,10 +232,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** Cancel: creator-only, lobby statuses only; status → `aborted` and
-   * the DO's storage is dropped — nothing worth retaining, the D1 row alone
+   * the DO's storage is dropped, since nothing is worth retaining and the D1 row alone
    * serves history lists. The D1 mirror is AWAITED here (unlike every other
    * lobby effect): the aborted games row is the only survivor, so its write
-   * failing must fail the command — a retry re-enters through the `aborted`
+   * failing must fail the command; a retry re-enters through the `aborted`
    * branch and completes idempotently. */
   async #cancel(cmd: Extract<Command, { kind: "cancel" }>): Promise<CommandResult> {
     const meta = this.#meta();
@@ -255,7 +255,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** Unconditional teardown (cron reap): mark the game aborted in D1 and
-   * drop the DO's storage — no creator gate, no init requirement. A
+   * drop the DO's storage: no creator gate, no init requirement. A
    * never-touched lobby's DO has no `meta` row, so the caller passes the
    * gameId. Idempotent: a re-run re-aborts a game whose storage is already
    * gone. Used by the cron; `cancel` shares the teardown for its live path. */
@@ -270,9 +270,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** The shared abort teardown: mirror the aborted status to D1 (the only
-   * survivor — awaited, so a failure surfaces), notify and close any sockets,
+   * survivor, awaited so a failure surfaces), notify and close any sockets,
    * then drop the alarm and all storage. The schema goes with the storage, so
-   * restore it — a later poke lazy-re-inits from the aborted D1 row. */
+   * restore it; a later poke lazy-re-inits from the aborted D1 row. */
   async #tearDownAborted(gameId: string, closeReason: string): Promise<void> {
     await mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() });
     this.#broadcast({ type: "roster", status: "aborted", players: [] });
@@ -280,7 +280,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       try {
         ws.close(1000, closeReason);
       } catch {
-        // Already closing — nothing to do.
+        // Already closing, nothing to do.
       }
     }
     await this.ctx.storage.deleteAlarm();
@@ -291,7 +291,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>): Promise<CommandResult> {
     const meta = this.#meta();
     const roster = this.#roster();
-    // Creator-only start — a clean rejection, not a throw: any seated
+    // Creator-only start: a clean rejection, not a throw. Any seated
     // client can reach this without a protocol violation.
     if (cmd.kind === "start" && meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
       return { ok: false, code: "notCreator", message: "Only the creator can start the game" };
@@ -324,7 +324,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return await this.#apply(cmd, meta, roster, result, now, actingSeat);
   }
 
-  /** Verify the acting seat against the authoritative roster — the D1
+  /** Verify the acting seat against the authoritative roster; the D1
    * participants copy is a display mirror and never arbitrates. Both humans
    * and bots name their seat; it must belong to the actor (user id from the
    * token, bot id from the HMAC claim). A seat the actor does not hold is
@@ -373,7 +373,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     };
   }
 
-  /** Apply the plan — ONE SQLite transaction, gate held. Everything
+  /** Apply the plan: ONE SQLite transaction, gate held. Everything
    * after the transaction is post-commit: interleaving is harmless. */
   async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null): Promise<CommandResult> {
     const next = plan.nextState;
@@ -398,8 +398,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           turnStartedAt: next.turnStartedAt,
         })
         .run();
-      // Every transition writes its frames and its dedupe row, uniformly —
-      // no finish special case. Compaction is NOT here: live tables drain
+      // Every transition writes its frames and its dedupe row, uniformly,
+      // with no finish special case. Compaction is NOT here: live tables drain
       // when the outbox clears (`#commitRatingsTransition`).
       if (plan.frames.length > 0) {
         tx.insert(t.frames).values(this.#frameRows(next.version, plan.frames)).run();
@@ -426,7 +426,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Post-commit work runs off the response path. None of it is wrapped in
     // ctx.waitUntil: a Durable Object stays alive while any promise or I/O is
     // pending, so these unawaited promises run to completion on their own
-    // (waitUntil is redundant in a DO — see the roster mirror above). Each keeps
+    // (waitUntil is redundant in a DO; see the roster mirror above). Each keeps
     // its own .catch so a failure logs rather than becoming an unhandled
     // rejection. #finishEffects also self-catches; the outer .catch is a belt.
     if (finish !== null) {
@@ -454,8 +454,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    *
    * These rows are display-only and re-derivable, but they have no
    * reconciliation sweep, so a lost write stays stale until the next
-   * transition. A bounded jittered retry recovers the common case — a
-   * transient reset or network blip — while a deterministic failure still
+   * transition. A bounded jittered retry recovers the common case, a
+   * transient reset or network blip, while a deterministic failure still
    * surfaces once. Unawaited and self-catching: the DO stays alive for the
    * pending promise, so the backoff runs to completion without `waitUntil`. */
   #mirrorD1(label: string, write: () => Promise<void>): void {
@@ -464,20 +464,20 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     }).catch((error) => console.error(`${label} failed after retries`, error));
   }
 
-  // ── Post-commit effects — bot turns, and turn/finish pushes ──────────
+  // ── Post-commit effects: bot turns, and turn/finish pushes ──────────
 
   /** Deliver the kernel's named effects for a committed transition: a seated
    * bot's turn (in-DO brain self-apply, or an external HMAC wake) and human
-   * turn/finish pushes. Single attempt + log throughout — a bot that
+   * turn/finish pushes. Single attempt + log throughout; a bot that
    * never moves rides the turn deadline (bots ⇒ timed). Runs post-commit as an
-   * unawaited, self-catching promise (no `waitUntil` — see `#apply`). */
+   * unawaited, self-catching promise (no `waitUntil`; see `#apply`). */
   async #dispatchEffects(meta: MetaRow, roster: Seat[], plan: CommitPlan, next: StateRow): Promise<void> {
     for (const effect of plan.effects) {
       if (effect.kind === "wakeBot") {
         await this.#botTurn(meta, plan, next, effect.seat, effect.botId);
       }
       // `notifyTurn` / `notifyFinished` (FCM pushes) are delivered by the
-      // push step — wired in `#pushNotifications` below.
+      // push step, wired in `#pushNotifications` below.
     }
     await this.#pushNotifications(meta, roster, plan);
   }
@@ -486,9 +486,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * bot runs its in-DO brain (`botActions[username]`) and the DO self-applies
    * the move; an `external` bot gets a signed HMAC wake carrying its
    * observation; a `local` bot is client-driven and never dispatched here
-   * (it should not be seatable online — a stray one just logs). The bot sees
+   * (it should not be seatable online, and a stray one just logs). The bot sees
    * only its seat's projection (`plan.frames`), so it can never read hidden
-   * state — the same fog a human at the seat gets. */
+   * state: the same fog a human at the seat gets. */
   async #botTurn(meta: MetaRow, plan: CommitPlan, next: StateRow, seat: number, botId: string): Promise<void> {
     try {
       const bot = await readBot(this.d1(this.env), botId);
@@ -510,7 +510,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           await this.#wakeExternalBot(meta, bot, seat, observation, next);
           break;
         case "local":
-          console.error(`local bot ${bot.id} was seated in an online game (game ${meta.gameId} seat ${seat}) — local bots are client-driven and not dispatchable`);
+          console.error(`local bot ${bot.id} was seated in an online game (game ${meta.gameId} seat ${seat}): local bots are client-driven and not dispatchable`);
           break;
       }
     } catch (error) {
@@ -521,7 +521,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** In-DO brain: look the engine bot's move function up by its username in
    * the game's `botActions`, run it, and self-apply the result as this seat's
-   * action — a normal serialized command, so it commits as the next version,
+   * action: a normal serialized command, so it commits as the next version,
    * dedupes on its deterministic commandId, and (if it leaves another bot
    * pending) chains through the same effect dispatch. */
   async #runBotBrain(meta: MetaRow, bot: Extract<Bot, { type: "engine" }>, seat: number, observation: ObservationSlice, next: StateRow): Promise<void> {
@@ -552,7 +552,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     });
     if (!result.ok) {
       // A rejection here (e.g. a race lost the version) is expected and
-      // harmless — the winning transition already advanced the game.
+      // harmless; the winning transition already advanced the game.
       console.error(`in-DO bot move not applied (${result.code}) for game ${meta.gameId} seat ${seat}: ${result.message}`);
     }
   }
@@ -560,7 +560,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   /** External bot: POST a signed wake carrying the bot's freshly-committed
    * observation, so the bot needs no callback to fetch state. Fire-and-forget:
    * a single attempt, no retry, and we neither wait for nor act on the
-   * result — the move arrives later on `/api/bot/action`, and a lost or bounced
+   * result: the move arrives later on `/api/bot/action`, and a lost or bounced
    * wake rides the turn deadline. A failure is therefore logged, never thrown;
    * the only bound is `WAKE_TIMEOUT_MS`, capping the held connection. */
   async #wakeExternalBot(meta: MetaRow, bot: Extract<Bot, { type: "external" }>, seat: number, observation: ObservationSlice, next: StateRow): Promise<void> {
@@ -587,9 +587,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         signal: AbortSignal.timeout(WAKE_TIMEOUT_MS),
       });
       await res.body?.cancel();
-      if (!res.ok) console.warn(`external bot wake for game ${meta.gameId} seat ${seat} got HTTP ${res.status} — ignored (the turn deadline backstops it)`);
+      if (!res.ok) console.warn(`external bot wake for game ${meta.gameId} seat ${seat} got HTTP ${res.status}, ignored (the turn deadline backstops it)`);
     } catch (error) {
-      console.warn(`external bot wake for game ${meta.gameId} seat ${seat} failed — ignored (the turn deadline backstops it)`, error);
+      console.warn(`external bot wake for game ${meta.gameId} seat ${seat} failed, ignored (the turn deadline backstops it)`, error);
     }
   }
 
@@ -608,7 +608,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** Best-effort "your game is ready to start" push to the creator when a join
-   * fills the lobby. Fire-and-forget like the D1 mirror — the DO stays alive
+   * fills the lobby. Fire-and-forget like the D1 mirror; the DO stays alive
    * for the pending promise. */
   #pushReady(creatorId: string, gameId: string): void {
     void this.firebaseAdmin(this.env).notifyUser(this.d1(this.env), creatorId, readyPush(gameId));
@@ -616,7 +616,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** The engine bot-signing master secret, read from env by the documented
    * `BOT_SIGNING_SECRET` convention (mirrors `FIREBASE_PROJECT_ID`). Null when
-   * unset — external bots are then unsupported and their wakes are skipped. */
+   * unset; external bots are then unsupported and their wakes are skipped. */
   #botSigningSecret(): string | null {
     const secret = (this.env as Record<string, unknown>).BOT_SIGNING_SECRET;
     return typeof secret === "string" && secret.length > 0 ? secret : null;
@@ -660,12 +660,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       return;
     }
     const version = finalState.version + 1;
-    // Engine-owned action variant — no game hook produces or ever sees it.
+    // Engine-owned action variant; no game hook produces or ever sees it.
     const action: TransitionAction = { type: "system", kind: "ratings", data: { deltas }, playerIndex: null };
     const frames = this.#project(meta, roster, finalState.state, [], null, false);
     this.#db.transaction((tx) => {
       tx.insert(t.transitions).values({ version, state: finalState.state, action, pending: [], deadline: null, playerTimes: null, turnStartedAt: null }).run();
-      // Uniform like every transition — and drained one statement later by
+      // Uniform like every transition, and drained one statement later by
       // the compaction, kept ceremony-free on purpose: zero special cases
       // beats saving a doomed write.
       if (frames.length > 0) {
@@ -690,7 +690,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** The gated admin re-poke (step 4): re-runs the D1 apply for a
-   * finish whose effects never landed. Idempotent end to end — finish_id
+   * finish whose effects never landed. Idempotent end to end: finish_id
    * dedupes the apply, and the outbox row exists iff the ratings transition
    * hasn't been committed. Returns false when there is nothing to do. */
   async repokeFinish(): Promise<boolean> {
@@ -703,7 +703,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return this.#db.select({ finishId: t.outbox.finishId }).from(t.outbox).get() === undefined;
   }
 
-  // ── Deadline alarm — the ONLY alarm client ─────────────────────────
+  // ── Deadline alarm: the ONLY alarm client ─────────────────────────
 
   async alarm(): Promise<void> {
     const meta = this.#loadMeta();
@@ -724,7 +724,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   // ── Sockets (hibernating/) ──────────────────────────────────────
 
   /** The worker routes the upgrade here after authenticating; the principal
-   * header is worker-set (never client-supplied — the worker strips inbound
+   * header is worker-set (never client-supplied; the worker strips inbound
    * headers when forwarding). One socket serves the game's whole lifetime:
    * unversioned roster snapshots pre-game, versioned frames from v0.
    * A not-yet-seated user's socket simply receives no frames until the
@@ -742,7 +742,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     pair[1].serializeAttachment(attachment);
     this.ctx.acceptWebSocket(pair[1]);
     // Either way the open says where the game is, so a client never has to
-    // guess. Pre-game that is the roster snapshot (idempotent — a reconnect
+    // guess. Pre-game that is the roster snapshot (idempotent, so a reconnect
     // just gets it again); from v0 the roster is frozen and what moves is the
     // version, so that is what a sync carries. Both are cheap and neither
     // replays history: the client decides what, if anything, to fetch.
@@ -781,7 +781,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** Deliver one seat's frame to every socket whose authenticated principal
-   * owns that seat — resolved against the roster at send time. */
+   * owns that seat, resolved against the roster at send time. */
   #send(roster: Seat[], seat: number, message: FrameMessage): void {
     const owner = roster.find((s) => s.playerIndex === seat);
     if (owner === undefined || owner.userId === null) return;
@@ -799,7 +799,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     }
   }
 
-  /** Push an unversioned roster snapshot to EVERY socket — seated or
+  /** Push an unversioned roster snapshot to EVERY socket, seated or
    * not, it is public lobby information and idempotent by construction. */
   #broadcast(snapshot: RosterSnapshot): void {
     const payload = JSON.stringify(snapshot);
@@ -807,7 +807,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       try {
         ws.send(payload);
       } catch {
-        // Dead socket — reconnect gets the current snapshot on open.
+        // Dead socket; reconnect gets the current snapshot on open.
       }
     }
   }
@@ -841,7 +841,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       .orderBy(t.transitions.version)
       .all();
     // Live path: one range read of the seat's stored frames (empty
-    // post-compaction and for replay — those re-project below).
+    // post-compaction and for replay, which re-project below).
     const stored = new Map<number, SeatView>();
     if (args.seat !== null && !isReplay) {
       const frameRows = this.#db
@@ -915,10 +915,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   // ── Lazy init & snapshot loads ─────────────────────────────────────
 
   /** First contact: copy the D1 game row into `meta` + `roster`. The one
-   * sanctioned non-storage await near the gate — `blockConcurrencyWhile`
+   * sanctioned non-storage await near the gate: `blockConcurrencyWhile`
    * holds ALL events, so nothing interleaves, and it runs once per game.
    * Returns false when no such game exists (callers answer 404 /
-   * `unknownGame`; a missing row must not throw here — an exception inside
+   * `unknownGame`; a missing row must not throw here, since an exception inside
    * `blockConcurrencyWhile` resets the whole object). */
   async #ensureInit(gameId: string): Promise<boolean> {
     if (this.#loadMeta() !== undefined) return true;
@@ -1002,7 +1002,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return frames.map((f) => ({ version, playerIndex: f.playerIndex, data: f.data, pendingPlayers: f.pendingPlayers }));
   }
 
-  /** One seat's stored live frame at one version — the frames-table PK. */
+  /** One seat's stored live frame at one version: the frames-table PK. */
   #storedView(version: number, seat: number): SeatView | null {
     const row = this.#db
       .select()

@@ -1,12 +1,12 @@
 /**
- * Device registration — the ingress that makes FCM pushes deliverable. A
+ * Device registration: the ingress that makes FCM pushes deliverable. A
  * client upserts its Firebase Installation ID (FID) and deletes the
  * installation on sign-out. The send side reads and prunes this table; these
  * two routes are the only writers.
  *
  * Keyed on the FID (one row per app install): signing in on a device reassigns
  * that FID from any prior user, so a FID always maps to exactly one user and no
- * stale association lingers — otherwise a shared device would push one user's
+ * stale association lingers, or else a shared device would push one user's
  * turn alerts to whoever signed in after them.
  */
 
@@ -34,7 +34,7 @@ export function registerDeviceRoutes(app: EngineApp, ctx: RouteContext): void {
       tags: ["Me"],
       request: { body: { content: { "application/json": { schema: deviceBody } }, required: true } },
       responses: {
-        204: { description: "Registered — the caller's pushes will reach this install" },
+        204: { description: "Registered: the caller's pushes will reach this install" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Invalid request" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
       },

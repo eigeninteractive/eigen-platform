@@ -1,5 +1,5 @@
 /**
- * External-bot auth — HMAC both directions (engine→bot
+ * External-bot auth: HMAC both directions (engine→bot
  * wake, bot→engine action) using a per-bot key **derived** from one engine
  * secret, so registering a bot needs no new secret and no redeploy:
  *
@@ -7,15 +7,15 @@
  *   signature  = "v1," + base64(HMAC-SHA256(derivedKey, "<domain>:<message>"))
  *
  * The `domain` tag (`wake` = engine→bot, `action` = bot→engine) is signed, so
- * a signature captured in one direction can never verify in the other — no
- * reflection. The `v1,` prefix names the scheme (Standard-Webhooks style) and
+ * a signature captured in one direction can never verify in the other, so there
+ * is no reflection. The `v1,` prefix names the scheme (Standard-Webhooks style) and
  * rides outside the signed bytes; a future scheme gets `v2,` and can verify
  * side-by-side during a migration. At registration the operator computes the
  * bot's key with the exported `deriveBotKey()` (or the equivalent `openssl`
  * one-liner in its docstring) and hands that to the bot's owner, who never
  * sees the master secret.
  *
- * The crypto is all platform-native — WebCrypto for the HMAC, and the
+ * The crypto is all platform-native: WebCrypto for the HMAC, and the
  * runtime's own `Uint8Array` base64 codec (`toBase64`/`fromBase64`) for the
  * transport encoding. The master secret is taken as an argument rather than
  * read from a global, so this module stays pure and testable.
@@ -41,7 +41,7 @@ async function deriveBotKeyBytes(masterSecret: string, botId: string): Promise<U
   return new Uint8Array(await crypto.subtle.sign("HMAC", master, encoder.encode(botId)));
 }
 
-/** The per-bot signing key as base64 — **the operator utility**. This is the
+/** The per-bot signing key as base64, **the operator utility**. This is the
  * one value an external bot's owner is given, and the only one they need: it
  * is what they HMAC their request bodies with. The master
  * `BOT_SIGNING_SECRET` never leaves the operator, and because every bot's key
@@ -55,13 +55,13 @@ async function deriveBotKeyBytes(masterSecret: string, botId: string): Promise<U
  *
  * Treat the result as a credential: it authenticates that bot to the engine
  * for as long as it is registered. Rotating one bot's key means rotating the
- * master secret, which rotates every bot's key — so issue per-bot keys only to
+ * master secret, which rotates every bot's key, so issue per-bot keys only to
  * owners you would re-issue all of them for. */
 export async function deriveBotKey(masterSecret: string, botId: string): Promise<string> {
   return (await deriveBotKeyBytes(masterSecret, botId)).toBase64();
 }
 
-/** Sign `message` for one direction with the bot's derived key — used for
+/** Sign `message` for one direction with the bot's derived key, used for
  * wakes (`"wake"`); a bot's own client code produces the `"action"` twin. */
 export async function signForBot(masterSecret: string, botId: string, domain: SignatureDomain, message: string): Promise<string> {
   const key = await importHmacKey(await deriveBotKeyBytes(masterSecret, botId), ["sign"]);

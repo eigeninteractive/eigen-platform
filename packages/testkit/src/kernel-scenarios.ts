@@ -1,5 +1,5 @@
 /**
- * The kernel-scenario surface for game tests — how an implementor drives real
+ * The kernel-scenario surface for game tests: how an implementor drives real
  * engine transitions over their rules unit (same-view pairs, timing/grace
  * behavior, lifecycle outcomes) without depending on the engine's internals.
  *
@@ -33,7 +33,7 @@ export {
   randomSeed,
 } from "@eigeninteractive/kernel";
 
-/** Project one seat's view of a state — the stored-frame shape the same-view
+/** Project one seat's view of a state: the stored-frame shape the same-view
  * rule compares (`commit()`'s `staleViews` input). Convenience for scenario
  * tests that replay a simultaneous-move race. */
 export function projectView(

@@ -1,7 +1,7 @@
 /**
- * Device registration — the FCM push-target ingress that
+ * Device registration: the FCM push-target ingress that
  * makes `notify/push.ts` deliverable. Verifies the upsert-on-FID reassignment
- * and the caller-scoped delete — the two behaviours that keep one app install
+ * and the caller-scoped delete: the two behaviours that keep one app install
  * mapped to exactly one user.
  */
 

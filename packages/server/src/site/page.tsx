@@ -1,5 +1,5 @@
 /**
- * The shared document shell for every engine-rendered public page — the landing
+ * The shared document shell for every engine-rendered public page: the landing
  * page, the legal documents, and the `/j` share page.
  *
  * hono/jsx rather than string concatenation, so interpolated values are escaped
@@ -8,8 +8,8 @@
  * distinction is a security property, not a style preference. hono is already a
  * dependency; no new runtime is added.
  *
- * Raw markup — an implementor's legal fragment, the JSON-LD block, the
- * stylesheet — goes through `dangerouslySetInnerHTML`, which is honest: those
+ * Raw markup (an implementor's legal fragment, the JSON-LD block, the
+ * stylesheet) goes through `dangerouslySetInnerHTML`, which is honest: those
  * are trusted, build-time strings, and every other value on the page is
  * escaped.
  */
@@ -60,7 +60,7 @@ export interface PageProps {
 }
 
 /** Every link the engine renders leaves the page it is on rather than replacing
- * it — the legal pages, the stores, the credit. A visitor reading Terms is
+ * it: the legal pages, the stores, the credit. A visitor reading Terms is
  * mid-download, and a store link on iOS hands the tab to the store app.
  *
  * `noopener` because `_blank` otherwise gives the opened page a handle back to
@@ -72,8 +72,8 @@ export const NEW_TAB = { target: "_blank", rel: "noopener" } as const;
 /** The engine's footer: the legal links every page must carry, the operator's
  * copyright, and the credit.
  *
- * The two halves are independent. Legal links need `site` — without it the
- * routes are not mounted and linking to them would be a 404 — but the credit
+ * The two halves are independent. Legal links need `site`, since without it the
+ * routes are not mounted and linking to them would be a 404, but the credit
  * does not, so a worker that has configured nothing still ends its pages with
  * a line rather than with whitespace. */
 function Footer({ operatorName, credit }: { operatorName?: string; credit: string | null }) {
@@ -104,7 +104,7 @@ function Footer({ operatorName, credit }: { operatorName?: string; credit: strin
  *
  * A whole-line link would make "Build with" clickable too, which is not what it
  * points at. Splitting on the brand keeps the sentence as prose and marks only
- * the name — and leaves a custom credit that never mentions the engine as plain
+ * the name, and leaves a custom credit that never mentions the engine as plain
  * text, rather than silently linking someone else's words to us. */
 function Credit({ credit }: { credit: string }) {
   const at = credit.indexOf(CREDIT_BRAND);
@@ -125,14 +125,14 @@ function Credit({ credit }: { credit: string }) {
  *
  * The stylesheet pairs its own primary with an `--on-primary` per colour
  * scheme, but a game that configures `site.primaryColor` overrides only half of
- * that pair — and the two schemes disagree about which ink is right, so no
+ * that pair, and the two schemes disagree about which ink is right, so no
  * single fallback works. Deriving the partner here keeps the call-to-action
  * legible whatever colour an implementor picks, including colours light enough
  * that white-on-primary would fail.
  *
  * WCAG relative luminance. The threshold is where contrast against white and
  * against the near-black below cross, both a little above 4.5:1. A malformed
- * hex yields `NaN`, which fails the comparison and lands on white — today's
+ * hex yields `NaN`, which fails the comparison and lands on white, today's
  * unconditional behaviour.
  */
 export function onPrimary(hex: string): string {
@@ -208,7 +208,7 @@ export function renderDocument(node: unknown): string {
 
 /** Insert a trusted, already-rendered HTML fragment. Used for legal documents,
  * whose source is either the engine's own components or an implementor's
- * build-time file — never anything a user submits. */
+ * build-time file, never anything a user submits. */
 export function RawHtml({ html }: { html: string }) {
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }

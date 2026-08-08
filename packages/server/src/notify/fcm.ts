@@ -1,5 +1,5 @@
 /**
- * FCM (HTTP v1) sender — posts messages to the FCM
+ * FCM (HTTP v1) sender: posts messages to the FCM
  * endpoint with a bearer from the shared `google/oauth` token step. Pure FCM:
  * no database access (the FID lookup + stale-device pruning live in `push.ts`).
  *
@@ -13,10 +13,10 @@ import { accessToken, readServiceAccount, type ServiceAccount } from "../google/
 const MESSAGING_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 
 // Re-exported so `push.ts` and the DO keep importing the service-account
-// surface from `notify` — the token plumbing moved to `google/oauth`.
+// surface from `notify`; the token plumbing moved to `google/oauth`.
 export { readServiceAccount, type ServiceAccount };
 
-/** The notification payload — the boundary type for the FCM HTTP v1 API. */
+/** The notification payload: the boundary type for the FCM HTTP v1 API. */
 export interface NotificationMessage {
   title: string;
   body: string;
@@ -30,13 +30,13 @@ export interface PushTarget {
   platform: "ios" | "android" | "web";
 }
 
-/** `error.status` values that mean the installation is permanently dead — safe
+/** `error.status` values that mean the installation is permanently dead, and safe
  * to prune. Firebase documents a send to an unregistered FID as a 404
  * (`NOT_FOUND`); `UNREGISTERED` covers the transitional error spelling.
  * Transient statuses and `INVALID_ARGUMENT` are deliberately retained. */
 const PRUNABLE_STATUS = new Set(["NOT_FOUND", "UNREGISTERED"]);
 
-/** One send's result — `prunable` tells the caller to drop a dead device. */
+/** One send's result. `prunable` tells the caller to drop a dead device. */
 export interface SendResult {
   fid: string;
   prunable: boolean;

@@ -1,12 +1,12 @@
 /**
  * The finish apply (step 3) and the fire-and-forget
- * summary upsert. Called from the DO post-commit — never under the
+ * summary upsert. Called from the DO post-commit, never under the
  * input gate.
  *
  * Rating deltas are computed HERE, not in the DO: they depend on global
  * cross-game priors, and any prior snapshotted into the DO is stale by
- * construction (games can run for days). The whole apply — summary row,
- * rating CAS, history log, and the `finish_id` marker — is ONE `batch()`
+ * construction (games can run for days). The whole apply (summary row,
+ * rating CAS, history log, and the `finish_id` marker) is ONE `batch()`
  * transaction, so the dedupe marker and the effects it guards can never
  * disagree.
  *
@@ -29,7 +29,7 @@ import { games, participants, playerRatings, ratingHistory, users } from "./sche
 
 export interface FinishApplyInput {
   gameId: string;
-  /** The DO-minted idempotency key — the apply is a no-op replay when
+  /** The DO-minted idempotency key. The apply is a no-op replay when
    * the games row already carries it. */
   finishId: string;
   outcomes: OutcomeEntry[];
@@ -43,11 +43,11 @@ const CAS_ATTEMPTS = 5;
 
 /** Apply one finished game to D1. Returns the rated deltas (null for an
  * unrated game) for the DO to deliver as the ratings transition. Throws on
- * failure — the caller logs and keeps the outbox row (single attempt at
+ * failure, so the caller logs and keeps the outbox row (single attempt at
  * the call site; the internal loop only absorbs CAS conflicts). */
 export async function applyFinish(d1: D1Database, input: FinishApplyInput): Promise<RatingDelta[] | null> {
   const db = orm(d1);
-  /** Non-null exactly when this finish is rated — the sole rated/pool gate. */
+  /** Non-null exactly when this finish is rated: the sole rated/pool gate. */
   const pool = input.rated ? input.ratingPool : null;
 
   for (let attempt = 1; attempt <= CAS_ATTEMPTS; attempt++) {
@@ -112,7 +112,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     // Purge guard: a seat whose account was deleted since this game
     // began still carries its userId in the DO roster (the purge nulls only
     // the D1 mirror, never wakes the DO), so it survives into `players` and
-    // shapes the OpenSkill field — but it must NOT get a rating row, or the
+    // shapes the OpenSkill field, but it must NOT get a rating row, or the
     // purge would resurrect a player_ratings entry for a non-existent user.
     // Skip the write (and the returned delta) for any user identity no longer
     // in `users`; bots are never purged. Mirrors the old
@@ -131,7 +131,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
       // is expected to produce: a concurrent finish collided on
       // idx_rating_history_*_cas. Anything else (a schema mistake, a D1
       // outage) is deterministic or needs a different remedy, and retrying it
-      // four more times just delays the report — so it propagates now.
+      // four more times just delays the report, so it propagates now.
       if (!isUniqueViolation(error) || attempt === CAS_ATTEMPTS) throw error;
     }
   }
@@ -150,7 +150,7 @@ function identityKey(userId: string | null, botId: string | null): string {
   return userId !== null ? `u:${userId}` : `b:${botId}`;
 }
 
-/** Which of these user ids still exist — the purge guard's read (see the
+/** Which of these user ids still exist: the purge guard's read (see the
  * call site). Empty in ⇒ empty out, no round trip. */
 async function readExistingUsers(d1: D1Database, userIds: string[]): Promise<Set<string>> {
   if (userIds.length === 0) return new Set();
@@ -177,8 +177,8 @@ async function readPriors(d1: D1Database, pool: string, roster: Seat[]): Promise
   return priors;
 }
 
-/** Per identity: the history INSERT — stamped with the revision this delta
- * was computed against, which is the CAS (see the module docstring) — then
+/** Per identity: the history INSERT, stamped with the revision this delta
+ * was computed against, which is the CAS (see the module docstring), then
  * the paired rating write. A never-rated identity has `revision_before = 0`
  * and gets an INSERT; everyone else gets an UPDATE to `revision_before + 1`.
  *
@@ -238,7 +238,7 @@ function ratingStatements(db: ReturnType<typeof orm>, input: FinishApplyInput, p
             revision: revisionBefore + 1,
             updatedAt: input.now,
           })
-          // Redundant given the history index above — a silent no-op here
+          // Redundant given the history index above; a silent no-op here
           // is unreachable once that INSERT committed. Kept as a cheap
           // assertion, not as the guard.
           .where(and(identityWhere, eq(playerRatings.revision, revisionBefore))),
@@ -256,7 +256,7 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
   return rows.map(ratingDeltaFromRow);
 }
 
-/** The display upsert after a non-finishing transition — fire-and-forget
+/** The display upsert after a non-finishing transition: fire-and-forget
  * post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
  * re-derivable from the DO at any time. */
 export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
@@ -272,7 +272,7 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
     .where(eq(games.id, args.gameId));
 }
 
-/** The roster mirror after a committed waiting-room command — the DO's
+/** The roster mirror after a committed waiting-room command. The DO's
  * roster is the integrity copy; this rewrites the D1 display copy wholesale
  * (delete + reinsert), which is idempotent and immune to per-row drift.
  * Fire-and-forget post-commit (the DO leaves it unawaited; no `waitUntil`),
@@ -337,7 +337,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
 }
 
 /** Lazy-init read: the D1 game + participants rows the DO copies into
- * its `meta`/`roster` on first contact — one batched round trip. */
+ * its `meta`/`roster` on first contact, in one batched round trip. */
 export async function readGameRow(d1: D1Database, gameId: string) {
   const db = orm(d1);
   const [gameRows, seatRows] = await db.batch([

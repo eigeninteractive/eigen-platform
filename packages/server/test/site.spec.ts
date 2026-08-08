@@ -11,7 +11,7 @@
  * KNOWN GAP: `site.css` is not covered by any of this. `tsup` inlines it as
  * text at build time via its `.css` loader, but under `vitest-pool-workers`
  * `import styles from "./site.css"` resolves to an empty module, so every page
- * here renders with an empty `<style>` — the palette, the inlined display face
+ * here renders with an empty `<style>`, so the palette, the inlined display face
  * and the layout are all absent from what these assertions see. A vite `load`
  * plugin, a `transform` plugin and a workerd `Text` module rule were all tried;
  * the pool resolves worker-side modules outside vite's plugin graph, so none of
@@ -47,12 +47,12 @@ describe("landing page", () => {
 
   it("carries canonical, OG and Twitter tags built on the inferred request origin", async () => {
     // The test worker omits `canonicalOrigin`, so absolute URLs are inferred
-    // from the request — here `https://x`.
+    // from the request, here `https://x`.
     const html = await (await get("/download")).text();
     expect(html).toContain('<link rel="canonical" href="https://x/download"/>');
     expect(html).toContain('<meta property="og:url" content="https://x/download"/>');
     // Defaults to the same name the branding guide prescribes for the Flutter
-    // app's share card — one image, both surfaces.
+    // app's share card: one image, both surfaces.
     expect(html).toContain('<meta property="og:image" content="https://x/og-image.png"/>');
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image"/>');
     expect(html).toContain('<meta charset="utf-8"/>');
@@ -137,7 +137,7 @@ describe("legal documents", () => {
 
   it("escapes operator values, so a name containing markup cannot break the page", async () => {
     const html = await (await get("/terms")).text();
-    // The configured operator is "Eigen Test & Co" — JSX escapes it.
+    // The configured operator is "Eigen Test & Co", and JSX escapes it.
     expect(html).toContain("Eigen Test &amp; Co");
     expect(html).not.toContain("Eigen Test & Co");
   });
@@ -221,7 +221,7 @@ describe("crawler files", () => {
     expect(html).toContain("--primary:#1a237e");
     // And the ink to put on it moves with it. Overriding `--primary` alone
     // would leave whichever `--on-primary` the visitor's scheme happened to
-    // set — for a colour this dark, the dark scheme's near-black.
+    // set: for a colour this dark, the dark scheme's near-black.
     expect(html).toContain("--on-primary:#ffffff");
   });
 
@@ -229,7 +229,7 @@ describe("crawler files", () => {
     const html = await (await get("/download")).text();
 
     // Generated in TypeScript rather than written into site.css, so unlike the
-    // rest of the stylesheet these rules are visible here — and generated from
+    // rest of the stylesheet these rules are visible here, and generated from
     // the same table the routes below serve, so the two cannot drift.
     expect(html).toContain('font-family:"Inter"');
     expect(html).toContain('font-family:"Space Grotesk"');
@@ -274,7 +274,7 @@ describe("web root", () => {
 
 describe("before anything is published", () => {
   // The scaffold's own state on its first `wrangler dev`: `site` unconfigured,
-  // no `deepLink`, and ASSETS bound to an empty `public/` — bound, so the page
+  // no `deepLink`, and ASSETS bound to an empty `public/`: bound, so the page
   // mounts, but answering 404 for everything, so there is nothing to link to.
   // The suite's main worker cannot show this: it has both a site and store URLs.
   const scaffold = createEngine({
@@ -320,7 +320,7 @@ describe("before anything is published", () => {
 describe("onPrimary", () => {
   it("picks the ink that stays readable on the configured colour", () => {
     // Both ends of the engine's own palette: the light scheme's primary is dark
-    // enough for white, the dark scheme's is not — which is the pairing that
+    // enough for white, the dark scheme's is not, which is the pairing that
     // failed before this existed.
     expect(onPrimary("#006a60")).toBe("#ffffff");
     expect(onPrimary("#82d5c8")).toBe("#0d1211");
@@ -333,7 +333,7 @@ describe("onPrimary", () => {
   it("accepts shorthand hex and falls back to white on anything it cannot read", () => {
     expect(onPrimary("#fff")).toBe("#0d1211");
     expect(onPrimary("#000")).toBe("#ffffff");
-    // Unparseable, so the comparison against NaN fails — which lands on white,
+    // Unparseable, so the comparison against NaN fails, which lands on white,
     // the behaviour every page had before the pairing was computed at all.
     expect(onPrimary("rebeccapurple")).toBe("#ffffff");
   });

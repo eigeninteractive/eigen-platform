@@ -46,7 +46,7 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
   expect(await started.json()).toMatchObject({ version: 0 });
 
-  // Both seats commit against v0. The second arrives stale — and lands,
+  // Both seats commit against v0. The second arrives stale, and lands,
   // because RPS masks the opponent's hidden commit (same-view rule).
   const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expectedVersion: 0 });
   expect(await rock.json()).toMatchObject({ version: 1 });
@@ -57,7 +57,7 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   expect(resolved.frame.outcomes).toHaveLength(2);
 
   // The finish apply lands in D1 (single attempt, post-commit). `readGameRow`
-  // is the engine's own accessor — the D1 table definitions are internal.
+  // is the engine's own accessor; the D1 table definitions are internal.
   await expect.poll(async () => (await readGameRow(env.rps_dev, gameId))?.status).toBe("finished");
 
   // A non-participant replays the finished public game as viewer: the

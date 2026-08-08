@@ -1,19 +1,19 @@
 /**
- * Pure timing math — deadlines, the grace window, and the budget bank. All
+ * Pure timing math: deadlines, the grace window, and the budget bank. All
  * instants are epoch milliseconds and always injected: the kernel never reads
  * a clock.
  *
  * The grace window compensates network physics (server time is measured at
  * request arrival, not at the tap). It is ONE constant with exactly two call
  * sites: the kernel accepts an action while `now <= deadline + grace`, and the
- * DO arms its alarm at `deadline + grace`. Whichever arrives first — the latent
- * action or the alarm — commits; the loser sees already-advanced state and
+ * DO arms its alarm at `deadline + grace`. Whichever arrives first, the latent
+ * action or the alarm, commits; the loser sees already-advanced state and
  * no-ops.
  *
- * Budget-mode fairness: the grace forgives *acceptance*, not *time charged* —
+ * Budget-mode fairness: the grace forgives *acceptance*, not *time charged*;
  * the elapsed bank deduction (floored at 0) still runs. So does flag-fall: a
  * player whose bank hits 0 can overrun by up to the grace and still have that
- * final move counted (bounded, self-limiting — accepted behaviour).
+ * final move counted (bounded and self-limiting: accepted behaviour).
  */
 
 import { GameBugError } from "./errors.js";
@@ -50,7 +50,7 @@ export interface NextDeadline {
   turnStartedAt: number | null;
 }
 
-/** Computes the deadline and `turnStartedAt` for the next action — the
+/** Computes the deadline and `turnStartedAt` for the next action: the
  * precedence chain used by start and every commit mode. Pass
  * `gameOver = true` when the transition ends the game.
  *
@@ -60,7 +60,7 @@ export interface NextDeadline {
  * 4. per-action mode → now + configured `turnSeconds`
  * 5. untimed → both null
  *
- * Budget mode allows at most one pending seat — enforced at the source by
+ * Budget mode allows at most one pending seat, enforced at the source by
  * `assertBudgetPending` before any envelope reaches this; the MIN remains the
  * graceful-degradation safeguard should a multi-pending state arrive anyway.
  */
@@ -92,7 +92,7 @@ export function computeNextDeadline(input: {
     return { deadline: now + minBank, turnStartedAt };
   }
   if (budgetSeconds !== null) {
-    // Budget mode with an empty pending set and no outcome — nothing to time.
+    // Budget mode with an empty pending set and no outcome: nothing to time.
     return { deadline: null, turnStartedAt };
   }
   if (turnSeconds !== null) {

@@ -9,7 +9,7 @@ import type { RejectCode } from "@eigeninteractive/kernel";
 import type { CommandResult, LobbyRejectCode } from "./protocol.js";
 
 /**
- * Every stable machine code an error body may carry — the kernel's and lobby's
+ * Every stable machine code an error body may carry: the kernel's and lobby's
  * rejection vocabularies plus the few the routes raise directly. This is the
  * closed set the wire enum (`errorCodeShape`) publishes, so a client can
  * `switch` on it exhaustively; adding a member here is a wire change and needs
@@ -23,7 +23,7 @@ export type ErrorCode =
   | Exclude<RejectCode, "abstain">
   | LobbyRejectCode
   /** Raised by a route before the command reaches the game. Each one exists
-   * because the client renders a distinct response to it — a field-level form
+   * because the client renders a distinct response to it: a field-level form
    * error, a "create an account" prompt, a retry with a different file. A
    * failure the client can only report generically stays uncoded. */
   | "schemaUnsupported"
@@ -38,7 +38,7 @@ export type ErrorCode =
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
   readonly code: ErrorCode | undefined;
-  /** Seconds the caller should wait before retrying — rendered as the
+  /** Seconds the caller should wait before retrying, rendered as the
    * `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
    * `undefined` everywhere else. */
   readonly retryAfterSeconds: number | undefined;
@@ -74,7 +74,7 @@ export function rejectStatus(code: RejectCode | LobbyRejectCode): 400 | 403 | 40
 export function unwrap(result: CommandResult): Extract<CommandResult, { ok: true }> {
   if (!result.ok) {
     // A timeout that lost its race abstains, and only the DO's alarm raises
-    // system intents — so an abstain answering a client command is an engine bug.
+    // system intents, so an abstain answering a client command is an engine bug.
     if (result.code === "abstain") throw new HttpError(500, "engine bug: a client command was abstained");
     throw new HttpError(rejectStatus(result.code), result.message, result.code);
   }

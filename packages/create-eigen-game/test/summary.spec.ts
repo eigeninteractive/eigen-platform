@@ -40,7 +40,7 @@ describe("summarise", () => {
 
   it("keeps naming the Firebase step until it has been done", () => {
     // The app throws `Firebase is not configured` at launch until this has run
-    // once, so it belongs with the other things to run next — and stops
+    // once, so it belongs with the other things to run next, and stops
     // belonging there the moment the scaffold did it.
     expect(summarise(result("committed"), "pnpm", false).next).toContain("pnpm firebase:configure");
     expect(summarise(result("committed", "failed"), "pnpm", false).next).toContain("pnpm firebase:configure");

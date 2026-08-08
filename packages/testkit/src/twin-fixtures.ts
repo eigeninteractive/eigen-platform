@@ -1,8 +1,8 @@
 /**
- * Twin-drift fixture runner — the TS half of the shared JSON fixtures that
+ * Twin-drift fixture runner: the TS half of the shared JSON fixtures that
  * keep a version unit's TS and Dart `GameRules` twins in sync. The JSON
  * fixture format is shared verbatim with the Dart runner
- * (`lib/testing/twin_fixtures.dart`) — one file, two consumers.
+ * (`lib/testing/twin_fixtures.dart`): one file, two consumers.
  *
  * One fixture file per concern lives beside the version units at
  * `<fixturesRoot>/v<N>/*.json` and is consumed by BOTH sides: this module
@@ -54,7 +54,7 @@
  * is not the state); perfect-info games omit `obs`. `expected.observation` is
  * the shared behavioral anchor: the TS side must project the post-action
  * state to it, and a Dart `previewAction` that returns non-null must predict
- * it — so the two sides are compared through one recorded value.
+ * it, so the two sides are compared through one recorded value.
  *
  * Wire it up in a game-owned test file running under plain-Node vitest:
  *
@@ -77,7 +77,7 @@ export interface TwinFixtureFile {
   cases: TwinFixtureCase[];
 }
 
-/** A game-action case — exercises schemas, `applyAction`, and (through
+/** A game-action case: exercises schemas, `applyAction`, and (through
  * `expected.observation`) `computeObservation` for the acting seat. */
 export interface ActionCase {
   kind: "action";
@@ -130,7 +130,7 @@ export type TwinFixtureCase = ActionCase | RatingPoolCase | BotSeatableCase;
 // The case types above are compile-time only; the JSON they describe arrives
 // at runtime from a hand-written file. Asserting `JSON.parse(...) as
 // TwinFixtureFile` would make every field a lie the moment a fixture is
-// mistyped — and because most fields flow straight into a comparison, the
+// mistyped, and because most fields flow straight into a comparison, the
 // symptom would be a confusing `undefined` diff attributed to the game's
 // rules rather than to the fixture. These parsers close that gap: a
 // malformed fixture fails at LOAD, naming the file, the case, and the field.
@@ -249,7 +249,7 @@ export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFi
   const schemaVersion = asNumber(`${path}.schemaVersion`, root.schemaVersion);
   if (!Array.isArray(root.cases)) fail(`${path}.cases`, "an array", root.cases);
   const cases = root.cases.map((raw, i) => {
-    // Prefer the case's own name in the location once we can read it — a
+    // Prefer the case's own name in the location once we can read it: a
     // fixture author finds "cases[3] (seat 0 wins)" faster than an index.
     const indexed = `${path}.cases[${i}]`;
     const obj = asObject(indexed, raw);
@@ -269,7 +269,7 @@ export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFi
 }
 
 /** Run one fixture case against a rules unit, returning failure descriptions
- * (empty ⇒ the case passes). Pure — the file-reading test registrar is
+ * (empty ⇒ the case passes). Pure; the file-reading test registrar is
  * {@link twinFixtureTests}. */
 export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): string[] {
   switch (kase.kind) {
@@ -280,7 +280,7 @@ export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): strin
     case "botSeatable":
       return evaluateBotSeatable(rules, kase);
     default:
-      return [`unknown case kind "${(kase as { kind: string }).kind}" — expected action | ratingPool | botSeatable`];
+      return [`unknown case kind "${(kase as { kind: string }).kind}", expected action | ratingPool | botSeatable`];
   }
 }
 
@@ -331,7 +331,7 @@ function evaluateAction(rules: GameRules, kase: ActionCase): string[] {
   // The parsed action must be the fixture action: a schema that strips or
   // defaults fields the twin relies on is itself drift.
   if (!deepEquals(action, kase.action)) {
-    failures.push(`action schema does not preserve the fixture action — parsed to ${JSON.stringify(action)}`);
+    failures.push(`action schema does not preserve the fixture action, parsed to ${JSON.stringify(action)}`);
   }
 
   const envelope = applyFixtureAction(rules, kase, config, state, action);
@@ -375,13 +375,13 @@ function checkEnvelope(rules: GameRules, kase: ActionCase, envelope: Envelope, f
   }
   const expected = kase.expected;
   if (expected.state !== undefined && !deepEquals(envelope.state, expected.state)) {
-    failures.push(`envelope.state mismatch — got ${JSON.stringify(envelope.state)}`);
+    failures.push(`envelope.state mismatch, got ${JSON.stringify(envelope.state)}`);
   }
   if (expected.pending !== undefined && !deepEquals(envelope.pendingPlayers, expected.pending)) {
-    failures.push(`envelope.pendingPlayers mismatch — got ${JSON.stringify(envelope.pendingPlayers)}`);
+    failures.push(`envelope.pendingPlayers mismatch, got ${JSON.stringify(envelope.pendingPlayers)}`);
   }
   if ("outcome" in expected && !deepEquals(envelope.outcome ?? null, expected.outcome ?? null)) {
-    failures.push(`envelope.outcome mismatch — got ${JSON.stringify(envelope.outcome ?? null)}`);
+    failures.push(`envelope.outcome mismatch, got ${JSON.stringify(envelope.outcome ?? null)}`);
   }
 }
 
@@ -402,7 +402,7 @@ function checkObservation(rules: GameRules, kase: ActionCase, envelope: Envelope
     return;
   }
   if (!deepEquals(slice.data, kase.expected.observation as Json)) {
-    failures.push(`actor's observation mismatch — got ${JSON.stringify(slice.data)}`);
+    failures.push(`actor's observation mismatch, got ${JSON.stringify(slice.data)}`);
   }
 }
 
@@ -446,7 +446,7 @@ function evaluateBotSeatable(rules: GameRules, kase: BotSeatableCase): string[] 
 function validate(rules: GameRules, which: "config" | "state" | "action", value: unknown, issues?: string[]): JsonObject | undefined {
   const result = rules.schemas[which]["~standard"].validate(value);
   if (result instanceof Promise) {
-    issues?.push(`${which} schema validated asynchronously — must be sync`);
+    issues?.push(`${which} schema validated asynchronously; must be sync`);
     return undefined;
   }
   if (result.issues) {

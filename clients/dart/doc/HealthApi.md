@@ -17,7 +17,7 @@ Method | HTTP request | Description
 
 Liveness probe
 
-Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.
+Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.
 
 ### Example
 ```dart

@@ -1,7 +1,7 @@
 /**
  * Worker → D1 reads: lobby, history lists, profiles,
  * players, bot catalog, and the per-route policy lookups. The rule they all
- * serve: **never wake a Durable Object to serve a read** — only commands, the
+ * serve: **never wake a Durable Object to serve a read**. Only commands, the
  * socket, and range fetches touch the DO.
  */
 
@@ -15,8 +15,8 @@ export type GameRow = typeof games.$inferSelect;
 export type BotRow = typeof bots.$inferSelect;
 
 /** The bot registry row as a discriminated union on `type`. The two
- * `bots` CHECK constraints make these shapes exact at the storage layer —
- * `external` always has a `webhook_url`, the others never do — so narrowing a
+ * `bots` CHECK constraints make these shapes exact at the storage layer
+ * (`external` always has a `webhook_url`, the others never do) so narrowing a
  * loaded row is total. */
 export type Bot = (Omit<BotRow, "type" | "webhookUrl"> & { type: "engine"; webhookUrl: null }) | (Omit<BotRow, "type" | "webhookUrl"> & { type: "external"; webhookUrl: string }) | (Omit<BotRow, "type" | "webhookUrl"> & { type: "local"; webhookUrl: null });
 
@@ -29,13 +29,13 @@ export function narrowBot(row: BotRow): Bot {
   return row as Bot;
 }
 
-/** A games row joined with its roster — the create's inverse, and the
+/** A games row joined with its roster: the create's inverse, and the
  * shape every summary response projects from.
  *
  * `ratings` mirrors `outcomes`: every identity's change, not just the caller's.
  * That keeps the summary per-game rather than viewer-relative, so the same
  * projection is correct on the lobby, another player's history, and the
- * caller's own — and a client picks out its own seat the same way it already
+ * caller's own, and a client picks out its own seat the same way it already
  * does for outcomes. Only populated for finished rated games; absent
  * everywhere else. */
 export interface GameWithRoster extends GameRow {
@@ -43,7 +43,7 @@ export interface GameWithRoster extends GameRow {
   ratings?: RatingDelta[];
 }
 
-/** Rebuild a {@link RatingDelta} from its stored `ratingHistory` row — the
+/** Rebuild a {@link RatingDelta} from its stored `ratingHistory` row: the
  * inverse of the write in `applyFinish`. Shared by the batch history read
  * (`withRatings`) and the crash-recovery rebuild (`recoverDeltas`), so the
  * flat-row → nested-delta shape lives in exactly one place. */
@@ -63,7 +63,7 @@ export function ratingDeltaFromRow(row: typeof ratingHistory.$inferSelect): Rati
 
 /** Batch-load the rating changes for a page of games.
  *
- * One query for the whole page, like the roster join above — per-game reads
+ * One query for the whole page, like the roster join above; per-game reads
  * would turn a history page into N+1 round trips. Unrated and unfinished games
  * simply have no rows, so they cost nothing beyond the filter. */
 async function withRatings(d1: D1Database, rows: GameWithRoster[]): Promise<GameWithRoster[]> {
@@ -123,8 +123,8 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
   const db = orm(d1);
   // The games row and its roster are both keyed by the known id, so they go
   // in ONE round trip (mirrors readGameRow's batch in apply.ts). This matters
-  // because readGame is on the socket-upgrade path — the "404 without waking a
-  // DO for garbage ids" guard — where every connect otherwise pays two
+  // because readGame is on the socket-upgrade path (the "404 without waking a
+  // DO for garbage ids" guard) where every connect otherwise pays two
   // sequential D1 trips. withRatings below adds no trip for a live game (it
   // returns early when nothing is finished+rated).
   const [gameRows, seatRows] = await db.batch([
@@ -139,11 +139,11 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
 /** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
   const db = orm(d1);
-  // One round trip, like readGame — but the roster is keyed by gameId, which
+  // One round trip, like readGame, but the roster is keyed by gameId, which
   // a code lookup does not yield until it resolves. A subquery bridges the gap:
   // participants are filtered by "the id of the row with this shortCode", so
   // both statements still go in a single batch instead of a sequential id
-  // lookup. (readGame needs no subquery — it already holds the id.)
+  // lookup. (readGame needs no subquery; it already holds the id.)
   const idForCode = db.select({ id: games.id }).from(games).where(eq(games.shortCode, shortCode));
   const [gameRows, seatRows] = await db.batch([
     db.select().from(games).where(eq(games.shortCode, shortCode)),
@@ -157,22 +157,22 @@ export async function readGameByCode(d1: D1Database, shortCode: string): Promise
 /** Keyset pagination: fetch strictly older than the caller's last row.
  *
  * A cursor rather than an offset because these lists change underneath the
- * reader — a new lobby game shifts every OFFSET by one and makes a scroll show
+ * reader: a new lobby game shifts every OFFSET by one and makes a scroll show
  * the same row twice. The cursor is the previous page's last sort value, so a
  * page is stable no matter what was inserted since. It also stays index-served
  * at any depth, where OFFSET degrades linearly.
  *
  * Ties are possible (two games created in the same millisecond) and would drop
  * a row; in practice the epoch-ms resolution plus `limit` makes that vanishing,
- * and the alternative — a compound (timestamp, id) cursor — is not worth the
+ * and the alternative, a compound (timestamp, id) cursor, is not worth the
  * wire complexity for a game list. */
 function olderThan(column: SQLWrapper, cursor: number | null) {
   return cursor === null ? undefined : lt(column, cursor);
 }
 
-/** The lobby page: public joinable games, newest first — exactly the shape
+/** The lobby page: public joinable games, newest first, exactly the shape
  * `idx_games_lobby` (the ported partial index) serves. When `caller` is given,
- * games seating anyone they have blocked (either direction) are hidden — the
+ * games seating anyone they have blocked (either direction) are hidden. The
  * creator counts as a participant, so this covers both games a blocked user
  * created and games they joined. */
 export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null, caller?: string): Promise<GameWithRoster[]> {
@@ -188,7 +188,7 @@ export async function readLobby(d1: D1Database, limit: number, cursor: number | 
 
 /** "My games" through the participants index (THE access path for
  * games-of-user). `active` = anything still alive; `finished` = the history
- * list, newest finish first (aborted rows carry no finishedAt — they sort by
+ * list, newest finish first (aborted rows carry no finishedAt, so they sort by
  * updatedAt). */
 export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
   const db = orm(d1);
@@ -209,7 +209,7 @@ export async function readMyGames(d1: D1Database, userId: string, bucket: "activ
   );
 }
 
-/** Another player's finished PUBLIC games — the replay list on a profile.
+/** Another player's finished PUBLIC games: the replay list on a profile.
  *
  * Public-only is the access rule that makes this safe to expose for an
  * arbitrary id: a private or friends-only game is nobody else's business, and
@@ -232,7 +232,7 @@ export async function readPlayerPublicGames(d1: D1Database, playerId: string, li
   );
 }
 
-/** The batch identity endpoint (`players?ids=`) — why games rows carry no
+/** The batch identity endpoint (`players?ids=`), and why games rows carry no
  * denormalized identity; the client's persisted player cache keeps it warm. */
 export async function readPlayers(d1: D1Database, ids: string[]) {
   if (ids.length === 0) return [];
@@ -246,7 +246,7 @@ export async function readBots(d1: D1Database, ids?: string[]): Promise<BotRow[]
   return await db.select().from(bots).where(inArray(bots.id, ids)).all();
 }
 
-/** One bot's registry row, narrowed on `type` — the DO's post-commit bot-turn
+/** One bot's registry row, narrowed on `type`. The DO's post-commit bot-turn
  * dispatch reads it to route (engine brain / external wake / local skip)
  * and to feed the brain the bot's declared `config`. Off the hot path (a
  * post-commit effect), so a read here costs nothing the human's response
@@ -280,7 +280,7 @@ export async function readRatings(d1: D1Database, playerId: string) {
     .all();
 }
 
-/** The per-user rating history screen, newest first, optionally one pool —
+/** The per-user rating history screen, newest first, optionally one pool,
  * served by `idx_rating_history_user_pool`. */
 export async function readRatingHistory(d1: D1Database, userId: string, pool: string | null, limit: number) {
   const where = pool === null ? eq(ratingHistory.userId, userId) : and(eq(ratingHistory.userId, userId), eq(ratingHistory.pool, pool));

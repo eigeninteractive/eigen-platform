@@ -1,5 +1,5 @@
 /**
- * `commit()` — the pure, serialized heart of the engine. One state transition
+ * `commit()` is the pure, serialized heart of the engine. One state transition
  * in, one {@link CommitPlan}
  * (or {@link Rejected}) out. Zero I/O, zero platform imports, injected clock:
  * the host (a Durable Object) loads the snapshot, calls this, and applies the
@@ -7,7 +7,7 @@
  *
  * The pipeline is: status/pending/deadline guards, bank deduction, timeout
  * abstain-and-zero, then the deadline precedence chain. Two rules are worth
- * knowing before reading further — the grace window is the single
+ * knowing before reading further: the grace window is the single
  * {@link DEADLINE_GRACE_MS} constant applied in one place, and a stale
  * `expectedVersion` is arbitrated by the same-view rule rather than flatly
  * rejected. Versions stay strictly serial: the same-view rule governs
@@ -28,7 +28,7 @@ import { computeNextDeadline, DEADLINE_GRACE_MS, deadlineExpired, deductBank } f
 
 export type GameStatus = "waiting" | "ready" | "active" | "finished" | "aborted";
 
-/** The game's standing configuration — the DO `meta` snapshot. */
+/** The game's standing configuration: the DO `meta` snapshot. */
 export interface GameRow {
   status: GameStatus;
   schemaVersion: number;
@@ -51,7 +51,7 @@ export interface Seat {
   type: "human" | "bot";
 }
 
-/** The latest committed transition — state plus the engine-owned clocks. All
+/** The latest committed transition: state plus the engine-owned clocks. All
  * instants are epoch milliseconds. */
 export interface StateRow {
   version: number;
@@ -68,7 +68,7 @@ export interface StateRow {
 
 // ── Intents ───────────────────────────────────────────────────────────────────
 
-/** What the host asks the kernel to do — the kernel-facing half of a
+/** What the host asks the kernel to do: the kernel-facing half of a
  * `Command` (authorization already happened at the edge; dedupe at the DO). */
 export type Intent =
   | {
@@ -84,7 +84,7 @@ export type Intent =
        * current version in the common case; a *lower* value is arbitrated by
        * the same-view rule. */
       expectedVersion: number;
-      /** The raw move payload — parsed against the unit's action schema. */
+      /** The raw move payload, parsed against the unit's action schema. */
       data: unknown;
       actor: "user" | "bot";
     }
@@ -100,7 +100,7 @@ export interface CommitInput {
   state: StateRow | null;
   roster: Seat[];
   intent: Intent;
-  /** The commit instant (epoch ms) — sampled once by the host, never read
+  /** The commit instant (epoch ms), sampled once by the host and never read
    * here. */
   now: number;
   /** The version unit for the game's `schemaVersion`, already resolved by
@@ -110,7 +110,7 @@ export interface CommitInput {
    * Same-view material for a stale game action: the acting seat's stored
    * frames at `expectedVersion` and at the current version. Only consulted
    * when `intent.expectedVersion < state.version`; if absent (or either
-   * frame is missing — e.g. compacted away), the stale action is rejected
+   * frame is missing, e.g. compacted away), the stale action is rejected
    * conservatively.
    */
   staleViews?: {
@@ -122,17 +122,17 @@ export interface CommitInput {
 // ── Plan (what the host applies) ──────────────────────────────────────────────
 
 /** The action-log entry for a transition. Null only for the start transition
- * (v0), which no action produced. `playerIndex` is the performer's seat —
+ * (v0), which no action produced. `playerIndex` is the performer's seat, and
  * null for identity-less system actions (timeout, auto-forfeit).
  *
  * The `ratings` variant is engine-owned, never produced by `commit()`: the
  * host appends it as the post-finish ratings transition (step 3) once
- * the D1 apply returns the deltas. Game hooks never see it — its data is the
+ * the D1 apply returns the deltas. Game hooks never see it; its data is the
  * engine's, not the game's opaque payload. */
 export type TransitionAction = { type: "user" | "bot"; kind: "game"; data: JsonObject; playerIndex: number } | { type: ActionType; kind: "lifecycle"; data: LifecycleAction; playerIndex: number | null } | { type: "system"; kind: "ratings"; data: { deltas: RatingDelta[] }; playerIndex: null };
 
 /** A push/wake the host should attempt post-commit (single attempt + error
- * log — no retry machinery in v1). The kernel names seats; the host resolves
+ * log, with no retry machinery in v1). The kernel names seats; the host resolves
  * delivery (FCM targets, bot webhook vs local bot). */
 export type Effect = { kind: "wakeBot"; seat: number; botId: string } | { kind: "notifyTurn"; seat: number; userId: string } | { kind: "notifyFinished"; userIds: string[] };
 
@@ -140,7 +140,7 @@ export interface CommitPlan {
   /** The next transition row, already versioned (`v+1`, or 0 for start). */
   nextState: StateRow;
   action: TransitionAction | null;
-  /** Per-seat projected frames (identified seats only) — persisted with the
+  /** Per-seat projected frames (identified seats only), persisted with the
    * transition, fanned out over sockets. No raw state escapes the kernel. */
   frames: ObservationFrame[];
   /** Per-seat results when this transition ends the game, else null.
@@ -150,8 +150,8 @@ export interface CommitPlan {
    * computes them inside the rating CAS via `computeRatings` (ratings.ts) and
    * the host delivers them as a follow-up versioned ratings transition. */
   outcomes: OutcomeEntry[] | null;
-  /** The instant the DO must arm its alarm at — the true deadline plus the
-   * grace window — or null to clear it. */
+  /** The instant the DO must arm its alarm at, the true deadline plus the
+   * grace window, or null to clear it. */
   alarm: number | null;
   effects: Effect[];
 }
@@ -218,7 +218,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
   }
 
   if (intent.expectedVersion > state.version) {
-    // The client claims a version the game hasn't reached — a protocol bug,
+    // The client claims a version the game hasn't reached, which is a protocol bug,
     // but the client-facing remedy is the same resync as any version miss.
     return reject("stateUpdated", `Expected version ${intent.expectedVersion} is ahead of the game ` + `(current ${state.version})`);
   }
@@ -228,7 +228,7 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     // frames (never stored, or already compacted) reject conservatively.
     const views = input.staleViews;
     if (!views?.expected || !views.current || !sameView(views.expected, views.current)) {
-      return reject("stateUpdated", "State updated — try again");
+      return reject("stateUpdated", "State updated, try again");
     }
   }
 
@@ -296,7 +296,7 @@ function commitTimeout(input: CommitInput, _intent: Extract<Intent, { kind: "lif
   if (state === null) {
     throw new GameBugError("timeout intent reached commit() before v0");
   }
-  // A timeout that lost its race abstains — the alarm and a latent on-time
+  // A timeout that lost its race abstains: the alarm and a latent on-time
   // action both fire; whichever commits first wins and the loser no-ops.
   if (game.status !== "active") {
     return reject("abstain", "Game is no longer active");
@@ -309,7 +309,7 @@ function commitTimeout(input: CommitInput, _intent: Extract<Intent, { kind: "lif
   const priorState = parseStoredPayload(rules.schemas.state, state.state, "state", game.schemaVersion);
 
   // Every pending seat shared the single expired deadline: all of them timed
-  // out. One identity-less system transition resolves the whole set — the
+  // out. One identity-less system transition resolves the whole set, and the
   // hook decides holistically (eliminate, skip, even a draw).
   const data: LifecycleAction = { type: "timeout" };
   const envelope = rules.applyLifecycle({
@@ -453,7 +453,7 @@ function buildPlan(
   };
 }
 
-/** Runtime shape check over the game-supplied outcome — hooks are typed, but
+/** Runtime shape check over the game-supplied outcome. Hooks are typed, but
  * an outcome drives ratings and permanent records, so a malformed entry is
  * caught at the source like every other hook bug. */
 function validateOutcomes(envelope: Envelope, roster: readonly Seat[], schemaVersion: number): OutcomeEntry[] | null {
@@ -491,7 +491,7 @@ function computeEffects(roster: readonly Seat[], envelope: Envelope, outcomes: O
     const member = bySeat.get(seat);
     if (!member) continue;
     if (member.botId !== null) {
-      // A bot always needs its wake — even the acting seat re-entering pending
+      // A bot always needs its wake, even the acting seat re-entering pending
       // (an extra turn): a bot has no live client to act on its own, so its
       // only signal to move again is a fresh wake. A duplicate is harmless
       // (the in-DO self-apply dedupes on commandId; an external wake carries

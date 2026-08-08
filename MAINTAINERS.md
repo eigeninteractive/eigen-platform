@@ -27,14 +27,14 @@ as `@eigeninteractive/server`, whose wire contract it implements.
 ### Why the scaffolder versions on its own
 
 `create-eigen-game` was a fifth member of that group, because it emits an engine
-range and derived it from **its own version** — correct only while the two were
+range and derived it from **its own version**, correct only while the two were
 the same number.
 
 That bought a real guarantee at a price that eventually came due. The
 requirement is one-directional: the scaffolder must follow the engine, but the
 engine must not follow the scaffolder. A `fixed` group is symmetric by
 definition, so a template typo proposed moving four published packages onto a
-new version line — and pre-1.0, a new line is a breaking one that no published
+new version line, and pre-1.0 a new line is a breaking one that no published
 `eigen_flutter` speaks yet.
 
 The range now comes from the scaffolder's own `@eigeninteractive/server`
@@ -46,13 +46,13 @@ scaffolder simply reads it.
 
 The forward half needs no machinery, and briefly had some that was actively
 harmful. A script added a `create-eigen-game` changeset whenever the engine
-crossed a line — which released a scaffolder pairing the **new** engine with the
+crossed a line, which released a scaffolder pairing the **new** engine with the
 **old** shell, since no compatible shell can exist yet at that moment. It
 published the exact mismatch the pin prevents. Doing nothing is strictly better:
 the scaffolder on npm keeps pairing 0.2 with 0.2, a line behind but working.
 
 The moment worth releasing on is not "the engine moved" but "a compatible shell
-now exists" — and that moment already carries a code change here, raising
+now exists", and that moment already carries a code change here, raising
 `flutterClientVersion`, which needs a changeset like any other. So the
 scaffolder follows the engine by construction, one step later than the naive
 trigger and one step more correct. The **Scaffolded project builds** job turns
@@ -63,12 +63,12 @@ scaffolders already on npm pick up 0.2.7 from `^0.2.0` by themselves.
 
 The **Flutter** client range is a stated pin in `src/index.ts`, and deliberately
 neither derived nor resolved. `eigen_flutter` lives in another repository, so
-nothing here can compute it — see [the scaffolder's Flutter
+nothing here can compute it. See [the scaffolder's Flutter
 pin](#the-scaffolders-flutter-pin) and the [compatibility
 matrix](https://eigeninteractive.com/docs/reference/compatibility).
 
 `create-eigen-game` is also **unscoped**, because that is what makes
-`npm create eigen-game` resolve — so it is not owned by the npm organization via
+`npm create eigen-game` resolve, so it is not owned by the npm organization via
 a scope, and the org's team is granted access explicitly instead:
 
 ```bash
@@ -86,7 +86,7 @@ The release workflows use:
 - `RELEASE_APP_CLIENT_ID` (**variable**, not a secret) and
   `RELEASE_APP_PRIVATE_KEY` (secret): credentials for the **Eigen Release**
   GitHub App, installed on the organization with access to `eigen-server` and
-  `eigen-web`. Use the App's **Client ID** (`Iv23li…`), not the numeric App ID —
+  `eigen-web`. Use the App's **Client ID** (`Iv23li…`), not the numeric App ID;
   `actions/create-github-app-token` deprecated its `app-id` input.
 - An **`npm`** repository environment, named by each package's trusted publisher
   on npmjs.com.
@@ -94,7 +94,7 @@ The release workflows use:
 There is deliberately **no npm token**. npm authentication is trusted publishing
 (OIDC): GitHub's short-lived identity is the credential, and provenance is
 emitted automatically without a `--provenance` flag. That is why the publish job
-must never set `registry-url` on `actions/setup-node` — it writes an `.npmrc`
+must never set `registry-url` on `actions/setup-node`, because it writes an `.npmrc`
 whose token npm prefers over an OIDC exchange.
 
 `release.yml` mints a short-lived token from that App and uses it for all three
@@ -105,7 +105,7 @@ expiry to track.
 Two properties make the App necessary rather than merely tidier. GitHub
 suppresses workflow triggers for events raised by the built-in `GITHUB_TOKEN`,
 so a version PR it opened would carry no checks and a tag it pushed would start
-no workflow — an App's token is not that token, so both work. And
+no workflow. An App's token is not that token, so both work. And
 `GITHUB_TOKEN` is scoped to the repository that minted it, so it can never
 dispatch to `eigen-web`.
 
@@ -140,7 +140,7 @@ Dart client is in sync with the spec
 
 Do not require the `Checks / …` prefixed variants. Those are the same jobs
 reached through `workflow_call` from `release.yml`, which never runs on a pull
-request — requiring them would block every merge permanently.
+request, so requiring them would block every merge permanently.
 
 Two deliberate settings:
 
@@ -150,7 +150,7 @@ Two deliberate settings:
   `release.yml` re-runs the whole gate against the merge commit, so a stale base
   is caught there rather than by forcing a rebase on every merge.
 
-No bypass actor is configured. The release App never pushes to `main` — it
+No bypass actor is configured. The release App never pushes to `main`; it
 pushes the `changeset-release/main` branch and opens a pull request like anyone
 else.
 
@@ -163,13 +163,13 @@ than steps, so a single job would carry publishing privileges on runs that only
 open a pull request.
 
 The sub-actions are pinned to a prerelease commit, which is a deliberate,
-bounded choice — see [docs/blockers.md](docs/blockers.md) for the reasoning and
+bounded choice. See [docs/blockers.md](docs/blockers.md) for the reasoning and
 the move to a stable `v2`.
 
 ### Registry configuration
 
 Each registry authorises this repository directly; no publishing credential is
-stored anywhere. The settings below are already in place — they are recorded so
+stored anywhere. The settings below are already in place, and are recorded so
 a change can be recognised as a change.
 
 All five npm packages, under each package's **Settings → Trusted publisher**:
@@ -196,9 +196,9 @@ authentication error.
 Publishing a brand-new package is the one flow CI cannot do for you, because
 both registries authorise a package that already exists:
 
-- **npm** — a trusted publisher is configured on an existing package, so the
+- **npm**: a trusted publisher is configured on an existing package, so the
   first version must be pushed by hand.
-- **pub.dev** — automated publishing cannot be configured until the package
+- **pub.dev**: automated publishing cannot be configured until the package
   exists, and a *new* package cannot be published straight into a verified
   publisher at all.
 
@@ -208,7 +208,7 @@ So the first version of any new package is manual, and everything after is not.
    `.changeset/config.json` means it shares the engine's version and bumps with
    it; leaving it out means Changesets versions it on its own. Prefer the fixed
    group unless the package genuinely has an independent release cadence.
-2. **npm:** run `npm login` from *outside* this repository — npm evaluates
+2. **npm:** run `npm login` from *outside* this repository, because npm evaluates
    `devEngines` before any command and refuses here because that field names
    pnpm. Then `pnpm pack` the package and publish the tarball with
    `npm publish <tarball> --access public --otp=<code>`.
@@ -227,7 +227,7 @@ So the first version of any new package is manual, and everything after is not.
 4. Register it under [Registry configuration](#registry-configuration) so CI can
    publish every subsequent version.
 5. An **unscoped** npm package is owned by whoever published it, not by the
-   organisation — there is no way to publish one *as* an org, and unpublishing
+   organisation. There is no way to publish one *as* an org, and unpublishing
    to retry only burns the version number. Grant the org team access instead:
 
    ```bash
@@ -241,7 +241,7 @@ Changesets owns versioning and changelog generation. Contributors commit a
 
 `checks.yml` enforces this with `changeset status`: a pull request that touches
 a published package without a changeset fails. That guard exists because the
-omission is otherwise invisible — the pull request merges green, no version
+omission is otherwise invisible: the pull request merges green, no version
 pull request appears, and the change is simply never released. For a change
 that genuinely should not ship a version, `pnpm changeset --empty` records the
 decision as a committed file. It has to be *committed*: `changeset status`
@@ -260,7 +260,7 @@ The routine flow is:
    dispatches the documentation refresh. A scaffolder-only release skips both:
    `eigen_api` did not move and there is no new API to document.
 
-In CI the `workspace:*` rewriting is the `pack` job's responsibility — it
+In CI the `workspace:*` rewriting is the `pack` job's responsibility: it
 resolves those constraints into tarballs that `publish` then uploads, which is
 what keeps the workspace handling away from the authenticated upload. When
 publishing **manually**, use `pnpm publish -r` and never `npm publish`: pnpm
@@ -320,21 +320,21 @@ It is a caret range, so it only needs raising when `eigen_flutter` crosses a
 line: `flutter pub add eigen_flutter@^0.2.0` already takes the newest 0.2.x at
 scaffold time.
 
-This briefly resolved from pub.dev instead — "the newest `eigen_flutter` whose
-own `eigen_api` constraint targets the engine line being scaffolded" — to avoid
+This briefly resolved from pub.dev instead, as "the newest `eigen_flutter` whose
+own `eigen_api` constraint targets the engine line being scaffolded", to avoid
 a literal nobody would remember to update. **That predicate is wrong**, and it
 is worth knowing why before anyone reaches for it again. The `eigen_api`
 constraint describes the *wire* a shell speaks; the templates call its *Dart
 API*; the two move independently. A future `eigen_flutter` may legitimately hold
 `eigen_api: ^0.2.0` while renaming everything `lib/game/v1/rules.dart` touches,
-and it would have been selected — emitting a project that does not compile, on
+and it would have been selected, emitting a project that does not compile, on
 someone's first contact with the engine.
 
 A pin cannot fail that way. It can only be stale, and staleness is now a red
 check rather than a broken scaffold: the **Scaffolded project builds** job in
 `checks.yml` generates a real project on every change and checks it twice.
 
-`flutter analyze` and `flutter test` cover the **Dart API** — that the templates
+`flutter analyze` and `flutter test` cover the **Dart API**: that the templates
 call symbols the shell actually has. That job is also the only thing that
 compiles `templates/app-overlay` at all; before it, the Dart templates were
 never built anywhere, in this repository or eigen-flutter.
@@ -350,7 +350,7 @@ scaffold.
 A mismatch is not automatically a defect, though, and the job asks pub.dev which
 one it is. **The shell cannot match a brand-new engine line**: `eigen_api` ships
 with the engine, so no `eigen_flutter` of any version number can constrain
-`^0.3.0` until `eigen_api 0.3.0` is published — which is the engine release
+`^0.3.0` until `eigen_api 0.3.0` is published, which is the engine release
 itself. An unconditional assertion fails on the version pull request that crosses
 the line, and as a required check would block the merge that publishes the
 `eigen_api` the shell is waiting on. That is a permanent deadlock, not a delay.
@@ -369,7 +369,7 @@ raised and the scaffolder released.
 This queries the registry the deleted resolver queried, for the opposite
 purpose. *Choosing* a shell by its `eigen_api` constraint is wrong, because the
 constraint cannot see the Dart API the templates call. Asking whether a shell
-for this line exists at all makes no claim about the Dart API — `flutter
+for this line exists at all makes no claim about the Dart API; `flutter
 analyze` above already settled that.
 
 It resolves the four engine packages from this workspace rather than npm. That
@@ -379,7 +379,7 @@ registry would fail on the exact commit that publishes it, deadlocking every
 line-crossing release.
 
 `eigen_flutter` is deliberately not overridden that way. Substituting it would
-defeat the purpose — a real resolution against pub.dev is the only thing that
+defeat the purpose: a real resolution against pub.dev is the only thing that
 makes the pin mean anything.
 
 ## Downstream documentation
@@ -413,20 +413,20 @@ eigen-web pull request.
 
 ### A release that crosses a version line
 
-The documentation site is versioned on this engine's release line — pre-1.0 the
-minor, so `0.2.x` is one line and `0.3.0` starts the next — and eigen-web
+The documentation site is versioned on this engine's release line (pre-1.0 the
+minor, so `0.2.x` is one line and `0.3.0` starts the next) and eigen-web
 asserts its version label against `info.version` in the spec it receives.
 
 So a release that crosses a line makes the sync pull request go **red** instead
 of auto-merging. That is deliberate: someone has to decide whether the old line
 gets frozen at `/docs/<line>/*` before the site starts describing the new one.
-Nothing here breaks and nothing needs rerunning — the reference simply waits in
+Nothing here breaks and nothing needs rerunning; the reference simply waits in
 an open pull request until that decision is made in eigen-web, whose
 `CONTRIBUTING.md` carries the procedure.
 
 Two artifacts still need a hand once a compatible `eigen_flutter` ships: the
 compatibility matrix on eigen-web's `docs/reference/compatibility.md`, and
-`flutterClientVersion` in `packages/create-eigen-game/src/index.ts` — see [the
+`flutterClientVersion` in `packages/create-eigen-game/src/index.ts`. See [the
 scaffolder's Flutter pin](#the-scaffolders-flutter-pin).
 
 ## Deployment

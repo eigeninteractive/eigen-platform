@@ -1,5 +1,5 @@
 /**
- * `withRetry` and its transient-D1 predicate — the durability wrapper around
+ * `withRetry` and its transient-D1 predicate: the durability wrapper around
  * the fire-and-forget summary mirrors.
  */
 
@@ -28,7 +28,7 @@ describe("isTransientD1Error", () => {
     expect(isTransientD1Error("a bare string")).toBe(false);
   });
 
-  it("does not retry an overloaded or resource-exhausted DB — the remedy is to shed load, not retry", () => {
+  it("does not retry an overloaded or resource-exhausted DB, since the remedy is to shed load, not retry", () => {
     for (const message of ["D1 DB is overloaded. Requests queued for too long", "D1 DB is overloaded. Too many requests queued", "D1 DB's isolate exceeded its memory limit and was reset", "D1 DB exceeded its CPU time limit and was reset"]) {
       expect(isTransientD1Error(wrapped(message)), message).toBe(false);
     }

@@ -28,7 +28,7 @@ import spaceGroteskWoff2 from "./fonts/space-grotesk.js";
  * Bumped when a font file is replaced.
  *
  * The URLs below are served `immutable`, which tells a browser never to
- * revalidate — correct only while a URL's bytes never change. Replacing a file
+ * revalidate, correct only while a URL's bytes never change. Replacing a file
  * without bumping this would leave every returning visitor on the old face
  * until their cache expired, a year later.
  */

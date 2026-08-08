@@ -1,13 +1,13 @@
 /**
- * The cron backstop — the worker's `scheduled` handler.
+ * The cron backstop: the worker's `scheduled` handler.
  *
- * Deliberately NOT a timeout sweep. A game's DO deadline alarm is its timer —
- * durable, per-game, platform-retried — so turn timeouts never need scanning
+ * Deliberately NOT a timeout sweep. A game's DO deadline alarm is its timer,
+ * durable, per-game and platform-retried, so turn timeouts never need scanning
  * for. This handler does only what has no per-entity timer of its own:
  *
- *   1. **Stale-guest purge** — old, inactive anonymous accounts, torn down
+ *   1. **Stale-guest purge**: old, inactive anonymous accounts, torn down
  *      through the same {@link purgeUser} path the delete-account route uses.
- *   2. **Abandoned-game reap** — never-started lobbies, and untimed active games
+ *   2. **Abandoned-game reap**: never-started lobbies, and untimed active games
  *      (which have no alarm at all) idle too long, aborted so they stop
  *      occupying the lobby and release their DO storage.
  *
@@ -24,7 +24,7 @@ import { type EngineOps, purgeUser } from "./purge.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** The knobs on the cron backstop — every one optional, so an implementor
+/** The knobs on the cron backstop, every one optional, so an implementor
  * overrides only what they mean to and inherits {@link LIFECYCLE_DEFAULTS} for
  * the rest. Surfaced as `lifecycle` on `createEngine`. Times are milliseconds. */
 export interface LifecycleOptions {
@@ -37,9 +37,9 @@ export interface LifecycleOptions {
   lobbyTtlMs?: number;
   /** An untimed active game idle for this long is abandoned. Long, because
    * untimed games are legitimately slow (correspondence-style) and have no
-   * deadline alarm to lean on — this is the only backstop that ever ends one. */
+   * deadline alarm to lean on, so this is the only backstop that ever ends one. */
   untimedActiveTtlMs?: number;
-  /** Max guests purged per run — a daily sweep, so a bounded batch drains a
+  /** Max guests purged per run. A daily sweep, so a bounded batch drains a
    * backlog over a few days rather than doing unbounded work in one run. */
   guestBatch?: number;
   /** Max games reaped per run (same bounded-batch reasoning). */

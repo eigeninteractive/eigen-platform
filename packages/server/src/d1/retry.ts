@@ -1,7 +1,7 @@
 /**
  * Bounded retry for idempotent background D1 writes.
  *
- * D1 auto-retries read-only queries, but never writes — Cloudflare's guidance
+ * D1 auto-retries read-only queries, but never writes. Cloudflare's guidance
  * is to retry writes in app code when they are idempotent by the application's
  * own logic. The two summary mirrors (`updateSummary`, `mirrorRoster`) are
  * exactly that: both write absolute values re-derivable from the DO at any
@@ -10,8 +10,8 @@
  * leaves the D1 read-model permanently stale (a lying "your turn" badge, a
  * frozen lobby countdown) until the next transition happens to overwrite it.
  *
- * This is the retry Cloudflare documents for the case — exponential backoff,
- * a max-delay cap, and jitter — with the crucial narrow predicate: only
+ * This is the retry Cloudflare documents for the case (exponential backoff,
+ * a max-delay cap, and jitter) with the crucial narrow predicate: only
  * transient infrastructure errors are retried, never a deterministic failure
  * that would just burn the budget before surfacing.
  */
@@ -22,17 +22,17 @@ import { matchesCause } from "./errors.js";
  * operation": a network blip, a storage/Durable-Object reset, a code-update
  * restart, or a transient routing failure. This mirrors Cloudflare's own
  * reference `withRetry` (D1 read-replication tutorial), which matches the first
- * three by substring — string matching IS the idiomatic path here, because D1
+ * three by substring. String matching IS the idiomatic path here, because D1
  * exposes no structured error code (its "error constants" are themselves just
  * message prefixes).
  *
  * Two deliberate departures from the reference snippet:
  *
- * - Walked down the `cause` chain, not just the top message — via the shared
+ * - Walked down the `cause` chain, not just the top message, via the shared
  *   `matchesCause` (`d1/errors.ts`), which documents why a flat
  *   `error.message` check would miss every one of these in this codebase.
  * - Overload (`D1 DB is overloaded`) and resource resets (memory/CPU limit)
- *   are NOT here. The docs' remedy for those is to shed load, not retry —
+ *   are NOT here. The docs' remedy for those is to shed load, not retry:
  *   hammering an overloaded DB is backwards, and doubly so for a cosmetic
  *   fire-and-forget mirror write. Deterministic failures (constraint/type/
  *   missing-column) are excluded for the same "retrying only delays the
@@ -40,7 +40,7 @@ import { matchesCause } from "./errors.js";
 const RETRYABLE_D1 = [/Network connection lost/i, /caused object to be reset/i, /reset because its code was updated/i, /Cannot resolve D1 DB/i];
 
 /**
- * True for the D1 failures worth retrying — a network blip, a storage or
+ * True for the D1 failures worth retrying: a network blip, a storage or
  * Durable-Object reset, a code-update restart, or a transient routing failure.
  *
  * Deliberately narrow. Overload and resource-limit errors are excluded (the
@@ -75,14 +75,14 @@ const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(r
 
 /**
  * Run `op`, retrying a *retryable* failure with jittered exponential backoff up
- * to `attempts`. A non-retryable failure — or the last attempt — throws.
+ * to `attempts`. A non-retryable failure, or the last attempt, throws.
  *
  * Safe to leave unawaited inside a Durable Object: the DO stays alive while the
  * returned promise (and its backoff timers) is pending, so the whole sequence
  * runs to completion without `waitUntil`, exactly like the single-attempt
  * writes it wraps.
  *
- * `op` MUST be idempotent — a retry can fire after a write that actually
+ * `op` MUST be idempotent: a retry can fire after a write that actually
  * landed but whose acknowledgement was lost.
  */
 export async function withRetry<T>(op: () => Promise<T>, options: RetryOptions = {}): Promise<T> {

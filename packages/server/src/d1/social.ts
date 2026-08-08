@@ -1,5 +1,5 @@
 /**
- * The social graph — friend relationships, user search, and the "friends' open
+ * The social graph: friend relationships, user search, and the "friends' open
  * games" read. All D1-only: social is cross-game and never touches a Durable
  * Object. The `relationships` table stores one row per unordered pair in
  * canonical order (`user_id_1 < user_id_2`) with a `status`
@@ -44,7 +44,7 @@ export async function sendFriendRequest(d1: D1Database, caller: string, target: 
     if (existing.status === "accepted") return { outcome: "already_friends" };
     // Pending: whose is it?
     if (existing.initiatedBy === caller) return { outcome: "already_pending" };
-    // The target sent us one first — accept it.
+    // The target sent us one first, so accept it.
     await db
       .update(relationships)
       .set({ status: "accepted", updatedAt: Date.now() })
@@ -71,7 +71,7 @@ export async function acceptFriendRequest(d1: D1Database, caller: string, target
 }
 
 /** Remove a friendship, withdraw an outgoing request, or decline an incoming
- * one — all the same delete. Never touches a `blocked` row (that is `unblock`'s
+ * one: all the same delete. Never touches a `blocked` row (that is `unblock`'s
  * job). Idempotent. */
 export async function removeRelationship(d1: D1Database, caller: string, target: string): Promise<void> {
   const db = orm(d1);
@@ -91,14 +91,14 @@ export async function blockUser(d1: D1Database, caller: string, target: string):
     .onConflictDoUpdate({ target: [relationships.userId1, relationships.userId2], set: { status: "blocked", initiatedBy: caller, updatedAt: now } });
 }
 
-/** Unblock — only the user who created the block may lift it. Idempotent. */
+/** Unblock: only the user who created the block may lift it. Idempotent. */
 export async function unblockUser(d1: D1Database, caller: string, target: string): Promise<void> {
   const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   await db.delete(relationships).where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), eq(relationships.status, "blocked"), eq(relationships.initiatedBy, caller)));
 }
 
-/** The other user's public identity — the shared core of a friend and a
+/** The other user's public identity: the shared core of a friend and a
  * pending-request entry. */
 interface IdentityFields {
   userId: string;
@@ -193,9 +193,9 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
   return rows;
 }
 
-/** Joinable games created by the caller's accepted friends — the "friends'
+/** Joinable games created by the caller's accepted friends: the "friends'
  * open games" lobby. Waiting/ready games only, newest first. */
-/** The user ids of a user's accepted friends — the fan-out target for a
+/** The user ids of a user's accepted friends: the fan-out target for a
  * friends-access game invite, and the creator filter behind `friendsOpenGames`. */
 export async function acceptedFriendIds(d1: D1Database, userId: string): Promise<string[]> {
   const rows = await orm(d1)
@@ -213,7 +213,7 @@ export async function friendsOpenGames(d1: D1Database, caller: string, limit: nu
   const rows = await db
     .select()
     .from(games)
-    // A friend's game can still seat someone the caller has blocked — filter
+    // A friend's game can still seat someone the caller has blocked, so filter
     // those out here too, not just in the plain lobby.
     .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), noBlockedParticipant(d1, caller), cursor === null ? undefined : lt(games.createdAt, cursor)))
     .orderBy(desc(games.createdAt))

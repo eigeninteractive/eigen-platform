@@ -1,5 +1,5 @@
 /*
- * The stylesheet for every engine-rendered public page — the landing page, the
+ * The stylesheet for every engine-rendered public page: the landing page, the
  * legal documents, and the `/j` share page.
  *
  * A real .css file rather than a template literal in TypeScript: it highlights,
@@ -22,7 +22,7 @@
 
 /*
  * The EigenInteractive palette, which is the Material 3 scheme generated from
- * `Colors.teal` — the same seed the Flutter shell defaults to, so a game that
+ * `Colors.teal`, the same seed the Flutter shell defaults to, so a game that
  * has configured nothing looks like one product across the app and its pages.
  * These are `ColorScheme.fromSeed` output rather than hand-picked neighbours,
  * including the neutrals, which carry the seed's hue and are why the greys here
@@ -145,7 +145,7 @@ strong {
 }
 
 /*
- * The download page only — the legal documents are prose and stay left-aligned.
+ * The download page only; the legal documents are prose and stay left-aligned.
  * It is a short page with one job, so it takes the leftover height and centres
  * itself in it rather than clinging to the top of a mostly empty viewport.
  */
@@ -187,7 +187,7 @@ strong {
 }
 
 /* A raster launcher icon is drawn edge to edge and needs the whole plate. The
-   mark is not — it is a bare glyph, so it needs the margin an icon designer
+   mark is not: it is a bare glyph, so it needs the margin an icon designer
    would have drawn into the file. */
 svg.logo {
   padding: 1.15rem;
@@ -253,7 +253,7 @@ svg.logo {
 }
 
 /* `margin-top: auto` pins this to the bottom of `.wrap`, which is at least a
-   viewport tall — so a short page ends in a footer rather than in a void. */
+   viewport tall, so a short page ends in a footer rather than in a void. */
 footer {
   margin-top: auto;
   padding-top: 1.5rem;
@@ -273,14 +273,14 @@ footer a {
 /* Pushed to the trailing edge, away from the operator's own links: it is the
    engine's line, not theirs. It wraps under them on a narrow screen, where
    `auto` collapses to nothing.
-   Only when there is something to be pushed away from — on a game with no
+   Only when there is something to be pushed away from. On a game with no
    `site` yet the credit is the whole footer, and a lone right-aligned line
    reads as a leftover rather than a choice. */
 .credit:not(:first-child) {
   margin-left: auto;
 }
 
-/* Only the brand inside the line is a link, and it is marked by colour alone —
+/* Only the brand inside the line is a link, and it is marked by colour alone;
    an underline here would compete with the operator's legal links, which are
    the footer's actual navigation. Colour-only is legible because the two are
    the accent and the muted body tone, far enough apart in both schemes to read

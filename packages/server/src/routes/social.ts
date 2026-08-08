@@ -1,5 +1,5 @@
 /**
- * The social routes — the friend graph, user search, and the "friends' open
+ * The social routes: the friend graph, user search, and the "friends' open
  * games" lobby. Cross-game and D1-only (no Durable Object); policy lives here
  * (registered caller, self-target, guest target), the data effects live in
  * `d1/social.ts`, and friend-event FCM pushes are fired from here.

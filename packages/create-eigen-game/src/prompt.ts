@@ -1,6 +1,6 @@
 /**
  * Every question this CLI asks, in one module so the wording lives together
- * and can be asserted — `cli.ts` is the bin entry and runs `main` on import,
+ * and can be asserted. `cli.ts` is the bin entry and runs `main` on import,
  * which makes anything defined there untestable.
  *
  * The organization prompt is the reason this drops to `@clack/core` rather
@@ -34,7 +34,7 @@ export interface Io {
 /**
  * Two or more dot-separated Java identifiers. `flutter create --org` accepts
  * anything and defers the complaint to Gradle, which reports it as a manifest
- * error in a generated file — so `com.example-games` costs a full scaffold and
+ * error in a generated file, so `com.example-games` costs a full scaffold and
  * a first build before anyone learns that a hyphen is not legal in a package
  * segment.
  */
@@ -103,7 +103,7 @@ export async function askForOrg(game: string, registering: boolean, io: Io = {})
   const shorter = repeatsGameName(org, game) ? withoutGameName(org) : undefined;
   if (shorter !== undefined) {
     const shorten = await confirm({
-      message: `That gives ${color.yellow(`${org}.${game}`)} — the game name twice. Use ${color.green(shorter)} instead?`,
+      message: `That gives ${color.yellow(`${org}.${game}`)}, the game name twice. Use ${color.green(shorter)} instead?`,
       initialValue: true,
       input,
       output,
@@ -124,7 +124,7 @@ export async function askForOrg(game: string, registering: boolean, io: Io = {})
  *
  * `hint` is written rather than passed to `confirm`, which has nowhere to put
  * it. It is the same dimmed line the organization prompt uses, and carries the
- * thing that makes the default the default — a question whose answer is
+ * thing that makes the default the default: a question whose answer is
  * pre-chosen owes the reader why.
  */
 async function ask(message: string, initialValue: boolean, hint: string, io: Io): Promise<boolean | null> {

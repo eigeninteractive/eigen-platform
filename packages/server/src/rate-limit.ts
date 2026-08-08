@@ -3,23 +3,23 @@
  * expensive (or abusive) in bulk. Backed by the Workers `ratelimit` binding.
  *
  * The engine owns the WIRING, not the numbers. The platform enforces the
- * `limit`/`period` written in `wrangler.jsonc` — Worker code can neither set nor
- * read those — so the numbers live there, once, per app. What the engine owns is
+ * `limit`/`period` written in `wrangler.jsonc` (Worker code can neither set nor
+ * read those) so the numbers live there, once, per app. What the engine owns is
  * the set of limiters ({@link RateLimitName}) and the conventional binding name
  * for each ({@link RATE_LIMIT_BINDING}): an app declares a `ratelimits` entry
  * under each name and rate limiting is on, with nothing to wire in code. The
  * names are `EIGEN_`-prefixed so an engine binding never collides with one the
- * game defines. `namespace_id` is the app's to choose — it must be a positive
+ * game defines. `namespace_id` is the app's to choose: it must be a positive
  * integer and is account-scoped, so two Workers sharing an id share counters; a
  * shared engine constant could not pick ids unique within each account. A name
- * bound nowhere is unlimited — the local/dev/test default.
+ * bound nowhere is unlimited, which is the local/dev/test default.
  *
- * The binding is per-colo, eventually consistent, and — in Cloudflare's own
- * words — "not an accounting system": an abuse dampener, not a hard quota.
+ * The binding is per-colo, eventually consistent, and, in Cloudflare's own
+ * words, "not an accounting system": an abuse dampener, not a hard quota.
  * Reads are never limited; a popular public read (an avatar, a lobby page) is a
  * caching problem, and rejecting legitimate callers would be the wrong tool.
  *
- * Keys are always the caller's stable user id (never an IP — many legitimate
+ * Keys are always the caller's stable user id (never an IP, since many legitimate
  * users share one, per Cloudflare's guidance).
  */
 
@@ -40,7 +40,7 @@ export const RATE_LIMIT_BINDING: Record<RateLimitName, string> = {
 
 /** Advisory `Retry-After` (seconds) on a 429. Flat and conservative on purpose:
  * the engine cannot read the binding's configured window, so it does not
- * pretend to — one sensible "wait a bit" beats a per-limiter guess that goes
+ * pretend to: one sensible "wait a bit" beats a per-limiter guess that goes
  * stale the moment an app tunes a `period`. */
 export const RATE_LIMIT_RETRY_AFTER_SECONDS = 60;
 
@@ -52,14 +52,14 @@ export interface RateLimiter {
   limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
-/** Whether an env value is a usable limiter — the structural test the resolver
+/** Whether an env value is a usable limiter: the structural test the resolver
  * uses before treating a binding as one. */
 export function isRateLimiter(value: unknown): value is RateLimiter {
   return typeof value === "object" && value !== null && typeof (value as RateLimiter).limit === "function";
 }
 
 /** Resolve the limiter for a name off `env` by its conventional binding name,
- * or null when the app did not bind it (unlimited — the dev/test default). */
+ * or null when the app did not bind it (unlimited, the dev/test default). */
 export function resolveRateLimiter(env: unknown, name: RateLimitName): RateLimiter | null {
   const binding = (env as Record<string, unknown>)[RATE_LIMIT_BINDING[name]];
   return isRateLimiter(binding) ? binding : null;
@@ -73,6 +73,6 @@ export async function enforceRateLimit(env: unknown, name: RateLimitName, key: s
   if (limiter === null) return;
   const { success } = await limiter.limit({ key });
   if (!success) {
-    throw new HttpError(429, "Too many requests in a short window — slow down and try again.", "rateLimited", RATE_LIMIT_RETRY_AFTER_SECONDS);
+    throw new HttpError(429, "Too many requests in a short window. Slow down and try again.", "rateLimited", RATE_LIMIT_RETRY_AFTER_SECONDS);
   }
 }

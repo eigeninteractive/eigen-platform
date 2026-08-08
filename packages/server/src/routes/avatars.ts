@@ -1,6 +1,6 @@
 /**
- * Opt-in avatar uploads. Clients never write to R2 directly — there is no way
- * to scope a bucket credential to one user — so uploads go through the
+ * Opt-in avatar uploads. Clients never write to R2 directly, because there is no
+ * way to scope a bucket credential to one user, so uploads go through the
  * worker, which authenticates the caller and owns the key: a raw-binary
  * `PUT /api/engine/me/avatar` (authed) streams the image to R2 under key =
  * uid, and a public `GET /avatars/:uid` serves it with a long immutable cache.
@@ -35,14 +35,14 @@ function avatarUrl(publicBase: string | undefined, uid: string, version: number)
 export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void {
   const avatars = ctx.avatars as ResolvedAvatars;
   // Plain route (not OpenAPI): a raw binary body doesn't model cleanly in the
-  // spec, so — like the game socket — it is hand-written on the client rather
+  // spec, so, like the game socket, it is hand-written on the client rather
   // than generated. Clients PUT the image bytes directly with an image/*
   // content-type (never multipart) and read `{ avatarUrl }` off the 200.
   engine.put("/me/avatar", async (c) => {
     await enforceRateLimit(c.env, "avatar_upload", c.var.auth.user.id);
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
     if (!ALLOWED_TYPES.has(contentType)) {
-      throw new HttpError(415, `Unsupported image type '${contentType}' — use image/jpeg, image/png, or image/webp`, "unsupportedImageType");
+      throw new HttpError(415, `Unsupported image type '${contentType}'. Use image/jpeg, image/png, or image/webp`, "unsupportedImageType");
     }
     const body = await c.req.arrayBuffer();
     if (body.byteLength === 0) throw new HttpError(400, "Empty upload");
@@ -60,8 +60,8 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
 /**
  * Drop a served avatar from the Worker's edge cache so a cached 200 does not
  * outlive the object. The serve route below treats a versioned URL as immutable
- * (the `?v` only changes on re-upload, which mints a new key), so deletion —
- * which removes the bytes without changing the URL — is the one case the cache
+ * (the `?v` only changes on re-upload, which mints a new key), so deletion,
+ * which removes the bytes without changing the URL, is the one case the cache
  * must be told about. A no-op when the stored URL is absolute (a bucket custom
  * domain serves those reads, so the Worker never cached them) or absent.
  * Per-colo, like every Cache API write: it clears the colo that handled the
@@ -75,21 +75,21 @@ export async function invalidateAvatarCache(requestUrl: string, avatarUrl: strin
 
 export function registerAvatarServe(app: EngineApp, ctx: RouteContext): void {
   const avatars = ctx.avatars as ResolvedAvatars;
-  // Public, unauthed — avatars are world-readable. The `?v` query is a
+  // Public, unauthed, since avatars are world-readable. The `?v` query is a
   // client cache-buster; the object key is the uid alone.
   //
   // Fronted by the Worker's own edge cache (`caches.default`): a Worker
-  // response is NOT edge-cached automatically — the immutable `Cache-Control`
+  // response is NOT edge-cached automatically; the immutable `Cache-Control`
   // below only reaches the device and any downstream CDN, so without this every
   // cold viewer would run the Worker and read R2. The full request URL is the
   // cache key, so the `?v={ts}` bumped on each upload makes a re-upload a
   // natural miss and ages old versions out; the stored object is overwritten in
   // place under the uid, so there is never a stale hit to invalidate. (When
   // `avatars.publicBaseUrl` points at a bucket custom domain, reads bypass the
-  // Worker entirely and this route is unused — the production fast path.)
+  // Worker entirely and this route is unused: the production fast path.)
   app.get("/avatars/:uid", async (c) => {
     const cache = caches.default;
-    // A GET Request over the exact URL — the cache key. `Request` defaults to GET.
+    // A GET Request over the exact URL: the cache key. `Request` defaults to GET.
     const cacheKey = new Request(c.req.url);
     const hit = await cache.match(cacheKey);
     if (hit !== undefined) return hit;

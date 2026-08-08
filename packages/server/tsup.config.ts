@@ -6,7 +6,7 @@ export default defineConfig((options) => ({
   dts: true,
   sourcemap: true,
   // Not while watching. `--watch` cleans before every rebuild, so `dist/` is
-  // empty for a moment on each save — and a game linked to this checkout
+  // empty for a moment on each save, and a game linked to this checkout
   // resolves the engine through `dist`, so a `wrangler dev` or `vitest` that
   // reads in that window sees a missing file rather than a stale one. A
   // one-shot build has no such reader and is worth cleaning.

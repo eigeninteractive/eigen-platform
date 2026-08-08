@@ -2,7 +2,7 @@
  * Rate limiting is a small pure surface: resolve the limiter for a name off env
  * by its conventional binding, and enforce it (throw the shared 429 on
  * refusal). The local runtime does not implement the `ratelimit` binding, so
- * there is nothing real to integration-test — these unit-test the logic
+ * there is nothing real to integration-test, so these unit-test the logic
  * directly with a fake limiter, which is exactly what the routes and
  * `createEngine` call.
  */
@@ -52,7 +52,7 @@ describe("resolveRateLimiter", () => {
     expect(resolveRateLimiter(env, "game_create")).toBe(limiter);
   });
 
-  it("returns null when the name is unbound (unlimited — the dev default)", () => {
+  it("returns null when the name is unbound (unlimited, the dev default)", () => {
     expect(resolveRateLimiter({}, "avatar_upload")).toBeNull();
   });
 

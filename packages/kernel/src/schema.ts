@@ -1,7 +1,7 @@
 /**
- * The version boundary — payload parsing through a unit's Standard Schemas.
+ * The version boundary: payload parsing through a unit's Standard Schemas.
  * The kernel parses every payload with the resolved version unit's schemas
- * before invoking its hooks, so hook bodies never see unvalidated JSON — and
+ * before invoking its hooks, so hook bodies never see unvalidated JSON, and
  * never another version's shape.
  */
 
@@ -27,14 +27,14 @@ function issueSummary(issues: readonly StandardSchemaV1.Issue[]): string {
 function validateSync<T>(schema: StandardSchemaV1<unknown, T>, value: unknown): StandardSchemaV1.Result<T> {
   const result = schema["~standard"].validate(value);
   if (result instanceof Promise) {
-    throw new GameBugError("game schema validated asynchronously — engine schemas must be sync");
+    throw new GameBugError("game schema validated asynchronously; engine schemas must be sync");
   }
   return result;
 }
 
 /** Parse a client-submitted payload (an action's `data`, a create request's
  * `config`) through its schema. Failure is the caller's fault. Returns the
- * parsed value, so what flows onward — into hooks and the action log — is the
+ * parsed value, so what flows onward, into hooks and the action log, is the
  * sanitized shape (unknown keys stripped, defaults applied), never the raw
  * submission. */
 export function parseClientPayload<T>(schema: StandardSchemaV1<unknown, T>, value: unknown, what: string): ParseResult<T> {
@@ -47,7 +47,7 @@ export function parseClientPayload<T>(schema: StandardSchemaV1<unknown, T>, valu
 
 /** Parse a stored payload (a state row, the game's config) through its
  * schema. Failure means corrupted data or a schema that no longer matches
- * what this version historically wrote — an engine-side bug, thrown. */
+ * what this version historically wrote: an engine-side bug, thrown. */
 export function parseStoredPayload<T>(schema: StandardSchemaV1<unknown, T>, value: unknown, what: string, schemaVersion: number): T {
   const result = validateSync(schema, value);
   if (result.issues) {

@@ -1,5 +1,5 @@
 /**
- * The RPS example worker — the whole implementor surface: the rules
+ * The RPS example worker: the whole implementor surface, being the rules
  * module, a `GameDO` subclass binding it, and one `createEngine` call.
  * Deploys with `pnpm deploy` (engine D1 migrations apply, then the code).
  */
@@ -27,12 +27,12 @@ export const engineConfig = {
     apple: { appId: "TEAMID.com.eigeninteractive.rps", storeUrl: "https://apps.apple.com" },
   },
   // opt-in avatars: worker-served (no publicBaseUrl → the relative
-  // /avatars/{uid} route). Local R2 simulation under `wrangler dev` — a real
+  // /avatars/{uid} route). Local R2 simulation under `wrangler dev`; a real
   // bucket enters only at a deploy with uploads enabled.
   avatars: { bucket: (env: Env) => env.AVATARS },
   // The public web surface. This block is the entire setup for the landing
   // page, the three legal documents, and the crawler files (`/sitemap.xml`,
-  // `/robots.txt`, `/site.webmanifest`) — no templates to copy, no routes to
+  // `/robots.txt`, `/site.webmanifest`): no templates to copy, no routes to
   // register. Absolute URLs (canonical/OG/sitemap) come from the request
   // origin, so nothing about the domain is configured here.
   //
@@ -40,7 +40,7 @@ export const engineConfig = {
   // templates. Review them before publishing a real app; they are a starting
   // point, and the operator carries the liability for what they say.
   //
-  // The engine never generates images — but the Flutter app already produces
+  // The engine never generates images, but the Flutter app already produces
   // every one it needs. `flutter_launcher_icons` emits `web/favicon.png` and
   // `web/icons/Icon-{192,512}.png` (+ maskable) from the same 1024x1024 source
   // the app icon uses, and `web/og-image.png` is the app's own share card. Copy
@@ -48,7 +48,7 @@ export const engineConfig = {
   // and OG tags then share them.
   // the engine's default paths are exactly those names.
   site: {
-    tagline: "Rock, paper, scissors — the smallest complete game on the EigenInteractive engine.",
+    tagline: "Rock, paper, scissors: the smallest complete game on the EigenInteractive engine.",
     primaryColor: "#3f51b5",
     operator: {
       name: "EigenInteractive",

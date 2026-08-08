@@ -1,8 +1,8 @@
 /**
  * Where the engine range emitted into a scaffolded project comes from.
  *
- * Its own module because the two branches below execute in different worlds —
- * one only inside this repository, the other only inside a published tarball —
+ * Its own module because the two branches below execute in different worlds,
+ * one only inside this repository and the other only inside a published tarball,
  * and a function whose published-only path never runs in CI is a function that
  * is not tested. `src/index.ts` uses it; the package `exports` map does not
  * expose it, so it is internal despite being importable by the tests.
@@ -22,17 +22,17 @@ export const ENGINE_PACKAGE = "@eigeninteractive/server";
  * ever saw.
  *
  * It replaced a derivation from this package's OWN version, which was correct
- * only while `create-eigen-game` sat in the `fixed` changesets group — and that
+ * only while `create-eigen-game` sat in the `fixed` changesets group, and that
  * membership is what forced an engine-wide release for every scaffolder-only
  * change. Reading the dependency keeps the guarantee and drops the coupling.
  *
  * Two branches, because the same manifest reads differently in the two places
  * this runs:
  *
- * - **Published tarball** — pnpm rewrites `workspace:*` to the exact version
+ * - **Published tarball**: pnpm rewrites `workspace:*` to the exact version
  *   while packing, so the manifest already states it (`"0.2.0"`), and no
  *   sibling package exists on disk to consult.
- * - **This workspace** — the manifest still says `workspace:*`, which names no
+ * - **This workspace**: the manifest still says `workspace:*`, which names no
  *   version, so the sibling package is read directly.
  *
  * @param declared the raw `@eigeninteractive/server` devDependency value

@@ -27,7 +27,7 @@ through their published `exports`, which point at `dist`.
 
 That is also true of a game repository pointed at this checkout, so while you
 are changing the engine, leave a watcher running rather than rebuilding by
-hand — a forgotten `pnpm -r build` means the game is testing a stale engine,
+hand. A forgotten `pnpm -r build` means the game is testing a stale engine,
 which fails as a puzzle rather than as an error:
 
 ```bash
@@ -77,8 +77,8 @@ hand-edit generated artifacts to make the check pass.
 
 ## Running the scaffolder from source
 
-Publishing to npm is not part of the loop. Build it and run the CLI directly —
-same arguments as `pnpm create eigen-game`:
+Publishing to npm is not part of the loop. Build it and run the CLI directly,
+with the same arguments as `pnpm create eigen-game`:
 
 ```bash
 pnpm --filter create-eigen-game build
@@ -88,8 +88,8 @@ node packages/create-eigen-game/dist/cli.js ../my-game
 The generated project resolves the engine from npm, which is what you want while
 iterating on the CLI and its templates: it is exactly what a user gets.
 
-To test the templates against the engine in your working tree instead — an
-unreleased engine change, seen from a game author's side — run the CI gate,
+To test the templates against the engine in your working tree instead (an
+unreleased engine change, seen from a game author's side) run the CI gate,
 which scaffolds into a temp directory with the four engine packages overridden
 to `link:` this workspace:
 

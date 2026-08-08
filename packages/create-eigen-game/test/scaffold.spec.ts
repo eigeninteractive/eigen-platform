@@ -14,7 +14,7 @@ const temporaryParent = (): string => mkdtempSync(resolve(tmpdir(), "create-eige
 // its templates were compiled against. A literal would need editing on every
 // release, and would pass while the template silently pinned the previous one.
 //
-// Note this is the ENGINE's version, no longer the scaffolder's — the two are
+// Note this is the ENGINE's version, no longer the scaffolder's. The two are
 // free to differ now that `create-eigen-game` has left the `fixed` group, and
 // asserting against the scaffolder's own version would quietly stop testing
 // anything the first time they do.
@@ -121,7 +121,7 @@ describe("scaffoldGame", () => {
     expect(devVars).not.toContain("WEB_APP_ORIGIN=");
     expect(devVars).toContain("FIREBASE_PRIVATE_KEY=");
 
-    // Native release plumbing — rendered unconditionally by the app-overlay
+    // Native release plumbing, rendered unconditionally by the app-overlay
     // tree, so present even with `bootstrap: false` (unlike the Gradle/pubspec
     // appends below, which need a real `flutter create` output to edit).
     expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("com.example.my_game")');
@@ -136,7 +136,7 @@ describe("scaffoldGame", () => {
     // Binary templates must arrive byte-identical. They did not: renderTree
     // read every file as UTF-8 and wrote it back, so any byte that is not
     // valid UTF-8 became U+FFFD. A 1024px PNG grew by tens of kilobytes of
-    // replacement characters and stopped decoding — `flutter_launcher_icons`
+    // replacement characters and stopped decoding, so `flutter_launcher_icons`
     // failed with NoDecoderForImageFormatException. Compare the bytes, not
     // just the length, and not merely "the file exists".
     for (const asset of ["icon.png", "icon_foreground.png", "splash.png", "splash_dark.png"]) {
@@ -195,13 +195,13 @@ describe("scaffoldGame", () => {
     // dependencies (`dev:` prefix) while the engine/Firebase packages above
     // are not.
     expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], expect.stringMatching(/\/app$/));
-    // Configuring the icon tools is not enough — both write committed files,
+    // Configuring the icon tools is not enough: both write committed files,
     // so they have to actually run or the app ships Flutter's own blue logo.
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_native_splash:create"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
     // Regenerated against the wrangler the install above resolved, not the one
-    // the committed template was generated with — otherwise `wrangler dev`
+    // the committed template was generated with, or else `wrangler dev`
     // opens by reporting types that are only stale in their workerd stamp.
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "cf-typegen"], expect.stringMatching(/\/server$/));
     // The root install is Biome's, and is what makes `pnpm lint` work from the
@@ -224,13 +224,13 @@ describe("scaffoldGame", () => {
     const appPubspec = readFileSync(resolve(root, "app/pubspec.yaml"), "utf8");
     expect(appPubspec).toContain("flutter_launcher_icons:");
     expect(appPubspec).toContain("flutter_native_splash:");
-    // `scaffoldGame` only creates `--platforms android,web` — `ios`/`macos`
+    // `scaffoldGame` only creates `--platforms android,web`, so `ios`/`macos`
     // keys would make `flutter_launcher_icons` error on a platform directory
     // that doesn't exist.
     expect(appPubspec).not.toContain("ios:");
     expect(appPubspec).not.toContain("macos:");
     // The shipped adaptive foreground is the reversed, light-on-dark mark, so
-    // the background behind it has to be ink — the previous "#FFFFFF" default
+    // the background behind it has to be ink; the previous "#FFFFFF" default
     // would render it invisible.
     expect(appPubspec).toContain('adaptive_icon_background: "#1B1E24"');
     expect(appPubspec).toContain("image_dark: assets/icon/splash_dark.png");
@@ -420,7 +420,7 @@ describe("firebaseReadiness", () => {
     // Asked here rather than left to `configure_firebase`, which runs at the
     // far end of two minutes of Flutter and pub.
     expect(firebaseReadiness(machine("flutterfire"))).toEqual({ ready: false, problems: [{ reason: "the `flutterfire` CLI is not installed", fix: "dart pub global activate flutterfire_cli" }] });
-    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, problems: [{ reason: "the `firebase` CLI is not installed", fix: "npm install -g firebase-tools" }] });
+    expect(firebaseReadiness(machine("firebase"))).toEqual({ ready: false, problems: [{ reason: "the `firebase` CLI is not installed", fix: "curl -sL https://firebase.tools | bash" }] });
   });
 
   it("catches a machine that has the tools but is signed out", () => {
@@ -436,7 +436,7 @@ describe("firebaseReadiness", () => {
   });
 
   it("says nothing about the sign-in when the CLI that would answer is missing", () => {
-    // `login:list` cannot be run, so there is no evidence either way — and
+    // `login:list` cannot be run, so there is no evidence either way, and
     // installing firebase-tools leads to `firebase login` regardless.
     expect(reasons(machine("firebase", '{"status":"success","result":[]}'))).toEqual(["the `firebase` CLI is not installed"]);
   });
@@ -472,7 +472,7 @@ describe("destinationProblem", () => {
     const problem = destinationProblem(root);
 
     // Three of them, because that usually settles whether this was a mistyped
-    // path or a directory that has already been scaffolded once — where "not
+    // path or a directory that has already been scaffolded once, where "not
     // empty" only invites an `ls`.
     expect(problem).toContain("README.md, app, notes.txt");
     expect(problem).toContain("and 1 more");
@@ -500,7 +500,7 @@ describe("insideWorkTree", () => {
     };
 
     expect(insideWorkTree(resolve(parent, "not-created-yet/nor-this"), probe)).toBe(true);
-    // `git -C` rather than a cwd, because `Probe` has nowhere to put one — and
+    // `git -C` rather than a cwd, because `Probe` has nowhere to put one, and
     // the directory it names has to be one that already exists.
     expect(asked).toEqual([["git", "-C", parent, "rev-parse", "--is-inside-work-tree"]]);
   });
@@ -566,14 +566,14 @@ describe("repository initialisation", () => {
   });
 
   // Here rather than with the other template assertions because it needs a
-  // commit to be meaningful — an uncommitted tree reports every file — and the
+  // commit to be meaningful (an uncommitted tree reports every file) and the
   // committer identity this block stubs is what a CI image does not have.
   it("ignores what a root script leaves behind", () => {
     const root = resolve(temporaryParent(), "my-game");
 
     scaffoldGame({ directory: root, bootstrap: false, git: true });
 
-    // Installing at the root — which the scaffolder does, for Biome — leaves a
+    // Installing at the root, which the scaffolder does for Biome, leaves a
     // node_modules/ that must not be committed, beside a lockfile that must.
     mkdirSync(resolve(root, "node_modules"), { recursive: true });
     writeFileSync(resolve(root, "node_modules/.modules.yaml"), "");
@@ -680,7 +680,7 @@ describe("repository initialisation", () => {
       run: (command, args, cwd) => {
         if (command !== "dart" || args.includes("--help")) return;
         // FlutterFire writes this, then the service worker configuration is
-        // derived from it — so the second half can fail with the first half
+        // derived from it, so the second half can fail with the first half
         // done, and a real file is worth more than the placeholder.
         writeFileSync(resolve(cwd, "lib/firebase_options.dart"), "// generated\n");
         throw new Error("firebase: HTTP 503");
@@ -759,7 +759,7 @@ describe("repository initialisation", () => {
 
 describe("template rendering", () => {
   it("pins which files are copied verbatim rather than rendered", () => {
-    // The rule — "render it if it decodes as UTF-8" — is otherwise invisible,
+    // The rule, "render it if it decodes as UTF-8", is otherwise invisible,
     // which is how the old traversal mangled every binary for so long without
     // anyone noticing. This states the outcome for the whole tree, so adding
     // an asset that lands on the copy-verbatim side shows up as a diff to
@@ -781,9 +781,9 @@ describe("template rendering", () => {
   it("keeps each packaged .gitignore identical to the one it stands in for", () => {
     // npm strips files named `.gitignore` from tarballs, so every tree that
     // ships one keeps a second copy under `scaffold/` that the published
-    // scaffolder writes instead. Two copies of the same file drift silently —
-    // this one already had, losing `app/pubspec_overrides.yaml` from the
-    // Git-rendered side — and only the `scaffold/` copy reaches a real project.
+    // scaffolder writes instead. Two copies of the same file drift silently.
+    // This one already had, losing `app/pubspec_overrides.yaml` from the
+    // Git-rendered side, and only the `scaffold/` copy reaches a real project.
     const templates = resolve(import.meta.dirname, "../templates");
     for (const [tree, packaged] of [
       ["project", "scaffold/project.gitignore"],
@@ -794,7 +794,7 @@ describe("template rendering", () => {
   });
 
   it("ships the generated Biome config under a name Biome will not load here", () => {
-    // Biome refuses to run at all when it finds a nested root configuration —
+    // Biome refuses to run at all when it finds a nested root configuration:
     // both the CLI and the editor's language server, which fails with an empty
     // error message and simply stops working on the whole repository. A
     // template named `biome.json` is exactly that, and the scaffolder already
@@ -819,7 +819,7 @@ describe("template rendering", () => {
     // did not write, and their first diff is noise.
     //
     // Run from inside the generated project so Biome resolves the config it
-    // was given, not this workspace's — they differ, and the generated one is
+    // was given, not this workspace's. They differ, and the generated one is
     // the only one that matters here. The binary comes from this workspace
     // because `bootstrap: false` installs nothing.
     const biome = resolve(import.meta.dirname, "../../../node_modules/.bin/biome");
@@ -865,7 +865,7 @@ describe("continuous integration", () => {
     const result = addContinuousIntegration({ directory: root });
 
     expect(result.files).toEqual(workflows);
-    // Read back from the project rather than passed in — a project scaffolded
+    // Read back from the project rather than passed in: a project scaffolded
     // with pnpm must not silently gain npm workflows.
     expect(readFileSync(resolve(root, workflows[0]), "utf8")).toContain("pnpm install");
   });

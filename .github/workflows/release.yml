@@ -12,7 +12,7 @@ name: Release
 #   3. Merging that PR runs this workflow again, finds no pending changesets,
 #      and publishes to npm.
 #
-# So releasing is "merge the version PR" — the decision stays explicit (npm
+# So releasing is "merge the version PR", and the decision stays explicit (npm
 # versions cannot be unpublished after 72 hours) without anyone hand-editing a
 # version number or remembering the publish order. Changesets accumulate: five
 # merged PRs keep updating one version PR, and one merge releases all five.
@@ -53,7 +53,7 @@ name: Release
 #
 # `eigen_api`, the generated Dart client in clients/dart, rides along at the same
 # version. The wire contract is the server's, so the client that speaks it
-# carries the server's version — a consumer's `eigen_api: ^0.1.0` then states
+# carries the server's version, so a consumer's `eigen_api: ^0.1.0` states
 # exactly the compatibility it means. `pnpm version-packages` regenerates it, so
 # the version PR already carries the stamped pubspec.
 on:
@@ -73,7 +73,7 @@ jobs:
   # is a different commit as soon as anything else merges, and publishing is the
   # one irreversible step here, so it is checked on the exact commit that ships.
   #
-  # It matters that this is the WHOLE gate rather than a re-typed subset —
+  # It matters that this is the WHOLE gate rather than a re-typed subset:
   # checks.yml also proves openapi.json, the drizzle migrations, the worker
   # types and the generated Dart client are all in sync with their sources.
   # Those guards are worth more at publish time than anywhere else.
@@ -86,7 +86,7 @@ jobs:
   # Decides what this push means: `version` when changesets are pending,
   # `publish` when they are not and something is unpublished, `none` otherwise.
   # Hoisting it into its own job is what lets the two paths below carry
-  # different permissions — and makes the decision visible in the Actions UI
+  # different permissions, and makes the decision visible in the Actions UI
   # rather than buried inside one step.
   select-mode:
     name: Select mode
@@ -169,7 +169,7 @@ jobs:
 
       # An App token, not GITHUB_TOKEN, so the version pull request gets CHECKS.
       # GitHub suppresses workflow triggers for events raised by the built-in
-      # token, so a version PR it opens shows no checks at all — and with
+      # token, so a version PR it opens shows no checks at all, and with
       # required status checks on `main`, it could never satisfy them and would
       # be permanently unmergeable without an admin bypass.
       - uses: actions/create-github-app-token@v3
@@ -220,7 +220,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The tarballs must contain built output — `dist` is what consumers get.
+      # The tarballs must contain built output; `dist` is what consumers get.
       - name: Build
         run: pnpm -r build
 
@@ -236,7 +236,7 @@ jobs:
   #
   # NOTE: `actions/setup-node` must NOT set `registry-url` here. That writes an
   # .npmrc containing `_authToken=${NODE_AUTH_TOKEN}`, and npm prefers that over
-  # an OIDC exchange — surfacing as a nonsense `E404 ... is not in this
+  # an OIDC exchange, surfacing as a nonsense `E404 ... is not in this
   # registry` rather than an auth error. There is no npm token by design.
   publish:
     name: Publish
@@ -246,7 +246,7 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write # git tags + GitHub releases
-      id-token: write # OIDC — this is the npm credential
+      id-token: write # OIDC, the npm credential
     steps:
       - uses: actions/checkout@v7
         with:
@@ -267,7 +267,7 @@ jobs:
         run: pnpm -r build
 
       # Scoped to BOTH repositories: this job pushes a tag here and dispatches
-      # to eigen-web. GITHUB_TOKEN cannot do the latter at all — it is scoped to
+      # to eigen-web. GITHUB_TOKEN cannot do the latter at all; it is scoped to
       # the repository that minted it, same organization or not.
       - uses: actions/create-github-app-token@v3
         id: app-token
@@ -280,7 +280,7 @@ jobs:
             eigen-web
           permission-contents: write
 
-      # Provenance is emitted automatically under trusted publishing — there is
+      # Provenance is emitted automatically under trusted publishing; there is
       # no `--provenance` flag to pass. It requires this repository to stay
       # PUBLIC; npm refuses to sign provenance from a private source repo.
       - name: Publish to npm
@@ -295,13 +295,13 @@ jobs:
       # Not "when anything published", which is what this used to test and is
       # no longer the same question. `create-eigen-game` versions independently,
       # so a scaffolder-only release reaches this point having touched neither
-      # `openapi.json` nor `clients/dart` — and both steps below then do the
+      # `openapi.json` nor `clients/dart`, and both steps below then do the
       # wrong thing. The dispatch regenerates references that did not change,
       # and the tag collides with the one the previous engine release pushed.
       #
       # The collision is the worse half: it fails the run at the very END, after
       # npm has irreversibly published, so the failure can never be cleared by
-      # rerunning. That is exactly how the first scaffolder-only release went —
+      # rerunning. That is exactly how the first scaffolder-only release went:
       # `create-eigen-game@0.3.0` published correctly and the run went red
       # anyway, on `fatal: tag 'eigen_api-v0.2.0' already exists`.
       #
@@ -316,13 +316,13 @@ jobs:
           if jq -e '.[] | select(.name == "@eigeninteractive/server")' <<<"$PACKAGES" >/dev/null; then
             echo "released=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::notice::No engine release in this run ($(jq -r '[.[].name] | join(", ")' <<<"$PACKAGES")) — skipping the eigen-web dispatch and the eigen_api tag."
+            echo "::notice::No engine release in this run ($(jq -r '[.[].name] | join(", ")' <<<"$PACKAGES")). Skipping the eigen-web dispatch and the eigen_api tag."
             echo "released=false" >> "$GITHUB_OUTPUT"
           fi
 
       # eigen-web vendors this repo's `openapi.json` and package APIs to build
       # its HTTP and TypeScript references. It cannot notice a change on its
-      # own, so tell it — its receiving workflow regenerates, commits to main
+      # own, so tell it. Its receiving workflow regenerates, commits to main
       # and deploys.
       #
       # Gated on a real publish rather than on a push to main, and that is the
@@ -351,10 +351,10 @@ jobs:
       # closed as won't-fix, so this split is permanent.
       #
       # The tag must be pushed with the App token: a tag pushed by the built-in
-      # GITHUB_TOKEN deliberately does not trigger further workflow runs — the
+      # GITHUB_TOKEN deliberately does not trigger further workflow runs, by the
       # same suppression rule that costs the version PR its checks above.
       #
-      # If this step fails after npm published, push the tag by hand — re-running
+      # If this step fails after npm published, push the tag by hand. Re-running
       # the workflow finds no pending changesets and will not publish again.
       - name: Tag eigen_api for pub.dev
         if: steps.engine.outputs.released == 'true'
@@ -366,10 +366,10 @@ jobs:
 
           # Belt to the gate above's braces. The gate is the correct fix and
           # this is never expected to fire, but tagging is the last thing a
-          # release does and it runs after an irreversible npm publish — so it
+          # release does and it runs after an irreversible npm publish, so it
           # should be safe to rerun rather than merely correct to run once.
           if git ls-remote --exit-code --tags "$remote" "refs/tags/eigen_api-v$v" >/dev/null 2>&1; then
-            echo "::notice::eigen_api-v$v already exists — nothing to tag."
+            echo "::notice::eigen_api-v$v already exists. Nothing to tag."
             exit 0
           fi
 

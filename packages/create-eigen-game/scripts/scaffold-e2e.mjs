@@ -4,8 +4,8 @@
 //
 // This is the only thing that checks the Dart templates at all. `pnpm -r
 // typecheck` compiles `templates/worker` against the workspace engine, but
-// nothing anywhere compiled `templates/app-overlay` — the files that import
-// `package:eigen_flutter/eigen_flutter.dart` — so the pinned `eigen_flutter`
+// nothing anywhere compiled `templates/app-overlay`, the files that import
+// `package:eigen_flutter/eigen_flutter.dart`, so the pinned `eigen_flutter`
 // range was an assertion no build ever tested. eigen-flutter's own `example/`
 // is a different tree and cannot stand in for it.
 //
@@ -21,7 +21,7 @@
 // publishes it. The gate would deadlock every line-crossing release.
 //
 // So the four engine packages are overridden to this workspace. That also makes
-// the check the more useful one — it compiles the templates against the engine
+// the check the more useful one: it compiles the templates against the engine
 // about to ship rather than the engine that shipped last.
 //
 // `eigen_flutter` is deliberately NOT overridden. It lives in another
@@ -47,7 +47,7 @@ const shell = (command, args, cwd) => {
 
 /**
  * pnpm reads `overrides` from `pnpm-workspace.yaml` in a single-package project
- * too, and overrides apply transitively — which is what makes this work at all:
+ * too, and overrides apply transitively, which is what makes this work at all:
  * `@eigeninteractive/server` depends on `kernel` and peer-depends on `rules`,
  * and those would otherwise be fetched from npm at the very version that does
  * not exist yet.
@@ -122,7 +122,7 @@ const shellsSpeaking = async (engineLine) => {
 // The shell CANNOT match a brand-new engine line, and that is structural rather
 // than an oversight. `eigen_api` is published with the engine, and no
 // `eigen_flutter` of any version number can constrain `^0.3.0` until
-// `eigen_api 0.3.0` exists on pub.dev — which happens when the engine's own
+// `eigen_api 0.3.0` exists on pub.dev, which happens when the engine's own
 // release merges.
 //
 // An unconditional assertion therefore fails on the version pull request that
@@ -143,7 +143,7 @@ const shellsSpeaking = async (engineLine) => {
 // This queries the registry the deleted resolver queried, for the opposite
 // purpose. Choosing a shell by its `eigen_api` constraint is wrong, because the
 // constraint cannot see the Dart API the templates call. Checking whether a
-// shell for this line exists at all asks nothing about the Dart API — and the
+// shell for this line exists at all asks nothing about the Dart API, and the
 // build above already answered that question.
 const emittedEngine = JSON.parse(readFileSync(resolve(serverRoot, "package.json"), "utf8")).dependencies["@eigeninteractive/server"];
 const lock = readFileSync(resolve(appRoot, "pubspec.lock"), "utf8");
@@ -157,8 +157,7 @@ const speakers = await shellsSpeaking(engineLine);
 
 if (speakers.length === 0) {
   console.log(
-    `::notice::No published eigen_flutter constrains eigen_api ^${engineLine}.0 yet, so there is no wire pairing to check. ` +
-      `This is the expected state between an engine line crossing and the shell release that follows it — the shell cannot be built for ${engineLine}.x until eigen_api ${engineLine}.0 is on pub.dev.`,
+    `::notice::No published eigen_flutter constrains eigen_api ^${engineLine}.0 yet, so there is no wire pairing to check. ` + `This is the expected state between an engine line crossing and the shell release that follows it: the shell cannot be built for ${engineLine}.x until eigen_api ${engineLine}.0 is on pub.dev.`,
   );
 } else if (line(resolvedApi) !== engineLine) {
   throw new Error(
@@ -168,7 +167,7 @@ if (speakers.length === 0) {
   );
 }
 
-// The server half. `contract` already ran during bootstrap — this is the part a
+// The server half. `contract` already ran during bootstrap; this is the part a
 // game author would run next, and it is what proves the emitted engine range
 // and the template sources agree.
 shell("pnpm", ["run", "typecheck"], serverRoot);

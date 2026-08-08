@@ -4,17 +4,17 @@
  *
  * It shares the `/api` prefix with the client engine group but **not its auth**
  * (see `buildApp`): the two are separate sub-apps, so the engine's Firebase
- * middleware — scoped to `/api/engine/*` — never runs here. A bot carries no
+ * middleware, scoped to `/api/engine/*`, never runs here. A bot carries no
  * user token; it authenticates the request itself by signing the exact request
  * body (bound to the `action` domain) and sending the signature in the
- * `Eigen-Signature` header — the same header the engine uses to sign wakes in
+ * `Eigen-Signature` header: the same header the engine uses to sign wakes in
  * the other direction (the direction is bound in the signed bytes, not the
  * header name). The handler verifies that HMAC before trusting any claim in the
  * body, then runs the move through the normal command path (the DO verifies the
  * named seat exactly as for a human).
  *
  * It is a real OpenAPI operation (so the one emitted spec documents it), but
- * declares the `botHmac` security scheme instead of `firebase` — the header
+ * declares the `botHmac` security scheme instead of `firebase`, so the header
  * signature is a representable `apiKey`, which the in-body envelope was not.
  * That `apiKey` scheme is the header's documentation, so it is read directly
  * rather than re-declared as a request parameter.
@@ -66,7 +66,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       if (signature === undefined || signature.length === 0) throw new HttpError(401, "Missing signature");
       // Verify over the EXACT received bytes (Hono caches the body, so this is
       // the same text validation parsed), bound to the `action` domain, before
-      // trusting the claim (constant-time). A bad signature is a flat 401 —
+      // trusting the claim (constant-time). A bad signature is a flat 401:
       // no oracle about which field was wrong.
       const raw = await c.req.text();
       if (!(await verifyBotSignature(secret, claim.botId, "action", raw, signature))) {
