@@ -32,6 +32,37 @@ what the engine has already validated before your hook runs, the
 It ships from the engine repository, so it moves with the engine rather than
 drifting behind it.
 
+## The two platforms underneath
+
+The skill above covers the contract and nothing else — deliberately, because
+the two halves it sits between are ordinary Cloudflare Workers and ordinary
+Flutter, and both platforms publish their own official skills. Installing them
+alongside is what makes an agent useful on the other 90% of a game repository:
+a D1 migration that will not apply, a Durable Object alarm, a widget that
+rebuilds too often.
+
+```text
+/plugin install cloudflare@claude-plugins-official
+```
+
+Cloudflare's covers Workers, Durable Objects, Wrangler and the Agents SDK, and
+brings MCP servers that search Cloudflare's live documentation — which matters
+here for the same reason the retrieval surface below does. It is listed in the
+marketplace Claude Code already knows about, so there is nothing to add first.
+
+```text
+/plugin marketplace add flutter/agent-plugins
+/plugin install dart-flutter@dart-flutter
+```
+
+Flutter's ships the Dart and Flutter MCP server alongside its skills, and lives
+in its own marketplace, hence the extra line.
+
+Install them yourself rather than expecting `eigen` to pull them in. It does not
+declare them as dependencies, because a dependency that cannot be resolved
+disables the plugin that declared it, and a game-rules skill should not stop
+working because an optional convenience was missing.
+
 ## The retrieval surface
 
 Every page on this site is also machine-readable, which is what lets an agent
