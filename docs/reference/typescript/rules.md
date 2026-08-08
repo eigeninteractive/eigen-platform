@@ -1,6 +1,6 @@
 # @eigeninteractive/rules
 
-`@eigeninteractive/rules`: the contract a game implements. A `GameModule` bundles one
+`@eigeninteractive/rules` — the contract a game implements. A `GameModule` bundles one
 `GameRules` unit per schema version; the engine calls its hooks and never
 inspects game state directly. This package is types plus a couple of
 helpers: it has no runtime dependencies and pulls in no engine code.
@@ -9,9 +9,9 @@ helpers: it has no runtime dependencies and pulls in no engine code.
 
 ### IllegalMoveError
 
-Defined in: [eigen-server/packages/rules/src/helpers.ts:14](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/helpers.ts#L14)
+Defined in: [eigen-server/packages/rules/src/helpers.ts:14](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/helpers.ts#L14)
 
-Thrown by a game's `applyAction` to reject a move that breaks the rules.
+Thrown by a game's `applyAction` to reject a move that breaks the rules —
 the *expected* failure of the hook (a mis-tap, a client bug), rendered to
 the caller as their error. Anything else a hook throws is treated as a game
 bug and surfaces as a server error. Domain-level on purpose: the game
@@ -76,7 +76,7 @@ Error.constructor
 
 ### ApplyActionArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:122](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L122)
+Defined in: [eigen-server/packages/rules/src/contract.ts:122](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L122)
 
 #### Extends
 
@@ -98,7 +98,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:122](https://github.com
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L113)
+Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L113)
 
 ###### Inherited from
 
@@ -112,7 +112,7 @@ HookContext.config
 data: TAction;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:125](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L125)
+Defined in: [eigen-server/packages/rules/src/contract.ts:125](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L125)
 
 ##### pending
 
@@ -120,7 +120,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:125](https://github.com
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:124](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L124)
+Defined in: [eigen-server/packages/rules/src/contract.ts:124](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L124)
 
 ##### playerIndex
 
@@ -128,7 +128,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:124](https://github.com
 playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:126](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L126)
+Defined in: [eigen-server/packages/rules/src/contract.ts:126](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L126)
 
 ##### rng
 
@@ -136,9 +136,9 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:126](https://github.com
 rng: Rng;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:128](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L128)
+Defined in: [eigen-server/packages/rules/src/contract.ts:128](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L128)
 
-Deterministic per-transition RNG. See [Rng](#rng-4).
+Deterministic per-transition RNG — see [Rng](#rng-4).
 
 ##### state
 
@@ -146,13 +146,13 @@ Deterministic per-transition RNG. See [Rng](#rng-4).
 state: TState;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:123](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L123)
+Defined in: [eigen-server/packages/rules/src/contract.ts:123](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L123)
 
 ***
 
 ### ApplyLifecycleArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:140](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L140)
+Defined in: [eigen-server/packages/rules/src/contract.ts:140](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L140)
 
 #### Extends
 
@@ -173,7 +173,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:140](https://github.com
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L113)
+Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L113)
 
 ###### Inherited from
 
@@ -187,7 +187,7 @@ HookContext.config
 data: LifecycleAction;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:149](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L149)
+Defined in: [eigen-server/packages/rules/src/contract.ts:149](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L149)
 
 ##### pending
 
@@ -195,10 +195,10 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:149](https://github.com
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:146](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L146)
+Defined in: [eigen-server/packages/rules/src/contract.ts:146](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L146)
 
 Seats awaiting an action. For `timeout` these are exactly the seats that
-ran out of time, so resolve the whole set in one envelope (you may declare a
+ran out of time — resolve the whole set in one envelope (you may declare a
 draw). For `forfeit`/`autoForfeit`, the target seat is in
 `data.playerIndex`.
 
@@ -208,9 +208,9 @@ draw). For `forfeit`/`autoForfeit`, the target seat is in
 rng: Rng;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:151](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L151)
+Defined in: [eigen-server/packages/rules/src/contract.ts:151](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L151)
 
-Deterministic per-transition RNG. See [Rng](#rng-4).
+Deterministic per-transition RNG — see [Rng](#rng-4).
 
 ##### state
 
@@ -218,7 +218,7 @@ Deterministic per-transition RNG. See [Rng](#rng-4).
 state: TState;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:141](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L141)
+Defined in: [eigen-server/packages/rules/src/contract.ts:141](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L141)
 
 ##### type
 
@@ -226,25 +226,25 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:141](https://github.com
 type: LifecycleType;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:148](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L148)
+Defined in: [eigen-server/packages/rules/src/contract.ts:148](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L148)
 
-The trigger, always equal to `data.type`.
+The trigger — always equal to `data.type`.
 
 ***
 
 ### BotActionArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:221](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L221)
+Defined in: [eigen-server/packages/rules/src/contract.ts:221](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L221)
 
 A seated engine bot's turn to move, passed to the matching entry in
 [GameRules.botActions](#botactions). The brain runs inside the game's Durable
 Object post-commit and sees exactly what a human at this seat would
-(`observation`, the same fog-of-war projection, so a bot cannot read hidden
+(`observation` — the same fog-of-war projection, so a bot cannot read hidden
 state its seat may not); `botConfig` is that bot registry row's declared
 knob (difficulty, personality). The engine self-applies the returned move as
 this seat's action, validated against `schemas.action` exactly like a human
 move. `rng` is deterministic per (game, version, seat) for reproducible
-tests, but the chosen move is what gets logged, so the brain need not be
+tests — but the chosen move is what gets logged, so the brain need not be
 pure (replay uses the recorded action, never re-runs the brain).
 
 #### Extends
@@ -266,7 +266,7 @@ pure (replay uses the recorded action, never re-runs the brain).
 botConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:223](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L223)
+Defined in: [eigen-server/packages/rules/src/contract.ts:223](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L223)
 
 ##### config
 
@@ -274,7 +274,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:223](https://github.com
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L113)
+Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L113)
 
 ###### Inherited from
 
@@ -288,7 +288,7 @@ HookContext.config
 observation: ObservationSlice<TObservation>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:222](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L222)
+Defined in: [eigen-server/packages/rules/src/contract.ts:222](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L222)
 
 ##### playerIndex
 
@@ -296,7 +296,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:222](https://github.com
 playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:224](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L224)
+Defined in: [eigen-server/packages/rules/src/contract.ts:224](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L224)
 
 ##### rng
 
@@ -304,17 +304,17 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:224](https://github.com
 rng: Rng;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:225](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L225)
+Defined in: [eigen-server/packages/rules/src/contract.ts:225](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L225)
 
 ***
 
 ### BotSeatableArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:206](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L206)
+Defined in: [eigen-server/packages/rules/src/contract.ts:206](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L206)
 
 A candidate bot seating, passed to [GameRules.botSeatable](#botseatable).
 `gameConfig` is parsed against the game's version schema; `botConfig` is the
-bot's declared capabilities: game-owned but unversioned by the game
+bot's declared capabilities — game-owned but unversioned by the game
 schemas, so it stays opaque.
 
 #### Type Parameters
@@ -331,7 +331,7 @@ schemas, so it stays opaque.
 botConfig: JsonObject;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:208](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L208)
+Defined in: [eigen-server/packages/rules/src/contract.ts:208](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L208)
 
 ##### gameConfig
 
@@ -339,13 +339,13 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:208](https://github.com
 gameConfig: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:207](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L207)
+Defined in: [eigen-server/packages/rules/src/contract.ts:207](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L207)
 
 ***
 
 ### ComputeObservationArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:170](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L170)
+Defined in: [eigen-server/packages/rules/src/contract.ts:170](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L170)
 
 #### Extends
 
@@ -367,9 +367,9 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:170](https://github.com
 cause: TransitionCause<TAction>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:182](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L182)
+Defined in: [eigen-server/packages/rules/src/contract.ts:182](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L182)
 
-What produced `state`. See [TransitionCause](#transitioncause). Shared across the
+What produced `state` — see [TransitionCause](#transitioncause). Shared across the
 per-seat fan-out; per-seat filtering of what it reveals is this hook's
 job.
 
@@ -379,7 +379,7 @@ job.
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L113)
+Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L113)
 
 ###### Inherited from
 
@@ -393,9 +393,9 @@ HookContext.config
 isReplay: boolean;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:185](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L185)
+Defined in: [eigen-server/packages/rules/src/contract.ts:185](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L185)
 
-TRUE only when projecting a finished game for replay, where hidden-info games
+TRUE only when projecting a finished game for replay — hidden-info games
 may reveal opponent state.
 
 ##### participantCount
@@ -404,7 +404,7 @@ may reveal opponent state.
 participantCount: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:178](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L178)
+Defined in: [eigen-server/packages/rules/src/contract.ts:178](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L178)
 
 ##### pending
 
@@ -412,7 +412,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:178](https://github.com
 pending: number[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:172](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L172)
+Defined in: [eigen-server/packages/rules/src/contract.ts:172](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L172)
 
 ##### playerIndex
 
@@ -420,7 +420,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:172](https://github.com
 playerIndex: number | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:177](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L177)
+Defined in: [eigen-server/packages/rules/src/contract.ts:177](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L177)
 
 The seat this projection is for, or `null` for a viewer (a non-participant
 replaying a public game). A viewer projection only ever occurs with
@@ -433,15 +433,15 @@ full post-game view for it.
 state: TState;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:171](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L171)
+Defined in: [eigen-server/packages/rules/src/contract.ts:171](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L171)
 
 ***
 
 ### Envelope
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:81](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L81)
+Defined in: [eigen-server/packages/rules/src/contract.ts:81](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L81)
 
-The result of advancing the game by one transition: the return of
+The result of advancing the game by one transition — the return of
 `initialState`, `applyAction`, and `applyLifecycle`.
 
 #### Type Parameters
@@ -458,7 +458,7 @@ The result of advancing the game by one transition: the return of
 optional outcome?: OutcomeEntry[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:89](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L89)
+Defined in: [eigen-server/packages/rules/src/contract.ts:89](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L89)
 
 Present **only** when the game ends. Absent/undefined means ongoing.
 
@@ -468,7 +468,7 @@ Present **only** when the game ends. Absent/undefined means ongoing.
 pendingPlayers: number[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:87](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L87)
+Defined in: [eigen-server/packages/rules/src/contract.ts:87](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L87)
 
 0-based seats that may act next. Empty ⇒ game over.
 
@@ -478,11 +478,11 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:87](https://github.com/
 state: TState;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:85](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L85)
+Defined in: [eigen-server/packages/rules/src/contract.ts:85](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L85)
 
 New pure game payload (board, deck, fog…). Never carries whose-turn or
-winner info; those are engine-owned fields. Must match the game's
-`schemaVersion` schema, which the engine validates before committing.
+winner info — those are engine-owned fields. Must match the game's
+`schemaVersion` schema — the engine validates it before committing.
 
 ##### turnSeconds?
 
@@ -490,7 +490,7 @@ winner info; those are engine-owned fields. Must match the game's
 optional turnSeconds?: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:92](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L92)
+Defined in: [eigen-server/packages/rules/src/contract.ts:92](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L92)
 
 Optional per-action deadline override for *this action only* (does not
 touch any player's bank). Omit to use the game's configured timing.
@@ -499,12 +499,12 @@ touch any player's bank). Omit to use the game's configured timing.
 
 ### GameModule
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:348](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L348)
+Defined in: [eigen-server/packages/rules/src/contract.ts:348](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L348)
 
-The complete game-specific surface: the same-named twin of the Dart
+The complete game-specific surface — the same-named twin of the Dart
 `GameModule` (whose extras are client-only creation/about UI). Implement
 this once per app and pass it to `createEngine`; the engine owns all
-version dispatch, so every request resolves the game's `schemaVersion`
+version dispatch — every request resolves the game's `schemaVersion`
 entry from [versions](#versions) and invokes that unit's hooks. Game code never
 branches on version.
 
@@ -516,13 +516,13 @@ branches on version.
 versions: Record<number, AnyGameRules>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:356](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L356)
+Defined in: [eigen-server/packages/rules/src/contract.ts:356](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L356)
 
-The [GameRules](#gamerules) units keyed by `schemaVersion`: exactly the
+The [GameRules](#gamerules) units keyed by `schemaVersion` — exactly the
 versions this build ships. Sparse on purpose: game creation rejects a
 version not present here, loading a stored game requires its version's
 entry, and a drained old version is retired by deleting its entry. The
-value type is [AnyGameRules](#anygamerules); each entry is authored against its
+value type is [AnyGameRules](#anygamerules) — each entry is authored against its
 concrete payload types and erased here; safe because the engine parses
 each payload with the same entry's schemas before invoking its hooks.
 
@@ -530,16 +530,16 @@ each payload with the same entry's schemas before invoking its hooks.
 
 ### GameRules
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:264](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L264)
+Defined in: [eigen-server/packages/rules/src/contract.ts:264](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L264)
 
 Everything one `schemaVersion` of a game needs: the payload contracts plus
 all six hooks, narrowly typed to that version's shapes.
 
 The type parameters are the version's payload types, inferred from the
-schemas in [schemas](#schemas) (`z.infer<typeof stateSchema>` etc., using `type`
+schemas in [schemas](#schemas) (`z.infer<typeof stateSchema>` etc. — use `type`
 aliases, not `interface`s). The engine parses every payload with this
 unit's schemas before invoking its hooks, so hook bodies never see
-unvalidated JSON, and never another version's shape. When rules or shapes
+unvalidated JSON — and never another version's shape. When rules or shapes
 change incompatibly, ship a new `GameRules` under the next version key
 (reusing unchanged pieces by import) instead of branching inside hooks.
 
@@ -560,12 +560,12 @@ change incompatibly, ship a new `GameRules` under the next version key
 optional botActions?: Record<string, BotAction<TAction, TObservation, TConfig>>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:319](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L319)
+Defined in: [eigen-server/packages/rules/src/contract.ts:319](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L319)
 
-Optional: the in-DO bot brains, **keyed by bot username**. When a
+Optional — the in-DO bot brains, **keyed by bot username**. When a
 seated `engine`-type bot's turn starts, the engine resolves its registry
 row's `username`, looks the move function up here, runs it post-commit,
-and self-applies the returned move, so a bot game needs no external
+and self-applies the returned move — so a bot game needs no external
 service. Several bots that share behaviour point their usernames at the
 same function and differ by their per-row `botConfig`; distinct behaviour
 is a distinct entry. A seated engine bot whose username is absent here
@@ -580,7 +580,7 @@ rejected exactly like a human's, so a buggy brain fails that seat's turn
 schemas: GameSchemas<TState, TObservation, TAction, TConfig>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:266](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L266)
+Defined in: [eigen-server/packages/rules/src/contract.ts:266](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L266)
 
 The payload contracts for this version.
 
@@ -592,10 +592,10 @@ The payload contracts for this version.
 applyAction(args): Envelope<TState>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:277](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L277)
+Defined in: [eigen-server/packages/rules/src/contract.ts:277](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L277)
 
 Apply a player's move. The engine has already confirmed it is this
-seat's turn at the expected version, so do not re-check turn order. Only
+seat's turn at the expected version, so do not re-check turn order — only
 validate move legality and throw [IllegalMoveError](#illegalmoveerror) if it fails;
 the engine renders it as the caller's error. Any other throw is a game
 bug and surfaces as a server error.
@@ -616,13 +616,13 @@ bug and surfaces as a server error.
 applyLifecycle(args): Envelope<TState>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:284](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L284)
+Defined in: [eigen-server/packages/rules/src/contract.ts:284](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L284)
 
 Resolve a lifecycle action (`forfeit`/`timeout`) into an envelope.
-Lifecycle actions operate on the game from outside its rules. They may
+Lifecycle actions operate on the game from outside its rules — they may
 be player-triggered (a resign) or engine-triggered (timeout, purge);
 either way the consequence is the game's to decide. Unlike `applyAction`
-it cannot be "illegal"; it always resolves.
+it cannot be "illegal" — it always resolves.
 
 ###### Parameters
 
@@ -640,7 +640,7 @@ it cannot be "illegal"; it always resolves.
 botSeatable(args): boolean;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:306](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L306)
+Defined in: [eigen-server/packages/rules/src/contract.ts:306](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L306)
 
 Decide whether a bot's declared capabilities (`botConfig`) support a
 game with `gameConfig`. The engine gates seating on this before
@@ -663,9 +663,9 @@ Return `true` to allow.
 computeObservation(args): ObservationSlice<TObservation>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:292](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L292)
+Defined in: [eigen-server/packages/rules/src/contract.ts:292](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L292)
 
-Project the state into one seat's view, including what that seat may
+Project the state into one seat's view — including what that seat may
 see of the transition that produced it (`args.cause`), so the client can
 animate. Perfect-info games can use the `passthroughObservation` helper
 (which ignores the cause). What this hook reveals also implicitly sets
@@ -688,7 +688,7 @@ the acting seat's projected view is unchanged (the same-view rule).
 initialState(args): Envelope<TState>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:270](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L270)
+Defined in: [eigen-server/packages/rules/src/contract.ts:270](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L270)
 
 Starting envelope. Draw any setup randomness (deck shuffle, first
 player…) from `args.rng`.
@@ -709,9 +709,9 @@ player…) from `args.rng`.
 ratingPool(args): string | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:300](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L300)
+Defined in: [eigen-server/packages/rules/src/contract.ts:300](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L300)
 
-Decide whether, and in which pool, a game with these settings is
+Decide whether — and in which pool — a game with these settings is
 rated. Return the pool name (e.g. `'rapid'`) or `null` for unrated. The
 engine computes `canBeRated = pool != null && !guest` and validates the
 client's concrete `rated` assertion against it (rejecting a mismatch).
@@ -732,14 +732,14 @@ the Rated/Casual toggle and send the same value.
 
 ### GameSchemas
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:241](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L241)
+Defined in: [eigen-server/packages/rules/src/contract.ts:241](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L241)
 
 The declarative payload contracts for one `schemaVersion`: the Standard
 Schemas the engine uses to parse (and validate) every game payload crossing
-the JSON boundary. Keep them transform-free: what parses is what persists,
+the JSON boundary. Keep them transform-free — what parses is what persists,
 and the engine re-validates hook-returned state against `state`. Schemas
 must validate **synchronously** (every mainstream library does unless you
-opt into async refinements); the engine rejects an async schema as a game
+opt into async refinements) — the engine rejects an async schema as a game
 bug.
 
 #### Type Parameters
@@ -759,7 +759,7 @@ bug.
 action: GamePayloadSchema<TAction>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:247](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L247)
+Defined in: [eigen-server/packages/rules/src/contract.ts:247](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L247)
 
 A player move's `data`, as submitted by clients and bots.
 
@@ -769,7 +769,7 @@ A player move's `data`, as submitted by clients and bots.
 config: GamePayloadSchema<TConfig>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:249](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L249)
+Defined in: [eigen-server/packages/rules/src/contract.ts:249](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L249)
 
 The per-instance creation config stored on the game.
 
@@ -779,7 +779,7 @@ The per-instance creation config stored on the game.
 observation: GamePayloadSchema<TObservation>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:245](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L245)
+Defined in: [eigen-server/packages/rules/src/contract.ts:245](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L245)
 
 One participant's projected view, as returned by `computeObservation`.
 
@@ -789,7 +789,7 @@ One participant's projected view, as returned by `computeObservation`.
 state: GamePayloadSchema<TState>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:243](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L243)
+Defined in: [eigen-server/packages/rules/src/contract.ts:243](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L243)
 
 The pure game payload stored per transition.
 
@@ -797,7 +797,7 @@ The pure game payload stored per transition.
 
 ### InitialStateArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:116](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L116)
+Defined in: [eigen-server/packages/rules/src/contract.ts:116](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L116)
 
 #### Extends
 
@@ -817,7 +817,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:116](https://github.com
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L113)
+Defined in: [eigen-server/packages/rules/src/contract.ts:113](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L113)
 
 ###### Inherited from
 
@@ -831,7 +831,7 @@ HookContext.config
 playerCount: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:119](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L119)
+Defined in: [eigen-server/packages/rules/src/contract.ts:119](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L119)
 
 ##### rng
 
@@ -839,21 +839,21 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:119](https://github.com
 rng: Rng;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:118](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L118)
+Defined in: [eigen-server/packages/rules/src/contract.ts:118](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L118)
 
-Deterministic RNG for this transition. See [Rng](#rng-4).
+Deterministic RNG for this transition — see [Rng](#rng-4).
 
 ***
 
 ### JsonObject
 
-Defined in: [eigen-server/packages/rules/src/json.ts:23](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/json.ts#L23)
+Defined in: [eigen-server/packages/rules/src/json.ts:23](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/json.ts#L23)
 
-A JSON object: the shape of `state`, `config`, `data`, and observation
+A JSON object — the shape of `state`, `config`, `data`, and observation
 slices, and the constraint every game payload type must satisfy. An
 `interface` for the same lazy-resolution reason as `JsonArray`.
 Declare *game payload* types as `type` aliases (e.g. via your schema
-library's inference), not `interface`s, since a payload `interface` lacks the
+library's inference), not `interface`s — a payload `interface` lacks the
 implicit index signature this constraint relies on.
 
 #### Indexable
@@ -866,7 +866,7 @@ implicit index signature this constraint relies on.
 
 ### ObservationSlice
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:96](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L96)
+Defined in: [eigen-server/packages/rules/src/contract.ts:96](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L96)
 
 One participant's view of the state, produced by `computeObservation`.
 
@@ -884,7 +884,7 @@ One participant's view of the state, produced by `computeObservation`.
 data: TObservation;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:98](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L98)
+Defined in: [eigen-server/packages/rules/src/contract.ts:98](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L98)
 
 What this seat is permitted to see.
 
@@ -894,18 +894,18 @@ What this seat is permitted to see.
 pendingPlayers: number[];
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:103](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L103)
+Defined in: [eigen-server/packages/rules/src/contract.ts:103](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L103)
 
-Pending set as this seat sees it. May be narrowed from the true set for
+Pending set as this seat sees it — may be narrowed from the true set for
 hidden-info games (e.g. a Nope window, or a simultaneous-commit round
 where revealing that the opponent moved would leak information). It must
-stay truthful about the seat *itself*, which the engine enforces.
+stay truthful about the seat *itself* — the engine enforces that.
 
 ***
 
 ### RatingPoolArgs
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:192](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L192)
+Defined in: [eigen-server/packages/rules/src/contract.ts:192](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L192)
 
 The chosen game settings, passed to [GameRules.ratingPool](#ratingpool) at
 creation so the game can decide its rating pool (or that the game is
@@ -926,7 +926,7 @@ schema.
 access: GameAccess;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:193](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L193)
+Defined in: [eigen-server/packages/rules/src/contract.ts:193](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L193)
 
 ##### budgetSeconds
 
@@ -934,7 +934,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:193](https://github.com
 budgetSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:195](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L195)
+Defined in: [eigen-server/packages/rules/src/contract.ts:195](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L195)
 
 ##### config
 
@@ -942,7 +942,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:195](https://github.com
 config: TConfig;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:199](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L199)
+Defined in: [eigen-server/packages/rules/src/contract.ts:199](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L199)
 
 ##### incrementSeconds
 
@@ -950,7 +950,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:199](https://github.com
 incrementSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:196](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L196)
+Defined in: [eigen-server/packages/rules/src/contract.ts:196](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L196)
 
 ##### maxPlayers
 
@@ -958,7 +958,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:196](https://github.com
 maxPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:198](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L198)
+Defined in: [eigen-server/packages/rules/src/contract.ts:198](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L198)
 
 ##### minPlayers
 
@@ -966,7 +966,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:198](https://github.com
 minPlayers: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:197](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L197)
+Defined in: [eigen-server/packages/rules/src/contract.ts:197](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L197)
 
 ##### turnSeconds
 
@@ -974,19 +974,19 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:197](https://github.com
 turnSeconds: number | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:194](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L194)
+Defined in: [eigen-server/packages/rules/src/contract.ts:194](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L194)
 
 ***
 
 ### Rng
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:53](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L53)
+Defined in: [eigen-server/packages/rules/src/contract.ts:53](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L53)
 
 Deterministic per-transition random source, derived by the engine from the
 game's stored base seed and the state version the envelope commits as. Draw
 freely (`next()` → float in `[0, 1)`, stateful within the invocation);
 replaying the transition re-derives the identical sequence, so the game
-stays a pure function of (base seed, action log), provided the hook draws
+stays a pure function of (base seed, action log) — provided the hook draws
 in deterministic code order.
 
 #### Methods
@@ -997,7 +997,7 @@ in deterministic code order.
 next(): number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:54](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L54)
+Defined in: [eigen-server/packages/rules/src/contract.ts:54](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L54)
 
 ###### Returns
 
@@ -1011,7 +1011,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:54](https://github.com/
 type ActionKind = "game" | "lifecycle";
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:43](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L43)
+Defined in: [eigen-server/packages/rules/src/contract.ts:43](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L43)
 
 Which species a logged action is. Everything that transitions state is an
 *action*; the two species differ by contract: a `game` action is
@@ -1029,7 +1029,7 @@ the log structurally, never by payload shape.
 type ActionType = "user" | "bot" | "system";
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:34](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L34)
+Defined in: [eigen-server/packages/rules/src/contract.ts:34](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L34)
 
 Who performed a logged action.
 
@@ -1041,17 +1041,17 @@ Who performed a logged action.
 type AnyGameRules = GameRules<any, any, any, any>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:338](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L338)
+Defined in: [eigen-server/packages/rules/src/contract.ts:338](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L338)
 
-A [GameRules](#gamerules) unit with its payload types erased: the type of a rules
+A [GameRules](#gamerules) unit with its payload types erased — the type of a rules
 entry once it is stored in a [GameModule.versions](#versions) registry that holds
 *many* games'/versions' rules whose concrete `TState`/`TAction`/`TConfig`
 genuinely differ. That container needs "a `GameRules` for *some* payload
 types", an existential TypeScript cannot spell; `any` is the one sanctioned
-escape for it (`unknown` cannot, since the config/action params are contravariant
+escape for it (`unknown` cannot — the config/action params are contravariant
 input positions). It is **safe** here because the engine re-validates every
 payload against that entry's own `schemas` before invoking a hook, so the
-static type was only ever an authoring aid, redundant once the unit is
+static type was only ever an authoring aid — redundant once the unit is
 registered. Authors keep full type-checking by writing
 `class X implements GameRules<State, Observation, Action, Config>` (or annotating a
 literal `: GameRules<…>`); assigning that into a `versions` map just works,
@@ -1065,9 +1065,9 @@ with no `as`-cast, because `any` disables the variance check at this seam.
 type BotAction<TAction, TObservation, TConfig> = (args) => TAction;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:230](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L230)
+Defined in: [eigen-server/packages/rules/src/contract.ts:230](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L230)
 
-One engine bot's move function: the value type in
+One engine bot's move function — the value type in
 [GameRules.botActions](#botactions).
 
 #### Type Parameters
@@ -1096,7 +1096,7 @@ One engine bot's move function: the value type in
 type GameAccess = "public" | "private" | "friends";
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:31](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L31)
+Defined in: [eigen-server/packages/rules/src/contract.ts:31](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L31)
 
 Game visibility.
 
@@ -1108,7 +1108,7 @@ Game visibility.
 type GamePayloadSchema<Payload> = StandardSchemaV1<Payload, Payload> & StandardJSONSchemaV1<Payload, Payload>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/standard-json-schema.ts:8](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/standard-json-schema.ts#L8)
+Defined in: [eigen-server/packages/rules/src/standard-json-schema.ts:8](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/standard-json-schema.ts#L8)
 
 One game payload declaration: runtime validation plus portable schema
 emission from the same transform-free object. Input and output deliberately
@@ -1128,7 +1128,7 @@ share one type: what parses is what persists and what Dart generates.
 type GameResult = "win" | "loss" | "draw" | "eliminated";
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:28](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L28)
+Defined in: [eigen-server/packages/rules/src/contract.ts:28](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L28)
 
 Per-player result of a finished game.
 
@@ -1140,7 +1140,7 @@ Per-player result of a finished game.
 type Json = string | number | boolean | null | JsonArray | JsonObject;
 ```
 
-Defined in: [eigen-server/packages/rules/src/json.ts:10](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/json.ts#L10)
+Defined in: [eigen-server/packages/rules/src/json.ts:10](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/json.ts#L10)
 
 Any JSON value. `undefined` is allowed inside objects (treated as an
 absent key, matching how schema libraries model optional fields); it never
@@ -1161,14 +1161,14 @@ type LifecycleAction =
 };
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:138](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L138)
+Defined in: [eigen-server/packages/rules/src/contract.ts:138](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L138)
 
 The engine-constructed payload of a lifecycle action, recorded verbatim in
 the action log (with `kind = 'lifecycle'`). Engine-owned and
 version-independent: every game gets these transitions for free, without
 declaring them in its schemas. `forfeit` carries the forfeiting seat (a
 voluntary resign); `autoForfeit` is the engine-driven variant (account
-purge); `timeout` carries no seat, and the affected seats are
+purge); `timeout` carries no seat — the affected seats are
 [ApplyLifecycleArgs.pending](#pending-1).
 
 ***
@@ -1179,13 +1179,13 @@ purge); `timeout` carries no seat, and the affected seats are
 type LifecycleType = "timeout" | "forfeit" | "autoForfeit";
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:25](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L25)
+Defined in: [eigen-server/packages/rules/src/contract.ts:25](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L25)
 
 The trigger of a lifecycle action, resolved by the game's `applyLifecycle`
 hook. `forfeit` is a voluntary resign; `autoForfeit` the engine-driven
 variant (account-deletion purge); `timeout` is the clock. The two forfeits
 share a shape (both target `data.playerIndex`) and most games resolve them
-identically, but the hook receives the real trigger, so a game may choose
+identically — but the hook receives the real trigger, so a game may choose
 different consequences (e.g. a draw rather than a loss when the seat was
 purged).
 
@@ -1203,7 +1203,7 @@ type OutcomeEntry = {
 };
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:68](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L68)
+Defined in: [eigen-server/packages/rules/src/contract.ts:68](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L68)
 
 One participant's result, recorded when the game ends. `placement`
 (1 = best, ties share a value) feeds OpenSkill directly; `teamIndex`
@@ -1221,7 +1221,7 @@ implicit index signature that makes it assignable to `Json`.
 placement: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:71](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L71)
+Defined in: [eigen-server/packages/rules/src/contract.ts:71](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L71)
 
 ##### playerIndex
 
@@ -1229,7 +1229,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:71](https://github.com/
 playerIndex: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:69](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L69)
+Defined in: [eigen-server/packages/rules/src/contract.ts:69](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L69)
 
 ##### result
 
@@ -1237,7 +1237,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:69](https://github.com/
 result: GameResult;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:70](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L70)
+Defined in: [eigen-server/packages/rules/src/contract.ts:70](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L70)
 
 ##### score?
 
@@ -1245,7 +1245,7 @@ Defined in: [eigen-server/packages/rules/src/contract.ts:70](https://github.com/
 optional score?: number | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:74](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L74)
+Defined in: [eigen-server/packages/rules/src/contract.ts:74](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L74)
 
 Optional raw game score, for display or score-based variants.
 
@@ -1255,7 +1255,7 @@ Optional raw game score, for display or score-based variants.
 teamIndex: number;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:72](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L72)
+Defined in: [eigen-server/packages/rules/src/contract.ts:72](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L72)
 
 ***
 
@@ -1275,13 +1275,13 @@ type TransitionCause<TAction> =
   | null;
 ```
 
-Defined in: [eigen-server/packages/rules/src/contract.ts:168](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/contract.ts#L168)
+Defined in: [eigen-server/packages/rules/src/contract.ts:168](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/contract.ts#L168)
 
-The action that produced the state being projected: a `game` action
+The action that produced the state being projected — a `game` action
 (`applyAction`), a `lifecycle` action (`applyLifecycle`), or `null` for
 the initial frame (`initialState`), which no action produced.
 
-This is how a game tells each seat *what happened*, since pure frame diffing
+This is how a game tells each seat *what happened* — pure frame diffing
 can't recover causality (identical footprints, hidden-info moves, composite
 resolutions). Embed whatever animation/narration cues a seat is permitted
 to see into that seat's slice `data` (e.g. a `lastMove` field); visibility
@@ -1304,10 +1304,10 @@ them as animation only when it has the frame's predecessor, and as static
 function passthroughObservation<TState, TAction, TConfig>(args): ObservationSlice<TState>;
 ```
 
-Defined in: [eigen-server/packages/rules/src/helpers.ts:24](https://github.com/eigeninteractive/eigen-server/blob/4efa591cb75546194a4a6bc8ed984bf78c9cf782/packages/rules/src/helpers.ts#L24)
+Defined in: [eigen-server/packages/rules/src/helpers.ts:24](https://github.com/eigeninteractive/eigen-server/blob/6f13e93b9295a1b4d9fab28898a3d76a1bb7f5df/packages/rules/src/helpers.ts#L24)
 
 Default `computeObservation` for perfect-information games: every seat sees
-the full state and the true pending set. Ignores `args.cause`, since a
+the full state and the true pending set. Ignores `args.cause` — a
 perfect-info client can usually infer the transition from consecutive
 frames; embed explicit cues in the slice instead when it can't. Note that
 under the same-view rule a passthrough game is automatically strict about
