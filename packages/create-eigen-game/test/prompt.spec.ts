@@ -1,9 +1,9 @@
 import { PassThrough, Writable } from "node:stream";
 import { describe, expect, it } from "vitest";
-import { askForOrg, DEFAULT_ORG, ORG, repeatsGameName, withoutGameName } from "../src/prompt.js";
+import { askForGit, askForOrg, askForPackageManager, askForWorkflows, askToScaffoldWithoutFirebase, DEFAULT_ORG, type Io, ORG, repeatsGameName, withoutGameName } from "../src/prompt.js";
 
-/** Drives the prompt with `keystrokes`, and returns its answer and everything it drew. */
-async function ask(game: string, keystrokes: string[], registering = false) {
+/** Drives a prompt with `keystrokes`, and returns its answer and everything it drew. */
+async function drive<T>(question: (io: Io) => Promise<T>, keystrokes: string[]) {
   const input = new PassThrough();
   let drawn = "";
   const output = new Writable({
@@ -13,7 +13,7 @@ async function ask(game: string, keystrokes: string[], registering = false) {
     },
   });
 
-  const answered = askForOrg(game, registering, { input, output });
+  const answered = question({ input, output });
   // After the prompt is listening, and one at a time so each is a keypress
   // rather than a paste.
   for (const key of keystrokes) {
@@ -23,6 +23,8 @@ async function ask(game: string, keystrokes: string[], registering = false) {
 
   return { answer: await answered, drawn };
 }
+
+const ask = (game: string, keystrokes: string[], registering = false) => drive((io) => askForOrg(game, registering, io), keystrokes);
 
 describe("the organization answer", () => {
   it("accepts reverse domain notation and nothing else", () => {
@@ -88,5 +90,54 @@ describe("the organization answer", () => {
     // so there is nothing to offer, and the answer stands as given.
     expect(repeatsGameName("com.chess", "chess")).toBe(true);
     expect(withoutGameName("com.chess")).toBeUndefined();
+  });
+});
+
+describe("the yes/no questions", () => {
+  // Enter takes whatever is pre-selected, which is how each default is
+  // asserted: nothing here types a "y" or an "n".
+  const accept = ["\r"];
+
+  it("defaults to not scaffolding without Firebase", async () => {
+    const { answer, drawn } = await drive(askToScaffoldWithoutFirebase, accept);
+
+    // The tools are two commands away, and the alternative is an app that
+    // throws at launch — so the default is to stop, and the reason is on
+    // screen next to it rather than in the message that follows.
+    expect(answer).toBe(false);
+    expect(drawn).toContain("firebase:configure");
+  });
+
+  it("defaults to committing the scaffold", async () => {
+    const { answer, drawn } = await drive(askForGit, accept);
+
+    expect(answer).toBe(true);
+    expect(drawn).toContain("first game change");
+  });
+
+  it("defaults to no workflows, and says why", async () => {
+    const { answer, drawn } = await drive(askForWorkflows, accept);
+
+    // Not an arbitrary default: `release.yml` needs an upload keystore and a
+    // Play service account, so taking it early means a red `main` from the
+    // first push.
+    expect(answer).toBe(false);
+    expect(drawn).toContain("keystore");
+    expect(drawn).toContain("add workflows");
+  });
+
+  it("returns nothing at all when cancelled", async () => {
+    // ^C during any question has to mean the run stops having written
+    // nothing, which is only true if every one of them reports it.
+    const questions: ((io: Io) => Promise<unknown>)[] = [askToScaffoldWithoutFirebase, askForGit, askForWorkflows, askForPackageManager];
+    for (const question of questions) {
+      expect((await drive(question, [""])).answer).toBeNull();
+    }
+  });
+
+  it("offers pnpm first, since that is what the generated scripts assume", async () => {
+    const { answer } = await drive(askForPackageManager, accept);
+
+    expect(answer).toBe("pnpm");
   });
 });

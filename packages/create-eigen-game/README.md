@@ -9,12 +9,32 @@ pnpm create eigen-game my-game
 npm create eigen-game@latest my-game
 ```
 
-The command detects npm or pnpm from the invoking package manager. Pass
-`--package-manager npm|pnpm` to override it and `--org games.example` to set
-the Flutter organization. The destination basename is the one required
-lowercase kebab-case slug. The CLI derives the display name (`My Game`), Dart
-package name (`my_game`), and type prefix (`MyGame`) from `my-game`; there is no
-separate name or prefix input.
+The destination basename is the one required lowercase kebab-case slug. The CLI
+derives the display name (`My Game`), Dart package name (`my_game`), and type
+prefix (`MyGame`) from `my-game`; there is no separate name or prefix input.
+
+Everything else is asked. Each question has exactly one flag that answers it,
+so passing the flag skips the question:
+
+| Question | Flag |
+| --- | --- |
+| The Android/iOS organization, which prefixes the permanent `applicationId` | `--org <reverse-domain>` |
+| Which Firebase project to configure against, or whether to skip it | `--firebase-project <id>`, `--no-firebase` |
+| Initialise a repository and commit the scaffold | `--git`, `--no-git` |
+| Emit the GitHub Actions workflows | `--workflows`, `--no-workflows` |
+| Which package manager the generated scripts use | `--package-manager npm\|pnpm` |
+
+The package manager is only asked when nothing else can say — `npm create` and
+`pnpm create` both announce themselves. The Firebase question only appears when
+the `firebase` and `flutterfire` CLIs are not both installed and signed in, and
+its default is to stop rather than scaffold, since a scaffolded app throws
+`Firebase is not configured` at launch until a project is connected.
+
+With no terminal to ask on — CI, a pipe, an agent session — an unanswered
+question is an error rather than a default chosen where nobody can see it, and
+the message prints the whole command to re-run with each default filled in.
+`--org` is why: `com.example.my_game` is permanent once Google Play has taken
+an upload.
 
 The generated project has two application-owned halves:
 

@@ -54,7 +54,7 @@ describe("summarise", () => {
   });
 
   it("mentions the missing workflows only when they were not emitted", () => {
-    expect(summarise(result("committed"), "pnpm", false).footnotes.join("\n")).toContain("create-eigen-game add ci");
-    expect(summarise(result("committed"), "pnpm", true).footnotes.join("\n")).not.toContain("add ci");
+    expect(summarise(result("committed"), "pnpm", false).footnotes.join("\n")).toContain("create-eigen-game add workflows");
+    expect(summarise(result("committed"), "pnpm", true).footnotes.join("\n")).not.toContain("add workflows");
   });
 });

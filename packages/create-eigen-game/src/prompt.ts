@@ -1,9 +1,10 @@
 /**
- * The organization prompt, which is the one question this CLI asks and the one
- * answer that is expensive to get wrong.
+ * Every question this CLI asks, in one module so the wording lives together
+ * and can be asserted — `cli.ts` is the bin entry and runs `main` on import,
+ * which makes anything defined there untestable.
  *
- * Its own module because it drops to `@clack/core` rather than using
- * `@clack/prompts`' `text`. The reason is the suffix: `flutter create --org X
+ * The organization prompt is the reason this drops to `@clack/core` rather
+ * than using `@clack/prompts`' `text`. The suffix: `flutter create --org X
  * --project-name Y` derives `X.Y`, so the organization is a *prefix*, and the
  * reliable way to say so is to render the rest of the identifier, dimmed,
  * while it is being typed. `text` has no hook for that; a custom `TextPrompt`
@@ -16,8 +17,19 @@
  */
 import type { Readable, Writable } from "node:stream";
 import { TextPrompt } from "@clack/core";
-import { confirm, isCancel, S_BAR, S_BAR_END, symbol } from "@clack/prompts";
+import { confirm, isCancel, S_BAR, S_BAR_END, select, symbol } from "@clack/prompts";
 import color from "picocolors";
+import type { PackageManager } from "./index.js";
+
+/**
+ * Where a question reads its answer from. Parameters for the same reason every
+ * clack prompt takes them: a prompt is otherwise the one part of a CLI that
+ * cannot be driven by a test.
+ */
+export interface Io {
+  input?: Readable;
+  output?: Writable;
+}
 
 /**
  * Two or more dot-separated Java identifiers. `flutter create --org` accepts
@@ -55,7 +67,7 @@ export function withoutGameName(org: string): string | undefined {
  * same reason every clack prompt takes them: a prompt is otherwise the one
  * part of a CLI that cannot be driven by a test.
  */
-export async function askForOrg(game: string, registering: boolean, io: { input?: Readable; output?: Writable } = {}): Promise<string | undefined | null> {
+export async function askForOrg(game: string, registering: boolean, io: Io = {}): Promise<string | undefined | null> {
   const input = io.input ?? process.stdin;
   const output = io.output ?? process.stdout;
   const suffix = color.dim(`.${game}`);
@@ -101,4 +113,70 @@ export async function askForOrg(game: string, registering: boolean, io: { input?
   }
 
   return org;
+}
+
+/**
+ * A yes/no question, with its reason on the line above.
+ *
+ * The three below share this so cancellation is handled in one place: ^C
+ * during any question has to mean the run stops having written nothing, and
+ * that is only true if every call site checks. `null` is that answer.
+ *
+ * `hint` is written rather than passed to `confirm`, which has nowhere to put
+ * it. It is the same dimmed line the organization prompt uses, and carries the
+ * thing that makes the default the default — a question whose answer is
+ * pre-chosen owes the reader why.
+ */
+async function ask(message: string, initialValue: boolean, hint: string, io: Io): Promise<boolean | null> {
+  const input = io.input ?? process.stdin;
+  const output = io.output ?? process.stdout;
+  output.write(`${bar}\n${bar}  ${color.dim(hint)}\n`);
+  const answer = await confirm({ message, initialValue, input, output });
+  return isCancel(answer) ? null : answer;
+}
+
+/**
+ * Asked only when {@link firebaseReadiness} found something missing, and
+ * defaulted to "no" because the honest answer usually is: the tools are two
+ * commands away, and the alternative is an app that throws at launch until
+ * they are installed anyway.
+ */
+export function askToScaffoldWithoutFirebase(io: Io = {}): Promise<boolean | null> {
+  return ask("Scaffold anyway, and connect Firebase yourself later?", false, "Everything except the app's sign-in still works, and `firebase:configure` finishes the job.", io);
+}
+
+/** Defaulted to yes: the scaffold is a few hundred generated files, and a commit is what makes the first `git diff` the first game change rather than all of them. */
+export function askForGit(io: Io = {}): Promise<boolean | null> {
+  return ask("Initialise a git repository and commit the scaffold?", true, "Commits once, so your first diff is your first game change.", io);
+}
+
+/**
+ * Defaulted to no, and the hint says why rather than leaving it as an
+ * arbitrary-looking choice: `release.yml` needs an upload keystore and a Play
+ * service account, so a project that takes the workflows before it has either
+ * gets a red `main` from its first push.
+ */
+export function askForWorkflows(io: Io = {}): Promise<boolean | null> {
+  return ask("Add the GitHub Actions workflows?", false, "Release needs a signing keystore and a Play service account, so this fails until you have both. `add workflows` writes them later.", io);
+}
+
+/**
+ * The package manager, asked only when nothing else could say.
+ *
+ * `npm create` and `pnpm create` both set `npm_config_user_agent`, so this is
+ * reached by the paths that do not: a global install, or running the binary
+ * directly. Rare, but it decides what every generated script says, and the old
+ * silent fallback to pnpm was a guess printed into a project's package.json.
+ */
+export async function askForPackageManager(io: Io = {}): Promise<PackageManager | null> {
+  const answer = await select({
+    message: "Which package manager should the generated scripts use?",
+    options: [
+      { value: "pnpm", label: "pnpm" },
+      { value: "npm", label: "npm" },
+    ],
+    input: io.input ?? process.stdin,
+    output: io.output ?? process.stdout,
+  });
+  return isCancel(answer) ? null : (answer as PackageManager);
 }
