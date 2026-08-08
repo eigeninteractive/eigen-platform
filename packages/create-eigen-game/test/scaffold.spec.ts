@@ -150,7 +150,7 @@ describe("scaffoldGame", () => {
   it("uses ecosystem CLIs to bootstrap both halves", () => {
     const parent = temporaryParent();
     const root = resolve(parent, "chess");
-    const run = vi.fn((command: string, args: string[]) => {
+    const run = vi.fn((command: string, args: string[], _cwd: string) => {
       if (command === "flutter" && args[0] === "create") {
         const app = args.at(-1);
         if (app) {
@@ -179,9 +179,17 @@ describe("scaffoldGame", () => {
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_native_splash:create"], expect.stringMatching(/\/app$/));
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.stringMatching(/\/server$/));
+    // Regenerated against the wrangler the install above resolved, not the one
+    // the committed template was generated with — otherwise `wrangler dev`
+    // opens by reporting types that are only stale in their workerd stamp.
+    expect(run).toHaveBeenCalledWith("pnpm", ["run", "cf-typegen"], expect.stringMatching(/\/server$/));
     // The root install is Biome's, and is what makes `pnpm lint` work from the
     // directory an implementor is standing in.
     expect(run).toHaveBeenCalledWith("pnpm", ["install"], expect.not.stringMatching(/\/(server|app)$/));
+    // The order is the point, not just the presence: typegen reads the
+    // wrangler in `server/node_modules`, so it is meaningless before install.
+    const serverCalls = run.mock.calls.filter(([, , cwd]) => /\/server$/.test(cwd));
+    expect(serverCalls.findIndex(([, args]) => args[1] === "cf-typegen")).toBeGreaterThan(serverCalls.findIndex(([, args]) => args[0] === "install"));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
     expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
     const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
