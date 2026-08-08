@@ -630,10 +630,14 @@ function signedOut(probe: Probe): boolean {
  * Why this destination cannot be scaffolded into, said as a whole message, or
  * `undefined` when there is nothing in the way.
  *
- * A directory that exists and is *empty* is not in the way. People make one out
- * of habit, and cloning a repository that has not had its first commit yet
- * leaves exactly that — so it is removed and rewritten rather than refused over
- * nothing. Anything with contents in it is refused.
+ * A directory that exists and is *empty* is not in the way — people make one
+ * out of habit — so it is removed and rewritten rather than refused over
+ * nothing. Anything with contents in it is refused, and a cloned repository is
+ * not an exception: `.git` is in the way like any other entry, and the message
+ * names it. Publishing into one would mean parking `.git`, renaming staging
+ * over the top and putting it back, with a failure in the middle able to
+ * orphan a remote — which is a lot of care to spend on a flow that has a
+ * one-line alternative.
  *
  * Refused, and deliberately not offered as a "remove it and continue?"
  * question, which is where several scaffolders in this family go. This one
