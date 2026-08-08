@@ -6,7 +6,7 @@
  *     pnpm check-docs-version
  *
  * The docs are versioned on the engine's release line, and the engine stamps
- * that line into the spec it emits — so `info.version` in the committed
+ * that line into the spec it emits, so `info.version` in the committed
  * `api/openapi.json` is the authority, and `versions.current.label` in
  * `docusaurus.config.ts` is the claim being checked against it.
  *
@@ -18,7 +18,7 @@
  * selector quietly lying.
  *
  * Failing here is the intended behaviour, not an obstacle: crossing a line is a
- * decision — freeze the old one or relabel in place — and the sync pull request
+ * decision, freeze the old one or relabel in place, and the sync pull request
  * stalling on a red check is what puts that decision in front of a human.
  * CONTRIBUTING.md has the procedure for both answers.
  */
@@ -40,8 +40,8 @@ if (!parsed) {
   process.exit(1);
 }
 
-// Pre-1.0 the breaking axis is the MINOR — `^0.2.0` resolves to `>=0.2.0
-// <0.3.0` — so a 0.x line is "0.<minor>.x". From 1.0.0 on it is the major.
+// Pre-1.0 the breaking axis is the MINOR (`^0.2.0` resolves to `>=0.2.0
+// <0.3.0`) so a 0.x line is "0.<minor>.x". From 1.0.0 on it is the major.
 const [, major, minor] = parsed;
 const line = major === "0" ? `0.${minor}.x` : `${major}.x`;
 

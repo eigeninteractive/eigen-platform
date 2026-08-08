@@ -4,7 +4,7 @@
 //
 // Geometry is the one documented in static/brand/USAGE.md. The crop safe-zone
 // scales are *derived* from the mark's circumscribed radius rather than
-// guessed — that is the part which is easy to get wrong by hand.
+// guessed, since that is the part which is easy to get wrong by hand.
 //
 // The wordmark is outlined with Space Grotesk Medium (SIL OFL, vendored under
 // scripts/assets/ with its licence), so no shipped asset needs a webfont.
@@ -16,7 +16,7 @@ import opentype from "opentype.js";
 import sharp from "sharp";
 
 // The accent is Material 3's `primary` for a `Colors.teal` seed, one value per
-// brightness — literally what `ColorScheme.fromSeed` hands the Flutter shell,
+// brightness: literally what `ColorScheme.fromSeed` hands the Flutter shell,
 // and what the engine's public pages set `--primary` to.
 //
 // It is defined there and copied here, rather than the other way round, because
@@ -26,7 +26,7 @@ import sharp from "sharp";
 // logo can match a generated palette, a generated palette cannot be talked into
 // matching a logo.
 //
-// Ink and paper are the mark's own and carry no such obligation — they are the
+// Ink and paper are the mark's own and carry no such obligation; they are the
 // two grounds it is drawn on, which is also why the game scaffolder uses them
 // for launcher icons and splash screens.
 const INK = "#1B1E24";
@@ -74,7 +74,7 @@ async function plate(svg, size, background, scale = 1) {
     .toBuffer();
 }
 
-/** Mark centred on transparency — for Android adaptive-icon foregrounds. */
+/** Mark centred on transparency, for Android adaptive-icon foregrounds. */
 async function foreground(svg, size, scale) {
   const inner = Math.round(size * scale);
   const art = await render(svg, inner).toBuffer();
@@ -103,7 +103,7 @@ write("eigen-mark.svg", Buffer.from(`${markLight}\n`));
 write("eigen-mark-dark.svg", Buffer.from(`${markDark}\n`));
 write("eigen-mark-mono.svg", Buffer.from(`${mark("currentColor", "currentColor")}\n`));
 
-// A browser cannot choose between two icon files by colour scheme — <link> has
+// A browser cannot choose between two icon files by colour scheme; <link> has
 // no prefers-color-scheme selector. One file that restyles itself is the only
 // mechanism that actually works, so this supersedes favicon.svg +
 // favicon-dark.svg as the single <link rel="icon" type="image/svg+xml">.
@@ -149,7 +149,7 @@ function encodeIco(pngs) {
   let offset = directory.length;
   pngs.forEach(({ size, data }, i) => {
     const at = HEADER + ENTRY * i;
-    // 0 means 256 in a single byte — the format's own escape, not a bug.
+    // 0 means 256 in a single byte: the format's own escape, not a bug.
     directory.writeUInt8(size >= 256 ? 0 : size, at);
     directory.writeUInt8(size >= 256 ? 0 : size, at + 1);
     directory.writeUInt8(0, at + 2); // palette size; 0 for truecolour
@@ -194,11 +194,11 @@ write("apple-touch-icon-180.png", await plate(markDark, 180, inkBg));
 // 53.76% of the box width, so a naive "inset to the safe-zone percentage"
 // pushes that tip outside the crop. Scales are derived, not eyeballed.
 //
-// Maskable PWA icons guarantee only the centre 80% (radius 40%) — max 0.744.
+// Maskable PWA icons guarantee only the centre 80% (radius 40%), so max 0.744.
 write("icon-maskable-512.png", await plate(markDark, 512, inkBg, 0.7));
 
 // Android adaptive icons crop harder: 66dp of a 108dp canvas (radius 30.5%)
-// is all that is guaranteed — max 0.567. The foreground layer is transparent
+// is all that is guaranteed, so max 0.567. The foreground layer is transparent
 // so the configured background colour shows through.
 write("app-icon-foreground-1024.png", await foreground(markDark, 1024, 0.55));
 
@@ -298,7 +298,7 @@ const taglineWidth = font.getAdvanceWidth(tagline, taglineSize, {
   letterSpacing: -0.005,
 });
 
-// Centre the optical block — lockup, gap, tagline caps — rather than centring
+// Centre the optical block (lockup, gap, tagline caps) rather than centring
 // each line independently, which leaves the composition riding high.
 const OG_GAP = 44;
 const taglineCap = capHeight * taglineSize;

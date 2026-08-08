@@ -11,7 +11,7 @@
  * It does three things:
  *
  *   1. copies the engine's emitted `openapi.json` in, both as the generator's
- *      input and as a static file — `/openapi.json` is the machine-readable
+ *      input and as a static file. `/openapi.json` is the machine-readable
  *      HTTP contract, which is what an agent should read instead of a prose
  *      rendering of it;
  *   2. runs TypeDoc over the package barrels (see `typedoc.config.mjs`);

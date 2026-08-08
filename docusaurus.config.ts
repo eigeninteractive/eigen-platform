@@ -15,8 +15,8 @@ const config: Config = {
   favicon: "brand/favicon.ico",
 
   headTags: [
-    // A browser cannot choose between a light and a dark icon *file* — <link>
-    // has no prefers-color-scheme selector — so this one SVG restyles itself.
+    // A browser cannot choose between a light and a dark icon *file*: <link>
+    // has no prefers-color-scheme selector, so this one SVG restyles itself.
     // Browsers that understand it prefer it over the .ico above.
     {
       tagName: "link",
@@ -34,7 +34,7 @@ const config: Config = {
       },
     },
     // static/site.webmanifest was previously never linked from any page, so
-    // the manifest — and the installable-PWA behaviour it describes — was dead
+    // the manifest, and the installable-PWA behaviour it describes, was dead
     // weight. This is what activates it.
     {
       tagName: "link",
@@ -45,7 +45,7 @@ const config: Config = {
     //
     // Declared here rather than in `themeConfig.metadata` on purpose: two
     // tags share the name `theme-color` and differ only by `media`, and
-    // react-helmet de-duplicates meta by name — it would keep just one of
+    // react-helmet de-duplicates meta by name and would keep just one of
     // them. `headTags` is emitted verbatim, so both survive.
     {
       tagName: "meta",
@@ -122,8 +122,8 @@ const config: Config = {
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   //
-  // `v4: true` turns on every v4 flag, and one of them —
-  // `mdx1CompatDisabledByDefault` — switches off the whole `markdown.mdx1Compat`
+  // `v4: true` turns on every v4 flag, and one of them,
+  // `mdx1CompatDisabledByDefault`, switches off the whole `markdown.mdx1Compat`
   // block. Two consequences bite when authoring, and neither is a build error:
   //
   //   · Admonition titles must be bracketed: `:::tip[Title]`, not `:::tip Title`.
@@ -133,13 +133,13 @@ const config: Config = {
   //   · HTML comments are gone. Use `{/* ... */}`, which is what the generated
   //     region markers in docs/reference/compatibility.md are written with.
   //
-  // (`{#heading-id}` still needs escaping as `\{#heading-id}` — that one does
+  // (`{#heading-id}` still needs escaping as `\{#heading-id}`; that one does
   // fail the build, so it catches itself.)
   future: {
     v4: true, // Improve compatibility with the upcoming Docusaurus v4
   },
 
-  // The production URL — drives canonical tags and the generated sitemap, so it
+  // The production URL. It drives canonical tags and the generated sitemap, so it
   // must be the real host.
   url: "https://eigeninteractive.com",
   baseUrl: "/",
@@ -165,14 +165,14 @@ const config: Config = {
       {
         docs: {
           sidebarPath: "./sidebars.ts",
-          // Every doc page is authored here — this site is the source of
+          // Every doc page is authored here, since this site is the source of
           // truth for the documentation, so "edit this page" points at it.
           editUrl: "https://github.com/eigeninteractive/eigen-web/tree/main/",
           // The OpenAPI theme swizzles the doc item to render request/response
           // panels. Non-API pages render exactly as before.
           docItemComponent: "@theme/ApiItem",
 
-          // Versioned on the engine's RELEASE LINE — the constraint a reader
+          // Versioned on the engine's RELEASE LINE: the constraint a reader
           // writes to install what these pages describe. Pre-1.0 that line is
           // the minor: `^0.2.0` resolves to `>=0.2.0 <0.3.0`, so 0.2.x is one
           // line and 0.3.0 starts the next. Once the engine reaches 1.0.0 this
@@ -180,7 +180,7 @@ const config: Config = {
           //
           // The release line rather than the wire contract, and the difference
           // is not academic: 0.2.0 moved the engine's line without touching
-          // openapi.json at all — it was a TypeScript barrel cleanup — and
+          // openapi.json at all (it was a TypeScript barrel cleanup) and
           // these pages document the TypeScript half as much as the Dart half.
           // `eigen_flutter` is NOT an axis here; it moves on its own clock and
           // declares its own pairing. See /docs/reference/compatibility.
@@ -188,8 +188,8 @@ const config: Config = {
           // `pnpm check-docs-version` asserts this label against `info.version`
           // in the committed api/openapi.json, which is the engine's own stamp.
           // So the sync pull request that lands a new engine line FAILS rather
-          // than silently relabelling the site. Crossing a line is a decision —
-          // cut the old one or relabel in place — and that check is what forces
+          // than silently relabelling the site. Crossing a line is a decision,
+          // cut the old one or relabel in place, and that check is what forces
           // someone to make it.
           //
           // No version is CUT yet, and that is deliberate twice over.
@@ -209,13 +209,13 @@ const config: Config = {
           //
           // and 0.2.x freezes into `versioned_docs/version-0.2.x` at
           // /docs/0.2.x/* while `docs/` becomes the new line at /docs/*. The
-          // generated reference freezes with it, which is exactly right —
+          // generated reference freezes with it, which is exactly right:
           // `sync-api` keeps writing to `docs/`, so no part of that pipeline
           // has to learn about versions. CONTRIBUTING.md has the procedure.
           lastVersion: "current",
           versions: {
             current: {
-              // Asserted against api/openapi.json — see check-docs-version.
+              // Asserted against api/openapi.json; see check-docs-version.
               label: "0.2.x",
             },
           },
@@ -252,7 +252,7 @@ const config: Config = {
     "docusaurus-plugin-sass",
 
     // Turns the engine's emitted spec into MDX. This does not run during
-    // `build` — it runs on demand via `pnpm sync-api`, and its output is
+    // `build`; it runs on demand via `pnpm sync-api`, and its output is
     // committed, so the site builds without the sibling checkout.
     [
       "docusaurus-plugin-openapi-docs",
@@ -278,7 +278,7 @@ const config: Config = {
     //
     // The generated HTTP reference is deliberately excluded. Those pages are
     // <ApiTabs>/<SchemaItem> component trees, so their markdown source is
-    // JSX scaffolding rather than prose — and an agent is better served by
+    // JSX scaffolding rather than prose, and an agent is better served by
     // the real spec at /openapi.json, which llms.txt links to instead.
     [
       "docusaurus-plugin-llms",
@@ -329,15 +329,15 @@ const config: Config = {
     // below, so they are declared here.
     //
     // The dimensions are safe to state globally only because no page
-    // overrides `image` in its front matter — every page shares the one
+    // overrides `image` in its front matter, so every page shares the one
     // 1200x630 card. A page-level override would need its own width/height
     // beside it, since react-helmet would replace og:image but leave these.
     metadata: [
       // The site-wide fallback: what any page without its own front-matter
       // `description` gets, and what a link to the bare domain unfurls as. It
-      // carries the terms someone would actually search — open source,
+      // carries the terms someone would actually search: open source,
       // turn-based multiplayer, Cloudflare Workers, Durable Objects, Flutter,
-      // Android — because "engine for turn-based multiplayer games" alone
+      // Android, because "engine for turn-based multiplayer games" alone
       // competes with every board-game app ever listed.
       {
         name: "description",
@@ -379,7 +379,7 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
-        // Renders as "0.2.x" — the label from `versions.current` above. With
+        // Renders as "0.2.x", the label from `versions.current` above. With
         // one version live the dropdown exists to answer "which engine is this
         // describing, and what Flutter release pairs with it", which is why the
         // compatibility table is pinned into it rather than left in the
@@ -413,7 +413,7 @@ const config: Config = {
           title: "Reference",
           items: [
             // This slug is the kebab-cased `info.title` of the engine's
-            // openapi.json — `docusaurus-plugin-openapi-docs` derives the info
+            // openapi.json. `docusaurus-plugin-openapi-docs` derives the info
             // page's id from it and offers no way to pin it. So renaming the
             // spec's title moves this page, and every hand-written link to it
             // breaks on the next `sync-api`. Grep for the old slug when that
@@ -422,7 +422,7 @@ const config: Config = {
             { label: "TypeScript API", to: "/docs/reference/typescript" },
             { label: "Dart API", href: "https://pub.dev/documentation/eigen_flutter/latest/" },
             // `pathname://` opts out of the SPA router *and* the broken-link
-            // check — these are static/post-build artifacts, not routes.
+            // check; these are static/post-build artifacts, not routes.
             { label: "OpenAPI spec", to: "pathname:///openapi.json" },
             { label: "llms.txt", to: "pathname:///llms.txt" },
           ],

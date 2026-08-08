@@ -12,7 +12,7 @@
     },
     {
       "name": "Me",
-      "description": "The signed-in player — profile, username, ratings, rating history and registered devices."
+      "description": "The signed-in player: profile, username, ratings, rating history and registered devices."
     },
     {
       "name": "Players",
@@ -1306,7 +1306,7 @@
         ],
         "security": [],
         "summary": "Liveness probe",
-        "description": "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.",
+        "description": "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.",
         "responses": {
           "200": {
             "description": "The worker is deployed and serving",
@@ -1521,7 +1521,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The game summary — never state",
+            "description": "The game summary, never state",
             "content": {
               "application/json": {
                 "schema": {
@@ -1783,7 +1783,7 @@
             }
           },
           "502": {
-            "description": "Deletion failed — the account is intact; retry",
+            "description": "Deletion failed; the account is intact, retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2168,7 +2168,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2258,7 +2258,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2309,7 +2309,7 @@
         },
         "responses": {
           "200": {
-            "description": "Seated — the game's id and the post-join roster",
+            "description": "Seated: the game's id and the post-join roster",
             "content": {
               "application/json": {
                 "schema": {
@@ -2359,7 +2359,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2399,7 +2399,7 @@
         },
         "responses": {
           "200": {
-            "description": "Seated — the game's id and the post-join roster",
+            "description": "Seated: the game's id and the post-join roster",
             "content": {
               "application/json": {
                 "schema": {
@@ -2449,7 +2449,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2500,7 +2500,7 @@
         },
         "responses": {
           "200": {
-            "description": "Left — the post-leave roster",
+            "description": "Left: the post-leave roster",
             "content": {
               "application/json": {
                 "schema": {
@@ -2550,7 +2550,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2651,7 +2651,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2702,7 +2702,7 @@
         },
         "responses": {
           "200": {
-            "description": "Bot seated — the new roster",
+            "description": "Bot seated: the new roster",
             "content": {
               "application/json": {
                 "schema": {
@@ -2752,7 +2752,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2803,7 +2803,7 @@
         },
         "responses": {
           "200": {
-            "description": "Started — version 0 committed",
+            "description": "Started: version 0 committed",
             "content": {
               "application/json": {
                 "schema": {
@@ -2853,7 +2853,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2904,7 +2904,7 @@
         },
         "responses": {
           "200": {
-            "description": "Committed — the acting seat's frame",
+            "description": "Committed: the acting seat's frame",
             "content": {
               "application/json": {
                 "schema": {
@@ -2954,7 +2954,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3055,7 +3055,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3171,7 +3171,7 @@
             }
           },
           "409": {
-            "description": "State conflict — resync and retry",
+            "description": "State conflict; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3321,7 +3321,7 @@
         },
         "responses": {
           "204": {
-            "description": "Registered — the caller's pushes will reach this install"
+            "description": "Registered: the caller's pushes will reach this install"
           },
           "400": {
             "description": "Invalid request",

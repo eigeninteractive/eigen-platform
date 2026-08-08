@@ -6,9 +6,9 @@
  *     pnpm sync-compatibility --expect eigen_flutter@0.3.0
  *
  * The table used to be hand-maintained, and it encoded a lockstep the page's
- * own prose denies. Three of its four columns are one number — the engine
+ * own prose denies. Three of its four columns are one number: the engine
  * stamps its release version into the spec, and `eigen_api` is published from
- * that same release — so the only column carrying independent information is
+ * that same release, so the only column carrying independent information is
  * the Flutter shell, and the authority for that is pub.dev.
  *
  * A caret cannot express it either. `eigen_flutter` records which engines it
@@ -38,8 +38,8 @@
  * Skipped. pub.dev has no delete, so retraction is how a bad version is
  * withdrawn: it stays downloadable and anything already pinning it in a
  * `pubspec.lock` keeps resolving, but the solver will not newly select it.
- * That is exactly the question this table answers — "if I resolve today, what
- * do I get" — so a retracted shell is not a pairing to advertise.
+ * That is exactly the question this table answers, "if I resolve today, what
+ * do I get", so a retracted shell is not a pairing to advertise.
  *
  * Retraction is only possible within seven days of publishing, so it can only
  * ever affect the newest rows; older ones are settled for good.
@@ -67,7 +67,7 @@ const specPath = join(siteDir, "api", "openapi.json");
 const pagePath = join(siteDir, "docs", "reference", "compatibility.md");
 
 // MDX comments, not HTML ones. Docusaurus v3 defaults `markdown.format` to
-// `mdx` for `.md` as well as `.mdx`, and MDX has no HTML comment syntax — a
+// `mdx` for `.md` as well as `.mdx`, and MDX has no HTML comment syntax, so a
 // `<!-- -->` here fails the build with "Unexpected character `!` before name".
 const BEGIN = "{/* generated:compatibility-table, rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}";
 const END = "{/* /generated:compatibility-table */}";
@@ -79,7 +79,7 @@ const USER_AGENT = "eigen-web-sync-compatibility (+https://github.com/eigeninter
 /**
  * The compatibility line a caret protects: the minor while pre-1.0, the major
  * after. `^0.2.0` resolves to `>=0.2.0 <0.3.0`, so pre-1.0 the MINOR is the
- * breaking axis — the same rule `check-docs-version` and eigen-server's
+ * breaking axis: the same rule `check-docs-version` and eigen-server's
  * scaffold gate apply, and the one thing every version number here agrees on.
  */
 const lineOf = (version) => {
@@ -109,8 +109,8 @@ const fetchPackage = async (name) => {
   const url = `https://pub.dev/api/packages/${name}`;
   const response = await fetch(url, { headers: { accept: "application/json", "user-agent": USER_AGENT } });
 
-  // A package that has never been published is a legitimate state — a brand new
-  // wire line has no `eigen_api` until the engine's tag job lands — so 404 is
+  // A package that has never been published is a legitimate state: a brand new
+  // wire line has no `eigen_api` until the engine's tag job lands, so 404 is
   // "nothing yet", not a failure. Anything else is a real problem and should
   // stop the run rather than silently produce a table missing a column.
   if (response.status === 404) return [];
@@ -123,14 +123,14 @@ const fetchPackage = async (name) => {
 /**
  * pub.dev serves a published version from its API a moment after the publish
  * call returns. This script is triggered by that publish, so without waiting it
- * would regenerate from the state just before it and write an unchanged table —
+ * would regenerate from the state just before it and write an unchanged table,
  * producing no pull request and no error, which is the worst of both.
  */
 const awaitVersion = async (name, version) => {
   for (let attempt = 1; attempt <= 10; attempt += 1) {
     const versions = await fetchPackage(name);
     if (versions.some((entry) => entry.version === version)) return versions;
-    console.log(`  ${name} ${version} is not on pub.dev yet — retrying (${attempt}/10)`);
+    console.log(`  ${name} ${version} is not on pub.dev yet, retrying (${attempt}/10)`);
     await new Promise((resolve) => setTimeout(resolve, 15_000));
   }
   throw new Error(`${name} ${version} never appeared on pub.dev. If it was retracted immediately after publishing, rerun this workflow without --expect.`);
@@ -166,7 +166,7 @@ for (const entry of shells) {
 for (const versions of shellsByLine.values()) versions.sort(compareVersions);
 
 // Every line that ever shipped a wire client, plus the one these docs describe
-// — which may have no `eigen_api` yet, in the window between the engine's npm
+// which may have no `eigen_api` yet, in the window between the engine's npm
 // publish and its pub.dev tag job.
 const lines = [...new Set([currentLine, ...wireClients.map((entry) => lineOf(entry.version)).filter(Boolean)])].sort(compareLines);
 

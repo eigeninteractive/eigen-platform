@@ -7,8 +7,8 @@ import apiSidebar from "./docs/reference/http-api/sidebar";
  * Two sidebars, matching the two navbar entries.
  *
  * `docsSidebar` is task-first: a section is a thing you are trying to do, and
- * each page inside it carries BOTH halves of that task — the TypeScript rules
- * and the Dart client — because they are one change. There is deliberately no
+ * each page inside it carries BOTH halves of that task, the TypeScript rules
+ * and the Dart client, because they are one change. There is deliberately no
  * "client" section; splitting by repo made a single task (hidden information,
  * say) live on two pages that never referenced each other.
  *
@@ -21,7 +21,7 @@ import apiSidebar from "./docs/reference/http-api/sidebar";
  *
  * Note the `key` on the two "Reference" categories. Docusaurus 3.9+ requires
  * sibling nav items to be distinguishable, and two categories sharing a label
- * are not — without the keys the sidebar silently collapses them.
+ * are not; without the keys the sidebar silently collapses them.
  */
 const sidebars: SidebarsConfig = {
   docsSidebar: [

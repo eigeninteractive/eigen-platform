@@ -1,11 +1,11 @@
 ---
 id: get-health
 title: "Liveness probe"
-description: "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected."
+description: "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected."
 sidebar_label: "Liveness probe"
 hide_title: true
 hide_table_of_contents: true
-api: eJztVcFu20YQ/ZXBXmobNKUYQQ90msKxHVtNGxuVixwMIxySI3EjaofZHcpWBQH9iHxhvqSYJeU6MXrrsbyQu5h98/bNm+HGcEsexbKbVCYzc5JLwkZqkxjBeTDZrRk27hITqOy8lbXJbu8SU1EovW31rMnMdVc0tkygc9hJTU5siUIVNHZFjkKAsqZykcI1+Rn7ZQDHMBldAboKPGEVN0p2MzvvekIJBAaEo/EYloQuALtmDVKjgNQE9+wX5MEGqKhteE1Vj8WdYNEQfP3rC1iBiinAwYFjOTgAu2x3EGcvkggzxyXBWefjmaviE5USEmAPeg1AT1Cy91RKs36kR1UKU/IrqiB3fBiEPeUpTHFGIAwlNg3cW6m5E0AQXpA7BoQCq36hpO3csacKPEpNXjk58KTpqUpNYjyFll2gYLKNORqP9fWt4jf/LkIgv7JubhJTshNyoqexbRstimU3+hQUYmNCWdMS9UvWLZnMcFTAJKb16gyxPYEgKF14EhfEa4LtVpl+7qynSr0yxN0lRqw0Gji4Z6tPYpYkNQ9G0yQotcnMqN55buewqfLqU8+spwIDPUlei7QaHINMZgpCT94kw8db9ksUk5lfPtyY7316Am8HQJic9eVIIJATwAD5SSc1e/tnVCmDNxEPXsWw1znssYf857j6KQd28IGKKZcLEujauceKwn5qtokpWC6XWD7hjK19R2uTGKssasIqMnYYb3Bu5+QOp3buUDpPz1k7oAch77CBguWHAJe/nZxC2B0AXkUTEdADlgJaEwoCBVfrBArunFovBuRYKmgOFS/RuhR6rSFfvUheqS4/vnydH8fQlvxhwQILWqvFcs259+bq5uN0cvF+8v7i4/T89PfzG00gk2o/T0E9SW5uHUVuAe5xQSE2Q0QM2m395cG6uMXR/5XVHrPs0ugp62YcxRtcFPWZOCGv7FcE532Sk+uJScyKfOh1GqdH6ctn6ikrbQnyh9gXWDCixOanR6gUThurVtAhQgH28hG2dtQHjA7yfRi8DvjcRceD/H2Vom73VNTMix1OwTIaxN9XPVXOw2+mZfROy0GWGNtzcMevuxnaei6emWPzT5P/P4X/4yk8NK/Qg4zaBq3TAnW+UdX74XVr6sf/Y81BdGezUWf84ZvtVrc/d+SHf+YKvdU76mqb7MZAdrsxC1prn5cltToZV9h0/dj4bmhv755M0YvzG7Pd/g0fKrHx
+api: eJztVU1v20YQ/SuDvdQWKMoxgh7oNIFjO7b6ERuVihwMIxySY3EjaofZHcpWBf33YpaU68ToLcfyQu5idubtmzePW8MteRTLblqZzCxIrggbqU1iBBfBZLdm2LhLTKCy81Y2Jru9S0xFofS21bMmMzdd0dgygc5hJzU5sSUKVdDYNTkKAcqaymUKN+Tv2a8COIbp5BrQVeAJq7hRsru3i64HlEBgQDg+OoIVoQvArtmA1CggNcED+yV5sAEqahveUNXn4k6waCiFqUDFFGA0ciyjEdhVuz9//iqJORa4IjjvvB6A6+ILlRISYA96B0BPULL3VEqzecJGVQoz8muqIHc8DsKe8hRmeE8gDCU2DTxYqbkTQBBekjsBhAKrfqGI7cKxpwo8Sk1eMTnwpOWpSk1iPIWWXaBgsq05PjrS17d0z/+bgUB+bd3CJKZkJ+RET2PbNtoRy27yJWiKrQllTSvUL9m0ZDLDkQGTmNarLMT2AIKgdOFZXBCvBXY7Rfq1s54qFcoQd5cYsdJo4CCdnT6JWZHUPKhMi6DUJjOTei+4vbxmiqsvfW89FRjoWfFapNXgGGQyUxB68iYZPj6wX6GYzPz6aW6+F+kpfBgSwvS8b0cCgZwABshPO6nZ278jSxm8j/ngTQx7m8MBe8jfxdUvObCDT1TMuFySQNcuPFYUDlOzS0zBcrXC8hlmbO1vtDGJsYqiJqwiYofxBhd2QW48swuH0nl6idoBPQp5hw0ULD8FuPrj9AzC/gDwOoqIgB6xFNCeUBAouNokUHDnVHoxIMdSk+ZQ8QqtS6HnGvL1q+SN8vLz67f5SQxtyY8LFljSRiWWa82D99fzz7Pp5cfpx8vPs4uzPy/mWkCm1WGegmqS3MI6itgCPOCSQhyGmDHotPWXB+viFkf9V1ZnzLJLo6asu+dI3qCiyM/UCXlFvya46Iuc3kxNYtbkQ8/TUXqcvn7BnqLSkSA/xr7BgjFLHH56SpXCWWNVCuogFOAgn2BrJ33AZJQfwqB1wJcqOhno77sUeXugomZe7vMULJOB/EPlU+kcf2OVUTstB1lhHM9BHb/vDbT1XLwQx/bfIf/fgn+kBQ+TK/Qok7ZB67Q7nW+U8t65bk399GesOYjubLcqi798s9vp9teO/PC3XKO3ekdd7ZK9B2S3W7OkjQ55WVKrtrjGpus94zvH3t09s9DLi7nZ7f4BvU+t4Q==
 sidebar_class_name: "get api-method"
 info_path: docs/reference/http-api/eigeninteractive-engine-api
 custom_edit_url: null
@@ -37,7 +37,7 @@ import Translate from "@docusaurus/Translate";
 
 
 
-Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable — it does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.
+Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.
 
 <ParamsDetails>
   

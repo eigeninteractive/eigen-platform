@@ -1,7 +1,7 @@
 /**
  * TypeDoc reads the engine's package barrels from the sibling checkout and
  * emits markdown into `docs/reference/typescript/`. It runs only via
- * `pnpm sync-api`, never during `docusaurus build` — the output is committed.
+ * `pnpm sync-api`, never during `docusaurus build`; the output is committed.
  *
  * @type {Partial<import("typedoc").TypeDocOptions>}
  */
