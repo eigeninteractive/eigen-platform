@@ -54,9 +54,21 @@ to satisfy it as shipped.
 
 The initial scaffold already generates Dart payloads from the Worker contract.
 Implement the client-side legality, preview and presentation rules under
-`app/lib/game/`, then configure Firebase and fill the public build-time values
-in `app/app-config.json`. They are Dart compilation environment declarations,
-not secrets; private credentials belong only in the Worker.
+`app/lib/game/`.
+
+`app/app-config.json` holds the public build-time values. They are Dart
+compilation environment declarations, not secrets; private credentials belong
+only in the Worker. Scaffolding fills in `API_BASE_URL` for local development
+and, once Firebase is configured, `GOOGLE_WEB_CLIENT_ID`. Two are left:
+
+- `FIREBASE_VAPID_KEY`, from Firebase Console > Project settings > Cloud
+  Messaging > Web configuration. The web app will not start without it.
+- `APP_HOST`, your hostname at deploy time, which turns on invite and replay
+  sharing.
+
+An empty `GOOGLE_WEB_CLIENT_ID` means the Google sign-in provider was not
+enabled when the project was configured. Turn it on under Authentication >
+Sign-in method, then copy the Web SDK configuration client id.
 
 See `app/lib/game/README.md` for the regeneration command.
 

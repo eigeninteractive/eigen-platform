@@ -53,6 +53,31 @@ describe("summarise", () => {
     expect(summarise(result("skipped", "configured"), "pnpm", false).status).toContain("Firebase is configured");
   });
 
+  it("names what the scaffold filled in, and only what the console still owes", () => {
+    const linked = { ...result("committed", "configured"), link: { projectId: "go-fish-1a2b3", googleWebClientId: "1-web.apps.googleusercontent.com" } };
+    const { status, next } = summarise(linked, "pnpm", false);
+
+    expect(status.join("\n")).toContain("FIREBASE_PROJECT_ID is set to go-fish-1a2b3");
+    // The one value no CLI can produce, so it survives every path.
+    expect(next).toContain("FIREBASE_VAPID_KEY");
+    // Found, so there is nothing to enable and nothing to paste.
+    expect(next).not.toContain("Enable Google sign-in");
+    expect(next).not.toContain("GOOGLE_WEB_CLIENT_ID");
+  });
+
+  it("asks for the sign-in provider when Firebase had not created its client yet", () => {
+    const unlinked = { ...result("committed", "configured"), link: { projectId: "go-fish-1a2b3", googleWebClientId: null } };
+
+    expect(summarise(unlinked, "pnpm", false).next).toContain("Enable Google sign-in");
+    expect(summarise(unlinked, "pnpm", false).next).toContain("GOOGLE_WEB_CLIENT_ID");
+  });
+
+  it("says nothing about console values when Firebase never ran", () => {
+    // Nothing was read, so nothing is known to be missing, and the step to run
+    // is `firebase:configure` rather than a list of fields.
+    expect(summarise(result("committed"), "pnpm", false).next).not.toContain("FIREBASE_VAPID_KEY");
+  });
+
   it("mentions the missing workflows only when they were not emitted", () => {
     expect(summarise(result("committed"), "pnpm", false).footnotes.join("\n")).toContain("create-eigen-game add workflows");
     expect(summarise(result("committed"), "pnpm", true).footnotes.join("\n")).not.toContain("add workflows");
