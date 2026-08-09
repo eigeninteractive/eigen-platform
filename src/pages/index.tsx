@@ -34,7 +34,8 @@ function HomepageHeader() {
           {siteConfig.title}
         </Heading>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
-        <p className={styles.heroLede}>Accounts, lobby, sockets, turn clocks, ratings, push, Play Store. EigenInteractive ships all of it as one Cloudflare Worker and one Flutter app. You write the rules.</p>
+        <p className={styles.heroLede}>Accounts, lobby, sockets, turn clocks, ratings, push notifications, Play Store config out of the box. EigenInteractive ships all of it as one Cloudflare Worker and one Flutter app. You only write the game rules.</p>
+        <p className={styles.heroLede}>Open Source by design - both the server and the app shell are open source and MIT licensed. The server emits an OpenAPI specification for a custom client to consume.</p>
         <div className={styles.buttons}>
           <Link className="button button--secondary button--lg" to="/docs/getting-started/quickstart">
             Quickstart

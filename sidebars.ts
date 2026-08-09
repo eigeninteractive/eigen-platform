@@ -75,6 +75,7 @@ const sidebars: SidebarsConfig = {
         "how-it-works/the-client-app",
         "how-it-works/transport",
         "how-it-works/account-lifecycle",
+        "how-it-works/the-scaffolder",
       ],
     },
   ],

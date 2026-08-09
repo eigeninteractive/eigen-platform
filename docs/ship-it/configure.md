@@ -32,7 +32,7 @@ mounted.
 | Cron trigger | daily | **yes** in practice | The guest purge + abandoned-game reap. Without it those two backstops never run |
 | Assets | `ASSETS` → `./public` | **yes for web** | Flutter bundle, served directly unless a path is in `run_worker_first` |
 | R2 bucket | any binding | optional | Avatar uploads (`avatars` config block) |
-| Var | `FIREBASE_PROJECT_ID` | **yes** | Token verification. Empty ⇒ every authed request 500s |
+| Var | `FIREBASE_PROJECT_ID` | **yes** | Token verification, and the only thing it needs. Written by scaffolding from the configured project; empty ⇒ every authed request 500s |
 | Var | `WEB_APP_ORIGIN` | **yes for web** | Canonical Flutter origin used for absolute notification click links and automatically trusted for cross-origin browser REST and WebSocket requests |
 | Secret | `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | **yes** | Push (FCM) **and** the Identity-Toolkit admin delete used by account deletion |
 | Secret | `BOT_SIGNING_SECRET` | optional | External bots (the per-bot HMAC is derived from it) |
@@ -103,15 +103,56 @@ flutter build appbundle --release \
 | Var | Required | Purpose |
 |---|---|---|
 | `API_BASE_URL` | **yes** | Origin of the Worker: scheme + host only, **no path, no trailing slash**. Routes carry their own `/api/engine` prefix; the socket is this origin with `ws`/`wss`. |
-| `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. |
+| `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. Both platforms use the *web* client, so an Android-only app still needs it. |
 | `APP_HOST` | optional | This game's hostname, without scheme. In the default deployment it is the host part of `API_BASE_URL`; it enables invite/replay sharing and legal links. `/download` is the native install page. |
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
 
 These values are embedded in the Android binary or downloaded web bundle and
-must never be treated as secrets. Required entries start empty in a fresh
-scaffold. `runEngineApp` validates all of them before initializing Firebase and
-reports every missing or malformed value together. Worker service-account keys,
-bot signing keys, and other real credentials stay in Worker secrets.
+must never be treated as secrets. `runEngineApp` validates all of them before
+initializing Firebase and reports every missing or malformed value together.
+Worker service-account keys, bot signing keys, and other real credentials stay
+in Worker secrets.
+
+### Where each value comes from
+
+Scaffolding fills in what it can, so a fresh project does not start from four
+empty strings. What it leaves is what no CLI can produce.
+
+| Var | In a fresh scaffold | Where to get it |
+|---|---|---|
+| `API_BASE_URL` | `http://localhost:8787` | Already correct for local development. At deploy time it becomes the custom domain the Worker is attached to. |
+| `GOOGLE_WEB_CLIENT_ID` | filled in after `firebase:configure`, when there is one to copy | Firebase Console → Authentication → Sign-in method → Google → **Web SDK configuration**. It is also the `"client_type": 3` entry of `app/android/app/google-services.json`. |
+| `FIREBASE_VAPID_KEY` | empty | Firebase Console → Project settings → **Cloud Messaging** → Web configuration, **Generate key pair** if the list is empty. Web Push certificates are not served by the Firebase CLI, so this is always a manual copy. |
+| `APP_HOST` | empty | Your hostname once you have one. Leave it empty locally; sharing links are simply off. |
+
+An empty `GOOGLE_WEB_CLIENT_ID` after a successful `firebase:configure` means
+one thing: **the Google sign-in provider was never enabled**. Firebase creates
+that OAuth client when the provider is turned on, and turning it on is a console
+action no CLI performs, so there was nothing to copy. Enable it, then take the
+value from the same page.
+
+On the Worker side, `FIREBASE_PROJECT_ID` in `wrangler.jsonc` is likewise
+written from the project FlutterFire recorded in `app/firebase.json`.
+`WEB_APP_ORIGIN` ships as `http://localhost:7357`, the port the Worker template
+already trusts. Both need changing only at deploy.
+
+All of that filling-in is `configure_firebase`'s, not the scaffolder's, so
+**`firebase:configure` and a fresh scaffold leave a project in the same
+state**. The Worker half is the `--worker` flag:
+
+```bash
+dart run eigen_flutter:configure_firebase --worker ../server
+```
+
+The generated `firebase:configure` script already passes it. An app-only
+repository omits it and gets `app-config.json` alone, since there is no
+`wrangler.jsonc` to write to.
+
+The Worker edit rewrites that one assignment in place, so the comments in the
+file survive. It requires the key to appear **exactly once**: a second
+occurrence, including a commented-out one, means the file is not the one the
+tool knows how to edit, so it writes nothing and says so rather than guessing
+which you meant.
 
 ## Firebase, once per deployment
 
