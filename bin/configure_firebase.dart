@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:eigen_flutter/src/codegen/firebase_link.dart';
 import 'package:path/path.dart' as path;
 
 /// The tools this script drives, and how to install each.
@@ -13,7 +14,9 @@ const _installation = <String, String>{
       'dart pub global activate flutterfire_cli\n'
       "  …and put Dart's global bin directory on your PATH "
       '(~/.pub-cache/bin on macOS and Linux)',
-  'firebase': 'npm install -g firebase-tools',
+  // Google's own installer, which picks a standalone binary or npm to suit the
+  // machine, and the one the Firebase documentation leads with.
+  'firebase': 'curl -sL https://firebase.tools | bash',
 };
 
 const _usage = '''
@@ -28,21 +31,26 @@ Usage: dart run eigen_flutter:configure_firebase [options]
                      firebase.json is reused.
   --account <email>  The Google account to authenticate as, for a machine
                      signed in to more than one.
+  --worker <dir>     The Cloudflare Worker beside this app, so its
+                     wrangler.jsonc receives FIREBASE_PROJECT_ID. A combined
+                     project passes ../server; an app-only repository omits it.
   --help             Show this.
 
 Platforms are not an option: the app is Android and Web, and the service worker
 configuration this writes comes from the Web app. Run `flutterfire configure`
 directly for anything this does not cover.''';
 
-/// The options this command takes, each forwarded to `flutterfire configure`
-/// with its value.
+/// The options this command takes.
 ///
 /// A deliberately narrow interface rather than a passthrough. This command
 /// exists to configure a generated app the one way it is supported, and the
 /// options that would change that, `--platforms` above all, leave the rest of
 /// the script unable to finish: it needs the Web app FlutterFire records, and
 /// fails several steps later if it is not there.
-const _options = {'project', 'account'};
+///
+/// `project` and `account` are forwarded to `flutterfire configure`; `worker`
+/// is this command's own, and names a directory FlutterFire has no notion of.
+const _options = {'project', 'account', 'worker'};
 
 Future<void> main(List<String> rawArguments) async {
   try {
@@ -168,6 +176,18 @@ Future<void> main(List<String> rawArguments) async {
     // them looks exactly like a run that registered them. These three lines
     // are what distinguishes the two, and what a second run can be compared
     // against.
+    // Copy across what the steps above have just made knowable, so a re-run
+    // fills in exactly what a scaffold does. Without this the two paths
+    // diverge: a project configured during scaffolding gets these values, and
+    // one configured by running this command later does not.
+    final worker = _valueOf(arguments, 'worker');
+    final link = linkFirebaseProject(
+      appRoot: appRoot,
+      workerRoot: worker == null
+          ? null
+          : Directory(path.join(appRoot.path, worker)),
+    );
+
     stdout
       ..writeln(
         'Firebase configured for Android, Flutter Web, and the messaging '
@@ -176,6 +196,22 @@ Future<void> main(List<String> rawArguments) async {
       ..writeln('  project  $projectId')
       ..writeln('  android  ${configurations?['android'] ?? 'none'}')
       ..writeln('  web      $webAppId');
+
+    if (worker != null && link.projectId != null) {
+      stdout.writeln('  worker   FIREBASE_PROJECT_ID set in $worker');
+    }
+    if (link.googleWebClientId != null) {
+      stdout.writeln('  signin   GOOGLE_WEB_CLIENT_ID set in app-config.json');
+    } else {
+      // Not a failure, and worth saying plainly: Firebase creates that client
+      // when the provider is enabled, and enabling it is a console action no
+      // CLI can perform.
+      stdout.writeln(
+        '\nGoogle sign-in is not enabled for this project, so there is no '
+        'client id to copy.\nEnable it under Authentication > Sign-in method, '
+        'then run this again.',
+      );
+    }
   } on _UsageError catch (error) {
     stderr.writeln('configure_firebase: ${error.reason}\n\n$_usage');
     exitCode = 64;
