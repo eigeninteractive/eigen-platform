@@ -19,8 +19,11 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 - `configure_firebase` now fills in the deployment values that exist only once a Firebase project does: `GOOGLE_WEB_CLIENT_ID` in `app-config.json`, from the OAuth client Firebase created, and with the new `--worker <dir>` flag, `FIREBASE_PROJECT_ID` in the Cloudflare Worker's `wrangler.jsonc`. The Worker edit rewrites one assignment in place, so that file's comments survive, and refuses when the key does not appear exactly once. An app-only repository omits the flag and keeps the app half.
 
 ### Changed
-- Em dashes are gone from every line this package writes, including the strings a player reads: 'The game updated. Try again.', the notification-permission rows in settings, and the in-progress replay notice. Comments, docs, the example game, the workflows and the changelog itself went with them.
 - The `firebase` CLI is now suggested as `curl -sL https://firebase.tools | bash` rather than `npm install -g firebase-tools`, matching the installer the Firebase documentation leads with.
+
+## [0.3.6] - 2026-08-08
+### Changed
+- Em dashes are gone from every line this package writes, including the strings a player reads: 'The game updated. Try again.', the notification-permission rows in settings, and the in-progress replay notice. Comments, docs, the example game, the workflows and the changelog itself went with them.
 
 ## [0.3.5] - 2026-08-07
 ### Changed
@@ -148,7 +151,8 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.2...v0.3.3
