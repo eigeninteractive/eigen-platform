@@ -99,8 +99,12 @@ describe("scaffoldGame", () => {
     expect(appMain).toContain("DefaultFirebaseOptions.currentPlatform");
     expect(appMain).not.toContain("REPLACE_ME");
     const appConfig = readFileSync(resolve(root, "app/app-config.json"), "utf8");
-    expect(appConfig).toContain('"API_BASE_URL": ""');
+    // Pointed at the local Worker, so `pnpm dev` and `flutter run` agree with
+    // no editing. The two that stay empty cannot be defaulted: one is the
+    // deployed hostname, the other comes from the Firebase console.
+    expect(appConfig).toContain('"API_BASE_URL": "http://localhost:8787"');
     expect(appConfig).toContain('"APP_HOST": ""');
+    expect(appConfig).toContain('"FIREBASE_VAPID_KEY": ""');
     expect(existsSync(resolve(root, "app/web-config.json"))).toBe(false);
     expect(readFileSync(resolve(root, "README.md"), "utf8")).toContain("npm run contract");
     const rootGitignore = readFileSync(resolve(root, ".gitignore"), "utf8");
@@ -165,7 +169,9 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts["build:web"]).toContain("--output ../server/public");
     expect(rootManifest.scripts["build:web"]).toContain("--dart-define-from-file=app-config.json");
     expect(rootManifest.scripts.deploy).toContain("run build:web");
-    expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_flutter:configure_firebase");
+    // `--worker` is what lets a re-run fill in the Worker's FIREBASE_PROJECT_ID,
+    // so the command a project keeps does exactly what scaffolding did.
+    expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_flutter:configure_firebase --worker ../server");
   });
 
   it("uses ecosystem CLIs to bootstrap both halves", () => {
@@ -615,7 +621,7 @@ describe("repository initialisation", () => {
     // Not the `--help` warm-up ahead of it, which exists only to move `dart
     // run`'s "Building package executable" out of the interactive step.
     const configure = calls.findIndex(([command, args]) => command === "dart" && !args.includes("--help"));
-    expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--project", "example-project"], resolve(root, "app")]);
+    expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--worker", "../server", "--project", "example-project"], resolve(root, "app")]);
     // The whole reason for doing this here: `firebase.json`,
     // `google-services.json`, the generated `firebase_options.dart` and
     // FlutterFire's two Gradle edits are in the scaffold commit rather than
@@ -708,7 +714,7 @@ describe("repository initialisation", () => {
 
     // Passing no `--project` is what makes FlutterFire prompt, which is also
     // the only route to creating a project from here.
-    expect(calls).toContainEqual(["run", "eigen_flutter:configure_firebase"]);
+    expect(calls).toContainEqual(["run", "eigen_flutter:configure_firebase", "--worker", "../server"]);
   });
 
   it("keeps a scaffold that Firebase could not be configured for", () => {

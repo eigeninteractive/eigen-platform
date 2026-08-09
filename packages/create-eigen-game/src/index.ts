@@ -3,6 +3,9 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync
 import { basename, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ENGINE_PACKAGE, engineRange } from "./engine-range.js";
+import { type FirebaseLink, readFirebaseLink } from "./link-firebase.js";
+
+export type { FirebaseLink } from "./link-firebase.js";
 
 export type PackageManager = "npm" | "pnpm";
 
@@ -144,6 +147,12 @@ export interface ScaffoldResult {
    * step or spell it out. `failed` has already warned.
    */
   firebase: "configured" | "failed" | "skipped";
+  /**
+   * What the Firebase step made knowable and this scaffold therefore filled
+   * in. Absent unless `firebase` is `configured`, since there is nothing to
+   * read otherwise.
+   */
+  link?: FirebaseLink;
 }
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -711,7 +720,10 @@ function configureFirebase(appRoot: string, project: boolean | string, run: Runn
     // into a step whose output can be captured; the real run cannot be, since
     // FlutterFire prompts through it.
     reporter.step("Preparing the Firebase configurator", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--help"], appRoot));
-    reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_flutter:configure_firebase", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
+    // `--worker` is what makes this fill in `FIREBASE_PROJECT_ID` as well as
+    // the app's own values. An app-only repository omits it and gets the app
+    // half; a combined scaffold has the Worker one directory over.
+    reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--worker", "../server", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
     if (parking) rmSync(parked, { force: true });
     return "configured";
   } catch {
@@ -878,7 +890,11 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
   // FlutterFire's two Gradle edits) lands in the scaffold commit rather than
   // arriving as the project's first diff.
   const firebase = options.firebase ? configureFirebase(resolve(root, "app"), options.firebase, run, reporter) : "skipped";
+  // What that step settled, so the summary can name what it did not.
+  // `configure_firebase` does the writing, including into the Worker's
+  // wrangler.jsonc, which is what `--worker` above is for.
+  const link = firebase === "configured" ? readFirebaseLink(root) : undefined;
   const git = (options.git ?? bootstrap) ? initialiseRepository(root, name, run, reporter) : "skipped";
 
-  return { root, name, git, firebase };
+  return { root, name, git, firebase, link };
 }

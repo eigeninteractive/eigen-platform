@@ -42,6 +42,21 @@ export function summarise(result: ScaffoldResult, manager: PackageManager, workf
   // `failed` has warned already, and the step reappears below as the next
   // thing to run, which is the whole of the advice.
   if (result.firebase === "configured") status.push(result.git === "committed" ? "Firebase is configured, and everything it generated is in that commit" : "Firebase is configured");
+  if (result.link?.projectId != null) status.push(`FIREBASE_PROJECT_ID is set to ${result.link.projectId}, and app-config.json points at the local Worker`);
+
+  // What is left, and only what is left. Everything here comes from the
+  // Firebase console rather than from any CLI, which is why a scaffold that
+  // filled in everything it could still ends with a list: the web target
+  // refuses to start without a VAPID key, and there is no OAuth client to copy
+  // until somebody enables the provider that creates it.
+  const remaining: [string, string][] = [];
+  if (result.link !== undefined) {
+    if (result.link.googleWebClientId === null) {
+      remaining.push(["Enable Google sign-in", "Console > Authentication > Sign-in method"]);
+      remaining.push(["GOOGLE_WEB_CLIENT_ID", "that same page, under Web SDK configuration"]);
+    }
+    remaining.push(["FIREBASE_VAPID_KEY", "Console > Project settings > Cloud Messaging > Web configuration"]);
+  }
 
   const next = [
     "Write the game",
@@ -61,6 +76,7 @@ export function summarise(result: ScaffoldResult, manager: PackageManager, workf
       // once.
       ...(result.firebase === "configured" ? [] : [[`${run} firebase:configure`, "connect Firebase before the app runs"] as [string, string]]),
     ]),
+    ...(remaining.length === 0 ? [] : ["", "Before the app runs, from the Firebase console", ...columns(remaining), "", "  The values go in app/app-config.json. Both are public, not secrets."]),
   ].join("\n");
 
   const footnotes = ["Docs: https://eigeninteractive.com"];
