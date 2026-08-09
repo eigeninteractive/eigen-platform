@@ -7,8 +7,7 @@ description: Scaffold a turn-based multiplayer game, run both halves locally (th
 # Quickstart
 
 One command scaffolds both halves of a game into your own repository: the
-Cloudflare Worker that owns the rules, and the Flutter app that draws them. You
-never clone the engine; it arrives as ordinary npm and pub.dev packages.
+Cloudflare Worker that owns the rules, and the Flutter app that draws them.
 
 ## Before you start
 
@@ -16,25 +15,22 @@ Node.js 22 or newer, npm or pnpm, and Flutter 3.44 or newer, which brings the
 Dart 3.12 the client needs. Scaffolding installs both halves as it goes, so it
 needs network access.
 
-A Cloudflare account and a Firebase project are needed to run the whole app, but
-not to scaffold it or to test game rules.
-[Prerequisites](./prerequisites.md) covers each of these with install links and
-one command block that checks the lot.
-
-Two Firebase command-line tools are worth installing **before** you scaffold,
-because the scaffolder connects Firebase for you when it finds them, and
-quietly skips that step, with a note, when it does not.
+A Firebase project (free) is needed for authentication and push notification
+setup. It can be skipped while scaffolding, but we recommend installing the
+firebase and flutter_fire cli as detailed in
+[Prerequisites](./prerequisites.md). A Cloudflare Account (free) is only
+required to deploy your game.
 
 <details>
 <summary>The two Firebase CLIs, and the sign-in</summary>
 
-Neither ships with Flutter or Node, and this is the one place the setup
-installs something globally:
+Neither ships with Flutter or Node, and this is the one place the setup installs
+something globally:
 
 ```bash
 curl -sL https://firebase.tools | bash       # the `firebase` CLI
 dart pub global activate flutterfire_cli     # the `flutterfire` CLI
-export PATH="$PATH":"$HOME/.pub-cache/bin"   # `activate` does not do this
+export PATH="$PATH":"$HOME/.pub-cache/bin"   # add `flutterfire` to PATH
 firebase login                               # both CLIs share these credentials
 ```
 
@@ -43,9 +39,15 @@ npm to suit the machine;
 [the Firebase CLI reference](https://firebase.google.com/docs/cli) has the other
 ways, including Windows.
 
-`dart pub global activate` puts `flutterfire` somewhere that is not on `PATH`
-by default, which is why the third line is there. Add it to your shell profile
-rather than typing it once. Check all three with:
+`dart pub global activate` puts `flutterfire` somewhere that is not on `PATH` by
+default, which is why the third line is there. Add it to your shell profile
+rather than typing it once.
+
+```bash
+export PATH="$PATH":"$HOME/.pub-cache/bin"   # add `flutterfire` to PATH
+```
+
+Check all three with:
 
 ```bash
 firebase --version
@@ -53,14 +55,14 @@ flutterfire --version
 firebase login:list
 ```
 
-You do not need a Firebase *project* yet. The scaffolder's first run offers to
+You do not need a Firebase _project_ yet. The scaffolder's first run offers to
 create one.
 
 Skipping this section is fine, but the scaffolder will notice and ask. Its
 default is to stop, because everything on this page except launching the app
-works without Firebase and launching the app does not, so it is offering you
-two commands now rather than a puzzle later. Answer yes to scaffold anyway;
-[Configure a game](../ship-it/configure.md) picks the step up.
+works without Firebase and launching the app does not as it requires a user
+authentication method. [Configure a game](../ship-it/configure.md) picks the
+step up.
 
 </details>
 
@@ -75,17 +77,17 @@ pnpm create eigen-game my-game
 the scaffolder derives `My Game`, `my_game` and the `MyGame` type prefix.
 
 Everything else it asks. **Each question has exactly one flag that answers it**,
-so passing the flag skips the question, which is why the list below is both
-the questions and the options:
+so passing the flag skips the question, which is why the list below is both the
+questions and the options:
 
-| Question | Flag | Default |
-| --- | --- | --- |
-| The organization, which prefixes the permanent `applicationId` | `--org <reverse-domain>` | `com.example` |
-| Whether to scaffold without Firebase (asked only when the CLIs are missing) | `--no-firebase` | no, stop and set them up |
-| Which Firebase project to configure against | `--firebase-project <id>` | FlutterFire asks |
-| Initialise a repository and commit the scaffold | `--git`, `--no-git` | yes |
-| Emit the GitHub Actions workflows | `--workflows`, `--no-workflows` | no |
-| Which package manager the generated scripts use | `--package-manager npm\|pnpm` | whichever invoked it |
+| Question                                                                    | Flag                            | Default                  |
+| --------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
+| The organization, which prefixes the permanent `applicationId`              | `--org <reverse-domain>`        | `com.example`            |
+| Whether to scaffold without Firebase (asked only when the CLIs are missing) | `--no-firebase`                 | no, stop and set them up |
+| Which Firebase project to configure against                                 | `--firebase-project <id>`       | FlutterFire asks         |
+| Initialise a repository and commit the scaffold                             | `--git`, `--no-git`             | yes                      |
+| Emit the GitHub Actions workflows                                           | `--workflows`, `--no-workflows` | no                       |
+| Which package manager the generated scripts use                             | `--package-manager npm\|pnpm`   | whichever invoked it     |
 
 The organization is the one worth reading twice:
 
@@ -99,12 +101,13 @@ The organization is the one worth reading twice:
 ```
 
 The `.my_game` is dimmed, and grows as you type: the organization is the
-**prefix**, and the game name is appended to it, exactly as `flutter create
---org` does. So answering `dev.yourname.games.my_game`, which reads like the
-whole identifier, produces `dev.yourname.games.my_game.my_game`, and the CLI
-offers to shorten it if you do. Worth getting right at scaffold time, because
-Google Play treats the result as the app's permanent identity and it cannot be
-changed after the first upload.
+**prefix**, and the game name is appended to it, exactly as
+`flutter create
+--org` does. So answering `dev.yourname.games.my_game`, which
+reads like the whole identifier, produces `dev.yourname.games.my_game.my_game`,
+and the CLI offers to shorten it if you do. Worth getting right at scaffold
+time, because Google Play treats the result as the app's permanent identity and
+it cannot be changed after the first upload.
 
 Then FlutterFire asks which Firebase project to use, and offers to create one.
 That is the second half of the same decision: the `applicationId` above is what
@@ -126,10 +129,10 @@ configured before that commit, which is why it happens here rather than as your
 first diff: six files, four of them edits to files the scaffold had just
 written.
 
-:::warning[With no terminal, an unanswered question is an error]
-CI, a pipe, an agent session: there is nowhere to ask, so every answer has to
-arrive as a flag, and a missing one stops the run rather than being chosen for
-you. `--org` is why. A non-interactive run that quietly defaulted it would ship
+:::warning[With no terminal, an unanswered question is an error] CI, a pipe, an
+agent session: there is nowhere to ask, so every answer has to arrive as a flag,
+and a missing one stops the run rather than being chosen for you. `--org` is
+why. A non-interactive run that quietly defaulted it would ship
 `com.example.my_game`, and Google Play makes that permanent at the first upload.
 
 The error prints the whole command to re-run, with each default already filled
@@ -138,6 +141,7 @@ in, so the fix is one paste, and the value worth changing is visible in it:
 ```bash
 npx create-eigen-game my-game --no-firebase --org com.example --git --no-workflows
 ```
+
 :::
 
 The engine and `eigen_flutter` versions are pinned inside the scaffolder and
@@ -187,12 +191,13 @@ flutter run -d chrome --web-hostname localhost --web-port 7357 \
   --dart-define-from-file=app-config.json
 ```
 
-Port 7357 is the origin the Worker scaffold already trusts, so leave it as it is.
+Port 7357 is the origin the Worker scaffold already trusts, so leave it as it
+is.
 
 ## The development loop
 
-`wrangler dev` reloads Worker source on save, which covers most rules work.
-What it does not do is regenerate anything: `game-contract.json` and the Dart it
+`wrangler dev` reloads Worker source on save, which covers most rules work. What
+it does not do is regenerate anything: `game-contract.json` and the Dart it
 produces are build outputs, not watched files.
 
 Keep the fixture runner going while you edit rules:
@@ -227,11 +232,13 @@ already in progress keep the rules they started under. See
 
 ## Change the rules
 
-The seeded game is a race to a target count. Open
-`server/src/module/v1.ts` and bound what a player may add per turn:
+The seeded game is a race to a target count. Open `server/src/module/v1.ts` and
+bound what a player may add per turn:
 
 ```ts
-const actionSchema = z.object({ amount: z.int().min(1).max(3) }).meta({ id: "ExampleGameV1Action" });
+const actionSchema = z.object({ amount: z.int().min(1).max(3) }).meta({
+  id: "ExampleGameV1Action",
+});
 ```
 
 That is a schema change, so regenerate the contract from the repository root:
@@ -245,7 +252,7 @@ fixtures), and from it the Dart payload types and fixture copies in `app/`.
 Commit both: they are the boundary between the two halves, and the app now
 rejects `amount: 4` before it ever reaches the Worker.
 
-Changing hook *behaviour* rather than a schema works the same way, except that
+Changing hook _behaviour_ rather than a schema works the same way, except that
 you update the fixture in `server/src/module/fixtures/v1/` alongside it. The
 fixtures are part of the contract, and both languages run them. That is what
 keeps the app's prediction and the Worker's ruling from drifting apart.

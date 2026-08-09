@@ -77,19 +77,19 @@ type FeatureItem = {
 
 const FeatureList: FeatureItem[] = [
   {
-    title: "The server is already written",
+    title: "The Cloudflare Worker",
     Icon: WorkerIcon,
-    description: <>One Cloudflare Worker with its own domain, database and players. Sockets, reconnection, turn clocks, ratings and replay are in it.</>,
+    description: <>One Cloudflare Worker with its own domain, database and players. Sockets, reconnection, turn clocks, ratings and replay are handled by a Durable Object.</>,
   },
   {
-    title: "So is the app",
+    title: "The Flutter App",
     Icon: AppIcon,
-    description: <>A Flutter app for Android and the web. Sign-in, lobby, friends, profiles, avatars, push and deep links all ship with it.</>,
+    description: <>A Flutter app for Android and the web. Sign-in, lobby, friends, profiles, avatars, push and deep links all ship with it and natively speaks the Server's Language.</>,
   },
   {
     title: "You write the rules",
     Icon: RulesIcon,
-    description: <>Six pure functions and a board widget. One command scaffolds both halves and leaves a game running on your machine.</>,
+    description: <>Six pure game rules functions and a board widget. One command scaffolds both halves and leaves a game running on your machine.</>,
   },
 ];
 
