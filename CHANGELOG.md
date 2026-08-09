@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.3.7] - 2026-08-09
 ### Added
 - `configure_firebase` now fills in the deployment values that exist only once a Firebase project does: `GOOGLE_WEB_CLIENT_ID` in `app-config.json`, from the OAuth client Firebase created, and with the new `--worker <dir>` flag, `FIREBASE_PROJECT_ID` in the Cloudflare Worker's `wrangler.jsonc`. The Worker edit rewrites one assignment in place, so that file's comments survive, and refuses when the key does not appear exactly once. An app-only repository omits the flag and keeps the app half.
 
@@ -151,7 +151,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...HEAD
+[0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.3...v0.3.4
