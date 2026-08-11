@@ -31,6 +31,7 @@
     "contract:check": "eigen-contract --check",
     "deploy": "wrangler d1 migrations apply GAME_DB --remote && wrangler deploy",
     "dev": "{{PACKAGE_MANAGER}} run db:migrate:local && wrangler dev",
+    "inspect": "eigen-inspect",
     "start": "{{PACKAGE_MANAGER}} run db:migrate:local && wrangler dev",
     "test": "vitest run",
     "test:watch": "vitest",

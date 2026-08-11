@@ -6,12 +6,17 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "eigen-contract": "./bin/eigen-contract.js"
+    "eigen-contract": "./bin/eigen-contract.js",
+    "eigen-inspect": "./bin/eigen-inspect.js"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./local-state": {
+      "types": "./dist/local-state.d.ts",
+      "import": "./dist/local-state.js"
     }
   },
   "files": [
