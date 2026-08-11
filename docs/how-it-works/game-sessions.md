@@ -15,7 +15,7 @@ The DO's own SQLite database is the game. Six tables:
 
 | Table | Lifetime | Purpose |
 |---|---|---|
-| `meta` | permanent | The single game row (id, status, access, schema_version, config, timing, rated, pool, roster bounds, creator, rng seed). Copied once from D1 at lazy-init, then DO-owned. |
+| `meta` | permanent | The single game row (id, short code, status, access, schema_version, config, timing, rated, pool, roster bounds, creator, rng seed, final outcomes, and `seq`). Copied once from D1 at lazy-init, then DO-owned. `seq` is the monotonic session counter every commit advances, which is what totally orders the snapshots the socket pushes; `outcomes` is retained rather than drained so a cold open of a finished game is answerable from the DO alone. |
 | `roster` | permanent | One row per seat (`player_index`, `user_id`/`bot_id`, `type`). The **authoritative** roster; D1's copy is a display mirror. |
 | `transitions` | permanent | **Append-only, immutable.** One row per version: the opaque `state`, the `action` that produced it, the pending set, deadline, per-player clocks. This table *is* the game's history. |
 | `frames` | live-only | Per-seat projected observations, for socket gap-recovery and the same-view compare. Drained by the finish compaction (replay re-projects instead). |

@@ -34,6 +34,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "reference/http-api/get-game-session",
+          label: "getGameSession",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "reference/http-api/create-game",
           label: "createGame",
           className: "api-method post",

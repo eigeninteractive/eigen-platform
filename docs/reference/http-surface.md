@@ -38,7 +38,8 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | `POST /games/{id}/join` · `POST /games/join-by-code` | Join |
 | `POST /games/{id}/leave` · `/cancel` · `/add-bot` · `/start` | Waiting-room commands |
 | `POST /games/{id}/action` · `/forfeit` | Active play (carry the caller's `seat`) |
-| `GET /games/{id}/socket` | WebSocket upgrade (`?token=` auth); frames + roster snapshots |
+| `GET /games/{id}/session` | The caller's current session snapshot, from the game's own Durable Object |
+| `GET /games/{id}/socket` | WebSocket upgrade (`?token=` auth); per-seat session snapshots |
 
 **Profile / account / devices / social writes:**
 

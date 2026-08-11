@@ -177,8 +177,8 @@ out of your namespace:
   input gate, versioning, idempotent retries.
 - **The waiting room**: create, join (by id or code), leave, cancel, add-bot,
   start; short codes; guest and friends-access gating.
-- **Sockets & reconnection**: one socket per game, pre-game roster snapshots,
-  versioned frames, gap recovery by range fetch.
+- **Sockets & reconnection**: one socket per game carrying one message kind,
+  the per-seat session snapshot; gap recovery by range fetch.
 - **Timing**: deadlines, the chess-clock bank, the grace window, the durable
   alarm.
 - **Ratings**: OpenSkill, the concurrency-safe CAS, pools, history. You only

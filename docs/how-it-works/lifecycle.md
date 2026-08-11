@@ -43,11 +43,13 @@ rules). Highlights:
 - **Start** is creator-only, commits version 0 via the kernel, and arms the
   first deadline.
 
-The client opens its WebSocket *before* start. Pre-game, the DO pushes
-unversioned, idempotent **roster snapshots** on every change (a reconnect just
-gets the current one); versioned frames begin at v0. D1's participants copy is
-updated post-commit and is allowed to be briefly stale, and a stale lobby just means
-a join can fail cleanly at the DO.
+The client opens its WebSocket *before* start. The DO pushes a complete
+**session snapshot** on open and after every change, lobby or state, so the
+creator's waiting room learns that the roster filled and every seat learns that
+the game started without asking. Pre-game a snapshot has no `version` and no
+`frame`; both begin at v0. D1's participants copy is updated post-commit and is
+allowed to be briefly stale, and a stale lobby just means a join can fail cleanly
+at the DO.
 
 **create-solo** (`POST /api/engine/games/solo`) collapses "create a private game
 seated with me + bots, and start it" into one call, returning the caller's
