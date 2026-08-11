@@ -1,6 +1,6 @@
 {
   "name": "create-eigen-game",
-  "version": "0.9.3",
+  "version": "0.10.0",
   "license": "MIT",
   "description": "Scaffold an EigenInteractive game Worker and Flutter app without cloning the engine repositories.",
   "type": "module",
