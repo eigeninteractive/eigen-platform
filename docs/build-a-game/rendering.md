@@ -30,6 +30,7 @@ breaks every game's signature. All JSON parsing is already done.
 |---|---|
 | `config` | The parsed config, immutable for the whole game. Cast to your type. |
 | `frame` | The per-event snapshot: `observation`, `pendingPlayers`, `version`, `timing`. |
+| `transition` | The step into `frame` (`from`, `to`), or **null when there is nothing to animate**. |
 | `gameStatus`, `outcomes` | Lifecycle status; per-seat results (empty until finished). |
 | `actionPending` | True while a submit awaits its confirming frame; disable input on it. |
 | `onAction(json)` | Submits a move; returns `Future<ActionSubmitResult>`. Never throws, because the engine has already surfaced any error. |
@@ -62,11 +63,39 @@ that sound:
    cannot recover causality: a hidden move leaves no visible footprint, two
    different causes can leave the same one, and a composite resolution collapses
    into a single diff.
-3. **Animate a cue only when you rendered its predecessor.** On a cold load or a
-   stale rejoin you get a frame whose predecessor you never drew. Show the cue as
-   static "last move" information, not an animation. Keep the last rendered
-   `version` in widget state and play the entrance animation only when the
-   incoming frame is its direct successor.
+3. **Animate only when `transition` is non-null.** It is the step into the
+   current frame, and it is null exactly when animating would be wrong: a cold
+   load, a stale rejoin, or the opening frame, where the cue is history rather
+   than an event. Show it statically then. You do not have to track the last
+   rendered version yourself; the engine already knows whether the player saw the
+   predecessor.
+
+```dart
+if (ctx.transition case final step?) {
+  // The player watched this happen: animate from step.from to step.to.
+} else {
+  // Nothing to animate from. Render ctx.frame as the current position.
+}
+```
+
+**Correctness never depends on animating.** The newest frame is always
+sufficient on its own, so skipping intermediate frames is never wrong, only less
+pretty. That matters in practice: a bot can commit faster than a 600ms deal
+animation, the turn clock does not stop while a card is in flight, and a slow
+device falls behind. Treat your animations as interruptible and jump to the end
+state when a newer frame lands.
+
+### Several beats in one frame
+
+One version can hold more than one visual event: a round resolving may reveal
+both commits, score them, and deal again. The frame is the atomic unit of
+*truth*, but it is the **script** for several animation steps, so embed an
+ordered `events` list in the observation and sequence it locally.
+
+The rule that keeps this honest: **the list is presentation order, never a second
+source of state.** The position after the last beat must equal what the rest of
+the observation already says, so a client that skips the animation entirely is
+still correct.
 
 ### The server side of a cue
 

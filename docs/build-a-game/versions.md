@@ -1,5 +1,5 @@
 ---
-sidebar_position: 10
+sidebar_position: 11
 title: Changing a shipped game
 description: What to do when the rules change after players are using them. A new unit on both sides, why draining and replay retire at different times, and the checklist.
 ---

@@ -38,6 +38,10 @@ batch; see [Account lifecycle](./account-lifecycle.md)). This is
 deliberate: it keeps every multi-table effect visible in application code rather
 than hidden in schema triggers.
 
+Because `games` and `participants` are mirrors written after the DO's own commit,
+they can lag it. To read both stores at once and see any disagreement between
+them, see [Debugging a live game](../build-a-game/debugging.md).
+
 ## Ratings & the concurrency-safe CAS
 
 Ratings are OpenSkill, computed **at finish, in D1**, because they depend on

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 11
+sidebar_position: 12
 title: Recipes for common game shapes
 description: Sequential, simultaneous, team, elimination and phased games, all expressed through pendingPlayers and computeObservation.
 ---

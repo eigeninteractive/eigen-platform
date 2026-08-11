@@ -73,23 +73,33 @@ rules and fixture tests need nothing more than this.
 
 ## Setup the Firebase Project
 
-Scaffolding already wrote the values it could know: `FIREBASE_PROJECT_ID` in
-`server/wrangler.jsonc`, and `API_BASE_URL` plus `GOOGLE_WEB_CLIENT_ID` in
-`app/app-config.json`. Two are left, and neither is available to any CLI.
+**1. Turn on Google sign-in.** Firebase Console → Security → Authentication →
+Sign-in method → Get Started → Google → Enable.
 
-**1. Turn on Google sign-in.** Firebase Console → Authentication → Sign-in
-method → Google. Then add `localhost` under Settings → Authorized domains.
+**2. Populate `GOOGLE_WEB_CLIENT_ID`** If `GOOGLE_WEB_CLIENT_ID` in
+`app/app-config.json` is empty, the provider was off when you scaffolded, so
+there was no OAuth client to copy. Enabling it creates one; take the value from
+**Web SDK configuration** under Firebase Console → Authentication → Sign-in
+method → Google
 
-If `GOOGLE_WEB_CLIENT_ID` in `app/app-config.json` is empty, the provider was
-off when you scaffolded, so there was no OAuth client to copy. Enabling it
-creates one; take the value from **Web SDK configuration** on that same page.
-
-**2. Get the Web Push key.** Firebase Console → Project settings → **Cloud
+**3. Get the Web Push key.** Firebase Console → Settings → General → **Cloud
 Messaging** → Web configuration, **Generate key pair** if the list is empty.
 Paste it into `FIREBASE_VAPID_KEY` in `app/app-config.json`. The web app will
 not start without it.
 
-Both are public values compiled into the app, not secrets.
+**4. Get the Admin service-account key.** Firebase Console → Settings →
+**Service accounts** → **Generate new private key**. Copy
+`server/.dev.vars.example` to `server/.dev.vars` and fill
+`FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` from the downloaded JSON,
+pasting the private key with its quotes intact. That pair is what push
+notifications and account deletion run on; token verification uses
+`FIREBASE_PROJECT_ID` alone, so the Worker starts either way, and the two
+features fail only when exercised. `wrangler dev` reads `.dev.vars` at startup,
+so restart `pnpm dev` afterwards.
+
+Steps 2 and 3 are public values compiled into the app. Step 4 is not:
+`.dev.vars` is a real credential, is git-ignored, and must stay that way. Delete
+the downloaded JSON once you have copied the two fields out of it.
 [Configuration](../ship-it/configure.md) is the full reference for every value
 on both sides, and what changes when they stop pointing at localhost.
 
@@ -108,27 +118,15 @@ pnpm firebase:configure
 It configures Android and web with FlutterFire, writes the service worker's
 Firebase configuration, and fills in `FIREBASE_PROJECT_ID` and
 `GOOGLE_WEB_CLIENT_ID` exactly as scaffolding would have. It ends by naming the
-project, both app IDs, and each value it set, so you can see which of the two
-steps above are still owed.
+project, both app IDs, and each value it set, so you can see which of the steps
+above are still owed. It does not touch steps 3 and 4, which are console values
+no CLI can produce.
 
 **Commit everything it writes**: `app/firebase.json`,
 `app/android/app/google-services.json`, `app/lib/firebase_options.dart`,
 `app/web/firebase-config.js` and FlutterFire's two Android Gradle edits. They
 are public app identifiers rather than credentials, they are not git-ignored,
 and Android and web builds fail without them.
-
-</details>
-
-<details>
-<summary>Optional: push and account deletion locally</summary>
-
-Copy `server/.dev.vars.example` to `server/.dev.vars` and fill it from Firebase
-Console → Project settings → Service accounts → **Generate new private key**.
-
-Those two features are all it powers. Token verification uses
-`FIREBASE_PROJECT_ID` alone, so ordinary local play needs none of this.
-`.dev.vars` is git-ignored and must stay that way: unlike everything else on
-this page, it is a real credential.
 
 </details>
 
