@@ -58,7 +58,7 @@ import { type Bot, readBot } from "../d1/reads.js";
 import { withRetry } from "../d1/retry.js";
 import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/admin-effects.js";
 import { finishPush, readyPush, turnPush } from "../notify/push.js";
-import type { Command, CommandResult, FrameMessage, GameStub, Principal, RosterSnapshot, SyncMessage } from "../protocol.js";
+import type { Command, CommandResult, FrameMessage, GameStub, Principal, SessionSnapshot } from "../protocol.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
@@ -201,21 +201,25 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     }
 
     const status: GameStatus = nextRoster.length >= meta.minPlayers ? "ready" : "waiting";
-    const snapshot: RosterSnapshot = { type: "roster", status, players: nextRoster };
-    const response: CommandResult = { ok: true, roster: snapshot };
+    const seq = meta.seq + 1;
+    // A lobby command has no version and no frame, so every seat's snapshot is
+    // the same value; the actor's copy is also the command response.
+    const header = this.#header(meta, { status, players: nextRoster, seq, version: null });
+    const response: CommandResult = { ok: true, session: { ...header, frame: null } };
     this.#db.transaction((tx) => {
       tx.delete(t.roster).run();
       for (const seat of nextRoster) {
         tx.insert(t.roster).values({ playerIndex: seat.playerIndex, userId: seat.userId, botId: seat.botId, type: seat.type }).run();
       }
-      if (status !== meta.status) {
-        tx.update(t.meta).set({ status }).where(eq(t.meta.id, 1)).run();
-      }
+      tx.update(t.meta)
+        .set({ seq, ...(status !== meta.status ? { status } : {}) })
+        .where(eq(t.meta.id, 1))
+        .run();
       tx.insert(t.commands).values({ commandId: cmd.commandId, response, createdAt: now }).run();
     });
 
     // ── post-commit ──
-    this.#broadcast(snapshot);
+    this.#broadcast(header, new Map(), nextRoster);
     const gameId = meta.gameId;
     // Background D1 mirror, off the response path. No ctx.waitUntil: a Durable
     // Object stays alive while a promise is pending, so an unawaited (but
@@ -248,10 +252,15 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Terminal status lands in storage first: anything interleaving with the
     // awaits below already sees an aborted game.
     if (meta.status !== "aborted") {
-      this.#db.update(t.meta).set({ status: "aborted" }).where(eq(t.meta.id, 1)).run();
+      this.#db
+        .update(t.meta)
+        .set({ status: "aborted", seq: meta.seq + 1 })
+        .where(eq(t.meta.id, 1))
+        .run();
     }
-    await this.#tearDownAborted(meta.gameId, "Game cancelled");
-    return { ok: true, roster: { type: "roster", status: "aborted", players: [] } };
+    const session = { ...this.#header(meta, { status: "aborted", players: [], seq: meta.seq + 1, version: null }), frame: null };
+    await this.#tearDownAborted(meta.gameId, "Game cancelled", session);
+    return { ok: true, session };
   }
 
   /** Unconditional teardown (cron reap): mark the game aborted in D1 and
@@ -264,18 +273,28 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // command interleaving with the teardown's awaits sees an aborted game.
     const meta = this.#loadMeta();
     if (meta !== undefined && meta.status !== "aborted") {
-      this.#db.update(t.meta).set({ status: "aborted" }).where(eq(t.meta.id, 1)).run();
+      this.#db
+        .update(t.meta)
+        .set({ status: "aborted", seq: meta.seq + 1 })
+        .where(eq(t.meta.id, 1))
+        .run();
     }
-    await this.#tearDownAborted(gameId, "Game aborted");
+    // A never-touched lobby has no meta row, so there is no header to build and
+    // no socket to tell: the aborted D1 row is the whole outcome.
+    const session = meta === undefined ? null : { ...this.#header(meta, { status: "aborted", players: [], seq: meta.seq + 1, version: null }), frame: null };
+    await this.#tearDownAborted(gameId, "Game aborted", session);
   }
 
   /** The shared abort teardown: mirror the aborted status to D1 (the only
    * survivor, awaited so a failure surfaces), notify and close any sockets,
    * then drop the alarm and all storage. The schema goes with the storage, so
    * restore it; a later poke lazy-re-inits from the aborted D1 row. */
-  async #tearDownAborted(gameId: string, closeReason: string): Promise<void> {
+  async #tearDownAborted(gameId: string, closeReason: string, session: SessionSnapshot | null): Promise<void> {
     await mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() });
-    this.#broadcast({ type: "roster", status: "aborted", players: [] });
+    // Told before the sockets close, and `seq` cannot help a client that misses
+    // it, since the teardown drops the storage the counter lived in. That is why
+    // the client's rule accepts a terminal status whatever its `seq`.
+    if (session !== null) this.#sendToAll(session);
     for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.close(1000, closeReason);
@@ -379,12 +398,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
-    const ownFrame = actingSeat === null ? null : (plan.frames.find((f) => f.playerIndex === actingSeat) ?? null);
-    const response: CommandResult = {
-      ok: true,
-      version: next.version,
-      frame: ownFrame === null ? null : this.#wireFrame(ownFrame, next, plan.outcomes),
-    };
+    const seq = meta.seq + 1;
+    const header = this.#header(meta, { status, players: roster, seq, version: next.version });
+    const wireFrames = this.#wireFrames(plan.frames, next, plan.outcomes);
+    // The actor's own copy rides the response, which is what lets a move render
+    // before the socket delivers it, and is the only delivery on the paths that
+    // have no socket yet (a freshly created solo game, a move made mid-reconnect).
+    const response: CommandResult = { ok: true, session: { ...header, frame: actingSeat === null ? null : (wireFrames.get(actingSeat) ?? null) } };
 
     this.#db.transaction((tx) => {
       tx.insert(t.transitions)
@@ -405,18 +425,24 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         tx.insert(t.frames).values(this.#frameRows(next.version, plan.frames)).run();
       }
       tx.insert(t.commands).values({ commandId: cmd.commandId, response, createdAt: now }).run();
-      if (cmd.kind === "start") {
-        tx.update(t.meta).set({ status, rngSeed: next.rngSeed }).where(eq(t.meta.id, 1)).run();
-      } else if (status !== meta.status) {
-        tx.update(t.meta).set({ status }).where(eq(t.meta.id, 1)).run();
-      }
+      // `seq` advances on every commit; status and the seed only when they move.
+      // `outcomes` is retained here, unlike the outbox row below that the
+      // compaction drains, so a cold open of a finished game is answerable.
+      tx.update(t.meta)
+        .set({
+          seq,
+          ...(cmd.kind === "start" ? { status, rngSeed: next.rngSeed } : status !== meta.status ? { status } : {}),
+          ...(finish !== null ? { outcomes: finish.outcomes } : {}),
+        })
+        .where(eq(t.meta.id, 1))
+        .run();
       if (finish !== null) {
         tx.insert(t.outbox).values({ finishId: finish.finishId, outcomes: finish.outcomes, createdAt: now }).run();
       }
     });
 
     // ── post-commit ──
-    this.#fanOut(plan.frames, next, plan.outcomes, roster);
+    this.#broadcast(header, wireFrames, roster);
     if (plan.alarm !== null) {
       await this.ctx.storage.setAlarm(plan.alarm);
     } else {
@@ -663,7 +689,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Engine-owned action variant; no game hook produces or ever sees it.
     const action: TransitionAction = { type: "system", kind: "ratings", data: { deltas }, playerIndex: null };
     const frames = this.#project(meta, roster, finalState.state, [], null, false);
+    const seq = this.#meta().seq + 1;
     this.#db.transaction((tx) => {
+      tx.update(t.meta).set({ seq }).where(eq(t.meta.id, 1)).run();
       tx.insert(t.transitions).values({ version, state: finalState.state, action, pending: [], deadline: null, playerTimes: null, turnStartedAt: null }).run();
       // Uniform like every transition, and drained one statement later by
       // the compaction, kept ceremony-free on purpose: zero special cases
@@ -675,18 +703,11 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       tx.delete(t.commands).run();
       tx.delete(t.outbox).run();
     });
-    for (const frame of frames) {
-      const message: FrameMessage = {
-        type: "frame",
-        version,
-        data: frame.data,
-        pendingPlayers: frame.pendingPlayers,
-        deadline: null,
-        playerTimes: null,
-        ratings: deltas,
-      };
-      this.#send(roster, frame.playerIndex, message);
-    }
+    // An ordinary snapshot, no longer a special frame with a `ratings` field
+    // bolted on: the status is already `finished`, so what this delivers is the
+    // deltas, riding the same envelope every other commit uses.
+    const wireFrames = new Map<number, FrameMessage>(frames.map((frame) => [frame.playerIndex, { type: "frame", version, data: frame.data, pendingPlayers: frame.pendingPlayers, deadline: null, playerTimes: null, ratings: deltas }]));
+    this.#broadcast(this.#header(meta, { status: "finished", players: roster, seq, version }), wireFrames, roster);
   }
 
   /** The gated admin re-poke (step 4): re-runs the D1 apply for a
@@ -725,10 +746,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** The worker routes the upgrade here after authenticating; the principal
    * header is worker-set (never client-supplied; the worker strips inbound
-   * headers when forwarding). One socket serves the game's whole lifetime:
-   * unversioned roster snapshots pre-game, versioned frames from v0.
-   * A not-yet-seated user's socket simply receives no frames until the
-   * roster contains them. */
+   * headers when forwarding). One socket serves the game's whole lifetime and
+   * carries one message kind, the per-seat {@link SessionSnapshot}. A
+   * not-yet-seated user's socket receives the envelope with no frame until the
+   * roster contains them, which is how it learns the game started at all. */
   async fetch(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("Expected a WebSocket upgrade", { status: 426 });
@@ -741,21 +762,20 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const pair = new WebSocketPair();
     pair[1].serializeAttachment(attachment);
     this.ctx.acceptWebSocket(pair[1]);
-    // Either way the open says where the game is, so a client never has to
-    // guess. Pre-game that is the roster snapshot (idempotent, so a reconnect
-    // just gets it again); from v0 the roster is frozen and what moves is the
-    // version, so that is what a sync carries. Both are cheap and neither
-    // replays history: the client decides what, if anything, to fetch.
-    const meta = this.#meta();
-    if (meta.status === "waiting" || meta.status === "ready") {
-      pair[1].send(JSON.stringify({ type: "roster", status: meta.status, players: this.#roster() } satisfies RosterSnapshot));
-    } else {
-      const latest = this.#latestTransition();
-      if (latest !== null) {
-        pair[1].send(JSON.stringify({ type: "sync", version: latest.version } satisfies SyncMessage));
-      }
-    }
+    // The open always states where the game is, at every status, so a client
+    // never has to guess and never has a window in which it holds a frame
+    // without the status it belongs to. It replays no history: the snapshot
+    // carries the newest version and the client decides what, if anything, to
+    // fetch to fill a gap. A reconnect that missed nothing therefore costs one
+    // message that the client discards by `seq`.
+    pair[1].send(JSON.stringify(this.#sessionFor(attachment.userId)));
     return new Response(null, { status: 101, webSocket: pair[0] });
+  }
+
+  /** The snapshot over RPC, for the HTTP paths that have no socket. */
+  async session(gameId: string, userId: string | null): Promise<SessionSnapshot | null> {
+    if (!(await this.#ensureInit(gameId))) return null;
+    return this.#sessionFor(userId);
   }
 
   async webSocketMessage(): Promise<void> {
@@ -774,54 +794,134 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     console.error("game socket errored", error);
   }
 
-  #fanOut(frames: ObservationFrame[], next: StateRow, outcomes: OutcomeEntry[] | null, roster: Seat[]): void {
-    for (const frame of frames) {
-      this.#send(roster, frame.playerIndex, this.#wireFrame(frame, next, outcomes));
-    }
+  /** The seat-independent part of a snapshot: the immutable header from `meta`
+   * plus the moving parts every seat sees identically. One builder so a socket
+   * open, a command response and a fan-out cannot disagree. */
+  #header(meta: MetaRow, live: { status: GameStatus; players: Seat[]; seq: number; version: number | null }): Omit<SessionSnapshot, "frame"> {
+    return {
+      type: "session",
+      seq: live.seq,
+      gameId: meta.gameId,
+      shortCode: meta.shortCode,
+      access: meta.access,
+      schemaVersion: meta.schemaVersion,
+      config: meta.config,
+      turnSeconds: meta.turnSeconds,
+      budgetSeconds: meta.budgetSeconds,
+      incrementSeconds: meta.incrementSeconds,
+      rated: meta.rated,
+      ratingPool: meta.ratingPool,
+      minPlayers: meta.minPlayers,
+      maxPlayers: meta.maxPlayers,
+      createdBy: meta.createdBy,
+      status: live.status,
+      players: live.players,
+      version: live.version,
+    };
   }
 
-  /** Deliver one seat's frame to every socket whose authenticated principal
-   * owns that seat, resolved against the roster at send time. */
-  #send(roster: Seat[], seat: number, message: FrameMessage): void {
-    const owner = roster.find((s) => s.playerIndex === seat);
-    if (owner === undefined || owner.userId === null) return;
-    const payload = JSON.stringify(message);
+  /** The current snapshot for one principal, read from storage.
+   *
+   * Serves the socket open and the HTTP session read, so both answer with
+   * exactly what a fan-out would have sent. The frame comes from the seat's
+   * stored row where there is one, and is re-projected otherwise (a finished
+   * game whose `frames` table the compaction drained), which is the same
+   * fallback the range fetch uses. */
+  #sessionFor(userId: string | null): SessionSnapshot {
+    const meta = this.#meta();
+    const roster = this.#roster();
+    const latest = this.#latestTransition();
+    const header = this.#header(meta, { status: meta.status, players: roster, seq: meta.seq, version: latest?.version ?? null });
+    if (latest === null) return { ...header, frame: null };
+    const seat = this.#seatOf(userId, roster);
+    const view = seat === null ? null : (this.#storedView(latest.version, seat) ?? this.#viewFor(meta, roster, latest, seat, false));
+    if (view === null) return { ...header, frame: null };
+    const ratings = latest.action !== null && latest.action.kind === "ratings" ? latest.action.data.deltas : null;
+    // A finished game attaches its outcomes to whatever its newest frame is,
+    // because that is the only frame a cold-opening client will see. On the live
+    // path they rode the finishing frame and the ratings transition N+1 carried
+    // only the deltas; here both arrive together. Either way the client ends up
+    // holding the same thing.
+    const outcomes = meta.status === "finished" ? meta.outcomes : null;
+    return {
+      ...header,
+      frame: {
+        type: "frame",
+        version: latest.version,
+        data: view.data,
+        pendingPlayers: view.pendingPlayers,
+        deadline: latest.deadline,
+        playerTimes: latest.playerTimes,
+        ...(outcomes !== null ? { outcomes } : {}),
+        ...(ratings !== null ? { ratings } : {}),
+      },
+    };
+  }
+
+  /** The seat a principal holds, or null. `join` rejects a duplicate user, so a
+   * user holds at most one seat; a bot holds seats but never a socket. */
+  #seatOf(userId: string | null, roster: Seat[]): number | null {
+    if (userId === null) return null;
+    return roster.find((s) => s.userId === userId)?.playerIndex ?? null;
+  }
+
+  /** Project a commit's frames onto the wire, keyed by seat. */
+  #wireFrames(frames: ObservationFrame[], next: StateRow, outcomes: OutcomeEntry[] | null): Map<number, FrameMessage> {
+    const out = new Map<number, FrameMessage>();
+    for (const frame of frames) {
+      out.set(frame.playerIndex, {
+        type: "frame",
+        version: next.version,
+        data: frame.data,
+        pendingPlayers: frame.pendingPlayers,
+        deadline: next.deadline,
+        playerTimes: next.playerTimes,
+        ...(outcomes !== null ? { outcomes } : {}),
+      });
+    }
+    return out;
+  }
+
+  /** Push the post-commit snapshot to every socket, each getting the frame of
+   * the seat its own principal holds and nothing else.
+   *
+   * This is where hidden information is enforced on the live path: the seat is
+   * resolved from the socket's authenticated attachment against the roster at
+   * send time, so a socket opened before its user was seated starts receiving
+   * that seat's view the moment it is, with no re-tagging, and a socket holding
+   * no seat receives the envelope with `frame: null`. */
+  #broadcast(header: Omit<SessionSnapshot, "frame">, frames: Map<number, FrameMessage>, roster: Seat[]): void {
+    const unseated = JSON.stringify({ ...header, frame: null } satisfies SessionSnapshot);
+    const bySeat = new Map<number, string>();
     for (const ws of this.ctx.getWebSockets()) {
       const attachment = ws.deserializeAttachment() as SocketAttachment | null;
-      if (attachment?.userId !== null && attachment?.userId === owner.userId) {
-        try {
-          ws.send(payload);
-        } catch {
-          // A dead socket is the client's reconnect problem; frames are
-          // recoverable by range fetch.
-        }
+      const seat = this.#seatOf(attachment?.userId ?? null, roster);
+      const frame = seat === null ? undefined : frames.get(seat);
+      let payload = unseated;
+      if (seat !== null && frame !== undefined) {
+        payload = bySeat.get(seat) ?? JSON.stringify({ ...header, frame } satisfies SessionSnapshot);
+        bySeat.set(seat, payload);
+      }
+      try {
+        ws.send(payload);
+      } catch {
+        // A dead socket is the client's reconnect problem: the open snapshot
+        // states the truth again, and frames are recoverable by range fetch.
       }
     }
   }
 
-  /** Push an unversioned roster snapshot to EVERY socket, seated or
-   * not, it is public lobby information and idempotent by construction. */
-  #broadcast(snapshot: RosterSnapshot): void {
-    const payload = JSON.stringify(snapshot);
+  /** Push one already-built snapshot to every socket. Only correct where the
+   * value carries no per-seat frame, which is the abort teardown. */
+  #sendToAll(session: SessionSnapshot): void {
+    const payload = JSON.stringify(session);
     for (const ws of this.ctx.getWebSockets()) {
       try {
         ws.send(payload);
       } catch {
-        // Dead socket; reconnect gets the current snapshot on open.
+        // Dead socket; nothing to recover, the game is over.
       }
     }
-  }
-
-  #wireFrame(frame: ObservationFrame, next: StateRow, outcomes: OutcomeEntry[] | null): FrameMessage {
-    return {
-      type: "frame",
-      version: next.version,
-      data: frame.data,
-      pendingPlayers: frame.pendingPlayers,
-      deadline: next.deadline,
-      playerTimes: next.playerTimes,
-      ...(outcomes !== null ? { outcomes } : {}),
-    };
   }
 
   // ── Range fetch: live gap recovery AND finished-game replay ────────
@@ -948,6 +1048,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
             maxPlayers: row.maxPlayers,
             createdBy: row.createdBy,
             rngSeed: null,
+            shortCode: row.shortCode,
+            outcomes: row.outcomes,
+            seq: 0,
           })
           .run();
         for (const seat of row.participants) {

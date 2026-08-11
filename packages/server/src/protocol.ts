@@ -7,7 +7,7 @@
  */
 
 import type { GameStatus, RatingDelta, RejectCode, Seat } from "@eigeninteractive/kernel";
-import type { JsonObject, LifecycleType, OutcomeEntry } from "@eigeninteractive/rules";
+import type { GameAccess, JsonObject, LifecycleType, OutcomeEntry } from "@eigeninteractive/rules";
 
 /** Re-exported from the kernel, where rating math and its shapes live. */
 export type { RatingDelta };
@@ -76,13 +76,59 @@ export type LobbyRejectCode =
   /** The creator cannot leave; they cancel instead. */
   | "creatorCannotLeave";
 
-/** The unversioned pre-game snapshot: pushed to every socket on any
- * roster change, idempotent, so a reconnect just gets the current one. Also the
- * response body of an accepted waiting-room command. */
-export interface RosterSnapshot {
-  type: "roster";
+/**
+ * The complete live truth about one game, as ONE SEAT sees it: the only message
+ * the socket carries, and the body of every accepted command.
+ *
+ * Sent on socket open whatever the status, and after every committed change,
+ * lobby or state. Self-describing and idempotent: a client that applies the
+ * newest one it has seen is correct, having missed any number of earlier ones,
+ * so there is no state for it to reconstruct and no channel for it to correlate
+ * against another.
+ *
+ * It carries the immutable header as well as the moving parts because a game
+ * screen must not need a second source. That is what the old split cost: status
+ * lived only in a D1 read nothing re-issued, so a client could observe a frame
+ * without the status it belonged to, and never learned a game had started.
+ *
+ * Hidden information is safe by construction: the envelope is projected per seat
+ * before it is sent, and `frame` is only ever the receiving principal's own
+ * seat's view.
+ */
+export interface SessionSnapshot {
+  type: "session";
+  /** Monotonic per game, incremented by every commit. Totally orders snapshots
+   * across every path they arrive by, which `version` cannot do because a lobby
+   * change has none. Apply a snapshot when `seq` exceeds the held one, OR when
+   * it reports a terminal status the held state does not: `finished` and
+   * `aborted` are absorbing, so they need no ordering, and the abort teardown
+   * drops the storage `seq` lived in. */
+  seq: number;
+
+  /** Fixed at creation; carried so this is sufficient on its own. */
+  gameId: string;
+  shortCode: string;
+  access: GameAccess;
+  schemaVersion: number;
+  config: JsonObject;
+  turnSeconds: number | null;
+  budgetSeconds: number | null;
+  incrementSeconds: number | null;
+  rated: boolean;
+  ratingPool: string | null;
+  minPlayers: number;
+  maxPlayers: number;
+  createdBy: string | null;
+
+  /** What moves. */
   status: GameStatus;
   players: Seat[];
+  /** The newest committed version, or null while the game is in the lobby. */
+  version: number | null;
+  /** The receiving seat's observation at `version`. Null in the lobby, and null
+   * for a principal holding no seat, which is how an unseated client still
+   * learns that the game started. */
+  frame: FrameMessage | null;
 }
 
 /** One seat's versioned frame on the wire: the socket fan-out payload, and
@@ -100,28 +146,16 @@ export interface FrameMessage {
   ratings?: RatingDelta[];
 }
 
-/** Sent once, on a mid-game socket open, saying where the game currently is.
+/** What `GameDO.handle()` returns: one accepted shape for every command kind,
+ * the caller's own post-commit {@link SessionSnapshot}, so a lobby command and a
+ * move answer with the same value and the client feeds both into one path.
  *
- * The pre-game equivalent is the {@link RosterSnapshot} that rides the open;
- * from v0 onward the roster is frozen, so this carries the one thing that does
- * still move: the newest committed version.
- *
- * It exists so a client can reconcile in one step instead of guessing. A cold
- * open learns which version to load without replaying the whole game, and a
- * reconnect can compare against its own cursor and skip the catch-up fetch
- * entirely when nothing was missed, the common case on a flaky connection,
- * where reconnects are frequent but usually miss nothing. */
-export interface SyncMessage {
-  type: "sync";
-  version: number;
-}
-
-/** What `GameDO.handle()` returns; accepted results are stored for commandId
- * dedupe and replayed verbatim to a retry. Rejections are computed
- * fresh each time, since re-evaluating one is always sound. State-transitioning
- * commands answer with a version (+ the acting seat's frame); waiting-room
- * commands answer with the post-commit roster snapshot. */
-export type CommandResult = { ok: true; version: number; frame: FrameMessage | null } | { ok: true; roster: RosterSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
+ * Accepted results are stored for commandId dedupe and replayed verbatim to a
+ * retry, which means a retry receives the snapshot as it was at first execution.
+ * That is harmless rather than stale: `seq` orders it against whatever the
+ * client now holds, so an older one is simply discarded. Rejections are computed
+ * fresh each time, since re-evaluating one is always sound. */
+export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
 
 /** The DO surface the worker calls: structurally the RPC stub of any
  * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
@@ -129,6 +163,10 @@ export type CommandResult = { ok: true; version: number; frame: FrameMessage | n
  * factory. */
 export interface GameStub {
   handle(cmd: Command): Promise<CommandResult>;
+  /** The current snapshot for one principal, for the paths with no socket: a
+   * cold HTTP read, a deep-link preview, a spectator. Null when no such game
+   * exists. `userId` null means "no seat", which yields `frame: null`. */
+  session(gameId: string, userId: string | null): Promise<SessionSnapshot | null>;
   frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
   repokeFinish(): Promise<boolean>;
   /** Unconditional teardown: mark the game aborted, drop DO storage.

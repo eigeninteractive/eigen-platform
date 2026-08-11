@@ -38,23 +38,25 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   const { gameId } = (await created.json()) as { gameId: string };
 
   const joined = await api(BOB, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
-  expect((await joined.json()) as object).toMatchObject({ roster: { status: "ready" } });
+  // Every accepted command answers with the caller's own session, so a join, a
+  // start and a move are all read the same way.
+  expect((await joined.json()) as object).toMatchObject({ session: { status: "ready", version: null } });
 
   // No mirror wait: the DO seats Bob on the join command and verifies the
   // seat each client sends against its own roster, so Bob can act the
   // moment his join returns.
   const started = await api(ALICE, "POST", `/games/${gameId}/start`, {});
-  expect(await started.json()).toMatchObject({ version: 0 });
+  expect(await started.json()).toMatchObject({ session: { status: "active", version: 0 } });
 
   // Both seats commit against v0. The second arrives stale, and lands,
   // because RPS masks the opponent's hidden commit (same-view rule).
   const rock = await api(ALICE, "POST", `/games/${gameId}/action`, { seat: 0, data: { move: "rock" }, expectedVersion: 0 });
-  expect(await rock.json()).toMatchObject({ version: 1 });
+  expect(await rock.json()).toMatchObject({ session: { version: 1 } });
 
   const scissors = await api(BOB, "POST", `/games/${gameId}/action`, { seat: 1, data: { move: "scissors" }, expectedVersion: 0 });
-  const resolved = (await scissors.json()) as { version: number; frame: { outcomes?: unknown[] } };
-  expect(resolved).toMatchObject({ version: 2 });
-  expect(resolved.frame.outcomes).toHaveLength(2);
+  const resolved = (await scissors.json()) as { session: { version: number; status: string; frame: { outcomes?: unknown[] } } };
+  expect(resolved).toMatchObject({ session: { version: 2, status: "finished" } });
+  expect(resolved.session.frame.outcomes).toHaveLength(2);
 
   // The finish apply lands in D1 (single attempt, post-commit). `readGameRow`
   // is the engine's own accessor; the D1 table definitions are internal.

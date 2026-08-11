@@ -18,7 +18,7 @@ import { HttpError, unwrap } from "../http.js";
 import { gameInvitePush } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
-import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, joinedShape, lobbyAcceptedShape, lobbyCommandBody, soloStartedShape } from "./wire.js";
+import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, lobbyCommandBody, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
 
@@ -48,20 +48,11 @@ function createdResponses<T extends z.ZodType>(schema: T, description: string) {
 
 const gameIdParam = z.object({ gameId: z.string().min(1) });
 
-/** Narrow an accepted result to the lobby (roster) variant, stripping the
- * internal `ok` discriminator; success is the HTTP 200, not a body field. */
-function lobbyResult(result: CommandResult) {
-  const value = unwrap(result);
-  if (!("roster" in value)) throw new HttpError(500, "engine bug: expected a roster response");
-  return { roster: value.roster };
-}
-
-/** Narrow an accepted result to the versioned (frame) variant, stripping the
- * internal `ok` discriminator; success is the HTTP 200, not a body field. */
+/** Strip the internal `ok` discriminator from an accepted result; success is the
+ * HTTP 200, not a body field. One helper for every command kind, because they
+ * all answer with the caller's session now. */
 function commandResult(result: CommandResult) {
-  const value = unwrap(result);
-  if (!("version" in value)) throw new HttpError(500, "engine bug: expected a versioned response");
-  return { version: value.version, frame: value.frame };
+  return { session: unwrap(result).session };
 }
 
 function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
@@ -316,13 +307,15 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
       // commits v0; a bot due to open plays via its in-DO brain post-commit
-      // (arriving over the socket). A start has no single acting seat, so its
-      // response carries no frame, so read the creator's opening projection back
-      // so the client has the initial board without a round trip.
+      // (arriving over the socket). A start has no single acting seat, so the
+      // committed response carries no frame; read the creator's session back so
+      // the client has the opening board without a round trip. The game is
+      // already running before any socket exists, so this is its only delivery.
       const stub = ctx.stub(c.env, gameId);
-      const started = commandResult(await stub.handle(mint(auth, "start", gameId, undefined)));
-      const [frame] = await stub.frames({ seat: 0, from: started.version, to: started.version });
-      return c.json({ gameId, shortCode, version: started.version, frame: frame ?? null }, 201);
+      unwrap(await stub.handle(mint(auth, "start", gameId, undefined)));
+      const session = await stub.session(gameId, auth.user.id);
+      if (session === null) throw new HttpError(500, "engine bug: started game has no session");
+      return c.json({ session }, 201);
     },
   );
 
@@ -350,7 +343,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
       throw new HttpError(404, "Unknown game", "unknownGame");
     }
-    return lobbyResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
+    return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
   };
 
   app.openapi(
@@ -360,13 +353,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(joinBody) },
-      responses: responses(joinedShape, "Seated: the game's id and the post-join roster"),
+      responses: responses(commandAcceptedShape, "Seated: the post-join session"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
       const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
-      return c.json({ gameId: game.id, ...seated }, 200);
+      return c.json(seated, 200);
     },
   );
 
@@ -377,14 +370,14 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "joinGameByCode",
       tags: ["Games"],
       request: { body: jsonBody(joinByCodeBody) },
-      responses: responses(joinedShape, "Seated: the game's id and the post-join roster"),
+      responses: responses(commandAcceptedShape, "Seated: the post-join session"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.shortCode.toUpperCase());
       if (game === undefined) throw new HttpError(404, "No game with that code", "unknownGame");
       const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
-      return c.json({ gameId: game.id, ...seated }, 200);
+      return c.json(seated, 200);
     },
   );
 
@@ -395,12 +388,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "leaveGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
-      responses: responses(lobbyAcceptedShape, "Left: the post-leave roster"),
+      responses: responses(commandAcceptedShape, "Left: the post-leave session"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
       const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, c.req.valid("json").commandId));
-      return c.json(lobbyResult(result), 200);
+      return c.json(commandResult(result), 200);
     },
   );
 
@@ -411,12 +404,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "cancelGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
-      responses: responses(lobbyAcceptedShape, "Cancelled"),
+      responses: responses(commandAcceptedShape, "Cancelled"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
       const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, c.req.valid("json").commandId));
-      return c.json(lobbyResult(result), 200);
+      return c.json(commandResult(result), 200);
     },
   );
 
@@ -431,7 +424,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "addBot",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(addBotBody) },
-      responses: responses(lobbyAcceptedShape, "Bot seated: the new roster"),
+      responses: responses(commandAcceptedShape, "Bot seated: the post-commit session"),
     }),
     async (c) => {
       const auth = c.var.auth;
@@ -442,7 +435,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
       const cmd: Command = { kind: "add-bot", gameId, commandId: body.commandId ?? crypto.randomUUID(), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
-      return c.json(lobbyResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
+      return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
   );
 
@@ -453,7 +446,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "startGame",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
-      responses: responses(commandAcceptedShape, "Started: version 0 committed"),
+      responses: responses(commandAcceptedShape, "Started: the session at version 0"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
@@ -473,7 +466,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "submitAction",
       tags: ["Games"],
       request: { params: gameIdParam, body: jsonBody(actionBody) },
-      responses: responses(commandAcceptedShape, "Committed: the acting seat's frame"),
+      responses: responses(commandAcceptedShape, "Committed: the acting seat's session"),
     }),
     async (c) => {
       const body = c.req.valid("json");

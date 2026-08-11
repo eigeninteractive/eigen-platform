@@ -16,6 +16,7 @@ Method | HTTP request | Description
 [**forfeitGame**](GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
 [**getFrames**](GamesApi.md#getframes) | **GET** /api/engine/games/{gameId}/frames | 
 [**getGame**](GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
+[**getGameSession**](GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [**getLobby**](GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
 [**getMyGames**](GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [**joinGame**](GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
@@ -26,7 +27,7 @@ Method | HTTP request | Description
 
 
 # **addBot**
-> LobbyAccepted addBot(gameId, addBot)
+> CommandAccepted addBot(gameId, addBot)
 
 
 
@@ -55,7 +56,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**LobbyAccepted**](LobbyAccepted.md)
+[**CommandAccepted**](CommandAccepted.md)
 
 ### Authorization
 
@@ -69,7 +70,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **cancelGame**
-> LobbyAccepted cancelGame(gameId, lobbyCommand)
+> CommandAccepted cancelGame(gameId, lobbyCommand)
 
 
 
@@ -98,7 +99,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**LobbyAccepted**](LobbyAccepted.md)
+[**CommandAccepted**](CommandAccepted.md)
 
 ### Authorization
 
@@ -322,6 +323,47 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getGameSession**
+> Session getGameSession(gameId)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
+final String gameId = gameId_example; // String | 
+
+try {
+    final response = api.getGameSession(gameId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->getGameSession: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **gameId** | **String**|  | 
+
+### Return type
+
+[**Session**](Session.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **getLobby**
 > Lobby getLobby(limit, cursor)
 
@@ -411,7 +453,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **joinGame**
-> Joined joinGame(gameId, join)
+> CommandAccepted joinGame(gameId, join)
 
 
 
@@ -440,7 +482,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Joined**](Joined.md)
+[**CommandAccepted**](CommandAccepted.md)
 
 ### Authorization
 
@@ -454,7 +496,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **joinGameByCode**
-> Joined joinGameByCode(joinByCode)
+> CommandAccepted joinGameByCode(joinByCode)
 
 
 
@@ -481,7 +523,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**Joined**](Joined.md)
+[**CommandAccepted**](CommandAccepted.md)
 
 ### Authorization
 
@@ -495,7 +537,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **leaveGame**
-> LobbyAccepted leaveGame(gameId, lobbyCommand)
+> CommandAccepted leaveGame(gameId, lobbyCommand)
 
 
 
@@ -524,7 +566,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**LobbyAccepted**](LobbyAccepted.md)
+[**CommandAccepted**](CommandAccepted.md)
 
 ### Authorization
 

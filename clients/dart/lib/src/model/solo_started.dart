@@ -3,7 +3,7 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:eigen_api/src/model/frame.dart';
+import 'package:eigen_api/src/model/session.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'solo_started.g.dart';
@@ -16,40 +16,18 @@ part 'solo_started.g.dart';
 )
 class SoloStarted {
   /// Returns a new [SoloStarted] instance.
-  SoloStarted({
-    required this.gameId,
+  SoloStarted({required this.session});
 
-    required this.shortCode,
-
-    required this.version,
-
-    required this.frame,
-  });
-
-  @JsonKey(name: r'gameId', required: true, includeIfNull: false)
-  final String gameId;
-
-  @JsonKey(name: r'shortCode', required: true, includeIfNull: false)
-  final String shortCode;
-
-  @JsonKey(name: r'version', required: true, includeIfNull: false)
-  final int version;
-
-  @JsonKey(name: r'frame', required: true, includeIfNull: false)
-  final Frame frame;
+  @JsonKey(name: r'session', required: true, includeIfNull: false)
+  final Session session;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SoloStarted &&
-          other.gameId == gameId &&
-          other.shortCode == shortCode &&
-          other.version == version &&
-          other.frame == frame;
+      other is SoloStarted && other.session == session;
 
   @override
-  int get hashCode =>
-      gameId.hashCode + shortCode.hashCode + version.hashCode + frame.hashCode;
+  int get hashCode => session.hashCode;
 
   factory SoloStarted.fromJson(Map<String, dynamic> json) =>
       _$SoloStartedFromJson(json);

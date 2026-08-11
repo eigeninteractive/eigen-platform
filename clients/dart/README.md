@@ -87,6 +87,7 @@ Class | Method | HTTP request | Description
 [*GamesApi*](doc/GamesApi.md) | [**forfeitGame**](doc/GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
 [*GamesApi*](doc/GamesApi.md) | [**getFrames**](doc/GamesApi.md#getframes) | **GET** /api/engine/games/{gameId}/frames | 
 [*GamesApi*](doc/GamesApi.md) | [**getGame**](doc/GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
+[*GamesApi*](doc/GamesApi.md) | [**getGameSession**](doc/GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [*GamesApi*](doc/GamesApi.md) | [**getLobby**](doc/GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
 [*GamesApi*](doc/GamesApi.md) | [**getMyGames**](doc/GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [*GamesApi*](doc/GamesApi.md) | [**joinGame**](doc/GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
@@ -149,9 +150,7 @@ Class | Method | HTTP request | Description
  - [Health](doc/Health.md)
  - [Join](doc/Join.md)
  - [JoinByCode](doc/JoinByCode.md)
- - [Joined](doc/Joined.md)
  - [Lobby](doc/Lobby.md)
- - [LobbyAccepted](doc/LobbyAccepted.md)
  - [LobbyCommand](doc/LobbyCommand.md)
  - [MyGames](doc/MyGames.md)
  - [Outcome](doc/Outcome.md)
@@ -165,8 +164,8 @@ Class | Method | HTTP request | Description
  - [RatingHistoryEntry](doc/RatingHistoryEntry.md)
  - [RatingIdentity](doc/RatingIdentity.md)
  - [Ratings](doc/Ratings.md)
- - [Roster](doc/Roster.md)
  - [Seat](doc/Seat.md)
+ - [Session](doc/Session.md)
  - [SoloStarted](doc/SoloStarted.md)
  - [UserSearch](doc/UserSearch.md)
  - [UsernameUpdate](doc/UsernameUpdate.md)

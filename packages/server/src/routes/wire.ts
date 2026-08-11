@@ -131,43 +131,54 @@ export const frameShape = z
   })
   .openapi("Frame");
 
-export const rosterShape = z
+/** The complete live truth about one game as one seat sees it: the only message
+ * the socket carries, and the body of every accepted command.
+ *
+ * One shape for every path a client can learn about a game, which is the point.
+ * It carries the immutable header as well as the moving parts so a game screen
+ * needs no second source, and `frame` is only ever the receiving seat's own view,
+ * projected before send. Ordered by `seq` rather than `version`, because a lobby
+ * change has no version. */
+export const sessionShape = z
   .object({
-    type: z.literal("roster"),
+    type: z.literal("session"),
+    seq: z.number().int(),
+    gameId: z.string(),
+    shortCode: z.string(),
+    access: gameAccessShape,
+    schemaVersion: z.number().int(),
+    config: jsonObjectShape,
+    turnSeconds: z.number().int().nullable(),
+    budgetSeconds: z.number().int().nullable(),
+    incrementSeconds: z.number().int().nullable(),
+    rated: z.boolean(),
+    ratingPool: z.string().nullable(),
+    minPlayers: z.number().int(),
+    maxPlayers: z.number().int(),
+    createdBy: z.string().nullable(),
     status: gameStatusShape,
     players: z.array(seatShape),
+    /** Null while the game is in the lobby. */
+    version: z.number().int().nullable(),
+    /** Null in the lobby, and for a caller holding no seat.
+     *
+     * Spelled as a union with `z.null()` rather than `.nullable()` because a
+     * nullable `$ref` loses its null branch on the way into the OpenAPI
+     * document: the emitter resolves it to a bare `$ref`, and the generated Dart
+     * then types the field non-nullable and throws parsing a lobby session,
+     * which is the common case. A union emits `anyOf: [$ref, {type: null}]`,
+     * which survives. */
+    frame: z.union([frameShape, z.null()]),
   })
-  .openapi("Roster");
+  .openapi("Session");
 
-/** An accepted state-transitioning command: the committed version, plus the
- * acting seat's own frame riding the response. */
+/** Every accepted command answers with the caller's own post-commit session, so
+ * a join, a start and a move are one client path rather than three. */
 export const commandAcceptedShape = z
   .object({
-    version: z.number().int(),
-    frame: frameShape.nullable(),
+    session: sessionShape,
   })
   .openapi("CommandAccepted");
-
-/** An accepted waiting-room command: the post-commit roster snapshot. */
-export const lobbyAcceptedShape = z
-  .object({
-    roster: rosterShape,
-  })
-  .openapi("LobbyAccepted");
-
-/** An accepted join, by id or by short code.
- *
- * Both forms answer identically; they are the same operation from the caller's
- * side ("seat me in this game"), and only differ in how the game was named. The
- * id is echoed rather than assumed because the by-code caller never had it, and
- * a single shape means one client path from either entry point instead of two
- * that happen to agree. */
-export const joinedShape = z
-  .object({
-    gameId: z.string(),
-    roster: rosterShape,
-  })
-  .openapi("Joined");
 
 export const gameSummaryShape = z
   .object({
@@ -311,7 +322,9 @@ export const createSoloBody = z
 
 /** The started solo game: its ids plus the caller's committed v0 frame (the
  * same ride-along an action response carries). */
-export const soloStartedShape = z.object({ gameId: z.string(), shortCode: z.string(), version: z.number().int(), frame: frameShape.nullable() }).openapi("SoloStarted");
+/** A created-and-started solo game. The session is the only delivery of its
+ * opening frame: the game is already running before any socket exists. */
+export const soloStartedShape = z.object({ session: sessionShape }).openapi("SoloStarted");
 
 /** Client retries reuse the same commandId, so the DO replays the stored
  * response instead of re-executing. */

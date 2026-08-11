@@ -42,12 +42,20 @@ interface Created {
   gameId: string;
   shortCode: string;
 }
-interface LobbyOk {
-  roster: { type: "roster"; status: string; players: { playerIndex: number; userId: string | null; botId: string | null; type: string }[] };
+interface Session {
+  type: "session";
+  seq: number;
+  gameId: string;
+  status: string;
+  version: number | null;
+  players: { playerIndex: number; userId: string | null; botId: string | null; type: string }[];
+  shortCode: string;
+  frame: { version: number; data: Record<string, unknown>; pendingPlayers: number[]; outcomes?: unknown[]; ratings?: unknown[] } | null;
 }
+/** Every accepted command answers with the caller's own session, so the lobby
+ * and the play paths share one alias where they used to need two. */
 interface CommandOk {
-  version: number;
-  frame: { version: number; data: Record<string, unknown>; pendingPlayers: number[]; outcomes?: unknown[] } | null;
+  session: Session;
 }
 
 const createBody = { access: "public" as const, schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2 };
@@ -129,9 +137,10 @@ describe("waiting room", () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
-    const joined = await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
-    expect(joined.roster.status).toBe("ready");
-    expect(joined.roster.players.map((p) => p.userId)).toEqual([u.a, u.b]);
+    const joined = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    expect(joined.session.status).toBe("ready");
+    expect(joined.session.players.map((p) => p.userId)).toEqual([u.a, u.b]);
+    expect(joined.session.version).toBeNull();
 
     const dup = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
     expect(dup.status).toBe(409);
@@ -149,8 +158,8 @@ describe("waiting room", () => {
     expect(old.status).toBe(409);
     expect(((await old.json()) as { code: string }).code).toBe("schemaUnsupported");
 
-    const joined = await json<LobbyOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersion: 1 }));
-    expect(joined.roster.players).toHaveLength(2);
+    const joined = await json<CommandOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersion: 1 }));
+    expect(joined.session.players).toHaveLength(2);
     expect((await db.select().from(participants).where(eq(participants.gameId, gameId)).all()).length).toBeGreaterThanOrEqual(1);
   });
 
@@ -163,14 +172,14 @@ describe("waiting room", () => {
   it("leave compacts and demotes below minPlayers; the creator cannot leave", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
-    await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
 
     const creator = await api(u.a, "POST", `/games/${gameId}/leave`, {});
     expect(((await creator.json()) as { code: string }).code).toBe("creatorCannotLeave");
 
-    const left = await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/leave`, {}));
-    expect(left.roster.status).toBe("waiting");
-    expect(left.roster.players).toEqual([{ playerIndex: 0, userId: u.a, botId: null, type: "human" }]);
+    const left = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/leave`, {}));
+    expect(left.session.status).toBe("waiting");
+    expect(left.session.players).toEqual([{ playerIndex: 0, userId: u.a, botId: null, type: "human" }]);
 
     await vi.waitFor(async () => {
       const rows = await db.select().from(participants).where(eq(participants.gameId, gameId)).all();
@@ -183,8 +192,8 @@ describe("waiting room", () => {
     const { gameId } = await createGame(u.a, { rated: false });
     expect((await api(u.b, "POST", `/games/${gameId}/cancel`, {})).status).toBe(403);
 
-    const cancelled = await json<LobbyOk>(await api(u.a, "POST", `/games/${gameId}/cancel`, {}));
-    expect(cancelled.roster.status).toBe("aborted");
+    const cancelled = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/cancel`, {}));
+    expect(cancelled.session.status).toBe("aborted");
 
     const detail = await json<{ status: string; participants: unknown[] }>(await api(u.a, "GET", `/games/${gameId}`));
     expect(detail.status).toBe("aborted");
@@ -208,18 +217,19 @@ describe("waiting room", () => {
     const early = await api(u.a, "POST", `/games/${gameId}/start`, {});
     expect(early.status).toBe(409); // waiting, not ready
 
-    await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     expect((await api(u.b, "POST", `/games/${gameId}/start`, {})).status).toBe(403);
 
     const started = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
-    expect(started.version).toBe(0);
+    expect(started.session.version).toBe(0);
+    expect(started.session.status).toBe("active");
   });
 });
 
 describe("active play & frames", () => {
   async function readyGame(u: ReturnType<typeof makeUsers>, overrides: Record<string, unknown> = {}) {
     const { gameId } = await createGame(u.a, overrides);
-    await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     // No mirror wait: the DO resolves seats from its own roster, so the
     // joiner can act the moment the join response lands.
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
@@ -231,8 +241,8 @@ describe("active play & frames", () => {
     const gameId = await readyGame(u, { rated: false });
 
     const a1 = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
-    expect(a1.version).toBe(1);
-    expect(a1.frame?.data).toEqual({ count: 1 });
+    expect(a1.session.version).toBe(1);
+    expect(a1.session.frame?.data).toEqual({ count: 1 });
 
     // A non-participant naming a seat they don't hold is a clean 403.
     expect((await api(u.c, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 1 }, expectedVersion: 1 })).status).toBe(403);
@@ -247,7 +257,8 @@ describe("active play & frames", () => {
 
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 2 }, expectedVersion: 0 }));
     const finish = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 2 }, expectedVersion: 1 }));
-    expect(finish.frame?.outcomes).toBeDefined();
+    expect(finish.session.frame?.outcomes).toBeDefined();
+    expect(finish.session.status).toBe("finished");
 
     await vi.waitFor(async () => {
       const detail = await json<{ status: string; outcomes: unknown[] | null }>(await api(u.a, "GET", `/games/${gameId}`));
@@ -281,7 +292,7 @@ describe("active play & frames", () => {
     const u = makeUsers();
     const gameId = await readyGame(u, { rated: false });
     const result = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/forfeit`, { seat: 1 }));
-    expect(result.frame?.outcomes).toBeDefined();
+    expect(result.session.frame?.outcomes).toBeDefined();
   });
 
   it("keeps frames private: a non-participant cannot read an active game", async () => {
@@ -291,7 +302,7 @@ describe("active play & frames", () => {
   });
 });
 
-describe("socket (roster snapshots → frames)", () => {
+describe("socket (session snapshots)", () => {
   it("accepts the configured browser origin and rejects an unknown one", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
@@ -326,7 +337,7 @@ describe("socket (roster snapshots → frames)", () => {
     expect(res.status).toBe(101);
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
-    const messages: { type: string; status?: string; players?: unknown[]; version?: number }[] = [];
+    const messages: Session[] = [];
     ws.addEventListener("message", (event: MessageEvent) => {
       messages.push(JSON.parse(event.data as string));
     });
@@ -334,19 +345,22 @@ describe("socket (roster snapshots → frames)", () => {
 
     // Pre-join, pre-start: the current snapshot rides the open.
     await vi.waitFor(() => expect(messages).toHaveLength(1));
-    expect(messages[0]).toMatchObject({ type: "roster", status: "waiting" });
+    expect(messages[0]).toMatchObject({ type: "session", status: "waiting", version: null, frame: null });
     expect(messages[0]?.players).toHaveLength(1);
 
     // Joining pushes the new snapshot to every socket, including this one,
     // whose principal just became seat 1.
-    await json<LobbyOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     await vi.waitFor(() => expect(messages).toHaveLength(2));
-    expect(messages[1]).toMatchObject({ type: "roster", status: "ready" });
+    expect(messages[1]).toMatchObject({ type: "session", status: "ready" });
 
     // Start: v0 fan-out reaches the seat through the SAME socket.
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
     await vi.waitFor(() => expect(messages).toHaveLength(3));
-    expect(messages[2]).toMatchObject({ type: "frame", version: 0 });
+    // The status and the opening frame arrive as one value, which is what makes
+    // a waiting room that never learns the game started impossible.
+    expect(messages[2]).toMatchObject({ type: "session", status: "active", version: 0 });
+    expect(messages[2]?.frame).toMatchObject({ version: 0 });
     ws.close();
   });
 });
@@ -395,15 +409,16 @@ describe("bots", () => {
 
   it("plays a human-vs-bot solo game through the in-DO brain", async () => {
     const u = makeUsers();
-    const solo = await json<{ gameId: string; version: number; frame: { data: { count: number } } | null }>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
-    expect(solo.version).toBe(0);
-    expect(solo.frame?.data.count).toBe(0);
+    const solo = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
+    expect(solo.session.version).toBe(0);
+    expect(solo.session.status).toBe("active");
+    expect(solo.session.frame?.data.count).toBe(0);
 
     // The human opens (v1); the bot answers via its in-DO brain (add 1),
     // committing v2 with no second client involved.
-    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.session.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
     await vi.waitFor(async () => {
-      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.gameId}/frames?from=0&to=10`));
+      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.session.gameId}/frames?from=0&to=10`));
       expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);
     });
   });
@@ -433,13 +448,13 @@ describe("bots", () => {
     // An external bot: its webhook_url means the DO wakes it instead of running
     // an in-DO brain. The wake is intercepted (202) in beforeAll; the move
     // arrives here on bot/action.
-    const solo = await json<{ gameId: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
+    const solo = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
     // Human opens (v1); now seat 1 (the external bot) is due.
-    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.session.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
 
     // The bot signs the EXACT body bytes it sends and carries the signature in
     // the Eigen-Signature header, bound to the `action` domain.
-    const body = JSON.stringify({ botId: EXTERNAL, gameId: solo.gameId, playerIndex: 1, version: 1, data: { add: 1 } });
+    const body = JSON.stringify({ botId: EXTERNAL, gameId: solo.session.gameId, playerIndex: 1, version: 1, data: { add: 1 } });
     const good = await exports.default.fetch("https://x/api/bot/action", {
       method: "POST",
       headers: { "content-type": "application/json", "eigen-signature": await signForBot(BOT_SECRET, EXTERNAL, "action", body) },
@@ -447,7 +462,7 @@ describe("bots", () => {
     });
     expect(good.status).toBe(204);
     await vi.waitFor(async () => {
-      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.gameId}/frames?from=0&to=10`));
+      const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.session.gameId}/frames?from=0&to=10`));
       expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);
     });
 
@@ -475,10 +490,10 @@ describe("bots", () => {
 
     // Sign a body with the derived key alone, no master secret in sight.
     const u = makeUsers();
-    const solo = await json<{ gameId: string }>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
-    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
+    const solo = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(EXTERNAL)), 201);
+    await json<CommandOk>(await api(u.a, "POST", `/games/${solo.session.gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }));
 
-    const body = JSON.stringify({ botId: EXTERNAL, gameId: solo.gameId, playerIndex: 1, version: 1, data: { add: 1 } });
+    const body = JSON.stringify({ botId: EXTERNAL, gameId: solo.session.gameId, playerIndex: 1, version: 1, data: { add: 1 } });
     const ownerKey = await crypto.subtle.importKey("raw", Uint8Array.fromBase64(derived) as BufferSource, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const sig = new Uint8Array(await crypto.subtle.sign("HMAC", ownerKey, new TextEncoder().encode(`action:${body}`))).toBase64();
 
