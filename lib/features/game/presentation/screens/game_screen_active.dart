@@ -10,14 +10,14 @@ part of 'game_screen.dart';
 /// observation updates rebuild only this widget, not the parent [_GameBody].
 class _ActiveGameContent extends ConsumerWidget {
   const _ActiveGameContent({
-    required this.game,
+    required this.session,
     required this.isSubmittingAction,
     required this.isForfeiting,
     required this.onAction,
     required this.onForfeit,
   });
 
-  final GameSummary game;
+  final GameSession session;
   final bool isSubmittingAction;
   final bool isForfeiting;
   final Future<ActionSubmitResult> Function(Map<String, dynamic>, int) onAction;
@@ -28,7 +28,9 @@ class _ActiveGameContent extends ConsumerWidget {
     // gameConfigProvider (data layer) is the single authority on whether this
     // build can load the game; here we only render its verdict. A game from
     // a newer build surfaces as UnsupportedGameSchemaException.
-    final configAsync = ref.watch(gameConfigProvider(gameId: game.id));
+    final configAsync = ref.watch(
+      gameConfigProvider(gameId: session.snapshot.gameId),
+    );
     if (configAsync.error is UnsupportedGameSchemaException) {
       return const _UpdateRequiredContent();
     }
@@ -36,8 +38,12 @@ class _ActiveGameContent extends ConsumerWidget {
     final config = configAsync.value;
     // Resolved before the config (the config provider awaits it), so a
     // non-null config implies non-null rules.
-    final rules = ref.watch(gameRulesProvider(gameId: game.id)).value;
-    final gamePlayersAsync = ref.watch(gamePlayersProvider(gameId: game.id));
+    final rules = ref
+        .watch(gameRulesProvider(gameId: session.snapshot.gameId))
+        .value;
+    final gamePlayersAsync = ref.watch(
+      gamePlayersProvider(gameId: session.snapshot.gameId),
+    );
 
     // Essentials that don't depend on the live observation stream come first,
     // so a non-participant (who has no frame stream) can be handled before we
@@ -53,31 +59,28 @@ class _ActiveGameContent extends ConsumerWidget {
     // Offer the replay (finished) or a wait message (active) instead.
     final mySeat = gamePlayers.mySeat;
     if (mySeat is! Seated) {
-      return _NonParticipantContent(game: game);
+      return _NonParticipantContent(game: session.snapshot);
     }
     final mySeatIndex = mySeat.index;
 
-    final frame = ref.watch(gameFrameProvider(gameId: game.id));
+    final frame = ref.watch(gameFrameProvider(gameId: session.snapshot.gameId));
     if (frame == null || frame.observation == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Outcomes are fetched once when the game finishes (invalidated by the
-    // gameRosterProvider listener in _GameScreenState). Empty list for active
-    // games, where no outcome rows exist yet.
-    final outcomes =
-        ref
-            .watch(gameOutcomesProvider(gameId: game.id))
-            .whenOrNull(data: (o) => o) ??
-        const <Outcome>[];
+    // A projection of the session, so it needs no fetch and no invalidation:
+    // outcomes ride the finishing frame. Empty while the game is running.
+    final outcomes = ref.watch(
+      gameOutcomesProvider(gameId: session.snapshot.gameId),
+    );
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          if (game.status == GameStatus.active)
+          if (session.status == GameStatus.active)
             _TimingHeader(
-              game: game,
+              game: session.snapshot,
               timing: frame.timing,
               pendingPlayers: frame.pendingPlayers,
               myPlayerIndex: mySeatIndex,
@@ -87,7 +90,10 @@ class _ActiveGameContent extends ConsumerWidget {
               GameContentContext(
                 config: config,
                 frame: frame,
-                gameStatus: game.status,
+                transition: ref.watch(
+                  gameTransitionProvider(gameId: session.snapshot.gameId),
+                ),
+                gameStatus: session.status,
                 outcomes: outcomes,
                 actionPending: isSubmittingAction,
                 onAction: (actionJson) => onAction(actionJson, frame.version),
@@ -97,7 +103,7 @@ class _ActiveGameContent extends ConsumerWidget {
               ),
             ),
           ),
-          if (game.status == GameStatus.active)
+          if (session.status == GameStatus.active)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: _ForfeitButton(
@@ -105,7 +111,7 @@ class _ActiveGameContent extends ConsumerWidget {
                 onForfeit: onForfeit,
               ),
             ),
-          if (game.status == GameStatus.finished)
+          if (session.status == GameStatus.finished)
             Padding(
               padding: const EdgeInsets.only(top: 16),
               child: Column(
@@ -118,12 +124,12 @@ class _ActiveGameContent extends ConsumerWidget {
                       FilledButton.tonalIcon(
                         onPressed: () => context.pushNamed(
                           'replay',
-                          pathParameters: {'gameId': game.id},
+                          pathParameters: {'gameId': session.snapshot.gameId},
                         ),
                         icon: const Icon(Icons.play_circle_outline),
                         label: const Text('Watch replay'),
                       ),
-                      _ShareReplayButton(game: game),
+                      _ShareReplayButton(game: session.snapshot),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -146,13 +152,13 @@ class _ActiveGameContent extends ConsumerWidget {
 class _ShareReplayButton extends ConsumerWidget {
   const _ShareReplayButton({required this.game});
 
-  final GameSummary game;
+  final Session game;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (game.access != GameAccess.public) return const SizedBox.shrink();
     final appHost = ref.watch(appConfigProvider).engine.appHost;
-    final link = gameReplayLink(game.id, appHost: appHost);
+    final link = gameReplayLink(game.gameId, appHost: appHost);
     if (link == null) return const SizedBox.shrink();
 
     return OutlinedButton.icon(
@@ -172,7 +178,7 @@ class _ShareReplayButton extends ConsumerWidget {
 class _NonParticipantContent extends StatelessWidget {
   const _NonParticipantContent({required this.game});
 
-  final GameSummary game;
+  final Session game;
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +209,7 @@ class _NonParticipantContent extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => context.pushNamed(
                 'replay',
-                pathParameters: {'gameId': game.id},
+                pathParameters: {'gameId': game.gameId},
               ),
               icon: const Icon(Icons.play_circle_outline),
               label: const Text('Watch replay'),
@@ -233,7 +239,7 @@ class _TimingHeader extends StatelessWidget {
     required this.myPlayerIndex,
   });
 
-  final GameSummary game;
+  final Session game;
   final TimingContext timing;
   final List<int> pendingPlayers;
   final int myPlayerIndex;

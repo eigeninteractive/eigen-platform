@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
-import 'package:eigen_flutter/core/api/game_socket.dart';
 import 'package:eigen_flutter/core/game/game_creation_spec.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/core/game/game_player.dart';
+import 'package:eigen_flutter/core/game/game_session.dart';
 import 'package:eigen_flutter/core/game/my_seat.dart';
 import 'package:eigen_flutter/core/game/players_context.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
@@ -148,15 +148,36 @@ Future<List<GameSummary>> activeGames(Ref ref) async {
   });
 }
 
-/// One game's metadata: schema version, config, timing, access.
+/// One game's live session: the single subscription a game screen needs.
 ///
-/// A plain read rather than a stream. These fields are fixed at creation and
-/// never change, so streaming them would be re-delivering constants; what does
-/// change - status and roster - arrives on [gameEvents] instead.
+/// Every emission is a COMPLETE session, which is what makes `.value` on this
+/// sound. The old shape streamed heterogeneous events and had each derived
+/// provider type-test the newest one, so a frame arriving after a roster
+/// snapshot silently reverted the roster, and nothing on the socket reported a
+/// status change at all.
+///
+/// One socket serves the whole game. Riverpod's automatic retry covers a failure
+/// to establish it; drops after that are handled inside the socket, which
+/// reconnects and is answered with the current snapshot, so this stream is never
+/// torn down to resync.
 @riverpod
-Future<GameSummary> gameSummary(Ref ref, {required String gameId}) {
-  return ref.watch(gameRepositoryProvider).getGame(gameId);
+Stream<GameSession> gameSession(Ref ref, {required String gameId}) {
+  return ref.watch(gameRepositoryProvider).sessions(gameId);
 }
+
+/// The game's status, live.
+///
+/// A selector, not a fetch. Every screen decision that used to read a summary
+/// that nothing refetched reads this instead.
+@riverpod
+GameStatus? gameStatus(Ref ref, {required String gameId}) =>
+    ref.watch(gameSessionProvider(gameId: gameId)).value?.status;
+
+/// The seats, live: the roster the server stated with the newest snapshot.
+@riverpod
+List<Seat> gameSeats(Ref ref, {required String gameId}) =>
+    ref.watch(gameSessionProvider(gameId: gameId)).value?.snapshot.players ??
+    const [];
 
 /// Whether the current wire payload contains gameplay semantics this build
 /// cannot safely interpret.
@@ -173,41 +194,33 @@ extension GameWireCompatibilityX on GameWireCompatibility {
       unknownStatus || unknownSeatType || unknownFrameType;
 }
 
-/// Compatibility verdict across the initial summary and live game payloads.
+/// Compatibility verdict over the live session.
 ///
 /// Status, seat type, and frame type drive gameplay behavior, so guessing would
 /// be unsafe. Metadata-only unknowns such as access remain usable with
-/// conservative UI.
+/// conservative UI. One source now, so there is no second copy of the same field
+/// to check.
 @riverpod
 GameWireCompatibility gameWireCompatibility(Ref ref, {required String gameId}) {
-  final summary = ref.watch(gameSummaryProvider(gameId: gameId)).value;
-  final roster = ref.watch(gameRosterProvider(gameId: gameId)).value;
-  final frame = ref.watch(gameFrameDataProvider(gameId: gameId));
+  final session = ref.watch(gameSessionProvider(gameId: gameId)).value;
   return evaluateGameWireCompatibility(
-    summaryStatus: summary?.status,
-    summarySeats: summary?.participants,
-    access: summary?.access,
-    rosterStatus: roster?.status,
-    rosterSeats: roster?.players,
-    frameType: frame?.type,
+    status: session?.status,
+    seats: session?.snapshot.players,
+    access: session?.snapshot.access,
+    frameType: session?.frame?.type,
   );
 }
 
 /// Computes compatibility without requiring a provider container.
 GameWireCompatibility evaluateGameWireCompatibility({
-  GameStatus? summaryStatus,
-  Iterable<Seat>? summarySeats,
+  GameStatus? status,
+  Iterable<Seat>? seats,
   GameAccess? access,
-  GameStatus? rosterStatus,
-  Iterable<Seat>? rosterSeats,
   FrameTypeEnum? frameType,
 }) {
   return (
-    unknownStatus:
-        summaryStatus == GameStatus.unknownDefaultOpenApi ||
-        rosterStatus == GameStatus.unknownDefaultOpenApi,
-    unknownSeatType:
-        _hasUnknownSeatType(summarySeats) || _hasUnknownSeatType(rosterSeats),
+    unknownStatus: status == GameStatus.unknownDefaultOpenApi,
+    unknownSeatType: _hasUnknownSeatType(seats),
     unknownFrameType: frameType == FrameTypeEnum.unknownDefaultOpenApi,
     unknownAccess: access == GameAccess.unknownDefaultOpenApi,
   );
@@ -217,57 +230,21 @@ bool _hasUnknownSeatType(Iterable<Seat>? seats) =>
     seats?.any((seat) => seat.type == SeatTypeEnum.unknownDefaultOpenApi) ??
     false;
 
-/// The game's live feed: roster snapshots pre-game, then ordered frames.
-///
-/// One socket serves the whole game, so this is the single subscription a game
-/// screen needs. Riverpod's automatic retry covers a failure to establish it;
-/// drops after that are handled inside the socket, which reconnects and
-/// resyncs without tearing down this stream.
-@riverpod
-Stream<GameSocketEvent> gameEvents(Ref ref, {required String gameId}) {
-  return ref.watch(gameRepositoryProvider).events(gameId);
-}
-
-/// The newest roster seen for a game, seeded from the summary.
-///
-/// The socket delivers a snapshot on open and on every roster change while the
-/// game is in the waiting room, but sends none once play starts - so the
-/// summary provides the starting value and later snapshots replace it.
-@riverpod
-Future<Roster> gameRoster(Ref ref, {required String gameId}) async {
-  final summary = await ref.watch(gameSummaryProvider(gameId: gameId).future);
-  final event = ref.watch(gameEventsProvider(gameId: gameId)).value;
-  if (event is GameSocketRoster) return event.roster;
-  return Roster(
-    type: RosterTypeEnum.roster,
-    status: summary.status,
-    players: summary.participants,
-  );
-}
-
-/// The newest frame seen for a game, or null before the first one arrives.
-@riverpod
-Frame? gameFrameData(Ref ref, {required String gameId}) {
-  final event = ref.watch(gameEventsProvider(gameId: gameId)).value;
-  return event is GameSocketFrame ? event.frame : null;
-}
-
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
-/// Seats come from the live roster rather than a separate fetch, so this
-/// re-derives as players join and leave. Identities come from the persisted
-/// player cache, which covers humans and bots alike.
+/// Seats come from the live session, so this re-derives as players join and
+/// leave. Identities come from the persisted player cache, which covers humans
+/// and bots alike.
 @riverpod
 Future<PlayersContext> gamePlayers(Ref ref, {required String gameId}) async {
-  final roster = await ref.watch(gameRosterProvider(gameId: gameId).future);
+  final seats = ref.watch(gameSeatsProvider(gameId: gameId));
   final currentUserId = ref.watch(currentUserIdProvider);
 
   final entries = await Future.wait([
-    for (final seat in roster.players)
-      _resolveSeat(ref, gameId: gameId, seat: seat),
+    for (final seat in seats) _resolveSeat(ref, gameId: gameId, seat: seat),
   ]);
 
-  final mySeat = roster.players
+  final mySeat = seats
       .where((p) => p.userId == currentUserId)
       .map((p) => p.playerIndex)
       .firstOrNull;
@@ -323,13 +300,14 @@ Player _deletedPlayer(String gameId, int playerIndex) => Player(
   isAnonymous: false,
 );
 
-/// Joins a game by invite code, returning the game's id and its roster.
+/// Joins a game by invite code, answering with the seated session.
 ///
-/// Auto-disposes once the join screen navigates away. The screen uses
-/// [ref.listen] to react to the result rather than watching the value
-/// directly, so navigation happens exactly once.
+/// The session carries the game's id, which is the only place a by-code caller
+/// learns it. Auto-disposes once the join screen navigates away. The screen uses
+/// [ref.listen] to react to the result rather than watching the value directly,
+/// so navigation happens exactly once.
 @riverpod
-Future<Joined> joinByCode(Ref ref, {required String code}) => ref
+Future<Session> joinByCode(Ref ref, {required String code}) => ref
     .read(gameRepositoryProvider)
     .joinGameByCode(
       code,
@@ -340,12 +318,13 @@ Future<Joined> joinByCode(Ref ref, {required String code}) => ref
 
 /// A finished game's outcomes.
 ///
-/// Immutable once written, and already on the summary - so this is a
-/// projection rather than a fetch. Empty while the game is still running.
+/// A projection of the live session rather than a fetch: they ride the finishing
+/// frame, and a cold open of a finished game gets them on whatever its newest
+/// frame is. Empty while the game is still running.
 @riverpod
-Future<List<Outcome>> gameOutcomes(Ref ref, {required String gameId}) async {
-  final summary = await ref.watch(gameSummaryProvider(gameId: gameId).future);
-  final outcomes = summary.outcomes ?? const [];
+List<Outcome> gameOutcomes(Ref ref, {required String gameId}) {
+  final session = ref.watch(gameSessionProvider(gameId: gameId)).value;
+  final outcomes = session?.frame?.outcomes ?? const [];
   if (outcomes.any(
     (outcome) => outcome.result == OutcomeResultEnum.unknownDefaultOpenApi,
   )) {

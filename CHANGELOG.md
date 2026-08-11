@@ -14,6 +14,17 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- GameContentContext.transition gives a game the step into the current frame (from, to), or null when there is nothing to animate: a cold load, a rejoin, or the opening frame. Animate only when it is non-null, which replaces tracking the last rendered version in widget state. Replay supplies it too, so one animation path serves live play and replay.
+
+### Changed
+- The game screen renders from one live session instead of assembling one from four sources. gameSessionProvider is the single subscription, and status, roster, frame, outcomes and the wire-compatibility verdict are all pure selectors over it; no game screen reads gameSummaryProvider any more, which stays what it always was, the index behind lists. This fixes a creator's waiting room never offering Start once the roster filled, every seat staying in the waiting room after the game began, and a socket reconnect replacing the board with a spinner until somebody moved.
+- eigen\_api pin raised to ^0.3.0: the engine's session-snapshot wire is a new release line, and a shell speaking 0.2.x cannot read it.
+
+### Removed
+- Roster, Joined and LobbyAccepted are gone from the wire, along with the roster, sync and frame socket message kinds. The socket carries one message, a complete per-seat session snapshot, and every accepted command answers with the same value. A list screen must never subscribe to a session; the home card now resolves its avatars from the index row, as the lobby card already did, instead of opening one socket per row.
+
 ## [0.3.7] - 2026-08-09
 ### Added
 - `configure_firebase` now fills in the deployment values that exist only once a Firebase project does: `GOOGLE_WEB_CLIENT_ID` in `app-config.json`, from the OAuth client Firebase created, and with the new `--worker <dir>` flag, `FIREBASE_PROJECT_ID` in the Cloudflare Worker's `wrangler.jsonc`. The Worker edit rewrites one assignment in place, so that file's comments survive, and refuses when the key does not appear exactly once. An app-only repository omits the flag and keeps the app half.
@@ -151,6 +162,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...HEAD
 [0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.4...v0.3.5

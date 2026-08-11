@@ -16,6 +16,7 @@ import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/core/errors/engine_exception.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
+import 'package:eigen_flutter/core/game/game_session.dart';
 import 'package:eigen_flutter/core/game/players_context.dart';
 import 'package:eigen_flutter/core/game/my_seat.dart';
 import 'package:eigen_flutter/core/game/timing_context.dart';
@@ -31,7 +32,6 @@ import 'package:eigen_flutter/features/game/providers/game_frame_provider.dart';
 import 'package:eigen_flutter/features/social/presentation/widgets/player_profile_sheet.dart';
 import 'package:eigen_flutter/shared/widgets/player_avatar.dart';
 import 'package:eigen_flutter/shared/widgets/player_tags.dart';
-import 'package:eigen_flutter/core/api/game_socket.dart';
 
 part 'game_screen_pre_game.dart';
 part 'game_screen_active.dart';
@@ -69,35 +69,28 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   bool _errorSnackBarShown = false;
   final Set<String> _reportedCompatibility = {};
   late final AppLifecycleListener _lifecycleListener;
-  late final ProviderSubscription<AsyncValue<Roster>> _gameStatusSub;
-  late final ProviderSubscription<AsyncValue<List<Outcome>>> _outcomesSub;
+  late final ProviderSubscription<AsyncValue<GameSession>> _sessionSub;
+  late final ProviderSubscription<List<Outcome>> _outcomesSub;
   late final ProviderSubscription<bool> _offlineSub;
-  late final ProviderSubscription<AsyncValue<GameSocketEvent>> _eventsSub;
   late final ProviderSubscription<GameWireCompatibility> _compatibilitySub;
 
   @override
   void initState() {
     super.initState();
-    _lifecycleListener = AppLifecycleListener(
-      onResume: _invalidateAllGameProviders,
-    );
+    _lifecycleListener = AppLifecycleListener(onResume: _invalidateStreams);
     // Analytics listeners registered once here so they are independent of the
     // build cycle and don't mix side-effects into the build method.
     // Registered before the build-cycle listeners so they read player count
     // before gamePlayersProvider is invalidated on status change.
-    _gameStatusSub = ref.listenManual(
-      gameRosterProvider(gameId: widget.gameId),
-      _onGameStatusChange,
+    _sessionSub = ref.listenManual(
+      gameSessionProvider(gameId: widget.gameId),
+      _onSession,
     );
     _outcomesSub = ref.listenManual(
       gameOutcomesProvider(gameId: widget.gameId),
       _onOutcomes,
     );
     _offlineSub = ref.listenManual(isOfflineProvider, _onConnectivityChange);
-    _eventsSub = ref.listenManual(
-      gameEventsProvider(gameId: widget.gameId),
-      _onGameEvent,
-    );
     _compatibilitySub = ref.listenManual(
       gameWireCompatibilityProvider(gameId: widget.gameId),
       _onCompatibilityChange,
@@ -105,9 +98,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  void _onGameStatusChange(AsyncValue<Roster>? prev, AsyncValue<Roster> next) {
-    final prevStatus = prev?.value?.status;
-    final status = next.value?.status;
+  /// One listener for the one stream: analytics on a witnessed transition, and
+  /// clearing the in-flight marker when a move's own session lands.
+  void _onSession(AsyncValue<GameSession>? prev, AsyncValue<GameSession> next) {
+    if (!mounted) return;
+    _onSessionError(prev, next);
+    final prevVersion = prev?.value?.version;
+    final version = next.value?.version;
+    if (version != null &&
+        version != prevVersion &&
+        _pendingAction == _PendingAction.submittingAction) {
+      setState(() => _pendingAction = null);
+    }
+    _onGameStatusChange(prev?.value?.status, next.value?.status);
+  }
+
+  void _onGameStatusChange(GameStatus? prevStatus, GameStatus? status) {
     if (prevStatus == status) return;
 
     // Fire game_started only on a witnessed pre-game → active transition.
@@ -131,30 +137,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       );
     }
 
-    // Refresh player list on any status transition so the waiting room
-    // immediately reflects new joiners without requiring a manual pull.
-    ref.invalidate(gamePlayersProvider(gameId: widget.gameId));
-
-    if (status == GameStatus.finished) {
-      ref.invalidate(gameOutcomesProvider(gameId: widget.gameId));
-    }
+    // Nothing to invalidate: the roster and the outcomes are projections of
+    // the session that just changed, so they have already re-derived.
   }
 
-  void _onOutcomes(
-    AsyncValue<List<Outcome>>? prev,
-    AsyncValue<List<Outcome>> next,
-  ) {
-    // Side effects fire only on a witnessed empty → non-empty transition.
-    // prev?.value is null on first load (re-opening a finished game must not
-    // re-fire) and non-empty during reloads (AsyncLoading carries previous
-    // data in Riverpod 3.x, guarding against app-resume re-firing).
-    if (prev?.value?.isEmpty != true) return;
-    if (next.value?.isEmpty ?? true) return;
+  void _onOutcomes(List<Outcome>? prev, List<Outcome> next) {
+    // Side effects fire only on a witnessed empty → non-empty transition, so
+    // re-opening a finished game does not re-fire them. `prev` is null on the
+    // first read, which is that case.
+    if (prev?.isEmpty != true || next.isEmpty) return;
     unawaited(
       ref.read(analyticsServiceProvider).gameFinished(gameId: widget.gameId),
     );
-    _maybeRequestReview(next.value!);
-    _maybeTriggerWinHaptic(next.value!);
+    _maybeRequestReview(next);
+    _maybeTriggerWinHaptic(next);
   }
 
   void _maybeTriggerWinHaptic(List<Outcome> outcomes) {
@@ -169,23 +165,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     if (didWin) unawaited(HapticFeedback.heavyImpact());
   }
 
-  void _onGameEvent(
-    AsyncValue<GameSocketEvent>? prev,
-    AsyncValue<GameSocketEvent> next,
+  /// Snackbar handling for the session stream's error state.
+  ///
+  /// Split out of [_onSession] only for length: it is the same stream. Riverpod
+  /// 3.x carries the previous value through AsyncLoading and AsyncError, so the
+  /// in-flight marker is cleared off the version changing rather than off the
+  /// state, which a pull-to-refresh or an app resume would otherwise clear
+  /// prematurely.
+  void _onSessionError(
+    AsyncValue<GameSession>? prev,
+    AsyncValue<GameSession> next,
   ) {
-    if (!mounted) return;
-    // Use AsyncData pattern: next.value returns previous data even during
-    // AsyncLoading/AsyncError in Riverpod 3.x, which would cause premature
-    // action-pending reset during pull-to-refresh or app resume.
     switch (next) {
-      case AsyncData(:final value):
+      case AsyncData():
         if (_errorSnackBarShown) {
           _errorSnackBarShown = false;
           ScaffoldMessenger.of(context).clearSnackBars();
-        }
-        if (value is GameSocketFrame &&
-            _pendingAction == _PendingAction.submittingAction) {
-          setState(() => _pendingAction = null);
         }
       case AsyncError():
         if (_pendingAction == _PendingAction.submittingAction) {
@@ -193,15 +188,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         }
         // One snackbar per error episode, terminal or not, since Riverpod's retry
         // cycle would otherwise re-show it on every failed attempt. The flag
-        // resets on the next successful observation.
+        // resets on the next successful snapshot.
         if (_errorSnackBarShown) return;
         _errorSnackBarShown = true;
-        final status = ref
-            .read(gameRosterProvider(gameId: widget.gameId))
-            .value
-            ?.status;
-        final isTerminal =
-            status == GameStatus.finished || status == GameStatus.aborted;
+        final isTerminal = next.value?.isTerminal ?? false;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -214,12 +204,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     label: 'Back to Home',
                     onPressed: () => context.go('/home'),
                   )
-                : SnackBarAction(
-                    label: 'Retry',
-                    onPressed: () => ref.invalidate(
-                      gameEventsProvider(gameId: widget.gameId),
-                    ),
-                  ),
+                : SnackBarAction(label: 'Retry', onPressed: _invalidateStreams),
             duration: const Duration(seconds: 10),
           ),
         );
@@ -235,18 +220,14 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     _invalidateStreams();
   }
 
-  /// Re-subscribes both live streams immediately, bypassing Riverpod's retry
+  /// Re-subscribes the live session immediately, bypassing Riverpod's retry
   /// backoff.
+  ///
+  /// One stream to re-establish, and the snapshot it opens with restates
+  /// everything the screen shows, so there is nothing else to refresh: status,
+  /// roster, frame and outcomes are all projections of it.
   void _invalidateStreams() {
-    ref.invalidate(gameRosterProvider(gameId: widget.gameId));
-    ref.invalidate(gameEventsProvider(gameId: widget.gameId));
-  }
-
-  /// Full refresh of every per-game provider this screen depends on.
-  void _invalidateAllGameProviders() {
-    _invalidateStreams();
-    ref.invalidate(gamePlayersProvider(gameId: widget.gameId));
-    ref.invalidate(gameOutcomesProvider(gameId: widget.gameId));
+    ref.invalidate(gameSessionProvider(gameId: widget.gameId));
   }
 
   void _maybeRequestReview(List<Outcome> outcomes) {
@@ -266,10 +247,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   void dispose() {
-    _gameStatusSub.close();
+    _sessionSub.close();
     _outcomesSub.close();
     _offlineSub.close();
-    _eventsSub.close();
     _compatibilitySub.close();
     _lifecycleListener.dispose();
     super.dispose();
@@ -277,7 +257,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final gameAsync = ref.watch(gameSummaryProvider(gameId: widget.gameId));
+    final sessionAsync = ref.watch(gameSessionProvider(gameId: widget.gameId));
     final compatibility = ref.watch(
       gameWireCompatibilityProvider(gameId: widget.gameId),
     );
@@ -287,16 +267,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           _ReconnectingBannerSlot(gameId: widget.gameId),
           Expanded(
             child: SafeArea(
-              child: switch (gameAsync) {
+              child: switch (sessionAsync) {
                 // value is non-null for AsyncData and for AsyncError with
                 // stale data: keep showing the game while the banner
                 // communicates the reconnecting state.
-                _ when gameAsync.value != null => RefreshIndicator(
+                _ when sessionAsync.value != null => RefreshIndicator(
                   onRefresh: _onRefresh,
                   child: compatibility.requiresUpdate
                       ? const _UpdateRequiredScroll()
                       : _GameBody(
-                          game: gameAsync.value!,
+                          session: sessionAsync.value!,
                           pendingAction: _pendingAction,
                           onStartGame: _startGame,
                           onCancelGame: _cancelGame,
@@ -340,8 +320,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _retryConnection() => _invalidateStreams();
 
   Future<void> _onRefresh() async {
-    _invalidateAllGameProviders();
-    await ref.read(gamePlayersProvider(gameId: widget.gameId).future);
+    _invalidateStreams();
+    await ref.read(gameSessionProvider(gameId: widget.gameId).future);
   }
 
   /// The caller's own seat, or null when they are only watching.
@@ -481,7 +461,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 /// only rebuild the subtree that needs them.
 class _GameBody extends StatelessWidget {
   const _GameBody({
-    required this.game,
+    required this.session,
     required this.pendingAction,
     required this.onStartGame,
     required this.onCancelGame,
@@ -490,7 +470,9 @@ class _GameBody extends StatelessWidget {
     required this.onForfeit,
   });
 
-  final GameSummary game;
+  /// The live session. Its status is what routes below, so the board and the
+  /// waiting room can never disagree about which one the game is in.
+  final GameSession session;
 
   /// The in-flight user operation, if any. Leaf widgets receive the specific
   /// booleans they need, derived here.
@@ -503,7 +485,7 @@ class _GameBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (game.status) {
+    switch (session.status) {
       case GameStatus.waiting:
       case GameStatus.ready:
         return CustomScrollView(
@@ -512,7 +494,7 @@ class _GameBody extends StatelessWidget {
             SliverFillRemaining(
               hasScrollBody: false,
               child: _PreGameContent(
-                game: game,
+                session: session,
                 isStartingGame: pendingAction == _PendingAction.starting,
                 isCancelling: pendingAction == _PendingAction.cancelling,
                 isLeaving: pendingAction == _PendingAction.leaving,
@@ -543,7 +525,7 @@ class _GameBody extends StatelessWidget {
             SliverFillRemaining(
               hasScrollBody: false,
               child: _ActiveGameContent(
-                game: game,
+                session: session,
                 isSubmittingAction:
                     pendingAction == _PendingAction.submittingAction,
                 isForfeiting: pendingAction == _PendingAction.forfeiting,

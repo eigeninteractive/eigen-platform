@@ -413,3 +413,129 @@ final class ReplayFrameAtFamily extends $Family
   @override
   String toString() => r'replayFrameAtProvider';
 }
+
+/// The step into the frame at [index], or null on the first frame.
+///
+/// Replay animates the same way live play does: it is the transition that
+/// carries meaning, so stepping forward hands the game the pair it needs rather
+/// than leaving it to remember the previous position. Null at index 0, where
+/// there is no predecessor, exactly as a cold load is null live.
+
+@ProviderFor(replayTransitionAt)
+final replayTransitionAtProvider = ReplayTransitionAtFamily._();
+
+/// The step into the frame at [index], or null on the first frame.
+///
+/// Replay animates the same way live play does: it is the transition that
+/// carries meaning, so stepping forward hands the game the pair it needs rather
+/// than leaving it to remember the previous position. Null at index 0, where
+/// there is no predecessor, exactly as a cold load is null live.
+
+final class ReplayTransitionAtProvider
+    extends
+        $FunctionalProvider<GameTransition?, GameTransition?, GameTransition?>
+    with $Provider<GameTransition?> {
+  /// The step into the frame at [index], or null on the first frame.
+  ///
+  /// Replay animates the same way live play does: it is the transition that
+  /// carries meaning, so stepping forward hands the game the pair it needs rather
+  /// than leaving it to remember the previous position. Null at index 0, where
+  /// there is no predecessor, exactly as a cold load is null live.
+  ReplayTransitionAtProvider._({
+    required ReplayTransitionAtFamily super.from,
+    required ({String gameId, int index}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'replayTransitionAtProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$replayTransitionAtHash();
+
+  @override
+  String toString() {
+    return r'replayTransitionAtProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<GameTransition?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GameTransition? create(Ref ref) {
+    final argument = this.argument as ({String gameId, int index});
+    return replayTransitionAt(
+      ref,
+      gameId: argument.gameId,
+      index: argument.index,
+    );
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GameTransition? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GameTransition?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ReplayTransitionAtProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$replayTransitionAtHash() =>
+    r'b6478ee1ac4465a2ccd7a1789fc1bfffe840fa0f';
+
+/// The step into the frame at [index], or null on the first frame.
+///
+/// Replay animates the same way live play does: it is the transition that
+/// carries meaning, so stepping forward hands the game the pair it needs rather
+/// than leaving it to remember the previous position. Null at index 0, where
+/// there is no predecessor, exactly as a cold load is null live.
+
+final class ReplayTransitionAtFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          GameTransition?,
+          ({String gameId, int index})
+        > {
+  ReplayTransitionAtFamily._()
+    : super(
+        retry: null,
+        name: r'replayTransitionAtProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The step into the frame at [index], or null on the first frame.
+  ///
+  /// Replay animates the same way live play does: it is the transition that
+  /// carries meaning, so stepping forward hands the game the pair it needs rather
+  /// than leaving it to remember the previous position. Null at index 0, where
+  /// there is no predecessor, exactly as a cold load is null live.
+
+  ReplayTransitionAtProvider call({
+    required String gameId,
+    required int index,
+  }) => ReplayTransitionAtProvider._(
+    argument: (gameId: gameId, index: index),
+    from: this,
+  );
+
+  @override
+  String toString() => r'replayTransitionAtProvider';
+}

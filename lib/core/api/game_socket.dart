@@ -33,58 +33,21 @@ Uri buildGameSocketUri({
   );
 }
 
-/// One message from a game's socket, or the signal that the socket (re)opened.
+/// The socket carries exactly one message: the complete live truth about the
+/// game as this seat sees it.
 ///
-/// The server never reads from this socket, since every client-to-server
-/// command rides HTTP, so this is a one-way feed of the message kinds the protocol
-/// defines, plus the connection signal the ordering pipeline needs.
-sealed class GameSocketEvent {
-  const GameSocketEvent();
-}
-
-/// The socket just (re)opened.
+/// The server never reads from this socket, since every client-to-server command
+/// rides HTTP, so this is a one-way feed of [Session] snapshots. There is
+/// deliberately nothing else on it, and no "connected" signal to reason about:
+/// an open always answers with a snapshot, so there is never a window in which
+/// a client holds a frame without the status it belongs to, and never anything
+/// to infer from the bare fact of connecting.
 ///
-/// Emitted on the first connection and on every reconnect. Nothing is
-/// reconciled from this alone: the server states where the game is in the
-/// [GameSocketRoster] or [GameSocketSync] that follows, so the pipeline acts on
-/// that rather than guessing from the fact of connecting.
-final class GameSocketConnected extends GameSocketEvent {
-  const GameSocketConnected();
-}
-
-/// A pre-game roster snapshot: who is seated and what the game's status is.
-///
-/// Unversioned and idempotent: the server pushes one on every roster change
-/// and one on socket open while the game is still in the waiting room, so a
-/// reconnect simply gets the current one.
-final class GameSocketRoster extends GameSocketEvent {
-  const GameSocketRoster(this.roster);
-
-  final Roster roster;
-}
-
-/// Where the game currently is, sent once on a mid-game socket open.
-///
-/// Hand-parsed rather than generated: unlike [Roster] and [Frame], which appear
-/// in HTTP responses and so exist in the OpenAPI document, this message is
-/// socket-only and has no generated counterpart.
-final class GameSocketSync extends GameSocketEvent {
-  const GameSocketSync(this.version);
-
-  /// The newest committed version at the moment the socket opened.
-  final int version;
-}
-
-/// One versioned frame for the receiving seat.
-///
-/// Only ever this socket's own seat's view; the server resolves each frame's
-/// owner against the roster before sending, so another player's hidden
-/// information never crosses the wire.
-final class GameSocketFrame extends GameSocketEvent {
-  const GameSocketFrame(this.frame);
-
-  final Frame frame;
-}
+/// `frame` is only ever this socket's own seat's view. The server resolves the
+/// seat from the connection's authenticated principal against the roster before
+/// sending, so another player's hidden information never crosses the wire, and a
+/// client holding no seat receives the envelope with no frame at all.
+typedef GameSocketEvent = Session;
 
 /// Opens a game's socket and keeps it open for the screen's lifetime.
 ///
@@ -118,6 +81,11 @@ class GameSocket {
   /// and the recovery for it is the reconnect this already performs. Errors
   /// that are *not* recoverable that way, such as a malformed message, are logged and
   /// skipped rather than tearing down a working connection.
+  ///
+  /// A reconnect needs no announcement, because the server's first message on
+  /// the new connection is the current snapshot. When nothing was missed it
+  /// carries a `seq` the caller already holds and is discarded there, so the
+  /// common case on a flaky connection costs one message and no rebuild.
   Stream<GameSocketEvent> connect(String gameId) async* {
     var backoff = _initialBackoff;
 
@@ -134,7 +102,6 @@ class GameSocket {
         channel = WebSocketChannel.connect(_socketUri(gameId, token));
         await channel.ready;
         backoff = _initialBackoff;
-        yield const GameSocketConnected();
 
         await for (final message in channel.stream) {
           final event = _decode(message);
@@ -174,12 +141,7 @@ class GameSocket {
   GameSocketEvent? _decode(dynamic message) {
     try {
       final json = jsonDecode(message as String) as Map<String, dynamic>;
-      return switch (json['type']) {
-        'roster' => GameSocketRoster(Roster.fromJson(json)),
-        'frame' => GameSocketFrame(Frame.fromJson(json)),
-        'sync' => GameSocketSync(json['version'] as int),
-        _ => null,
-      };
+      return json['type'] == 'session' ? Session.fromJson(json) : null;
     } catch (error, stack) {
       developer.log(
         'unreadable game socket message',

@@ -169,6 +169,7 @@ GameContentContext _context({
   required List<int> pendingPlayers,
   GameStatus gameStatus = GameStatus.active,
   List<Outcome> outcomes = const [],
+  GameTransition? transition,
   Future<ActionSubmitResult> Function(Map<String, dynamic>)? onAction,
 }) {
   return GameContentContext(
@@ -179,6 +180,7 @@ GameContentContext _context({
       version: 1,
       timing: TimingContext(clock: ServerClock()),
     ),
+    transition: transition,
     gameStatus: gameStatus,
     outcomes: outcomes,
     actionPending: false,

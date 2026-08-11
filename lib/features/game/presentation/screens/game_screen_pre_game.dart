@@ -6,7 +6,7 @@ part of 'game_screen.dart';
 /// created at [GameStatus.active] transition.
 class _PreGameContent extends ConsumerWidget {
   const _PreGameContent({
-    required this.game,
+    required this.session,
     required this.isStartingGame,
     required this.isCancelling,
     required this.isLeaving,
@@ -15,7 +15,7 @@ class _PreGameContent extends ConsumerWidget {
     required this.onLeaveGame,
   });
 
-  final GameSummary game;
+  final GameSession session;
   final bool isStartingGame;
   final bool isCancelling;
   final bool isLeaving;
@@ -25,13 +25,15 @@ class _PreGameContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gamePlayersAsync = ref.watch(gamePlayersProvider(gameId: game.id));
+    final gamePlayersAsync = ref.watch(
+      gamePlayersProvider(gameId: session.snapshot.gameId),
+    );
     final currentUser = ref.watch(currentUserProvider);
     final appHost = ref.watch(appConfigProvider).engine.appHost;
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    final isCreator = game.createdBy == currentUser?.id;
-    final isReady = game.status == GameStatus.ready;
+    final isCreator = session.snapshot.createdBy == currentUser?.id;
+    final isReady = session.status == GameStatus.ready;
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -60,7 +62,7 @@ class _PreGameContent extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Game #${game.id.substring(0, 8)}',
+            'Game #${session.snapshot.gameId.substring(0, 8)}',
             style: textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -83,7 +85,7 @@ class _PreGameContent extends ConsumerWidget {
                   const Icon(Icons.key, size: 20),
                   const SizedBox(width: 8),
                   Text(
-                    game.shortCode,
+                    session.snapshot.shortCode,
                     style: textTheme.titleLarge?.copyWith(
                       letterSpacing: 2,
                       fontWeight: FontWeight.bold,
@@ -92,7 +94,7 @@ class _PreGameContent extends ConsumerWidget {
                 ],
               ),
             ),
-            if (gameInviteLink(game.shortCode, appHost: appHost)
+            if (gameInviteLink(session.snapshot.shortCode, appHost: appHost)
                 case final link?) ...[
               const SizedBox(height: 16),
               // QR modules must be dark-on-light for scanner compatibility,
@@ -120,7 +122,9 @@ class _PreGameContent extends ConsumerWidget {
               children: [
                 OutlinedButton.icon(
                   onPressed: () {
-                    Clipboard.setData(ClipboardData(text: game.shortCode));
+                    Clipboard.setData(
+                      ClipboardData(text: session.snapshot.shortCode),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Code copied')),
                     );
@@ -128,7 +132,7 @@ class _PreGameContent extends ConsumerWidget {
                   icon: const Icon(Icons.copy, size: 18),
                   label: const Text('Copy code'),
                 ),
-                if (gameInviteLink(game.shortCode, appHost: appHost)
+                if (gameInviteLink(session.snapshot.shortCode, appHost: appHost)
                     case final link?) ...[
                   const SizedBox(width: 8),
                   FilledButton.icon(
@@ -152,16 +156,16 @@ class _PreGameContent extends ConsumerWidget {
           // Host can fill an open seat with a server bot (multiplayer fill).
           if (isCreator &&
               (gamePlayersAsync.value?.players.length ?? 0) <
-                  game.maxPlayers) ...[
+                  session.snapshot.maxPlayers) ...[
             OutlinedButton.icon(
               onPressed: () => showDialog<void>(
                 context: context,
                 useSafeArea: true,
                 builder: (_) => _AddBotDialog(
-                  gameId: game.id,
-                  rated: game.rated,
-                  config: game.config,
-                  schemaVersion: game.schemaVersion,
+                  gameId: session.snapshot.gameId,
+                  rated: session.snapshot.rated,
+                  config: session.snapshot.config,
+                  schemaVersion: session.snapshot.schemaVersion,
                 ),
               ),
               icon: const Icon(Icons.smart_toy_outlined),

@@ -11,6 +11,7 @@ import 'package:eigen_flutter/features/game/presentation/widgets/turn_countdown.
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/game/utils/game_timing.dart';
 import 'package:eigen_flutter/features/profile/providers/profile_providers.dart';
+import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:eigen_flutter/shared/widgets/overlapping_avatars.dart';
 import 'package:eigen_api/eigen_api.dart';
 
@@ -417,14 +418,22 @@ class _GameCard extends ConsumerWidget {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    // Resolve player identities from the cached game players provider.
-    final gamePlayersAsync = ref.watch(gamePlayersProvider(gameId: game.id));
-    final gamePlayers =
-        gamePlayersAsync.value?.players.values.toList() ?? const [];
-    final avatars = [
-      for (final gp in gamePlayers)
-        (avatarUrl: gp.info.avatarUrl, isBot: gp.type == SeatTypeEnum.bot),
-    ];
+    // Identities come from the index row's own roster and the player cache, the
+    // same way the lobby card resolves them. A list must never reach for a
+    // game's SESSION: that is a live subscription, and on a screen of cards it
+    // would open one socket per card for nothing but an avatar.
+    final avatars = <AvatarEntry>[];
+    for (final seat in game.participants) {
+      final playerId = seat.userId ?? seat.botId;
+      if (playerId == null) continue;
+      final info = ref.watch(playerInfoCacheProvider(id: playerId));
+      if (info.value case final value?) {
+        avatars.add((
+          avatarUrl: value.avatarUrl,
+          isBot: seat.type == SeatTypeEnum.bot,
+        ));
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
