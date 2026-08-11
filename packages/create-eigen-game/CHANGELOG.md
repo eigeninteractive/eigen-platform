@@ -1,5 +1,27 @@
 # create-eigen-game
 
+## 0.9.3
+
+### Patch Changes
+
+- [#51](https://github.com/eigeninteractive/eigen-server/pull/51) [`e140da5`](https://github.com/eigeninteractive/eigen-server/commit/e140da5ee5f916a4a763b17c9dc338cb836484b6) Thanks [@seenu-k](https://github.com/seenu-k)! - A scaffolded game now ships the local inspector wired up: `pnpm inspect games`, `pnpm inspect game <id|code>`, `pnpm inspect do`.
+  
+  One line makes it work. The `inspect` script points at `eigen-inspect`, which the testkit already installs as a `devDependency`, and which reads the local `.wrangler` databases through Node's built-in `node:sqlite`, so there is nothing to install and no native build to approve.
+
+- [#51](https://github.com/eigeninteractive/eigen-server/pull/51) [`8c7d54e`](https://github.com/eigeninteractive/eigen-server/commit/8c7d54eefd3920a4e0839064b15bc4e2a0e769bf) Thanks [@seenu-k](https://github.com/seenu-k)! - `test:watch` now reruns when you edit only a fixture. It did not before, and the failure was silent: you saved a case, nothing happened, and the suite you were watching kept reporting the last result.
+  
+  The cause is that `twinFixtureTests` reads fixtures with `readFileSync` at collect time, so they are not in Vite's module graph. Vitest looks a changed path up in that graph, finds nothing, checks whether the file is itself a test file, and reruns nothing. Fixture JSON was never even watched, since Vitest only adds paths outside the graph to its watcher when a trigger glob names them.
+  
+  A scaffold therefore now ships `server/vitest.config.mts` carrying one option:
+  
+  ```ts
+  forceRerunTriggers: [...configDefaults.forceRerunTriggers, "**/src/module/fixtures/**/*.json"],
+  ```
+  
+  This is what `forceRerunTriggers` is for. Vitest's own defaults use it for `package.json` and the config files, which are read outside the graph for the same reason, and it appends `setupFiles` and `snapshotSerializers` to the same list.
+  
+  Two things worth keeping if you edit the file. Spread the defaults rather than replacing them, because config resolution is a shallow merge and a bare array quietly stops manifest and config edits from triggering a rerun. And leave the trigger off any `@cloudflare/vitest-pool-workers` project you add later: a match reruns the whole suite, which costs nothing for pure-Node tests and is not free for workerd, where a fixture cannot change the result anyway.
+
 ## 0.9.2
 
 ### Patch Changes

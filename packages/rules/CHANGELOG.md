@@ -1,5 +1,7 @@
 # @eigeninteractive/rules
 
+## 0.3.0
+
 ## 0.2.5
 
 ### Patch Changes
