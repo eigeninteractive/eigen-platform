@@ -22,11 +22,10 @@ The engine repository is a plugin marketplace. Install it once:
 ```
 
 That adds the `building-a-game` skill, which loads when the work is writing or
-reviewing an EigenInteractive game: implementing rules, adding a schema
-version, writing a
-bot brain, or debugging a rejected move. It carries the parts of this contract
-that are easy to get wrong and expensive to discover late: the four invariants,
-what the engine has already validated before your hook runs, the
+reviewing an EigenInteractive game: implementing rules, adding a schema version,
+writing a bot brain, or debugging a rejected move. It carries the parts of this
+contract that are easy to get wrong and expensive to discover late: the four
+invariants, what the engine has already validated before your hook runs, the
 `computeObservation` projection rule, and a review checklist.
 
 It ships from the engine repository, so it moves with the engine rather than
@@ -34,21 +33,28 @@ drifting behind it.
 
 ## The two platforms underneath
 
-The skill above covers the contract and nothing else, deliberately, because
-the two halves it sits between are ordinary Cloudflare Workers and ordinary
-Flutter, and both platforms publish their own official skills. Installing them
-alongside is what makes an agent useful on the other 90% of a game repository:
-a D1 migration that will not apply, a Durable Object alarm, a widget that
-rebuilds too often.
+The skill above covers the contract and nothing else, deliberately, because the
+two halves it sits between are ordinary Cloudflare Workers and ordinary Flutter,
+and both platforms publish their own official skills. Installing them alongside
+is what makes an agent useful on the other 90% of a game repository: a D1
+migration that will not apply, a Durable Object alarm, a widget that rebuilds
+too often.
 
 ```text
-/plugin install cloudflare@claude-plugins-official
+/plugin marketplace add cloudflare/skills
+/plugin install cloudflare@cloudflare
 ```
 
 Cloudflare's covers Workers, Durable Objects, Wrangler and the Agents SDK, and
 brings MCP servers that search Cloudflare's live documentation, which matters
-here for the same reason the retrieval surface below does. It is listed in the
-marketplace Claude Code already knows about, so there is nothing to add first.
+here for the same reason the retrieval surface below does. Those two lines are
+the ones [`cloudflare/skills`](https://github.com/cloudflare/skills) itself
+documents, and they track that repository.
+
+The same plugin is also mirrored in the marketplace Claude Code already knows
+about, so `/plugin install cloudflare@claude-plugins-official` works with
+nothing to add first. It is the same skills, entered at a pinned commit rather
+than at whatever Cloudflare has just merged.
 
 ```text
 /plugin marketplace add flutter/agent-plugins
@@ -66,14 +72,14 @@ working because an optional convenience was missing.
 ## The retrieval surface
 
 Every page on this site is also machine-readable, which is what lets an agent
-work from what the engine does *now*:
+work from what the engine does _now_:
 
-| What | Where |
-|---|---|
-| Index of every page | [`/llms.txt`](pathname:///llms.txt) |
+| What                   | Where                                         |
+| ---------------------- | --------------------------------------------- |
+| Index of every page    | [`/llms.txt`](pathname:///llms.txt)           |
 | Everything in one file | [`/llms-full.txt`](pathname:///llms-full.txt) |
-| Any page as Markdown | append `.md` to its URL |
-| The HTTP contract | [`/openapi.json`](pathname:///openapi.json) |
+| Any page as Markdown   | append `.md` to its URL                       |
+| The HTTP contract      | [`/openapi.json`](pathname:///openapi.json)   |
 
 The generated HTTP reference is deliberately excluded from the `llms` bundles:
 those pages are component trees, and the raw spec is the better input.
@@ -88,22 +94,21 @@ plausible code against an API that was never real.
 These are the mistakes worth reviewing for specifically, because each one
 produces code that looks correct and passes a casual read:
 
-- **Re-validating what the engine already enforced.** Turn order, version,
-  seat ownership and the deadline are checked before `applyAction` is called.
-  A hand-written `if (playerIndex !== state.turn)` is not a safety net; it is a
+- **Re-validating what the engine already enforced.** Turn order, version, seat
+  ownership and the deadline are checked before `applyAction` is called. A
+  hand-written `if (playerIndex !== state.turn)` is not a safety net; it is a
   second, divergent source of truth. See [The hooks](./hooks.md).
 - **Reaching for wall-clock time or `Math.random()`.** Determinism is not a
-  style preference here; replay, reconnection and optimistic preview all
-  depend on it. Randomness comes from the injected `rng`, drawn in a fixed
-  order.
+  style preference here; replay, reconnection and optimistic preview all depend
+  on it. Randomness comes from the injected `rng`, drawn in a fixed order.
 - **Branching on `schemaVersion` inside a hook.** The engine resolves the
   version before calling anything, so a version check in a hook body is always
   wrong. See [Evolving your game](./versions.md).
 - **Projecting the state instead of the seat's view.** The commonest and most
   damaging: `computeObservation` returning the full state, or stripping the
   hidden field while leaving `pendingPlayers` truthful enough to reveal that an
-  opponent has already committed. See [Hidden
-  information](./hidden-information.md).
+  opponent has already committed. See
+  [Hidden information](./hidden-information.md).
 - **Putting engine-owned facts in your state.** Whose turn it is, the deadline
   and the result belong to the engine. State that carries its own `winner` will
   disagree with the engine's eventually.
@@ -121,8 +126,8 @@ pnpm test                 # in server/, the TypeScript half
 flutter test              # in app/, the Dart half, on the same fixtures
 ```
 
-Ask for fixtures alongside rules, not after them: at minimum one legal move
-with its expected observation, one illegal move, one game-ending move, and a
-case for each `ratingPool` and `botSeatable` branch. A generated hook with no
-fixture is the part of the diff to read closely; a generated hook with a fixture
-that fails is simply a fix.
+Ask for fixtures alongside rules, not after them: at minimum one legal move with
+its expected observation, one illegal move, one game-ending move, and a case for
+each `ratingPool` and `botSeatable` branch. A generated hook with no fixture is
+the part of the diff to read closely; a generated hook with a fixture that fails
+is simply a fix.
