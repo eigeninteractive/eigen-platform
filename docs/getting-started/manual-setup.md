@@ -44,8 +44,25 @@ server/
 ├── test/twin.spec.ts
 ├── package.json
 ├── tsconfig.json
+├── vitest.config.mts
 └── wrangler.jsonc
 ```
+
+`vitest.config.mts` exists for one option. The fixture runner reads its JSON with
+`readFileSync`, so those files are not in Vite's module graph, and `test:watch`
+would otherwise ignore a fixture-only edit:
+
+```ts
+import { configDefaults, defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    forceRerunTriggers: [...configDefaults.forceRerunTriggers, "**/src/module/fixtures/**/*.json"],
+  },
+});
+```
+
+Spread the defaults rather than replacing them; that merge is shallow.
 
 Default-export the module from `src/module/index.ts`:
 
