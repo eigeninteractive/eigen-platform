@@ -73,18 +73,16 @@ rules and fixture tests need nothing more than this.
 
 ## Setup the Firebase Project
 
-Scaffolding already wrote the values it could know: `FIREBASE_PROJECT_ID` in
-`server/wrangler.jsonc`, and `API_BASE_URL` plus `GOOGLE_WEB_CLIENT_ID` in
-`app/app-config.json`. Two are left, and neither is available to any CLI.
+**1. Turn on Google sign-in.** Firebase Console → Security → Authentication →
+Sign-in method → Get Started → Google → Enable.
 
-**1. Turn on Google sign-in.** Firebase Console → Authentication → Sign-in
-method → Google. Then add `localhost` under Settings → Authorized domains.
+**2. Populate `GOOGLE_WEB_CLIENT_ID`** If `GOOGLE_WEB_CLIENT_ID` in
+`app/app-config.json` is empty, the provider was off when you scaffolded, so
+there was no OAuth client to copy. Enabling it creates one; take the value from
+**Web SDK configuration** under Firebase Console → Authentication → Sign-in
+method → Google
 
-If `GOOGLE_WEB_CLIENT_ID` in `app/app-config.json` is empty, the provider was
-off when you scaffolded, so there was no OAuth client to copy. Enabling it
-creates one; take the value from **Web SDK configuration** on that same page.
-
-**2. Get the Web Push key.** Firebase Console → Project settings → **Cloud
+**3. Get the Web Push key.** Firebase Console → Settings → General → **Cloud
 Messaging** → Web configuration, **Generate key pair** if the list is empty.
 Paste it into `FIREBASE_VAPID_KEY` in `app/app-config.json`. The web app will
 not start without it.
@@ -123,7 +121,11 @@ and Android and web builds fail without them.
 <summary>Optional: push and account deletion locally</summary>
 
 Copy `server/.dev.vars.example` to `server/.dev.vars` and fill it from Firebase
-Console → Project settings → Service accounts → **Generate new private key**.
+Console → Settings → Service accounts → **Generate new private key**.
+
+The downloaded JSON file contains the client email and the private key. Paste
+the entire private key string with the quotes as the `FIREBASE_PRIVATE_KEY`
+variable.
 
 Those two features are all it powers. Token verification uses
 `FIREBASE_PROJECT_ID` alone, so ordinary local play needs none of this.
