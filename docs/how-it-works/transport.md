@@ -135,11 +135,32 @@ with no socket at all.
 
 :::note[Commands are HTTP, deliberately]
 
-The socket is one-way. A command's outcome is an HTTP status, not something to
-correlate against a later broadcast, which is what keeps "the server said no"
-distinguishable from "the outcome is unknown". External bots post the same
-command shape to `/bot/action` with no socket at all, and `createGame`,
-`createSolo` and `joinByCode` all run before a client has one.
+The socket is one-way, and sending moves over it was considered and rejected.
+Four reasons, none of which is "a socket cannot do it":
+
+- **There is no latency to win.** A WebSocket to a Durable Object is established
+  through the client's nearest colo and proxied to the object's colo; an HTTP
+  command lands at the same colo and is proxied to the same object. Same two
+  hops. What a socket send saves is one token verification and one Worker
+  invocation, at a cadence of one move every few seconds.
+- **Bots have no socket.** An external bot posts to `/bot/action` with an HMAC
+  signature, and the Worker mints the *same* command a human's move mints, with
+  the same `expectedVersion` and the same seat verification. That is why there is
+  one action path rather than two.
+- **Some commands precede any socket.** `createGame` runs before the Durable
+  Object exists, `createSolo` starts a game that never had one, and
+  `joinByCode` is how a client learns the id it would need to open one.
+- **Auth stays fresh.** Every command presents a current ID token, verified per
+  request, so expiry and revocation take effect on the next command. A socket's
+  principal is resolved once at upgrade and outlives that token.
+
+It also keeps a command's outcome unambiguous: it is an HTTP status, not
+something to correlate against a later broadcast, which is what keeps "the server
+said no" distinguishable from "the outcome is unknown".
+
+If a game ever needs input faster than about one message per second per seat, or
+continuous input such as dragging, this is worth reopening. It would be additive:
+the socket already carries the authoritative session.
 
 :::
 
