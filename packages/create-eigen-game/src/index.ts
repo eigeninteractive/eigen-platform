@@ -192,19 +192,23 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * selected, and the generated app would not compile.
  *
  * A caret RANGE rather than an exact version, so it still improves without a
- * republish: `flutter pub add eigen_flutter@^0.3.0` already picks the newest
- * 0.3.x at scaffold time, which is the part the pub.dev lookup was duplicating.
- * What it deliberately cannot do is cross to 0.4.x, the one move that needs a
+ * republish: `flutter pub add eigen_flutter@^0.4.0` already picks the newest
+ * 0.4.x at scaffold time, which is the part the pub.dev lookup was duplicating.
+ * What it deliberately cannot do is cross to 0.5.x, the one move that needs a
  * human to confirm the templates still compile.
  *
  * Staleness is therefore a failing check rather than a broken scaffold: this is
  * only ever a release behind, never wrong.
  *
- * Raised to 0.3.0 because the notification icon moved into `eigen_flutter`'s
- * Android plugin: the scaffold stopped shipping `ic_notification.xml`, so a
- * game resolving 0.2.x would reference a drawable nothing provides.
+ * Raised to 0.4.0 with the engine's session-snapshot wire. This is the one kind
+ * of bump that is not merely an improvement: a scaffold writes both halves, and
+ * the worker half is this repository's own line, so the shell it installs has to
+ * speak that line's socket. `eigen_flutter` 0.4.0 is the first that does, and
+ * every 0.3.x pins `eigen_api: ^0.2.0`, which cannot read a 0.3.x engine at all.
+ * A scaffold pinning 0.3.x would therefore resolve, compile, and then fail to
+ * render a game, which is the worst of the three.
  */
-const flutterClientVersion = "^0.3.0";
+const flutterClientVersion = "^0.4.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
