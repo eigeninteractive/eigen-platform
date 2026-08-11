@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "EigenInteractive Engine API",
-    "version": "0.2.5",
+    "version": "0.3.0",
     "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."
   },
   "tags": [
@@ -420,6 +420,178 @@
           "games"
         ]
       },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "session"
+            ]
+          },
+          "seq": {
+            "type": "integer"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "shortCode": {
+            "type": "string"
+          },
+          "access": {
+            "$ref": "#/components/schemas/GameAccess"
+          },
+          "schemaVersion": {
+            "type": "integer"
+          },
+          "config": {
+            "type": "object"
+          },
+          "turnSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "budgetSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "incrementSeconds": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rated": {
+            "type": "boolean"
+          },
+          "ratingPool": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "minPlayers": {
+            "type": "integer"
+          },
+          "maxPlayers": {
+            "type": "integer"
+          },
+          "createdBy": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/GameStatus"
+          },
+          "players": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Seat"
+            }
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "frame": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Frame"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "seq",
+          "gameId",
+          "shortCode",
+          "access",
+          "schemaVersion",
+          "config",
+          "turnSeconds",
+          "budgetSeconds",
+          "incrementSeconds",
+          "rated",
+          "ratingPool",
+          "minPlayers",
+          "maxPlayers",
+          "createdBy",
+          "status",
+          "players",
+          "version",
+          "frame"
+        ]
+      },
+      "Frame": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "frame"
+            ]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "object"
+          },
+          "pendingPlayers": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "deadline": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "playerTimes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer"
+            }
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Outcome"
+            }
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RatingDelta"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "version",
+          "data",
+          "pendingPlayers",
+          "deadline",
+          "playerTimes"
+        ]
+      },
       "Players": {
         "type": "object",
         "properties": {
@@ -715,85 +887,12 @@
       "SoloStarted": {
         "type": "object",
         "properties": {
-          "gameId": {
-            "type": "string"
-          },
-          "shortCode": {
-            "type": "string"
-          },
-          "version": {
-            "type": "integer"
-          },
-          "frame": {
-            "$ref": "#/components/schemas/Frame"
+          "session": {
+            "$ref": "#/components/schemas/Session"
           }
         },
         "required": [
-          "gameId",
-          "shortCode",
-          "version",
-          "frame"
-        ]
-      },
-      "Frame": {
-        "type": [
-          "object",
-          "null"
-        ],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "frame"
-            ]
-          },
-          "version": {
-            "type": "integer"
-          },
-          "data": {
-            "type": "object"
-          },
-          "pendingPlayers": {
-            "type": "array",
-            "items": {
-              "type": "integer"
-            }
-          },
-          "deadline": {
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "playerTimes": {
-            "type": [
-              "array",
-              "null"
-            ],
-            "items": {
-              "type": "integer"
-            }
-          },
-          "outcomes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Outcome"
-            }
-          },
-          "ratings": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/RatingDelta"
-            }
-          }
-        },
-        "required": [
-          "type",
-          "version",
-          "data",
-          "pendingPlayers",
-          "deadline",
-          "playerTimes"
+          "session"
         ]
       },
       "CreateSolo": {
@@ -856,44 +955,15 @@
           "botIds"
         ]
       },
-      "Joined": {
+      "CommandAccepted": {
         "type": "object",
         "properties": {
-          "gameId": {
-            "type": "string"
-          },
-          "roster": {
-            "$ref": "#/components/schemas/Roster"
+          "session": {
+            "$ref": "#/components/schemas/Session"
           }
         },
         "required": [
-          "gameId",
-          "roster"
-        ]
-      },
-      "Roster": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "roster"
-            ]
-          },
-          "status": {
-            "$ref": "#/components/schemas/GameStatus"
-          },
-          "players": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Seat"
-            }
-          }
-        },
-        "required": [
-          "type",
-          "status",
-          "players"
+          "session"
         ]
       },
       "Join": {
@@ -931,17 +1001,6 @@
           }
         ]
       },
-      "LobbyAccepted": {
-        "type": "object",
-        "properties": {
-          "roster": {
-            "$ref": "#/components/schemas/Roster"
-          }
-        },
-        "required": [
-          "roster"
-        ]
-      },
       "LobbyCommand": {
         "type": "object",
         "properties": {
@@ -966,21 +1025,6 @@
         },
         "required": [
           "botId"
-        ]
-      },
-      "CommandAccepted": {
-        "type": "object",
-        "properties": {
-          "version": {
-            "type": "integer"
-          },
-          "frame": {
-            "$ref": "#/components/schemas/Frame"
-          }
-        },
-        "required": [
-          "version",
-          "frame"
         ]
       },
       "Action": {
@@ -1526,6 +1570,77 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GameSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/games/{gameId}/session": {
+      "get": {
+        "operationId": "getGameSession",
+        "tags": [
+          "Games"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's current session snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
                 }
               }
             }
@@ -2309,11 +2424,11 @@
         },
         "responses": {
           "200": {
-            "description": "Seated: the game's id and the post-join roster",
+            "description": "Seated: the post-join session",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Joined"
+                  "$ref": "#/components/schemas/CommandAccepted"
                 }
               }
             }
@@ -2399,11 +2514,11 @@
         },
         "responses": {
           "200": {
-            "description": "Seated: the game's id and the post-join roster",
+            "description": "Seated: the post-join session",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Joined"
+                  "$ref": "#/components/schemas/CommandAccepted"
                 }
               }
             }
@@ -2500,11 +2615,11 @@
         },
         "responses": {
           "200": {
-            "description": "Left: the post-leave roster",
+            "description": "Left: the post-leave session",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LobbyAccepted"
+                  "$ref": "#/components/schemas/CommandAccepted"
                 }
               }
             }
@@ -2605,7 +2720,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LobbyAccepted"
+                  "$ref": "#/components/schemas/CommandAccepted"
                 }
               }
             }
@@ -2702,11 +2817,11 @@
         },
         "responses": {
           "200": {
-            "description": "Bot seated: the new roster",
+            "description": "Bot seated: the post-commit session",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LobbyAccepted"
+                  "$ref": "#/components/schemas/CommandAccepted"
                 }
               }
             }
@@ -2803,7 +2918,7 @@
         },
         "responses": {
           "200": {
-            "description": "Started: version 0 committed",
+            "description": "Started: the session at version 0",
             "content": {
               "application/json": {
                 "schema": {
@@ -2904,7 +3019,7 @@
         },
         "responses": {
           "200": {
-            "description": "Committed: the acting seat's frame",
+            "description": "Committed: the acting seat's session",
             "content": {
               "application/json": {
                 "schema": {
