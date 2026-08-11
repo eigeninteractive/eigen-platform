@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/core/game/game_frame.dart';
+import 'package:eigen_flutter/core/game/game_transition.dart';
 import 'package:eigen_flutter/core/game/timing_context.dart';
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
@@ -80,4 +81,25 @@ GameFrame? replayFrameAt(
     // long passed, and re-rendering them as countdowns would be nonsense.
     timing: TimingContext(clock: ref.watch(serverClockProvider)),
   );
+}
+
+/// The step into the frame at [index], or null on the first frame.
+///
+/// Replay animates the same way live play does: it is the transition that
+/// carries meaning, so stepping forward hands the game the pair it needs rather
+/// than leaving it to remember the previous position. Null at index 0, where
+/// there is no predecessor, exactly as a cold load is null live.
+@riverpod
+GameTransition? replayTransitionAt(
+  Ref ref, {
+  required String gameId,
+  required int index,
+}) {
+  if (index <= 0) return null;
+  final from = ref.watch(
+    replayFrameAtProvider(gameId: gameId, index: index - 1),
+  );
+  final to = ref.watch(replayFrameAtProvider(gameId: gameId, index: index));
+  if (from == null || to == null) return null;
+  return GameTransition(from: from, to: to);
 }

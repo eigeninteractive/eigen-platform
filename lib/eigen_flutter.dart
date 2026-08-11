@@ -57,9 +57,9 @@ export 'package:eigen_api/eigen_api.dart'
         Rating,
         RatingDelta,
         RatingIdentity,
-        Roster,
         Seat,
-        SeatTypeEnum;
+        SeatTypeEnum,
+        Session;
 
 export 'app_runner.dart' show runEngineApp, MyApp;
 
@@ -72,6 +72,8 @@ export 'core/config/app_config.dart'
 export 'core/errors/engine_exception.dart';
 export 'core/game/game_creation_spec.dart';
 export 'core/game/game_frame.dart';
+export 'core/game/game_session.dart';
+export 'core/game/game_transition.dart';
 export 'core/game/game_module.dart';
 export 'core/game/game_player.dart';
 export 'core/game/my_seat.dart';

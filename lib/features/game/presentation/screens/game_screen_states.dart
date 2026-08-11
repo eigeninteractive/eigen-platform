@@ -132,13 +132,11 @@ class _ReconnectingBannerSlot extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isOffline = ref.watch(isOfflineProvider);
-    final obsAsync = ref.watch(gameEventsProvider(gameId: gameId));
-    final gameAsync = ref.watch(gameRosterProvider(gameId: gameId));
-    final isDisconnected =
-        isOffline || obsAsync is AsyncError || gameAsync is AsyncError;
+    final sessionAsync = ref.watch(gameSessionProvider(gameId: gameId));
+    final isDisconnected = isOffline || sessionAsync is AsyncError;
 
-    // Use .value to read stale status when stream is in AsyncError.
-    final status = gameAsync.value?.status;
+    // Use .value to read the stale session when the stream is in AsyncError.
+    final status = sessionAsync.value?.status;
     final isInGame = switch (status) {
       GameStatus.waiting || GameStatus.ready || GameStatus.active => true,
       _ => false,

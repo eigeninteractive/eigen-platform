@@ -92,10 +92,7 @@ class _ReplayBody extends ConsumerWidget {
     // final position, so it is only handed over on the last frame.
     final isLastFrame = index == frameCount - 1;
     final outcomes = isLastFrame
-        ? ref
-                  .watch(gameOutcomesProvider(gameId: gameId))
-                  .whenOrNull(data: (o) => o) ??
-              const <Outcome>[]
+        ? ref.watch(gameOutcomesProvider(gameId: gameId))
         : const <Outcome>[];
 
     return Padding(
@@ -107,6 +104,9 @@ class _ReplayBody extends ConsumerWidget {
               GameContentContext(
                 config: config,
                 frame: frame,
+                transition: ref.watch(
+                  replayTransitionAtProvider(gameId: gameId, index: index),
+                ),
                 // Finished for every frame so the game keeps input inert; a
                 // live status would re-enable the board on the actor's turn.
                 gameStatus: GameStatus.finished,

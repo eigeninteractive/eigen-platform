@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:eigen_flutter/core/game/game_creation_spec.dart';
 import 'package:eigen_flutter/core/game/game_frame.dart';
+import 'package:eigen_flutter/core/game/game_transition.dart';
 import 'package:eigen_flutter/core/game/my_seat.dart';
 import 'package:eigen_flutter/core/game/players_context.dart';
 import 'package:eigen_flutter/core/game/timing_context.dart';
@@ -48,6 +49,7 @@ class GameContentContext {
   const GameContentContext({
     required this.config,
     required this.frame,
+    required this.transition,
     required this.gameStatus,
     required this.outcomes,
     required this.actionPending,
@@ -64,6 +66,16 @@ class GameContentContext {
   /// The current observation snapshot: parsed observation, version, pending
   /// players and timing. Rebuilt on every observation event.
   final GameFrame frame;
+
+  /// The step from the frame the player last saw to [frame], or null when there
+  /// is none to animate.
+  ///
+  /// Animate when this is non-null; render statically when it is null, which is
+  /// a cold load, a rejoin, or the opening frame. Read what happened from
+  /// [GameTransition.to]'s observation rather than diffing the two frames: the
+  /// cues are embedded there by `computeObservation`, and a diff cannot recover
+  /// causality.
+  final GameTransition? transition;
 
   /// Current lifecycle status of the game.
   final GameStatus gameStatus;

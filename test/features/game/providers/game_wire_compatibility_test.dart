@@ -8,8 +8,8 @@ void main() {
 
   test('known gameplay enums remain compatible', () {
     final compatibility = evaluateGameWireCompatibility(
-      summaryStatus: GameStatus.active,
-      summarySeats: [seat(SeatTypeEnum.human)],
+      status: GameStatus.active,
+      seats: [seat(SeatTypeEnum.human)],
     );
 
     expect(compatibility.requiresUpdate, isFalse);
@@ -17,7 +17,7 @@ void main() {
 
   test('unknown game status requires an update', () {
     final compatibility = evaluateGameWireCompatibility(
-      summaryStatus: GameStatus.unknownDefaultOpenApi,
+      status: GameStatus.unknownDefaultOpenApi,
     );
 
     expect(compatibility.unknownStatus, isTrue);
@@ -26,8 +26,8 @@ void main() {
 
   test('unknown seat type requires an update', () {
     final compatibility = evaluateGameWireCompatibility(
-      rosterStatus: GameStatus.waiting,
-      rosterSeats: [seat(SeatTypeEnum.unknownDefaultOpenApi)],
+      status: GameStatus.waiting,
+      seats: [seat(SeatTypeEnum.unknownDefaultOpenApi)],
     );
 
     expect(compatibility.unknownSeatType, isTrue);

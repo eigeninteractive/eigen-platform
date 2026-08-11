@@ -85,7 +85,7 @@ final class GameRulesProvider
   }
 }
 
-String _$gameRulesHash() => r'13a2b31e698ff3b5959d5ea0ac8d381f9c86c082';
+String _$gameRulesHash() => r'edff788cc12ce8f245935aa140a22273380941d2';
 
 /// The [GameRules] version unit for a specific game, resolved once from the
 /// game's immutable schema version.
@@ -189,7 +189,7 @@ final class GameConfigProvider
   }
 }
 
-String _$gameConfigHash() => r'0141ca187807433997849c0a3c28be0c5251b3bd';
+String _$gameConfigHash() => r'6be246f6f929069813046eaa21c2730502538a23';
 
 /// The parsed game config, produced once from the immutable config payload.
 ///
@@ -221,98 +221,6 @@ final class GameConfigFamily extends $Family
   String toString() => r'gameConfigProvider';
 }
 
-/// Memoizes [GameRules.parseObservation] so it only runs when the raw payload
-/// changes, not on every rebuild of [gameFrame].
-
-@ProviderFor(_parsedObservation)
-final _parsedObservationProvider = _ParsedObservationFamily._();
-
-/// Memoizes [GameRules.parseObservation] so it only runs when the raw payload
-/// changes, not on every rebuild of [gameFrame].
-
-final class _ParsedObservationProvider
-    extends $FunctionalProvider<Object?, Object?, Object?>
-    with $Provider<Object?> {
-  /// Memoizes [GameRules.parseObservation] so it only runs when the raw payload
-  /// changes, not on every rebuild of [gameFrame].
-  _ParsedObservationProvider._({
-    required _ParsedObservationFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'_parsedObservationProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$_parsedObservationHash();
-
-  @override
-  String toString() {
-    return r'_parsedObservationProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $ProviderElement<Object?> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  Object? create(Ref ref) {
-    final argument = this.argument as String;
-    return _parsedObservation(ref, gameId: argument);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Object? value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<Object?>(value),
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is _ParsedObservationProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$_parsedObservationHash() =>
-    r'6c50ea7926c1598b702d9e9b852ae1325cda4477';
-
-/// Memoizes [GameRules.parseObservation] so it only runs when the raw payload
-/// changes, not on every rebuild of [gameFrame].
-
-final class _ParsedObservationFamily extends $Family
-    with $FunctionalFamilyOverride<Object?, String> {
-  _ParsedObservationFamily._()
-    : super(
-        retry: null,
-        name: r'_parsedObservationProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// Memoizes [GameRules.parseObservation] so it only runs when the raw payload
-  /// changes, not on every rebuild of [gameFrame].
-
-  _ParsedObservationProvider call({required String gameId}) =>
-      _ParsedObservationProvider._(argument: gameId, from: this);
-
-  @override
-  String toString() => r'_parsedObservationProvider';
-}
-
 /// The per-frame [GameFrame] the game renders from.
 ///
 /// Null before the game is under way: frames only exist from v0 of an active
@@ -320,9 +228,7 @@ final class _ParsedObservationFamily extends $Family
 /// abort.
 ///
 /// The parsed config is intentionally not part of this; consume it separately
-/// via [gameConfig]. `pendingPlayers`, `version` and `timing` are available as
-/// soon as the frame arrives, while `observation` stays null until the rules
-/// unit has parsed it.
+/// via [gameConfig].
 
 @ProviderFor(gameFrame)
 final gameFrameProvider = GameFrameFamily._();
@@ -334,9 +240,7 @@ final gameFrameProvider = GameFrameFamily._();
 /// abort.
 ///
 /// The parsed config is intentionally not part of this; consume it separately
-/// via [gameConfig]. `pendingPlayers`, `version` and `timing` are available as
-/// soon as the frame arrives, while `observation` stays null until the rules
-/// unit has parsed it.
+/// via [gameConfig].
 
 final class GameFrameProvider
     extends $FunctionalProvider<GameFrame?, GameFrame?, GameFrame?>
@@ -348,9 +252,7 @@ final class GameFrameProvider
   /// abort.
   ///
   /// The parsed config is intentionally not part of this; consume it separately
-  /// via [gameConfig]. `pendingPlayers`, `version` and `timing` are available as
-  /// soon as the frame arrives, while `observation` stays null until the rules
-  /// unit has parsed it.
+  /// via [gameConfig].
   GameFrameProvider._({
     required GameFrameFamily super.from,
     required String super.argument,
@@ -402,7 +304,7 @@ final class GameFrameProvider
   }
 }
 
-String _$gameFrameHash() => r'ab0ae2b9b87118c9d3f2653a1fe2085e683cf5c0';
+String _$gameFrameHash() => r'2c3bc7b88d6e3f90efbc150c6e975adb2c6d2a16';
 
 /// The per-frame [GameFrame] the game renders from.
 ///
@@ -411,9 +313,7 @@ String _$gameFrameHash() => r'ab0ae2b9b87118c9d3f2653a1fe2085e683cf5c0';
 /// abort.
 ///
 /// The parsed config is intentionally not part of this; consume it separately
-/// via [gameConfig]. `pendingPlayers`, `version` and `timing` are available as
-/// soon as the frame arrives, while `observation` stays null until the rules
-/// unit has parsed it.
+/// via [gameConfig].
 
 final class GameFrameFamily extends $Family
     with $FunctionalFamilyOverride<GameFrame?, String> {
@@ -433,13 +333,133 @@ final class GameFrameFamily extends $Family
   /// abort.
   ///
   /// The parsed config is intentionally not part of this; consume it separately
-  /// via [gameConfig]. `pendingPlayers`, `version` and `timing` are available as
-  /// soon as the frame arrives, while `observation` stays null until the rules
-  /// unit has parsed it.
+  /// via [gameConfig].
 
   GameFrameProvider call({required String gameId}) =>
       GameFrameProvider._(argument: gameId, from: this);
 
   @override
   String toString() => r'gameFrameProvider';
+}
+
+/// The step from the frame the player last saw to the one on screen now, or
+/// null when there is no step to animate.
+///
+/// This is the input a game animates from, so that "did I render the
+/// predecessor" stops being something every game re-derives in widget state. It
+/// is null exactly when animating would be wrong: a cold load, a rejoin, or the
+/// opening frame, where the cue is history rather than an event and belongs on
+/// screen statically.
+
+@ProviderFor(gameTransition)
+final gameTransitionProvider = GameTransitionFamily._();
+
+/// The step from the frame the player last saw to the one on screen now, or
+/// null when there is no step to animate.
+///
+/// This is the input a game animates from, so that "did I render the
+/// predecessor" stops being something every game re-derives in widget state. It
+/// is null exactly when animating would be wrong: a cold load, a rejoin, or the
+/// opening frame, where the cue is history rather than an event and belongs on
+/// screen statically.
+
+final class GameTransitionProvider
+    extends
+        $FunctionalProvider<GameTransition?, GameTransition?, GameTransition?>
+    with $Provider<GameTransition?> {
+  /// The step from the frame the player last saw to the one on screen now, or
+  /// null when there is no step to animate.
+  ///
+  /// This is the input a game animates from, so that "did I render the
+  /// predecessor" stops being something every game re-derives in widget state. It
+  /// is null exactly when animating would be wrong: a cold load, a rejoin, or the
+  /// opening frame, where the cue is history rather than an event and belongs on
+  /// screen statically.
+  GameTransitionProvider._({
+    required GameTransitionFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'gameTransitionProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameTransitionHash();
+
+  @override
+  String toString() {
+    return r'gameTransitionProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<GameTransition?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GameTransition? create(Ref ref) {
+    final argument = this.argument as String;
+    return gameTransition(ref, gameId: argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GameTransition? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GameTransition?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GameTransitionProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$gameTransitionHash() => r'93071bc725434be86c94655b2fc5e3b236fe4dc5';
+
+/// The step from the frame the player last saw to the one on screen now, or
+/// null when there is no step to animate.
+///
+/// This is the input a game animates from, so that "did I render the
+/// predecessor" stops being something every game re-derives in widget state. It
+/// is null exactly when animating would be wrong: a cold load, a rejoin, or the
+/// opening frame, where the cue is history rather than an event and belongs on
+/// screen statically.
+
+final class GameTransitionFamily extends $Family
+    with $FunctionalFamilyOverride<GameTransition?, String> {
+  GameTransitionFamily._()
+    : super(
+        retry: null,
+        name: r'gameTransitionProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The step from the frame the player last saw to the one on screen now, or
+  /// null when there is no step to animate.
+  ///
+  /// This is the input a game animates from, so that "did I render the
+  /// predecessor" stops being something every game re-derives in widget state. It
+  /// is null exactly when animating would be wrong: a cold load, a rejoin, or the
+  /// opening frame, where the cue is history rather than an event and belongs on
+  /// screen statically.
+
+  GameTransitionProvider call({required String gameId}) =>
+      GameTransitionProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'gameTransitionProvider';
 }

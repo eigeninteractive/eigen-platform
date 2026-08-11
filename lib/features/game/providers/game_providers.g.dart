@@ -430,70 +430,91 @@ final class ActiveGamesProvider
 
 String _$activeGamesHash() => r'3d2e1b090ecec8292f8d2329cbeb8899ac6b843d';
 
-/// One game's metadata: schema version, config, timing, access.
+/// One game's live session: the single subscription a game screen needs.
 ///
-/// A plain read rather than a stream. These fields are fixed at creation and
-/// never change, so streaming them would be re-delivering constants; what does
-/// change - status and roster - arrives on [gameEvents] instead.
-
-@ProviderFor(gameSummary)
-final gameSummaryProvider = GameSummaryFamily._();
-
-/// One game's metadata: schema version, config, timing, access.
+/// Every emission is a COMPLETE session, which is what makes `.value` on this
+/// sound. The old shape streamed heterogeneous events and had each derived
+/// provider type-test the newest one, so a frame arriving after a roster
+/// snapshot silently reverted the roster, and nothing on the socket reported a
+/// status change at all.
 ///
-/// A plain read rather than a stream. These fields are fixed at creation and
-/// never change, so streaming them would be re-delivering constants; what does
-/// change - status and roster - arrives on [gameEvents] instead.
+/// One socket serves the whole game. Riverpod's automatic retry covers a failure
+/// to establish it; drops after that are handled inside the socket, which
+/// reconnects and is answered with the current snapshot, so this stream is never
+/// torn down to resync.
 
-final class GameSummaryProvider
+@ProviderFor(gameSession)
+final gameSessionProvider = GameSessionFamily._();
+
+/// One game's live session: the single subscription a game screen needs.
+///
+/// Every emission is a COMPLETE session, which is what makes `.value` on this
+/// sound. The old shape streamed heterogeneous events and had each derived
+/// provider type-test the newest one, so a frame arriving after a roster
+/// snapshot silently reverted the roster, and nothing on the socket reported a
+/// status change at all.
+///
+/// One socket serves the whole game. Riverpod's automatic retry covers a failure
+/// to establish it; drops after that are handled inside the socket, which
+/// reconnects and is answered with the current snapshot, so this stream is never
+/// torn down to resync.
+
+final class GameSessionProvider
     extends
         $FunctionalProvider<
-          AsyncValue<GameSummary>,
-          GameSummary,
-          FutureOr<GameSummary>
+          AsyncValue<GameSession>,
+          GameSession,
+          Stream<GameSession>
         >
-    with $FutureModifier<GameSummary>, $FutureProvider<GameSummary> {
-  /// One game's metadata: schema version, config, timing, access.
+    with $FutureModifier<GameSession>, $StreamProvider<GameSession> {
+  /// One game's live session: the single subscription a game screen needs.
   ///
-  /// A plain read rather than a stream. These fields are fixed at creation and
-  /// never change, so streaming them would be re-delivering constants; what does
-  /// change - status and roster - arrives on [gameEvents] instead.
-  GameSummaryProvider._({
-    required GameSummaryFamily super.from,
+  /// Every emission is a COMPLETE session, which is what makes `.value` on this
+  /// sound. The old shape streamed heterogeneous events and had each derived
+  /// provider type-test the newest one, so a frame arriving after a roster
+  /// snapshot silently reverted the roster, and nothing on the socket reported a
+  /// status change at all.
+  ///
+  /// One socket serves the whole game. Riverpod's automatic retry covers a failure
+  /// to establish it; drops after that are handled inside the socket, which
+  /// reconnects and is answered with the current snapshot, so this stream is never
+  /// torn down to resync.
+  GameSessionProvider._({
+    required GameSessionFamily super.from,
     required String super.argument,
   }) : super(
          retry: null,
-         name: r'gameSummaryProvider',
+         name: r'gameSessionProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$gameSummaryHash();
+  String debugGetCreateSourceHash() => _$gameSessionHash();
 
   @override
   String toString() {
-    return r'gameSummaryProvider'
+    return r'gameSessionProvider'
         ''
         '($argument)';
   }
 
   @$internal
   @override
-  $FutureProviderElement<GameSummary> $createElement(
+  $StreamProviderElement<GameSession> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<GameSummary> create(Ref ref) {
+  Stream<GameSession> create(Ref ref) {
     final argument = this.argument as String;
-    return gameSummary(ref, gameId: argument);
+    return gameSession(ref, gameId: argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is GameSummaryProvider && other.argument == argument;
+    return other is GameSessionProvider && other.argument == argument;
   }
 
   @override
@@ -502,52 +523,255 @@ final class GameSummaryProvider
   }
 }
 
-String _$gameSummaryHash() => r'ce8af36d61093b519a70ab8ffdfb8fec4410178b';
+String _$gameSessionHash() => r'75f5c201d1a27ba5ced60417ebcd2100662be89e';
 
-/// One game's metadata: schema version, config, timing, access.
+/// One game's live session: the single subscription a game screen needs.
 ///
-/// A plain read rather than a stream. These fields are fixed at creation and
-/// never change, so streaming them would be re-delivering constants; what does
-/// change - status and roster - arrives on [gameEvents] instead.
+/// Every emission is a COMPLETE session, which is what makes `.value` on this
+/// sound. The old shape streamed heterogeneous events and had each derived
+/// provider type-test the newest one, so a frame arriving after a roster
+/// snapshot silently reverted the roster, and nothing on the socket reported a
+/// status change at all.
+///
+/// One socket serves the whole game. Riverpod's automatic retry covers a failure
+/// to establish it; drops after that are handled inside the socket, which
+/// reconnects and is answered with the current snapshot, so this stream is never
+/// torn down to resync.
 
-final class GameSummaryFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<GameSummary>, String> {
-  GameSummaryFamily._()
+final class GameSessionFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<GameSession>, String> {
+  GameSessionFamily._()
     : super(
         retry: null,
-        name: r'gameSummaryProvider',
+        name: r'gameSessionProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  /// One game's metadata: schema version, config, timing, access.
+  /// One game's live session: the single subscription a game screen needs.
   ///
-  /// A plain read rather than a stream. These fields are fixed at creation and
-  /// never change, so streaming them would be re-delivering constants; what does
-  /// change - status and roster - arrives on [gameEvents] instead.
+  /// Every emission is a COMPLETE session, which is what makes `.value` on this
+  /// sound. The old shape streamed heterogeneous events and had each derived
+  /// provider type-test the newest one, so a frame arriving after a roster
+  /// snapshot silently reverted the roster, and nothing on the socket reported a
+  /// status change at all.
+  ///
+  /// One socket serves the whole game. Riverpod's automatic retry covers a failure
+  /// to establish it; drops after that are handled inside the socket, which
+  /// reconnects and is answered with the current snapshot, so this stream is never
+  /// torn down to resync.
 
-  GameSummaryProvider call({required String gameId}) =>
-      GameSummaryProvider._(argument: gameId, from: this);
+  GameSessionProvider call({required String gameId}) =>
+      GameSessionProvider._(argument: gameId, from: this);
 
   @override
-  String toString() => r'gameSummaryProvider';
+  String toString() => r'gameSessionProvider';
 }
 
-/// Compatibility verdict across the initial summary and live game payloads.
+/// The game's status, live.
+///
+/// A selector, not a fetch. Every screen decision that used to read a summary
+/// that nothing refetched reads this instead.
+
+@ProviderFor(gameStatus)
+final gameStatusProvider = GameStatusFamily._();
+
+/// The game's status, live.
+///
+/// A selector, not a fetch. Every screen decision that used to read a summary
+/// that nothing refetched reads this instead.
+
+final class GameStatusProvider
+    extends $FunctionalProvider<GameStatus?, GameStatus?, GameStatus?>
+    with $Provider<GameStatus?> {
+  /// The game's status, live.
+  ///
+  /// A selector, not a fetch. Every screen decision that used to read a summary
+  /// that nothing refetched reads this instead.
+  GameStatusProvider._({
+    required GameStatusFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'gameStatusProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameStatusHash();
+
+  @override
+  String toString() {
+    return r'gameStatusProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<GameStatus?> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  GameStatus? create(Ref ref) {
+    final argument = this.argument as String;
+    return gameStatus(ref, gameId: argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GameStatus? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GameStatus?>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GameStatusProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$gameStatusHash() => r'e1bf882010077cb844d003d9f8bfbb120565d922';
+
+/// The game's status, live.
+///
+/// A selector, not a fetch. Every screen decision that used to read a summary
+/// that nothing refetched reads this instead.
+
+final class GameStatusFamily extends $Family
+    with $FunctionalFamilyOverride<GameStatus?, String> {
+  GameStatusFamily._()
+    : super(
+        retry: null,
+        name: r'gameStatusProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The game's status, live.
+  ///
+  /// A selector, not a fetch. Every screen decision that used to read a summary
+  /// that nothing refetched reads this instead.
+
+  GameStatusProvider call({required String gameId}) =>
+      GameStatusProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'gameStatusProvider';
+}
+
+/// The seats, live: the roster the server stated with the newest snapshot.
+
+@ProviderFor(gameSeats)
+final gameSeatsProvider = GameSeatsFamily._();
+
+/// The seats, live: the roster the server stated with the newest snapshot.
+
+final class GameSeatsProvider
+    extends $FunctionalProvider<List<Seat>, List<Seat>, List<Seat>>
+    with $Provider<List<Seat>> {
+  /// The seats, live: the roster the server stated with the newest snapshot.
+  GameSeatsProvider._({
+    required GameSeatsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'gameSeatsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameSeatsHash();
+
+  @override
+  String toString() {
+    return r'gameSeatsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $ProviderElement<List<Seat>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  List<Seat> create(Ref ref) {
+    final argument = this.argument as String;
+    return gameSeats(ref, gameId: argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Seat> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Seat>>(value),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is GameSeatsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$gameSeatsHash() => r'ea6746154fda7c53de3b4a1ce4e437b1595d1b95';
+
+/// The seats, live: the roster the server stated with the newest snapshot.
+
+final class GameSeatsFamily extends $Family
+    with $FunctionalFamilyOverride<List<Seat>, String> {
+  GameSeatsFamily._()
+    : super(
+        retry: null,
+        name: r'gameSeatsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The seats, live: the roster the server stated with the newest snapshot.
+
+  GameSeatsProvider call({required String gameId}) =>
+      GameSeatsProvider._(argument: gameId, from: this);
+
+  @override
+  String toString() => r'gameSeatsProvider';
+}
+
+/// Compatibility verdict over the live session.
 ///
 /// Status, seat type, and frame type drive gameplay behavior, so guessing would
 /// be unsafe. Metadata-only unknowns such as access remain usable with
-/// conservative UI.
+/// conservative UI. One source now, so there is no second copy of the same field
+/// to check.
 
 @ProviderFor(gameWireCompatibility)
 final gameWireCompatibilityProvider = GameWireCompatibilityFamily._();
 
-/// Compatibility verdict across the initial summary and live game payloads.
+/// Compatibility verdict over the live session.
 ///
 /// Status, seat type, and frame type drive gameplay behavior, so guessing would
 /// be unsafe. Metadata-only unknowns such as access remain usable with
-/// conservative UI.
+/// conservative UI. One source now, so there is no second copy of the same field
+/// to check.
 
 final class GameWireCompatibilityProvider
     extends
@@ -557,11 +781,12 @@ final class GameWireCompatibilityProvider
           GameWireCompatibility
         >
     with $Provider<GameWireCompatibility> {
-  /// Compatibility verdict across the initial summary and live game payloads.
+  /// Compatibility verdict over the live session.
   ///
   /// Status, seat type, and frame type drive gameplay behavior, so guessing would
   /// be unsafe. Metadata-only unknowns such as access remain usable with
-  /// conservative UI.
+  /// conservative UI. One source now, so there is no second copy of the same field
+  /// to check.
   GameWireCompatibilityProvider._({
     required GameWireCompatibilityFamily super.from,
     required String super.argument,
@@ -615,13 +840,14 @@ final class GameWireCompatibilityProvider
 }
 
 String _$gameWireCompatibilityHash() =>
-    r'069f94aaf1278b1812de48934ce55a9606c4f366';
+    r'6406981ada9d8417996f056f7ffb88a11244d27b';
 
-/// Compatibility verdict across the initial summary and live game payloads.
+/// Compatibility verdict over the live session.
 ///
 /// Status, seat type, and frame type drive gameplay behavior, so guessing would
 /// be unsafe. Metadata-only unknowns such as access remain usable with
-/// conservative UI.
+/// conservative UI. One source now, so there is no second copy of the same field
+/// to check.
 
 final class GameWireCompatibilityFamily extends $Family
     with $FunctionalFamilyOverride<GameWireCompatibility, String> {
@@ -634,11 +860,12 @@ final class GameWireCompatibilityFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Compatibility verdict across the initial summary and live game payloads.
+  /// Compatibility verdict over the live session.
   ///
   /// Status, seat type, and frame type drive gameplay behavior, so guessing would
   /// be unsafe. Metadata-only unknowns such as access remain usable with
-  /// conservative UI.
+  /// conservative UI. One source now, so there is no second copy of the same field
+  /// to check.
 
   GameWireCompatibilityProvider call({required String gameId}) =>
       GameWireCompatibilityProvider._(argument: gameId, from: this);
@@ -647,313 +874,20 @@ final class GameWireCompatibilityFamily extends $Family
   String toString() => r'gameWireCompatibilityProvider';
 }
 
-/// The game's live feed: roster snapshots pre-game, then ordered frames.
-///
-/// One socket serves the whole game, so this is the single subscription a game
-/// screen needs. Riverpod's automatic retry covers a failure to establish it;
-/// drops after that are handled inside the socket, which reconnects and
-/// resyncs without tearing down this stream.
-
-@ProviderFor(gameEvents)
-final gameEventsProvider = GameEventsFamily._();
-
-/// The game's live feed: roster snapshots pre-game, then ordered frames.
-///
-/// One socket serves the whole game, so this is the single subscription a game
-/// screen needs. Riverpod's automatic retry covers a failure to establish it;
-/// drops after that are handled inside the socket, which reconnects and
-/// resyncs without tearing down this stream.
-
-final class GameEventsProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<GameSocketEvent>,
-          GameSocketEvent,
-          Stream<GameSocketEvent>
-        >
-    with $FutureModifier<GameSocketEvent>, $StreamProvider<GameSocketEvent> {
-  /// The game's live feed: roster snapshots pre-game, then ordered frames.
-  ///
-  /// One socket serves the whole game, so this is the single subscription a game
-  /// screen needs. Riverpod's automatic retry covers a failure to establish it;
-  /// drops after that are handled inside the socket, which reconnects and
-  /// resyncs without tearing down this stream.
-  GameEventsProvider._({
-    required GameEventsFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'gameEventsProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$gameEventsHash();
-
-  @override
-  String toString() {
-    return r'gameEventsProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $StreamProviderElement<GameSocketEvent> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
-
-  @override
-  Stream<GameSocketEvent> create(Ref ref) {
-    final argument = this.argument as String;
-    return gameEvents(ref, gameId: argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is GameEventsProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$gameEventsHash() => r'7ab8245a9b0ae956a12f6641a4fcb02c4dc94069';
-
-/// The game's live feed: roster snapshots pre-game, then ordered frames.
-///
-/// One socket serves the whole game, so this is the single subscription a game
-/// screen needs. Riverpod's automatic retry covers a failure to establish it;
-/// drops after that are handled inside the socket, which reconnects and
-/// resyncs without tearing down this stream.
-
-final class GameEventsFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<GameSocketEvent>, String> {
-  GameEventsFamily._()
-    : super(
-        retry: null,
-        name: r'gameEventsProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// The game's live feed: roster snapshots pre-game, then ordered frames.
-  ///
-  /// One socket serves the whole game, so this is the single subscription a game
-  /// screen needs. Riverpod's automatic retry covers a failure to establish it;
-  /// drops after that are handled inside the socket, which reconnects and
-  /// resyncs without tearing down this stream.
-
-  GameEventsProvider call({required String gameId}) =>
-      GameEventsProvider._(argument: gameId, from: this);
-
-  @override
-  String toString() => r'gameEventsProvider';
-}
-
-/// The newest roster seen for a game, seeded from the summary.
-///
-/// The socket delivers a snapshot on open and on every roster change while the
-/// game is in the waiting room, but sends none once play starts - so the
-/// summary provides the starting value and later snapshots replace it.
-
-@ProviderFor(gameRoster)
-final gameRosterProvider = GameRosterFamily._();
-
-/// The newest roster seen for a game, seeded from the summary.
-///
-/// The socket delivers a snapshot on open and on every roster change while the
-/// game is in the waiting room, but sends none once play starts - so the
-/// summary provides the starting value and later snapshots replace it.
-
-final class GameRosterProvider
-    extends $FunctionalProvider<AsyncValue<Roster>, Roster, FutureOr<Roster>>
-    with $FutureModifier<Roster>, $FutureProvider<Roster> {
-  /// The newest roster seen for a game, seeded from the summary.
-  ///
-  /// The socket delivers a snapshot on open and on every roster change while the
-  /// game is in the waiting room, but sends none once play starts - so the
-  /// summary provides the starting value and later snapshots replace it.
-  GameRosterProvider._({
-    required GameRosterFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'gameRosterProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$gameRosterHash();
-
-  @override
-  String toString() {
-    return r'gameRosterProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $FutureProviderElement<Roster> $createElement($ProviderPointer pointer) =>
-      $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<Roster> create(Ref ref) {
-    final argument = this.argument as String;
-    return gameRoster(ref, gameId: argument);
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is GameRosterProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$gameRosterHash() => r'e1999de717570cb2f0fc784c3152b8d5e8a74954';
-
-/// The newest roster seen for a game, seeded from the summary.
-///
-/// The socket delivers a snapshot on open and on every roster change while the
-/// game is in the waiting room, but sends none once play starts - so the
-/// summary provides the starting value and later snapshots replace it.
-
-final class GameRosterFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Roster>, String> {
-  GameRosterFamily._()
-    : super(
-        retry: null,
-        name: r'gameRosterProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// The newest roster seen for a game, seeded from the summary.
-  ///
-  /// The socket delivers a snapshot on open and on every roster change while the
-  /// game is in the waiting room, but sends none once play starts - so the
-  /// summary provides the starting value and later snapshots replace it.
-
-  GameRosterProvider call({required String gameId}) =>
-      GameRosterProvider._(argument: gameId, from: this);
-
-  @override
-  String toString() => r'gameRosterProvider';
-}
-
-/// The newest frame seen for a game, or null before the first one arrives.
-
-@ProviderFor(gameFrameData)
-final gameFrameDataProvider = GameFrameDataFamily._();
-
-/// The newest frame seen for a game, or null before the first one arrives.
-
-final class GameFrameDataProvider
-    extends $FunctionalProvider<Frame?, Frame?, Frame?>
-    with $Provider<Frame?> {
-  /// The newest frame seen for a game, or null before the first one arrives.
-  GameFrameDataProvider._({
-    required GameFrameDataFamily super.from,
-    required String super.argument,
-  }) : super(
-         retry: null,
-         name: r'gameFrameDataProvider',
-         isAutoDispose: true,
-         dependencies: null,
-         $allTransitiveDependencies: null,
-       );
-
-  @override
-  String debugGetCreateSourceHash() => _$gameFrameDataHash();
-
-  @override
-  String toString() {
-    return r'gameFrameDataProvider'
-        ''
-        '($argument)';
-  }
-
-  @$internal
-  @override
-  $ProviderElement<Frame?> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  Frame? create(Ref ref) {
-    final argument = this.argument as String;
-    return gameFrameData(ref, gameId: argument);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(Frame? value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<Frame?>(value),
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is GameFrameDataProvider && other.argument == argument;
-  }
-
-  @override
-  int get hashCode {
-    return argument.hashCode;
-  }
-}
-
-String _$gameFrameDataHash() => r'0f72c283d3bef104c0f793c72789b7cf40c040f7';
-
-/// The newest frame seen for a game, or null before the first one arrives.
-
-final class GameFrameDataFamily extends $Family
-    with $FunctionalFamilyOverride<Frame?, String> {
-  GameFrameDataFamily._()
-    : super(
-        retry: null,
-        name: r'gameFrameDataProvider',
-        dependencies: null,
-        $allTransitiveDependencies: null,
-        isAutoDispose: true,
-      );
-
-  /// The newest frame seen for a game, or null before the first one arrives.
-
-  GameFrameDataProvider call({required String gameId}) =>
-      GameFrameDataProvider._(argument: gameId, from: this);
-
-  @override
-  String toString() => r'gameFrameDataProvider';
-}
-
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
-/// Seats come from the live roster rather than a separate fetch, so this
-/// re-derives as players join and leave. Identities come from the persisted
-/// player cache, which covers humans and bots alike.
+/// Seats come from the live session, so this re-derives as players join and
+/// leave. Identities come from the persisted player cache, which covers humans
+/// and bots alike.
 
 @ProviderFor(gamePlayers)
 final gamePlayersProvider = GamePlayersFamily._();
 
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
-/// Seats come from the live roster rather than a separate fetch, so this
-/// re-derives as players join and leave. Identities come from the persisted
-/// player cache, which covers humans and bots alike.
+/// Seats come from the live session, so this re-derives as players join and
+/// leave. Identities come from the persisted player cache, which covers humans
+/// and bots alike.
 
 final class GamePlayersProvider
     extends
@@ -965,9 +899,9 @@ final class GamePlayersProvider
     with $FutureModifier<PlayersContext>, $FutureProvider<PlayersContext> {
   /// The game's seats with their identities resolved, plus which one is mine.
   ///
-  /// Seats come from the live roster rather than a separate fetch, so this
-  /// re-derives as players join and leave. Identities come from the persisted
-  /// player cache, which covers humans and bots alike.
+  /// Seats come from the live session, so this re-derives as players join and
+  /// leave. Identities come from the persisted player cache, which covers humans
+  /// and bots alike.
   GamePlayersProvider._({
     required GamePlayersFamily super.from,
     required String super.argument,
@@ -1012,13 +946,13 @@ final class GamePlayersProvider
   }
 }
 
-String _$gamePlayersHash() => r'c872020092eec0c5abd91a05e7b249eb2304b8e2';
+String _$gamePlayersHash() => r'1dbcfc8c4276b145fa8cfdb2dc02aaa05eb3b366';
 
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
-/// Seats come from the live roster rather than a separate fetch, so this
-/// re-derives as players join and leave. Identities come from the persisted
-/// player cache, which covers humans and bots alike.
+/// Seats come from the live session, so this re-derives as players join and
+/// leave. Identities come from the persisted player cache, which covers humans
+/// and bots alike.
 
 final class GamePlayersFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PlayersContext>, String> {
@@ -1033,9 +967,9 @@ final class GamePlayersFamily extends $Family
 
   /// The game's seats with their identities resolved, plus which one is mine.
   ///
-  /// Seats come from the live roster rather than a separate fetch, so this
-  /// re-derives as players join and leave. Identities come from the persisted
-  /// player cache, which covers humans and bots alike.
+  /// Seats come from the live session, so this re-derives as players join and
+  /// leave. Identities come from the persisted player cache, which covers humans
+  /// and bots alike.
 
   GamePlayersProvider call({required String gameId}) =>
       GamePlayersProvider._(argument: gameId, from: this);
@@ -1044,29 +978,32 @@ final class GamePlayersFamily extends $Family
   String toString() => r'gamePlayersProvider';
 }
 
-/// Joins a game by invite code, returning the game's id and its roster.
+/// Joins a game by invite code, answering with the seated session.
 ///
-/// Auto-disposes once the join screen navigates away. The screen uses
-/// [ref.listen] to react to the result rather than watching the value
-/// directly, so navigation happens exactly once.
+/// The session carries the game's id, which is the only place a by-code caller
+/// learns it. Auto-disposes once the join screen navigates away. The screen uses
+/// [ref.listen] to react to the result rather than watching the value directly,
+/// so navigation happens exactly once.
 
 @ProviderFor(joinByCode)
 final joinByCodeProvider = JoinByCodeFamily._();
 
-/// Joins a game by invite code, returning the game's id and its roster.
+/// Joins a game by invite code, answering with the seated session.
 ///
-/// Auto-disposes once the join screen navigates away. The screen uses
-/// [ref.listen] to react to the result rather than watching the value
-/// directly, so navigation happens exactly once.
+/// The session carries the game's id, which is the only place a by-code caller
+/// learns it. Auto-disposes once the join screen navigates away. The screen uses
+/// [ref.listen] to react to the result rather than watching the value directly,
+/// so navigation happens exactly once.
 
 final class JoinByCodeProvider
-    extends $FunctionalProvider<AsyncValue<Joined>, Joined, FutureOr<Joined>>
-    with $FutureModifier<Joined>, $FutureProvider<Joined> {
-  /// Joins a game by invite code, returning the game's id and its roster.
+    extends $FunctionalProvider<AsyncValue<Session>, Session, FutureOr<Session>>
+    with $FutureModifier<Session>, $FutureProvider<Session> {
+  /// Joins a game by invite code, answering with the seated session.
   ///
-  /// Auto-disposes once the join screen navigates away. The screen uses
-  /// [ref.listen] to react to the result rather than watching the value
-  /// directly, so navigation happens exactly once.
+  /// The session carries the game's id, which is the only place a by-code caller
+  /// learns it. Auto-disposes once the join screen navigates away. The screen uses
+  /// [ref.listen] to react to the result rather than watching the value directly,
+  /// so navigation happens exactly once.
   JoinByCodeProvider._({
     required JoinByCodeFamily super.from,
     required String super.argument,
@@ -1090,11 +1027,11 @@ final class JoinByCodeProvider
 
   @$internal
   @override
-  $FutureProviderElement<Joined> $createElement($ProviderPointer pointer) =>
+  $FutureProviderElement<Session> $createElement($ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Joined> create(Ref ref) {
+  FutureOr<Session> create(Ref ref) {
     final argument = this.argument as String;
     return joinByCode(ref, code: argument);
   }
@@ -1110,16 +1047,17 @@ final class JoinByCodeProvider
   }
 }
 
-String _$joinByCodeHash() => r'9363d23309783281be2e4aadf28d50dcf5640d7e';
+String _$joinByCodeHash() => r'4f697b9f5509bdce2c19ba31d656622a3233c319';
 
-/// Joins a game by invite code, returning the game's id and its roster.
+/// Joins a game by invite code, answering with the seated session.
 ///
-/// Auto-disposes once the join screen navigates away. The screen uses
-/// [ref.listen] to react to the result rather than watching the value
-/// directly, so navigation happens exactly once.
+/// The session carries the game's id, which is the only place a by-code caller
+/// learns it. Auto-disposes once the join screen navigates away. The screen uses
+/// [ref.listen] to react to the result rather than watching the value directly,
+/// so navigation happens exactly once.
 
 final class JoinByCodeFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Joined>, String> {
+    with $FunctionalFamilyOverride<FutureOr<Session>, String> {
   JoinByCodeFamily._()
     : super(
         retry: null,
@@ -1129,11 +1067,12 @@ final class JoinByCodeFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// Joins a game by invite code, returning the game's id and its roster.
+  /// Joins a game by invite code, answering with the seated session.
   ///
-  /// Auto-disposes once the join screen navigates away. The screen uses
-  /// [ref.listen] to react to the result rather than watching the value
-  /// directly, so navigation happens exactly once.
+  /// The session carries the game's id, which is the only place a by-code caller
+  /// learns it. Auto-disposes once the join screen navigates away. The screen uses
+  /// [ref.listen] to react to the result rather than watching the value directly,
+  /// so navigation happens exactly once.
 
   JoinByCodeProvider call({required String code}) =>
       JoinByCodeProvider._(argument: code, from: this);
@@ -1144,29 +1083,27 @@ final class JoinByCodeFamily extends $Family
 
 /// A finished game's outcomes.
 ///
-/// Immutable once written, and already on the summary - so this is a
-/// projection rather than a fetch. Empty while the game is still running.
+/// A projection of the live session rather than a fetch: they ride the finishing
+/// frame, and a cold open of a finished game gets them on whatever its newest
+/// frame is. Empty while the game is still running.
 
 @ProviderFor(gameOutcomes)
 final gameOutcomesProvider = GameOutcomesFamily._();
 
 /// A finished game's outcomes.
 ///
-/// Immutable once written, and already on the summary - so this is a
-/// projection rather than a fetch. Empty while the game is still running.
+/// A projection of the live session rather than a fetch: they ride the finishing
+/// frame, and a cold open of a finished game gets them on whatever its newest
+/// frame is. Empty while the game is still running.
 
 final class GameOutcomesProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<Outcome>>,
-          List<Outcome>,
-          FutureOr<List<Outcome>>
-        >
-    with $FutureModifier<List<Outcome>>, $FutureProvider<List<Outcome>> {
+    extends $FunctionalProvider<List<Outcome>, List<Outcome>, List<Outcome>>
+    with $Provider<List<Outcome>> {
   /// A finished game's outcomes.
   ///
-  /// Immutable once written, and already on the summary - so this is a
-  /// projection rather than a fetch. Empty while the game is still running.
+  /// A projection of the live session rather than a fetch: they ride the finishing
+  /// frame, and a cold open of a finished game gets them on whatever its newest
+  /// frame is. Empty while the game is still running.
   GameOutcomesProvider._({
     required GameOutcomesFamily super.from,
     required String super.argument,
@@ -1190,14 +1127,21 @@ final class GameOutcomesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Outcome>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $ProviderElement<List<Outcome>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  FutureOr<List<Outcome>> create(Ref ref) {
+  List<Outcome> create(Ref ref) {
     final argument = this.argument as String;
     return gameOutcomes(ref, gameId: argument);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<Outcome> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<Outcome>>(value),
+    );
   }
 
   @override
@@ -1211,15 +1155,16 @@ final class GameOutcomesProvider
   }
 }
 
-String _$gameOutcomesHash() => r'd572692644faa8b347067d3f25ae8cc9077854fe';
+String _$gameOutcomesHash() => r'bdba89f6c98b2002ac27bb1ad7440ee6b2a5eb9d';
 
 /// A finished game's outcomes.
 ///
-/// Immutable once written, and already on the summary - so this is a
-/// projection rather than a fetch. Empty while the game is still running.
+/// A projection of the live session rather than a fetch: they ride the finishing
+/// frame, and a cold open of a finished game gets them on whatever its newest
+/// frame is. Empty while the game is still running.
 
 final class GameOutcomesFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<Outcome>>, String> {
+    with $FunctionalFamilyOverride<List<Outcome>, String> {
   GameOutcomesFamily._()
     : super(
         retry: null,
@@ -1231,8 +1176,9 @@ final class GameOutcomesFamily extends $Family
 
   /// A finished game's outcomes.
   ///
-  /// Immutable once written, and already on the summary - so this is a
-  /// projection rather than a fetch. Empty while the game is still running.
+  /// A projection of the live session rather than a fetch: they ride the finishing
+  /// frame, and a cold open of a finished game gets them on whatever its newest
+  /// frame is. Empty while the game is still running.
 
   GameOutcomesProvider call({required String gameId}) =>
       GameOutcomesProvider._(argument: gameId, from: this);

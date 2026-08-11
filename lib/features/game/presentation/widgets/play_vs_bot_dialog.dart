@@ -263,7 +263,10 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
           );
       if (!mounted) return;
       Navigator.pop(context);
-      context.pushNamed('game', pathParameters: {'gameId': started.gameId});
+      context.pushNamed(
+        'game',
+        pathParameters: {'gameId': started.session.gameId},
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _creating = false);
