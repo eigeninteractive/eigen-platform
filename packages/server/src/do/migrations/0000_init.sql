@@ -27,7 +27,10 @@ CREATE TABLE `meta` (
 	`min_players` integer NOT NULL,
 	`max_players` integer NOT NULL,
 	`created_by` text,
-	`rng_seed` text
+	`rng_seed` text,
+	`short_code` text NOT NULL,
+	`outcomes` text,
+	`seq` integer NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `outbox` (

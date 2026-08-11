@@ -15,8 +15,8 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
-import { type Command, createGame, type FrameMessage } from "../src/index.js";
-import type { SyncMessage } from "../src/protocol.js";
+import { type Command, createGame } from "../src/index.js";
+import type { SessionSnapshot } from "../src/protocol.js";
 import { userRow } from "./factories.js";
 
 /** Typed D1 access for seeds and assertions. The DO's own SQLite is
@@ -28,6 +28,9 @@ interface SeedOptions {
   rated?: boolean;
   turnSeconds?: number | null;
   status?: Extract<GameStatus, "waiting" | "ready">;
+  /** How many of the two seats are already taken. One leaves room for a join,
+   * which is the only way to exercise a waiting-to-ready transition. */
+  seats?: 1 | 2;
 }
 
 let gameCounter = 0;
@@ -58,10 +61,7 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     minPlayers: 2,
     maxPlayers: 2,
     shortCode: gameId.slice(0, 6) + gameCounter,
-    seats: [
-      { playerIndex: 0, userId: "user-a", botId: null, type: "human" },
-      { playerIndex: 1, userId: "user-b", botId: null, type: "human" },
-    ],
+    seats: [{ playerIndex: 0, userId: "user-a", botId: null, type: "human" }, ...((opts.seats ?? 2) === 2 ? [{ playerIndex: 1, userId: "user-b", botId: null, type: "human" as const }] : [])],
     now: Date.now(),
   });
   return gameId;
@@ -80,7 +80,7 @@ async function startGame(opts: SeedOptions = {}) {
   const gameId = await seedGame(opts);
   const stub = stubFor(gameId);
   const started = await stub.handle(cmd("start", gameId));
-  expect(started).toMatchObject({ ok: true, version: 0 });
+  expect(started).toMatchObject({ ok: true, session: { status: "active", version: 0 } });
   return { gameId, stub };
 }
 
@@ -100,11 +100,11 @@ function action(gameId: string, seat: number, add: number, expectedVersion: numb
  * on version 3... target 3 reached at second move; keep it explicit instead. */
 async function playToFinish(gameId: string, stub: ReturnType<typeof stubFor>) {
   const a1 = await stub.handle(action(gameId, 0, 2, 0, "user-a"));
-  expect(a1).toMatchObject({ ok: true, version: 1 });
+  expect(a1).toMatchObject({ ok: true, session: { version: 1 } });
   const a2 = await stub.handle(action(gameId, 1, 2, 1, "user-b"));
-  expect(a2).toMatchObject({ ok: true, version: 2 });
-  if (!a2.ok || !("frame" in a2)) throw new Error("unreachable");
-  expect(a2.frame?.outcomes).toBeDefined();
+  expect(a2).toMatchObject({ ok: true, session: { version: 2, status: "finished" } });
+  if (!a2.ok) throw new Error("unreachable");
+  expect(a2.session.frame?.outcomes).toBeDefined();
   return a2;
 }
 
@@ -143,10 +143,10 @@ describe("actions & dedupe", () => {
   it("alternates turns, versions strictly serial, own frame rides the response", async () => {
     const { gameId, stub } = await startGame();
     const a1 = await stub.handle(action(gameId, 0, 1, 0, "user-a"));
-    expect(a1).toMatchObject({ ok: true, version: 1 });
-    if (!a1.ok || !("frame" in a1)) throw new Error("unreachable");
-    expect(a1.frame?.data).toEqual({ count: 1 });
-    expect(a1.frame?.pendingPlayers).toEqual([1]);
+    expect(a1).toMatchObject({ ok: true, session: { version: 1, status: "active" } });
+    if (!a1.ok) throw new Error("unreachable");
+    expect(a1.session.frame?.data).toEqual({ count: 1 });
+    expect(a1.session.frame?.pendingPlayers).toEqual([1]);
   });
 
   it("replays the stored response for a duplicate commandId instead of double-applying", async () => {
@@ -299,51 +299,165 @@ describe("finish sequence", () => {
 });
 
 describe("hibernating sockets", () => {
-  it("accepts an upgrade and fans versioned frames out to the seat", async () => {
-    const { gameId, stub } = await startGame();
+  /** Open a socket as `userId` and collect every snapshot it receives. */
+  async function openSocket(gameId: string, stub: ReturnType<typeof stubFor>, userId: string) {
     const res = await stub.fetch("https://do/socket", {
-      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-user": "user-b" },
+      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-user": userId },
     });
     expect(res.status).toBe(101);
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on 101 response");
     ws.accept();
-    const messages: (FrameMessage | SyncMessage)[] = [];
+    const messages: SessionSnapshot[] = [];
     ws.addEventListener("message", (event: MessageEvent) => {
-      messages.push(JSON.parse(event.data as string) as FrameMessage | SyncMessage);
+      messages.push(JSON.parse(event.data as string) as SessionSnapshot);
     });
+    return { ws, messages };
+  }
 
-    // A mid-game open states where the game is, so a client knows what (if
-    // anything) to fetch rather than waiting for the next transition.
+  it("states where the game is on open, at every status, and fans the seat's own view out", async () => {
+    const { gameId, stub } = await startGame();
+    const { ws, messages } = await openSocket(gameId, stub, "user-b");
+
+    // The open always answers, so a client never holds a frame without the
+    // status it belongs to, and never has to infer one from connecting.
     await vi.waitFor(() => expect(messages).toHaveLength(1));
-    expect(messages[0]).toEqual({ type: "sync", version: 0 });
+    expect(messages[0]).toMatchObject({ type: "session", status: "active", version: 0, seq: 1, minPlayers: 2, maxPlayers: 2, config: { target: 3 } });
+    expect(messages[0].frame).toMatchObject({ version: 0, data: { count: 0 } });
 
     await stub.handle(action(gameId, 0, 1, 0, "user-a"));
     await vi.waitFor(() => expect(messages).toHaveLength(2));
-    expect(messages[1]).toMatchObject({ type: "frame", version: 1, data: { count: 1 } });
+    expect(messages[1]).toMatchObject({ type: "session", status: "active", version: 1, seq: 2 });
+    expect(messages[1].frame).toMatchObject({ version: 1, data: { count: 1 }, pendingPlayers: [1] });
     ws.close();
   });
 
-  it("sends the roster, not a sync, while the game is still in the lobby", async () => {
-    // Pre-game there is no version to report; what moves is the roster.
-    const gameId = await seedGame();
+  it("tells a lobby socket the game became ready, then active", async () => {
+    // The transition this protocol exists for: the creator sits in the waiting
+    // room, somebody joins, and the status moves under them.
+    const gameId = await seedGame({ status: "waiting", seats: 1 });
     const stub = stubFor(gameId);
-    const res = await stub.fetch("https://do/socket", {
-      headers: { Upgrade: "websocket", "x-eigen-game": gameId, "x-eigen-user": "user-a" },
-    });
-    const ws = res.webSocket;
-    if (!ws) throw new Error("no websocket on 101 response");
-    ws.accept();
-    const messages: { type: string }[] = [];
-    ws.addEventListener("message", (event: MessageEvent) => {
-      messages.push(JSON.parse(event.data as string) as { type: string });
-    });
+    const { ws, messages } = await openSocket(gameId, stub, "user-a");
 
     await vi.waitFor(() => expect(messages).toHaveLength(1));
-    expect(messages[0]).toMatchObject({ type: "roster" });
+    expect(messages[0]).toMatchObject({ type: "session", status: "waiting", version: null, frame: null });
+
+    await stub.handle({ ...cmd("join", gameId), actor: { userId: "user-b", botId: null } });
+    await vi.waitFor(() => expect(messages).toHaveLength(2));
+    expect(messages[1]).toMatchObject({ type: "session", status: "ready", version: null });
+    expect(messages[1].players).toHaveLength(2);
+    expect(messages[1].seq).toBeGreaterThan(messages[0].seq);
+
+    await stub.handle(cmd("start", gameId));
+    await vi.waitFor(() => expect(messages).toHaveLength(3));
+    expect(messages[2]).toMatchObject({ type: "session", status: "active", version: 0 });
     ws.close();
   });
 
+  it("gives an unseated socket the envelope with no frame", async () => {
+    // How a viewer learns the game started without ever seeing a seat's view.
+    const { gameId, stub } = await startGame();
+    const { ws, messages } = await openSocket(gameId, stub, "user-c");
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+    expect(messages[0]).toMatchObject({ type: "session", status: "active", version: 0, frame: null });
+
+    await stub.handle(action(gameId, 0, 1, 0, "user-a"));
+    await vi.waitFor(() => expect(messages).toHaveLength(2));
+    expect(messages[1]).toMatchObject({ version: 1, frame: null });
+    ws.close();
+  });
+
+  it("never sends a seat's view to another seat's socket", async () => {
+    const { gameId, stub } = await startGame();
+    const a = await openSocket(gameId, stub, "user-a");
+    const b = await openSocket(gameId, stub, "user-b");
+    await vi.waitFor(() => {
+      expect(a.messages).toHaveLength(1);
+      expect(b.messages).toHaveLength(1);
+    });
+    // The counter game reveals everything, so the payloads agree; what is
+    // asserted is that each socket is served through its OWN seat resolution,
+    // which is what keeps a hidden-information game safe on this path.
+    await stub.handle(action(gameId, 0, 1, 0, "user-a"));
+    await vi.waitFor(() => {
+      expect(a.messages).toHaveLength(2);
+      expect(b.messages).toHaveLength(2);
+    });
+    expect(a.messages[1].frame?.version).toBe(1);
+    expect(b.messages[1].frame?.version).toBe(1);
+    a.ws.close();
+    b.ws.close();
+  });
+
+  it("delivers the finish and then the ratings deltas as ordinary snapshots", async () => {
+    const { gameId, stub } = await startGame({ rated: true });
+    const { ws, messages } = await openSocket(gameId, stub, "user-b");
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+
+    await playToFinish(gameId, stub);
+    // Wait for the ratings snapshot specifically: it rides the post-commit
+    // finish effects, so it lands after the finishing frame rather than with it.
+    await vi.waitFor(() => expect(messages.some((m) => m.frame?.ratings !== undefined)).toBe(true));
+    const finished = messages.filter((m) => m.status === "finished");
+    expect(finished[0].frame?.outcomes).toBeDefined();
+    // The ratings transition N+1 is a snapshot like any other, not a special
+    // frame with a field bolted on.
+    const withRatings = messages.find((m) => m.frame?.ratings !== undefined);
+    expect(withRatings).toMatchObject({ type: "session", status: "finished" });
+    expect(withRatings?.version).toBe(3);
+    // Strictly increasing across lobby and state commits alike.
+    const seqs = messages.map((m) => m.seq);
+    expect(seqs).toEqual([...seqs].sort((x, y) => x - y));
+    expect(new Set(seqs).size).toBe(seqs.length);
+    ws.close();
+  });
+
+  it("tells every socket about an abort before closing them", async () => {
+    const gameId = await seedGame();
+    const stub = stubFor(gameId);
+    const { messages } = await openSocket(gameId, stub, "user-b");
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+    await stub.handle(cmd("cancel", gameId));
+    await vi.waitFor(() => expect(messages).toHaveLength(2));
+    expect(messages[1]).toMatchObject({ type: "session", status: "aborted", players: [], frame: null });
+  });
+});
+
+describe("the session read", () => {
+  it("answers with the same value a fan-out would have sent", async () => {
+    const { gameId, stub } = await startGame();
+    await stub.handle(action(gameId, 0, 1, 0, "user-a"));
+    const session = await stub.session(gameId, "user-b");
+    expect(session).toMatchObject({ type: "session", status: "active", version: 1, shortCode: expect.any(String) });
+    expect(session?.frame).toMatchObject({ version: 1, data: { count: 1 }, pendingPlayers: [1] });
+  });
+
+  it("carries the outcomes of a finished game whose frames were compacted away", async () => {
+    // The reason `outcomes` is retained on `meta`: they are kernel output, so no
+    // transition row holds them, and the frame that carried them is long gone.
+    const { gameId, stub } = await startGame();
+    await playToFinish(gameId, stub);
+    await vi.waitFor(async () => {
+      const row = await db.select({ status: games.status }).from(games).where(eq(games.id, gameId)).get();
+      expect(row?.status).toBe("finished");
+    });
+    const session = await stub.session(gameId, "user-a");
+    expect(session).toMatchObject({ status: "finished" });
+    expect(session?.frame?.outcomes).toHaveLength(2);
+  });
+
+  it("gives a non-participant the envelope with no frame", async () => {
+    const { gameId, stub } = await startGame();
+    const session = await stub.session(gameId, "user-c");
+    expect(session).toMatchObject({ status: "active", version: 0, frame: null });
+  });
+
+  it("answers null for a game that does not exist", async () => {
+    expect(await stubFor("no-such-game").session("no-such-game", "user-a")).toBeNull();
+  });
+});
+
+describe("gap recovery", () => {
   it("serves live gap recovery through the frames range fetch", async () => {
     const { gameId, stub } = await startGame();
     await stub.handle(action(gameId, 0, 1, 0, "user-a"));

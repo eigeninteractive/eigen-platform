@@ -21,11 +21,10 @@ import 'package:eigen_api/src/model/frames.dart';
 import 'package:eigen_api/src/model/game_summary.dart';
 import 'package:eigen_api/src/model/join.dart';
 import 'package:eigen_api/src/model/join_by_code.dart';
-import 'package:eigen_api/src/model/joined.dart';
 import 'package:eigen_api/src/model/lobby.dart';
-import 'package:eigen_api/src/model/lobby_accepted.dart';
 import 'package:eigen_api/src/model/lobby_command.dart';
 import 'package:eigen_api/src/model/my_games.dart';
+import 'package:eigen_api/src/model/session.dart';
 import 'package:eigen_api/src/model/solo_started.dart';
 
 class GamesApi {
@@ -46,9 +45,9 @@ class GamesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [LobbyAccepted] as data
+  /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LobbyAccepted>> addBot({
+  Future<Response<CommandAccepted>> addBot({
     required String gameId,
     required AddBot addBot,
     CancelToken? cancelToken,
@@ -99,15 +98,15 @@ class GamesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    LobbyAccepted? _responseData;
+    CommandAccepted? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<LobbyAccepted, LobbyAccepted>(
+          : deserialize<CommandAccepted, CommandAccepted>(
               rawData,
-              'LobbyAccepted',
+              'CommandAccepted',
               growable: true,
             );
     } catch (error, stackTrace) {
@@ -120,7 +119,7 @@ class GamesApi {
       );
     }
 
-    return Response<LobbyAccepted>(
+    return Response<CommandAccepted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -145,9 +144,9 @@ class GamesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [LobbyAccepted] as data
+  /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LobbyAccepted>> cancelGame({
+  Future<Response<CommandAccepted>> cancelGame({
     required String gameId,
     required LobbyCommand lobbyCommand,
     CancelToken? cancelToken,
@@ -198,15 +197,15 @@ class GamesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    LobbyAccepted? _responseData;
+    CommandAccepted? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<LobbyAccepted, LobbyAccepted>(
+          : deserialize<CommandAccepted, CommandAccepted>(
               rawData,
-              'LobbyAccepted',
+              'CommandAccepted',
               growable: true,
             );
     } catch (error, stackTrace) {
@@ -219,7 +218,7 @@ class GamesApi {
       );
     }
 
-    return Response<LobbyAccepted>(
+    return Response<CommandAccepted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -677,6 +676,84 @@ class GamesApi {
     );
   }
 
+  /// getGameSession
+  ///
+  ///
+  /// Parameters:
+  /// * [gameId]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [Session] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<Session>> getGameSession({
+    required String gameId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/games/{gameId}/session'.replaceAll(
+      '{'
+      r'gameId'
+      '}',
+      gameId.toString(),
+    );
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    Session? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<Session, Session>(rawData, 'Session', growable: true);
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<Session>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// getLobby
   ///
   ///
@@ -855,9 +932,9 @@ class GamesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Joined] as data
+  /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Joined>> joinGame({
+  Future<Response<CommandAccepted>> joinGame({
     required String gameId,
     required Join join,
     CancelToken? cancelToken,
@@ -908,13 +985,17 @@ class GamesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Joined? _responseData;
+    CommandAccepted? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<Joined, Joined>(rawData, 'Joined', growable: true);
+          : deserialize<CommandAccepted, CommandAccepted>(
+              rawData,
+              'CommandAccepted',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -925,7 +1006,7 @@ class GamesApi {
       );
     }
 
-    return Response<Joined>(
+    return Response<CommandAccepted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -949,9 +1030,9 @@ class GamesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [Joined] as data
+  /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<Joined>> joinGameByCode({
+  Future<Response<CommandAccepted>> joinGameByCode({
     required JoinByCode joinByCode,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -996,13 +1077,17 @@ class GamesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    Joined? _responseData;
+    CommandAccepted? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<Joined, Joined>(rawData, 'Joined', growable: true);
+          : deserialize<CommandAccepted, CommandAccepted>(
+              rawData,
+              'CommandAccepted',
+              growable: true,
+            );
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -1013,7 +1098,7 @@ class GamesApi {
       );
     }
 
-    return Response<Joined>(
+    return Response<CommandAccepted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1038,9 +1123,9 @@ class GamesApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [LobbyAccepted] as data
+  /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<LobbyAccepted>> leaveGame({
+  Future<Response<CommandAccepted>> leaveGame({
     required String gameId,
     required LobbyCommand lobbyCommand,
     CancelToken? cancelToken,
@@ -1091,15 +1176,15 @@ class GamesApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    LobbyAccepted? _responseData;
+    CommandAccepted? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<LobbyAccepted, LobbyAccepted>(
+          : deserialize<CommandAccepted, CommandAccepted>(
               rawData,
-              'LobbyAccepted',
+              'CommandAccepted',
               growable: true,
             );
     } catch (error, stackTrace) {
@@ -1112,7 +1197,7 @@ class GamesApi {
       );
     }
 
-    return Response<LobbyAccepted>(
+    return Response<CommandAccepted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

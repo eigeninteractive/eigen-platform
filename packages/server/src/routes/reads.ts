@@ -8,7 +8,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
-import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape } from "./wire.js";
+import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape, sessionShape } from "./wire.js";
 
 function okResponse<T extends z.ZodType>(schema: T, description: string) {
   const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -75,6 +75,28 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       const game = await readGame(ctx.d1(c.env), c.req.valid("param").gameId);
       if (game === undefined) throw new HttpError(404, "Unknown game", "unknownGame");
       return c.json(gameSummaryOf(game), 200);
+    },
+  );
+
+  // The one read that goes to the DO rather than D1, because it asks the
+  // question only the DO can answer: where is this game NOW, as I see it. The
+  // socket delivers the same value and keeps delivering it, so a client with a
+  // socket never needs this; it serves the paths without one, and a cold read
+  // that wants the truth rather than the index's mirror of it.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/games/{gameId}/session",
+      operationId: "getGameSession",
+      tags: ["Games"],
+      request: { params: z.object({ gameId: z.string().min(1) }) },
+      responses: okResponse(sessionShape, "The caller's current session snapshot"),
+    }),
+    async (c) => {
+      const { gameId } = c.req.valid("param");
+      const session = await ctx.stub(c.env, gameId).session(gameId, c.var.auth.user.id);
+      if (session === null) throw new HttpError(404, "Unknown game", "unknownGame");
+      return c.json(session, 200);
     },
   );
 

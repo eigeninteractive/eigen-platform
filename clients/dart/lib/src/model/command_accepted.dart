@@ -3,7 +3,7 @@
 //
 
 // ignore_for_file: unused_element
-import 'package:eigen_api/src/model/frame.dart';
+import 'package:eigen_api/src/model/session.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'command_accepted.g.dart';
@@ -16,23 +16,18 @@ part 'command_accepted.g.dart';
 )
 class CommandAccepted {
   /// Returns a new [CommandAccepted] instance.
-  CommandAccepted({required this.version, required this.frame});
+  CommandAccepted({required this.session});
 
-  @JsonKey(name: r'version', required: true, includeIfNull: false)
-  final int version;
-
-  @JsonKey(name: r'frame', required: true, includeIfNull: false)
-  final Frame frame;
+  @JsonKey(name: r'session', required: true, includeIfNull: false)
+  final Session session;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is CommandAccepted &&
-          other.version == version &&
-          other.frame == frame;
+      other is CommandAccepted && other.session == session;
 
   @override
-  int get hashCode => version.hashCode + frame.hashCode;
+  int get hashCode => session.hashCode;
 
   factory CommandAccepted.fromJson(Map<String, dynamic> json) =>
       _$CommandAcceptedFromJson(json);

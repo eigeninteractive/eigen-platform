@@ -119,8 +119,8 @@ describe("blocking: the seating boundary", () => {
     const game = await createGame(a);
     await block(a, b);
     // C is blocked with nobody: the seat is open to them.
-    const joined = await json<{ roster: { players: unknown[] } }>(await api(c, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 }));
-    expect(joined.roster.players.length).toBe(2);
+    const joined = await json<{ session: { players: unknown[] } }>(await api(c, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 }));
+    expect(joined.session.players.length).toBe(2);
   });
 });
 

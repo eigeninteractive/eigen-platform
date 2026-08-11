@@ -25,9 +25,7 @@ import 'package:eigen_api/src/model/game_summary.dart';
 import 'package:eigen_api/src/model/health.dart';
 import 'package:eigen_api/src/model/join.dart';
 import 'package:eigen_api/src/model/join_by_code.dart';
-import 'package:eigen_api/src/model/joined.dart';
 import 'package:eigen_api/src/model/lobby.dart';
-import 'package:eigen_api/src/model/lobby_accepted.dart';
 import 'package:eigen_api/src/model/lobby_command.dart';
 import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/outcome.dart';
@@ -41,8 +39,8 @@ import 'package:eigen_api/src/model/rating_history.dart';
 import 'package:eigen_api/src/model/rating_history_entry.dart';
 import 'package:eigen_api/src/model/rating_identity.dart';
 import 'package:eigen_api/src/model/ratings.dart';
-import 'package:eigen_api/src/model/roster.dart';
 import 'package:eigen_api/src/model/seat.dart';
+import 'package:eigen_api/src/model/session.dart';
 import 'package:eigen_api/src/model/solo_started.dart';
 import 'package:eigen_api/src/model/user_search.dart';
 import 'package:eigen_api/src/model/username_update.dart';
@@ -135,13 +133,8 @@ ReturnType deserialize<ReturnType, BaseType>(
       return Join.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'JoinByCode':
       return JoinByCode.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'Joined':
-      return Joined.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Lobby':
       return Lobby.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'LobbyAccepted':
-      return LobbyAccepted.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
     case 'LobbyCommand':
       return LobbyCommand.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'MyGames':
@@ -171,10 +164,10 @@ ReturnType deserialize<ReturnType, BaseType>(
           as ReturnType;
     case 'Ratings':
       return Ratings.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'Roster':
-      return Roster.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Seat':
       return Seat.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'Session':
+      return Session.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'SoloStarted':
       return SoloStarted.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'UserSearch':

@@ -35,9 +35,7 @@ doc/Health.md
 doc/HealthApi.md
 doc/Join.md
 doc/JoinByCode.md
-doc/Joined.md
 doc/Lobby.md
-doc/LobbyAccepted.md
 doc/LobbyCommand.md
 doc/MeApi.md
 doc/MyGames.md
@@ -53,8 +51,8 @@ doc/RatingHistory.md
 doc/RatingHistoryEntry.md
 doc/RatingIdentity.md
 doc/Ratings.md
-doc/Roster.md
 doc/Seat.md
+doc/Session.md
 doc/SocialApi.md
 doc/SoloStarted.md
 doc/UserSearch.md
@@ -105,9 +103,7 @@ lib/src/model/game_summary.dart
 lib/src/model/health.dart
 lib/src/model/join.dart
 lib/src/model/join_by_code.dart
-lib/src/model/joined.dart
 lib/src/model/lobby.dart
-lib/src/model/lobby_accepted.dart
 lib/src/model/lobby_command.dart
 lib/src/model/my_games.dart
 lib/src/model/outcome.dart
@@ -121,8 +117,8 @@ lib/src/model/rating_history.dart
 lib/src/model/rating_history_entry.dart
 lib/src/model/rating_identity.dart
 lib/src/model/ratings.dart
-lib/src/model/roster.dart
 lib/src/model/seat.dart
+lib/src/model/session.dart
 lib/src/model/solo_started.dart
 lib/src/model/user_search.dart
 lib/src/model/username_update.dart
