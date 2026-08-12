@@ -207,8 +207,14 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * every 0.3.x pins `eigen_api: ^0.2.0`, which cannot read a 0.3.x engine at all.
  * A scaffold pinning 0.3.x would therefore resolve, compile, and then fail to
  * render a game, which is the worst of the three.
+ *
+ * Raised to 0.4.1 for `EngineConfig.authDomain`, which the generated
+ * `main.dart` passes. Additive, so pre-1.0 it is a patch and `^0.4.0` would
+ * still resolve it, but `^0.4.0` also still resolves 0.4.0, where the parameter
+ * does not exist and the scaffold would not compile. The floor is what makes
+ * the generated code and the installed shell agree.
  */
-const flutterClientVersion = "^0.4.0";
+const flutterClientVersion = "^0.4.1";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
