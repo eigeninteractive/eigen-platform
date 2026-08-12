@@ -33,7 +33,10 @@ export type ErrorCode =
   | "registrationRequired"
   | "imageTooLarge"
   | "unsupportedImageType"
-  | "rateLimited";
+  | "rateLimited"
+  /** A pagination cursor that did not decode. Distinct because a client can
+   * act on it: discard the cursor and re-request the first page. */
+  | "invalidCursor";
 
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;

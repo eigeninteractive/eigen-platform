@@ -6,7 +6,8 @@
  */
 
 import type { RatingDelta, Seat } from "@eigeninteractive/kernel";
-import { and, desc, eq, inArray, lt, or, type SQLWrapper, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, type SQLWrapper, sql } from "drizzle-orm";
+import { type Cursor, encodeCursor, type Page } from "../cursor.js";
 import { noBlockedParticipant } from "./blocks.js";
 import { orm } from "./orm.js";
 import { bots, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
@@ -154,58 +155,96 @@ export async function readGameByCode(d1: D1Database, shortCode: string): Promise
   return (await withRatings(d1, [{ ...row, participants: seatRows }]))[0];
 }
 
-/** Keyset pagination: fetch strictly older than the caller's last row.
+/** Keyset pagination: fetch strictly after the caller's last row, in the
+ * list's own descending order.
  *
  * A cursor rather than an offset because these lists change underneath the
  * reader: a new lobby game shifts every OFFSET by one and makes a scroll show
- * the same row twice. The cursor is the previous page's last sort value, so a
- * page is stable no matter what was inserted since. It also stays index-served
- * at any depth, where OFFSET degrades linearly.
+ * the same row twice. A cursor names a position rather than a count, so a page
+ * is stable no matter what was inserted since, and it stays index-served at any
+ * depth where OFFSET degrades linearly.
  *
- * Ties are possible (two games created in the same millisecond) and would drop
- * a row; in practice the epoch-ms resolution plus `limit` makes that vanishing,
- * and the alternative, a compound (timestamp, id) cursor, is not worth the
- * wire complexity for a game list. */
-function olderThan(column: SQLWrapper, cursor: number | null) {
-  return cursor === null ? undefined : lt(column, cursor);
+ * The comparison is on the PAIR (sort value, id), not on the sort value alone.
+ * Timestamps tie - two games created in the same millisecond share one - and
+ * under a `sortKey < cursor` boundary a tied row is neither after the page just
+ * served nor on it, so it is skipped and never seen again. Ordering by
+ * `(sortKey, id)` makes the ordering total, and comparing lexicographically
+ * places the boundary exactly between two rows however many share a timestamp.
+ * The id's own order is arbitrary (they are UUIDs); all a tiebreak needs is to
+ * be consistent, and the same expression drives both the ORDER BY and this. */
+export function afterCursor(sortKey: SQLWrapper, id: SQLWrapper, cursor: Cursor | null) {
+  if (cursor === null) return undefined;
+  // Spelled as a SQLite row value (3.15+) rather than expanded by hand into
+  // `sortKey < t OR (sortKey = t AND id < cursorId)`. The two are equivalent,
+  // but the expansion mentions `sortKey` twice, and `sortKey` is sometimes a
+  // COALESCE over two columns, so the hand-written form is both longer and the
+  // kind of thing that silently stops matching its own ORDER BY when one copy
+  // is edited. SQLite plans a row-value comparison against the same index it
+  // would use for the expansion.
+  return sql`(${sortKey}, ${id}) < (${cursor.t}, ${cursor.id})`;
 }
+
+/** Turn an over-fetched row set into a page plus the cursor that continues it.
+ *
+ * The reads ask D1 for `limit + 1` rows and this discards the extra. That one
+ * wasted row is what lets `nextCursor` be null exactly when the list is
+ * exhausted, rather than null when a page came back short - which is a guess,
+ * and it is wrong precisely when the final page is exactly full. */
+export async function pageOf(d1: D1Database, rows: GameRow[], limit: number, sortValue: (row: GameRow) => number): Promise<Page<GameWithRoster>> {
+  const hasMore = rows.length > limit;
+  const kept = hasMore ? rows.slice(0, limit) : rows;
+  const last = kept.at(-1);
+  return {
+    rows: await withRosters(d1, kept),
+    nextCursor: hasMore && last !== undefined ? encodeCursor({ t: sortValue(last), id: last.id }) : null,
+  };
+}
+
+/** The sort value of a finished game: aborted rows carry no `finishedAt`, so
+ * they fall back to `updatedAt`. Defined once, because the SQL expression below
+ * and this must agree exactly or a cursor lands on the wrong row. */
+const finishedSortSql = sql<number>`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
+const finishedSortValue = (row: GameRow): number => row.finishedAt ?? row.updatedAt;
 
 /** The lobby page: public joinable games, newest first, exactly the shape
  * `idx_games_lobby` (the ported partial index) serves. When `caller` is given,
  * games seating anyone they have blocked (either direction) are hidden. The
  * creator counts as a participant, so this covers both games a blocked user
  * created and games they joined. */
-export async function readLobby(d1: D1Database, limit: number, cursor: number | null = null, caller?: string): Promise<GameWithRoster[]> {
+export async function readLobby(d1: D1Database, limit: number, cursor: Cursor | null = null, caller?: string): Promise<Page<GameWithRoster>> {
   const rows = await orm(d1)
     .select()
     .from(games)
-    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), caller === undefined ? undefined : noBlockedParticipant(d1, caller), olderThan(games.createdAt, cursor)))
-    .orderBy(desc(games.createdAt))
-    .limit(limit)
+    .where(and(eq(games.access, "public"), inArray(games.status, ["waiting", "ready"]), caller === undefined ? undefined : noBlockedParticipant(d1, caller), afterCursor(games.createdAt, games.id, cursor)))
+    .orderBy(desc(games.createdAt), desc(games.id))
+    .limit(limit + 1)
     .all();
-  return await withRosters(d1, rows);
+  return await pageOf(d1, rows, limit, (row) => row.createdAt);
 }
 
 /** "My games" through the participants index (THE access path for
  * games-of-user). `active` = anything still alive; `finished` = the history
  * list, newest finish first (aborted rows carry no finishedAt, so they sort by
  * updatedAt). */
-export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
+export async function readMyGames(d1: D1Database, userId: string, bucket: "active" | "finished", limit: number, cursor: Cursor | null = null): Promise<Page<GameWithRoster>> {
   const db = orm(d1);
   const statuses: GameRow["status"][] = bucket === "active" ? ["waiting", "ready", "active"] : ["finished", "aborted"];
-  const sortKey = bucket === "active" ? games.updatedAt : sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
-  const order = desc(sortKey);
+  const active = bucket === "active";
+  const sortKey = active ? games.updatedAt : finishedSortSql;
+  const sortValue = active ? (row: GameRow) => row.updatedAt : finishedSortValue;
   const rows = await db
     .select({ games })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
-    .where(and(eq(participants.userId, userId), inArray(games.status, statuses), olderThan(sortKey, cursor)))
-    .orderBy(order)
-    .limit(limit)
+    .where(and(eq(participants.userId, userId), inArray(games.status, statuses), afterCursor(sortKey, games.id, cursor)))
+    .orderBy(desc(sortKey), desc(games.id))
+    .limit(limit + 1)
     .all();
-  return await withRosters(
+  return await pageOf(
     d1,
     rows.map((r) => r.games),
+    limit,
+    sortValue,
   );
 }
 
@@ -216,19 +255,20 @@ export async function readMyGames(d1: D1Database, userId: string, bucket: "activ
  * a finished public game is already replayable by anyone who has its id. Same
  * participants index as `readMyGames`, matching either identity column so a
  * bot's game history works too. */
-export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
-  const sortKey = sql`COALESCE(${games.finishedAt}, ${games.updatedAt})`;
+export async function readPlayerPublicGames(d1: D1Database, playerId: string, limit: number, cursor: Cursor | null = null): Promise<Page<GameWithRoster>> {
   const rows = await orm(d1)
     .select({ games })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
-    .where(and(or(eq(participants.userId, playerId), eq(participants.botId, playerId)), eq(games.status, "finished"), eq(games.access, "public"), olderThan(sortKey, cursor)))
-    .orderBy(desc(sortKey))
-    .limit(limit)
+    .where(and(or(eq(participants.userId, playerId), eq(participants.botId, playerId)), eq(games.status, "finished"), eq(games.access, "public"), afterCursor(finishedSortSql, games.id, cursor)))
+    .orderBy(desc(finishedSortSql), desc(games.id))
+    .limit(limit + 1)
     .all();
-  return await withRosters(
+  return await pageOf(
     d1,
     rows.map((r) => r.games),
+    limit,
+    finishedSortValue,
   );
 }
 

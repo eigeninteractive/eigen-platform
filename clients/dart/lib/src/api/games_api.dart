@@ -554,7 +554,10 @@ class GamesApi {
       validateStatus: validateStatus,
     );
 
-    final _queryParameters = <String, dynamic>{r'from': from, r'to': to};
+    final _queryParameters = <String, dynamic>{
+      if (from != null) r'from': from,
+      if (to != null) r'to': to,
+    };
 
     final _response = await _dio.request<Object>(
       _path,
@@ -771,7 +774,7 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<Lobby>> getLobby({
     int? limit = 20,
-    int? cursor,
+    String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -794,7 +797,7 @@ class GamesApi {
 
     final _queryParameters = <String, dynamic>{
       if (limit != null) r'limit': limit,
-      r'cursor': cursor,
+      if (cursor != null) r'cursor': cursor,
     };
 
     final _response = await _dio.request<Object>(
@@ -854,7 +857,7 @@ class GamesApi {
   Future<Response<MyGames>> getMyGames({
     String? bucket = 'active',
     int? limit = 20,
-    int? cursor,
+    String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -878,7 +881,7 @@ class GamesApi {
     final _queryParameters = <String, dynamic>{
       if (bucket != null) r'bucket': bucket,
       if (limit != null) r'limit': limit,
-      r'cursor': cursor,
+      if (cursor != null) r'cursor': cursor,
     };
 
     final _response = await _dio.request<Object>(

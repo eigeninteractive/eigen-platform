@@ -5,9 +5,11 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
+import { decodeOptionalCursor } from "../cursor.js";
 import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
+import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
 import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape, sessionShape } from "./wire.js";
 
 function okResponse<T extends z.ZodType>(schema: T, description: string) {
@@ -21,13 +23,6 @@ function okResponse<T extends z.ZodType>(schema: T, description: string) {
   } as const;
 }
 
-const limitQuery = z.coerce.number().int().min(1).max(50).default(20);
-
-/** Keyset cursor: the previous page's last sort value (epoch ms). Absent on the
- * first page. Paging by cursor rather than offset keeps a page stable while the
- * underlying list changes, which for a lobby it constantly does. */
-const cursorQuery = z.coerce.number().int().optional();
-
 export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
   app.openapi(
     createRoute({
@@ -36,12 +31,12 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "getLobby",
       tags: ["Games"],
       request: { query: z.object({ limit: limitQuery, cursor: cursorQuery }) },
-      responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("Lobby"), "Public joinable games, newest first"),
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("Lobby"), "Public joinable games, newest first"),
     }),
     async (c) => {
       const { limit, cursor } = c.req.valid("query");
-      const games = await readLobby(ctx.d1(c.env), limit, cursor ?? null, c.var.auth.user.id);
-      return c.json({ games: games.map(gameSummaryOf) }, 200);
+      const page = await readLobby(ctx.d1(c.env), limit, decodeOptionalCursor(cursor), c.var.auth.user.id);
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
 
@@ -53,12 +48,12 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "getMyGames",
       tags: ["Games"],
       request: { query: z.object({ bucket: z.enum(["active", "finished"]).default("active"), limit: limitQuery, cursor: cursorQuery }) },
-      responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("MyGames"), "The caller's games in the requested bucket"),
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("MyGames"), "The caller's games in the requested bucket"),
     }),
     async (c) => {
       const { bucket, limit, cursor } = c.req.valid("query");
-      const games = await readMyGames(ctx.d1(c.env), c.var.auth.user.id, bucket, limit, cursor ?? null);
-      return c.json({ games: games.map(gameSummaryOf) }, 200);
+      const page = await readMyGames(ctx.d1(c.env), c.var.auth.user.id, bucket, limit, decodeOptionalCursor(cursor));
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
 
@@ -172,12 +167,12 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       operationId: "getPlayerGames",
       tags: ["Players"],
       request: { params: z.object({ playerId: z.string().min(1) }), query: z.object({ limit: limitQuery, cursor: cursorQuery }) },
-      responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("PlayerGames"), "That player's finished public games, newest first"),
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("PlayerGames"), "That player's finished public games, newest first"),
     }),
     async (c) => {
       const { limit, cursor } = c.req.valid("query");
-      const games = await readPlayerPublicGames(ctx.d1(c.env), c.req.valid("param").playerId, limit, cursor ?? null);
-      return c.json({ games: games.map(gameSummaryOf) }, 200);
+      const page = await readPlayerPublicGames(ctx.d1(c.env), c.req.valid("param").playerId, limit, decodeOptionalCursor(cursor));
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
 
@@ -218,7 +213,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/me/rating-history",
       operationId: "getMyRatingHistory",
       tags: ["Me"],
-      request: { query: z.object({ pool: z.string().optional(), limit: limitQuery }) },
+      request: { query: z.object({ pool: z.string().min(1).optional(), limit: limitQuery }) },
       responses: okResponse(z.object({ history: z.array(historyShape) }).openapi("RatingHistory"), "The caller's rating log, newest first"),
     }),
     async (c) => {

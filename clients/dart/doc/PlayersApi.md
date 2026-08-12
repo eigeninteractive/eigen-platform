@@ -26,7 +26,7 @@ import 'package:eigen_api/api.dart';
 final api = EigenApi().getPlayersApi();
 final String playerId = playerId_example; // String | 
 final int limit = 56; // int | 
-final int cursor = 56; // int | 
+final String cursor = cursor_example; // String | 
 
 try {
     final response = api.getPlayerGames(playerId, limit, cursor);
@@ -42,7 +42,7 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **playerId** | **String**|  | 
  **limit** | **int**|  | [optional] [default to 20]
- **cursor** | **int**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
 
 ### Return type
 

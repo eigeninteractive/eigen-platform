@@ -18,6 +18,7 @@ import { HttpError, unwrap } from "../http.js";
 import { gameInvitePush } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
+import { versionQuery } from "./query.js";
 import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, lobbyCommandBody, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
@@ -520,8 +521,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       request: {
         params: gameIdParam,
         query: z.object({
-          from: z.coerce.number().int().min(0).default(0),
-          to: z.coerce.number().int().min(0).optional(),
+          from: versionQuery.default(0).openapi({ type: "integer", minimum: 0, default: 0 }),
+          to: versionQuery.optional(),
         }),
       },
       responses: responses(z.object({ frames: z.array(frameShape) }).openapi("Frames"), "The projected frames, version-ascending"),
