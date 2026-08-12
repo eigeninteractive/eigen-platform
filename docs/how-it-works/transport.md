@@ -45,9 +45,13 @@ None of it is game code; a game never opens a socket or resolves an identity.
   older app does not know to `unknownDefaultOpenApi`, so decoding succeeds and
   the app can request an update. The fallback is read-side only and is never
   sent back.
-- **Lists page by keyset cursor**, not offset: the cursor is the previous page's
-  last sort value. These lists change while they are being read, and an offset
-  would show the same row twice after a single insert.
+- **Lists page by keyset cursor**, not offset. These lists change while they are
+  being read, and an offset would show the same row twice after a single insert.
+  The cursor is opaque: a paged response carries a `nextCursor`, and a client
+  passes it back untouched rather than deriving it from the last row it holds.
+  It is null exactly when the list is exhausted, so "is there another page" is
+  an answer rather than something inferred from a short page. Composing a cursor
+  is not supported; a malformed one is refused with `invalidCursor`.
 - **Avatar URLs may be relative.** With the default worker-served setup the
   server returns `/avatars/{uid}?v=<ts>`; with a public bucket domain it returns
   an absolute URL. `resolveAvatarUrl` resolves either against the API origin, and
