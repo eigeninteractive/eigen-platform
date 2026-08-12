@@ -373,6 +373,32 @@ function packageCommand(manager: PackageManager, operation: "install" | "contrac
   return [manager, ["run", operation]];
 }
 
+/**
+ * Appends `block` to a file this scaffolder does not own, as its own paragraph.
+ *
+ * **Append, never insert.** That is the rule the three callers below follow, and
+ * it is what keeps them from competing with `flutter create` and `flutterfire
+ * configure` for position in the same files. A pure append cannot collide with
+ * whatever those tools write above it; the one edit here that ever needed a
+ * position, prepending a Kotlin `import`, was broken by an AGP upgrade and has
+ * since been rewritten away. See MAINTAINERS.md for the whole doctrine, including
+ * why FlutterFire's `// START:`/`// END:` marker comments are deliberately not
+ * copied.
+ *
+ * `contents` is passed in rather than read here because every caller has already
+ * read the file to decide whether its block is present, and two of them assert
+ * on the shape of what they found. This owns the whitespace and nothing else.
+ *
+ * That is worth one function because it was previously written three times with
+ * two different answers, so the desugaring block got a blank line before it and
+ * the other two did not, and the two Gradle blocks ended up flush against each
+ * other in every generated project. Separation belongs to the append, so the
+ * block constants carry no leading or trailing newline of their own.
+ */
+function appendBlock(path: string, contents: string, block: string): void {
+  appendFileSync(path, `${contents.endsWith("\n") ? "" : "\n"}\n${block}\n`);
+}
+
 const androidDesugaring = `// flutter_local_notifications requires desugaring in the application module.
 // A library plugin cannot enable this compiler setting transitively.
 android {
@@ -397,7 +423,7 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
   if (settingExists || dependencyExists) {
     throw new Error(`Flutter created an incomplete Android core library desugaring configuration: ${gradlePath}`);
   }
-  appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "\n" : "\n\n"}${androidDesugaring}\n`);
+  appendBlock(gradlePath, gradle, androidDesugaring);
 }
 
 // A second top-level `android { }` block is valid Gradle Kotlin DSL, since Gradle
@@ -407,10 +433,12 @@ function enableAndroidCoreLibraryDesugaring(appRoot: string): void {
 // script), which is why the Crashlytics Gradle plugin registration,
 // `flutterfire configure`'s own territory, is deliberately left alone here.
 //
-// `Properties` needs a real `import`, prepended separately below. A
-// fully-qualified `java.util.Properties()` reference here was tried first,
-// to avoid needing to touch the top of the file at all, but fails to
-// resolve under AGP 9's Kotlin DSL script compilation
+// Parsed with the Kotlin stdlib rather than `java.util.Properties`, which is
+// what keeps this appendable. `Properties` would need a real `import`, and
+// Kotlin requires imports before every other top-level declaration, so using it
+// meant also reaching into the very start of a file this scaffolder does not
+// own. A fully-qualified `java.util.Properties()` reference was tried to avoid
+// that, and does not resolve under AGP 9's Kotlin DSL script compilation
 // (`flutter create`'s current default): "Unresolved reference 'util'".
 // Confirmed by actually building a scaffolded project, not just reading it.
 const androidReleaseSigning = `val releaseKeyProperties: Map<String, String> =
@@ -455,13 +483,9 @@ function enableAndroidReleaseSigning(appRoot: string): void {
   // so that check would always short-circuit and never append anything.
   if (gradle.includes("releaseKeyProperties")) return;
   // A pure append. This previously also PREPENDED `import java.util.Properties`,
-  // because Kotlin requires imports before every other top-level declaration,
-  // which meant reaching into the very start of a file this scaffolder does
-  // not own, the most position-dependent edit here and the one already broken
-  // once by an AGP upgrade. Parsing `key.properties` with the Kotlin stdlib
-  // needs no import, so the edit is now append-only and cannot collide with
-  // whatever Flutter or `flutterfire configure` writes above it.
-  appendFileSync(gradlePath, `${gradle.endsWith("\n") ? "" : "\n"}${androidReleaseSigning}\n`);
+  // the most position-dependent edit here and the one already broken once by an
+  // AGP upgrade; see the block above for what replaced it.
+  appendBlock(gradlePath, gradle, androidReleaseSigning);
 }
 
 // `flutter_launcher_icons`/`flutter_native_splash` read these as plain
@@ -475,8 +499,7 @@ function enableAndroidReleaseSigning(appRoot: string): void {
 // reversed, light-on-dark variant, so an ink background is what makes it
 // legible. Rebranding a game means replacing the four PNGs *and* these
 // colours together. See https://eigeninteractive.com/docs/ship-it/branding.
-const launcherIconsAndSplashConfig = `
-flutter_launcher_icons:
+const launcherIconsAndSplashConfig = `flutter_launcher_icons:
   android: true
   web:
     generate: true
@@ -499,14 +522,13 @@ flutter_native_splash:
     image_dark: assets/icon/splash_dark.png
     icon_background_color: "#F4F1EA"
     icon_background_color_dark: "#1B1E24"
-  web: true
-`;
+  web: true`;
 
 function configureLauncherIconsAndSplash(appRoot: string): void {
   const pubspecPath = resolve(appRoot, "pubspec.yaml");
   const pubspec = readFileSync(pubspecPath, "utf8");
   if (pubspec.includes("flutter_launcher_icons:")) return;
-  appendFileSync(pubspecPath, `${pubspec.endsWith("\n") ? "" : "\n"}${launcherIconsAndSplashConfig}`);
+  appendBlock(pubspecPath, pubspec, launcherIconsAndSplashConfig);
 }
 
 export interface AddContinuousIntegrationOptions {

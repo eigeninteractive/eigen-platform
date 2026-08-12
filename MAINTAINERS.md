@@ -382,6 +382,111 @@ line-crossing release.
 defeat the purpose: a real resolution against pub.dev is the only thing that
 makes the pin mean anything.
 
+### Editing files the scaffolder does not own
+
+Most of what `create-eigen-game` writes, it owns: four template trees copied
+whole and token-substituted by `renderTree`. Three edits are different. They
+modify files `flutter create` produced, in a directory `flutterfire configure`
+will edit next, and they have one rule.
+
+> **Append, never insert.**
+
+| Function | File | Identified by |
+|---|---|---|
+| `enableAndroidCoreLibraryDesugaring` | `android/app/build.gradle.kts` | `isCoreLibraryDesugaringEnabled` |
+| `enableAndroidReleaseSigning` | same file | `releaseKeyProperties` |
+| `configureLauncherIconsAndSplash` | `app/pubspec.yaml` | `flutter_launcher_icons:` |
+
+An append cannot compete for position with whatever Flutter or FlutterFire
+writes above it. Both Android edits are second top-level `android { }` blocks,
+which is legal because Gradle merges repeated extension-configuration blocks in
+one file; the pubspec edit is two top-level YAML keys. A second top-level
+`plugins { }` block is *not* legal, one per script, which is why the Crashlytics
+plugin registration is left to `flutterfire configure` and not attempted here.
+
+The rule is not a preference. The one edit that ever needed a position,
+prepending `import java.util.Properties` because Kotlin requires imports before
+every other top-level declaration, was broken by an AGP upgrade, and was fixed by
+removing the need for it rather than by chasing the new layout. Parsing
+`key.properties` with the Kotlin stdlib needs no import. Reach for a positional
+edit and you have signed up for that maintenance again.
+
+Each block is recognised by **a content probe on its own payload**, chosen to be
+a string only that block contains. `includes("signingConfigs")` would not do:
+Flutter's own template already contains it, via
+`signingConfig = signingConfigs.getByName("debug")`, so the guard would
+short-circuit forever and nothing would ever be appended. Two of the three also
+assert on the *shape* of what they found and throw: an Android application module
+must be there, and a half-written desugaring configuration is an error rather
+than something to append alongside.
+
+`appendBlock` owns the whitespace, and only the whitespace: one blank line before
+the block, one newline after, block constants carrying neither. It is one
+function because it was three, with two different answers, so the second Gradle
+block landed flush against the first in every generated project.
+
+#### Why FlutterFire's marker comments are not copied
+
+`flutterfire configure` brackets its Gradle insertions:
+
+```kotlin
+// START: FlutterFire Configuration
+id("com.google.gms.google-services") version("4.4.4") apply false
+// END: FlutterFire Configuration
+```
+
+**Those markers are attribution, not machinery.** In flutterfire_cli 1.4.1 the
+two constants appear in ten places and every one is string construction; nothing
+ever reads them back. Its idempotency comes from a separate content probe,
+`contains(_googleServicesPluginClassPath)`, which is the same mechanism the table
+above uses. FlutterFire needs a *regex anchor* because it must inject into the
+single permitted `plugins { }` block, and the comment rides along; an append
+needs no anchor, so a marker would add text without adding capability.
+
+Copying them would also be actively misleading in one respect: FlutterFire uses
+one marker text for all its insertions, so it could not replace them selectively
+even if it read them.
+
+**A marker pair earns its place under exactly one condition: the block's content
+changes between runs and the old copy must be found and replaced.** That is what
+a content probe cannot do. `includes("releaseKeyProperties")` answers "is mine
+here?" but never "where does mine end?", so it can only skip, never update, and
+`desugar_jdk_libs:2.1.4` is frozen into every project already generated.
+
+That condition arrives with an upgrade command, not before. When it does, add
+markers as a genuinely parsed region: **one pair per block**, versioned in the
+marker text so a future writer knows what it is replacing, and guarded on
+finding *exactly one* properly nested pair. Anything else, and they are
+decoration.
+
+Never put markers in `templates/`. Those files are wholly owned and rendered
+whole, and a marker there would promise a tool that revisits them.
+
+#### Configuration values are assigned, not appended
+
+Engine configuration is a separate case from the three edits above, and does not
+use them. `FIREBASE_PROJECT_ID`, `WEB_APP_ORIGIN`, `GOOGLE_WEB_CLIENT_ID`,
+`API_BASE_URL` and the VAPID key all have declared, empty slots in
+`templates/worker/wrangler.jsonc` and `templates/app-overlay/app-config.json`.
+Filling a slot beats appending a block: the key is visible in the template before
+anything runs, the wrangler schema knows about it, and an absent or ambiguous
+slot is a refusal rather than a guess.
+
+`configure_firebase` in eigen-flutter does that filling, at scaffold time and on
+every later re-run, so there is one implementation rather than two that drift.
+Its rule, in `lib/src/codegen/firebase_link.dart`:
+
+| File | Method | Why |
+|---|---|---|
+| `app-config.json` | decode, merge, re-encode | Plain JSON; nothing to preserve |
+| `wrangler.jsonc` | rewrite the one assignment in place | Comments. Re-encoding would delete every one, and Cloudflare recommends JSONC for new projects |
+
+The surgical path's safety is the **match count, not the pattern**: a key found
+anywhere other than exactly once, commented out, duplicated, or nested under some
+other object, means this is not the file it knows how to edit, so nothing is
+written and the caller reports it. Guessing which of two matches was meant is the
+only outcome worth avoiding.
+
 ## Downstream documentation
 
 `eigen-web` commits generated copies of:
