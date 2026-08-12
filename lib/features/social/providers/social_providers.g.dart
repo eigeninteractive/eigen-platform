@@ -314,7 +314,7 @@ final class FriendsGamesProvider
   }
 }
 
-String _$friendsGamesHash() => r'd2418a76d6c91fefa247c31f379503f3edb0fd38';
+String _$friendsGamesHash() => r'b66fa0dc6cf0d0304b7b031e4eaca94a35ce7cd3';
 
 @ProviderFor(friendStatus)
 final friendStatusProvider = FriendStatusFamily._();

@@ -55,6 +55,10 @@ String messageForCode(ErrorCode code) => switch (code) {
   ErrorCode.unsupportedImageType => 'Use a JPEG, PNG, or WebP image.',
   ErrorCode.rateLimited =>
     "You're doing that too quickly. Wait a moment and try again.",
+  // A cursor is echoed back, never composed, so a user can neither cause nor
+  // fix this. It means a paged list needs restarting from the top, which is
+  // what a refresh does, so the copy asks for exactly that.
+  ErrorCode.invalidCursor => 'That list is out of date. Pull to refresh.',
   ErrorCode.unknownDefaultOpenApi => _unexpected,
 };
 

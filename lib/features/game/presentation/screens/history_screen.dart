@@ -55,28 +55,42 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   late final PagingController<String, _HistoryEntry> _pagingController;
 
+  /// The cursor for the page after the one most recently fetched, or null once
+  /// the server has said the list is exhausted. The empty string is "no cursor
+  /// yet", i.e. the first page; it cannot be null, because null is how this
+  /// controller is told there are no more pages.
+  String? _nextKey = '';
+
+  /// Reload from the top.
+  ///
+  /// The cursor lives beside the controller rather than inside it, so the two
+  /// have to be reset together - refreshing the list without clearing the
+  /// cursor would refetch page one and then continue from wherever the last
+  /// scroll had reached. There are three refresh affordances on this screen
+  /// (the toolbar button, pull-to-refresh, and the error retry), which is
+  /// exactly why this is a method and not three copies of two lines.
+  void _refresh() {
+    _nextKey = '';
+    _pagingController.refresh();
+  }
+
   @override
   void initState() {
     super.initState();
     _pagingController = PagingController<String, _HistoryEntry>(
-      getNextPageKey: (state) {
-        final pages = state.pages;
-        if (pages == null || pages.isEmpty) return '';
-        final lastPage = pages.last;
-        if (lastPage.length < historyPageSize) return null;
-        // The server pages by keyset: the next page is everything strictly
-        // older than this page's last sort value, which for finished games is
-        // the finish time (falling back to the last update for aborted ones).
-        final last = lastPage.last.game;
-        return '${last.finishedAt ?? last.updatedAt}';
-      },
+      getNextPageKey: (state) => _nextKey,
       fetchPage: (key) async {
-        final games = await ref
+        final page = await ref
             .read(gameRepositoryProvider)
             .getMyGames(
               bucket: finishedGamesBucket,
-              cursor: key.isEmpty ? null : int.parse(key),
+              cursor: key.isEmpty ? null : key,
             );
+        // The server says where the next page starts, and says so with a token
+        // this screen never opens. Nothing here knows that finished games sort
+        // by their finish time; that is the server's rule to keep.
+        _nextKey = page.nextCursor;
+        final games = page.games;
         // The summary carries the roster, the outcomes and the rating deltas,
         // so every field of a row is derived from the one response. Joining a
         // separate rating log here would have been a second round trip per
@@ -134,7 +148,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: IconButton(
-                onPressed: _pagingController.refresh,
+                onPressed: _refresh,
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Refresh history',
               ),
@@ -142,7 +156,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => _pagingController.refresh(),
+              onRefresh: () async => _refresh(),
               child: PagingListener(
                 controller: _pagingController,
                 builder: (context, state, fetchNextPage) {
@@ -174,7 +188,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                               Text(humanize(state.error ?? 'Unknown error')),
                               const SizedBox(height: 16),
                               FilledButton(
-                                onPressed: _pagingController.refresh,
+                                onPressed: _refresh,
                                 child: const Text('Retry'),
                               ),
                             ],

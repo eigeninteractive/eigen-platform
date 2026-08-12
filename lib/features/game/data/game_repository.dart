@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/api/engine_call.dart';
+import 'package:eigen_flutter/core/api/games_page.dart';
 import 'package:eigen_flutter/core/api/game_socket.dart';
 import 'package:eigen_flutter/core/game/game_session.dart';
 
@@ -41,34 +42,35 @@ class GameRepository {
 
   /// Public games waiting for players, newest first.
   ///
-  /// [cursor] is the previous page's last `created_at`; omit it for the first
-  /// page. Paging by cursor rather than offset keeps a page stable while the
-  /// lobby churns underneath the reader - with an offset, one new game shifts
-  /// every subsequent page by one and a scroll shows the same row twice.
-  Future<List<GameSummary>> getLobby({
+  /// [cursor] is the previous page's [GamesPage.nextCursor]; omit it for the
+  /// first page. Paging by cursor rather than offset keeps a page stable while
+  /// the lobby churns underneath the reader - with an offset, one new game
+  /// shifts every subsequent page by one and a scroll shows the same row twice.
+  Future<GamesPage> getLobby({
     int limit = lobbyPageSize,
-    int? cursor,
+    String? cursor,
   }) async {
     final body = await engineData(
       () => _api.getLobby(limit: limit, cursor: cursor),
     );
-    return body.games;
+    return (games: body.games.toList(), nextCursor: body.nextCursor);
   }
 
   /// The caller's games in one bucket: `active` (still playable) or `finished`
   /// (the history list).
   ///
-  /// [cursor] is the previous page's last sort value - `updated_at` for active
-  /// games, `finished_at` (falling back to `updated_at`) for finished ones.
-  Future<List<GameSummary>> getMyGames({
+  /// [cursor] is the previous page's [GamesPage.nextCursor]; omit it for the
+  /// first page. How each bucket is ordered is the server's business and is not
+  /// restated here.
+  Future<GamesPage> getMyGames({
     String bucket = activeGamesBucket,
     int limit = historyPageSize,
-    int? cursor,
+    String? cursor,
   }) async {
     final body = await engineData(
       () => _api.getMyGames(bucket: bucket, limit: limit, cursor: cursor),
     );
-    return body.games;
+    return (games: body.games.toList(), nextCursor: body.nextCursor);
   }
 
   /// One game's index entry: what discovery and history show.
@@ -93,14 +95,19 @@ class GameRepository {
   ///
   /// Any player, human or bot. Public and finished only, so this exposes
   /// nothing that was not already replayable by anyone holding the game's id.
-  Future<List<GameSummary>> getPlayerGames(
+  Future<GamesPage> getPlayerGames(
     String playerId, {
     int? limit,
+    String? cursor,
   }) async {
     final body = await engineData(
-      () => _players.getPlayerGames(playerId: playerId, limit: limit),
+      () => _players.getPlayerGames(
+        playerId: playerId,
+        limit: limit,
+        cursor: cursor,
+      ),
     );
-    return body.games;
+    return (games: body.games.toList(), nextCursor: body.nextCursor);
   }
 
   /// The bots available to seat, for this build's schema version.

@@ -14,6 +14,17 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- Copy for the engine's new invalidCursor code. A cursor is echoed, never composed, so a user can neither cause nor fix one; it means the list needs restarting from the top, which is what a refresh does.
+
+### Changed
+- Paged lists follow the engine's opaque cursors. getLobby, getMyGames, getPlayerGames and getFriendsGames return a GamesPage record carrying the page and the server's nextCursor, instead of a bare list. That removes two things the client had no business knowing: the sort order, which history\_screen reconstructed from the last row's finishedAt ?? updatedAt, a hand-maintained copy of a rule the server owns; and where the list ends, which was inferred from a page coming back shorter than the page size. That inference is wrong exactly when the final page is full, and costs the reader a spinner and a request that returns nothing. nextCursor is null when the list is exhausted, so it is an answer rather than a guess.
+- eigen\_api pin raised to ^0.4.0: the engine now returns nextCursor on every paged response and takes cursor as an opaque string, and a shell speaking 0.3.x cannot read it.
+
+### Fixed
+- Refreshing a paged list no longer pages on from a stale cursor. The cursor lives beside the paging controller, so the two have to be reset together; refreshing without clearing it refetched page one and then continued from wherever the last scroll had reached. Both screens now route every refresh through one \_refresh(), which matters because history has three refresh affordances and the lobby has five (toolbar, pull-to-refresh, error retry, and on the lobby a game being joined or cancelled).
+
 ## [0.5.0] - 2026-08-12
 ## [0.4.1] - 2026-08-12
 ### Added
@@ -167,6 +178,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...HEAD
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0

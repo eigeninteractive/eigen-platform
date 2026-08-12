@@ -5,7 +5,6 @@ import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_flutter/features/game/data/game_repository.dart';
 
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/game/utils/game_timing.dart';
@@ -189,6 +188,26 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
     with AutomaticKeepAliveClientMixin {
   late final PagingController<String, GameSummary> _pagingController;
 
+  /// The cursor for the page after the one most recently fetched, or null once
+  /// the server has said the list is exhausted. The empty string is "no cursor
+  /// yet", i.e. the first page; it cannot be null, because null is how this API
+  /// says there are no more pages.
+  String? _nextKey = '';
+
+  /// Reload from the top.
+  ///
+  /// The cursor lives beside the controller rather than inside it, so the two
+  /// have to be reset together - refreshing without clearing the cursor would
+  /// refetch page one and then continue paging from wherever the last scroll
+  /// had reached. This screen has five refresh affordances (the toolbar button,
+  /// pull-to-refresh, the error retry, and a game being joined or cancelled),
+  /// which is exactly why this is a method rather than five copies of two
+  /// lines.
+  void _refresh() {
+    _nextKey = '';
+    _pagingController.refresh();
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -196,21 +215,16 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
   void initState() {
     super.initState();
     _pagingController = PagingController<String, GameSummary>(
-      getNextPageKey: (state) {
-        final pages = state.pages;
-        if (pages == null || pages.isEmpty) return '';
-        final lastPage = pages.last;
-        if (lastPage.length < lobbyPageSize) return null;
-        return '${lastPage.last.createdAt}';
-      },
-      fetchPage: (key) {
-        final cursor = key.isEmpty ? null : int.parse(key);
-        if (widget.mode == _LobbyMode.public) {
-          return ref.read(gameRepositoryProvider).getLobby(cursor: cursor);
-        }
-        return ref
-            .read(socialRepositoryProvider)
-            .getFriendsGames(cursor: cursor);
+      getNextPageKey: (state) => _nextKey,
+      fetchPage: (key) async {
+        final cursor = key.isEmpty ? null : key;
+        final page = widget.mode == _LobbyMode.public
+            ? await ref.read(gameRepositoryProvider).getLobby(cursor: cursor)
+            : await ref
+                  .read(socialRepositoryProvider)
+                  .getFriendsGames(cursor: cursor);
+        _nextKey = page.nextCursor;
+        return page.games;
       },
     );
     _pagingController.addListener(_onPagingError);
@@ -256,7 +270,7 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: IconButton(
-                onPressed: _pagingController.refresh,
+                onPressed: _refresh,
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Refresh games',
               ),
@@ -264,7 +278,7 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => _pagingController.refresh(),
+              onRefresh: () async => _refresh(),
               child: PagingListener(
                 controller: _pagingController,
                 builder: (context, state, fetchNextPage) {
@@ -274,8 +288,8 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
                         itemBuilder: (context, item, index) => _GameCard(
                           key: ValueKey(item.id),
                           game: item,
-                          onCancelled: _pagingController.refresh,
-                          onJoined: _pagingController.refresh,
+                          onCancelled: _refresh,
+                          onJoined: _refresh,
                         ),
                         noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
                           icon: Icons.sports_esports_outlined,
@@ -305,7 +319,7 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
                               Text(humanize(state.error ?? 'Unknown error')),
                               const SizedBox(height: 16),
                               FilledButton(
-                                onPressed: _pagingController.refresh,
+                                onPressed: _refresh,
                                 child: const Text('Retry'),
                               ),
                             ],

@@ -138,8 +138,8 @@ Future<List<FriendRequest>> outgoingRequests(Ref ref) async {
 
 /// Joinable games created by the caller's friends.
 @riverpod
-Future<List<GameSummary>> friendsGames(Ref ref) {
-  return ref.watch(socialRepositoryProvider).getFriendsGames();
+Future<List<GameSummary>> friendsGames(Ref ref) async {
+  return (await ref.watch(socialRepositoryProvider).getFriendsGames()).games;
 }
 
 /// The current relationship between the local user and another player.
