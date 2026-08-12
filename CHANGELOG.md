@@ -14,6 +14,10 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- EngineConfig.authDomain overrides Firebase Auth's domain, so web sign-in can name your own host instead of the project's firebaseapp.com. Optional and cosmetic: unset, which is the scaffolded value, keeps the project default, and Android never shows it. It is not APP\_HOST; the value must be a Firebase Hosting domain. Applied to the generated FirebaseOptions at startup, so configure\_firebase can keep regenerating firebase\_options.dart.
+
 ## [0.4.0] - 2026-08-11
 ### Added
 - GameContentContext.transition gives a game the step into the current frame (from, to), or null when there is nothing to animate: a cold load, a rejoin, or the opening frame. Animate only when it is non-null, which replaces tracking the last rendered version in widget state. Replay supplies it too, so one animation path serves live play and replay.
@@ -162,6 +166,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7
 [0.3.6]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.5...v0.3.6

@@ -41,6 +41,7 @@ class EngineConfig {
     required this.googleWebClientId,
     required this.firebaseVapidKey,
     this.appHost,
+    this.authDomain,
   });
 
   /// Origin of the EigenInteractive server, with no trailing slash and no
@@ -71,6 +72,28 @@ class EngineConfig {
   /// deep-link prefixes, so legal URLs on this same host open in the browser
   /// rather than being intercepted.
   final String? appHost;
+
+  /// Firebase Auth's own domain, overriding the project default; null keeps it.
+  ///
+  /// Purely cosmetic, and only in a browser. Web sign-in runs through Firebase's
+  /// popup, which loads `https://<authDomain>/__/auth/handler`, and Google's
+  /// account chooser names that host: by default *"Sign in to continue to
+  /// my-project.firebaseapp.com"*. Setting this replaces the string a player
+  /// reads there. Android signs in through the native Google flow and never
+  /// shows it, so an Android-only game has no reason to set this.
+  ///
+  /// **Not [appHost].** This host serves Firebase's auth handler and must be a
+  /// **Firebase Hosting** domain, whereas [appHost] is the game's own Worker.
+  /// One cannot be the other; they are sibling names on the same domain, e.g.
+  /// `auth.mygame.com` beside `mygame.com`. Setting this to a host Firebase
+  /// Hosting does not answer for breaks web sign-in outright, which is why it
+  /// stays unset until the Hosting domain exists.
+  ///
+  /// The name is only half the branding. The logo and product name on that
+  /// screen come from the OAuth consent screen in Google Cloud, which is a
+  /// separate change and needs no code. See
+  /// <https://eigeninteractive.com/docs/ship-it/deploy-the-web-app>.
+  final String? authDomain;
 
   /// Validates the deployment values before any engine service starts.
   ///
@@ -106,6 +129,17 @@ class EngineConfig {
     final host = appHost;
     if (host != null && !_isValidHost(host)) {
       errors.add('APP_HOST must be a hostname without a scheme, port, or path');
+    }
+
+    // Same shape as APP_HOST, and worth failing over rather than passing
+    // through: a malformed value reaches Firebase as the origin it builds the
+    // popup URL from, and the failure surfaces as a sign-in that never returns
+    // rather than as a configuration error.
+    final auth = authDomain;
+    if (auth != null && !_isValidHost(auth)) {
+      errors.add(
+        'AUTH_DOMAIN must be a hostname without a scheme, port, or path',
+      );
     }
 
     if (errors.isEmpty) return;
