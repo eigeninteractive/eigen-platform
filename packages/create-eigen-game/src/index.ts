@@ -213,8 +213,26 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * still resolve it, but `^0.4.0` also still resolves 0.4.0, where the parameter
  * does not exist and the scaffold would not compile. The floor is what makes
  * the generated code and the installed shell agree.
+ *
+ * Raised to 0.6.0 with the engine's opaque pagination cursors, and this is the
+ * same *required* kind of bump the 0.4.0 note describes rather than an
+ * improvement. The 0.4.x engine line takes `cursor` as an opaque string and
+ * returns `nextCursor` on every paged response; `eigen_flutter` 0.6.0 is the
+ * first shell that pins `eigen_api: ^0.4.0` and can read it. Everything below
+ * that pins `eigen_api: ^0.3.0` or older, so a scaffold left on `^0.4.1` would
+ * install the engine's current line beside a shell that cannot read a single
+ * paged list from it: it resolves, it compiles, and then the lobby and history
+ * are empty. 0.5.0 is skipped for the same reason, being a web-design release
+ * that still speaks the 0.3.x wire.
+ *
+ * Note that this floor and the engine range are raised in one commit on
+ * purpose. The scaffolder writes both halves, and `updateInternalDependencies`
+ * republishes this package whenever the engine version moves, so between an
+ * engine line crossing and this line moving there is a published scaffolder
+ * that pairs a new worker with an old shell. That window is real and this is
+ * what closes it.
  */
-const flutterClientVersion = "^0.4.1";
+const flutterClientVersion = "^0.6.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
