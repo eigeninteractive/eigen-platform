@@ -73,6 +73,7 @@ const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const appHost = String.fromEnvironment('APP_HOST');
+const authDomain = String.fromEnvironment('AUTH_DOMAIN');
 
 await runEngineApp(
   module: const RpsModule(),
@@ -83,6 +84,7 @@ await runEngineApp(
       googleWebClientId: googleWebClientId,
       firebaseVapidKey: firebaseVapidKey,
       appHost: appHost.isEmpty ? null : appHost,
+      authDomain: authDomain.isEmpty ? null : authDomain,
     ),
   ),
   firebaseOptions: DefaultFirebaseOptions.currentPlatform,
@@ -105,6 +107,7 @@ flutter build appbundle --release \
 | `API_BASE_URL` | **yes** | Origin of the Worker: scheme + host only, **no path, no trailing slash**. Routes carry their own `/api/engine` prefix; the socket is this origin with `ws`/`wss`. |
 | `GOOGLE_WEB_CLIENT_ID` | yes | Google Sign-In. Both platforms use the *web* client, so an Android-only app still needs it. |
 | `APP_HOST` | optional | This game's hostname, without scheme. In the default deployment it is the host part of `API_BASE_URL`; it enables invite/replay sharing and legal links. `/download` is the native install page. |
+| `AUTH_DOMAIN` | optional | Firebase Auth's own domain, without scheme, overriding the project default. Cosmetic and web-only: it is the hostname Google's account chooser names during sign-in. **Not `APP_HOST`**; it must be a Firebase Hosting domain. See [Deploy the web app](./deploy-the-web-app.md#the-hostname-players-see-when-they-sign-in). |
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
 
 These values are embedded in the Android binary or downloaded web bundle and
@@ -124,6 +127,7 @@ empty strings. What it leaves is what no CLI can produce.
 | `GOOGLE_WEB_CLIENT_ID` | filled in after `firebase:configure`, when there is one to copy | Firebase Console → Authentication → Sign-in method → Google → **Web SDK configuration**. It is also the `"client_type": 3` entry of `app/android/app/google-services.json`. |
 | `FIREBASE_VAPID_KEY` | empty | Firebase Console → Project settings → **Cloud Messaging** → Web configuration, **Generate key pair** if the list is empty. Web Push certificates are not served by the Firebase CLI, so this is always a manual copy. |
 | `APP_HOST` | empty | Your hostname once you have one. Leave it empty locally; sharing links are simply off. |
+| `AUTH_DOMAIN` | empty | Nothing to get, and most games never set it. Empty means sign-in uses the Firebase project's own domain, which works everywhere. |
 
 An empty `GOOGLE_WEB_CLIENT_ID` after a successful `firebase:configure` means
 one thing: **the Google sign-in provider was never enabled**. Firebase creates
@@ -160,8 +164,13 @@ Firebase is mandatory on the client. A fresh scaffold contains a throwing
 `firebase_options.dart` seam so analysis works before project setup, but the app
 will not start until FlutterFire replaces it with real platform configuration.
 
-1. **Create the project** at console.firebase.google.com with Analytics enabled,
-   or let step 2 do it: the first run offers to.
+1. **Create the project**, either at console.firebase.google.com or by letting
+   step 2 do it: the first run offers to. The two differ in one respect. Only
+   the console's create flow links a Google Analytics account, so a project
+   created through the CLI reports *"Google Analytics not enabled for Project"*
+   and the engine's automatic events have nowhere to land. Link one afterwards
+   under Settings → Integrations → Google Analytics. Crashlytics reports either
+   way.
 2. Install and authenticate the official tooling:
 
    ```bash

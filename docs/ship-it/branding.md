@@ -163,13 +163,22 @@ mid-download does not lose the page.
 the first deploy. What it does *not* have is the legal half: those routes are
 not mounted, so the footer carries only the credit until you fill in `operator`.
 
-The page also waits for a Flutter web build to reach `public/` before it shows
-your app icon or a "Play on the web" button, because both would otherwise be
-broken: the icons ship inside that bundle, and `/` would bounce straight back
-to `/download`. Until then it stands the EigenInteractive mark in for the icon,
-drawn in your `primaryColor`, exactly as the Flutter shell defaults to the
-EigenInteractive seed and credit. Run `pnpm run build:web` and your own icon
-replaces it.
+The page waits for a Flutter web build to reach `public/` before it offers a
+"Play on the web" button, because `/` would otherwise bounce straight back to
+`/download`.
+
+Icons are a separate question, and the answer is the same on every page the
+engine renders: the browser tab, the download page's logo, and the manifest.
+**Until your game has icons of its own, all three use the EigenInteractive
+mark**, served by the Worker and drawn in your `primaryColor`, exactly as the
+Flutter shell defaults to the EigenInteractive seed and credit. It is a
+placeholder, not a default. The moment `favicon.png` exists in `public/` the
+engine links your icons everywhere and stops serving its own.
+
+That check looks at the icons themselves rather than at the web build, so a
+game with no web build still gets its own. `pnpm run build:web` is the usual
+way they arrive; an Android-only game can copy the same files out of `app/web/`
+into `public/` and get the identical result.
 
 A game with no web build *and* no store URLs in `deepLink` has nothing to offer
 at all, and the page says `Coming soon.` rather than trailing off after the
