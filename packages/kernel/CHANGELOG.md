@@ -1,5 +1,12 @@
 # @eigeninteractive/kernel
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @eigeninteractive/rules@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes
