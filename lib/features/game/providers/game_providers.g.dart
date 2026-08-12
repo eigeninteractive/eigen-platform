@@ -428,7 +428,7 @@ final class ActiveGamesProvider
   }
 }
 
-String _$activeGamesHash() => r'3d2e1b090ecec8292f8d2329cbeb8899ac6b843d';
+String _$activeGamesHash() => r'0937340c6c0063bdeb40a6a06ce7abc114af0e2d';
 
 /// One game's live session: the single subscription a game screen needs.
 ///
@@ -1263,7 +1263,7 @@ final class PlayerPublicFinishedGamesProvider
 }
 
 String _$playerPublicFinishedGamesHash() =>
-    r'75eaf75a9b4b3f2d4b7cb424f2f09cb59f1ac449';
+    r'4eb0d86534a5f56d0ea7eeaef5d47e668c07d1e5';
 
 /// A player's most recent finished public games, for the replay list on their
 /// profile.
