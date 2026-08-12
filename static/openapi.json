@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "EigenInteractive Engine API",
-    "version": "0.3.1",
+    "version": "0.4.0",
     "description": "The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."
   },
   "tags": [
@@ -75,10 +75,18 @@
             "items": {
               "$ref": "#/components/schemas/GameSummary"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor` to fetch the next page. Null when there are no more results."
           }
         },
         "required": [
-          "games"
+          "games",
+          "nextCursor"
         ]
       },
       "GameSummary": {
@@ -402,7 +410,8 @@
           "registrationRequired",
           "imageTooLarge",
           "unsupportedImageType",
-          "rateLimited"
+          "rateLimited",
+          "invalidCursor"
         ],
         "description": "A stable machine code identifying why a request failed."
       },
@@ -414,10 +423,18 @@
             "items": {
               "$ref": "#/components/schemas/GameSummary"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor` to fetch the next page. Null when there are no more results."
           }
         },
         "required": [
-          "games"
+          "games",
+          "nextCursor"
         ]
       },
       "Session": {
@@ -762,10 +779,18 @@
             "items": {
               "$ref": "#/components/schemas/GameSummary"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor` to fetch the next page. Null when there are no more results."
           }
         },
         "required": [
-          "games"
+          "games",
+          "nextCursor"
         ]
       },
       "RatingHistory": {
@@ -1263,10 +1288,18 @@
             "items": {
               "$ref": "#/components/schemas/GameSummary"
             }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `cursor` to fetch the next page. Null when there are no more results."
           }
         },
         "required": [
-          "games"
+          "games",
+          "nextCursor"
         ]
       },
       "UserSearch": {
@@ -1385,10 +1418,8 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ]
+              "type": "string",
+              "minLength": 1
             },
             "required": false,
             "name": "cursor",
@@ -1482,10 +1513,8 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ]
+              "type": "string",
+              "minLength": 1
             },
             "required": false,
             "name": "cursor",
@@ -1999,10 +2028,8 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ]
+              "type": "string",
+              "minLength": 1
             },
             "required": false,
             "name": "cursor",
@@ -2143,7 +2170,8 @@
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "required": false,
             "name": "pool",
@@ -3210,11 +3238,9 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0,
+              "maximum": 9007199254740991,
               "default": 0
             },
             "required": false,
@@ -3223,11 +3249,9 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 0
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
             },
             "required": false,
             "name": "to",
@@ -3703,10 +3727,8 @@
           },
           {
             "schema": {
-              "type": [
-                "integer",
-                "null"
-              ]
+              "type": "string",
+              "minLength": 1
             },
             "required": false,
             "name": "cursor",

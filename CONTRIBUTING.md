@@ -145,7 +145,7 @@ verify the `latest` link on `reference/dart.md`.
 ## Documentation versions
 
 The site is versioned on the **engine's release line**. Pre-1.0 that is the
-minor, so `0.3.x` is one line and `0.4.0` starts the next. The label lives in
+minor, so `0.4.x` is one line and `0.5.0` starts the next. The label lives in
 `docusaurus.config.ts` under `versions.current.label`, and
 `pnpm check-docs-version` asserts it against `info.version` in the committed
 `api/openapi.json`. CI runs that check on every pull request.
@@ -160,25 +160,35 @@ between two answers:
 **Freeze the old line**, the answer whenever a reader could still be running it:
 
 ```bash
-pnpm docusaurus docs:version 0.3.x   # the line being frozen, not the new one
+pnpm docusaurus docs:version 0.4.x   # the line being frozen, not the new one
 ```
 
-That snapshots `docs/` into `versioned_docs/version-0.3.x/` at `/docs/0.3.x/*`,
+That snapshots `docs/` into `versioned_docs/version-0.4.x/` at `/docs/0.4.x/*`,
 and `docs/` becomes the new line at `/docs/*`. Then set
 `versions.current.label` to the new line. The generated reference freezes with
 everything else, which is what you want, since `sync-api` only ever writes to
 `docs/`, so no part of that pipeline knows versions exist.
 
 **Relabel in place**, only when the old line was never published, or nobody can
-still be on it. Set `versions.current.label` and change nothing else. Both
-crossings so far took this answer, and the second one is the useful precedent
-because a cut was arguable: `0.2.x` was published and `eigen_flutter` 0.3.x was
-on pub.dev pinned to it, but the engine had no adopters to strand, and the
-release that crossed the line edited the game object's init migration in place,
-so a `0.2.x` game's local state did not survive the upgrade regardless. A frozen
-`0.2.x` line would have kept describing a wire no engine can speak, which is
-worse than not having it. (`0.1.x` was simpler: the site's first public deploy
-already described `0.2.x`, so no `0.1.x` page was ever reachable.)
+still be on it. Set `versions.current.label` and change nothing else. All three
+crossings so far took this answer.
+
+`0.2.x` is the precedent for a cut being arguable and still declined: the line
+was published and `eigen_flutter` 0.3.x was on pub.dev pinned to it, but the
+engine had no adopters to strand, and the release that crossed the line edited
+the game object's init migration in place, so a `0.2.x` game's local state did
+not survive the upgrade regardless. A frozen `0.2.x` line would have kept
+describing a wire no engine can speak, which is worse than not having it.
+
+`0.3.x` is the precedent for a cut being declined on the old line's own merits.
+Its paged reads were broken: a first-page request arrived with an empty `cursor`
+that coerced to `0`, so every lobby and history list answered `200 []`. `0.4.0`
+is the fix and it changes the wire, to opaque cursors and `nextCursor`. Freezing
+`0.3.x` would have published a permanent, searchable account of a protocol whose
+lists are always empty, sitting beside the one that works.
+
+(`0.1.x` was simpler than either: the site's first public deploy already
+described `0.2.x`, so no `0.1.x` page was ever reachable.)
 
 Freezing is not free. A cut copies all of `docs/`, and most of this site by
 volume is the generated TypeScript and HTTP reference, so each frozen line

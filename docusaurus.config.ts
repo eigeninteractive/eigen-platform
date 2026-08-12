@@ -210,14 +210,23 @@ const config: Config = {
           // anyway, and a frozen 0.2.x line would have gone on describing a wire
           // no engine can still speak. That is worse than absent.
           //
+          // 0.3.x was relabelled too, and it is the least arguable crossing yet
+          // despite being the most published. That line's paged reads were
+          // broken: a first-page request arrived with an empty `cursor`, which
+          // coerced to `0`, so every lobby and history list answered `200 []`.
+          // 0.4.0 is the fix, and it is a wire change, opaque cursors and
+          // `nextCursor`. Freezing 0.3.x would have published a permanent,
+          // searchable description of a protocol whose lists are always empty,
+          // next to the one that works. Nobody wants to read that page.
+          //
           // Naming the current version costs no URLs: Docusaurus serves
           // `lastVersion` at the base path, so these pages stay at /docs/*.
           // Once the engine has adopters who cannot follow a line break, run
           //
-          //   pnpm docusaurus docs:version 0.3.x
+          //   pnpm docusaurus docs:version 0.4.x
           //
-          // and 0.3.x freezes into `versioned_docs/version-0.3.x` at
-          // /docs/0.3.x/* while `docs/` becomes the new line at /docs/*. The
+          // and 0.4.x freezes into `versioned_docs/version-0.4.x` at
+          // /docs/0.4.x/* while `docs/` becomes the new line at /docs/*. The
           // generated reference freezes with it, which is exactly right:
           // `sync-api` keeps writing to `docs/`, so no part of that pipeline
           // has to learn about versions. CONTRIBUTING.md has the procedure.
@@ -225,7 +234,7 @@ const config: Config = {
           versions: {
             current: {
               // Asserted against api/openapi.json; see check-docs-version.
-              label: "0.3.x",
+              label: "0.4.x",
             },
           },
         },
@@ -388,7 +397,7 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
-        // Renders as "0.3.x", the label from `versions.current` above. With one
+        // Renders as "0.4.x", the label from `versions.current` above. With one
         // version live it exists to answer "which engine is this describing",
         // and it becomes an ordinary switcher once a version is cut.
         //
