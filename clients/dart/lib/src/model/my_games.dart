@@ -16,17 +16,25 @@ part 'my_games.g.dart';
 )
 class MyGames {
   /// Returns a new [MyGames] instance.
-  MyGames({required this.games});
+  MyGames({required this.games, required this.nextCursor});
 
   @JsonKey(name: r'games', required: true, includeIfNull: false)
   final List<GameSummary> games;
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is MyGames && other.games == games;
+  /// Pass as `cursor` to fetch the next page. Null when there are no more results.
+  @JsonKey(name: r'nextCursor', required: true, includeIfNull: true)
+  final String? nextCursor;
 
   @override
-  int get hashCode => games.hashCode;
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MyGames &&
+          other.games == games &&
+          other.nextCursor == nextCursor;
+
+  @override
+  int get hashCode =>
+      games.hashCode + (nextCursor == null ? 0 : nextCursor.hashCode);
 
   factory MyGames.fromJson(Map<String, dynamic> json) =>
       _$MyGamesFromJson(json);

@@ -12,10 +12,11 @@
  * reusing the batch player projection.
  */
 
-import { and, desc, eq, inArray, lt, ne, notExists, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
+import type { Cursor, Page } from "../cursor.js";
 import { noBlockedParticipant, pair, samePair } from "./blocks.js";
 import { orm } from "./orm.js";
-import { type GameWithRoster, withRosters } from "./reads.js";
+import { afterCursor, type GameWithRoster, pageOf } from "./reads.js";
 import { games, relationships, users } from "./schema.js";
 
 /** The outcome of `sendFriendRequest`, telling the route what (if anything) to
@@ -206,18 +207,18 @@ export async function acceptedFriendIds(d1: D1Database, userId: string): Promise
   return rows.map((r) => (r.a === userId ? r.b : r.a));
 }
 
-export async function friendsOpenGames(d1: D1Database, caller: string, limit: number, cursor: number | null = null): Promise<GameWithRoster[]> {
+export async function friendsOpenGames(d1: D1Database, caller: string, limit: number, cursor: Cursor | null = null): Promise<Page<GameWithRoster>> {
   const db = orm(d1);
   const friendIds = await acceptedFriendIds(d1, caller);
-  if (friendIds.length === 0) return [];
+  if (friendIds.length === 0) return { rows: [], nextCursor: null };
   const rows = await db
     .select()
     .from(games)
     // A friend's game can still seat someone the caller has blocked, so filter
     // those out here too, not just in the plain lobby.
-    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), noBlockedParticipant(d1, caller), cursor === null ? undefined : lt(games.createdAt, cursor)))
-    .orderBy(desc(games.createdAt))
-    .limit(limit)
+    .where(and(inArray(games.createdBy, friendIds), inArray(games.status, ["waiting", "ready"]), noBlockedParticipant(d1, caller), afterCursor(games.createdAt, games.id, cursor)))
+    .orderBy(desc(games.createdAt), desc(games.id))
+    .limit(limit + 1)
     .all();
-  return withRosters(d1, rows);
+  return await pageOf(d1, rows, limit, (row) => row.createdAt);
 }

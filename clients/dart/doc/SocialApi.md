@@ -111,7 +111,7 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getSocialApi();
 final int limit = 56; // int | 
-final int cursor = 56; // int | 
+final String cursor = cursor_example; // String | 
 
 try {
     final response = api.getFriendsGames(limit, cursor);
@@ -126,7 +126,7 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **limit** | **int**|  | [optional] [default to 20]
- **cursor** | **int**|  | [optional] 
+ **cursor** | **String**|  | [optional] 
 
 ### Return type
 

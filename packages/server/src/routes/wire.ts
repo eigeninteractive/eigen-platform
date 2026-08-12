@@ -57,6 +57,7 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   imageTooLarge: "The uploaded avatar exceeds the size limit",
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
   rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
+  invalidCursor: "The pagination cursor did not decode; drop it and request the first page",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can

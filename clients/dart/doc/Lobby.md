@@ -9,6 +9,7 @@ import 'package:eigen_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **games** | [**List&lt;GameSummary&gt;**](GameSummary.md) |  | 
+**nextCursor** | **String** | Pass as `cursor` to fetch the next page. Null when there are no more results. | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

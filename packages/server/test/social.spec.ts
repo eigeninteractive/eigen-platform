@@ -159,26 +159,71 @@ describe("username edit", () => {
 });
 
 describe("keyset pagination", () => {
-  it("pages my games by cursor without repeating or skipping a row", async () => {
+  interface PageBody {
+    games: { id: string; updatedAt: number }[];
+    nextCursor: string | null;
+  }
+
+  /** Walk every page the way a client does: follow `nextCursor` until it is
+   * null, never deriving a cursor from a row. */
+  async function drain(who: TestTokenOptions, path: string, limit: number): Promise<string[]> {
+    const seen: string[] = [];
+    let cursor: string | null = null;
+    for (let guard = 0; guard < 20; guard++) {
+      const suffix: string = cursor === null ? "" : `&cursor=${encodeURIComponent(cursor)}`;
+      const page: PageBody = await json<PageBody>(await api(who, "GET", `${path}?limit=${limit}${suffix}`));
+      seen.push(...page.games.map((g) => g.id));
+      if (page.nextCursor === null) return seen;
+      cursor = page.nextCursor;
+    }
+    throw new Error("pagination did not terminate");
+  }
+
+  // These games are created in a tight loop, so they very often share an
+  // `updatedAt` millisecond. That tie is the whole point: under a cursor that
+  // was the bare sort value, a page boundary landing between two rows with the
+  // same timestamp dropped one permanently, because it was neither strictly
+  // older than the cursor nor on the page already served. The cursor now
+  // carries the row id as a tiebreak, so every row is on exactly one page.
+  it("pages my games without repeating or skipping a row, including across a timestamp tie", async () => {
     const a = await user("a");
     const created: string[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const game = await json<{ gameId: string }>(await api(a, "POST", "/games", { access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }), 201);
       created.push(game.gameId);
     }
 
-    const first = await json<{ games: { id: string; updatedAt: number }[] }>(await api(a, "GET", "/games/mine?limit=2"));
+    const first = await json<PageBody>(await api(a, "GET", "/games/mine?limit=2"));
     expect(first.games).toHaveLength(2);
+    // The tie this test exists for. If the clock happened to tick between every
+    // create the assertion below still holds, it is just less interesting.
+    const timestamps = new Set(first.games.map((g) => g.updatedAt));
+    expect(timestamps.size).toBeGreaterThanOrEqual(1);
 
-    const cursor = first.games[1].updatedAt;
-    const second = await json<{ games: { id: string }[] }>(await api(a, "GET", `/games/mine?limit=2&cursor=${cursor}`));
+    const seen = await drain(a, "/games/mine", 2);
+    expect(seen).toHaveLength(new Set(seen).size); // no row served twice
+    expect(new Set(seen)).toEqual(new Set(created)); // and none skipped
+  });
 
-    // Strictly older than the cursor: no overlap with the first page, and the
-    // remaining game is present rather than skipped.
-    const firstIds = first.games.map((g) => g.id);
-    const secondIds = second.games.map((g) => g.id);
-    expect(secondIds.some((id) => firstIds.includes(id))).toBe(false);
-    expect(new Set([...firstIds, ...secondIds]).size).toBe(created.length);
+  // `nextCursor` is an answer, not a hint. The list here is exactly as long as
+  // the page size, the case where "stop when a page comes back short" - the
+  // heuristic this replaced - would have asked for one page too many.
+  it("reports nextCursor null when the last page is exactly full", async () => {
+    const a = await user("a");
+    for (let i = 0; i < 2; i++) {
+      await json<{ gameId: string }>(await api(a, "POST", "/games", { access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }), 201);
+    }
+
+    const page = await json<PageBody>(await api(a, "GET", "/games/mine?limit=2"));
+    expect(page.games).toHaveLength(2);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("refuses a cursor that did not come from the server", async () => {
+    const a = await user("a");
+    const res = await api(a, "GET", "/games/mine?limit=2&cursor=not-a-cursor");
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { code: string }).code).toBe("invalidCursor");
   });
 });
 

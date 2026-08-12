@@ -8,7 +8,7 @@ part of 'friends_games.dart';
 
 FriendsGames _$FriendsGamesFromJson(Map<String, dynamic> json) =>
     $checkedCreate('FriendsGames', json, ($checkedConvert) {
-      $checkKeys(json, requiredKeys: const ['games']);
+      $checkKeys(json, requiredKeys: const ['games', 'nextCursor']);
       final val = FriendsGames(
         games: $checkedConvert(
           'games',
@@ -16,9 +16,13 @@ FriendsGames _$FriendsGamesFromJson(Map<String, dynamic> json) =>
               .map((e) => GameSummary.fromJson(e as Map<String, dynamic>))
               .toList(),
         ),
+        nextCursor: $checkedConvert('nextCursor', (v) => v as String?),
       );
       return val;
     });
 
 Map<String, dynamic> _$FriendsGamesToJson(FriendsGames instance) =>
-    <String, dynamic>{'games': instance.games.map((e) => e.toJson()).toList()};
+    <String, dynamic>{
+      'games': instance.games.map((e) => e.toJson()).toList(),
+      'nextCursor': instance.nextCursor,
+    };

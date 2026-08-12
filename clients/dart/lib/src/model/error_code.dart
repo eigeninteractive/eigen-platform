@@ -96,6 +96,10 @@ enum ErrorCode {
   rateLimited(r'rateLimited'),
 
   /// A stable machine code identifying why a request failed.
+  @JsonValue(r'invalidCursor')
+  invalidCursor(r'invalidCursor'),
+
+  /// A stable machine code identifying why a request failed.
   @JsonValue(r'unknown_default_open_api')
   unknownDefaultOpenApi(r'unknown_default_open_api');
 

@@ -13,12 +13,14 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
+import { decodeOptionalCursor } from "../cursor.js";
 import { readPlayers } from "../d1/reads.js";
 import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPendingRequests, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { friendAcceptedPush, friendRequestPush } from "../notify/push.js";
 import { enforceRateLimit } from "../rate-limit.js";
+import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
 import { errorShape, friendRequestShape, friendShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
 
 const err = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -64,12 +66,13 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/friends/games",
       operationId: "getFriendsGames",
       tags: ["Social"],
-      request: { query: z.object({ limit: z.coerce.number().int().min(1).max(50).default(20), cursor: z.coerce.number().int().optional() }) },
-      responses: okResponse(z.object({ games: z.array(gameSummaryShape) }).openapi("FriendsGames"), "Joinable games created by the caller's friends"),
+      request: { query: z.object({ limit: limitQuery, cursor: cursorQuery }) },
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("FriendsGames"), "Joinable games created by the caller's friends"),
     }),
     async (c) => {
-      const rows = await friendsOpenGames(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("query").limit, c.req.valid("query").cursor ?? null);
-      return c.json({ games: rows.map(gameSummaryOf) }, 200);
+      const { limit, cursor } = c.req.valid("query");
+      const page = await friendsOpenGames(ctx.d1(c.env), c.var.auth.user.id, limit, decodeOptionalCursor(cursor));
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
 
@@ -80,7 +83,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/users/search",
       operationId: "searchUsers",
       tags: ["Social"],
-      request: { query: z.object({ q: z.string().min(1), limit: z.coerce.number().int().min(1).max(50).default(20) }) },
+      request: { query: z.object({ q: z.string().min(1), limit: limitQuery }) },
       responses: okResponse(z.object({ users: z.array(playerShape) }).openapi("UserSearch"), "Matching registered users, best match first"),
     }),
     async (c) => {

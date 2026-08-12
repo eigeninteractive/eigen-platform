@@ -281,6 +281,16 @@ describe("active play & frames", () => {
     const ratings = await json<{ ratings: { pool: string }[] }>(await api(u.b, "GET", "/me/ratings"));
     expect(ratings.ratings).toHaveLength(1);
 
+    // The two parameters that used to fail silently on an empty value: `?pool=`
+    // became `WHERE pool = ''` and matched nothing, and `?to=` became `to: 0`,
+    // which clamped the replay to a single frame. Both are now refused outright
+    // rather than answered with a plausible, wrong 200.
+    expect((await api(u.b, "GET", "/me/rating-history?pool=")).status).toBe(400);
+    expect((await api(u.c, "GET", `/games/${gameId}/frames?from=0&to=`)).status).toBe(400);
+    // And the range still works when it is actually given.
+    const ranged = await json<{ frames: { version: number }[] }>(await api(u.c, "GET", `/games/${gameId}/frames?from=0&to=10`));
+    expect(ranged.frames.map((f) => f.version)).toEqual([0, 1, 2, 3]);
+
     // The summary carries every identity's delta, so a history list needs no
     // second read to annotate a row, and the same projection is correct when
     // viewing someone else's games, since this is per-game not per-viewer.
@@ -518,6 +528,46 @@ describe("reads", () => {
     expect(mine.games.some((g) => g.id === gameId)).toBe(true);
     const notMine = await json<{ games: { id: string }[] }>(await api(u.b, "GET", "/games/mine?bucket=active"));
     expect(notMine.games.some((g) => g.id === gameId)).toBe(false);
+  });
+
+  // Absent is the first page. Empty is a MALFORMED request, and the difference
+  // between those two is the whole story of this bug: `Number("")` is 0, so an
+  // empty cursor used to parse as a real cursor of zero, which is older than
+  // every timestamp there has ever been. The lobby, both my-games buckets and
+  // the friends list all returned 200 with an empty list. Nothing coerces now,
+  // so the same request is a 400 that names itself.
+  it("serves the first page when a cursor is absent", async () => {
+    const u = makeUsers();
+    const { gameId } = await createGame(u.a, { rated: false });
+
+    const lobby = await json<{ games: { id: string }[] }>(await api(u.c, "GET", "/lobby"));
+    expect(lobby.games.some((g) => g.id === gameId)).toBe(true);
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine?bucket=active"));
+    expect(mine.games.some((g) => g.id === gameId)).toBe(true);
+  });
+
+  it.each(["/lobby?cursor=", "/lobby?limit=", "/games/mine?cursor=", "/games/mine?bucket=active&cursor=", "/me/rating-history?pool=", "/players/x/games?cursor="])("refuses an empty query value rather than reading it as zero (%s)", async (path) => {
+    const u = makeUsers();
+    expect((await api(u.a, "GET", path)).status).toBe(400);
+  });
+
+  // The other half of the same rule: a cursor that is actually sent still pages.
+  // Without this, "ignore the cursor entirely" would pass the test above.
+  it("a server-issued cursor excludes everything on the page it came from", async () => {
+    const u = makeUsers();
+    const older = await createGame(u.a, { rated: false });
+    const newer = await createGame(u.a, { rated: false });
+
+    const page = await json<{ games: { id: string }[]; nextCursor: string | null }>(await api(u.a, "GET", "/games/mine?bucket=active&limit=1"));
+    expect(page.games).toHaveLength(1);
+    expect(page.nextCursor).not.toBeNull();
+
+    const next = await json<{ games: { id: string }[]; nextCursor: string | null }>(await api(u.a, "GET", `/games/mine?bucket=active&limit=1&cursor=${encodeURIComponent(page.nextCursor ?? "")}`));
+    expect(next.games).toHaveLength(1);
+    expect(next.games[0].id).not.toBe(page.games[0].id);
+    // The two pages together are the two games, each exactly once.
+    expect(new Set([page.games[0].id, next.games[0].id])).toEqual(new Set([older.gameId, newer.gameId]));
+    expect(next.nextCursor).toBeNull();
   });
 
   it("players batch endpoint returns public identity only", async () => {

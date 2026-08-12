@@ -52,5 +52,6 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.imageTooLarge: 'imageTooLarge',
   ErrorCode.unsupportedImageType: 'unsupportedImageType',
   ErrorCode.rateLimited: 'rateLimited',
+  ErrorCode.invalidCursor: 'invalidCursor',
   ErrorCode.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

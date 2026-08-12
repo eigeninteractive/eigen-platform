@@ -38,7 +38,7 @@ class PlayersApi {
   Future<Response<PlayerGames>> getPlayerGames({
     required String playerId,
     int? limit = 20,
-    int? cursor,
+    String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -66,7 +66,7 @@ class PlayersApi {
 
     final _queryParameters = <String, dynamic>{
       if (limit != null) r'limit': limit,
-      r'cursor': cursor,
+      if (cursor != null) r'cursor': cursor,
     };
 
     final _response = await _dio.request<Object>(
