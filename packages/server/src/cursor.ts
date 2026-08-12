@@ -51,15 +51,24 @@ export interface Cursor {
  * be a third of the token and carry no information a reader of this file lacks. */
 type Encoded = [number, string];
 
+/** base64url via the runtime's own codec rather than `btoa` plus a hand-rolled
+ * alphabet swap and padding calculation.
+ *
+ * `Uint8Array.toBase64`/`fromBase64` (TC39 "Uint8Array to/from base64", shipped
+ * in workerd) take the alphabet and the padding as options, which is the entire
+ * fiddly part of doing this by hand: the encoder has to translate `+/` to `-_`
+ * and strip `=`, and the decoder has to put exactly the right number of `=`
+ * back before `atob` will accept the length. Getting that padding arithmetic
+ * subtly wrong fails only for certain input lengths, which is the kind of bug
+ * that survives a test suite. */
+const utf8 = { encode: new TextEncoder(), decode: new TextDecoder() };
+
 function base64UrlEncode(text: string): string {
-  return btoa(text).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  return utf8.encode.encode(text).toBase64({ alphabet: "base64url", omitPadding: true });
 }
 
 function base64UrlDecode(token: string): string {
-  const base64 = token.replaceAll("-", "+").replaceAll("_", "/");
-  // `atob` rejects a length that is not a multiple of four, and the encoder
-  // above strips the padding that would have guaranteed it.
-  return atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "="));
+  return utf8.decode.decode(Uint8Array.fromBase64(token, { alphabet: "base64url" }));
 }
 
 export function encodeCursor(cursor: Cursor): string {
