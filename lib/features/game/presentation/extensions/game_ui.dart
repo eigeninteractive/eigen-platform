@@ -1,16 +1,49 @@
 import 'package:eigen_api/eigen_api.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 import 'package:flutter/material.dart';
 
 /// UI helpers for [GameStatus]: color and icon mappings.
 extension GameStatusUI on GameStatus {
-  /// Returns the color associated with this status from [colorScheme].
-  Color color(ColorScheme colorScheme) => switch (this) {
-    GameStatus.waiting => colorScheme.tertiary,
-    GameStatus.ready => colorScheme.secondary,
-    GameStatus.active => colorScheme.primary,
-    GameStatus.finished => colorScheme.outline,
+  /// Returns the semantic foreground associated with this status.
+  ///
+  /// Pass the extension from the active theme so high-contrast mode is
+  /// preserved.
+  Color color(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    GameStatus.waiting => semanticColors.warning,
+    GameStatus.ready => semanticColors.info,
+    GameStatus.active => semanticColors.success,
+    GameStatus.finished => colorScheme.onSurfaceVariant,
     GameStatus.aborted => colorScheme.error,
-    GameStatus.unknownDefaultOpenApi => colorScheme.outline,
+    GameStatus.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
+  };
+
+  /// Returns the semantic container associated with this status.
+  Color containerColor(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    GameStatus.waiting => semanticColors.warningContainer,
+    GameStatus.ready => semanticColors.infoContainer,
+    GameStatus.active => semanticColors.successContainer,
+    GameStatus.finished ||
+    GameStatus.unknownDefaultOpenApi => colorScheme.surfaceContainerHighest,
+    GameStatus.aborted => colorScheme.errorContainer,
+  };
+
+  /// Returns the paired foreground for [containerColor].
+  Color onContainerColor(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    GameStatus.waiting => semanticColors.onWarningContainer,
+    GameStatus.ready => semanticColors.onInfoContainer,
+    GameStatus.active => semanticColors.onSuccessContainer,
+    GameStatus.finished ||
+    GameStatus.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
+    GameStatus.aborted => colorScheme.onErrorContainer,
   };
 
   /// Returns the icon associated with this status.
@@ -39,14 +72,43 @@ extension OutcomeResultUI on OutcomeResultEnum? {
     null => Icons.cancel_outlined,
   };
 
-  /// Returns the color associated with this result from [colorScheme].
-  Color color(ColorScheme colorScheme) => switch (this) {
-    OutcomeResultEnum.win => colorScheme.primary,
+  /// Returns the semantic foreground associated with this result.
+  Color color(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    OutcomeResultEnum.win => semanticColors.success,
     OutcomeResultEnum.loss => colorScheme.error,
-    OutcomeResultEnum.draw => colorScheme.tertiary,
+    OutcomeResultEnum.draw => semanticColors.info,
     OutcomeResultEnum.eliminated => colorScheme.error,
-    OutcomeResultEnum.unknownDefaultOpenApi => colorScheme.outline,
-    null => colorScheme.outline,
+    OutcomeResultEnum.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
+    null => colorScheme.onSurfaceVariant,
+  };
+
+  /// Returns the semantic container associated with this result.
+  Color containerColor(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    OutcomeResultEnum.win => semanticColors.successContainer,
+    OutcomeResultEnum.loss ||
+    OutcomeResultEnum.eliminated => colorScheme.errorContainer,
+    OutcomeResultEnum.draw => semanticColors.infoContainer,
+    OutcomeResultEnum.unknownDefaultOpenApi ||
+    null => colorScheme.surfaceContainerHighest,
+  };
+
+  /// Returns the paired foreground for [containerColor].
+  Color onContainerColor(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    OutcomeResultEnum.win => semanticColors.onSuccessContainer,
+    OutcomeResultEnum.loss ||
+    OutcomeResultEnum.eliminated => colorScheme.onErrorContainer,
+    OutcomeResultEnum.draw => semanticColors.onInfoContainer,
+    OutcomeResultEnum.unknownDefaultOpenApi ||
+    null => colorScheme.onSurfaceVariant,
   };
 
   /// Returns the short display label for this result.

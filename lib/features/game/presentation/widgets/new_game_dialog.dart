@@ -9,6 +9,7 @@ import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 
 import 'package:eigen_flutter/features/game/presentation/widgets/timing_selector.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
+import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 import 'package:eigen_api/eigen_api.dart';
 
 /// Dialog for creating a new game.
@@ -93,119 +94,101 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
     final ratingEligible = !isAnonymous && pool != null;
     final effectiveRated = ratingEligible && _rated;
 
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── Access ────────────────────────────────────────────────
+        Text('Access', style: textTheme.labelLarge),
+        const SizedBox(height: 8),
+        AdaptiveSingleChoice<GameAccess>(
+          choices: [
+            const AdaptiveChoice(value: GameAccess.public, label: 'Public'),
+            const AdaptiveChoice(value: GameAccess.private, label: 'Private'),
+            // Shown but disabled for guests: they cannot have friends, so
+            // a friends-access game would be unjoinable (server enforces).
+            AdaptiveChoice(
+              value: GameAccess.friends,
+              label: 'Friends',
+              enabled: !isAnonymous,
+            ),
+          ],
+          value: _access,
+          label: 'Access',
+          onChanged: (selection) => setState(() => _access = selection),
+        ),
+        const SizedBox(height: 16),
+
+        // ── Timing ────────────────────────────────────────────────
+        TimingSelector(
+          configs: _spec.timingConfigs,
+          enabled: !_isLoading,
+          onChanged: (timing) => setState(() => _timing = timing),
+        ),
+
+        // ── Game-specific config ──────────────────────────────────
+        if (_creationConfigWidget != null) ...[
+          const SizedBox(height: 16),
+          _creationConfigWidget!,
+        ],
+
+        // ── Rated toggle ──────────────────────────────────────────
+        // Shown only when this config is rating-eligible (and the user is
+        // not a guest), decided locally by GameRules.ratingPool. An
+        // ineligible config is casual-only, so there is nothing to toggle.
+        if (ratingEligible) ...[
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Rated'),
+            value: _rated,
+            onChanged: (v) => setState(() => _rated = v),
+          ),
+        ],
+
+        // Local Rated/Casual badge derived from GameRules.ratingPool (the
+        // server recomputes the authoritative pool at creation).
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Icon(
+              effectiveRated
+                  ? Icons.emoji_events_outlined
+                  : Icons.sports_esports_outlined,
+              size: 16,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            Text(
+              effectiveRated ? 'Rated · $pool' : 'Casual',
+              style: textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
     return Dialog(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: const BoxConstraints(maxWidth: 480),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('New Game', style: textTheme.headlineSmall),
-              const SizedBox(height: 24),
-
-              // ── Access ────────────────────────────────────────────────
-              Text('Access', style: textTheme.labelLarge),
-              const SizedBox(height: 8),
-              SegmentedButton<GameAccess>(
-                showSelectedIcon: false,
-                segments: [
-                  const ButtonSegment(
-                    value: GameAccess.public,
-                    label: Text('Public'),
-                  ),
-                  const ButtonSegment(
-                    value: GameAccess.private,
-                    label: Text('Private'),
-                  ),
-                  // Shown but disabled for guests: they cannot have friends, so
-                  // a friends-access game would be unjoinable (server enforces).
-                  ButtonSegment(
-                    value: GameAccess.friends,
-                    label: const Text('Friends'),
-                    enabled: !isAnonymous,
-                  ),
-                ],
-                selected: {_access},
-                onSelectionChanged: (s) => setState(() => _access = s.first),
-              ),
               const SizedBox(height: 16),
-
-              // ── Timing ────────────────────────────────────────────────
-              TimingSelector(
-                configs: _spec.timingConfigs,
-                enabled: !_isLoading,
-                onChanged: (timing) => setState(() => _timing = timing),
-              ),
-
-              // ── Game-specific config ──────────────────────────────────
-              if (_creationConfigWidget != null) ...[
-                const SizedBox(height: 16),
-                _creationConfigWidget!,
-              ],
-
-              // ── Rated toggle ──────────────────────────────────────────
-              // Shown only when this config is rating-eligible (and the user is
-              // not a guest), decided locally by GameRules.ratingPool. An
-              // ineligible config is casual-only, so there is nothing to toggle.
-              if (ratingEligible) ...[
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Rated'),
-                  value: _rated,
-                  onChanged: (v) => setState(() => _rated = v),
-                ),
-              ],
-
-              // Local Rated/Casual badge derived from GameRules.ratingPool (the
-              // server recomputes the authoritative pool at creation).
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    effectiveRated
-                        ? Icons.emoji_events_outlined
-                        : Icons.sports_esports_outlined,
-                    size: 16,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    effectiveRated ? 'Rated · $pool' : 'Casual',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Actions ───────────────────────────────────────────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: _isLoading ? null : () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: _isLoading ? null : _createGame,
-                    child: _isLoading
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: colorScheme.onPrimary,
-                            ),
-                          )
-                        : const Text('Create'),
-                  ),
-                ],
+              Flexible(child: SingleChildScrollView(child: content)),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 8,
+                runSpacing: 8,
+                children: _actions(context),
               ),
             ],
           ),
@@ -213,6 +196,23 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
       ),
     );
   }
+
+  List<Widget> _actions(BuildContext context) => [
+    TextButton(
+      onPressed: _isLoading ? null : () => Navigator.pop(context),
+      child: const Text('Cancel'),
+    ),
+    FilledButton(
+      onPressed: _isLoading ? null : _createGame,
+      child: _isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Text('Create'),
+    ),
+  ];
 
   Future<void> _createGame() async {
     setState(() => _isLoading = true);

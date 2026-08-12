@@ -1,4 +1,5 @@
 import 'package:checks/checks.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 import 'package:eigen_flutter/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,5 +68,73 @@ void main() {
     check(
       AppTheme.dark(Colors.teal).colorScheme.brightness,
     ).equals(Brightness.dark);
+  });
+
+  test('builds and caches distinct high-contrast themes', () {
+    final regular = AppTheme.light(Colors.teal);
+    final highContrast = AppTheme.highContrastLight(Colors.teal);
+
+    check(identical(regular, highContrast)).isFalse();
+    check(
+      identical(highContrast, AppTheme.highContrastLight(Colors.teal)),
+    ).isTrue();
+    check(highContrast.colorScheme.brightness).equals(Brightness.light);
+    check(
+      highContrast.colorScheme.primary,
+    ).not((color) => color.equals(regular.colorScheme.primary));
+  });
+
+  test('installs the matching semantic extension on every theme', () {
+    final light = AppTheme.light(Colors.teal);
+    final dark = AppTheme.dark(Colors.teal);
+    final highContrastLight = AppTheme.highContrastLight(Colors.teal);
+    final highContrastDark = AppTheme.highContrastDark(Colors.teal);
+
+    check(
+      light.extension<AppSemanticColors>()!.success,
+    ).equals(Colors.green.shade800);
+    check(
+      dark.extension<AppSemanticColors>()!.success,
+    ).equals(Colors.green.shade300);
+    check(
+      highContrastLight.extension<AppSemanticColors>()!.success,
+    ).equals(Colors.green.shade900);
+    check(
+      highContrastDark.extension<AppSemanticColors>()!.success,
+    ).equals(Colors.green.shade100);
+  });
+
+  test('semantic meanings do not change with the brand seed', () {
+    final teal = AppTheme.light(Colors.teal).extension<AppSemanticColors>()!;
+    final red = AppTheme.light(Colors.red).extension<AppSemanticColors>()!;
+
+    check(teal.success).equals(red.success);
+    check(teal.warning).equals(red.warning);
+    check(teal.info).equals(red.info);
+  });
+
+  testWidgets('floating snackbars remain usable on compact windows', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final messengerKey = GlobalKey<ScaffoldMessengerState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light(Colors.teal),
+        scaffoldMessengerKey: messengerKey,
+        home: const Scaffold(body: SizedBox.expand()),
+      ),
+    );
+    messengerKey.currentState!.showSnackBar(
+      const SnackBar(content: Text('Saved')),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(SnackBar)).width, lessThanOrEqualTo(320));
   });
 }

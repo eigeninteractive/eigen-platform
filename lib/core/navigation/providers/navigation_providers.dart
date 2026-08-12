@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:eigen_flutter/core/navigation/router/app_router.dart';
 import 'package:eigen_flutter/core/navigation/utils/stream_listenable.dart';
+import 'package:eigen_flutter/core/navigation/widgets/not_found_screen.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 
 part 'navigation_providers.g.dart';
@@ -56,11 +57,8 @@ GoRouter goRouter(Ref ref) {
 
       return null;
     },
-    onException: (context, state, router) {
-      // Unknown paths (e.g. a deep link the OS re-routes into the app for a
-      // path we don't handle) go home rather than crashing with GoException.
-      router.go('/home');
-    },
+    errorBuilder: (context, state) =>
+        NotFoundScreen(location: state.uri.toString()),
     routes: appRoutes,
     observers: [
       FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),

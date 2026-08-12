@@ -12,6 +12,7 @@ import 'package:eigen_flutter/core/game/players_context.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/data/game_repository.dart';
+import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:riverpod_annotation/experimental/json_persist.dart';
@@ -117,7 +118,7 @@ bool soloPlayAvailable(Ref ref) {
     (c) => c is! UntimedConfig,
   );
   final hasUsableBot = bots.any(
-    (b) => b.schemaVersion <= module.latestSchemaVersion,
+    (bot) => bot.supportsGameSchema(module.latestSchemaVersion),
   );
   return hasTimedMode && hasUsableBot;
 }

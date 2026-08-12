@@ -1,9 +1,12 @@
-import 'package:flutter/gestures.dart';
+import 'dart:ui' show SemanticsAction;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/shared/widgets/made_by_credit.dart';
+import 'package:url_launcher/link.dart';
 
 /// The line as the app ships it, and as the game's own website renders it.
 AppConfig _config(String credit) => AppConfig(
@@ -14,19 +17,6 @@ AppConfig _config(String credit) => AppConfig(
     firebaseVapidKey: 'test-vapid-key',
   ),
 );
-
-/// The spans of the rendered line, paired with whether each is tappable.
-List<(String, bool)> _spans(WidgetTester tester) {
-  final text = tester.widget<Text>(find.byType(Text));
-  final spans = <(String, bool)>[];
-  text.textSpan?.visitChildren((span) {
-    if (span is TextSpan && span.text != null) {
-      spans.add((span.text!, span.recognizer is TapGestureRecognizer));
-    }
-    return true;
-  });
-  return spans;
-}
 
 Future<void> _pump(WidgetTester tester, String credit) => tester.pumpWidget(
   ProviderScope(
@@ -41,24 +31,38 @@ void main() {
   ) async {
     await _pump(tester, 'Built with EigenInteractive');
 
-    // "Build with" is prose and points nowhere; only the name is tappable.
-    expect(_spans(tester), [
-      ('Built with ', false),
-      ('EigenInteractive', true),
-    ]);
+    // "Built with" remains prose; only the name is represented by a link.
+    expect(find.text('Built with '), findsOneWidget);
+    expect(find.byType(Link), findsOneWidget);
   });
 
-  testWidgets('marks the link by colour rather than an underline', (
+  testWidgets('underlines the link and exposes link semantics and focus', (
     tester,
   ) async {
+    final semantics = tester.ensureSemantics();
     await _pump(tester, 'Built with EigenInteractive');
 
     final context = tester.element(find.byType(MadeByCredit));
     final primary = Theme.of(context).colorScheme.primary;
-    final text = tester.widget<Text>(find.byType(Text));
-    final brand = (text.textSpan! as TextSpan).children![1] as TextSpan;
+    final brand = tester.widget<Text>(find.text('EigenInteractive'));
     expect(brand.style?.color, primary);
-    expect(brand.style?.decoration, isNot(TextDecoration.underline));
+    expect(brand.style?.decoration, TextDecoration.underline);
+
+    final node = tester.getSemantics(find.bySemanticsLabel('EigenInteractive'));
+    final data = node.getSemanticsData();
+    expect(data.flagsCollection.isLink, isTrue);
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(data.linkUrl, Uri.parse('https://eigeninteractive.com'));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    final focusedContext = tester.binding.focusManager.primaryFocus?.context;
+    expect(focusedContext, isNotNull);
+    expect(
+      focusedContext!.findAncestorWidgetOfExactType<TextButton>(),
+      isNotNull,
+    );
+    semantics.dispose();
   });
 
   testWidgets('leaves a credit that never names the engine as plain text', (
@@ -69,6 +73,6 @@ void main() {
     await _pump(tester, 'Made by tester');
 
     expect(find.text('Made by tester'), findsOneWidget);
-    expect(_spans(tester), isEmpty);
+    expect(find.byType(Link), findsNothing);
   });
 }

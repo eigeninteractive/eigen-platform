@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:eigen_flutter/features/game/presentation/extensions/game_ui.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/turn_countdown.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
@@ -44,52 +46,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _WelcomeHeader(),
-        const SizedBox(height: 16),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _onRefresh,
-            child: activeGamesAsync.when(
-              skipLoadingOnReload: true,
-              data: (entries) => entries.isEmpty
-                  ? _EmptyState(
-                      onBrowseLobby: () => context.go('/lobby'),
-                      onJoinViaCode: () => _showJoinCodeDialog(context),
-                    )
-                  : _GamesList(
-                      entries: entries,
-                      lastRefreshed: _lastRefreshed,
-                      onRefresh: _onRefresh,
-                      onBrowseLobby: () => context.go('/lobby'),
-                      onJoinViaCode: () => _showJoinCodeDialog(context),
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 48,
-                      color: colorScheme.error,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Error loading games'),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: () => ref.invalidate(activeGamesProvider),
-                      child: const Text('Retry'),
-                    ),
-                  ],
+    return ConstrainedContentPane(
+      maxWidth: 1200,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _WelcomeHeader(),
+          const SizedBox(height: 16),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _onRefresh,
+              child: activeGamesAsync.when(
+                skipLoadingOnReload: true,
+                data: (entries) => entries.isEmpty
+                    ? _EmptyState(
+                        onBrowseLobby: () => context.go('/lobby'),
+                        onJoinViaCode: () => _showJoinCodeDialog(context),
+                      )
+                    : _GamesList(
+                        entries: entries,
+                        lastRefreshed: _lastRefreshed,
+                        onRefresh: _onRefresh,
+                        onBrowseLobby: () => context.go('/lobby'),
+                        onJoinViaCode: () => _showJoinCodeDialog(context),
+                      ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: colorScheme.error,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Error loading games'),
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: () => ref.invalidate(activeGamesProvider),
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -113,6 +118,7 @@ class _JoinCodeDialog extends StatefulWidget {
 }
 
 class _JoinCodeDialogState extends State<_JoinCodeDialog> {
+  final _formKey = GlobalKey<FormState>();
   final _controller = TextEditingController();
 
   @override
@@ -122,8 +128,8 @@ class _JoinCodeDialogState extends State<_JoinCodeDialog> {
   }
 
   void _join() {
+    if (!_formKey.currentState!.validate()) return;
     final code = _controller.text.trim().toUpperCase();
-    if (code.length != 6) return;
     // Capture the router before popping; this State's context is being
     // removed from the tree once the dialog closes.
     final router = GoRouter.of(context);
@@ -135,14 +141,26 @@ class _JoinCodeDialogState extends State<_JoinCodeDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Join Private Game'),
-      content: TextField(
-        controller: _controller,
-        decoration: const InputDecoration(
-          hintText: 'Enter 6-character code',
-          border: OutlineInputBorder(),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Invite code',
+            hintText: 'Enter 6-character code',
+            border: OutlineInputBorder(),
+          ),
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+          maxLength: 6,
+          autocorrect: false,
+          enableSuggestions: false,
+          validator: (value) => value?.trim().length == 6
+              ? null
+              : 'Enter the complete 6-character code',
+          onFieldSubmitted: (_) => _join(),
         ),
-        textCapitalization: TextCapitalization.characters,
-        maxLength: 6,
       ),
       actions: [
         TextButton(
@@ -292,15 +310,16 @@ class _EmptyState extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 16,
+                    runSpacing: 12,
                     children: [
                       OutlinedButton.icon(
                         onPressed: onBrowseLobby,
                         icon: const Icon(Icons.search),
                         label: const Text('Browse Lobby'),
                       ),
-                      const SizedBox(width: 16),
                       FilledButton.icon(
                         onPressed: onJoinViaCode,
                         icon: const Icon(Icons.login),
@@ -340,55 +359,90 @@ class _GamesList extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Active Games',
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+    return AdaptiveLayoutBuilder(
+      builder: (context, constraints, windowClass) {
+        final useGrid = shouldUseCardGrid(
+          windowClass: windowClass,
+          textScaler: MediaQuery.textScalerOf(context),
+        );
+        final heading = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Active Games',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            _UpdatedAgoLabel(refreshedAt: lastRefreshed),
+          ],
+        );
+        final actions = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: onRefresh,
+              tooltip: 'Refresh',
+              iconSize: 20,
+            ),
+            IconButton(
+              icon: const Icon(Icons.login),
+              onPressed: onJoinViaCode,
+              tooltip: 'Join via Code',
+              iconSize: 20,
+            ),
+            TextButton.icon(
+              onPressed: onBrowseLobby,
+              icon: const Icon(Icons.search, size: 18),
+              label: const Text('Lobby'),
+            ),
+          ],
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: windowClass.isCompact
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        heading,
+                        Align(alignment: Alignment.centerRight, child: actions),
+                      ],
+                    )
+                  : Row(children: [heading, const Spacer(), actions]),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: useGrid
+                  ? GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      gridDelegate: responsiveCardGridDelegate(
+                        availableWidth: constraints.maxWidth - 32,
+                        maxCrossAxisExtent: 560,
+                        mainAxisExtent: 112,
+                      ),
+                      itemCount: entries.length,
+                      itemBuilder: (context, index) =>
+                          _GameCard(entry: entries[index]),
+                    )
+                  : ConstrainedContentPane(
+                      maxWidth: 720,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        itemCount: entries.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) =>
+                            _GameCard(entry: entries[index]),
+                      ),
                     ),
-                  ),
-                  _UpdatedAgoLabel(refreshedAt: lastRefreshed),
-                ],
-              ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: onRefresh,
-                tooltip: 'Refresh',
-                iconSize: 20,
-              ),
-              IconButton(
-                icon: const Icon(Icons.login),
-                onPressed: onJoinViaCode,
-                tooltip: 'Join via Code',
-                iconSize: 20,
-              ),
-              TextButton.icon(
-                onPressed: onBrowseLobby,
-                icon: const Icon(Icons.search, size: 18),
-                label: const Text('Lobby'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: entries.length,
-            itemBuilder: (context, index) => _GameCard(entry: entries[index]),
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -402,6 +456,7 @@ class _GameCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = AppSemanticColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final game = entry;
 
@@ -436,11 +491,11 @@ class _GameCard extends ConsumerWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () =>
             context.pushNamed('game', pathParameters: {'gameId': game.id}),
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -456,14 +511,18 @@ class _GameCard extends ConsumerWidget {
                   height: 48,
                   margin: const EdgeInsets.only(right: 16),
                   decoration: BoxDecoration(
-                    color: game.status
-                        .color(colorScheme)
-                        .withValues(alpha: 0.1),
+                    color: game.status.containerColor(
+                      colorScheme,
+                      semanticColors: semanticColors,
+                    ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     game.status.icon,
-                    color: game.status.color(colorScheme),
+                    color: game.status.onContainerColor(
+                      colorScheme,
+                      semanticColors: semanticColors,
+                    ),
                   ),
                 ),
               Expanded(
@@ -483,7 +542,10 @@ class _GameCard extends ConsumerWidget {
                     ),
                     if (isMyTurn != null) ...[
                       const SizedBox(height: 2),
-                      Row(
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             isMyTurn ? '• Your turn' : '• Waiting',
@@ -495,7 +557,6 @@ class _GameCard extends ConsumerWidget {
                             ),
                           ),
                           if (isMyTurn && game.turnDeadline != null) ...[
-                            const SizedBox(width: 4),
                             TurnCountdown(deadline: game.turnDeadline!),
                           ],
                         ],

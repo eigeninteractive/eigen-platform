@@ -373,7 +373,7 @@ final class SoloPlayAvailableProvider
   }
 }
 
-String _$soloPlayAvailableHash() => r'7b8d7806324db9dbdeedb2d26f22f47a47139eef';
+String _$soloPlayAvailableHash() => r'76b252c989ed36711a66ec4b8127fe3f2f5ad69c';
 
 /// The caller's games, "your turn" first then most recently updated.
 ///

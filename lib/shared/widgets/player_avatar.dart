@@ -33,6 +33,7 @@ class PlayerAvatar extends ConsumerWidget {
     this.isBot = false,
     this.showBorder = false,
     this.borderColor,
+    this.semanticLabel,
     this.onTap,
   });
 
@@ -52,6 +53,15 @@ class PlayerAvatar extends ConsumerWidget {
   /// Color of the border ring. Defaults to the theme's primary color.
   final Color? borderColor;
 
+  /// Accessible description for the avatar or its action.
+  ///
+  /// For an interactive avatar, describe the action, for example "Open Ada's
+  /// profile". Interactive avatars fall back to "Open player profile" (or
+  /// "Open bot profile") so they are never exposed as an unnamed control.
+  /// Non-interactive avatars are decorative unless this is supplied, because
+  /// their player's name is normally already adjacent to them.
+  final String? semanticLabel;
+
   /// Optional tap callback. If null, the avatar is non-interactive.
   final VoidCallback? onTap;
 
@@ -68,10 +78,53 @@ class PlayerAvatar extends ConsumerWidget {
       borderColor: borderColor ?? Theme.of(context).colorScheme.primary,
     );
 
-    if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: avatar);
+    final handleTap = onTap;
+    if (handleTap != null) {
+      final actionLabel =
+          semanticLabel ?? (isBot ? 'Open bot profile' : 'Open player profile');
+
+      return Semantics(
+        button: true,
+        enabled: true,
+        label: actionLabel,
+        child: Tooltip(
+          message: actionLabel,
+          excludeFromSemantics: true,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                ExcludeSemantics(child: avatar),
+                Positioned.fill(
+                  child: Material(
+                    type: MaterialType.transparency,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkResponse(
+                      onTap: handleTap,
+                      containedInkWell: true,
+                      customBorder: const CircleBorder(),
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
     }
-    return avatar;
+
+    final label = semanticLabel;
+    return label == null
+        ? ExcludeSemantics(child: avatar)
+        : Semantics(
+            image: true,
+            label: label,
+            excludeSemantics: true,
+            child: avatar,
+          );
   }
 }
 

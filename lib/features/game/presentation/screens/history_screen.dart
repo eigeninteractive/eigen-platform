@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:intl/intl.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 import 'package:eigen_flutter/features/game/data/game_repository.dart';
 
 import 'package:eigen_flutter/features/game/presentation/extensions/game_ui.dart';
+import 'package:eigen_flutter/features/rating/presentation/extensions/rating_ui.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/shared/widgets/empty_state_view.dart';
 import 'package:eigen_api/eigen_api.dart';
@@ -123,49 +126,95 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return RefreshIndicator(
-      onRefresh: () async => _pagingController.refresh(),
-      child: PagingListener(
-        controller: _pagingController,
-        builder: (context, state, fetchNextPage) =>
-            PagedListView<String, _HistoryEntry>(
-              state: state,
-              fetchNextPage: fetchNextPage,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              builderDelegate: PagedChildBuilderDelegate<_HistoryEntry>(
-                animateTransitions: true,
-                itemBuilder: (context, entry, _) =>
-                    _HistoryCard(key: ValueKey(entry.game.id), entry: entry),
-                noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
-                  icon: Icons.history,
-                  title: 'No finished games yet',
-                  message: 'Completed games will appear here.',
-                  cta: 'Play your first game',
-                  onCta: () => context.go('/lobby'),
-                  tonalCta: true,
-                ),
-                firstPageErrorIndicatorBuilder: (_) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(humanize(state.error ?? 'Unknown error')),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _pagingController.refresh,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+    return AdaptiveLayoutBuilder(
+      builder: (context, constraints, windowClass) => Column(
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: IconButton(
+                onPressed: _pagingController.refresh,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh history',
               ),
             ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => _pagingController.refresh(),
+              child: PagingListener(
+                controller: _pagingController,
+                builder: (context, state, fetchNextPage) {
+                  final builderDelegate =
+                      PagedChildBuilderDelegate<_HistoryEntry>(
+                        animateTransitions: true,
+                        itemBuilder: (context, entry, _) => _HistoryCard(
+                          key: ValueKey(entry.game.id),
+                          entry: entry,
+                        ),
+                        noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
+                          icon: Icons.history,
+                          title: 'No finished games yet',
+                          message: 'Completed games will appear here.',
+                          cta: 'Play your first game',
+                          onCta: () => context.go('/lobby'),
+                          tonalCta: true,
+                        ),
+                        firstPageErrorIndicatorBuilder: (_) => Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: colorScheme.error,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(humanize(state.error ?? 'Unknown error')),
+                              const SizedBox(height: 16),
+                              FilledButton(
+                                onPressed: _pagingController.refresh,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                  final useGrid = shouldUseCardGrid(
+                    windowClass: windowClass,
+                    textScaler: MediaQuery.textScalerOf(context),
+                  );
+                  if (!useGrid) {
+                    return ConstrainedContentPane(
+                      maxWidth: 720,
+                      child: PagedListView<String, _HistoryEntry>.separated(
+                        state: state,
+                        fetchNextPage: fetchNextPage,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        builderDelegate: builderDelegate,
+                      ),
+                    );
+                  }
+                  return PagedGridView<String, _HistoryEntry>(
+                    state: state,
+                    fetchNextPage: fetchNextPage,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    gridDelegate: responsiveCardGridDelegate(
+                      availableWidth: constraints.maxWidth - 32,
+                      maxCrossAxisExtent: 560,
+                      mainAxisExtent: 110,
+                    ),
+                    builderDelegate: builderDelegate,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -179,6 +228,7 @@ class _HistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = AppSemanticColors.of(context);
     final textTheme = Theme.of(context).textTheme;
     final game = entry.game;
     final result = entry.myResult;
@@ -191,11 +241,11 @@ class _HistoryCard extends StatelessWidget {
     final dateLabel = DateFormat.yMMMd(locale).format(date.toLocal());
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () =>
             context.pushNamed('game', pathParameters: {'gameId': game.id}),
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -204,10 +254,19 @@ class _HistoryCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: result.color(colorScheme).withValues(alpha: 0.12),
+                  color: result.containerColor(
+                    colorScheme,
+                    semanticColors: semanticColors,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(result.icon, color: result.color(colorScheme)),
+                child: Icon(
+                  result.icon,
+                  color: result.onContainerColor(
+                    colorScheme,
+                    semanticColors: semanticColors,
+                  ),
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -252,19 +311,19 @@ class _RatingDelta extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final poolName = change.pool[0].toUpperCase() + change.pool.substring(1);
 
-    final Color color;
+    final color = change.color(
+      colorScheme,
+      semanticColors: AppSemanticColors.of(context),
+    );
     final String triangle;
     final String amount;
     if (change.displayChange > 0) {
-      color = colorScheme.tertiary;
       triangle = '▲';
       amount = '+${change.displayChange}';
     } else if (change.displayChange < 0) {
-      color = colorScheme.error;
       triangle = '▼';
       amount = '${change.displayChange}';
     } else {
-      color = colorScheme.onSurfaceVariant;
       triangle = '–';
       amount = '0';
     }

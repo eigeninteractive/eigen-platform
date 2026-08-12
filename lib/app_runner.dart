@@ -4,17 +4,22 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eigen_flutter/core/api/retry_policy.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
+import 'package:eigen_flutter/core/licenses/bundled_font_licenses.dart';
 import 'package:eigen_flutter/core/navigation/providers/navigation_providers.dart';
+import 'package:eigen_flutter/core/navigation/widgets/app_route_title.dart';
 import 'package:eigen_flutter/core/navigation/url_strategy.dart';
 import 'package:eigen_flutter/core/startup/app_startup.dart';
 import 'package:eigen_flutter/core/theme/app_theme.dart';
 import 'package:eigen_flutter/core/theme/theme_provider.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
+
+SemanticsHandle? _webSemanticsHandle;
 
 /// Boots a whitelabel game app on the engine.
 ///
@@ -38,6 +43,13 @@ Future<void> runEngineApp({
   config.engine.validate(isWeb: kIsWeb);
 
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    // Flutter web otherwise waits for its invisible opt-in control before
+    // exposing the semantics tree. Keep the handle alive for the application
+    // lifetime so browser assistive technology works from the first frame.
+    _webSemanticsHandle ??= SemanticsBinding.instance.ensureSemantics();
+  }
+  registerBundledFontLicenses();
   configureUrlStrategy();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
@@ -115,8 +127,21 @@ class MyApp extends ConsumerWidget {
         branding.seedColor,
         display: branding.displayFontFamily,
       ),
+      highContrastTheme: AppTheme.highContrastLight(
+        branding.seedColor,
+        display: branding.displayFontFamily,
+      ),
+      highContrastDarkTheme: AppTheme.highContrastDark(
+        branding.seedColor,
+        display: branding.displayFontFamily,
+      ),
       themeMode: themeMode,
       routerConfig: router,
+      builder: (context, child) => AppRouteTitle(
+        router: router,
+        appName: branding.appName,
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

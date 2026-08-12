@@ -115,17 +115,23 @@ class AcceptRequestButton extends ConsumerWidget {
             ? IconButton(
                 icon: Icon(Icons.check, color: colorScheme.primary),
                 onPressed: accept,
+                tooltip: 'Accept friend request',
               )
             : FilledButton(onPressed: accept, child: const Text('Accept')),
       MutationPending() =>
         compact
-            ? IconButton(icon: const _ButtonSpinner(size: 20), onPressed: null)
+            ? IconButton(
+                icon: const _ButtonSpinner(size: 20),
+                onPressed: null,
+                tooltip: 'Accepting friend request',
+              )
             : FilledButton(onPressed: null, child: const _ButtonSpinner()),
       MutationSuccess() =>
         compact
             ? IconButton(
                 icon: Icon(Icons.check, color: colorScheme.primary),
                 onPressed: null,
+                tooltip: 'Friend request accepted',
               )
             : const FilledButton(onPressed: null, child: Text('Accepted')),
       MutationError() =>
@@ -133,6 +139,7 @@ class AcceptRequestButton extends ConsumerWidget {
             ? IconButton(
                 icon: Icon(Icons.refresh, color: colorScheme.error),
                 onPressed: accept,
+                tooltip: 'Retry accepting friend request',
               )
             : FilledButton(onPressed: accept, child: const Text('Retry')),
     };
@@ -179,19 +186,25 @@ class DeclineRequestButton extends ConsumerWidget {
             ? IconButton(
                 icon: Icon(Icons.close, color: colorScheme.error),
                 onPressed: decline,
+                tooltip: 'Decline friend request',
               )
             : OutlinedButton(onPressed: decline, child: const Text('Decline')),
       MutationPending() || MutationSuccess() =>
         compact
-            ? IconButton(icon: const _ButtonSpinner(size: 20), onPressed: null)
+            ? IconButton(
+                icon: const _ButtonSpinner(size: 20),
+                onPressed: null,
+                tooltip: 'Declining friend request',
+              )
             : const OutlinedButton(onPressed: null, child: _ButtonSpinner()),
       MutationError() =>
         compact
             ? IconButton(
-                icon: Icon(Icons.close, color: colorScheme.error),
+                icon: Icon(Icons.refresh, color: colorScheme.error),
                 onPressed: decline,
+                tooltip: 'Retry declining friend request',
               )
-            : OutlinedButton(onPressed: decline, child: const Text('Decline')),
+            : OutlinedButton(onPressed: decline, child: const Text('Retry')),
     };
   }
 }
@@ -269,20 +282,44 @@ class _RemoveFriendButtonState extends ConsumerState<RemoveFriendButton> {
     final disabled = _confirming || mutState.isPending;
 
     return switch (mutState) {
-      MutationIdle() || MutationError() =>
+      MutationIdle() =>
         widget.compact
             ? IconButton(
                 icon: const Icon(Icons.person_remove),
                 onPressed: disabled ? null : _remove,
+                tooltip: 'Remove friend',
               )
             : TextButton(
                 onPressed: disabled ? null : _remove,
                 child: const Text('Remove'),
               ),
-      MutationPending() || MutationSuccess() =>
+      MutationError() =>
         widget.compact
-            ? IconButton(icon: const _ButtonSpinner(size: 20), onPressed: null)
+            ? IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: disabled ? null : _remove,
+                tooltip: 'Retry removing friend',
+              )
+            : TextButton(
+                onPressed: disabled ? null : _remove,
+                child: const Text('Retry'),
+              ),
+      MutationPending() =>
+        widget.compact
+            ? IconButton(
+                icon: const _ButtonSpinner(size: 20),
+                onPressed: null,
+                tooltip: 'Removing friend',
+              )
             : const TextButton(onPressed: null, child: _ButtonSpinner()),
+      MutationSuccess() =>
+        widget.compact
+            ? const IconButton(
+                icon: Icon(Icons.person_remove),
+                onPressed: null,
+                tooltip: 'Friend removed',
+              )
+            : const TextButton(onPressed: null, child: Text('Removed')),
     };
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/data/game_repository.dart';
 
@@ -27,6 +28,8 @@ enum _LobbyMode { public, friends }
 
 class _LobbyScreenState extends ConsumerState<LobbyScreen>
     with SingleTickerProviderStateMixin {
+  static const _tabNames = ['public', 'friends'];
+
   // Guests cannot have friends. The Friends tab stays visible but disabled
   // (greyed, with a locked sign-in panel as its content) so guests still see
   // the feature exists, and app_friends_games is never called for them.
@@ -34,18 +37,83 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen>
   // change that re-navigates into a fresh lobby.
   late final bool _isAnonymous;
   late final TabController _tabController;
+  bool _syncingFromRoute = false;
+  int? _directTabSelection;
 
   @override
   void initState() {
     super.initState();
     _isAnonymous = ref.read(isAnonymousProvider);
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(_handleControllerChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final routeIndex = _routeTabIndex();
+    if (_tabController.index == routeIndex) return;
+
+    // Browser Back/Forward changes the query while this stateful shell branch
+    // stays mounted. Update the existing controller without writing the same
+    // state back into the router.
+    _syncingFromRoute = true;
+    _directTabSelection = null;
+    _tabController.index = routeIndex;
+    _syncingFromRoute = false;
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController
+      ..removeListener(_handleControllerChange)
+      ..dispose();
     super.dispose();
+  }
+
+  int _routeTabIndex() {
+    final tab = GoRouterState.of(context).uri.queryParameters['tab'];
+    final index = _tabNames.indexOf(tab ?? '');
+    return index < 0 ? 0 : index;
+  }
+
+  String _locationForTab(int index) {
+    final uri = GoRouterState.of(context).uri;
+    final query = Map<String, String>.of(uri.queryParameters);
+    if (index == 0) {
+      query.remove('tab');
+    } else {
+      query['tab'] = _tabNames[index];
+    }
+    return uri.replace(queryParameters: query).toString();
+  }
+
+  void _handleTabTap(int index) {
+    if (index == _routeTabIndex()) {
+      _directTabSelection = null;
+      return;
+    }
+    // A deliberate tab click is browser-navigable history. TabBar has already
+    // started the controller animation before invoking onTap, so remember it
+    // and suppress the completion listener's replace.
+    _directTabSelection = index;
+    context.go(_locationForTab(index));
+  }
+
+  void _handleControllerChange() {
+    if (!mounted || _syncingFromRoute || _tabController.indexIsChanging) {
+      return;
+    }
+    final index = _tabController.index;
+    if (_directTabSelection == index) {
+      _directTabSelection = null;
+      return;
+    }
+    if (index == _routeTabIndex()) return;
+
+    // Swiping the TabBarView (or another controller-driven animation) should
+    // expose its state in the URL without adding a second history entry.
+    Router.neglect(context, () => context.go(_locationForTab(index)));
   }
 
   @override
@@ -57,6 +125,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen>
       children: [
         TabBar(
           controller: _tabController,
+          onTap: _handleTabTap,
           tabs: [
             const Tab(icon: Icon(Icons.public), text: 'Public'),
             Tab(
@@ -179,60 +248,105 @@ class _LobbyTabContentState extends ConsumerState<_LobbyTabContent>
     super.build(context);
     final colorScheme = Theme.of(context).colorScheme;
 
-    return RefreshIndicator(
-      onRefresh: () async => _pagingController.refresh(),
-      child: PagingListener(
-        controller: _pagingController,
-        builder: (context, state, fetchNextPage) =>
-            PagedListView<String, GameSummary>(
-              state: state,
-              fetchNextPage: fetchNextPage,
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
-              builderDelegate: PagedChildBuilderDelegate<GameSummary>(
-                animateTransitions: true,
-                itemBuilder: (context, item, index) => _GameCard(
-                  key: ValueKey(item.id),
-                  game: item,
-                  onCancelled: _pagingController.refresh,
-                  onJoined: _pagingController.refresh,
-                ),
-                noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
-                  icon: Icons.sports_esports_outlined,
-                  title: 'No open games right now',
-                  message: switch (widget.mode) {
-                    _LobbyMode.friends =>
-                      'None of your friends have an open game.',
-                    _LobbyMode.public => 'Be the first to start one.',
-                  },
-                  cta: 'Create Game',
-                  onCta: () => showDialog(
-                    context: context,
-                    useSafeArea: true,
-                    builder: (_) => const NewGameDialog(),
-                  ),
-                ),
-                firstPageErrorIndicatorBuilder: (_) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 48,
-                        color: colorScheme.error,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(humanize(state.error ?? 'Unknown error')),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _pagingController.refresh,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+    return AdaptiveLayoutBuilder(
+      builder: (context, constraints, windowClass) => Column(
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: IconButton(
+                onPressed: _pagingController.refresh,
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh games',
               ),
             ),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => _pagingController.refresh(),
+              child: PagingListener(
+                controller: _pagingController,
+                builder: (context, state, fetchNextPage) {
+                  final builderDelegate =
+                      PagedChildBuilderDelegate<GameSummary>(
+                        animateTransitions: true,
+                        itemBuilder: (context, item, index) => _GameCard(
+                          key: ValueKey(item.id),
+                          game: item,
+                          onCancelled: _pagingController.refresh,
+                          onJoined: _pagingController.refresh,
+                        ),
+                        noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
+                          icon: Icons.sports_esports_outlined,
+                          title: 'No open games right now',
+                          message: switch (widget.mode) {
+                            _LobbyMode.friends =>
+                              'None of your friends have an open game.',
+                            _LobbyMode.public => 'Be the first to start one.',
+                          },
+                          cta: 'Create Game',
+                          onCta: () => showDialog(
+                            context: context,
+                            useSafeArea: true,
+                            builder: (_) => const NewGameDialog(),
+                          ),
+                        ),
+                        firstPageErrorIndicatorBuilder: (_) => Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: colorScheme.error,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(humanize(state.error ?? 'Unknown error')),
+                              const SizedBox(height: 16),
+                              FilledButton(
+                                onPressed: _pagingController.refresh,
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                  final useGrid = shouldUseCardGrid(
+                    windowClass: windowClass,
+                    textScaler: MediaQuery.textScalerOf(context),
+                  );
+                  if (!useGrid) {
+                    return ConstrainedContentPane(
+                      maxWidth: 720,
+                      child: PagedListView<String, GameSummary>.separated(
+                        state: state,
+                        fetchNextPage: fetchNextPage,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        builderDelegate: builderDelegate,
+                      ),
+                    );
+                  }
+                  return PagedGridView<String, GameSummary>(
+                    state: state,
+                    fetchNextPage: fetchNextPage,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    gridDelegate: responsiveCardGridDelegate(
+                      availableWidth: constraints.maxWidth - 32,
+                      maxCrossAxisExtent: 580,
+                      mainAxisExtent: 140,
+                      twoColumnWidth: 1000,
+                    ),
+                    builderDelegate: builderDelegate,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -295,82 +409,121 @@ class _GameCardState extends ConsumerState<_GameCard> {
       }
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        onTap: canNavigate
-            ? () => context.pushNamed(
-                'game',
-                pathParameters: {'gameId': widget.game.id},
-              )
-            : null,
-        leading: avatars.isNotEmpty
-            ? OverlappingAvatars(players: avatars, radius: 18)
-            : CircleAvatar(
-                backgroundColor: isOwner
-                    ? colorScheme.secondaryContainer
-                    : colorScheme.primaryContainer,
-                child: Icon(
-                  gameTimingIcon(widget.game),
-                  color: isOwner
-                      ? colorScheme.onSecondaryContainer
-                      : colorScheme.onPrimaryContainer,
-                ),
-              ),
-        title: Text(
-          isOwner ? 'Your Room' : 'Game #${widget.game.id.substring(0, 8)}',
-          style: textTheme.titleMedium,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${gameTimingLabel(widget.game)} • ${widget.game.access.name}',
-              style: textTheme.bodySmall,
+    final openGame = canNavigate
+        ? () => context.pushNamed(
+            'game',
+            pathParameters: {'gameId': widget.game.id},
+          )
+        : null;
+    final leading = avatars.isNotEmpty
+        ? OverlappingAvatars(players: avatars, radius: 18)
+        : CircleAvatar(
+            backgroundColor: isOwner
+                ? colorScheme.secondaryContainer
+                : colorScheme.primaryContainer,
+            child: Icon(
+              gameTimingIcon(widget.game),
+              color: isOwner
+                  ? colorScheme.onSecondaryContainer
+                  : colorScheme.onPrimaryContainer,
             ),
-            const SizedBox(height: 4),
-            _PlayerSlots(
-              playerCount: playerCount,
-              minPlayers: widget.game.minPlayers,
-              maxPlayers: widget.game.maxPlayers,
-              waitLabel: formatWaitDuration(widget.game.createdAt),
-              colorScheme: colorScheme,
-              textTheme: textTheme,
-            ),
-          ],
+          );
+    final title = Text(
+      isOwner ? 'Your Room' : 'Game #${widget.game.id.substring(0, 8)}',
+      style: textTheme.titleMedium,
+    );
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '${gameTimingLabel(widget.game)} • ${widget.game.access.name}',
+          style: textTheme.bodySmall,
         ),
-        isThreeLine: true,
-        trailing: _isLoading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
+        const SizedBox(height: 4),
+        _PlayerSlots(
+          playerCount: playerCount,
+          minPlayers: widget.game.minPlayers,
+          maxPlayers: widget.game.maxPlayers,
+          waitLabel: formatWaitDuration(widget.game.createdAt),
+          colorScheme: colorScheme,
+          textTheme: textTheme,
+        ),
+      ],
+    );
+    final action = _isLoading
+        ? const SizedBox(
+            width: 40,
+            height: 40,
+            child: Center(
+              child: SizedBox.square(
+                dimension: 16,
                 child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : isOwner
-            ? OutlinedButton(
-                onPressed: _cancelGame,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colorScheme.error,
-                  side: BorderSide(color: colorScheme.error),
-                ),
-                child: const Text('Cancel'),
-              )
-            : isParticipant
-            ? OutlinedButton(
-                onPressed: () => context.pushNamed(
-                  'game',
-                  pathParameters: {'gameId': widget.game.id},
-                ),
-                child: const Text('View'),
-              )
-            : !supported
-            ? const FilledButton(onPressed: null, child: Text('Update to join'))
-            : ratedBlockedForGuest
-            ? const FilledButton(
-                onPressed: null,
-                child: Text('Sign up to play rated'),
-              )
-            : FilledButton(onPressed: _joinGame, child: const Text('Join')),
+              ),
+            ),
+          )
+        : isOwner
+        ? OutlinedButton(
+            onPressed: _cancelGame,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colorScheme.error,
+              side: BorderSide(color: colorScheme.error),
+            ),
+            child: const Text('Cancel'),
+          )
+        : isParticipant
+        ? OutlinedButton(onPressed: openGame, child: const Text('View'))
+        : !supported
+        ? const FilledButton(onPressed: null, child: Text('Update to join'))
+        : ratedBlockedForGuest
+        ? const FilledButton(
+            onPressed: null,
+            child: Text('Sign up to play rated'),
+          )
+        : FilledButton(onPressed: _joinGame, child: const Text('Join'));
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth >= 480) {
+            return ListTile(
+              onTap: openGame,
+              leading: leading,
+              title: title,
+              subtitle: details,
+              isThreeLine: true,
+              trailing: action,
+            );
+          }
+          return InkWell(
+            onTap: openGame,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      leading,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [title, const SizedBox(height: 4), details],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Align(alignment: Alignment.centerRight, child: action),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -450,21 +603,28 @@ class _PlayerSlots extends StatelessWidget {
     final capacitySuffix = !isReady && maxPlayers > minPlayers
         ? ' • $maxPlayers max'
         : '';
-    return Row(
+    return Wrap(
+      spacing: 4,
+      runSpacing: 2,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        for (int i = 0; i < minPlayers; i++)
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: i < playerCount
-                  ? colorScheme.primary
-                  : colorScheme.outlineVariant,
-              shape: BoxShape.circle,
-            ),
-          ),
-        const SizedBox(width: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int i = 0; i < minPlayers; i++)
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(right: 4),
+                decoration: BoxDecoration(
+                  color: i < playerCount
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
         Text(
           '$fraction$capacitySuffix • $waitLabel',
           style: textTheme.bodySmall?.copyWith(
