@@ -9,6 +9,11 @@ const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const _googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const _firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const _appHost = String.fromEnvironment('APP_HOST');
+// Optional, and empty is the normal answer. Sign-in works without it; setting
+// it only changes the hostname Google's account chooser shows a web player,
+// and it requires a Firebase Hosting domain, which is not APP_HOST:
+// https://eigeninteractive.com/docs/ship-it/deploy-the-web-app
+const _authDomain = String.fromEnvironment('AUTH_DOMAIN');
 
 Future<void> main() async {
   await runEngineApp(
@@ -28,6 +33,7 @@ Future<void> main() async {
         apiBaseUrl: _apiBaseUrl,
         googleWebClientId: _googleWebClientId,
         appHost: _appHost.isEmpty ? null : _appHost,
+        authDomain: _authDomain.isEmpty ? null : _authDomain,
         firebaseVapidKey: _firebaseVapidKey,
       ),
     ),
