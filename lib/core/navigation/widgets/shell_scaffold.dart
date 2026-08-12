@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/connectivity/connectivity_provider.dart';
 import 'package:eigen_flutter/shared/widgets/status_banner.dart';
@@ -56,109 +57,180 @@ class ShellScaffold extends ConsumerWidget {
     // [soloPlayAvailableProvider]. Most deployments with no bots get an empty
     // catalog → no extra FAB.
     final canPlaySolo = ref.watch(soloPlayAvailableProvider);
-    final colorScheme = Theme.of(context).colorScheme;
     final index = navigationShell.currentIndex;
     final branch = _ShellBranch.values[index];
     final title = branch.title;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: title.isEmpty ? null : Text(title),
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
-      drawer: NavigationDrawer(
-        selectedIndex: index,
-        onDestinationSelected: (int i) {
-          Navigator.of(context).pop();
-          navigationShell.goBranch(i, initialLocation: i == index);
-        },
-        children: [
-          const _DrawerHeader(),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home_rounded),
-            label: Text('Home'),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups_rounded),
-            label: Text('Lobby'),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history_rounded),
-            label: Text('History'),
-          ),
-          // Social is registered-only. For guests the destination stays visible
-          // but disabled (greyed, non-tappable): the same visible-but-disabled
-          // treatment rated games get in the lobby. enabled:false also keeps the
-          // tap from firing onDestinationSelected, so branch indices stay 1:1.
-          NavigationDrawerDestination(
-            enabled: !isGuest,
-            icon: const _SocialDrawerIcon(selected: false),
-            selectedIcon: const _SocialDrawerIcon(selected: true),
-            label: const Text('Social'),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.info_outline),
-            selectedIcon: Icon(Icons.info_rounded),
-            label: Text('About'),
-          ),
-          const NavigationDrawerDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_rounded),
-            label: Text('Settings'),
-          ),
-          const _SignOutButton(),
-        ],
-      ),
-      floatingActionButton: index == 0
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (canPlaySolo) ...[
-                  FloatingActionButton.extended(
-                    heroTag: 'newSoloGame',
-                    onPressed: () => showDialog(
-                      context: context,
-                      useSafeArea: true,
-                      builder: (_) => const PlayVsBotDialog(),
+    void selectBranch(int i) {
+      navigationShell.goBranch(i, initialLocation: i == index);
+    }
+
+    void showNewGame() => showDialog<void>(
+      context: context,
+      useSafeArea: true,
+      builder: (_) => const NewGameDialog(),
+    );
+
+    return AdaptiveLayoutBuilder(
+      builder: (context, constraints, windowClass) {
+        final compact = windowClass.isCompact;
+        final expandedRail = windowClass.isAtLeastExpanded;
+        final content = Column(
+          children: [
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: isOffline
+                  ? const _OfflineBanner()
+                  : const SizedBox.shrink(),
+            ),
+            Expanded(child: SafeArea(child: navigationShell)),
+          ],
+        );
+
+        return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: compact,
+            title: title.isEmpty ? null : Text(title),
+            actions: index == 0 && canPlaySolo
+                ? [
+                    IconButton(
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        useSafeArea: true,
+                        builder: (_) => const PlayVsBotDialog(),
+                      ),
+                      icon: const Icon(Icons.smart_toy_outlined),
+                      tooltip: 'New Solo Game',
                     ),
-                    icon: const Icon(Icons.smart_toy_outlined),
-                    label: const Text('New Solo Game'),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                FloatingActionButton.extended(
+                  ]
+                : null,
+          ),
+          drawer: compact
+              ? NavigationDrawer(
+                  selectedIndex: index,
+                  onDestinationSelected: (int i) {
+                    Navigator.of(context).pop();
+                    selectBranch(i);
+                  },
+                  children: [
+                    const _DrawerHeader(),
+                    ..._drawerDestinations(isGuest: isGuest),
+                    const _SignOutButton(),
+                  ],
+                )
+              : null,
+          floatingActionButton: index == 0
+              ? FloatingActionButton.extended(
                   heroTag: 'newGame',
-                  onPressed: () => showDialog(
-                    context: context,
-                    useSafeArea: true,
-                    builder: (_) => const NewGameDialog(),
-                  ),
+                  onPressed: showNewGame,
                   icon: const Icon(Icons.add),
                   label: const Text('New Game'),
+                )
+              : null,
+          body: compact
+              ? content
+              : Row(
+                  children: [
+                    SafeArea(
+                      right: false,
+                      child: NavigationRail(
+                        extended: expandedRail,
+                        selectedIndex: index,
+                        onDestinationSelected: selectBranch,
+                        labelType: expandedRail
+                            ? NavigationRailLabelType.none
+                            : NavigationRailLabelType.all,
+                        groupAlignment: -1,
+                        scrollable: true,
+                        leadingAtTop: false,
+                        leading: expandedRail
+                            ? const _RailHeader()
+                            : const SizedBox(height: 16),
+                        trailing: const _RailSignOutButton(),
+                        trailingAtBottom: true,
+                        destinations: _railDestinations(isGuest: isGuest),
+                      ),
+                    ),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: content),
+                  ],
                 ),
-              ],
-            )
-          : null,
-      body: Column(
-        children: [
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            child: isOffline ? const _OfflineBanner() : const SizedBox.shrink(),
-          ),
-          Expanded(child: SafeArea(child: navigationShell)),
-        ],
-      ),
+        );
+      },
     );
   }
 }
+
+List<NavigationDrawerDestination> _drawerDestinations({
+  required bool isGuest,
+}) => [
+  const NavigationDrawerDestination(
+    icon: Icon(Icons.home_outlined),
+    selectedIcon: Icon(Icons.home_rounded),
+    label: Text('Home'),
+  ),
+  const NavigationDrawerDestination(
+    icon: Icon(Icons.groups_outlined),
+    selectedIcon: Icon(Icons.groups_rounded),
+    label: Text('Lobby'),
+  ),
+  const NavigationDrawerDestination(
+    icon: Icon(Icons.history_outlined),
+    selectedIcon: Icon(Icons.history_rounded),
+    label: Text('History'),
+  ),
+  NavigationDrawerDestination(
+    enabled: !isGuest,
+    icon: const _SocialDrawerIcon(selected: false),
+    selectedIcon: const _SocialDrawerIcon(selected: true),
+    label: const Text('Social'),
+  ),
+  const NavigationDrawerDestination(
+    icon: Icon(Icons.info_outline),
+    selectedIcon: Icon(Icons.info_rounded),
+    label: Text('About'),
+  ),
+  const NavigationDrawerDestination(
+    icon: Icon(Icons.settings_outlined),
+    selectedIcon: Icon(Icons.settings_rounded),
+    label: Text('Settings'),
+  ),
+];
+
+List<NavigationRailDestination> _railDestinations({required bool isGuest}) => [
+  const NavigationRailDestination(
+    icon: Icon(Icons.home_outlined),
+    selectedIcon: Icon(Icons.home_rounded),
+    label: Text('Home'),
+  ),
+  const NavigationRailDestination(
+    icon: Icon(Icons.groups_outlined),
+    selectedIcon: Icon(Icons.groups_rounded),
+    label: Text('Lobby'),
+  ),
+  const NavigationRailDestination(
+    icon: Icon(Icons.history_outlined),
+    selectedIcon: Icon(Icons.history_rounded),
+    label: Text('History'),
+  ),
+  NavigationRailDestination(
+    disabled: isGuest,
+    icon: const _SocialDrawerIcon(selected: false),
+    selectedIcon: const _SocialDrawerIcon(selected: true),
+    label: const Text('Social'),
+  ),
+  const NavigationRailDestination(
+    icon: Icon(Icons.info_outline),
+    selectedIcon: Icon(Icons.info_rounded),
+    label: Text('About'),
+  ),
+  const NavigationRailDestination(
+    icon: Icon(Icons.settings_outlined),
+    selectedIcon: Icon(Icons.settings_rounded),
+    label: Text('Settings'),
+  ),
+];
 
 /// Slim banner shown when the device has no network connectivity.
 class _OfflineBanner extends StatelessWidget {
@@ -192,6 +264,23 @@ class _DrawerHeader extends ConsumerWidget {
       child: Text(
         ref.watch(appConfigProvider).branding.appName,
         style: Theme.of(context).textTheme.titleLarge,
+      ),
+    );
+  }
+}
+
+class _RailHeader extends ConsumerWidget {
+  const _RailHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      child: Text(
+        ref.watch(appConfigProvider).branding.appName,
+        style: Theme.of(context).textTheme.titleMedium,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -232,6 +321,22 @@ class _SignOutButton extends ConsumerWidget {
         },
         icon: const Icon(Icons.logout),
         label: const Text('Sign Out'),
+      ),
+    );
+  }
+}
+
+class _RailSignOutButton extends ConsumerWidget {
+  const _RailSignOutButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: IconButton(
+        onPressed: () => ref.read(authControllerProvider.notifier).signOut(),
+        icon: const Icon(Icons.logout),
+        tooltip: 'Sign Out',
       ),
     );
   }

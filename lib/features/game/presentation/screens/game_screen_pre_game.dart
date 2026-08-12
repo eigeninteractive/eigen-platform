@@ -256,6 +256,7 @@ class _AddBotDialogState extends ConsumerState<_AddBotDialog> {
     final botsAsync = ref.watch(availableBotsProvider);
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Add a bot'),
       content: switch (botsAsync) {
         AsyncError(:final error) => Text(humanize(error)),

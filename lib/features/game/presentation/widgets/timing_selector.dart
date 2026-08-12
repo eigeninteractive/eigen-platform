@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eigen_flutter/core/game/game_creation_spec.dart';
+import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 
 /// Timing values resolved from a [TimingSelector], ready for the create RPCs.
 typedef ResolvedTiming = ({
@@ -97,19 +98,19 @@ class _TimingSelectorState extends State<TimingSelector> {
         Text('Timing', style: textTheme.labelLarge),
         const SizedBox(height: 8),
         if (configs.length > 1) ...[
-          SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: configs.keys
-                .map((k) => ButtonSegment(value: k, label: Text(k)))
-                .toList(),
-            selected: {_key},
-            onSelectionChanged: widget.enabled
-                ? (s) => setState(() {
-                    _key = s.first;
-                    _applyDefaults(configs[_key]!);
-                    _emit();
-                  })
-                : null,
+          AdaptiveSingleChoice<String>(
+            choices: [
+              for (final key in configs.keys)
+                AdaptiveChoice(value: key, label: key),
+            ],
+            value: _key,
+            enabled: widget.enabled,
+            label: 'Timing mode',
+            onChanged: (selection) => setState(() {
+              _key = selection;
+              _applyDefaults(configs[_key]!);
+              _emit();
+            }),
           ),
           const SizedBox(height: 12),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/utils/package_info_provider.dart';
 import 'package:eigen_flutter/shared/widgets/made_by_credit.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
@@ -19,26 +20,45 @@ class AboutScreen extends ConsumerWidget {
     final appName = ref.watch(appConfigProvider).branding.appName;
     final rules = ref.watch(currentGameModuleProvider).buildRules(context);
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        _AppHeader(appName: appName),
-        const SizedBox(height: 16),
-        const _SectionHeader(title: 'How to Play'),
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Padding(padding: const EdgeInsets.all(16), child: rules),
-        ),
-        const SizedBox(height: 16),
-        const _SectionHeader(title: 'About'),
-        const Card(
-          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: _AppVersionTile(),
-        ),
-        const SizedBox(height: 32),
-        const MadeByCredit(),
-        const SizedBox(height: 16),
-      ],
+    return ConstrainedContentPane(
+      maxWidth: 720,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          _AppHeader(appName: appName),
+          const SizedBox(height: 16),
+          const _SectionHeader(title: 'How to Play'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: SelectionArea(
+              child: Padding(padding: const EdgeInsets.all(16), child: rules),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const _SectionHeader(title: 'About'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
+              children: [
+                const _AppVersionTile(),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.article_outlined),
+                  title: const Text('Open-source licenses'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: appName,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          const MadeByCredit(),
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
@@ -51,12 +71,15 @@ class _AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Text(
-        appName,
-        style: Theme.of(context).textTheme.headlineSmall,
-        textAlign: TextAlign.center,
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Text(
+          appName,
+          style: Theme.of(context).textTheme.headlineSmall,
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
@@ -91,13 +114,16 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

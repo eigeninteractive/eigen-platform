@@ -1,7 +1,6 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/link.dart';
 
 import '../../core/config/app_config.dart';
 
@@ -13,33 +12,16 @@ final _creditUrl = Uri.parse('https://eigeninteractive.com');
 
 /// The credit line at the foot of the settings and about screens.
 ///
-/// Only the brand name inside the line is tappable, marked by colour rather
-/// than an underline, because the sentence around it is prose and does not point
-/// anywhere. A custom [Branding.madeByCredit] that never mentions the engine
-/// renders as plain text, so an app that replaced the line does not silently
-/// link its own words to us.
-///
-/// Stateful only to own the recognizer: a [TapGestureRecognizer] holds
-/// resources and must be disposed, which a build method cannot do.
-class MadeByCredit extends ConsumerStatefulWidget {
+/// Only the brand name inside the line is linked. It is underlined as well as
+/// coloured so the affordance does not depend on colour perception, and the
+/// Material text button supplies keyboard focus and hover feedback. A custom
+/// [Branding.madeByCredit] that never mentions the engine renders as plain text,
+/// so an app that replaced the line does not silently link its own words to us.
+class MadeByCredit extends ConsumerWidget {
   const MadeByCredit({super.key});
 
   @override
-  ConsumerState<MadeByCredit> createState() => _MadeByCreditState();
-}
-
-class _MadeByCreditState extends ConsumerState<MadeByCredit> {
-  late final TapGestureRecognizer _tap = TapGestureRecognizer()
-    ..onTap = () => launchUrl(_creditUrl, mode: LaunchMode.externalApplication);
-
-  @override
-  void dispose() {
-    _tap.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final credit = ref.watch(appConfigProvider).branding.madeByCredit;
     final style = theme.textTheme.bodySmall?.copyWith(
@@ -56,20 +38,42 @@ class _MadeByCreditState extends ConsumerState<MadeByCredit> {
       padding: const EdgeInsets.all(16),
       child: at == -1
           ? Text(credit, style: style, textAlign: TextAlign.center)
-          : Text.rich(
-              TextSpan(
-                style: style,
-                children: [
-                  if (before.isNotEmpty) TextSpan(text: before),
-                  TextSpan(
-                    text: _creditBrand,
-                    style: TextStyle(color: theme.colorScheme.primary),
-                    recognizer: _tap,
+          : Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (before.isNotEmpty) Text(before, style: style),
+                Link(
+                  uri: _creditUrl,
+                  target: LinkTarget.blank,
+                  builder: (context, followLink) => Semantics(
+                    link: true,
+                    linkUrl: _creditUrl,
+                    label: _creditBrand,
+                    enabled: followLink != null,
+                    focusable: followLink != null,
+                    onTap: followLink,
+                    excludeSemantics: true,
+                    child: TextButton(
+                      onPressed: followLink,
+                      style: TextButton.styleFrom(
+                        foregroundColor: theme.colorScheme.primary,
+                        minimumSize: const Size(48, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      child: Text(
+                        _creditBrand,
+                        style: style?.copyWith(
+                          color: theme.colorScheme.primary,
+                          decoration: TextDecoration.underline,
+                          decorationColor: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
                   ),
-                  if (after.isNotEmpty) TextSpan(text: after),
-                ],
-              ),
-              textAlign: TextAlign.center,
+                ),
+                if (after.isNotEmpty) Text(after, style: style),
+              ],
             ),
     );
   }

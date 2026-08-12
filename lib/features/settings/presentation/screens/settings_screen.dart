@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:eigen_flutter/core/notifications/firebase_notification_service.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
@@ -13,8 +14,9 @@ import 'package:eigen_flutter/core/utils/package_info_provider.dart';
 import 'package:eigen_flutter/shared/widgets/made_by_credit.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
+import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 import 'package:eigen_flutter/shared/widgets/player_avatar.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:url_launcher/link.dart';
 
 /// Settings screen with navigation to profile and app settings.
 class SettingsScreen extends ConsumerWidget {
@@ -22,83 +24,77 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
     final appHost = ref.watch(appConfigProvider).engine.appHost;
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      children: [
-        // Profile Section
-        const _SectionHeader(title: 'Account'),
-        if (ref.watch(isAnonymousProvider)) const _UpgradeAccountCard(),
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: ListTile(
-            leading: const _ProfileAvatarLeading(),
-            title: const Text('Edit Profile'),
-            subtitle: const Text('Update your profile details'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.push('/settings/profile'),
+    return ConstrainedContentPane(
+      maxWidth: 720,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        children: [
+          // Profile Section
+          const _SectionHeader(title: 'Account'),
+          if (ref.watch(isAnonymousProvider)) const _UpgradeAccountCard(),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ListTile(
+              leading: const _ProfileAvatarLeading(),
+              title: const Text('Edit Profile'),
+              subtitle: const Text('Update your profile details'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/settings/profile'),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        // Preferences Section
-        const _SectionHeader(title: 'Preferences'),
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            children: [
-              _ThemeSelector(),
-              const Divider(height: 1),
-              const _NotificationsSection(),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // About Section
-        const _SectionHeader(title: 'About'),
-        Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(
-            children: [
-              const _AppVersionTile(),
-              if (appHost != null) ...[
+          // Preferences Section
+          const _SectionHeader(title: 'Preferences'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
+              children: [
+                _ThemeSelector(),
                 const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                    Icons.description_outlined,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  title: const Text('Terms of Service'),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _launchLegalUrl('/terms', appHost: appHost),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: Icon(
-                    Icons.privacy_tip_outlined,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  title: const Text('Privacy Policy'),
-                  trailing: const Icon(Icons.open_in_new, size: 18),
-                  onTap: () => _launchLegalUrl('/privacy', appHost: appHost),
-                ),
+                const _NotificationsSection(),
               ],
-            ],
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
+          const SizedBox(height: 16),
 
-        const _DeleteAccountTile(),
+          // About Section
+          const _SectionHeader(title: 'About'),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Column(
+              children: [
+                const _AppVersionTile(),
+                if (appHost != null) ...[
+                  const Divider(height: 1),
+                  _LegalListTile(
+                    uri: legalPageUrl('/terms', appHost: appHost)!,
+                    icon: Icons.description_outlined,
+                    label: 'Terms of Service',
+                  ),
+                  const Divider(height: 1),
+                  _LegalListTile(
+                    uri: legalPageUrl('/privacy', appHost: appHost)!,
+                    icon: Icons.privacy_tip_outlined,
+                    label: 'Privacy Policy',
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
 
-        const SizedBox(height: 32),
+          const _DeleteAccountTile(),
 
-        const MadeByCredit(),
+          const SizedBox(height: 32),
 
-        const SizedBox(height: 16),
-      ],
+          const MadeByCredit(),
+
+          const SizedBox(height: 16),
+        ],
+      ),
     );
   }
 }
@@ -405,33 +401,30 @@ class _ThemeSelector extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           themeAsync.when(
-            data: (currentTheme) => SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<ThemeMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode_outlined),
-                    label: Text('Light'),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.system,
-                    icon: Icon(Icons.phone_android_outlined),
-                    label: Text('System'),
-                  ),
-                  ButtonSegment(
-                    value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode_outlined),
-                    label: Text('Dark'),
-                  ),
-                ],
-                selected: {currentTheme},
-                onSelectionChanged: (selection) {
-                  ref
-                      .read(themeControllerProvider.notifier)
-                      .setTheme(selection.first);
-                },
-              ),
+            data: (currentTheme) => AdaptiveSingleChoice<ThemeMode>(
+              choices: const [
+                AdaptiveChoice(
+                  value: ThemeMode.light,
+                  icon: Icons.light_mode_outlined,
+                  label: 'Light',
+                ),
+                AdaptiveChoice(
+                  value: ThemeMode.system,
+                  icon: Icons.brightness_auto_outlined,
+                  label: 'System',
+                ),
+                AdaptiveChoice(
+                  value: ThemeMode.dark,
+                  icon: Icons.dark_mode_outlined,
+                  label: 'Dark',
+                ),
+              ],
+              value: currentTheme,
+              label: 'Theme',
+              minimumSegmentWidth: 104,
+              onChanged: (theme) {
+                ref.read(themeControllerProvider.notifier).setTheme(theme);
+              },
             ),
             loading: () => const Center(
               child: SizedBox(height: 48, child: CircularProgressIndicator()),
@@ -506,13 +499,10 @@ class _UpgradeAccountCard extends ConsumerWidget {
               child: FilledButton(
                 onPressed: isLoading ? null : () => _upgrade(context, ref),
                 child: isLoading
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colorScheme.onPrimary,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Text('Create account'),
               ),
@@ -527,7 +517,6 @@ class _UpgradeAccountCard extends ConsumerWidget {
     // Capture before the await, since on success this card is removed from the tree
     // (isAnonymous flips false), but the messenger ancestor survives.
     final messenger = ScaffoldMessenger.of(context);
-    final colorScheme = Theme.of(context).colorScheme;
     try {
       final outcome = await ref
           .read(authControllerProvider.notifier)
@@ -562,10 +551,7 @@ class _UpgradeAccountCard extends ConsumerWidget {
       }
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('Could not create account: ${humanize(e)}'),
-          backgroundColor: colorScheme.error,
-        ),
+        SnackBar(content: Text('Could not create account: ${humanize(e)}')),
       );
     }
   }
@@ -580,6 +566,7 @@ Future<bool> showExistingAccountSwitchDialog(BuildContext context) async {
   return await showDialog<bool>(
         context: context,
         builder: (dialogContext) => AlertDialog(
+          scrollable: true,
           title: const Text('Sign in to your existing account?'),
           content: const Text(
             'That Google account already exists. You can sign in to it, but '
@@ -642,6 +629,7 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Delete account?'),
       content: const Text(
         'This permanently deletes your account, all your games, and your '
@@ -659,13 +647,10 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
           ),
           onPressed: _deleting ? null : _deleteAccount,
           child: _deleting
-              ? SizedBox(
+              ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: colorScheme.onError,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Delete account'),
         ),
@@ -682,19 +667,40 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _deleting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete account: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to delete account: $e')));
     }
   }
 }
 
-Future<void> _launchLegalUrl(String path, {required String? appHost}) async {
-  final uri = legalPageUrl(path, appHost: appHost);
-  if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+class _LegalListTile extends StatelessWidget {
+  const _LegalListTile({
+    required this.uri,
+    required this.icon,
+    required this.label,
+  });
+
+  final Uri uri;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Link(
+      uri: uri,
+      target: LinkTarget.blank,
+      builder: (context, followLink) => ListTile(
+        leading: Icon(
+          icon,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        title: Text(label),
+        trailing: const Icon(Icons.open_in_new, size: 18),
+        onTap: followLink,
+      ),
+    );
+  }
 }
 
 /// Shows the current user's profile avatar, falling back to a generic icon.
@@ -731,13 +737,16 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        child: Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 
 /// Minimal app theme configuration using Material 3.
 ///
@@ -21,10 +22,10 @@ abstract final class AppTheme {
 
   static const SnackBarThemeData _snackBarTheme = SnackBarThemeData(
     behavior: SnackBarBehavior.floating,
+    width: 480,
   );
 
-  static final Map<(Color, String), ThemeData> _lightCache = {};
-  static final Map<(Color, String), ThemeData> _darkCache = {};
+  static final Map<(Color, String, Brightness, bool), ThemeData> _cache = {};
 
   /// The Material 3 text theme with [display] on the display and headline
   /// roles and Inter everywhere else.
@@ -53,16 +54,21 @@ abstract final class AppTheme {
     Color seedColor,
     String display,
     Brightness brightness,
+    bool highContrast,
   ) {
     final theme = ThemeData(
       colorScheme: ColorScheme.fromSeed(
         seedColor: seedColor,
         brightness: brightness,
+        contrastLevel: highContrast ? 1 : 0,
       ),
       // Inter is the default for everything, including the widgets that build
       // their own text styles rather than reading the text theme.
       fontFamily: inter,
       snackBarTheme: _snackBarTheme,
+      extensions: [
+        AppSemanticColors.forBrightness(brightness, highContrast: highContrast),
+      ],
     );
     return theme.copyWith(textTheme: textTheme(theme.textTheme, display));
   }
@@ -70,16 +76,42 @@ abstract final class AppTheme {
   /// Light theme for [seedColor], with [display] on the display and headline
   /// roles. Cached per pair.
   static ThemeData light(Color seedColor, {String display = spaceGrotesk}) =>
-      _lightCache.putIfAbsent((
+      _cache.putIfAbsent((
         seedColor,
         display,
-      ), () => _build(seedColor, display, Brightness.light));
+        Brightness.light,
+        false,
+      ), () => _build(seedColor, display, Brightness.light, false));
 
   /// Dark theme for [seedColor], with [display] on the display and headline
   /// roles. Cached per pair.
   static ThemeData dark(Color seedColor, {String display = spaceGrotesk}) =>
-      _darkCache.putIfAbsent((
+      _cache.putIfAbsent((
         seedColor,
         display,
-      ), () => _build(seedColor, display, Brightness.dark));
+        Brightness.dark,
+        false,
+      ), () => _build(seedColor, display, Brightness.dark, false));
+
+  /// High-contrast light theme for [seedColor].
+  static ThemeData highContrastLight(
+    Color seedColor, {
+    String display = spaceGrotesk,
+  }) => _cache.putIfAbsent((
+    seedColor,
+    display,
+    Brightness.light,
+    true,
+  ), () => _build(seedColor, display, Brightness.light, true));
+
+  /// High-contrast dark theme for [seedColor].
+  static ThemeData highContrastDark(
+    Color seedColor, {
+    String display = spaceGrotesk,
+  }) => _cache.putIfAbsent((
+    seedColor,
+    display,
+    Brightness.dark,
+    true,
+  ), () => _build(seedColor, display, Brightness.dark, true));
 }

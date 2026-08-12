@@ -27,7 +27,8 @@ Uri? gameReplayLink(String gameId, {required String? appHost}) =>
 /// host as the app's deep links. That is safe because the app's App Links
 /// intent-filter is scoped to the `/join` and `/game` prefixes (see the
 /// [deep-link guide](https://eigeninteractive.com/docs/ship-it/deep-links)), so
-/// legal paths are never intercepted and open in the browser. Opened with
-/// `LaunchMode.inAppBrowserView` as belt and braces.
+/// legal paths are never intercepted and open in the browser. UI callers use
+/// `Link` so browsers retain native link semantics and Android delegates the
+/// external destination to the platform.
 Uri? legalPageUrl(String path, {required String? appHost}) =>
     appHost != null ? Uri.https(appHost, path) : null;

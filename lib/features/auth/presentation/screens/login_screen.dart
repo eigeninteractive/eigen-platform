@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
+import 'package:eigen_flutter/core/utils/deep_links.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
+import 'package:eigen_flutter/features/auth/presentation/widgets/branded_google_button.dart';
+import 'package:url_launcher/link.dart';
 
 /// Login screen with Google Sign-In
 class LoginScreen extends ConsumerWidget {
@@ -11,9 +15,12 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appName = ref.watch(appConfigProvider).branding.appName;
+    final appHost = ref.watch(appConfigProvider).engine.appHost;
     return Scaffold(
       body: SafeArea(
-        child: Center(
+        child: ConstrainedContentPane(
+          maxWidth: 480,
+          alignment: Alignment.center,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -76,13 +83,38 @@ class LoginScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Terms and Privacy
-                Text(
-                  'By signing in, you agree to our Terms of Service and Privacy Policy',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
+                // Terms and privacy are real links when the app host exists.
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'By signing in, you agree to our ',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    _LegalLink(
+                      label: 'Terms of Service',
+                      uri: legalPageUrl('/terms', appHost: appHost),
+                    ),
+                    Text(
+                      ' and ',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    _LegalLink(
+                      label: 'Privacy Policy',
+                      uri: legalPageUrl('/privacy', appHost: appHost),
+                    ),
+                    Text(
+                      '.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -102,12 +134,9 @@ class GoogleSignInButton extends ConsumerWidget {
     ref.listen(authControllerProvider, (_, next) {
       next.whenOrNull(
         error: (error, _) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(humanize(error)),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(humanize(error))));
         },
       );
     });
@@ -116,16 +145,11 @@ class GoogleSignInButton extends ConsumerWidget {
       authControllerProvider.select((state) => state.isLoading),
     );
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: isLoading
-          ? const _SignInLoadingIndicator()
-          : FilledButton.icon(
-              onPressed: () =>
-                  ref.read(authControllerProvider.notifier).signInWithGoogle(),
-              icon: const Icon(Icons.login),
-              label: const Text('Sign in with Google'),
-            ),
+    return BrandedGoogleButton(
+      isLoading: isLoading,
+      onPressed: isLoading
+          ? null
+          : () => ref.read(authControllerProvider.notifier).signInWithGoogle(),
     );
   }
 }
@@ -150,22 +174,40 @@ class PlayAsGuestButton extends ConsumerWidget {
   }
 }
 
-/// Spinner placeholder sized to match [FilledButton]'s 40 dp default height,
-/// preventing layout shifts during the [AnimatedSwitcher] crossfade.
-class _SignInLoadingIndicator extends StatelessWidget {
-  const _SignInLoadingIndicator();
+class _LegalLink extends StatelessWidget {
+  const _LegalLink({required this.label, required this.uri});
+
+  final String label;
+  final Uri? uri;
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 40,
-      child: Center(
-        child: SizedBox.square(
-          dimension: 24,
-          child: CircularProgressIndicator(
-            strokeWidth: 2.5,
-            strokeCap: StrokeCap.round,
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: uri == null
+          ? Theme.of(context).colorScheme.onSurfaceVariant
+          : Theme.of(context).colorScheme.primary,
+      decoration: uri == null ? null : TextDecoration.underline,
+      decorationColor: Theme.of(context).colorScheme.primary,
+    );
+    if (uri == null) return Text(label, style: style);
+
+    return Link(
+      uri: uri,
+      target: LinkTarget.blank,
+      builder: (context, followLink) => Semantics(
+        link: true,
+        linkUrl: uri,
+        label: label,
+        enabled: followLink != null,
+        onTap: followLink,
+        excludeSemantics: true,
+        child: TextButton(
+          onPressed: followLink,
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
           ),
+          child: Text(label, style: style),
         ),
       ),
     );

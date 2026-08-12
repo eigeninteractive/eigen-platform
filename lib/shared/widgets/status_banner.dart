@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsRole;
+
 import 'package:flutter/material.dart';
 
 /// A full-width slim banner for surfacing system-level status (e.g. offline,
@@ -18,21 +20,27 @@ class StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: backgroundColor,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          leading,
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: foregroundColor),
-          ),
-        ],
+    return Semantics(
+      container: true,
+      role: SemanticsRole.status,
+      label: label,
+      excludeSemantics: true,
+      child: Container(
+        width: double.infinity,
+        color: backgroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: foregroundColor),
+            ),
+          ],
+        ),
       ),
     );
   }

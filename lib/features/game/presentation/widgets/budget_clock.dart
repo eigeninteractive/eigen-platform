@@ -4,6 +4,7 @@ import 'package:eigen_flutter/core/connectivity/connectivity_provider.dart';
 import 'package:eigen_flutter/core/game/timing_constants.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/timer_builders.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 
 /// Shows all players' remaining time banks side by side for budget
 /// (accumulated clock) games.
@@ -112,17 +113,15 @@ class _ClockCell extends StatelessWidget {
 
   bool get _isUrgent => remainingMs < 60000;
 
-  Color get _timeColor {
-    if (_isUrgent) return colorScheme.error;
-    if (isActive) return colorScheme.primary;
+  Color _timeColor(AppSemanticColors semanticColors) {
+    if (_isUrgent && isActive) return colorScheme.onErrorContainer;
+    if (isActive) return semanticColors.onInfoContainer;
     return colorScheme.onSurfaceVariant;
   }
 
-  Color get _bgColor {
-    if (_isUrgent && isActive) {
-      return colorScheme.errorContainer.withValues(alpha: 0.3);
-    }
-    if (isActive) return colorScheme.primaryContainer.withValues(alpha: 0.3);
+  Color _backgroundColor(AppSemanticColors semanticColors) {
+    if (_isUrgent && isActive) return colorScheme.errorContainer;
+    if (isActive) return semanticColors.infoContainer;
     return colorScheme.surfaceContainerHighest;
   }
 
@@ -136,18 +135,17 @@ class _ClockCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final semanticColors = AppSemanticColors.of(context);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: _bgColor,
+        color: _backgroundColor(semanticColors),
         borderRadius: BorderRadius.circular(8),
         border: isActive
             ? Border.all(
-                color: _isUrgent
-                    ? colorScheme.error.withValues(alpha: 0.5)
-                    : colorScheme.primary.withValues(alpha: 0.5),
+                color: _isUrgent ? colorScheme.error : semanticColors.info,
               )
             : null,
       ),
@@ -158,7 +156,9 @@ class _ClockCell extends StatelessWidget {
             isSubmitZone ? 'Submit!' : label,
             style: textTheme.labelSmall?.copyWith(
               color: isActive
-                  ? (_isUrgent ? colorScheme.error : colorScheme.primary)
+                  ? (_isUrgent
+                        ? colorScheme.onErrorContainer
+                        : semanticColors.onInfoContainer)
                   : colorScheme.onSurfaceVariant,
               fontWeight: isSubmitZone ? FontWeight.bold : null,
             ),
@@ -166,7 +166,9 @@ class _ClockCell extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             _formatted,
-            style: textTheme.titleMedium?.copyWith(color: _timeColor),
+            style: textTheme.titleMedium?.copyWith(
+              color: _timeColor(semanticColors),
+            ),
           ),
         ],
       ),

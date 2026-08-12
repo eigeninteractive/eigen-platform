@@ -8,35 +8,22 @@ import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/rating/presentation/widgets/player_ratings.dart';
 import 'package:eigen_flutter/features/social/presentation/widgets/friend_actions.dart';
 import 'package:eigen_api/eigen_api.dart';
+import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:eigen_flutter/shared/widgets/player_avatar.dart';
 import 'package:eigen_flutter/shared/widgets/player_tags.dart';
 
-/// Modal bottom sheet showing a player's public profile.
+/// Backwards-compatible modal presentation for [PlayerProfilePanel].
 ///
-/// Displays identity, ratings across all pools, and, for registered human
-/// players, friendship status with actions to add, accept, decline, or
-/// remove. Bots and anonymous guests show identity and ratings only: bots
-/// have no social features, and guests cannot be friended (server-enforced),
-/// so the sheet tags them and omits the section.
-///
-/// Use [PlayerProfileSheet.show] to present the sheet.
-class PlayerProfileSheet extends ConsumerWidget {
+/// Prefer [PlayerProfilePanel] when embedding the profile in an expanded web
+/// layout. Existing callers can continue to use [show] for a compact modal.
+class PlayerProfileSheet extends PlayerProfilePanel {
   const PlayerProfileSheet({
     super.key,
-    required this.playerId,
-    required this.type,
-    required this.scrollController,
+    required super.playerId,
+    required super.type,
+    required super.scrollController,
   });
-
-  /// The player's UUID (human or bot).
-  final String playerId;
-
-  /// Whether this player is a human or bot.
-  final SeatTypeEnum type;
-
-  /// Scroll controller from the enclosing [DraggableScrollableSheet].
-  final ScrollController scrollController;
 
   /// Shows the profile sheet for [playerId] as a modal bottom sheet.
   static void show(
@@ -48,87 +35,100 @@ class PlayerProfileSheet extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => DraggableScrollableSheet(
+      // Retain the framework Material so M3 supplies the surface, shape, ink,
+      // and its compact-versus-wide maximum width behavior.
+      showDragHandle: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.5,
         minChildSize: 0.35,
         maxChildSize: 0.9,
         expand: false,
-        builder: (_, scrollController) => PlayerProfileSheet(
+        builder: (_, scrollController) => PlayerProfilePanel(
           playerId: playerId,
           type: type,
           scrollController: scrollController,
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final AsyncValue<Player> playerAsync = ref.watch(
-      playerInfoCacheProvider(id: playerId),
-    );
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      child: ColoredBox(
-        color: colorScheme.surface,
-        child: CustomScrollView(
-          controller: scrollController,
-          slivers: [
-            const SliverToBoxAdapter(child: _DragHandle()),
-            SliverToBoxAdapter(
-              child: playerAsync.when(
-                data: (player) => _Header(player: player, type: type),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, _) => const _DeletedPlayerHeader(),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _SheetSection(
-                title: 'Ratings',
-                child: PlayerRatings.forPlayer(playerId),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: _RecentGamesSection(playerId: playerId, type: type),
-            ),
-            // Social section only for resolved, registered humans. While
-            // identity is still loading (or failed: deleted account) the
-            // section stays hidden rather than flashing an Add Friend button
-            // at a player who may turn out to be a guest.
-            if (type == SeatTypeEnum.human &&
-                playerAsync.value?.isAnonymous == false)
-              SliverToBoxAdapter(child: _SocialSection(playerId: playerId)),
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
-          ],
+          onBeforeReplay: () => Navigator.of(sheetContext).pop(),
         ),
       ),
     );
   }
 }
 
-class _DragHandle extends StatelessWidget {
-  const _DragHandle();
+/// Reusable content panel for a player's public profile.
+///
+/// Displays identity, ratings across all pools, and, for registered human
+/// players, friendship status with actions to add, accept, decline, or remove.
+/// Bots and anonymous guests show identity and ratings only. Embed this widget
+/// in a bounded detail pane for expanded layouts, or use
+/// [PlayerProfileSheet.show] for the compact modal presentation.
+class PlayerProfilePanel extends ConsumerWidget {
+  const PlayerProfilePanel({
+    super.key,
+    required this.playerId,
+    required this.type,
+    this.scrollController,
+    this.onBeforeReplay,
+  });
+
+  /// The player's UUID (human or bot).
+  final String playerId;
+
+  /// Whether this player is a human or bot.
+  final SeatTypeEnum type;
+
+  /// Optional controller for the panel's scroll view.
+  ///
+  /// The modal presentation passes its [DraggableScrollableSheet] controller;
+  /// inline callers may omit this or supply a controller owned by their pane.
+  final ScrollController? scrollController;
+
+  /// Presentation hook invoked immediately before opening a replay.
+  ///
+  /// The modal sheet uses this to dismiss itself. Embedded panels leave it null
+  /// so replay navigation does not accidentally pop their containing route.
+  final VoidCallback? onBeforeReplay;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Container(
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            borderRadius: BorderRadius.circular(2),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<Player> playerAsync = ref.watch(
+      playerInfoCacheProvider(id: playerId),
+    );
+
+    return CustomScrollView(
+      controller: scrollController,
+      slivers: [
+        SliverToBoxAdapter(
+          child: playerAsync.when(
+            data: (player) => _Header(player: player, type: type),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 48),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => const _DeletedPlayerHeader(),
           ),
         ),
-      ),
+        SliverToBoxAdapter(
+          child: _SheetSection(
+            title: 'Ratings',
+            child: PlayerRatings.forPlayer(playerId),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: _RecentGamesSection(
+            playerId: playerId,
+            type: type,
+            onBeforeReplay: onBeforeReplay,
+          ),
+        ),
+        // Social section only for resolved, registered humans. While
+        // identity is still loading (or failed: deleted account) the
+        // section stays hidden rather than flashing an Add Friend button
+        // at a player who may turn out to be a guest.
+        if (type == SeatTypeEnum.human &&
+            playerAsync.value?.isAnonymous == false)
+          SliverToBoxAdapter(child: _SocialSection(playerId: playerId)),
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+      ],
     );
   }
 }
@@ -259,10 +259,15 @@ class _SheetSection extends StatelessWidget {
 /// Hidden entirely when the player has no public finished games (or the fetch
 /// fails), so a player with nothing to show adds no empty chrome to the sheet.
 class _RecentGamesSection extends ConsumerWidget {
-  const _RecentGamesSection({required this.playerId, required this.type});
+  const _RecentGamesSection({
+    required this.playerId,
+    required this.type,
+    required this.onBeforeReplay,
+  });
 
   final String playerId;
   final SeatTypeEnum type;
+  final VoidCallback? onBeforeReplay;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -281,7 +286,11 @@ class _RecentGamesSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final game in games)
-            _RecentGameRow(game: game, result: _resultFor(game, playerId)),
+            _RecentGameRow(
+              game: game,
+              result: _resultFor(game, playerId),
+              onBeforeReplay: onBeforeReplay,
+            ),
         ],
       ),
     );
@@ -305,10 +314,15 @@ OutcomeResultEnum? _resultFor(GameSummary game, String playerId) {
 }
 
 class _RecentGameRow extends StatelessWidget {
-  const _RecentGameRow({required this.game, required this.result});
+  const _RecentGameRow({
+    required this.game,
+    required this.result,
+    required this.onBeforeReplay,
+  });
 
   final GameSummary game;
   final OutcomeResultEnum? result;
+  final VoidCallback? onBeforeReplay;
 
   @override
   Widget build(BuildContext context) {
@@ -322,7 +336,13 @@ class _RecentGameRow extends StatelessWidget {
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(result.icon, color: result.color(colorScheme)),
+      leading: Icon(
+        result.icon,
+        color: result.color(
+          colorScheme,
+          semanticColors: AppSemanticColors.of(context),
+        ),
+      ),
       title: Text(
         'Game #${game.id.substring(0, 8)}',
         style: textTheme.bodyLarge,
@@ -333,10 +353,11 @@ class _RecentGameRow extends StatelessWidget {
       ),
       trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
       onTap: () {
-        // Capture the router before closing the sheet; the row's context is
-        // torn down by the pop.
+        // Capture the router before a modal presentation dismisses itself; its
+        // row context is torn down by the pop. Embedded panels have no dismiss
+        // hook and preserve their containing navigation stack.
         final router = GoRouter.of(context);
-        Navigator.of(context).pop();
+        onBeforeReplay?.call();
         router.pushNamed('replay', pathParameters: {'gameId': game.id});
       },
     );

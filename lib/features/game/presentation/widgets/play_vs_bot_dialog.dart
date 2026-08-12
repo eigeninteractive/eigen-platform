@@ -7,6 +7,7 @@ import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/timing_selector.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
+import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 
 /// Solo-game picker (the "New Solo Game" FAB): choose an opponent for each bot
 /// seat and start a solo game (you + bots) immediately, with no waiting room.
@@ -159,64 +160,67 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
 
     return AlertDialog(
       title: const Text('New Solo Game'),
-      content: switch (botsAsync) {
-        AsyncError(:final error) => Text(humanize(error)),
-        AsyncData() => SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_creationConfigWidget != null) ...[
-                _creationConfigWidget!,
-                const SizedBox(height: 16),
-              ],
-              if (_minPlayers < _maxPlayers) ...[
-                _PlayersSelector(
-                  min: _minPlayers,
-                  max: _maxPlayers,
-                  value: _totalPlayers,
+      content: SizedBox(
+        width: 480,
+        child: switch (botsAsync) {
+          AsyncError(:final error) => Text(humanize(error)),
+          AsyncData() => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_creationConfigWidget != null) ...[
+                  _creationConfigWidget!,
+                  const SizedBox(height: 16),
+                ],
+                if (_minPlayers < _maxPlayers) ...[
+                  _PlayersSelector(
+                    min: _minPlayers,
+                    max: _maxPlayers,
+                    value: _totalPlayers,
+                    enabled: !_creating,
+                    onChanged: (n) => setState(() => _totalPlayers = n),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TimingSelector(
+                  configs: module.creationSpec.timingConfigs,
                   enabled: !_creating,
-                  onChanged: (n) => setState(() => _totalPlayers = n),
+                  initialKey: _initialTimingKey,
+                  onChanged: (timing) => setState(() => _timing = timing),
                 ),
                 const SizedBox(height: 16),
+                // Opponent selectors, filtered locally by module.botSeatable, so
+                // they update instantly as the config changes (no refetch).
+                if (usable.isEmpty)
+                  const Text('No AI opponents are available for this game yet.')
+                else
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < opponents; i++)
+                        _OpponentRow(
+                          label: opponents == 1
+                              ? 'Opponent'
+                              : 'Opponent ${i + 1}',
+                          value: _seatBot(i, usable),
+                          bots: usable,
+                          enabled: !_creating,
+                          onChanged: (id) =>
+                              setState(() => _seatOverrides[i] = id),
+                        ),
+                    ],
+                  ),
               ],
-              TimingSelector(
-                configs: module.creationSpec.timingConfigs,
-                enabled: !_creating,
-                initialKey: _initialTimingKey,
-                onChanged: (timing) => setState(() => _timing = timing),
-              ),
-              const SizedBox(height: 16),
-              // Opponent selectors, filtered locally by module.botSeatable, so
-              // they update instantly as the config changes (no refetch).
-              if (usable.isEmpty)
-                const Text('No AI opponents are available for this game yet.')
-              else
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    for (var i = 0; i < opponents; i++)
-                      _OpponentRow(
-                        label: opponents == 1
-                            ? 'Opponent'
-                            : 'Opponent ${i + 1}',
-                        value: _seatBot(i, usable),
-                        bots: usable,
-                        enabled: !_creating,
-                        onChanged: (id) =>
-                            setState(() => _seatOverrides[i] = id),
-                      ),
-                  ],
-                ),
-            ],
+            ),
           ),
-        ),
-        _ => const SizedBox(
-          height: 80,
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      },
+          _ => const SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        },
+      ),
       actions: [
         TextButton(
           onPressed: _creating ? null : () => Navigator.pop(context),
@@ -301,15 +305,16 @@ class _PlayersSelector extends StatelessWidget {
       children: [
         Text('Players', style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 8),
-        SegmentedButton<int>(
-          segments: [
+        AdaptiveSingleChoice<int>(
+          choices: [
             for (var n = min; n <= max; n++)
-              ButtonSegment(value: n, label: Text('$n')),
+              AdaptiveChoice(value: n, label: '$n'),
           ],
-          selected: {value},
-          onSelectionChanged: enabled
-              ? (selection) => onChanged(selection.first)
-              : null,
+          value: value,
+          enabled: enabled,
+          label: 'Players',
+          minimumSegmentWidth: 64,
+          onChanged: onChanged,
         ),
       ],
     );
@@ -336,23 +341,19 @@ class _OpponentRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          const SizedBox(width: 12),
-          DropdownButton<String>(
-            value: value,
-            items: [
-              for (final b in bots)
-                DropdownMenuItem(value: b.id, child: Text(b.displayName)),
-            ],
-            onChanged: enabled
-                ? (id) {
-                    if (id != null) onChanged(id);
-                  }
-                : null,
-          ),
+      child: DropdownMenu<String>(
+        key: ValueKey((label, value)),
+        initialSelection: value,
+        enabled: enabled,
+        expandedInsets: EdgeInsets.zero,
+        label: Text(label),
+        dropdownMenuEntries: [
+          for (final bot in bots)
+            DropdownMenuEntry(value: bot.id, label: bot.displayName),
         ],
+        onSelected: (id) {
+          if (id != null) onChanged(id);
+        },
       ),
     );
   }

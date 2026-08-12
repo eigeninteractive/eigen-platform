@@ -100,6 +100,9 @@ flutter:
 
   assets:
     - assets/vendor/cropperjs/
+    - assets/google/
+    - fonts/OFL-Inter.txt
+    - fonts/OFL-SpaceGrotesk.txt
 
   # Both faces are bundled as package fonts, so a consuming app gets them
   # automatically and they render offline from the first frame with no runtime

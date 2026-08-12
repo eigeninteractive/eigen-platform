@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
+import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/features/social/presentation/widgets/friend_actions.dart';
 import 'package:eigen_flutter/features/social/presentation/widgets/friend_buttons.dart';
 import 'package:eigen_flutter/features/social/presentation/widgets/player_profile_sheet.dart';
@@ -20,21 +22,83 @@ class SocialScreen extends ConsumerStatefulWidget {
 
 class _SocialScreenState extends ConsumerState<SocialScreen>
     with SingleTickerProviderStateMixin {
+  static const _tabNames = ['friends', 'requests', 'add'];
+
   late TabController _tabController;
+  String? _selectedPlayerId;
+  bool _syncingFromRoute = false;
+  int? _directTabSelection;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_handleControllerChange);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final routeIndex = _routeTabIndex();
+    if (_tabController.index == routeIndex) return;
+
+    _syncingFromRoute = true;
+    _directTabSelection = null;
+    _tabController.index = routeIndex;
+    _syncingFromRoute = false;
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController
+      ..removeListener(_handleControllerChange)
+      ..dispose();
     super.dispose();
   }
 
-  void _goToAddFriend() => _tabController.animateTo(2);
+  int _routeTabIndex() {
+    final tab = GoRouterState.of(context).uri.queryParameters['tab'];
+    final index = _tabNames.indexOf(tab ?? '');
+    return index < 0 ? 0 : index;
+  }
+
+  String _locationForTab(int index) {
+    final uri = GoRouterState.of(context).uri;
+    final query = Map<String, String>.of(uri.queryParameters);
+    if (index == 0) {
+      query.remove('tab');
+    } else {
+      query['tab'] = _tabNames[index];
+    }
+    return uri.replace(queryParameters: query).toString();
+  }
+
+  void _selectTabFromUser(int index, {bool animate = false}) {
+    if (index == _routeTabIndex()) {
+      _directTabSelection = null;
+      return;
+    }
+    _directTabSelection = index;
+    if (animate && _tabController.index != index) {
+      _tabController.animateTo(index);
+    }
+    context.go(_locationForTab(index));
+  }
+
+  void _handleControllerChange() {
+    if (!mounted || _syncingFromRoute || _tabController.indexIsChanging) {
+      return;
+    }
+    final index = _tabController.index;
+    if (_directTabSelection == index) {
+      _directTabSelection = null;
+      return;
+    }
+    if (index == _routeTabIndex()) return;
+    Router.neglect(context, () => context.go(_locationForTab(index)));
+  }
+
+  void _goToAddFriend() => _selectTabFromUser(2, animate: true);
 
   @override
   Widget build(BuildContext context) {
@@ -43,38 +107,108 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       _ => 0,
     };
 
-    return Column(
-      children: [
-        TabBar(
-          controller: _tabController,
-          tabs: [
-            const Tab(text: 'Friends'),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+    return AdaptiveLayoutBuilder(
+      builder: (context, constraints, windowClass) {
+        final expanded = windowClass.isAtLeastExpanded;
+        const expandedMasterPaneWidth = 440.0;
+        final tabBarWidth = expanded
+            ? expandedMasterPaneWidth
+            : constraints.maxWidth;
+        final scrollableTabs = tabBarWidth < 520;
+        final tabs = Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TabBar(
+                    controller: _tabController,
+                    onTap: _selectTabFromUser,
+                    isScrollable: scrollableTabs,
+                    tabAlignment: scrollableTabs
+                        ? TabAlignment.start
+                        : TabAlignment.fill,
+                    tabs: [
+                      const Tab(text: 'Friends'),
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Requests'),
+                            if (requestCount > 0) ...[
+                              const SizedBox(width: 6),
+                              Badge.count(count: requestCount, smallSize: 14),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Tab(text: 'Add Friend'),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    ref
+                      ..invalidate(friendsProvider)
+                      ..invalidate(friendRequestsProvider);
+                  },
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Refresh social lists',
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
                 children: [
-                  const Text('Requests'),
-                  if (requestCount > 0) ...[
-                    const SizedBox(width: 6),
-                    Badge.count(count: requestCount, smallSize: 14),
-                  ],
+                  _FriendsList(
+                    onFindPlayers: _goToAddFriend,
+                    selectedPlayerId: expanded ? _selectedPlayerId : null,
+                    onPlayerSelected: expanded
+                        ? (id) => setState(() => _selectedPlayerId = id)
+                        : null,
+                  ),
+                  _PendingRequests(
+                    selectedPlayerId: expanded ? _selectedPlayerId : null,
+                    onPlayerSelected: expanded
+                        ? (id) => setState(() => _selectedPlayerId = id)
+                        : null,
+                  ),
+                  _AddFriend(
+                    selectedPlayerId: expanded ? _selectedPlayerId : null,
+                    onPlayerSelected: expanded
+                        ? (id) => setState(() => _selectedPlayerId = id)
+                        : null,
+                  ),
                 ],
               ),
             ),
-            const Tab(text: 'Add Friend'),
           ],
-        ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _FriendsList(onFindPlayers: _goToAddFriend),
-              const _PendingRequests(),
-              const _AddFriend(),
-            ],
-          ),
-        ),
-      ],
+        );
+
+        if (!expanded) {
+          return ConstrainedContentPane(maxWidth: 720, child: tabs);
+        }
+        return Row(
+          children: [
+            SizedBox(width: expandedMasterPaneWidth, child: tabs),
+            const VerticalDivider(width: 1),
+            Expanded(
+              child: _selectedPlayerId == null
+                  ? const EmptyStateView(
+                      icon: Icons.person_search_outlined,
+                      title: 'Select a player',
+                      message:
+                          'Choose someone to view their profile and ratings.',
+                    )
+                  : PlayerProfilePanel(
+                      playerId: _selectedPlayerId!,
+                      type: SeatTypeEnum.human,
+                    ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -82,9 +216,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 // ── Friends list ──────────────────────────────────────────────────────────────
 
 class _FriendsList extends ConsumerStatefulWidget {
-  const _FriendsList({required this.onFindPlayers});
+  const _FriendsList({
+    required this.onFindPlayers,
+    required this.selectedPlayerId,
+    required this.onPlayerSelected,
+  });
 
   final VoidCallback onFindPlayers;
+  final String? selectedPlayerId;
+  final ValueChanged<String>? onPlayerSelected;
 
   @override
   ConsumerState<_FriendsList> createState() => _FriendsListState();
@@ -132,6 +272,9 @@ class _FriendsListState extends ConsumerState<_FriendsList>
                     username: friendships[index].username,
                     avatarUrl: friendships[index].avatarUrl,
                     variant: _FriendListVariant.friends,
+                    selected:
+                        widget.selectedPlayerId == friendships[index].userId,
+                    onPlayerSelected: widget.onPlayerSelected,
                   ),
                 ),
               ),
@@ -161,6 +304,8 @@ class _FriendListTile extends StatelessWidget {
     required this.username,
     required this.avatarUrl,
     required this.variant,
+    required this.selected,
+    required this.onPlayerSelected,
   });
 
   final String userId;
@@ -168,15 +313,20 @@ class _FriendListTile extends StatelessWidget {
   final String username;
   final String? avatarUrl;
   final _FriendListVariant variant;
+  final bool selected;
+  final ValueChanged<String>? onPlayerSelected;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: () => PlayerProfileSheet.show(
-        context,
-        playerId: userId,
-        type: SeatTypeEnum.human,
-      ),
+      selected: selected,
+      onTap: onPlayerSelected == null
+          ? () => PlayerProfileSheet.show(
+              context,
+              playerId: userId,
+              type: SeatTypeEnum.human,
+            )
+          : () => onPlayerSelected!(userId),
       leading: PlayerAvatar(avatarUrl: avatarUrl, radius: 20),
       title: Text(displayName),
       subtitle: Text(
@@ -204,7 +354,13 @@ class _FriendListTile extends StatelessWidget {
 // ── Pending requests ──────────────────────────────────────────────────────────
 
 class _PendingRequests extends ConsumerStatefulWidget {
-  const _PendingRequests();
+  const _PendingRequests({
+    required this.selectedPlayerId,
+    required this.onPlayerSelected,
+  });
+
+  final String? selectedPlayerId;
+  final ValueChanged<String>? onPlayerSelected;
 
   @override
   ConsumerState<_PendingRequests> createState() => _PendingRequestsState();
@@ -223,7 +379,7 @@ class _PendingRequestsState extends ConsumerState<_PendingRequests>
     return requestsAsync.when(
       skipLoadingOnReload: true,
       data: (requests) => RefreshIndicator(
-        onRefresh: () async => ref.invalidate(friendsProvider),
+        onRefresh: () async => ref.invalidate(friendRequestsProvider),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -248,6 +404,8 @@ class _PendingRequestsState extends ConsumerState<_PendingRequests>
                     username: requests[index].username,
                     avatarUrl: requests[index].avatarUrl,
                     variant: _FriendListVariant.requests,
+                    selected: widget.selectedPlayerId == requests[index].userId,
+                    onPlayerSelected: widget.onPlayerSelected,
                   ),
                 ),
               ),
@@ -263,7 +421,13 @@ class _PendingRequestsState extends ConsumerState<_PendingRequests>
 // ── Add friend ────────────────────────────────────────────────────────────────
 
 class _AddFriend extends ConsumerStatefulWidget {
-  const _AddFriend();
+  const _AddFriend({
+    required this.selectedPlayerId,
+    required this.onPlayerSelected,
+  });
+
+  final String? selectedPlayerId;
+  final ValueChanged<String>? onPlayerSelected;
 
   @override
   ConsumerState<_AddFriend> createState() => _AddFriendState();
@@ -324,6 +488,7 @@ class _AddFriendState extends ConsumerState<_AddFriend>
               IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: _isLoading ? null : _search,
+                tooltip: 'Search players',
               ),
             ],
             onSubmitted: (_) => _search(),
@@ -339,11 +504,14 @@ class _AddFriendState extends ConsumerState<_AddFriend>
                 final user = _results[index];
                 return ListTile(
                   key: ValueKey(user.id),
-                  onTap: () => PlayerProfileSheet.show(
-                    context,
-                    playerId: user.id,
-                    type: SeatTypeEnum.human,
-                  ),
+                  selected: widget.selectedPlayerId == user.id,
+                  onTap: widget.onPlayerSelected == null
+                      ? () => PlayerProfileSheet.show(
+                          context,
+                          playerId: user.id,
+                          type: SeatTypeEnum.human,
+                        )
+                      : () => widget.onPlayerSelected!(user.id),
                   leading: PlayerAvatar(avatarUrl: user.avatarUrl, radius: 20),
                   title: Text(user.displayName),
                   subtitle: Text('@${user.username}'),

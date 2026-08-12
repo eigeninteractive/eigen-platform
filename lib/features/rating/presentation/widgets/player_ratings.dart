@@ -82,7 +82,9 @@ class _RatingCards extends StatelessWidget {
       builder: (context, constraints) {
         final cardWidth = ratings.length == 1
             ? constraints.maxWidth
-            : (constraints.maxWidth - 12) / 2;
+            : constraints.maxWidth >= 520
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
         return Wrap(
           spacing: 12,
           runSpacing: 12,

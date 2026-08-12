@@ -85,10 +85,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   void _showEditSheet(BuildContext context, Profile profile) {
+    if (MediaQuery.sizeOf(context).width >= 840) {
+      showDialog<void>(
+        context: context,
+        builder: (_) => Dialog(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: _EditProfileSheet(profile: profile),
+          ),
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (_) => _EditProfileSheet(profile: profile),
     );
   }
@@ -114,21 +128,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await ref.read(currentUserProfileProvider.notifier).uploadAvatar(bytes);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Profile photo updated!'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profile photo updated!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update photo: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update photo: $e')));
       }
     }
   }
@@ -159,6 +167,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<ImageSource?> _showImageSourceSheet() {
     return showModalBottomSheet<ImageSource>(
       context: context,
+      showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -219,16 +228,22 @@ class _HeroBanner extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              GestureDetector(
-                onTap: onAvatarTap,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    _AvatarDisplay(avatarUrl: avatarUrl, radius: 60),
-                    if (onAvatarTap != null)
-                      Positioned(
-                        bottom: 2,
-                        right: 2,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  _AvatarDisplay(
+                    avatarUrl: avatarUrl,
+                    radius: 60,
+                    onTap: onAvatarTap,
+                    semanticLabel: onAvatarTap == null
+                        ? null
+                        : 'Change profile photo',
+                  ),
+                  if (onAvatarTap != null)
+                    Positioned(
+                      bottom: 2,
+                      right: 2,
+                      child: IgnorePointer(
                         child: CircleAvatar(
                           radius: 12,
                           backgroundColor: colorScheme.primary,
@@ -239,8 +254,8 @@ class _HeroBanner extends StatelessWidget {
                           ),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
               if (username != null) ...[
                 const SizedBox(height: 8),
@@ -262,10 +277,17 @@ class _HeroBanner extends StatelessWidget {
 // ── Avatar display ────────────────────────────────────────────────────────────
 
 class _AvatarDisplay extends StatelessWidget {
-  const _AvatarDisplay({required this.avatarUrl, required this.radius});
+  const _AvatarDisplay({
+    required this.avatarUrl,
+    required this.radius,
+    this.onTap,
+    this.semanticLabel,
+  });
 
   final String? avatarUrl;
   final double radius;
+  final VoidCallback? onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -273,7 +295,12 @@ class _AvatarDisplay extends StatelessWidget {
     // Worker's relative `/avatars/{uid}` path before CachedNetworkImage sees
     // it. The old profile-only widget skipped that step and worked only when a
     // bucket publicBaseUrl happened to make avatarUrl absolute.
-    return PlayerAvatar(avatarUrl: avatarUrl, radius: radius);
+    return PlayerAvatar(
+      avatarUrl: avatarUrl,
+      radius: radius,
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+    );
   }
 }
 
@@ -338,21 +365,26 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _DragHandle(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 4, 24, 28),
-              child: Text('Edit Profile', style: textTheme.titleLarge),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          24,
+          24,
+          24 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 28),
+                child: Text('Edit Profile', style: textTheme.titleLarge),
+              ),
+              Column(
                 children: [
                   TextFormField(
                     key: ValueKey('username_${widget.profile.id}'),
@@ -399,11 +431,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 28),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: Row(
+              const SizedBox(height: 28),
+              Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
@@ -426,8 +455,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -449,12 +478,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_errorMessage(e)),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_errorMessage(e))));
     }
   }
 
@@ -462,31 +488,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     final s = error.toString();
     if (s.contains('Username already taken')) return 'Username already taken';
     if (s.contains('Username must be')) {
-      return 'Username must be 3-20 characters, alphanumeric, underscores, or dots only';
+      return 'Username must be 3-20 characters: letters, numbers, _ or .';
     }
     return 'Failed to save: $s';
-  }
-}
-
-// ── Shared ────────────────────────────────────────────────────────────────────
-
-class _DragHandle extends StatelessWidget {
-  const _DragHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Container(
-          width: 32,
-          height: 4,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.outlineVariant,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-      ),
-    );
   }
 }
