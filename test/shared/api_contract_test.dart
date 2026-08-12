@@ -45,6 +45,8 @@ void main() {
         'unsupportedImageType',
         // Per-user write rate limiting (429).
         'rateLimited',
+        // A pagination cursor that did not decode (400).
+        'invalidCursor',
       });
     });
 

@@ -129,7 +129,7 @@ bool soloPlayAvailable(Ref ref) {
 /// the deadline, so nothing has to be derived from a second read.
 @riverpod
 Future<List<GameSummary>> activeGames(Ref ref) async {
-  final games = await ref.watch(gameRepositoryProvider).getMyGames();
+  final games = (await ref.watch(gameRepositoryProvider).getMyGames()).games;
   final myUserId = ref.watch(currentUserIdProvider);
 
   bool isMyTurn(GameSummary game) {
@@ -347,6 +347,7 @@ List<Outcome> gameOutcomes(Ref ref, {required String gameId}) {
 Future<List<GameSummary>> playerPublicFinishedGames(
   Ref ref, {
   required String playerId,
-}) {
-  return ref.watch(gameRepositoryProvider).getPlayerGames(playerId);
+}) async {
+  final page = await ref.watch(gameRepositoryProvider).getPlayerGames(playerId);
+  return page.games;
 }

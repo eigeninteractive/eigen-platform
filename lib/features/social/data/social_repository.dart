@@ -1,5 +1,6 @@
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/api/engine_call.dart';
+import 'package:eigen_flutter/core/api/games_page.dart';
 
 /// The friend graph: friends, pending requests, blocks, and user search.
 ///
@@ -29,13 +30,13 @@ class SocialRepository {
 
   /// Joinable games created by the caller's friends.
   ///
-  /// [cursor] is the previous page's last `created_at`; omit for the first
+  /// [cursor] is the previous page's [GamesPage.nextCursor]; omit for the first
   /// page.
-  Future<List<GameSummary>> getFriendsGames({int? limit, int? cursor}) async {
+  Future<GamesPage> getFriendsGames({int? limit, String? cursor}) async {
     final body = await engineData(
       () => _api.getFriendsGames(limit: limit, cursor: cursor),
     );
-    return body.games;
+    return (games: body.games.toList(), nextCursor: body.nextCursor);
   }
 
   /// Case-insensitive search over usernames and display names.
