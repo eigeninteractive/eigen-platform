@@ -13,45 +13,32 @@ import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:eigen_flutter/shared/widgets/player_avatar.dart';
 import 'package:eigen_flutter/shared/widgets/player_tags.dart';
 
-/// Backwards-compatible modal presentation for [PlayerProfilePanel].
-///
-/// Prefer [PlayerProfilePanel] when embedding the profile in an expanded web
-/// layout. Existing callers can continue to use [show] for a compact modal.
-class PlayerProfileSheet extends PlayerProfilePanel {
-  const PlayerProfileSheet({
-    super.key,
-    required super.playerId,
-    required super.type,
-    required super.scrollController,
-  });
-
-  /// Shows the profile sheet for [playerId] as a modal bottom sheet.
-  static void show(
-    BuildContext context, {
-    required String playerId,
-    required SeatTypeEnum type,
-  }) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      // Retain the framework Material so M3 supplies the surface, shape, ink,
-      // and its compact-versus-wide maximum width behavior.
-      showDragHandle: true,
-      builder: (sheetContext) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
-        minChildSize: 0.35,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (_, scrollController) => PlayerProfilePanel(
-          playerId: playerId,
-          type: type,
-          scrollController: scrollController,
-          onBeforeReplay: () => Navigator.of(sheetContext).pop(),
-        ),
+/// Shows a player's profile in the compact modal presentation.
+void showPlayerProfileSheet(
+  BuildContext context, {
+  required String playerId,
+  required SeatTypeEnum type,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    // Retain the framework Material so M3 supplies the surface, shape, ink,
+    // and its compact-versus-wide maximum width behavior.
+    showDragHandle: true,
+    builder: (sheetContext) => DraggableScrollableSheet(
+      initialChildSize: 0.5,
+      minChildSize: 0.35,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (_, scrollController) => PlayerProfilePanel(
+        playerId: playerId,
+        type: type,
+        scrollController: scrollController,
+        onBeforeReplay: () => Navigator.of(sheetContext).pop(),
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// Reusable content panel for a player's public profile.
@@ -60,7 +47,7 @@ class PlayerProfileSheet extends PlayerProfilePanel {
 /// players, friendship status with actions to add, accept, decline, or remove.
 /// Bots and anonymous guests show identity and ratings only. Embed this widget
 /// in a bounded detail pane for expanded layouts, or use
-/// [PlayerProfileSheet.show] for the compact modal presentation.
+/// [showPlayerProfileSheet] for the compact modal presentation.
 class PlayerProfilePanel extends ConsumerWidget {
   const PlayerProfilePanel({
     super.key,

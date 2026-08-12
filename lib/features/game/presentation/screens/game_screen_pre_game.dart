@@ -299,7 +299,7 @@ class _AddBotDialogState extends ConsumerState<_AddBotDialog> {
         : bots
               .where(
                 (b) =>
-                    widget.schemaVersion <= b.schemaVersion &&
+                    b.supportsGameSchema(widget.schemaVersion) &&
                     (!widget.rated || b.ratedEligible) &&
                     rules.botSeatable(
                       BotSeatableArgs(
@@ -384,7 +384,7 @@ class _ParticipantList extends StatelessWidget {
                 // resolves to no player; never open the profile sheet on it.
                 onTap: gp.isDeleted
                     ? null
-                    : () => PlayerProfileSheet.show(
+                    : () => showPlayerProfileSheet(
                         context,
                         playerId: gp.info.id,
                         type: gp.type,

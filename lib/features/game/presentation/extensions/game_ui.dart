@@ -7,32 +7,27 @@ extension GameStatusUI on GameStatus {
   /// Returns the semantic foreground associated with this status.
   ///
   /// Pass the extension from the active theme so high-contrast mode is
-  /// preserved. The brightness-derived fallback keeps existing callers
-  /// brand-independent while they migrate.
-  Color color(ColorScheme colorScheme, {AppSemanticColors? semanticColors}) =>
-      switch (this) {
-        GameStatus.waiting => _semantic(colorScheme, semanticColors).warning,
-        GameStatus.ready => _semantic(colorScheme, semanticColors).info,
-        GameStatus.active => _semantic(colorScheme, semanticColors).success,
-        GameStatus.finished => colorScheme.onSurfaceVariant,
-        GameStatus.aborted => colorScheme.error,
-        GameStatus.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
-      };
+  /// preserved.
+  Color color(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    GameStatus.waiting => semanticColors.warning,
+    GameStatus.ready => semanticColors.info,
+    GameStatus.active => semanticColors.success,
+    GameStatus.finished => colorScheme.onSurfaceVariant,
+    GameStatus.aborted => colorScheme.error,
+    GameStatus.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
+  };
 
   /// Returns the semantic container associated with this status.
   Color containerColor(
     ColorScheme colorScheme, {
-    AppSemanticColors? semanticColors,
+    required AppSemanticColors semanticColors,
   }) => switch (this) {
-    GameStatus.waiting => _semantic(
-      colorScheme,
-      semanticColors,
-    ).warningContainer,
-    GameStatus.ready => _semantic(colorScheme, semanticColors).infoContainer,
-    GameStatus.active => _semantic(
-      colorScheme,
-      semanticColors,
-    ).successContainer,
+    GameStatus.waiting => semanticColors.warningContainer,
+    GameStatus.ready => semanticColors.infoContainer,
+    GameStatus.active => semanticColors.successContainer,
     GameStatus.finished ||
     GameStatus.unknownDefaultOpenApi => colorScheme.surfaceContainerHighest,
     GameStatus.aborted => colorScheme.errorContainer,
@@ -41,17 +36,11 @@ extension GameStatusUI on GameStatus {
   /// Returns the paired foreground for [containerColor].
   Color onContainerColor(
     ColorScheme colorScheme, {
-    AppSemanticColors? semanticColors,
+    required AppSemanticColors semanticColors,
   }) => switch (this) {
-    GameStatus.waiting => _semantic(
-      colorScheme,
-      semanticColors,
-    ).onWarningContainer,
-    GameStatus.ready => _semantic(colorScheme, semanticColors).onInfoContainer,
-    GameStatus.active => _semantic(
-      colorScheme,
-      semanticColors,
-    ).onSuccessContainer,
+    GameStatus.waiting => semanticColors.onWarningContainer,
+    GameStatus.ready => semanticColors.onInfoContainer,
+    GameStatus.active => semanticColors.onSuccessContainer,
     GameStatus.finished ||
     GameStatus.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
     GameStatus.aborted => colorScheme.onErrorContainer,
@@ -84,31 +73,27 @@ extension OutcomeResultUI on OutcomeResultEnum? {
   };
 
   /// Returns the semantic foreground associated with this result.
-  Color color(ColorScheme colorScheme, {AppSemanticColors? semanticColors}) =>
-      switch (this) {
-        OutcomeResultEnum.win => _semantic(colorScheme, semanticColors).success,
-        OutcomeResultEnum.loss => colorScheme.error,
-        OutcomeResultEnum.draw => _semantic(colorScheme, semanticColors).info,
-        OutcomeResultEnum.eliminated => colorScheme.error,
-        OutcomeResultEnum.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
-        null => colorScheme.onSurfaceVariant,
-      };
+  Color color(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) => switch (this) {
+    OutcomeResultEnum.win => semanticColors.success,
+    OutcomeResultEnum.loss => colorScheme.error,
+    OutcomeResultEnum.draw => semanticColors.info,
+    OutcomeResultEnum.eliminated => colorScheme.error,
+    OutcomeResultEnum.unknownDefaultOpenApi => colorScheme.onSurfaceVariant,
+    null => colorScheme.onSurfaceVariant,
+  };
 
   /// Returns the semantic container associated with this result.
   Color containerColor(
     ColorScheme colorScheme, {
-    AppSemanticColors? semanticColors,
+    required AppSemanticColors semanticColors,
   }) => switch (this) {
-    OutcomeResultEnum.win => _semantic(
-      colorScheme,
-      semanticColors,
-    ).successContainer,
+    OutcomeResultEnum.win => semanticColors.successContainer,
     OutcomeResultEnum.loss ||
     OutcomeResultEnum.eliminated => colorScheme.errorContainer,
-    OutcomeResultEnum.draw => _semantic(
-      colorScheme,
-      semanticColors,
-    ).infoContainer,
+    OutcomeResultEnum.draw => semanticColors.infoContainer,
     OutcomeResultEnum.unknownDefaultOpenApi ||
     null => colorScheme.surfaceContainerHighest,
   };
@@ -116,18 +101,12 @@ extension OutcomeResultUI on OutcomeResultEnum? {
   /// Returns the paired foreground for [containerColor].
   Color onContainerColor(
     ColorScheme colorScheme, {
-    AppSemanticColors? semanticColors,
+    required AppSemanticColors semanticColors,
   }) => switch (this) {
-    OutcomeResultEnum.win => _semantic(
-      colorScheme,
-      semanticColors,
-    ).onSuccessContainer,
+    OutcomeResultEnum.win => semanticColors.onSuccessContainer,
     OutcomeResultEnum.loss ||
     OutcomeResultEnum.eliminated => colorScheme.onErrorContainer,
-    OutcomeResultEnum.draw => _semantic(
-      colorScheme,
-      semanticColors,
-    ).onInfoContainer,
+    OutcomeResultEnum.draw => semanticColors.onInfoContainer,
     OutcomeResultEnum.unknownDefaultOpenApi ||
     null => colorScheme.onSurfaceVariant,
   };
@@ -142,8 +121,3 @@ extension OutcomeResultUI on OutcomeResultEnum? {
     null => 'Aborted',
   };
 }
-
-AppSemanticColors _semantic(
-  ColorScheme colorScheme,
-  AppSemanticColors? semanticColors,
-) => semanticColors ?? AppSemanticColors.forBrightness(colorScheme.brightness);

@@ -7,6 +7,7 @@ import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/timing_selector.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
+import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 
 /// Solo-game picker (the "New Solo Game" FAB): choose an opponent for each bot
@@ -113,10 +114,9 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
     GameModule module, {
     required bool timed,
   }) => bots.where((b) {
-    // Solo creation always targets the latest version, so bots are gated
-    // against the latest rules unit.
+    // Solo creation always targets the latest rules unit.
     final rules = module.latestRules;
-    if (b.schemaVersion > module.latestSchemaVersion) return false;
+    if (!b.supportsGameSchema(module.latestSchemaVersion)) return false;
     // Config gate: the game's own botSeatable rule decides which bots support the
     // chosen config (the Dart twin of the server's GameRules.botSeatable, which
     // enforces it at seating). Local UX only, with no network round-trip per config.

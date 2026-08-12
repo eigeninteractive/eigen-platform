@@ -150,7 +150,7 @@ void main() {
           builder: (context, state) => Scaffold(
             body: Center(
               child: FilledButton(
-                onPressed: () => PlayerProfileSheet.show(
+                onPressed: () => showPlayerProfileSheet(
                   context,
                   playerId: _playerId,
                   type: SeatTypeEnum.bot,

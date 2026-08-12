@@ -321,7 +321,7 @@ class _FriendListTile extends StatelessWidget {
     return ListTile(
       selected: selected,
       onTap: onPlayerSelected == null
-          ? () => PlayerProfileSheet.show(
+          ? () => showPlayerProfileSheet(
               context,
               playerId: userId,
               type: SeatTypeEnum.human,
@@ -506,7 +506,7 @@ class _AddFriendState extends ConsumerState<_AddFriend>
                   key: ValueKey(user.id),
                   selected: widget.selectedPlayerId == user.id,
                   onTap: widget.onPlayerSelected == null
-                      ? () => PlayerProfileSheet.show(
+                      ? () => showPlayerProfileSheet(
                           context,
                           playerId: user.id,
                           type: SeatTypeEnum.human,

@@ -28,6 +28,7 @@ import 'package:eigen_flutter/features/game/presentation/widgets/budget_clock.da
 import 'package:eigen_flutter/features/game/presentation/widgets/turn_countdown.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/game/providers/game_frame_provider.dart';
+import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 
 import 'package:eigen_flutter/features/social/presentation/widgets/player_profile_sheet.dart';
 import 'package:eigen_flutter/shared/widgets/player_avatar.dart';

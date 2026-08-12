@@ -16,11 +16,12 @@ extension RatingDeltaUi on RatingDelta {
   /// A gain is a stable success role rather than the app's tertiary brand
   /// color. Loss remains Material's built-in error role and an unchanged value
   /// stays neutral.
-  Color color(ColorScheme colorScheme, {AppSemanticColors? semanticColors}) {
+  Color color(
+    ColorScheme colorScheme, {
+    required AppSemanticColors semanticColors,
+  }) {
     if (displayChange > 0) {
-      return (semanticColors ??
-              AppSemanticColors.forBrightness(colorScheme.brightness))
-          .success;
+      return semanticColors.success;
     }
     if (displayChange < 0) return colorScheme.error;
     return colorScheme.onSurfaceVariant;
