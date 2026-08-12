@@ -155,8 +155,8 @@ module, and call `runEngineApp` from `lib/main.dart`. The
 Dart pieces.
 
 Create `app-config.json` beside `pubspec.yaml` with `API_BASE_URL`,
-`GOOGLE_WEB_CLIENT_ID`, optional `APP_HOST`, and the public
-`FIREBASE_VAPID_KEY`. Read them once with `const String.fromEnvironment` in
+`GOOGLE_WEB_CLIENT_ID`, the optional `APP_HOST` and `AUTH_DOMAIN`, and the
+public `FIREBASE_VAPID_KEY`. Read them once with `const String.fromEnvironment` in
 `main.dart`, pass them into `EngineConfig`, and use
 `--dart-define-from-file=app-config.json` for both Android and web commands.
 The complete shape and validation rules are in

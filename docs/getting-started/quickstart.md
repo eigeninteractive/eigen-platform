@@ -97,6 +97,12 @@ notifications and account deletion run on; token verification uses
 features fail only when exercised. `wrangler dev` reads `.dev.vars` at startup,
 so restart `pnpm dev` afterwards.
 
+**5. Link Google Analytics.** If the console shows _"Google Analytics not
+enabled for Project"_, that is expected: a project created through the CLI
+during scaffolding is not linked to an Analytics account, and only the console's
+own create flow offers it. Firebase Console → Settings → **Integrations** →
+Google Analytics → **Enable**.
+
 Steps 2 and 3 are public values compiled into the app. Step 4 is not:
 `.dev.vars` is a real credential, is git-ignored, and must stay that way. Delete
 the downloaded JSON once you have copied the two fields out of it.

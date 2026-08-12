@@ -213,6 +213,49 @@ The combined deploy removes the usual ordering race for web. Android still
 needs version ordering: publish a compatible Play build before server behavior
 that requires it.
 
+### The hostname players see when they sign in
+
+On the web, sign-in runs through Firebase's popup, which loads
+`https://<authDomain>/__/auth/handler`, and Google's account chooser names that
+host. By default it reads:
+
+> Sign in to continue to **my-project.firebaseapp.com**
+
+**This is fine, and most games should leave it alone.** It is cosmetic, it does
+not change what sign-in does, and Android never shows it, because the native
+Google flow is used there instead.
+
+If you do want your own name on that screen, it is two independent changes and
+either works without the other:
+
+| To change | Where | Needs a domain |
+|---|---|---|
+| The product name and logo | Google Cloud Console → APIs & Services → OAuth consent screen | No |
+| The hostname in the sentence | `AUTH_DOMAIN` in `app-config.json` | Yes |
+
+The consent-screen half is the cheaper win and needs no configuration at all.
+
+The hostname half needs a domain **Firebase Hosting** answers for, because that
+is what serves `/__/auth/handler`. It cannot be `APP_HOST`: that name is your
+Worker. The two are siblings, `auth.rps.example.com` beside `rps.example.com`.
+Add the custom domain under Hosting in the Firebase console, add it under
+Identity Platform → Identity providers → Project settings → Add Domain, then
+set it:
+
+```json
+{
+  "APP_HOST": "rps.example.com",
+  "AUTH_DOMAIN": "auth.rps.example.com"
+}
+```
+
+Leave `AUTH_DOMAIN` empty and the app uses the project's own domain, which is
+the scaffold's state and needs no Firebase Hosting at all. The engine applies
+the value at startup rather than expecting you to edit `firebase_options.dart`,
+which is generated and would lose the edit on the next
+`pnpm firebase:configure`. A value Firebase Hosting does not answer for breaks
+web sign-in outright, so set it once the domain resolves, not before.
+
 ### Deliberately splitting the origins
 
 A separate static host remains supported. Point `API_BASE_URL` at the Worker,

@@ -388,16 +388,29 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
-        // Renders as "0.3.x", the label from `versions.current` above. With
-        // one version live the dropdown exists to answer "which engine is this
-        // describing, and what Flutter release pairs with it", which is why the
-        // compatibility table is pinned into it rather than left in the
-        // sidebar alone. Once a version is cut it becomes an ordinary version
-        // switcher and the extra item stays useful.
+        // Renders as "0.3.x", the label from `versions.current` above. With one
+        // version live it exists to answer "which engine is this describing",
+        // and it becomes an ordinary switcher once a version is cut.
+        //
+        // Nothing is pinned in via `dropdownItemsAfter`, and the compatibility
+        // table specifically must not be. Each version entry links to *the doc
+        // you are currently reading* in that version, so on a versioned page the
+        // entry is a self-link; adding a versioned doc to the dropdown makes the
+        // two collide on that doc's own page, where both render with
+        // `dropdown__link--active` pointing at the same href. Docusaurus' own
+        // example pins `/versions`, a page outside `/docs` that no version owns,
+        // which is the case this option is for. Compatibility lives in
+        // `referenceSidebar` and is reachable there.
+        //
+        // `dropdownActiveClassDisabled` because each version entry links to the
+        // doc you are currently reading, which makes it a self-link on every
+        // docs page and so permanently "active". Highlighting it says nothing:
+        // with one version there is no other state it could be in. Docusaurus'
+        // own example sets this for the same reason.
         {
           type: "docsVersionDropdown",
           position: "right",
-          dropdownItemsAfter: [{ to: "/docs/reference/compatibility", label: "Compatibility" }],
+          dropdownActiveClassDisabled: true,
         },
         {
           href: GITHUB,
