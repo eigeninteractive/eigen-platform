@@ -224,12 +224,27 @@ describe("scaffoldGame", () => {
     expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');
     expect(androidGradle).toContain("signingConfigs");
     expect(androidGradle).toContain("proguardFiles(");
+    // Each appended block is separated from what it follows by exactly one blank
+    // line, including from the other block this scaffolder appends to the same
+    // file. Newline normalisation used to be written per call site with two
+    // different answers, so the second Gradle block landed flush against the
+    // first in every generated project. This is generated code someone reads.
+    expect(androidGradle).toContain("}\n\n// flutter_local_notifications requires desugaring");
+    expect(androidGradle).toContain("}\n\nval releaseKeyProperties");
+    expect(androidGradle).not.toMatch(/\n\n\n/);
+    expect(androidGradle.endsWith("}\n")).toBe(true);
 
     expect(readFileSync(resolve(root, "app/fastlane/Appfile"), "utf8")).toContain('package_name("games.example.chess")');
 
     const appPubspec = readFileSync(resolve(root, "app/pubspec.yaml"), "utf8");
     expect(appPubspec).toContain("flutter_launcher_icons:");
     expect(appPubspec).toContain("flutter_native_splash:");
+    // Same separation rule as the Gradle appends above, and here it is load
+    // bearing rather than cosmetic: these are top-level YAML keys, so a block
+    // that landed without its own line break would be read as part of whatever
+    // `flutter create` wrote last.
+    expect(appPubspec).toContain("sdk: flutter\n\nflutter_launcher_icons:");
+    expect(appPubspec.endsWith("  web: true\n")).toBe(true);
     // `scaffoldGame` only creates `--platforms android,web`, so `ios`/`macos`
     // keys would make `flutter_launcher_icons` error on a platform directory
     // that doesn't exist.
