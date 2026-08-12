@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.6.0] - 2026-08-12
 ### Added
 - Copy for the engine's new invalidCursor code. A cursor is echoed, never composed, so a user can neither cause nor fix one; it means the list needs restarting from the top, which is what a refresh does.
 
@@ -178,7 +178,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...HEAD
+[0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0
