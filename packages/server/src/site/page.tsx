@@ -17,13 +17,18 @@
 import type { PropsWithChildren } from "hono/jsx";
 import { CREDIT_BRAND, CREDIT_URL, DEFAULT_CREDIT } from "./config.js";
 import { fontFaceCss } from "./fonts.js";
+import { ENGINE_ICON_URL } from "./icon.js";
 import styles from "./site.css";
 
 /** Icon paths, defaulted to what `flutter_launcher_icons` already emits into a
  * Flutter app's `web/` directory (see the
  * {@link https://eigeninteractive.com/docs/ship-it/branding | branding guide}).
  * An implementor who builds the app has these files already and copies them
- * into `public/`; nobody has to author a second icon set for the web. */
+ * into `public/`; nobody has to author a second icon set for the web.
+ *
+ * These are asset paths, so they are only correct once such a file exists. A
+ * page renders them when `appIcons` says so and falls back to
+ * {@link ENGINE_ICON_URL} when it does not. */
 export const ICONS = {
   favicon: "/favicon.png",
   appleTouch: "/icons/Icon-192.png",
@@ -57,6 +62,13 @@ export interface PageProps {
   operatorName?: string;
   /** Footer credit line. Omitted → {@link DEFAULT_CREDIT}; `null` removes it. */
   madeByCredit?: string | null;
+  /** Whether this game has icons of its own in `public/`. `true` links
+   * {@link ICONS}; omitted or `false` links the engine placeholder.
+   *
+   * Defaults to the placeholder because that is the answer that is always
+   * serveable. A page that guesses wrong this way shows the engine's mark; the
+   * other way round it shows nothing at all. */
+  appIcons?: boolean;
 }
 
 /** Every link the engine renders leaves the page it is on rather than replacing
@@ -176,8 +188,18 @@ export function Page(props: PropsWithChildren<PageProps>) {
         <meta name="twitter:card" content={props.ogImage === undefined ? "summary" : "summary_large_image"} />
         <meta name="twitter:title" content={props.title} />
         <meta name="twitter:description" content={props.description} />
-        <link rel="icon" href={ICONS.favicon} />
-        <link rel="apple-touch-icon" href={ICONS.appleTouch} />
+        {/* Apple's touch icon has no SVG support, so a game without its own
+            icons gets no such link rather than one pointing at a file that is
+            not there. iOS then derives its home-screen icon from the page,
+            which is a better answer than a broken request. */}
+        {props.appIcons === true ? (
+          <>
+            <link rel="icon" href={ICONS.favicon} />
+            <link rel="apple-touch-icon" href={ICONS.appleTouch} />
+          </>
+        ) : (
+          <link rel="icon" type="image/svg+xml" href={ENGINE_ICON_URL} />
+        )}
         <link rel="manifest" href="/site.webmanifest" />
         {/* The faces first, so the rules that use them are already declared by
             the time the cascade reaches them. Generated from the same table the

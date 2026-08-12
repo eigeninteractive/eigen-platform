@@ -23,6 +23,7 @@
 import type { DeepLinkConfig, EngineApp, RouteContext } from "../engine.js";
 import type { ResolvedSite } from "../site/config.js";
 import { FONTS, fontBytes } from "../site/fonts.js";
+import { DEFAULT_PRIMARY, ENGINE_ICON_URL, engineIconSvg } from "../site/icon.js";
 import { ICONS, NEW_TAB, Page, RawHtml, renderDocument } from "../site/page.js";
 
 /** Cached for a day: crawler files change only on redeploy. */
@@ -104,6 +105,59 @@ function jsonLdFor(site: ResolvedSite, deepLink: DeepLinkConfig | null, origin: 
   });
 }
 
+/** Fetches an asset through the `ASSETS` binding and discards its body, so a
+ * caller can ask whether something is there without paying for it.
+ *
+ * Null when the deployment has no binding at all, which is a native-only game.
+ * The body is cancelled rather than left dangling; nothing here reads one. */
+async function probeAsset(assets: Fetcher | null, url: string): Promise<Response | null> {
+  if (assets === null) return null;
+  const res = await assets.fetch(new Request(url));
+  await res.body?.cancel();
+  return res;
+}
+
+/**
+ * Whether a Flutter web build is actually deployed, which is what the "Play on
+ * the web" button depends on.
+ *
+ * The ASSETS binding alone cannot answer this: the scaffold binds it whether or
+ * not `public/` has anything in it, so it is bound from the first
+ * `wrangler dev`. Offering "Play on the web" on that evidence sends the visitor
+ * to `/`, which has no asset to serve and so redirects back here. Asking the
+ * binding for the SPA entry point answers it properly: with no `index.html`
+ * there is nothing for the fallback to serve, so it 404s.
+ */
+async function hasWebBuild(assets: Fetcher | null, origin: string): Promise<boolean> {
+  const res = await probeAsset(assets, `${origin}/index.html`);
+  return res?.ok === true;
+}
+
+/**
+ * Whether this game has app icons of its own, which is what the document
+ * shell's `<link rel="icon">`, the manifest, and the download page's logo
+ * depend on.
+ *
+ * A separate question from {@link hasWebBuild}, and it used to be folded into
+ * it on the grounds that `flutter build web` emits `favicon.png` and `icons/`
+ * beside `index.html`: one bundle, so one probe. That holds for a game that
+ * ships on the web and fails the case worth supporting, an Android-only game
+ * that has icons but will never have an `index.html`. Such a game dropping its
+ * launcher icons into `public/` should get them, and under one probe it never
+ * would. So: two questions, two probes.
+ *
+ * The content type is checked, not just the status. `not_found_handling` is
+ * `single-page-application` in the scaffold, so once `index.html` exists a
+ * request for a missing asset is answered *with that document*, `200 OK`. A
+ * game whose web build has no `favicon.png` would otherwise read as having one
+ * and link a page where an image belongs.
+ */
+async function hasAppIcons(assets: Fetcher | null, origin: string): Promise<boolean> {
+  const res = await probeAsset(assets, `${origin}${ICONS.favicon}`);
+  if (res?.ok !== true) return false;
+  return (res.headers.get("content-type") ?? "").startsWith("image/");
+}
+
 const LEGAL_TITLES = { "/terms": "Terms of Service", "/privacy": "Privacy Policy", "/delete-account": "Delete Account" } as const;
 
 export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
@@ -119,10 +173,19 @@ export function registerSiteRoutes(app: EngineApp, ctx: RouteContext): void {
     ["/delete-account", site.legal.deleteAccount],
   ] as const) {
     const title = LEGAL_TITLES[path];
-    app.get(path, (c) =>
+    app.get(path, async (c) =>
       c.html(
         renderDocument(
-          <Page title={`${title}: ${site.name}`} description={`${title} for ${site.name}.`} siteName={site.name} primaryColor={site.primaryColor} canonicalUrl={`${originOf(c.req.url)}${path}`} operatorName={site.operator.name} madeByCredit={site.madeByCredit}>
+          <Page
+            title={`${title}: ${site.name}`}
+            description={`${title} for ${site.name}.`}
+            siteName={site.name}
+            primaryColor={site.primaryColor}
+            canonicalUrl={`${originOf(c.req.url)}${path}`}
+            operatorName={site.operator.name}
+            madeByCredit={site.madeByCredit}
+            appIcons={await hasAppIcons(ctx.webAssets(c.env), originOf(c.req.url))}
+          >
             <RawHtml html={fragment} />
           </Page>,
         ),
@@ -162,29 +225,53 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   const name = ctx.site?.name ?? ctx.appName;
   const tagline = ctx.site?.tagline ?? `Play ${name} in your browser or get the native app.`;
 
-  // Icon paths match Flutter's web build. Keep the engine manifest available
-  // even before legal-site configuration, because Page links it from the
-  // out-of-box download page.
+  // Keep the engine manifest available even before legal-site configuration,
+  // because Page links it from the out-of-box download page.
+  //
   // The EigenInteractive primary, matching site.css and the Flutter shell's
   // default seed. It reaches the manifest and so the browser's install UI, and
   // a game that has not configured `site` yet should still look like something
   // rather than like Material's baseline purple.
-  const color = ctx.site?.primaryColor ?? "#006a60";
-  const manifest = JSON.stringify({
-    name,
-    short_name: name,
-    description: tagline,
-    start_url: "/",
-    display: "browser",
-    theme_color: color,
-    background_color: color,
-    icons: [
-      { src: ICONS.icon192, sizes: "192x192", type: "image/png" },
-      { src: ICONS.icon512, sizes: "512x512", type: "image/png" },
-      { src: ICONS.maskable192, sizes: "192x192", type: "image/png", purpose: "maskable" },
-      { src: ICONS.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
-    ],
-  });
+  const color = ctx.site?.primaryColor ?? DEFAULT_PRIMARY;
+
+  // Two icon sets, chosen per request by what the game actually has.
+  //
+  // The PNG set is the one an install prompt wants, and its paths match
+  // Flutter's web build. The placeholder is a single scalable file, declared
+  // `sizes: "any"` because that is what the manifest spec says an SVG entry
+  // means, and a browser will accept it for display. It will not usually earn
+  // an install prompt, which is the right outcome: a game with no icons of its
+  // own has no web build to install either.
+  const appIconSet = [
+    { src: ICONS.icon192, sizes: "192x192", type: "image/png" },
+    { src: ICONS.icon512, sizes: "512x512", type: "image/png" },
+    { src: ICONS.maskable192, sizes: "192x192", type: "image/png", purpose: "maskable" },
+    { src: ICONS.maskable512, sizes: "512x512", type: "image/png", purpose: "maskable" },
+  ];
+  const placeholderIconSet = [{ src: ENGINE_ICON_URL, sizes: "any", type: "image/svg+xml" }];
+  const manifestFor = (appIcons: boolean): string =>
+    JSON.stringify({
+      name,
+      short_name: name,
+      description: tagline,
+      start_url: "/",
+      display: "browser",
+      theme_color: color,
+      background_color: color,
+      icons: appIcons ? appIconSet : placeholderIconSet,
+    });
+
+  // The placeholder mark, ungated for the same reason the faces below are:
+  // every page the engine renders links it until the game has icons of its own,
+  // including a worker running `deepLink` without `site`.
+  //
+  // Not `immutable` and not fronted by `caches.default`, unlike the fonts. The
+  // bytes carry `site.primaryColor`, so they change when an implementor changes
+  // that and redeploys, which a year-long immutable cache would hide from every
+  // returning visitor. An hour matches the pages that link it, and the file is
+  // a few hundred bytes built from a string.
+  const iconSvg = engineIconSvg(color);
+  app.get(ENGINE_ICON_URL, (c) => c.body(iconSvg, 200, { "Content-Type": "image/svg+xml; charset=utf-8", "Cache-Control": PAGE_CACHE }));
 
   // The brand faces, ungated: every page the engine renders references them,
   // including the legal documents and the `/j` share page, and a worker running
@@ -218,33 +305,14 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // redirect is the graceful fallback when there is no matching web asset.
   app.get("/", (c) => (enabled(c.env) ? c.redirect("/download", 302) : c.notFound()));
 
-  // Whether a Flutter web build is actually deployed, which two things on the
-  // page depend on: the "Play on the web" button, and the app icon.
-  //
-  // The ASSETS binding alone cannot answer this: the scaffold binds it whether
-  // or not `public/` has anything in it, so it is bound from the first
-  // `wrangler dev`. Offering "Play on the web" on that evidence sends the
-  // visitor to `/`, which has no asset to serve and so redirects back here.
-  // Asking the binding for the SPA entry point answers it properly: with no
-  // `index.html` there is nothing for the fallback to serve, so it 404s.
-  //
-  // The icons are the same question, because `flutter build web` emits
-  // `favicon.png` and `icons/` beside `index.html`: one bundle, so one probe.
-  const hasWebBuild = async (env: unknown, origin: string): Promise<boolean> => {
-    const assets = ctx.webAssets(env);
-    if (assets === null) return false;
-    const res = await assets.fetch(new Request(`${origin}/index.html`));
-    await res.body?.cancel();
-    return res.ok;
-  };
-
   app.get("/download", async (c) => {
     if (!enabled(c.env)) return c.notFound();
 
     const origin = new URL(c.req.url).origin;
     const site = ctx.site;
+    const assets = ctx.webAssets(c.env);
     const ogImage = site === null ? undefined : `${origin}${site.ogImage}`;
-    const web = await hasWebBuild(c.env, origin);
+    const [web, appIcons] = await Promise.all([hasWebBuild(assets, origin), hasAppIcons(assets, origin)]);
     const actions = [...(web ? [{ label: "Play on the web", url: "/" }] : []), ...stores];
     return c.html(
       renderDocument(
@@ -258,13 +326,16 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
           operatorName={site?.operator.name}
           madeByCredit={site?.madeByCredit}
           jsonLd={site === null || ogImage === undefined ? undefined : jsonLdFor(site, ctx.deepLink, origin, ogImage)}
+          appIcons={appIcons}
         >
           <main class="hero">
             {/* The app's own launcher icon, at twice its rendered size, falling
-                back to the engine's mark before there is a build to take one
-                from. Decorative either way: the name it stands for is the <h1>
-                directly below it. */}
-            {web ? <img class="logo" src={ICONS.icon192} alt="" width="96" height="96" /> : <EigenMark />}
+                back to the engine's mark until the game ships one. Decorative
+                either way: the name it stands for is the <h1> directly below
+                it. Keyed to the icons rather than to the web build, so an
+                Android-only game that drops its launcher icons into `public/`
+                gets its own mark here. */}
+            {appIcons ? <img class="logo" src={ICONS.icon192} alt="" width="96" height="96" /> : <EigenMark />}
             <h1>{name}</h1>
             <p class="lead">{tagline}</p>
             {site !== null && site.description !== site.tagline && <p>{site.description}</p>}
@@ -282,5 +353,14 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
     );
   });
 
-  app.get("/site.webmanifest", (c) => (enabled(c.env) ? c.body(manifest, 200, { "Content-Type": "application/manifest+json", "Cache-Control": CRAWLER_CACHE }) : c.notFound()));
+  app.get("/site.webmanifest", async (c) => {
+    if (!enabled(c.env)) return c.notFound();
+    const origin = new URL(c.req.url).origin;
+    const manifest = manifestFor(await hasAppIcons(ctx.webAssets(c.env), origin));
+    // `PAGE_CACHE`, not `CRAWLER_CACHE`: this document used to be a constant,
+    // and now its icon list depends on what is in `public/`. Holding a day-old
+    // copy would leave the first deploy that adds icons still advertising the
+    // placeholder, which is exactly when someone is looking.
+    return c.body(manifest, 200, { "Content-Type": "application/manifest+json", "Cache-Control": PAGE_CACHE });
+  });
 }

@@ -24,6 +24,7 @@ import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createEngine } from "../src/engine.js";
 import { CREDIT_URL } from "../src/site/config.js";
+import { ENGINE_ICON_URL } from "../src/site/icon.js";
 import { renderLegal } from "../src/site/legal/index.js";
 import { ICONS, onPrimary } from "../src/site/page.js";
 
@@ -84,17 +85,22 @@ describe("landing page", () => {
 
   it("offers neither the web button nor the app icon without a deployed web build", async () => {
     // Both would be broken promises: `/` has no asset to serve and would bounce
-    // straight back here, and the icons ship inside the same Flutter bundle.
-    //
-    // KNOWN GAP: the other side of this branch is untested. Proving it needs an
-    // `ASSETS` binding with a real `index.html`, which would also make Static
-    // Assets answer `/` and invalidate the web-root fallback test below.
+    // straight back here, and there is no icon file to point at.
     const html = await (await get("/download")).text();
     expect(html).not.toContain("Play on the web");
-    // Not `ICONS.icon192` on its own: the same path is the apple-touch-icon in
-    // every page's <head>, which is unconditional and correct. Only the hero
-    // image is gated.
     expect(html).not.toContain(`<img class="logo" src="${ICONS.icon192}"`);
+  });
+
+  it("links no icon it cannot serve", async () => {
+    // The whole point of the placeholder. `favicon.png` and the apple-touch
+    // icon live in `public/`, which is empty here, so linking them would leave
+    // the tab blank; the engine's own mark is always serveable.
+    const html = await (await get("/download")).text();
+    expect(html).toContain(`<link rel="icon" type="image/svg+xml" href="${ENGINE_ICON_URL}"/>`);
+    expect(html).not.toContain(`href="${ICONS.favicon}"`);
+    // Apple's touch icon has no SVG support, so this game gets none at all
+    // rather than one pointing at a missing file.
+    expect(html).not.toContain("apple-touch-icon");
   });
 
   it("stands the engine's mark in for the icon it does not have yet", async () => {
@@ -199,17 +205,32 @@ describe("crawler files", () => {
     expect(txt).toContain("Disallow: /game/");
   });
 
-  it("serves a manifest whose icon paths match what flutter_launcher_icons emits", async () => {
+  it("serves a manifest advertising only icons that exist", async () => {
     const res = await get("/site.webmanifest");
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("application/manifest+json");
+    // An hour, not a day: the icon list below depends on what is in `public/`,
+    // so the deploy that adds icons must not be shadowed by a stale copy.
+    expect(res.headers.get("cache-control")).toBe("public, max-age=3600");
     const manifest = (await res.json()) as { name: string; theme_color: string; icons: { src: string; purpose?: string }[] };
     expect(manifest.name).toBe("Eigen Test");
     expect(manifest.theme_color).toBe("#1a237e");
-    // The Flutter app already generates these into web/icons/, so an
-    // implementor copies that folder rather than authoring a second icon set.
-    expect(manifest.icons.map((i) => i.src)).toEqual(["/icons/Icon-192.png", "/icons/Icon-512.png", "/icons/Icon-maskable-192.png", "/icons/Icon-maskable-512.png"]);
-    expect(manifest.icons.filter((i) => i.purpose === "maskable")).toHaveLength(2);
+    // This worker binds no ASSETS, so the game has no icons and the manifest
+    // says so rather than listing four PNGs that would 404. The PNG set is
+    // asserted below, against a worker that has them.
+    expect(manifest.icons).toEqual([{ src: ENGINE_ICON_URL, sizes: "any", type: "image/svg+xml" }]);
+  });
+
+  it("serves the placeholder mark in the game's own colour", async () => {
+    const res = await get(ENGINE_ICON_URL);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("image/svg+xml");
+    const svg = await res.text();
+    expect(svg).toContain("#1a237e");
+    // The neutral stroke is the one that disappears against a dark tab strip,
+    // so it is the one that switches; the accent is a single configured value
+    // with no partner to switch to.
+    expect(svg).toContain("prefers-color-scheme:dark");
   });
 
   it("lets a game's configured colour win over the brand default", async () => {
@@ -314,6 +335,78 @@ describe("before anything is published", () => {
     expect(html).toContain(">EigenInteractive</a>");
     // No `site`, so the legal routes are not mounted and must not be linked.
     expect(html).not.toContain('href="/terms"');
+  });
+});
+
+describe("once the game ships icons of its own", () => {
+  // Closes the branch the download-page tests above cannot reach: the suite's
+  // main worker binds no ASSETS at all, so it can only ever show the
+  // placeholder. Here the binding answers like a `public/` that has icons in
+  // it, which is what proves the engine steps out of the way.
+  const withAssets = (files: Record<string, { body: string; type: string }>) => {
+    const engine = createEngine({
+      gameModule: { versions: {} },
+      appName: "Sustained",
+      d1: () => {
+        throw new Error("/download reads no D1");
+      },
+      gameDO: () => {
+        throw new Error("/download reaches no Durable Object");
+      },
+    });
+    const handle = engine.fetch;
+    if (handle === undefined) throw new Error("createEngine returned no fetch handler");
+    const assets = {
+      ASSETS: {
+        fetch: (request: Request) => {
+          const file = files[new URL(request.url).pathname];
+          return Promise.resolve(file === undefined ? new Response(null, { status: 404 }) : new Response(file.body, { headers: { "Content-Type": file.type } }));
+        },
+      },
+    };
+    return (path: string) => handle(new Request(`https://x${path}`), assets as never, createExecutionContext());
+  };
+
+  const png = { body: "PNG", type: "image/png" };
+
+  it("links the game's own icons and drops the placeholder", async () => {
+    const html = await (await withAssets({ [ICONS.favicon]: png })("/download")).text();
+    expect(html).toContain(`<link rel="icon" href="${ICONS.favicon}"/>`);
+    expect(html).toContain(`<link rel="apple-touch-icon" href="${ICONS.appleTouch}"/>`);
+    expect(html).not.toContain(ENGINE_ICON_URL);
+    // And the hero stops standing in the engine's mark.
+    expect(html).toContain(`<img class="logo" src="${ICONS.icon192}"`);
+    expect(html).not.toContain('<svg class="logo"');
+  });
+
+  it("advertises the PNG set in the manifest", async () => {
+    const res = await withAssets({ [ICONS.favicon]: png })("/site.webmanifest");
+    const manifest = (await res.json()) as { icons: { src: string; purpose?: string }[] };
+    // The Flutter app already generates these into web/icons/, so an
+    // implementor copies that folder rather than authoring a second icon set.
+    expect(manifest.icons.map((i) => i.src)).toEqual([ICONS.icon192, ICONS.icon512, ICONS.maskable192, ICONS.maskable512]);
+    expect(manifest.icons.filter((i) => i.purpose === "maskable")).toHaveLength(2);
+  });
+
+  it("does not need a web build, only icons", async () => {
+    // The case that motivated splitting the probe: an Android-only game has no
+    // `index.html` and never will, and its launcher icons are still its own.
+    const html = await (await withAssets({ [ICONS.favicon]: png })("/download")).text();
+    expect(html).toContain(`<link rel="icon" href="${ICONS.favicon}"/>`);
+    expect(html).not.toContain("Play on the web");
+  });
+
+  it("is not fooled by the SPA fallback answering for a missing icon", async () => {
+    // `not_found_handling` is `single-page-application` in the scaffold, so
+    // once `index.html` exists a request for an absent asset returns that
+    // document with `200 OK`. Status alone would read as an icon and link a
+    // web page where an image belongs; the content type is what settles it.
+    const spa = { body: "<!doctype html>", type: "text/html" };
+    const html = await (await withAssets({ "/index.html": spa, [ICONS.favicon]: spa })("/download")).text();
+    expect(html).toContain(`<link rel="icon" type="image/svg+xml" href="${ENGINE_ICON_URL}"/>`);
+    expect(html).not.toContain(`<link rel="icon" href="${ICONS.favicon}"/>`);
+    // The web build is real, though, so that half is still offered.
+    expect(html).toContain("Play on the web");
   });
 });
 
