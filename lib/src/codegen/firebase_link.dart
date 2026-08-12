@@ -6,6 +6,14 @@
 /// itself; both are sitting in files FlutterFire has just written. Asking
 /// someone to copy them by hand is how a first launch fails on a configuration
 /// error long after the tool said it was finished.
+///
+/// Both destinations already declare the key being filled, so this assigns into
+/// a slot rather than appending anything. They are edited by different methods
+/// for one reason: `app-config.json` is plain JSON and can be decoded, merged and
+/// re-encoded, while `wrangler.jsonc` carries comments its owner wrote, so only
+/// the single assignment is rewritten in place. See [setJsonString] for how that
+/// stays safe, and eigen-server's MAINTAINERS.md for the wider rule on editing
+/// files a generated project owns.
 library;
 
 import 'dart:convert';
