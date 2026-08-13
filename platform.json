@@ -9,13 +9,13 @@
       "baseCommit": "2cac83c27d3ecf85f553b998106c3626997f9310",
       "importCommit": "1b77ba7341f387c95ccaaf7d7c1051e8b0bf1e07",
       "packages": {
-        "@eigeninteractive/rules": "0.4.0",
-        "@eigeninteractive/kernel": "0.4.0",
-        "@eigeninteractive/server": "0.4.0",
-        "@eigeninteractive/testkit": "0.4.0",
-        "create-eigen-game": "0.11.0"
+        "@eigeninteractive/rules": "0.4.1",
+        "@eigeninteractive/kernel": "0.4.1",
+        "@eigeninteractive/server": "0.4.1",
+        "@eigeninteractive/testkit": "0.4.1",
+        "create-eigen-game": "0.11.1"
       },
-      "dartApi": "0.4.0"
+      "dartApi": "0.4.1"
     },
     "flutter": {
       "path": "flutter",
