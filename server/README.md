@@ -13,8 +13,7 @@ Identity, lobbies, the authoritative game loop, timing, ratings, social
 features, bots, push notifications, and deep links are built in. A game supplies
 one TypeScript `GameModule` containing its schemas and rules.
 
-The Flutter app framework lives in
-[`eigen-flutter`](https://github.com/eigeninteractive/eigen-flutter).
+The Flutter app framework lives alongside it in [`../flutter`](../flutter).
 
 ## Start a game
 

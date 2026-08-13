@@ -1,0 +1,117 @@
+name: Publish eigen_flutter
+
+on:
+  push:
+    tags: ["eigen_flutter-v*"]
+
+concurrency:
+  group: publish-eigen-flutter
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read
+
+  publish:
+    name: Publish to pub.dev
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: flutter
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Verify tag and package version
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME#eigen_flutter-v}"
+          package=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          [ "$tag" = "$package" ] || {
+            echo "::error::tag eigen_flutter-v$tag does not match pubspec version $package"
+            exit 1
+          }
+          echo "version=$package" >> "$GITHUB_OUTPUT"
+
+      # The monorepo override is deliberately not part of the published
+      # package. Remove it in this disposable checkout so the release itself is
+      # resolved and dry-run against the real eigen_api on pub.dev.
+      - name: Resolve registry dependencies
+        run: |
+          rm -f pubspec_overrides.yaml
+          grep -q '^dependency_overrides:' pubspec.yaml && {
+            echo "::error::dependency_overrides must not appear in pubspec.yaml"
+            exit 1
+          }
+          flutter pub get
+
+      - name: Check whether the version is already published
+        id: published
+        run: |
+          v=${{ steps.version.outputs.version }}
+          if curl -sf --retry 3 https://pub.dev/api/packages/eigen_flutter \
+               | jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::eigen_flutter $v is already published."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to pub.dev
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          PUB_TOKEN=$(curl --retry 5 --retry-connrefused -sLS \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://pub.dev" \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
+          [ -n "$PUB_TOKEN" ] && [ "$PUB_TOKEN" != "null" ] || {
+            echo "::error::could not mint the pub.dev OIDC token"
+            exit 1
+          }
+          echo "::add-mask::$PUB_TOKEN"
+          echo "PUB_TOKEN=$PUB_TOKEN" >> "$GITHUB_ENV"
+          export PUB_TOKEN
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+
+      - name: Publish dry run
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --dry-run
+
+      - name: Publish
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --force
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      # The receiver reads pub.dev, opens a generated PR only when the table
+      # changes, and is safe to rerun after a publish or dispatch failure.
+      - name: Refresh the compatibility table
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f event_type=flutter-client-released \
+            -f "client_payload[version]=$VERSION"

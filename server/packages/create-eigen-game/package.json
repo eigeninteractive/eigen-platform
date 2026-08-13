@@ -46,7 +46,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
-    "directory": "packages/create-eigen-game"
+    "url": "git+https://github.com/eigeninteractive/eigen-platform.git",
+    "directory": "server/packages/create-eigen-game"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-platform/issues"
   }
 }

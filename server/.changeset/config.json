@@ -3,7 +3,7 @@
   "changelog": [
     "@changesets/changelog-github",
     {
-      "repo": "eigeninteractive/eigen-server"
+      "repo": "eigeninteractive/eigen-platform"
     }
   ],
   "commit": false,

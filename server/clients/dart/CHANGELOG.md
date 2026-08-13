@@ -5,7 +5,7 @@ version tracks [`@eigeninteractive/server`](https://www.npmjs.com/package/@eigen
 exactly: 0.4.0 here is 0.4.0 there. It has no changes of its own.
 
 See the engine's changelog:
-<https://github.com/eigeninteractive/eigen-server/blob/main/packages/server/CHANGELOG.md>
+<https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/CHANGELOG.md>
 
 While the engine is pre-1.0, a breaking wire change bumps the **minor**. A
 constraint of `^0.1.0` resolves to `>=0.1.0 <0.2.0`, so 0.1.x is additive and

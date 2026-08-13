@@ -40,3 +40,18 @@ Read the nested `AGENTS.md` and `CONTRIBUTING.md` before changing a component.
 Do not rewrite imported history or mutate the original repository remotes. The
 archive refs and import anchors are described in
 `docs/architecture/0000-monorepo-import.md`.
+
+## Release notes
+
+Changes to a published npm package under `server/` need a Changeset:
+
+```bash
+(cd server && pnpm changeset)
+```
+
+Use `pnpm changeset --empty` when the package diff is intentionally not a
+release. User-visible changes under `flutter/` need an entry in the Unreleased
+section of `flutter/CHANGELOG.md`, normally added with `cider log`. Maintainers
+release through the root workflows described in
+[`docs/operations/releases.md`](docs/operations/releases.md); contributors do
+not edit package versions or create release tags.

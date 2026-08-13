@@ -21,7 +21,7 @@ engine owns), `/docs/ship-it/deploy-the-worker.md` (getting it running),
 There is also a Claude Code skill for writing game rules:
 
 ```
-/plugin marketplace add eigeninteractive/eigen-server
+/plugin marketplace add eigeninteractive/eigen-platform
 /plugin install eigen@eigeninteractive
 ```
 

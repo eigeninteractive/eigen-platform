@@ -36,11 +36,11 @@
   "homepage": "https://eigeninteractive.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
-    "directory": "packages/rules"
+    "url": "git+https://github.com/eigeninteractive/eigen-platform.git",
+    "directory": "server/packages/rules"
   },
   "bugs": {
-    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+    "url": "https://github.com/eigeninteractive/eigen-platform/issues"
   },
   "publishConfig": {
     "access": "public"

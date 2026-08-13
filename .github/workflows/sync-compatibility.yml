@@ -1,0 +1,76 @@
+name: Sync compatibility table
+
+on:
+  repository_dispatch:
+    types: [flutter-client-released]
+  workflow_dispatch:
+    inputs:
+      expect:
+        description: "Wait for this package version, for example eigen_flutter@0.7.0"
+        required: false
+        type: string
+
+concurrency:
+  group: sync-compatibility
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  sync:
+    name: Regenerate and open a pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: web/.nvmrc
+
+      - name: Regenerate table
+        working-directory: web
+        env:
+          EXPECT: ${{ github.event.client_payload.version && format('eigen_flutter@{0}', github.event.client_payload.version) || inputs.expect }}
+        run: |
+          if [ -n "$EXPECT" ]; then
+            node scripts/sync-compatibility.mjs --expect "$EXPECT"
+          else
+            node scripts/sync-compatibility.mjs
+          fi
+
+      - name: Open or refresh the generated pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          TRIGGER: ${{ github.event.client_payload.version && format('eigen_flutter {0}', github.event.client_payload.version) || 'a manual run' }}
+        run: |
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+          git add web/docs/reference/compatibility.md
+          if git diff --staged --quiet; then
+            echo "Compatibility table is already current."
+            exit 0
+          fi
+
+          branch=sync/compatibility
+          git switch -C "$branch"
+          git commit -m "Sync compatibility table after $TRIGGER"
+          git push --force -u origin "$branch"
+
+          state=$(gh pr view "$branch" --json state --jq .state 2>/dev/null || echo NONE)
+          if [ "$state" != "OPEN" ]; then
+            gh pr create --base main \
+              --title "Sync compatibility table" \
+              --body "Regenerated from pub.dev after $TRIGGER. This is deterministic output from \`web/scripts/sync-compatibility.mjs\`; auto-merge is enabled after the platform gate."
+          fi
+          gh pr merge "$branch" --auto --squash

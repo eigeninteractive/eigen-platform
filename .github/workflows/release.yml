@@ -1,0 +1,251 @@
+name: Release npm packages
+
+# Changesets owns the five npm packages under server/. A push to main either
+# refreshes the version PR, publishes an already-versioned release, or exits.
+# The exact whole-platform gate is rerun on the commit that would ship.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-npm
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read
+
+  select-mode:
+    name: Select release mode
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      publish-plan-artifact-id: ${{ steps.mode.outputs.publish-plan-artifact-id }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        working-directory: server
+        run: pnpm -r build
+
+      # Pinned after changesets/action v2.0.0 because this commit adds the cwd
+      # input required by a nested workspace. Replace it with the next stable
+      # tag's commit once that release contains the same input.
+      - name: Select mode
+        id: mode
+        uses: changesets/action/select-mode@da1ea291ef93203a08fad360eac36f4858dd0514
+        with:
+          cwd: server
+
+  version:
+    name: Open or update the version pull request
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'version'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            web/pnpm-lock.yaml
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Install documentation dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        working-directory: server
+        run: pnpm -r build
+
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dart-lang/setup-dart@v1
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Create or update the version pull request
+        uses: changesets/action/version@da1ea291ef93203a08fad360eac36f4858dd0514
+        with:
+          cwd: server
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: pnpm version-packages
+          pr-title: "Release: version npm packages"
+          commit-message: "Version npm packages"
+
+  pack:
+    name: Pack npm artifacts
+    needs: select-mode
+    if: needs.select-mode.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        working-directory: server
+        run: pnpm -r build
+
+      # No registry identity is available in this job. Workspace ranges are
+      # resolved into immutable tarballs before the privileged upload job.
+      - name: Pack
+        id: pack
+        uses: changesets/action/pack@da1ea291ef93203a08fad360eac36f4858dd0514
+        with:
+          cwd: server
+          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+
+  publish:
+    name: Publish to npm
+    needs: pack
+    runs-on: ubuntu-latest
+    environment: npm
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      # Do not set registry-url. npm trusted publishing exchanges this job's
+      # OIDC identity; an npmrc token placeholder masks that exchange.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        working-directory: server
+        run: pnpm -r build
+
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Publish
+        id: changesets
+        uses: changesets/action/publish@da1ea291ef93203a08fad360eac36f4858dd0514
+        with:
+          cwd: server
+          github-token: ${{ steps.app-token.outputs.token }}
+          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+
+      - name: Detect an engine release
+        id: engine
+        if: steps.changesets.outputs.published == 'true'
+        env:
+          PACKAGES: ${{ steps.changesets.outputs['published-packages'] }}
+        run: |
+          if jq -e '.[] | select(.name == "@eigeninteractive/server")' <<<"$PACKAGES" >/dev/null; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Only independent packages published; eigen_api is unchanged."
+          fi
+
+      # pub.dev accepts a trusted-publishing identity only from the package's
+      # configured tag pattern, so eigen_api publishes in a separate workflow.
+      - name: Tag eigen_api
+        if: steps.engine.outputs.released == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' server/clients/dart/pubspec.yaml)
+          tag="eigen_api-v$v"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git ls-remote --exit-code --tags "$remote" "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "::notice::$tag already exists."
+            exit 0
+          fi
+
+          git tag "$tag"
+          git push "$remote" "$tag"

@@ -23,9 +23,10 @@ being simplified before real applications or users depend on it.
 | [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
 
 The three component histories were imported without squashing. Their original
-repositories remain available as archives until package publishing, deployments,
-and documentation have been cut over deliberately. [`platform.json`](platform.json)
-records the exact imported commits and package versions.
+repositories remain readable until the first unified releases and deployment
+are verified, after which they can be archived with pointers here.
+[`platform.json`](platform.json) records the exact imported commits and package
+versions.
 
 ## Getting started
 
@@ -63,6 +64,18 @@ The currently published game-implementor documentation is available at
 the repository's accepted architecture records are normative for new work; the
 published site continues to describe the currently released packages until
 cutover.
+
+## CI and releases
+
+Pull requests and package releases run the same whole-platform workflow in
+[`checks.yml`](.github/workflows/checks.yml). npm packages use Changesets;
+`eigen_api` and `eigen_flutter` use separate namespaced pub.dev tags. Publishing
+uses registry trusted publishing with GitHub OIDC and protected `npm` / `pub.dev`
+environments, so no registry token is stored in the repository.
+
+The exact registry settings, routine release flow, first-cutover sequence, and
+failure recovery are documented in
+[`docs/operations/releases.md`](docs/operations/releases.md).
 
 ## Contributing and license
 

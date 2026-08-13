@@ -6,9 +6,9 @@
   "plugins": [
     {
       "name": "eigen",
-      "source": "./plugins/eigen",
+      "source": "./server/plugins/eigen",
       "description": "Skills for building turn-based multiplayer games on the EigenInteractive engine.",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "EigenInteractive"
       },

@@ -157,7 +157,7 @@ so keep the two lists aligned when adding an exclusion.
 ## Documentation changes
 
 Public behavior belongs in the task-first guides in
-[`eigen-web`](https://github.com/eigeninteractive/eigen-web), with the
+[`../web`](../web), with the
 TypeScript and Dart halves on the same page. Public API detail belongs in `///`
 comments so pub.dev's Dartdoc reference stays attached to the declaration.
 

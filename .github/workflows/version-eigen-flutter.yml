@@ -1,0 +1,75 @@
+name: Version eigen_flutter
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the version to raise
+        required: true
+        type: choice
+        options: [patch, minor, breaking]
+
+concurrency:
+  group: version-eigen-flutter
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  version:
+    name: Open the release pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install cider
+        run: |
+          dart pub global activate cider
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Bump version and close the changelog section
+        id: bump
+        working-directory: flutter
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          cider bump "$BUMP"
+          cider release
+          node ../tool/platform.mjs
+          echo "version=$(cider version)" >> "$GITHUB_OUTPUT"
+
+      - name: Open or refresh the release pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BUMP: ${{ inputs.bump }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          branch="release/eigen_flutter-v$VERSION"
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git commit -am "Release eigen_flutter v$VERSION"
+          git push --force -u origin "$branch"
+
+          state=$(gh pr view "$branch" --json state --jq .state 2>/dev/null || echo NONE)
+          if [ "$state" != "OPEN" ]; then
+            gh pr create --base main \
+              --title "Release eigen_flutter v$VERSION" \
+              --body "Raises \`eigen_flutter\` to **v$VERSION** (\`$BUMP\`) and closes the accumulated changelog section. Merging creates the namespaced release tag; that tag reruns the platform gate and publishes through pub.dev trusted publishing."
+          else
+            echo "Refreshed the existing release pull request."
+          fi

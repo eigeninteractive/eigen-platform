@@ -13,3 +13,43 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "ci"
+
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: monthly
+    groups:
+      server-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(server)"
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: monthly
+    groups:
+      documentation-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(web)"
+
+  - package-ecosystem: pub
+    directory: /flutter
+    schedule:
+      interval: monthly
+    groups:
+      flutter-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(flutter)"
+
+  - package-ecosystem: pub
+    directory: /server/clients/dart
+    schedule:
+      interval: monthly
+    groups:
+      generated-client-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(eigen_api)"

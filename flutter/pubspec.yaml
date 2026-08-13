@@ -2,9 +2,9 @@ name: eigen_flutter
 description: "EigenInteractive Flutter client: the whitelabel app half for turn-based multiplayer games on the EigenInteractive server."
 version: 0.6.0
 homepage: https://eigeninteractive.com
-repository: https://github.com/eigeninteractive/eigen-flutter
+repository: https://github.com/eigeninteractive/eigen-platform/tree/main/flutter
 documentation: https://eigeninteractive.com/docs/reference/dart
-issue_tracker: https://github.com/eigeninteractive/eigen-flutter/issues
+issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 
 # `cider` keeps CHANGELOG.md and the version above in step, Keep-a-Changelog
 # style. Add entries as you work (`cider log added "…"`), then at release time
@@ -12,9 +12,9 @@ issue_tracker: https://github.com/eigeninteractive/eigen-flutter/issues
 # into a dated, linked section and bumps the version here.
 cider:
   link_template:
-    tag: https://github.com/eigeninteractive/eigen-flutter/releases/tag/%tag%
-    diff: https://github.com/eigeninteractive/eigen-flutter/compare/%from%...%to%
-    version: v%version%
+    tag: https://github.com/eigeninteractive/eigen-platform/releases/tag/%tag%
+    diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
+    version: eigen_flutter-v%version%
 
 environment:
   sdk: ^3.12.0

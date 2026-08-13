@@ -1,0 +1,55 @@
+name: Tag eigen_flutter
+
+on:
+  push:
+    branches: [main]
+    paths: [flutter/pubspec.yaml]
+
+concurrency:
+  group: tag-eigen-flutter
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  tag:
+    name: Tag the released version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Tag if this version is not published
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' flutter/pubspec.yaml)
+          tag="eigen_flutter-v$v"
+          [ -n "$v" ] || { echo "::error::flutter/pubspec.yaml has no version"; exit 1; }
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::notice::$tag already exists."
+            exit 0
+          fi
+
+          published=$(curl -sf --retry 3 https://pub.dev/api/packages/eigen_flutter) || {
+            echo "::error::could not query pub.dev; refusing to tag blind"
+            exit 1
+          }
+          if jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null <<<"$published"; then
+            echo "::notice::eigen_flutter $v is already published."
+            exit 0
+          fi
+
+          git tag "$tag"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$tag"
