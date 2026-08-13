@@ -13,7 +13,7 @@ the implementation is wrong or the record must be superseded explicitly.
 | [0004](0004-command-identity.md) | Accepted | Mutation identity and canonical fingerprints |
 | [0005](0005-game-definition.md) | Accepted | Authoritative game definition and creation policy |
 | [0006](0006-portable-schema-profile.md) | Accepted | Portable JSON Schema profile |
-| [0007](0007-replay-retention-privacy.md) | Proposed | Replay fidelity, retention, and privacy |
+| [0007](0007-replay-retention-privacy.md) | Accepted | Replay fidelity, retention, and privacy |
 | [0008](0008-client-coordinator.md) | Accepted | Serialized client coordinator |
 
 The machine-readable contract starts under [`contracts/`](../../contracts/).

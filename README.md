@@ -1,18 +1,72 @@
 # EigenInteractive platform
 
-This repository is the vNext implementation workspace for EigenInteractive.
-It consolidates the platform's server, Flutter client, and documentation while
-preserving the complete history of each original repository.
+[![Platform checks](https://github.com/eigeninteractive/eigen-platform/actions/workflows/checks.yml/badge.svg)](https://github.com/eigeninteractive/eigen-platform/actions/workflows/checks.yml)
 
-The initial import is intentionally behavior-preserving:
+EigenInteractive is a platform for building authoritative, turn-based games:
+game authors write deterministic TypeScript rules, the server owns sequencing
+and persistence, and generated Dart APIs plus the Flutter runtime deliver typed
+game sessions to Android and the web.
 
-- `server/` is the former `eigen-server` repository;
-- `flutter/` is the former `eigen-flutter` repository;
-- `web/` is the former `eigen-web` repository.
+This repository is the vNext implementation workspace. It is still early-stage
+software with no production compatibility promise. The design is intentionally
+being simplified before real applications or users depend on it.
 
-Package extraction and directory normalization happen only after the imported
-baseline passes unchanged. The original repositories and their GitHub remotes
-remain intact as archives until a separately authorized cutover.
+## Repository layout
 
-See [`docs/architecture/`](docs/architecture/) for vNext decisions and
-[`platform.json`](platform.json) for the exact imported release set.
+| Path | Responsibility |
+| --- | --- |
+| [`server/`](server/) | Rules SDK, authoritative kernel, Cloudflare Worker server, testkit, scaffolder, and generated Dart HTTP API |
+| [`flutter/`](flutter/) | Pure Dart client core, Flutter runtime and UI shell, Firebase adapter, and example app |
+| [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
+| [`contracts/`](contracts/) | Machine-readable cross-language and wire-contract definitions |
+| [`docs/architecture/`](docs/architecture/) | Accepted vNext decisions and execution status |
+| [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
+
+The three component histories were imported without squashing. Their original
+repositories remain available as archives until package publishing, deployments,
+and documentation have been cut over deliberately. [`platform.json`](platform.json)
+records the exact imported commits and package versions.
+
+## Getting started
+
+Use the Node version in [`server/.nvmrc`](server/.nvmrc), pnpm 11.20.0, the
+Flutter version in [`flutter/.fvmrc`](flutter/.fvmrc), and JDK 21. Install each
+component's dependencies from its own dependency root:
+
+```bash
+(cd server && pnpm install --frozen-lockfile)
+(cd web && pnpm install --frozen-lockfile)
+(cd flutter && flutter pub get && flutter pub get --directory example)
+```
+
+Run the full cross-platform gate before handing off a change:
+
+```bash
+./tool/check.sh all
+```
+
+For faster iteration, pass `server`, `flutter`, or `web` instead of `all`. The
+full gate also checks generated contracts and package contents, tests the
+Flutter package on the Dart VM and Chrome, builds the imported example and
+documentation for web, and validates a freshly scaffolded game with release
+Android and web builds.
+
+## Architecture and documentation
+
+The accepted vNext design lives in [`docs/architecture/`](docs/architecture/).
+A protocol or game-contract change is one platform change: server behavior,
+generated Dart types, Flutter runtime behavior, examples, and documentation must
+land together and pass the same commit gate.
+
+The currently published game-implementor documentation is available at
+[eigeninteractive.com](https://eigeninteractive.com). During vNext development,
+the repository's accepted architecture records are normative for new work; the
+published site continues to describe the currently released packages until
+cutover.
+
+## Contributing and license
+
+Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and the nearest `AGENTS.md` before
+changing a component. Report vulnerabilities privately as described in
+[`SECURITY.md`](SECURITY.md). EigenInteractive platform source is available
+under the [MIT License](LICENSE).

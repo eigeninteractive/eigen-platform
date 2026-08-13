@@ -16,14 +16,15 @@ Implementation authorization adopts the review handoff's recommended defaults:
 - the core is pure Dart, with Flutter, Firebase, and app-shell adapters above it;
 - vNext is a clean break described by an exact platform manifest;
 - game projects remain separate from this platform repository;
+- finished games and their replay/command artifacts have no automatic expiry;
 - no R2 cold tier is introduced without measured need.
 
 ## Phase status
 
 | Phase | Status | Evidence |
 | --- | --- | --- |
-| 0: baseline and authorization | Partial | Source commits, package versions, remotes, and existing checks captured; production retention duration remains an owner gate |
-| 1: normative contract | In progress | RFCs 0001–0008 and `contracts/`; RFC 0007 remains proposed pending the retention choice |
+| 0: baseline and authorization | Complete | Source commits, package versions, remotes, existing checks, and owner defaults captured |
+| 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
 | 4+: semantic vNext implementation | Not started | Must follow accepted RFCs and add failing invariant tests first |
@@ -33,16 +34,18 @@ Implementation authorization adopts the review handoff's recommended defaults:
 `./tool/check.sh all` is the single baseline gate. It covers server packages,
 Workers tests, schemas/migrations/Worker types, generated OpenAPI and Dart API,
 package tarballs and publish dry-runs, Flutter analysis/docs/VM/browser tests,
-the release web build, generated API docs, Docusaurus/LLM output, and a newly
-scaffolded Worker plus Flutter app.
+the imported release web build, generated API docs, Docusaurus/LLM output, and
+a newly scaffolded Worker plus release Android and web Flutter apps built from
+the same platform checkout.
 
 ## External gates
 
-The following require owner action and are deliberately not performed locally:
+The following require repository-owner or deployment action and are deliberately
+not inferred by local implementation:
 
-1. choose the exact default retention duration in RFC 0007;
-2. create/configure the `eigeninteractive/eigen-platform` remote;
-3. migrate publishing identities, Cloudflare builds, pub.dev trusted publishers,
+1. make the first remote platform check green, then protect `main` with that
+   required check;
+2. migrate publishing identities, Cloudflare builds, pub.dev trusted publishers,
    secrets, branch protections, and release automation;
-4. archive or redirect the three original GitHub repositories;
-5. deploy a vNext Worker or publish any package.
+3. archive or redirect the three original GitHub repositories;
+4. deploy a vNext Worker or publish any package.

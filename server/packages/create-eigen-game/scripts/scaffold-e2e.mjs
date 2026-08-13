@@ -24,12 +24,14 @@
 // the check the more useful one: it compiles the templates against the engine
 // about to ship rather than the engine that shipped last.
 //
-// `eigen_flutter` is deliberately NOT overridden. It lives in another
-// repository and nothing here can substitute for it, which is exactly why the
-// pinned range needs a real resolution against pub.dev to mean anything.
+// The generated app first resolves `eigen_flutter` from pub.dev so the emitted
+// range and released compatibility line remain tested. After that assertion,
+// the build is switched to this platform checkout's Flutter and generated Dart
+// packages. That proves the server, client, templates, Android app, and web app
+// from one platform commit work together before any of them is published.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +39,7 @@ import { scaffoldGame } from "../dist/index.js";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(packageRoot, "../..");
+const platformRoot = resolve(workspaceRoot, "..");
 
 const ENGINE_PACKAGES = ["rules", "kernel", "server", "testkit"];
 
@@ -167,16 +170,25 @@ if (speakers.length === 0) {
   );
 }
 
+// The published resolution above checks what a newly scaffolded project gets
+// today. The rest of this gate must check what this monorepo is about to ship.
+// Root dependency overrides apply transitively, so both the Flutter shell and
+// the generated Dart transport are pinned to the same checkout.
+writeFileSync(resolve(appRoot, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join("\n"));
+shell("flutter", ["pub", "get"], appRoot);
+
 // The server half. `contract` already ran during bootstrap; this is the part a
 // game author would run next, and it is what proves the emitted engine range
 // and the template sources agree.
 shell("pnpm", ["run", "typecheck"], serverRoot);
 shell("pnpm", ["run", "test"], serverRoot);
 
-// The app half, against the real published `eigen_flutter`. `analyze` is the
-// check that matters: it resolves every import in the rendered templates and
-// every symbol they call, which is precisely the coupling the pin asserts.
+// The app half, against this platform commit. Analysis and tests cover the Dart
+// contract; release builds also prove both supported platform integrations
+// compile without secrets.
 shell("flutter", ["analyze"], appRoot);
 shell("flutter", ["test"], appRoot);
+shell("flutter", ["build", "apk", "--release", "--dart-define-from-file=app-config.json"], appRoot);
+shell("flutter", ["build", "web", "--release", "--dart-define-from-file=app-config.json"], appRoot);
 
 console.log(`\nScaffolded, built and tested ${root}`);

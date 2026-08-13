@@ -1,0 +1,15 @@
+version: 2
+
+# Component dependencies are released deliberately through Changesets and the
+# Dart package changelog. Keep the CI actions current without mixing automated
+# dependency releases into those workflows.
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "ci"

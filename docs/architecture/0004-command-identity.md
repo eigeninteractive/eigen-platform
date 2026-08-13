@@ -69,16 +69,22 @@ Sign-out or seat loss does not relabel an unknown outcome as failed.
 
 ## Retention
 
-Command records must outlive every automatic/manual retry window and offline
-queue lifetime. After full outcomes expire, a compact tombstone retains
-`principalId`, `commandId`, fingerprint, and expiry boundary long enough to
-prevent an ancient retry from becoming a new mutation. Exact periods are part
-of RFC 0007's retention decision.
+Command records are retained with their authoritative resource. In particular,
+a game's command records and canonical outcomes remain available for the life
+of the game, which RFC 0007 defines as indefinite at vNext launch. This is both
+simpler and safer than guessing an expiry window after which an ancient retry
+could become a new mutation.
+
+If a future accepted retention policy expires or compacts full command
+outcomes, it MUST leave a tombstone containing `principalId`, `commandId`, the
+fingerprint, and the policy boundary for at least every supported retry and
+offline-queue window. That policy change must define how a retry after the
+boundary fails; it may not silently become a new command.
 
 ## Migration sketch
 
 - DO: extend `commands` with principal, operation, resource, fingerprint
-  version/hash, canonical result/problem, commit version, and expiry.
+  version/hash, canonical result/problem, and commit version.
 - D1: add command receipts for D1-authoritative creates/deletes.
 - API: make `commandId` required and remove optional request-ID call paths.
 - Client: migrate pending operations to a versioned queue; discard no unknown

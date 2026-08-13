@@ -1,10 +1,9 @@
 # 0007: replay fidelity, retention, and privacy
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-08-13
-- Owner gate: choose the default finished-game retention duration
 
-## Proposed decision
+## Decision
 
 The authoritative log is an immutable sequence of state snapshots and actions,
 not pure event sourcing. At each committed transition the game Durable Object
@@ -30,53 +29,63 @@ deletion are enforceable. If a real product needs personal content inside game
 data, it requires a new accepted data-classification/redaction contract before
 shipping; a generic JSON redactor is not assumed.
 
-Deleting one account from a multiplayer game anonymizes its engine-owned
-identity without rewriting immutable game facts or exposing another seat's
-private frame. A solo game MAY be purged in full when no other principal has a
-retention interest. Public replay is generated deliberately and never falls
-back to a participant frame.
+Deleting an account anonymizes its engine-owned identity without rewriting
+immutable game facts or exposing another seat's private frame. Initial account
+deletion does not implicitly delete a solo or multiplayer game. Public replay
+is generated deliberately and never falls back to a participant frame.
 
 ## Retention model
 
-The host configures a finished-game retention duration bounded by platform-safe
-minimum and maximum values. One deletion job removes transition state, private
-frames, public replay, command results/tombstones when safe, D1 summaries, and
-object storage consistently, with idempotent progress and operator-visible
-failures.
-
-The recommended default is deliberately left blank until the owner chooses it:
+vNext launches with no time-based expiry for finished games:
 
 ```text
-finishedGameRetentionDays = OWNER_DECISION_REQUIRED
+finishedGameRetention = indefinite
 ```
 
-This is the only unresolved decision preventing this RFC from acceptance. R2
-cold storage is out of scope until measured SQLite/D1 storage or access patterns
-justify it.
+The authoritative transition log, exact private frames, explicit public replay
+frames, command records, and D1 summaries remain until an explicit deletion or
+future accepted retention policy removes the game. "Indefinite" means no
+scheduled product deletion; it is not a promise that the service, an account,
+or a deployment will exist forever.
+
+This is the appropriate pre-production default because there is no measured
+storage pressure or user expectation from which to derive a useful duration.
+It preserves replay, keeps command deduplication unambiguous, and avoids building
+a cross-store deletion workflow against guessed requirements. Per-command,
+per-transition, state-size, frame-size, and replay-page limits still bound one
+game; metrics must make aggregate storage growth visible.
+
+There is no automatic deletion job, expiry column, or cold-storage tier in the
+initial design. If storage cost, access patterns, privacy, or product policy
+later justify deletion or archival, a new accepted decision must define the
+eligibility rule, user-visible behavior, export window, failure recovery, and
+consistent removal across every store before implementation begins.
 
 ## Export and deletion
 
-- Export names policy version, contract ID, visibility class, and expiry.
+- Export names policy version, contract ID, and visibility class.
 - Participant export includes only that principal's exact frames and
   engine-owned identity data.
 - Operator/debug export of authoritative opaque state is privileged, audited,
   time-bounded, and never written to routine logs.
-- Retention expiry and user deletion are retryable workflows with durable
-  cursors; partial deletion is visible and resumes.
+- Account deletion is a retryable anonymization workflow for engine-owned
+  identity/profile data; retained opaque game facts use principal IDs only.
+- Whole-game deletion is not a generic vNext launch API. When it is introduced,
+  it must be retryable, resumable, and visibly consistent across stores.
 
 ## Migration sketch
 
-- DO: retain frames after finish; add public replay frames, expiry, deletion
-  state/cursor, and artifact contract/protocol columns.
-- D1: add policy/expiry/deletion status to game summaries and export requests.
-- API: page replay by item and response-byte limits; expose expiry/policy without
-  private payload metadata.
-- Client: cache carries expiry and visibility; expired replay is an explicit
-  unavailable state rather than an empty game.
+- DO: retain exact frames after finish and add public replay frames plus artifact
+  contract/protocol columns; do not add speculative expiry/deletion state.
+- D1: keep durable game summaries without an expiry field.
+- API: page replay by both item and response-byte limits.
+- Client: cache carries replay visibility; an unavailable or explicitly deleted
+  game is distinct from an empty game.
 
 ## Required proof
 
 Tests must show byte-stable replay across projector changes, correct participant
-and public visibility, anonymization without cross-seat disclosure, complete
-resumable deletion, bounded replay pages, and consistent retirement of code and
-retained artifacts.
+and public visibility, anonymization without cross-seat disclosure, bounded
+replay pages, durable command deduplication, and consistent retirement of code
+while retained artifacts still reference it. A future deletion feature must add
+its own end-to-end resumability and cross-store consistency proofs.

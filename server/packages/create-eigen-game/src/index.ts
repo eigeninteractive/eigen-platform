@@ -178,10 +178,11 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * A stated version, not a derived or resolved one. The Dart templates import
  * `package:eigen_flutter/eigen_flutter.dart` and
  * `package:eigen_flutter/testing/twin_fixtures.dart` and are written against a
- * specific Dart API, and `eigen_flutter` lives in another repository, versioned
- * independently, so nothing in this repository can compute which release that
- * is. Only compiling a scaffolded app establishes it, which is what the
- * `scaffold` job in checks.yml does on every change.
+ * specific Dart API. `eigen_flutter` is published and versioned separately from
+ * this package even though both now live in the platform monorepo, so a source
+ * location cannot compute which released version the template should request.
+ * Only compiling a scaffolded app establishes it, which the platform gate does
+ * on every change.
  *
  * This briefly resolved from pub.dev instead: "the newest `eigen_flutter` whose
  * own `eigen_api` constraint targets the engine line being scaffolded". That

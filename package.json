@@ -2,7 +2,6 @@
   "name": "eigen-platform",
   "private": true,
   "version": "0.0.0",
-  "packageManager": "pnpm@11.20.0",
   "scripts": {
     "check": "./tool/check.sh all",
     "check:server": "./tool/check.sh server",
