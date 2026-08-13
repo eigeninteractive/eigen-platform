@@ -146,9 +146,18 @@ run_web() {
 }
 
 run_scaffold() {
+  local target="${1:-all}"
+  case "$target" in
+    all|android|web) ;;
+    *)
+      echo "usage: $0 scaffold [all|android|web]" >&2
+      return 64
+      ;;
+  esac
+
   cd "$platform_root/server"
   pnpm -r build
-  node packages/create-eigen-game/scripts/scaffold-e2e.mjs
+  node packages/create-eigen-game/scripts/scaffold-e2e.mjs "$target"
 }
 
 case "${1:-all}" in
@@ -156,7 +165,7 @@ case "${1:-all}" in
   server) run_server ;;
   flutter) run_flutter ;;
   web) run_web ;;
-  scaffold) run_scaffold ;;
+  scaffold) run_scaffold "${2:-all}" ;;
   all)
     run_contracts
     run_server

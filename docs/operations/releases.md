@@ -35,9 +35,10 @@ when their own user-visible contents change.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It never bypasses `main` protection.
 - An unprivileged registry-comparison job proves that at least one exact local
-  version is absent before the OIDC-enabled npm job starts. Changesets then
-  resolves workspace ranges and publishes only missing versions, so a retry
-  after a partial upload is safe.
+  version is absent before the platform gate and OIDC-enabled npm job start.
+  A no-op main push therefore finishes quickly. Changesets then resolves
+  workspace ranges and publishes only missing versions, so a retry after a
+  partial upload is safe.
 - Pub.dev tags are package-namespaced because two Dart packages share this
   repository.
 
@@ -149,8 +150,10 @@ published-package diff with neither kind. If only empty markers are pending,
 the release workflow opens a small protected cleanup PR so they cannot block
 later registry detection.
 
-After a Changeset reaches `main`, **Release npm packages** reruns the platform
-gate and opens or refreshes **Release: version npm packages**. The version PR:
+After a Changeset reaches `main`, **Release npm packages** opens or refreshes
+**Release: version npm packages**. It does not duplicate the main-branch gate
+before creating a protected pull request; that version PR runs the complete
+platform gate itself. The version PR:
 
 - consumes pending Changesets and updates package changelogs;
 - stamps and regenerates `eigen_api`;

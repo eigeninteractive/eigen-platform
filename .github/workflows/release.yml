@@ -14,19 +14,84 @@ concurrency:
 permissions: {}
 
 jobs:
+  # Decide whether this push has release work before spending ten minutes on
+  # the platform gate. Version and cleanup pull requests receive their own
+  # protected PR gate; only an irreversible registry upload gates this main
+  # commit again.
+  plan:
+    name: Detect release work
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      has_changesets: ${{ steps.release.outputs.has_changesets }}
+      publish: ${{ steps.release.outputs.publish }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+
+      - name: Compare release state with npm
+        id: release
+        run: |
+          has_changesets=false
+          publish=false
+
+          if find server/.changeset -maxdepth 1 -type f -name '*.md' \
+               ! -name README.md -print -quit | grep -q .; then
+            has_changesets=true
+            echo "::notice::Pending Changesets will be handled by a protected version or cleanup pull request."
+          else
+            while IFS=$'\t' read -r name version; do
+              if result=$(npm view "$name@$version" version --json 2>&1); then
+                echo "::notice::$name@$version is already published."
+              elif grep -q 'E404' <<<"$result"; then
+                echo "::notice::$name@$version is not published."
+                publish=true
+              else
+                echo "::error::Could not query $name@$version on npm."
+                echo "$result"
+                exit 1
+              fi
+            done < <(node <<'NODE'
+            const { readFileSync } = require('node:fs');
+            const manifests = [
+              'server/packages/rules/package.json',
+              'server/packages/kernel/package.json',
+              'server/packages/server/package.json',
+              'server/packages/testkit/package.json',
+              'server/packages/create-eigen-game/package.json',
+            ];
+            for (const manifest of manifests) {
+              const { name, version } = JSON.parse(readFileSync(manifest, 'utf8'));
+              process.stdout.write(`${name}\t${version}\n`);
+            }
+            NODE
+            )
+          fi
+
+          echo "has_changesets=$has_changesets" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
   gate:
     name: Checks
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
     uses: ./.github/workflows/checks.yml
     permissions:
       contents: read
 
   version:
     name: Open or update the version pull request
-    needs: gate
+    needs: plan
+    if: needs.plan.outputs.has_changesets == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      has-changesets: ${{ steps.changesets.outputs.hasChangesets }}
     permissions:
       contents: read
     steps:
@@ -142,63 +207,10 @@ jobs:
               --body "Removes internal-only Changeset markers without changing any package version. Merging lets registry publication detection resume."
           fi
 
-  detect-publish:
-    name: Detect unpublished versions
-    needs: version
-    if: needs.version.outputs.has-changesets == 'false'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    outputs:
-      publish: ${{ steps.registry.outputs.publish }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: server/.nvmrc
-
-      # Exact-version lookups make retries and partially completed releases
-      # safe: Changesets publishes only the local versions npm does not have.
-      - name: Compare package versions with npm
-        id: registry
-        run: |
-          publish=false
-          while IFS=$'\t' read -r name version; do
-            if result=$(npm view "$name@$version" version --json 2>&1); then
-              echo "::notice::$name@$version is already published."
-            elif grep -q 'E404' <<<"$result"; then
-              echo "::notice::$name@$version is not published."
-              publish=true
-            else
-              echo "::error::Could not query $name@$version on npm."
-              echo "$result"
-              exit 1
-            fi
-          done < <(node <<'NODE'
-          const { readFileSync } = require('node:fs');
-          const manifests = [
-            'server/packages/rules/package.json',
-            'server/packages/kernel/package.json',
-            'server/packages/server/package.json',
-            'server/packages/testkit/package.json',
-            'server/packages/create-eigen-game/package.json',
-          ];
-          for (const manifest of manifests) {
-            const { name, version } = JSON.parse(readFileSync(manifest, 'utf8'));
-            process.stdout.write(`${name}\t${version}\n`);
-          }
-          NODE
-          )
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
-
   publish:
     name: Publish to npm
-    needs: detect-publish
-    if: needs.detect-publish.outputs.publish == 'true'
+    needs: [plan, gate]
+    if: needs.plan.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20

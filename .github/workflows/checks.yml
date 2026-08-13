@@ -14,7 +14,48 @@ permissions:
   contents: read
 
 jobs:
+  scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      full: ${{ steps.classify.outputs.full }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # A narrow documentation-only fast lane keeps ordinary docs iteration
+      # quick. Every non-PR invocation and every unknown path fails closed to
+      # the complete platform gate used by release workflows.
+      - name: Classify the change scope
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          full=true
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$BASE_SHA" ]; then
+            mapfile -t changed < <(git diff --name-only "$BASE_SHA"...HEAD)
+            if [ "${#changed[@]}" -gt 0 ]; then
+              full=false
+              for path in "${changed[@]}"; do
+                case "$path" in
+                  web/*|docs/*|LICENSE) ;;
+                  *.md)
+                    if [[ "$path" == */* ]]; then
+                      full=true
+                      break
+                    fi
+                    ;;
+                  *) full=true; break ;;
+                esac
+              done
+            fi
+          fi
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+
   contracts:
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -28,44 +69,52 @@ jobs:
         run: ./tool/check.sh contracts
 
   server:
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        if: needs.scope.outputs.full == 'true'
         with:
           fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
+        if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
       - uses: actions/setup-node@v7
+        if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
       - uses: actions/setup-java@v5.7.0
+        if: needs.scope.outputs.full == 'true'
         with:
           distribution: temurin
           java-version: "21"
 
       - uses: dart-lang/setup-dart@v1
+        if: needs.scope.outputs.full == 'true'
         with:
           sdk: stable
 
       - name: Install server dependencies
+        if: needs.scope.outputs.full == 'true'
         working-directory: server
         run: pnpm install --frozen-lockfile
 
       - name: Check server packages and generated API
+        if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh server
 
       # A published npm package can otherwise change without ever entering the
       # Changesets release queue. The version PR consumes its changesets, so it
       # is the one intentional exception.
       - name: Published npm changes have release notes
-        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
+        if: needs.scope.outputs.full == 'true' && github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
         working-directory: server
         run: |
           pnpm changeset status --since=origin/main || {
@@ -73,22 +122,35 @@ jobs:
             exit 1
           }
 
+      - name: Documentation-only change
+        if: needs.scope.outputs.full != 'true'
+        run: echo "Server checks are covered by the documentation build for this scoped change."
+
   flutter:
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+        if: needs.scope.outputs.full == 'true'
 
       - uses: subosito/flutter-action@v2
+        if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
           channel: stable
           cache: true
 
       - name: Check the Flutter package and example
+        if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh flutter
 
+      - name: Documentation-only change
+        if: needs.scope.outputs.full != 'true'
+        run: echo "Flutter sources are unchanged."
+
   web:
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -118,45 +180,66 @@ jobs:
         run: ./tool/check.sh web
 
   scaffold:
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [android, web]
     steps:
       - uses: actions/checkout@v7
+        if: needs.scope.outputs.full == 'true'
 
       - uses: pnpm/action-setup@v6
+        if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
       - uses: actions/setup-node@v7
+        if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
       - uses: subosito/flutter-action@v2
+        if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
           channel: stable
           cache: true
 
       - uses: actions/setup-java@v5.7.0
+        if: needs.scope.outputs.full == 'true' && matrix.target == 'android'
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            flutter/.fvmrc
+            flutter/pubspec.lock
+            server/packages/create-eigen-game/templates/app-overlay/android/**
 
       - name: Install server dependencies
+        if: needs.scope.outputs.full == 'true'
         working-directory: server
         run: pnpm install --frozen-lockfile
 
       - name: Check a newly scaffolded game
-        run: ./tool/check.sh scaffold
+        if: needs.scope.outputs.full == 'true'
+        run: ./tool/check.sh scaffold "${{ matrix.target }}"
+
+      - name: Documentation-only change
+        if: needs.scope.outputs.full != 'true'
+        run: echo "Scaffold sources are unchanged."
 
   # Keep this stable job name: main branch protection requires `check`, while
   # the expensive work above is free to run in parallel.
   check:
     name: check
     if: always()
-    needs: [contracts, server, flutter, web, scaffold]
+    needs: [scope, contracts, server, flutter, web, scaffold]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
