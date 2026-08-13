@@ -161,11 +161,12 @@ gate and opens or refreshes **Release: version npm packages**. The version PR:
 
 Review and merge that PR to publish. The next `main` run compares every exact
 local version with npm, then publishes the missing versions automatically. If
-the engine group published, it creates `eigen_api-vX.Y.Z`; **Publish
-eigen_api** reruns the platform gate and publishes the generated client
-automatically.
+the matching `eigen_api-vX.Y.Z` tag does not exist, the publish job creates it
+after verifying that exact server version is on npm. **Publish eigen_api** then
+reruns the platform gate and publishes the generated client automatically.
 
-A scaffolder-only release does not create an `eigen_api` tag.
+A scaffolder-only release does not create a new client version; it only verifies
+that the tag for the current engine already exists.
 
 When the engine crosses a documentation release line, the version PR is
 expected to fail `check-docs-version`. Before merging, deliberately choose one:
