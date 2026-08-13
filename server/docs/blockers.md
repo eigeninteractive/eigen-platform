@@ -15,51 +15,39 @@ the entry: it says how stale the assessment is, so refresh it whenever you look,
 even when nothing has changed.
 
 - [`eigen-server`](#eigen-server)
-  - [`changesets/action` pinned after v2 for nested-workspace support](#changesetsaction-pinned-after-v2-for-nested-workspace-support)
+  - [`changesets/action` v2 lacks executable nested-workspace support](#changesetsaction-v2-lacks-executable-nested-workspace-support)
 - [`eigen-flutter`](#eigen-flutter)
   - [Flutter Android built-in Kotlin migration](#flutter-android-built-in-kotlin-migration)
   - [FlutterFire Firebase Installation ID registration API](#flutterfire-firebase-installation-id-registration-api)
 
 ## `eigen-server`
 
-### `changesets/action` pinned after v2 for nested-workspace support
+### `changesets/action` v2 lacks executable nested-workspace support
 
-**Status:** Bounded upstream wait. The root `release.yml` pins all four
-sub-actions to `da1ea291ef93203a08fad360eac36f4858dd0514`. Stable `v2.0.0` was
-published on 2026-08-11, but its sub-actions have no `cwd` input and therefore
-cannot operate on this monorepo's nested `server/` workspace. The pinned commit
-adds that input. Last checked: 2026-08-13.
+**Status:** Bounded upstream wait. Root `release.yml` pins the official stable
+v1.9.0 action (`a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d`) and stable
+`@changesets/cli` 3.0.0. Stable action v2.0.0 was published on 2026-08-11, but
+its sub-actions have no `cwd` input and therefore cannot operate on this
+monorepo's nested `server/` workspace. Upstream added the input on 2026-08-12,
+but that source revision has no committed `dist/*.js`; pinning it makes GitHub
+fail before any action code runs. Last checked: 2026-08-13.
 
-These sub-actions keep versioning, unprivileged packing, and OIDC publishing in
-separate jobs. The pin is an immutable official Changesets commit, so upstream
-movement cannot change a release underneath us. There is no npm credential in
-the pipeline.
-
-The untagged-commit risk is bounded rather than absent:
-
-- **Pinned by commit, so it cannot shift underneath us.** The usual hazard of a
-  `next` line does not apply.
-- **Failure is fail-safe.** `gate` precedes everything and `pack` holds no
-  credentials, so a broken run publishes nothing rather than publishing
-  something wrong.
-
-This pin has a second half. `@changesets/cli` is pinned to `3.0.0-next.10`
-because `select-mode` calls `changeset publish-plan`, which does not exist on
-the stable 2.x line. Both move together or neither does, and `next.4` now
-*enforces* that, failing outright against a v2 CLI and directing those projects
-to `changesets/action@v1`. The CLI has not stabilised either: `latest` is
-`2.31.1` and `next` is `3.0.0-next.11`.
+The stable v1 action already understands `cwd`, GitHub App tokens, GitHub API
+commit mode, CLI 3, and npm trusted publishing. The workflow keeps its two
+paths in separate jobs: version-PR creation has no OIDC permission or registry
+environment, while publishing runs only after an unprivileged exact-version
+registry check and the protected `npm` environment approval. There is no npm
+credential in the pipeline.
 
 #### Unblock and remove
 
-1. Confirm a tagged `changesets/action` release includes `cwd` on all four
-   sub-actions.
-2. Diff the sub-action inputs against root `release.yml`.
-3. Replace the four pins with that tag's immutable commit.
-4. Move `@changesets/cli` to the matching stable release, and confirm
-   `changeset publish-plan` exists there before dropping the prerelease pin.
-5. Verify with a real release, not a dry run. The publish path is the one that
-   cannot be exercised any other way.
+1. Confirm a tagged `changesets/action` release includes `cwd` and committed
+   executable bundles for `select-mode`, `version`, `pack`, and `publish`.
+2. Diff the sub-action inputs and outputs against root `release.yml`.
+3. Restore separate select, version, unprivileged pack, and publish jobs using
+   that tag's immutable commit.
+4. Verify with a real release, not a dry run. The publish path is the one that
+   cannot be exercised completely any other way.
 
 #### Related constraints that are NOT blockers
 

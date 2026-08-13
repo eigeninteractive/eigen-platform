@@ -32,8 +32,10 @@ when their own user-visible contents change.
   before an irreversible upload.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It never bypasses `main` protection.
-- npm workspace ranges are resolved in an unprivileged pack job. Only the
-  already-packed artifacts reach the OIDC-enabled upload job.
+- An unprivileged registry-comparison job proves that at least one exact local
+  version is absent before GitHub requests approval for the OIDC-enabled npm
+  job. Changesets then resolves workspace ranges and publishes only missing
+  versions, so a retry after a partial upload is safe.
 - Pub.dev tags are package-namespaced because two Dart packages share this
   repository.
 
@@ -141,7 +143,9 @@ pnpm changeset
 ```
 
 For an internal-only change, use `pnpm changeset --empty`. CI rejects a
-published-package diff with neither kind.
+published-package diff with neither kind. If only empty markers are pending,
+the release workflow opens a small protected cleanup PR so they cannot block
+later registry detection.
 
 After a Changeset reaches `main`, **Release npm packages** reruns the platform
 gate and opens or refreshes **Release: version npm packages**. The version PR:
@@ -151,10 +155,11 @@ gate and opens or refreshes **Release: version npm packages**. The version PR:
 - regenerates the OpenAPI and TypeScript documentation;
 - updates `platform.json`.
 
-Review and merge that PR to publish. The next `main` run packs and publishes to
-npm after the `npm` environment approval. If the engine group published, it
-creates `eigen_api-vX.Y.Z`; **Publish eigen_api** reruns the platform gate and
-publishes the generated client after the `pub.dev` environment approval.
+Review and merge that PR to publish. The next `main` run compares every exact
+local version with npm, then publishes the missing versions after the `npm`
+environment approval. If the engine group published, it creates
+`eigen_api-vX.Y.Z`; **Publish eigen_api** reruns the platform gate and publishes
+the generated client after the `pub.dev` environment approval.
 
 A scaffolder-only release does not create an `eigen_api` tag.
 
