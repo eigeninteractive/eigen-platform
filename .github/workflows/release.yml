@@ -84,6 +84,36 @@ jobs:
           commit: "Version npm packages"
           commitMode: github-api
 
+      # Changesets intentionally commits only files under its `cwd`. Our
+      # version script also regenerates platform.json and web references, so
+      # carry that reviewed cross-workspace diff onto the same release branch.
+      - name: Complete the version pull request
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          patch="$RUNNER_TEMP/platform-version.patch"
+          git diff --binary -- platform.json web > "$patch"
+          [ -s "$patch" ] || {
+            echo "::error::Versioning produced no root or documentation diff."
+            exit 1
+          }
+
+          git restore --source=HEAD --staged --worktree .
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git fetch "$remote" changeset-release/main
+          git switch --force-create changeset-release/main FETCH_HEAD
+          git apply "$patch"
+
+          node tool/platform.mjs --check
+          pnpm --dir web check-docs-version
+
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+          git add platform.json web
+          git commit -m "Regenerate platform release references"
+          git push "$remote" HEAD:changeset-release/main
+
       # The stable action intentionally declines to open a PR when every
       # pending Changeset is empty. Consume those markers in the same protected
       # release branch so they cannot permanently block future detection.
