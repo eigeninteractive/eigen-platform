@@ -69,9 +69,10 @@ class GameSession {
   /// finished or aborted game is absorbing, so such a snapshot needs no
   /// ordering, and the abort teardown drops the storage `seq` lived in, so a
   /// re-initialised object legitimately reports a lower one.
-  bool supersededBy(Session next) =>
-      next.seq > seq ||
-      (!isTerminal &&
-          (next.status == GameStatus.finished ||
-              next.status == GameStatus.aborted));
+  bool supersededBy(Session next) {
+    final nextIsTerminal =
+        next.status == GameStatus.finished || next.status == GameStatus.aborted;
+    if (isTerminal) return nextIsTerminal && next.seq > seq;
+    return nextIsTerminal || next.seq > seq;
+  }
 }

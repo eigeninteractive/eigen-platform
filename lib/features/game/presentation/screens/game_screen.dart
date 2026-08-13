@@ -357,7 +357,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
     try {
       final seat = _mySeat();
-      if (seat == null) return ActionSubmitResult.rejected;
+      if (seat == null) {
+        if (mounted) setState(() => _pendingAction = null);
+        return ActionSubmitResult.rejected;
+      }
       await ref
           .read(gameRepositoryProvider)
           .submitAction(
@@ -434,7 +437,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     setState(() => _pendingAction = _PendingAction.forfeiting);
     try {
       final seat = _mySeat();
-      if (seat == null) return;
+      if (seat == null) {
+        if (mounted) setState(() => _pendingAction = null);
+        return;
+      }
       await ref
           .read(gameRepositoryProvider)
           .forfeitGame(gameId: widget.gameId, seat: seat);

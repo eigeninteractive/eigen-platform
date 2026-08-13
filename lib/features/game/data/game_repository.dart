@@ -24,6 +24,29 @@ const activeGamesBucket = 'active';
 /// Games that have ended - the history list.
 const finishedGamesBucket = 'finished';
 
+void _validateGapFrames(
+  List<Frame> frames, {
+  required int from,
+  required int to,
+}) {
+  final expectedCount = to - from + 1;
+  if (frames.length != expectedCount) {
+    throw StateError(
+      'Incomplete frame gap: expected $expectedCount frames for $from..$to, '
+      'received ${frames.length}',
+    );
+  }
+  for (var offset = 0; offset < frames.length; offset++) {
+    final expectedVersion = from + offset;
+    if (frames[offset].version != expectedVersion) {
+      throw StateError(
+        'Invalid frame gap: expected version $expectedVersion, '
+        'received ${frames[offset].version}',
+      );
+    }
+  }
+}
+
 /// Everything a client does to a game: discovery, the waiting room, moves, and
 /// the live frame feed.
 ///
@@ -400,7 +423,11 @@ class GameRepository {
       final from = current.version;
       final to = next.version;
       if (from != null && to != null && to > from + 1) {
-        for (final gap in await getFrames(gameId, from: from + 1, to: to - 1)) {
+        final gapFrom = from + 1;
+        final gapTo = to - 1;
+        final gaps = await getFrames(gameId, from: gapFrom, to: gapTo);
+        _validateGapFrames(gaps, from: gapFrom, to: gapTo);
+        for (final gap in gaps) {
           if (controller.isClosed) return;
           final latest = held;
           if (latest == null || gap.version <= (latest.version ?? -1)) continue;

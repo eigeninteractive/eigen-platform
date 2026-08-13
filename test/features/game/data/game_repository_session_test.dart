@@ -124,19 +124,29 @@ class _ScriptedSocket implements GameSocket {
   );
 }
 
-/// Everything the stream emitted, in order.
-Future<List<GameSession>> _emitted(
+Future<({List<GameSession> sessions, List<Object> errors})> _captured(
   Stream<GameSession> stream,
   Future<void> Function() drive,
 ) async {
   final seen = <GameSession>[];
-  final sub = stream.listen(seen.add);
+  final errors = <Object>[];
+  final sub = stream.listen(seen.add, onError: errors.add);
   await drive();
   // Drain the asynchronous stream/Dio pipeline without depending on wall-clock
   // timing, which becomes flaky when the test runner executes many suites.
   await pumpEventQueue();
   await sub.cancel();
-  return seen;
+  return (sessions: seen, errors: errors);
+}
+
+/// Everything the stream emitted, in order, for a successful pipeline.
+Future<List<GameSession>> _emitted(
+  Stream<GameSession> stream,
+  Future<void> Function() drive,
+) async {
+  final captured = await _captured(stream, drive);
+  check(captured.errors).isEmpty();
+  return captured.sessions;
 }
 
 void main() {
@@ -176,6 +186,35 @@ void main() {
 
     check(seen.map((s) => s.version)).deepEquals([0, 1, 2, 3, 4]);
     check(t.adapter.requests).deepEquals([(from: 1, to: 3)]);
+  });
+
+  test(
+    'rejects an incomplete gap before applying any recovered frame',
+    () async {
+      final t = _build(available: [1, 3]);
+
+      final captured = await _captured(t.repo.sessions('g'), () async {
+        t.socket.emit(_session(seq: 1, version: 0));
+        t.socket.emit(_session(seq: 5, version: 4));
+      });
+
+      check(captured.sessions.map((s) => s.version)).deepEquals([0]);
+      check(captured.errors).length.equals(1);
+      check(captured.errors.single).isA<StateError>();
+    },
+  );
+
+  test('rejects out-of-order gap frames before applying them', () async {
+    final t = _build(available: [2, 1, 3]);
+
+    final captured = await _captured(t.repo.sessions('g'), () async {
+      t.socket.emit(_session(seq: 1, version: 0));
+      t.socket.emit(_session(seq: 5, version: 4));
+    });
+
+    check(captured.sessions.map((s) => s.version)).deepEquals([0]);
+    check(captured.errors).length.equals(1);
+    check(captured.errors.single).isA<StateError>();
   });
 
   test('holds the envelope still while a gap plays out', () async {
@@ -237,6 +276,33 @@ void main() {
     });
 
     check(seen.map((s) => s.status.name)).deepEquals(['active', 'aborted']);
+  });
+
+  test(
+    'does not resurrect a terminal game with a later active snapshot',
+    () async {
+      final t = _build();
+
+      final seen = await _emitted(t.repo.sessions('g'), () async {
+        t.socket.emit(_session(seq: 4, status: 'active', version: 3));
+        t.socket.emit(_session(seq: 5, status: 'finished', version: 4));
+        t.socket.emit(_session(seq: 6, status: 'active', version: 5));
+      });
+
+      check(seen.map((s) => s.status.name)).deepEquals(['active', 'finished']);
+      check(seen.map((s) => s.seq)).deepEquals([4, 5]);
+    },
+  );
+
+  test('accepts a newer terminal snapshot after finishing', () async {
+    final t = _build();
+
+    final seen = await _emitted(t.repo.sessions('g'), () async {
+      t.socket.emit(_session(seq: 4, status: 'finished', version: 3));
+      t.socket.emit(_session(seq: 5, status: 'finished', version: 4));
+    });
+
+    check(seen.map((s) => s.seq)).deepEquals([4, 5]);
   });
 
   test('an injected session renders without waiting for the socket', () async {
