@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eigeninteractive.com/schemas/platform-manifest.json",
+  "type": "object",
+  "required": ["platform", "importedAt", "components"],
+  "properties": {
+    "platform": { "type": "string", "minLength": 1 },
+    "importedAt": { "type": "string", "format": "date" },
+    "components": {
+      "type": "object",
+      "required": ["server", "flutter", "web"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["path", "sourceRepository", "baseCommit", "importCommit"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "sourceRepository": { "type": "string", "format": "uri" },
+          "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "importCommit": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" }
+        }
+      }
+    }
+  }
+}

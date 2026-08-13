@@ -1,0 +1,29 @@
+{
+  "$schema": "./tool/platform.schema.json",
+  "platform": "vnext-dev",
+  "importedAt": "2026-08-13",
+  "components": {
+    "server": {
+      "path": "server",
+      "sourceRepository": "https://github.com/eigeninteractive/eigen-server.git",
+      "baseCommit": "2cac83c27d3ecf85f553b998106c3626997f9310",
+      "importCommit": "1b77ba7",
+      "enginePackages": "0.4.0",
+      "scaffolder": "0.11.0"
+    },
+    "flutter": {
+      "path": "flutter",
+      "sourceRepository": "https://github.com/eigeninteractive/eigen-flutter.git",
+      "baseCommit": "95fe8c196a192b635ad2cbc8ec58f97a17c47dca",
+      "importCommit": "4619173",
+      "package": "0.6.0"
+    },
+    "web": {
+      "path": "web",
+      "sourceRepository": "https://github.com/eigeninteractive/eigen-web.git",
+      "baseCommit": "6fdadef77dceed34825254dc45f694bf5e53b671",
+      "importCommit": "0a45cf2",
+      "docsLine": "0.4.x"
+    }
+  }
+}
