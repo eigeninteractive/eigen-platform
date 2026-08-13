@@ -1,0 +1,35 @@
+# Keep this aligned with .gitignore. Pub uses this file instead of .gitignore
+# when it exists; omitting an exclusion can therefore publish local output or
+# credentials even when Git correctly ignores them.
+
+.dart_tool/
+.flutter-plugins-dependencies
+.packages
+build/
+pubspec.lock
+
+.idea/
+*.iml
+.DS_Store
+
+*.log
+custom_lint.log
+
+.env
+.env.*
+!.env.example
+lib/firebase_options.dart
+firebase.json
+android/app/google-services.json
+android/key.properties
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Same-revision monorepo wiring is a development concern, not package content.
+pubspec_overrides.yaml
+example/pubspec_overrides.yaml

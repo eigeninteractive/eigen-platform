@@ -149,9 +149,10 @@ only guarantees the next release diff is noisy again.
 `build_runner` on dependencies, and the committed output lets code generation
 plus a clean-diff check detect drift.
 
-Publishing falls back to `.gitignore`; no `.pubignore` is needed. Adding an
-incomplete `.pubignore` would replace, rather than extend, `.gitignore` and
-could accidentally include credentials.
+Publishing uses `.pubignore`, which mirrors the repository's local-output and
+credential exclusions while also excluding the tracked monorepo dependency
+overrides. Pub replaces rather than extends `.gitignore` when that file exists,
+so keep the two lists aligned when adding an exclusion.
 
 ## Documentation changes
 

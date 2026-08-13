@@ -7,7 +7,9 @@ agree in the same commit.
 
 ## Setup
 
-Use Node and Flutter versions from `server/.nvmrc` and `flutter/.fvmrc`, then:
+Use Node and Flutter versions from `server/.nvmrc` and `flutter/.fvmrc`. Dart
+API regeneration also needs a JDK 21; CI installs Temurin, and Android Studio's
+bundled JDK is suitable locally. Then install dependencies:
 
 ```bash
 (cd server && pnpm install --frozen-lockfile)

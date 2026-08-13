@@ -27,7 +27,7 @@ check_changelog_links() {
   local changelog="$platform_root/flutter/CHANGELOG.md"
   local missing=0
 
-  if grep -q '^## \\[' "$changelog"; then
+  if grep -Fq '## \[' "$changelog"; then
     echo "Flutter changelog contains an escaped section heading" >&2
     return 1
   fi
@@ -76,6 +76,13 @@ run_server() {
   dart pub publish --dry-run
 
   cd "$platform_root/server"
+  local pack_dir
+  pack_dir="$(mktemp -d)"
+  pnpm --filter @eigeninteractive/rules pack --pack-destination "$pack_dir"
+  pnpm --filter @eigeninteractive/kernel pack --pack-destination "$pack_dir"
+  pnpm --filter @eigeninteractive/server pack --pack-destination "$pack_dir"
+  pnpm --filter @eigeninteractive/testkit pack --pack-destination "$pack_dir"
+  pnpm --filter create-eigen-game pack --pack-destination "$pack_dir"
   pnpm --filter @eigeninteractive/rules publish --dry-run --no-git-checks
   pnpm --filter @eigeninteractive/kernel publish --dry-run --no-git-checks
   pnpm --filter @eigeninteractive/server publish --dry-run --no-git-checks
@@ -89,19 +96,19 @@ run_flutter() {
   flutter pub get
   dart format --output=none --set-exit-if-changed \
     $(git ls-files '*.dart' ':!:**/*.g.dart' ':!:**/*.freezed.dart' | sed 's#^flutter/##')
-  dart run build_runner build --delete-conflicting-outputs
+  dart run build_runner build
   dart fix --apply
   assert_no_drift "Flutter code generation" flutter
   flutter analyze
   dart doc --dry-run .
   flutter test
+  flutter test --platform chrome test/core/api/game_socket_test.dart
 
   cd example
   flutter pub get
   dart format --output=none --set-exit-if-changed .
   flutter analyze
   flutter test
-  flutter test --platform chrome test/core/api/game_socket_test.dart
   flutter build web --release --dart-define-from-file=app-config.json
   test -f build/web/assets/packages/eigen_flutter/assets/vendor/cropperjs/cropper.min.js
 
