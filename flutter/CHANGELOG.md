@@ -15,6 +15,12 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
+### Changed
+- Package source, issue, changelog, and release links now point at the unified
+  `eigen-platform` repository. Future releases use namespaced
+  `eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
+  artifacts.
+
 ### Fixed
 - A delayed active snapshot with a higher sequence can no longer resurrect a
   finished or aborted game. Newer terminal snapshots still apply so post-finish
@@ -189,7 +195,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/v0.6.0...HEAD
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1

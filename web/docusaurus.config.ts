@@ -4,7 +4,7 @@ import { themes as prismThemes } from "prism-react-renderer";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
-const GITHUB = "https://github.com/eigeninteractive/eigen-server";
+const GITHUB = "https://github.com/eigeninteractive/eigen-platform";
 
 const config: Config = {
   title: "EigenInteractive",
@@ -167,7 +167,7 @@ const config: Config = {
           sidebarPath: "./sidebars.ts",
           // Every doc page is authored here, since this site is the source of
           // truth for the documentation, so "edit this page" points at it.
-          editUrl: "https://github.com/eigeninteractive/eigen-web/tree/main/",
+          editUrl: "https://github.com/eigeninteractive/eigen-platform/tree/main/web/",
           // The OpenAPI theme swizzles the doc item to render request/response
           // panels. Non-API pages render exactly as before.
           docItemComponent: "@theme/ApiItem",

@@ -18,6 +18,6 @@ halves), `/docs/build-a-game/the-contract.md` (the rules contract),
 There is also a Claude Code skill for writing game rules:
 
 ```
-/plugin marketplace add eigeninteractive/eigen-server
+/plugin marketplace add eigeninteractive/eigen-platform
 /plugin install eigen@eigeninteractive
 ```

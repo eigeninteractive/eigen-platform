@@ -74,7 +74,7 @@ const END = "{/* /generated:compatibility-table */}";
 
 // pub.dev asks clients to identify themselves, and an unattributed script
 // hammering the API is the kind of thing that gets a User-Agent blocked.
-const USER_AGENT = "eigen-web-sync-compatibility (+https://github.com/eigeninteractive/eigen-web)";
+const USER_AGENT = "eigen-platform-sync-compatibility (+https://github.com/eigeninteractive/eigen-platform)";
 
 /**
  * The compatibility line a caret protects: the minor while pre-1.0, the major

@@ -172,7 +172,7 @@ The RPS twin fixture is maintained in both engine repositories:
 
 ```text
 examples/rps/src/module/fixtures/v1/rps.json
-eigen-flutter/example/fixtures/v1/rps.json
+flutter/example/fixtures/v1/rps.json
 ```
 
 A rules change that affects fixtures must update both copies. The `obs` field is
@@ -182,7 +182,7 @@ identical.
 ## Documentation changes
 
 Public behavior belongs in the task-first guides in
-[`eigen-web`](https://github.com/eigeninteractive/eigen-web), with the
+[`../web`](../web), with the
 TypeScript and Dart halves on the same page. Package API detail belongs in
 TSDoc on the exported declaration so `pnpm sync-api` can regenerate the
 reference.

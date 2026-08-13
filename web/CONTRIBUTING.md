@@ -85,10 +85,9 @@ barrels, normalises the filenames TypeDoc derives from module names, and runs
 `gen-api-docs`. Committing the output is what lets the site build without the
 sibling repo, and keeps a Cloudflare-side build possible.
 
-It usually runs for you: eigen-server dispatches to this repo when its public
-surface changes, and `.github/workflows/sync-api.yml` regenerates and opens a
-PR. Review that PR for unintended public-surface changes; it *is* the
-notification that the engine's API moved.
+It also runs as part of the root Changesets version command, so an engine
+version pull request carries the exact API reference it will publish. The
+whole-platform gate regenerates and diffs it on every pull request.
 
 Both generated directories are excluded from Biome; formatting them would only
 churn the next regeneration.

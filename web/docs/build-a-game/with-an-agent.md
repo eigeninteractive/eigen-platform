@@ -17,7 +17,7 @@ instead of recalling a version of the engine that no longer exists.
 The engine repository is a plugin marketplace. Install it once:
 
 ```text
-/plugin marketplace add eigeninteractive/eigen-server
+/plugin marketplace add eigeninteractive/eigen-platform
 /plugin install eigen@eigeninteractive
 ```
 

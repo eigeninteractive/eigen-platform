@@ -27,7 +27,7 @@ export const games: Game[] = [
     tagline: "The reference game",
     description: "Simultaneous commitment with hidden information, the engine's hardest-case-first example, shipped as `examples/rps`. Both seats commit each round; neither sees the other's move until both have played.",
     emoji: "✊",
-    source: "https://github.com/eigeninteractive/eigen-server/tree/main/examples/rps",
+    source: "https://github.com/eigeninteractive/eigen-platform/tree/main/server/examples/rps",
     status: "live",
   },
 ];

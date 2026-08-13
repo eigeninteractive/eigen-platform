@@ -2,12 +2,12 @@
   "name": "eigen",
   "displayName": "EigenInteractive",
   "description": "Skills for building turn-based multiplayer games on the EigenInteractive engine.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": {
     "name": "EigenInteractive"
   },
   "homepage": "https://eigeninteractive.com/docs/intro",
-  "repository": "https://github.com/eigeninteractive/eigen-server",
+  "repository": "https://github.com/eigeninteractive/eigen-platform",
   "license": "MIT",
   "keywords": ["eigen", "game-engine", "turn-based", "multiplayer", "cloudflare-workers", "durable-objects"]
 }

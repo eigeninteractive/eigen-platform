@@ -46,7 +46,7 @@ function HomepageHeader() {
         <div className="row margin-top--xl">
           <div className="col col--6 col--offset-3 text--left">
             <CodeBlock language="bash">pnpm create eigen-game my-game</CodeBlock>
-            <CodeBlock language="text">{"/plugin marketplace add eigeninteractive/eigen-server\n/plugin install eigen@eigeninteractive"}</CodeBlock>
+            <CodeBlock language="text">{"/plugin marketplace add eigeninteractive/eigen-platform\n/plugin install eigen@eigeninteractive"}</CodeBlock>
           </div>
         </div>
       </div>

@@ -15,56 +15,33 @@ the entry: it says how stale the assessment is, so refresh it whenever you look,
 even when nothing has changed.
 
 - [`eigen-server`](#eigen-server)
-  - [`changesets/action` sub-actions pinned to a prerelease](#changesetsaction-sub-actions-pinned-to-a-prerelease)
+  - [`changesets/action` pinned after v2 for nested-workspace support](#changesetsaction-pinned-after-v2-for-nested-workspace-support)
 - [`eigen-flutter`](#eigen-flutter)
   - [Flutter Android built-in Kotlin migration](#flutter-android-built-in-kotlin-migration)
   - [FlutterFire Firebase Installation ID registration API](#flutterfire-firebase-installation-id-registration-api)
 
 ## `eigen-server`
 
-### `changesets/action` sub-actions pinned to a prerelease
+### `changesets/action` pinned after v2 for nested-workspace support
 
-**Status:** Adopted deliberately. `release.yml` pins the `select-mode`,
-`version`, `pack` and `publish` sub-actions to commit
-`c47fa68bd43bb8ae0bae7e558622593deebf5955` (`v2.0.0-next.3`). Move to a stable
-`v2` tag when one is published. Last checked: 2026-08-05, still none. The line
-advanced to `v2.0.0-next.4` on 2026-08-03; the newest non-prerelease is
-`v1.9.0`.
+**Status:** Bounded upstream wait. The root `release.yml` pins all four
+sub-actions to `da1ea291ef93203a08fad360eac36f4858dd0514`. Stable `v2.0.0` was
+published on 2026-08-11, but its sub-actions have no `cwd` input and therefore
+cannot operate on this monorepo's nested `server/` workspace. The pinned commit
+adds that input. Last checked: 2026-08-13.
 
-These sub-actions are the only way to publish to npm with **trusted publishing**
-(OIDC), which is why they were adopted before the stable release. The
-alternative was an `NPM_TOKEN`: npm revoked classic tokens on 2025-12-09 and
-caps granular write tokens at a 90-day lifetime, so a token would have meant a
-quarterly rotation plus enabling **Bypass 2FA** on the publishing account. There
-is now no npm credential anywhere in the pipeline.
+These sub-actions keep versioning, unprivileged packing, and OIDC publishing in
+separate jobs. The pin is an immutable official Changesets commit, so upstream
+movement cannot change a release underneath us. There is no npm credential in
+the pipeline.
 
-That alternative is also closing. npm [restricted bypass-2FA
-tokens][npm-bypass-restrict] on 2026-07-31 and has announced that they lose
-direct publish access in January 2027. Trusted publishing is becoming the only
-supported way to publish from CI, so this is not a preference to revisit;
-only the pinned prerelease below is.
-
-The prerelease risk is bounded rather than absent:
+The untagged-commit risk is bounded rather than absent:
 
 - **Pinned by commit, so it cannot shift underneath us.** The usual hazard of a
   `next` line does not apply.
-- **Changesets runs this exact layout in production** to publish its own
-  packages: 52 of its last 60 runs succeeded when checked.
-- **The failures observed upstream were in pre-mode handling**
-  (`ENOENT: .changeset/pre/changes.md` in `select-mode`), which only executes
-  after `changeset pre enter`. This repo does not use prerelease mode.
 - **Failure is fail-safe.** `gate` precedes everything and `pack` holds no
   credentials, so a broken run publishes nothing rather than publishing
   something wrong.
-
-The known cost is that inputs are still moving: v1's `version:` input is already
-renamed to `script:` on this line, and `next.4` removed `setup-git-user` and
-replaced `commit-mode` with a boolean `push-with-git-cli`. Neither reaches
-`release.yml`, which passes only `github-token`, the one input `next.4` now
-requires to be explicit, since it stops accepting the `GITHUB_TOKEN` environment
-variable and `actions/checkout` credentials as substitutes. Expect input
-adjustments when migrating to stable, not a re-architecture: the four-job
-topology is the part being bought, and that is settled.
 
 This pin has a second half. `@changesets/cli` is pinned to `3.0.0-next.10`
 because `select-mode` calls `changeset publish-plan`, which does not exist on
@@ -75,11 +52,10 @@ to `changesets/action@v1`. The CLI has not stabilised either: `latest` is
 
 #### Unblock and remove
 
-1. Confirm a **stable** `changesets/action@v2` release exists, with a floating
-   `v2` ref and published documentation (the prerelease shipped with neither).
-2. Diff the sub-action `action.yml` inputs against what `release.yml` passes;
-   rename as needed.
-3. Replace the four pinned commits with the stable ref.
+1. Confirm a tagged `changesets/action` release includes `cwd` on all four
+   sub-actions.
+2. Diff the sub-action inputs against root `release.yml`.
+3. Replace the four pins with that tag's immutable commit.
 4. Move `@changesets/cli` to the matching stable release, and confirm
    `changeset publish-plan` exists there before dropping the prerelease pin.
 5. Verify with a real release, not a dry run. The publish path is the one that
@@ -243,8 +219,8 @@ without changing the notification service or game implementor API.
 [in-app-review]: https://pub.dev/packages/in_app_review
 [flutterfire-issue]: https://github.com/firebase/flutterfire/issues/18479
 [flutterfire-pr]: https://github.com/firebase/flutterfire/pull/18482
-[registration-adapter]: https://github.com/eigeninteractive/eigen-flutter/blob/main/lib/core/notifications/firebase_messaging_registration.dart
-[native-registration]: https://github.com/eigeninteractive/eigen-flutter/blob/main/lib/core/notifications/firebase_messaging_registration_native.dart
-[web-registration]: https://github.com/eigeninteractive/eigen-flutter/blob/main/lib/core/notifications/firebase_messaging_registration_web.dart
-[android-manifest]: https://github.com/eigeninteractive/eigen-flutter/blob/main/android/src/main/AndroidManifest.xml
-[android-gradle]: https://github.com/eigeninteractive/eigen-flutter/blob/main/android/build.gradle.kts
+[registration-adapter]: https://github.com/eigeninteractive/eigen-platform/blob/main/flutter/lib/core/notifications/firebase_messaging_registration.dart
+[native-registration]: https://github.com/eigeninteractive/eigen-platform/blob/main/flutter/lib/core/notifications/firebase_messaging_registration_native.dart
+[web-registration]: https://github.com/eigeninteractive/eigen-platform/blob/main/flutter/lib/core/notifications/firebase_messaging_registration_web.dart
+[android-manifest]: https://github.com/eigeninteractive/eigen-platform/blob/main/flutter/android/src/main/AndroidManifest.xml
+[android-gradle]: https://github.com/eigeninteractive/eigen-platform/blob/main/flutter/android/build.gradle.kts

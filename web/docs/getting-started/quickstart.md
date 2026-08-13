@@ -168,7 +168,7 @@ which is work a coding agent does well once it knows the contract. Install the
 skill that states it:
 
 ```text
-/plugin marketplace add eigeninteractive/eigen-server
+/plugin marketplace add eigeninteractive/eigen-platform
 /plugin install eigen@eigeninteractive
 ```
 
