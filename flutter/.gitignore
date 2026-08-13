@@ -1,0 +1,45 @@
+# Dart/Flutter
+.dart_tool/
+.flutter-plugins-dependencies
+.packages
+build/
+pubspec.lock
+
+# Generated code (`*.g.dart`, `*.freezed.dart`) is deliberately NOT ignored: it
+# is committed, so the published package compiles for consumers (who never run
+# build_runner on a dependency) and so `git diff` after `build_runner build`
+# is the drift guard that proves it is current. This is why there is no
+# `.pubignore`: publishing falls back to this file, which correctly excludes
+# build output and the credentials below while keeping the generated sources.
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+
+# Logs
+*.log
+custom_lint.log
+
+# Local environment, generated Firebase files, and signing credentials.
+#
+# Firebase client options are public identifiers, but they are instance-specific
+# in this framework repository. Consuming apps may commit them or reconstruct
+# them in CI. Signing keys and Worker credentials remain secret.
+.env
+.env.*
+!.env.example
+lib/firebase_options.dart
+firebase.json
+android/app/google-services.json
+android/key.properties
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision
+
+# Local-only dependency overrides (see the file for what it is for).
+pubspec_overrides.yaml

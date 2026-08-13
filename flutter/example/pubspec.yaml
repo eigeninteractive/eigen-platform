@@ -1,0 +1,33 @@
+name: rps_example
+description: "Rock-Paper-Scissors: the reference game implementation for the EigenInteractive Flutter client."
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.12.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  eigen_flutter:
+    path: ../
+  # An app declares these two itself: `eigen_flutter:configure_firebase` runs
+  # FlutterFire to write `firebase_options.dart` against `firebase_core`, and
+  # the background-message handler passed to `runEngineApp` is typed by
+  # `firebase_messaging`. The framework depends on both as well, but a package
+  # must not import through its dependency's dependencies.
+  firebase_core: ^4.9.0
+  firebase_messaging: ^16.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  # Widget-testing a game screen means supplying the `AppConfig` the shared
+  # widgets read, which needs a `ProviderScope`. `runEngineApp` installs one in
+  # a real app, so this is a test-only dependency.
+  flutter_riverpod: ^3.3.2
+
+flutter:
+  uses-material-design: true
