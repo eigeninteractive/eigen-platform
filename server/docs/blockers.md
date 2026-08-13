@@ -33,11 +33,13 @@ but that source revision has no committed `dist/*.js`; pinning it makes GitHub
 fail before any action code runs. Last checked: 2026-08-13.
 
 The stable v1 action already understands `cwd`, GitHub App tokens, GitHub API
-commit mode, CLI 3, and npm trusted publishing. The workflow keeps its two
-paths in separate jobs: version-PR creation has no OIDC permission or registry
-environment, while publishing runs only after an unprivileged exact-version
-registry check and the protected `npm` environment approval. There is no npm
-credential in the pipeline.
+commit mode, CLI 3, and npm trusted publishing. Its commit scope deliberately
+matches `git add .` under `cwd`, so the workflow follows it with a narrow
+App-authenticated commit for the generated root manifest and `web/` references.
+The workflow keeps its two paths in separate jobs: version-PR creation has no
+OIDC permission or registry environment, while publishing runs only after an
+unprivileged exact-version registry check and the protected `npm` environment
+approval. There is no npm credential in the pipeline.
 
 #### Unblock and remove
 

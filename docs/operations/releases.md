@@ -153,7 +153,9 @@ gate and opens or refreshes **Release: version npm packages**. The version PR:
 - consumes pending Changesets and updates package changelogs;
 - stamps and regenerates `eigen_api`;
 - regenerates the OpenAPI and TypeScript documentation;
-- updates `platform.json`.
+- updates `platform.json`;
+- carries the server-owned version commit and root/docs generation commit on
+  the same protected release PR.
 
 Review and merge that PR to publish. The next `main` run compares every exact
 local version with npm, then publishes the missing versions after the `npm`
