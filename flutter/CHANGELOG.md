@@ -14,22 +14,22 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.6.1] - 2026-08-13
 ### Changed
 - Package source, issue, changelog, and release links now point at the unified
-  `eigen-platform` repository. Future releases use namespaced
-  `eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
-  artifacts.
+`eigen-platform` repository. Future releases use namespaced
+`eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
+artifacts.
 
 ### Fixed
 - A delayed active snapshot with a higher sequence can no longer resurrect a
-  finished or aborted game. Newer terminal snapshots still apply so post-finish
-  data such as ratings can arrive normally.
+finished or aborted game. Newer terminal snapshots still apply so post-finish
+data such as ratings can arrive normally.
 - Gap recovery now verifies that every requested frame is present and ordered
-  before applying any of them, so an incomplete history response cannot advance
-  the rendered session through a corrupt sequence.
+before applying any of them, so an incomplete history response cannot advance
+the rendered session through a corrupt sequence.
 - Action and forfeit controls no longer stay disabled if the caller's seat
-  disappears immediately before the command is sent.
+disappears immediately before the command is sent.
 
 ## [0.6.0] - 2026-08-12
 ### Added
@@ -195,7 +195,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/v0.6.0...HEAD
+[0.6.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.6.1
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
