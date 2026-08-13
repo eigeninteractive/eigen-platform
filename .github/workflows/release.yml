@@ -20,55 +20,13 @@ jobs:
     permissions:
       contents: read
 
-  select-mode:
-    name: Select release mode
-    needs: gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    outputs:
-      mode: ${{ steps.mode.outputs.mode }}
-      publish-plan-artifact-id: ${{ steps.mode.outputs.publish-plan-artifact-id }}
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.20.0
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: server/.nvmrc
-          cache: pnpm
-          cache-dependency-path: server/pnpm-lock.yaml
-
-      - name: Install dependencies
-        working-directory: server
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        working-directory: server
-        run: pnpm -r build
-
-      # Pinned after changesets/action v2.0.0 because this commit adds the cwd
-      # input required by a nested workspace. Replace it with the next stable
-      # tag's commit once that release contains the same input.
-      - name: Select mode
-        id: mode
-        uses: changesets/action/select-mode@da1ea291ef93203a08fad360eac36f4858dd0514
-        with:
-          cwd: server
-
   version:
     name: Open or update the version pull request
-    needs: select-mode
-    if: needs.select-mode.outputs.mode == 'version'
+    needs: gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      has-changesets: ${{ steps.changesets.outputs.hasChangesets }}
     permissions:
       contents: read
     steps:
@@ -97,10 +55,6 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        working-directory: server
-        run: pnpm -r build
-
       - uses: actions/setup-java@v5.7.0
         with:
           distribution: temurin
@@ -116,61 +70,105 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
+      # Stable v1.9.0 is the current executable release with `cwd` support and
+      # first-class OIDC detection. The v2.0.0 sub-actions do not support cwd;
+      # the post-v2 source fix has not published its compiled dist files yet.
       - name: Create or update the version pull request
-        uses: changesets/action/version@da1ea291ef93203a08fad360eac36f4858dd0514
+        id: changesets
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
-          script: pnpm version-packages
-          pr-title: "Release: version npm packages"
-          commit-message: "Version npm packages"
+          version: pnpm version-packages
+          title: "Release: version npm packages"
+          commit: "Version npm packages"
+          commitMode: github-api
 
-  pack:
-    name: Pack npm artifacts
-    needs: select-mode
-    if: needs.select-mode.outputs.mode == 'publish'
+      # The stable action intentionally declines to open a PR when every
+      # pending Changeset is empty. Consume those markers in the same protected
+      # release branch so they cannot permanently block future detection.
+      - name: Open a cleanup pull request for empty Changesets
+        if: steps.changesets.outputs.hasChangesets == 'true' && steps.changesets.outputs.pullRequestNumber == ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          pnpm --dir server changeset version
+          git diff --quiet -- server/.changeset && {
+            echo "::error::Changesets reported pending files but produced no cleanup diff."
+            exit 1
+          }
+
+          branch="changeset-release/main"
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git add server/.changeset
+          git commit -m "Consume empty Changesets"
+          git push --force origin "$branch"
+
+          if ! gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh pr create --base main --head "$branch" \
+              --title "Release: consume empty Changesets" \
+              --body "Removes internal-only Changeset markers without changing any package version. Merging lets registry publication detection resume."
+          fi
+
+  detect-publish:
+    name: Detect unpublished versions
+    needs: version
+    if: needs.version.outputs.has-changesets == 'false'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     outputs:
-      pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
+      publish: ${{ steps.registry.outputs.publish }}
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0
           persist-credentials: false
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.20.0
 
       - uses: actions/setup-node@v7
         with:
           node-version-file: server/.nvmrc
-          cache: pnpm
-          cache-dependency-path: server/pnpm-lock.yaml
 
-      - name: Install dependencies
-        working-directory: server
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        working-directory: server
-        run: pnpm -r build
-
-      # No registry identity is available in this job. Workspace ranges are
-      # resolved into immutable tarballs before the privileged upload job.
-      - name: Pack
-        id: pack
-        uses: changesets/action/pack@da1ea291ef93203a08fad360eac36f4858dd0514
-        with:
-          cwd: server
-          publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
+      # Exact-version lookups make retries and partially completed releases
+      # safe: Changesets publishes only the local versions npm does not have.
+      - name: Compare package versions with npm
+        id: registry
+        run: |
+          publish=false
+          while IFS=$'\t' read -r name version; do
+            if result=$(npm view "$name@$version" version --json 2>&1); then
+              echo "::notice::$name@$version is already published."
+            elif grep -q 'E404' <<<"$result"; then
+              echo "::notice::$name@$version is not published."
+              publish=true
+            else
+              echo "::error::Could not query $name@$version on npm."
+              echo "$result"
+              exit 1
+            fi
+          done < <(node <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const manifests = [
+            'server/packages/rules/package.json',
+            'server/packages/kernel/package.json',
+            'server/packages/server/package.json',
+            'server/packages/testkit/package.json',
+            'server/packages/create-eigen-game/package.json',
+          ];
+          for (const manifest of manifests) {
+            const { name, version } = JSON.parse(readFileSync(manifest, 'utf8'));
+            process.stdout.write(`${name}\t${version}\n`);
+          }
+          NODE
+          )
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
 
   publish:
     name: Publish to npm
-    needs: pack
+    needs: detect-publish
+    if: needs.detect-publish.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20
@@ -188,7 +186,7 @@ jobs:
           version: 11.20.0
 
       # Do not set registry-url. npm trusted publishing exchanges this job's
-      # OIDC identity; an npmrc token placeholder masks that exchange.
+      # OIDC identity; an npmrc token placeholder can mask that exchange.
       - uses: actions/setup-node@v7
         with:
           node-version-file: server/.nvmrc
@@ -212,17 +210,18 @@ jobs:
 
       - name: Publish
         id: changesets
-        uses: changesets/action/publish@da1ea291ef93203a08fad360eac36f4858dd0514
+        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
-          pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+          publish: pnpm changeset publish
+          commitMode: github-api
 
       - name: Detect an engine release
         id: engine
         if: steps.changesets.outputs.published == 'true'
         env:
-          PACKAGES: ${{ steps.changesets.outputs['published-packages'] }}
+          PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
         run: |
           if jq -e '.[] | select(.name == "@eigeninteractive/server")' <<<"$PACKAGES" >/dev/null; then
             echo "released=true" >> "$GITHUB_OUTPUT"
