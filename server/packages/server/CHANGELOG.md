@@ -1,5 +1,19 @@
 # @eigeninteractive/server
 
+## 0.4.1
+
+### Patch Changes
+
+- Charge budget clocks according to the persisted turn that ended, including
+  budget-to-override, override timeout, and finishing transitions, and arm
+  deadline alarms at the first genuinely expired millisecond.
+
+- [#2](https://github.com/eigeninteractive/eigen-platform/pull/2) [`55f0ac8`](https://github.com/eigeninteractive/eigen-platform/commit/55f0ac878338a0141ba4e7f2ddb702f2a1a2ab75) Thanks [@seenu-k](https://github.com/seenu-k)! - Point package source, issue, changelog, and release metadata at the unified
+  `eigen-platform` repository. Runtime behavior is unchanged.
+- Updated dependencies [[`55f0ac8`](https://github.com/eigeninteractive/eigen-platform/commit/55f0ac878338a0141ba4e7f2ddb702f2a1a2ab75)]:
+  - @eigeninteractive/kernel@0.4.1
+  - @eigeninteractive/rules@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes
