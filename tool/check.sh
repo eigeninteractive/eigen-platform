@@ -95,6 +95,7 @@ run_server() {
 
 run_flutter() {
   check_changelog_links
+  "$platform_root/tool/link-local-dart.sh"
   cd "$platform_root/flutter"
   flutter pub get
   dart format --output=none --set-exit-if-changed \

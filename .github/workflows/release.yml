@@ -47,7 +47,14 @@ jobs:
             has_changesets=true
             echo "::notice::Pending Changesets will be handled by a protected version or cleanup pull request."
           else
-            while IFS=$'\t' read -r name version; do
+            for manifest in \
+              server/packages/rules/package.json \
+              server/packages/kernel/package.json \
+              server/packages/server/package.json \
+              server/packages/testkit/package.json \
+              server/packages/create-eigen-game/package.json; do
+              IFS=$'\t' read -r name version \
+                < <(jq -r '[.name, .version] | @tsv' "$manifest")
               if result=$(npm view "$name@$version" version --json 2>&1); then
                 echo "::notice::$name@$version is already published."
               elif grep -q 'E404' <<<"$result"; then
@@ -58,21 +65,7 @@ jobs:
                 echo "$result"
                 exit 1
               fi
-            done < <(node <<'NODE'
-            const { readFileSync } = require('node:fs');
-            const manifests = [
-              'server/packages/rules/package.json',
-              'server/packages/kernel/package.json',
-              'server/packages/server/package.json',
-              'server/packages/testkit/package.json',
-              'server/packages/create-eigen-game/package.json',
-            ];
-            for (const manifest of manifests) {
-              const { name, version } = JSON.parse(readFileSync(manifest, 'utf8'));
-              process.stdout.write(`${name}\t${version}\n`);
-            }
-            NODE
-            )
+            done
           fi
 
           echo "has_changesets=$has_changesets" >> "$GITHUB_OUTPUT"

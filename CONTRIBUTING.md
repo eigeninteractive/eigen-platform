@@ -14,12 +14,14 @@ bundled JDK is suitable locally. Then install dependencies:
 ```bash
 (cd server && pnpm install --frozen-lockfile)
 (cd web && pnpm install --frozen-lockfile)
+./tool/link-local-dart.sh
 (cd flutter && flutter pub get && flutter pub get --directory example)
 ```
 
-The tracked `pubspec_overrides.yaml` files make Flutter consume the generated
-Dart API under `server/clients/dart` from this checkout. Published package
-constraints remain unchanged.
+`link-local-dart.sh` creates ignored `pubspec_overrides.yaml` files so Flutter
+consumes the generated Dart API under `server/clients/dart` from this checkout.
+They are local build wiring, not source; published package constraints remain
+unchanged.
 
 ## Validation
 

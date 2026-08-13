@@ -243,6 +243,7 @@ For pub.dev:
 - source and issue links resolve to this repository;
 - Dartdoc builds successfully;
 - the package tarball contains no `pubspec_overrides.yaml`;
+- a clean tag checkout contains no generated local dependency overrides;
 - the version and tag match exactly.
 
 ## Failure recovery
