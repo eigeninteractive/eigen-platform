@@ -20,24 +20,31 @@ without touching any player's bank.
 
 ## The deadline computation
 
-After every transition the kernel computes the next `deadline` and
-`turnStartedAt` by a fixed precedence chain (all instants are injected epoch
-milliseconds, since the kernel never reads a clock):
+After every transition the kernel computes the next `deadline` and whether a
+budget bank is running by a fixed precedence chain (all instants are injected
+epoch milliseconds, since the kernel never reads a clock). The persisted
+`turnStartedAt` is non-null only while the current turn consumes a budget bank:
 
 1. **Game over** → both `null` (no deadline).
-2. **Hook per-action override** (`envelope.turnSeconds = N`) → `now + N·1000`,
-   banks untouched.
+2. **Hook per-action override** (`envelope.turnSeconds = N`) → `now + N·1000`
+   and `turnStartedAt = null`; banks are untouched for this new turn.
 3. **Budget mode** → `now + min(remaining bank over the new pending seats)`. A
    budget-timed game allows at most one pending seat (enforced upstream), so this
    min is normally just that seat's bank; the min is a safe degradation if a
    multi-pending state ever arrives.
-4. **Per-turn mode** → `now + turnSeconds·1000`.
+4. **Per-turn mode** → `now + turnSeconds·1000` and
+   `turnStartedAt = null`.
 5. **Untimed** → both `null`.
 
-In budget mode the acting seat's bank is charged on each move:
+In budget mode the acting seat's bank is charged when a budget-consuming turn
+ends, including when the action finishes the game:
 `bank[seat] = max(0, bank[seat] − (now − turnStartedAt)) + increment·1000`.
 The deduction floors at 0 (an overrun lands at 0, never negative), and the
-Fischer increment is added after.
+Fischer increment is added after. Charging is decided entirely from the
+persisted turn being completed. The envelope returned by that action controls
+only the next turn, so budget → override and override → budget transitions
+cannot debit the wrong clock. If an override itself times out, the underlying
+bank remains untouched; only a budget-consuming turn can drain or zero it.
 
 ## Grace, and why it's a single constant
 
@@ -45,12 +52,14 @@ The enforcement mechanism is the **DO's durable alarm**, and this is a key
 simplification over a database-backed engine. Server time is measured when the
 request *arrives*, not when the player tapped, so a move made on time can land
 just past the deadline through pure network latency. One grace constant in the
-kernel (`DEADLINE_GRACE_MS = 750ms`) compensates, with exactly two call sites: the
-kernel accepts an action while `now ≤ deadline + grace`, and the DO arms its alarm
-at `deadline + grace`. Whichever arrives first, the latent action or the alarm,
-commits; the loser sees already-advanced state and no-ops. When the alarm fires it
-commits a `timeout` lifecycle with a deterministic `commandId` (so a double-fire
-dedupes, and a real move that arrived first simply wins).
+kernel (`DEADLINE_GRACE_MS = 750ms`) compensates, with exactly two call sites:
+the kernel accepts an action while `now ≤ deadline + grace`, and the DO arms its
+alarm one millisecond later, at the first instant for which expiry is true.
+This avoids an equality-boundary alarm abstaining and disappearing. Whichever
+arrives first, the latent action or the alarm, commits; the loser sees
+already-advanced state and no-ops. When the alarm fires it commits a `timeout`
+lifecycle with a deterministic `commandId` (so a double-fire dedupes, and a real
+move that arrived first simply wins).
 
 The grace forgives **acceptance, not time charged**: in budget mode the elapsed
 deduction still runs, so flag-fall is honoured: a player whose bank hits 0 can
