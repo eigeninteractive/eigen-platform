@@ -4,13 +4,15 @@
 .packages
 build/
 pubspec.lock
+pubspec_overrides.yaml
+example/pubspec_overrides.yaml
 
 # Generated code (`*.g.dart`, `*.freezed.dart`) is deliberately NOT ignored: it
 # is committed, so the published package compiles for consumers (who never run
 # build_runner on a dependency) and so `git diff` after `build_runner build`
 # is the drift guard that proves it is current. `.pubignore` mirrors the
-# exclusions below because the monorepo's local dependency overrides are
-# intentionally tracked but must not enter the published archive.
+# exclusions below because the monorepo's generated local dependency overrides
+# must not enter the published archive.
 
 # IDE / OS
 .idea/

@@ -77,8 +77,9 @@ included on pub.dev, so treat its code as executable API documentation.
 
 The generated REST client is owned by `server/clients/dart` in this monorepo and
 published separately as `eigen_api`. The declared dependency remains the normal
-versioned registry package, while the tracked monorepo override makes local
-development and CI consume the client from the same revision:
+versioned registry package, while `../tool/link-local-dart.sh` creates ignored
+monorepo overrides so local development and CI consume the client from the same
+revision:
 
 ```yaml
 dependency_overrides:
@@ -87,8 +88,9 @@ dependency_overrides:
 ```
 
 The example needs its own override with the corresponding relative path because
-it is a separate package root. Never place either override in `pubspec.yaml`;
-publish checks must still validate the declared registry constraint separately.
+it is a separate package root. The override files are generated local wiring,
+not repository source. Never place either override in `pubspec.yaml`; publish
+checks must still validate the declared registry constraint separately.
 
 Generated response enums include `unknownDefaultOpenApi`. Exhaustive switches
 must handle it, normally by presenting an update-required state. It is a
@@ -150,9 +152,9 @@ only guarantees the next release diff is noisy again.
 plus a clean-diff check detect drift.
 
 Publishing uses `.pubignore`, which mirrors the repository's local-output and
-credential exclusions while also excluding the tracked monorepo dependency
-overrides. Pub replaces rather than extends `.gitignore` when that file exists,
-so keep the two lists aligned when adding an exclusion.
+credential exclusions while also excluding generated monorepo dependency
+overrides as a defense in depth. Pub replaces rather than extends `.gitignore`
+when that file exists, so keep the two lists aligned when adding an exclusion.
 
 ## Documentation changes
 

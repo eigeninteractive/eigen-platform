@@ -51,12 +51,15 @@ jobs:
           }
           echo "version=$package" >> "$GITHUB_OUTPUT"
 
-      # The monorepo override is deliberately not part of the published
-      # package. Remove it in this disposable checkout so the release itself is
-      # resolved and dry-run against the real eigen_api on pub.dev.
+      # Local monorepo overrides are generated, ignored development files and
+      # must never exist in a clean release checkout. Resolve and validate the
+      # package against the real eigen_api on pub.dev.
       - name: Resolve registry dependencies
         run: |
-          rm -f pubspec_overrides.yaml
+          [ ! -e pubspec_overrides.yaml ] || {
+            echo "::error::pubspec_overrides.yaml must not exist in a release checkout"
+            exit 1
+          }
           grep -q '^dependency_overrides:' pubspec.yaml && {
             echo "::error::dependency_overrides must not appear in pubspec.yaml"
             exit 1
