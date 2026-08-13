@@ -1,0 +1,3 @@
+dependency_overrides:
+  eigen_api:
+    path: ../server/clients/dart

@@ -75,22 +75,20 @@ included on pub.dev, so treat its code as executable API documentation.
 
 ## Working with `eigen_api`
 
-The generated REST client is owned by
-`eigen-server/clients/dart` and published separately as `eigen_api`. This
-package consumes it as a normal versioned dependency.
-
-For cross-repository development, clone `eigen-server` as a sibling and create
-a gitignored `pubspec_overrides.yaml`:
+The generated REST client is owned by `server/clients/dart` in this monorepo and
+published separately as `eigen_api`. The declared dependency remains the normal
+versioned registry package, while the tracked monorepo override makes local
+development and CI consume the client from the same revision:
 
 ```yaml
 dependency_overrides:
   eigen_api:
-    path: ../eigen-server/clients/dart
+    path: ../server/clients/dart
 ```
 
 The example needs its own override with the corresponding relative path because
-it is a separate package root. Never place the override in `pubspec.yaml`; the
-declared registry constraint must be tested before publication.
+it is a separate package root. Never place either override in `pubspec.yaml`;
+publish checks must still validate the declared registry constraint separately.
 
 Generated response enums include `unknownDefaultOpenApi`. Exhaustive switches
 must handle it, normally by presenting an update-required state. It is a

@@ -77,7 +77,7 @@ build if you get it wrong, so it catches itself.
 committed**. Never hand-edit them.
 
 ```bash
-pnpm sync-api        # needs ../eigen-server checked out as a sibling
+pnpm sync-api        # reads ../server from this monorepo revision
 ```
 
 That copies the engine's `openapi.json` in, runs TypeDoc over the package

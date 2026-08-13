@@ -1,22 +1,20 @@
 /**
- * TypeDoc reads the engine's package barrels from the sibling checkout and
+ * TypeDoc reads the engine's package barrels from this monorepo's server tree and
  * emits markdown into `docs/reference/typescript/`. It runs only via
  * `pnpm sync-api`, never during `docusaurus build`; the output is committed.
  *
  * @type {Partial<import("typedoc").TypeDocOptions>}
  */
 export default {
-  entryPoints: ["../eigen-server/packages/kernel/src/index.ts", "../eigen-server/packages/rules/src/index.ts", "../eigen-server/packages/server/src/index.ts", "../eigen-server/packages/server/src/testing.ts", "../eigen-server/packages/testkit/src/index.ts"],
+  entryPoints: ["../server/packages/kernel/src/index.ts", "../server/packages/rules/src/index.ts", "../server/packages/server/src/index.ts", "../server/packages/server/src/testing.ts", "../server/packages/testkit/src/index.ts"],
   entryPointStrategy: "resolve",
   tsconfig: "./scripts/typedoc.tsconfig.json",
   out: "docs/reference/typescript",
   plugin: ["typedoc-plugin-markdown"],
 
-  // "Defined in:" links. Pinned rather than inferred: TypeDoc otherwise reads
-  // the *sibling checkout's* git remote, so a fork or a stale remote would bake
-  // someone else's URL into the committed reference. `{gitRevision}` still
-  // resolves to that checkout's HEAD, which is what makes these permalinks.
-  sourceLinkTemplate: "https://github.com/eigeninteractive/eigen-server/blob/{gitRevision}/{path}#L{line}",
+  // "Defined in:" links. Use the monorepo's stable main path: embedding HEAD
+  // would make every unrelated platform commit invalidate generated docs.
+  sourceLinkTemplate: "https://github.com/eigeninteractive/eigen-platform/blob/main/{path}#L{line}",
 
   readme: "none",
   githubPages: false,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Regenerate the API reference from the sibling engine checkout.
+ * Regenerate the API reference from the server tree in this monorepo.
  *
  * The reference is *derived*, not authored: it is generated here and then
  * committed, so `git clone eigen-web && pnpm build` works with no sibling
@@ -29,7 +29,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const siteDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const engineDir = join(siteDir, "..", "eigen-server");
+const engineDir = join(siteDir, "..", "server");
 const tsDocsDir = join(siteDir, "docs", "reference", "typescript");
 
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: siteDir, stdio: "inherit" });

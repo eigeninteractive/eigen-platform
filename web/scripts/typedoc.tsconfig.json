@@ -1,13 +1,13 @@
 {
-  "extends": "../../eigen-server/tsconfig.base.json",
+  "extends": "../../server/tsconfig.base.json",
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
     "types": ["@cloudflare/workers-types"],
-    "typeRoots": ["../../eigen-server/node_modules/@types"],
+    "typeRoots": ["../../server/node_modules/@types"],
     "noEmit": true,
     "declaration": false,
     "declarationMap": false
   },
-  "include": ["../../eigen-server/packages/*/src/**/*"]
+  "include": ["../../server/packages/*/src/**/*"]
 }

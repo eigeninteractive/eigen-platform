@@ -1,0 +1,63 @@
+name: Platform checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: platform-checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            server/pnpm-lock.yaml
+            web/pnpm-lock.yaml
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Install documentation dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Flutter dependencies
+        working-directory: flutter
+        run: |
+          flutter pub get
+          flutter pub get --directory example
+
+      - name: Check the complete platform
+        run: ./tool/check.sh all

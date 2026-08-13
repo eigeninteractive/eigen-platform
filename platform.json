@@ -7,22 +7,28 @@
       "path": "server",
       "sourceRepository": "https://github.com/eigeninteractive/eigen-server.git",
       "baseCommit": "2cac83c27d3ecf85f553b998106c3626997f9310",
-      "importCommit": "1b77ba7",
-      "enginePackages": "0.4.0",
-      "scaffolder": "0.11.0"
+      "importCommit": "1b77ba7341f387c95ccaaf7d7c1051e8b0bf1e07",
+      "packages": {
+        "@eigeninteractive/rules": "0.4.0",
+        "@eigeninteractive/kernel": "0.4.0",
+        "@eigeninteractive/server": "0.4.0",
+        "@eigeninteractive/testkit": "0.4.0",
+        "create-eigen-game": "0.11.0"
+      },
+      "dartApi": "0.4.0"
     },
     "flutter": {
       "path": "flutter",
       "sourceRepository": "https://github.com/eigeninteractive/eigen-flutter.git",
       "baseCommit": "95fe8c196a192b635ad2cbc8ec58f97a17c47dca",
-      "importCommit": "4619173",
+      "importCommit": "461917323107f23a74f55ebb4f64fe1555990176",
       "package": "0.6.0"
     },
     "web": {
       "path": "web",
       "sourceRepository": "https://github.com/eigeninteractive/eigen-web.git",
       "baseCommit": "6fdadef77dceed34825254dc45f694bf5e53b671",
-      "importCommit": "0a45cf2",
+      "importCommit": "0a45cf20e5c6b26e82e504d053d67c07f4e63282",
       "docsLine": "0.4.x"
     }
   }
