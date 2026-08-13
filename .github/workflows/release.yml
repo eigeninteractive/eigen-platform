@@ -239,7 +239,6 @@ jobs:
           permission-contents: write
 
       - name: Publish
-        id: changesets
         uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         with:
           cwd: server
@@ -247,23 +246,12 @@ jobs:
           publish: pnpm changeset publish
           commitMode: github-api
 
-      - name: Detect an engine release
-        id: engine
-        if: steps.changesets.outputs.published == 'true'
-        env:
-          PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
-        run: |
-          if jq -e '.[] | select(.name == "@eigeninteractive/server")' <<<"$PACKAGES" >/dev/null; then
-            echo "released=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Only independent packages published; eigen_api is unchanged."
-          fi
-
       # pub.dev accepts a trusted-publishing identity only from the package's
       # configured tag pattern, so eigen_api publishes in a separate workflow.
-      - name: Tag eigen_api
-        if: steps.engine.outputs.released == 'true'
+      # Ensure the tag directly instead of depending on changesets/action's
+      # `published` output: its no-pending-Changesets recovery path publishes
+      # missing versions but does not populate that output.
+      - name: Ensure eigen_api tag
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -271,10 +259,21 @@ jobs:
           tag="eigen_api-v$v"
           remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
+          server_v=$(node -p "require('./server/packages/server/package.json').version")
+          [ "$v" = "$server_v" ] || {
+            echo "::error::eigen_api $v does not match @eigeninteractive/server $server_v"
+            exit 1
+          }
+
           if git ls-remote --exit-code --tags "$remote" "refs/tags/$tag" >/dev/null 2>&1; then
             echo "::notice::$tag already exists."
             exit 0
           fi
+
+          npm view "@eigeninteractive/server@$server_v" version --json >/dev/null || {
+            echo "::error::@eigeninteractive/server@$server_v is not published; refusing to tag eigen_api."
+            exit 1
+          }
 
           git tag "$tag"
           git push "$remote" "$tag"

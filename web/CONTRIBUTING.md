@@ -223,10 +223,18 @@ Cloudflare build settings:
 
 | Setting | Value |
 |---|---|
-| Build command | `pnpm install && pnpm build` |
+| Root directory | `web` |
+| Build command | `pnpm build` |
 | Deploy command | `pnpm exec wrangler deploy` |
 | Production branch | `main` |
 | Non-production branch builds | off |
+| Build variable | `PNPM_VERSION=11.20.0` |
+
+Workers Builds installs dependencies before running the build command, so the
+build command must not repeat `pnpm install`. Keep `PNPM_VERSION` aligned with
+the top-level `packageManager` field in `package.json`. The pnpm 11 lockfile
+deliberately contains two YAML documents; Cloudflare's pnpm 10 default reports
+that valid lockfile as `ERR_PNPM_BROKEN_LOCKFILE`.
 
 Cloudflare defaults the deploy command to `npx wrangler deploy`; that cannot
 work here. `npx` runs under npm, npm enforces this repo's
