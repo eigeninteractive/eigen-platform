@@ -25,7 +25,8 @@ when their own user-visible contents change.
 ## Safety model
 
 - Pull requests and every publish run call `.github/workflows/checks.yml`, the
-  exact same whole-platform gate.
+  exact same whole-platform gate. Its five validation shards run concurrently;
+  the final `check` job succeeds only when all five do.
 - npm and pub.dev use short-lived GitHub OIDC identities. There are no registry
   tokens to store or rotate.
 - The `npm` and `pub.dev` GitHub environments require an explicit approval
