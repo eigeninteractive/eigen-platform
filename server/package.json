@@ -26,13 +26,13 @@
   },
   "type": "module",
   "devDependencies": {
-    "@biomejs/biome": "^2.5.3",
+    "@biomejs/biome": "^2.5.7",
     "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "3.0.0-next.10",
-    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@changesets/cli": "3.0.0-next.11",
+    "@cloudflare/vitest-pool-workers": "^0.20.3",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.10",
-    "wrangler": "^4.110.0"
+    "wrangler": "^4.120.0"
   }
 }
