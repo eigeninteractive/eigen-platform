@@ -42,6 +42,11 @@ const workspaceRoot = resolve(packageRoot, "../..");
 const platformRoot = resolve(workspaceRoot, "..");
 
 const ENGINE_PACKAGES = ["rules", "kernel", "server", "testkit"];
+const buildTarget = process.argv[2] ?? "all";
+
+if (!["all", "android", "web"].includes(buildTarget)) {
+  throw new Error(`unknown scaffold build target ${JSON.stringify(buildTarget)}; expected all, android, or web`);
+}
 
 const shell = (command, args, cwd) => {
   console.log(`\n$ ${command} ${args.join(" ")}   (${cwd})`);
@@ -188,7 +193,11 @@ shell("pnpm", ["run", "test"], serverRoot);
 // compile without secrets.
 shell("flutter", ["analyze"], appRoot);
 shell("flutter", ["test"], appRoot);
-shell("flutter", ["build", "apk", "--release", "--dart-define-from-file=app-config.json"], appRoot);
-shell("flutter", ["build", "web", "--release", "--dart-define-from-file=app-config.json"], appRoot);
+if (buildTarget === "all" || buildTarget === "android") {
+  shell("flutter", ["build", "apk", "--release", "--dart-define-from-file=app-config.json"], appRoot);
+}
+if (buildTarget === "all" || buildTarget === "web") {
+  shell("flutter", ["build", "web", "--release", "--dart-define-from-file=app-config.json"], appRoot);
+}
 
-console.log(`\nScaffolded, built and tested ${root}`);
+console.log(`\nScaffolded, built and tested ${buildTarget} at ${root}`);

@@ -70,7 +70,9 @@ cutover.
 Pull requests and package releases run the same whole-platform workflow in
 [`checks.yml`](.github/workflows/checks.yml). Its contracts, server, Flutter,
 documentation, and scaffold checks run in parallel, then report one stable
-`check` result to branch protection. npm packages use Changesets;
+`check` result to branch protection. Documentation-only pull requests take a
+conservative fast lane through contracts and the documentation build; release
+runs and any code change always use the complete gate. npm packages use Changesets;
 `eigen_api` and `eigen_flutter` use separate namespaced pub.dev tags. Publishing
 uses registry trusted publishing with GitHub OIDC and environment-bound `npm` /
 `pub.dev` identities, so no registry token is stored in the repository and
