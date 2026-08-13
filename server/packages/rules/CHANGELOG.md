@@ -1,5 +1,12 @@
 # @eigeninteractive/rules
 
+## 0.4.1
+
+### Patch Changes
+
+- [#2](https://github.com/eigeninteractive/eigen-platform/pull/2) [`55f0ac8`](https://github.com/eigeninteractive/eigen-platform/commit/55f0ac878338a0141ba4e7f2ddb702f2a1a2ab75) Thanks [@seenu-k](https://github.com/seenu-k)! - Point package source, issue, changelog, and release metadata at the unified
+  `eigen-platform` repository. Runtime behavior is unchanged.
+
 ## 0.4.0
 
 ## 0.3.1
