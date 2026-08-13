@@ -29,14 +29,15 @@ when their own user-visible contents change.
   the final `check` job succeeds only when all five do.
 - npm and pub.dev use short-lived GitHub OIDC identities. There are no registry
   tokens to store or rotate.
-- The `npm` and `pub.dev` GitHub environments require an explicit approval
-  before an irreversible upload.
+- The `npm` and `pub.dev` GitHub environments bind each registry identity to
+  the intended publishing job. Publishing begins automatically after the
+  whole-platform gate and exact-version checks pass.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It never bypasses `main` protection.
 - An unprivileged registry-comparison job proves that at least one exact local
-  version is absent before GitHub requests approval for the OIDC-enabled npm
-  job. Changesets then resolves workspace ranges and publishes only missing
-  versions, so a retry after a partial upload is safe.
+  version is absent before the OIDC-enabled npm job starts. Changesets then
+  resolves workspace ranges and publishes only missing versions, so a retry
+  after a partial upload is safe.
 - Pub.dev tags are package-namespaced because two Dart packages share this
   repository.
 
@@ -49,8 +50,8 @@ the organization or repository level:
 | --- | --- | --- |
 | Actions variable | `RELEASE_APP_CLIENT_ID` | Client ID of the Eigen Release GitHub App |
 | Actions secret | `RELEASE_APP_PRIVATE_KEY` | PEM private key for that App |
-| Environment | `npm` | npm trusted-publishing identity and approval gate |
-| Environment | `pub.dev` | pub.dev trusted-publishing identity and approval gate |
+| Environment | `npm` | npm trusted-publishing identity boundary |
+| Environment | `pub.dev` | pub.dev trusted-publishing identity boundary |
 
 The App needs **Contents: read and write** and **Pull requests: read and
 write** on `eigen-platform`. Use the client ID, not the numeric App ID.
@@ -159,10 +160,10 @@ gate and opens or refreshes **Release: version npm packages**. The version PR:
   the same protected release PR.
 
 Review and merge that PR to publish. The next `main` run compares every exact
-local version with npm, then publishes the missing versions after the `npm`
-environment approval. If the engine group published, it creates
-`eigen_api-vX.Y.Z`; **Publish eigen_api** reruns the platform gate and publishes
-the generated client after the `pub.dev` environment approval.
+local version with npm, then publishes the missing versions automatically. If
+the engine group published, it creates `eigen_api-vX.Y.Z`; **Publish
+eigen_api** reruns the platform gate and publishes the generated client
+automatically.
 
 A scaffolder-only release does not create an `eigen_api` tag.
 
@@ -197,8 +198,8 @@ Pre-1.0 choices mean:
 The workflow opens **Release eigen_flutter vX.Y.Z**. Review the version and
 dated changelog, then merge it. **Tag eigen_flutter** creates
 `eigen_flutter-vX.Y.Z`; **Publish eigen_flutter** reruns the platform gate,
-resolves dependencies without the monorepo override, and publishes after the
-`pub.dev` environment approval.
+resolves dependencies without the monorepo override, and publishes
+automatically.
 
 After publication it dispatches **Sync compatibility table**, which reads the
 registry state, opens a generated PR if necessary, and enables auto-merge after
@@ -213,16 +214,14 @@ gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.6.1
 The cutover Changeset intentionally queues compatible patches for all npm
 artifacts. Once registry trust points at this repository:
 
-1. Approve and merge **Release: version npm packages**.
-2. Approve the `npm` environment deployment.
-3. Verify the npm packages show the new source repository and provenance.
-4. Approve the `pub.dev` deployment for the generated `eigen_api` tag.
-5. Add the Flutter comparison anchor described above.
-6. Run **Version eigen_flutter** with `patch`, review and merge the release PR.
-7. Approve its `pub.dev` deployment.
-8. Verify pub.dev source links and the generated compatibility-table PR.
-9. Verify the Cloudflare project still deploys `web` from monorepo `main`.
-10. Only then archive the three old repositories and point their READMEs at
+1. Merge **Release: version npm packages**.
+2. Verify the npm packages show the new source repository and provenance.
+3. Verify the generated `eigen_api` tag publishes on pub.dev.
+4. Add the Flutter comparison anchor described above.
+5. Run **Version eigen_flutter** with `patch`, review and merge the release PR.
+6. Verify pub.dev source links and the generated compatibility-table PR.
+7. Verify the Cloudflare project still deploys `web` from monorepo `main`.
+8. Only then archive the three old repositories and point their READMEs at
     `eigen-platform`; keep their tags and history readable.
 
 ## Verification after publication
