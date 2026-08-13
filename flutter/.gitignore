@@ -40,6 +40,3 @@ macos/Runner/GoogleService-Info.plist
 *.p8
 *.p12
 *.mobileprovision
-
-# Local-only dependency overrides (see the file for what it is for).
-pubspec_overrides.yaml
