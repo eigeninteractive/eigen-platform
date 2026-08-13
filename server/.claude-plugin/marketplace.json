@@ -1,0 +1,19 @@
+{
+  "name": "eigeninteractive",
+  "owner": {
+    "name": "EigenInteractive"
+  },
+  "plugins": [
+    {
+      "name": "eigen",
+      "source": "./plugins/eigen",
+      "description": "Skills for building turn-based multiplayer games on the EigenInteractive engine.",
+      "version": "0.4.0",
+      "author": {
+        "name": "EigenInteractive"
+      },
+      "homepage": "https://eigeninteractive.com/docs/intro",
+      "license": "MIT"
+    }
+  ]
+}

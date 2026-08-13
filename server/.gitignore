@@ -1,0 +1,10 @@
+node_modules
+.pnpm-store
+dist
+.wrangler
+.dev.vars
+
+# Per-developer local settings, never shared.
+.claude/settings.local.json
+
+.DS_Store

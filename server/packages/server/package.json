@@ -1,0 +1,73 @@
+{
+  "name": "@eigeninteractive/server",
+  "version": "0.4.0",
+  "license": "MIT",
+  "description": "The deployable half of the EigenInteractive engine: the createEngine Worker factory, the BaseGameDO Durable Object base class, the D1 schema and appliers, auth, bots and push.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations",
+    "openapi.json"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts",
+    "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
+    "dev": "tsup --watch",
+    "fonts": "node scripts/encode-fonts.mjs",
+    "fonts:check": "node scripts/encode-fonts.mjs --check",
+    "openapi": "tsup && node scripts/emit-openapi.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json"
+  },
+  "keywords": [
+    "eigen",
+    "game-engine",
+    "turn-based",
+    "multiplayer",
+    "cloudflare-workers",
+    "durable-objects"
+  ],
+  "author": "EigenInteractive",
+  "type": "module",
+  "dependencies": {
+    "@eigeninteractive/kernel": "workspace:*",
+    "@hono/zod-openapi": "^1.5.1",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.30",
+    "jose": "^6.2.3",
+    "openapi3-ts": "4.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eigeninteractive/rules": "workspace:*",
+    "@cloudflare/workers-types": "^5.20260715.1",
+    "drizzle-kit": "^0.31.10"
+  },
+  "peerDependencies": {
+    "@eigeninteractive/rules": "workspace:^"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
+    "directory": "packages/server"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

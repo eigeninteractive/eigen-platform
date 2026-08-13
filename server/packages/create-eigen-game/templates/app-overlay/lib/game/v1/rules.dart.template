@@ -1,0 +1,79 @@
+import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:flutter/material.dart';
+
+import '../generated/payloads.dart';
+
+class ExampleGameRulesV1 extends ExampleGameV1RulesBase {
+  const ExampleGameRulesV1();
+
+  @override
+  bool isValidAction({
+    required ExampleGameV1Observation obs,
+    required List<int> pending,
+    required ExampleGameV1Action data,
+    required int playerIndex,
+    required ExampleGameV1Config config,
+  }) => pending.contains(playerIndex) && data.amount > 0;
+
+  @override
+  ExampleGameV1Observation? previewAction({
+    required ExampleGameV1Observation obs,
+    required List<int> pending,
+    required ExampleGameV1Action data,
+    required int playerIndex,
+    required ExampleGameV1Config config,
+  }) => ExampleGameV1Observation(count: obs.count + data.amount);
+
+  @override
+  Widget buildContent(GameContentContext context) =>
+      _CounterBoard(context: context, rules: this);
+
+  @override
+  String? ratingPool(RatingPoolArgs args) => null;
+
+  @override
+  bool botSeatable(BotSeatableArgs args) => true;
+}
+
+class _CounterBoard extends StatelessWidget {
+  const _CounterBoard({required this.context, required this.rules});
+
+  final GameContentContext context;
+  final ExampleGameRulesV1 rules;
+
+  @override
+  Widget build(BuildContext buildContext) {
+    final observation = context.frame.observation! as ExampleGameV1Observation;
+    final config = context.config as ExampleGameV1Config;
+    final seat = context.mySeat.indexOrNull;
+    final action = ExampleGameV1Action(amount: 1);
+    final canAct =
+        seat != null &&
+        !context.isReplay &&
+        !context.actionPending &&
+        rules.isValidAction(
+          obs: observation,
+          pending: context.frame.pendingPlayers,
+          data: action,
+          playerIndex: seat,
+          config: config,
+        );
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${observation.count} / ${config.target}',
+            style: Theme.of(buildContext).textTheme.displayMedium,
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: canAct ? () => context.onAction(action.toJson()) : null,
+            child: const Text('Add one'),
+          ),
+        ],
+      ),
+    );
+  }
+}

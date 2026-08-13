@@ -1,0 +1,166 @@
+/**
+ * The social routes: the friend graph, user search, and the "friends' open
+ * games" lobby. Cross-game and D1-only (no Durable Object); policy lives here
+ * (registered caller, self-target, guest target), the data effects live in
+ * `d1/social.ts`, and friend-event FCM pushes are fired from here.
+ *
+ * All writes require a registered (non-guest) caller: a guest is a throwaway
+ * identity that cannot hold a stable friend graph. Friend-event pushes go out
+ * through the required shared push path; they ride
+ * `executionCtx.waitUntil` so a slow FCM call never delays the response (a
+ * stateless Worker, unlike the DO, needs waitUntil to keep background work
+ * alive past the response).
+ */
+
+import { createRoute, z } from "@hono/zod-openapi";
+import { decodeOptionalCursor } from "../cursor.js";
+import { readPlayers } from "../d1/reads.js";
+import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPendingRequests, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
+import type { Authed, EngineApp, RouteContext } from "../engine.js";
+import { HttpError } from "../http.js";
+import { friendAcceptedPush, friendRequestPush } from "../notify/push.js";
+import { enforceRateLimit } from "../rate-limit.js";
+import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
+import { errorShape, friendRequestShape, friendShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
+
+const err = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
+const errorResponses = { 400: err("Invalid request"), 401: err("Missing or invalid token"), 403: err("Not allowed"), 404: err("Not found") } as const;
+
+function okResponse<T extends z.ZodType>(schema: T, description: string) {
+  return { 200: { content: { "application/json": { schema } }, description }, ...errorResponses } as const;
+}
+
+/** For a mutation with nothing to return: success is the 204, failures are the
+ * shared `{ error, code }` responses. */
+function noContentResponse(description: string) {
+  return { 204: { description }, ...errorResponses } as const;
+}
+
+const userIdParam = z.object({ userId: z.string().min(1) });
+
+/** Friend writes are for registered accounts only. */
+function requireRegistered(auth: Authed): void {
+  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account", "registrationRequired");
+}
+
+/** Best-effort friend-event push, off the response path. `waitUntil` keeps the
+ * background send alive past the response (a stateless Worker needs it, unlike
+ * the DO). */
+function pushFriendEvent(ctx: RouteContext, env: unknown, waitUntil: (p: Promise<unknown>) => void, userId: string, message: ReturnType<typeof friendRequestPush>): void {
+  waitUntil(ctx.firebaseAdmin(env).notifyUser(ctx.d1(env), userId, message));
+}
+
+export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
+  // ── Lists ──────────────────────────────────────────────────────────────────
+  app.openapi(createRoute({ method: "get", path: "/friends", operationId: "listFriends", tags: ["Social"], responses: okResponse(z.object({ friends: z.array(friendShape) }).openapi("Friends"), "The caller's accepted friends") }), async (c) =>
+    c.json({ friends: await listFriends(ctx.d1(c.env), c.var.auth.user.id) }, 200),
+  );
+
+  app.openapi(createRoute({ method: "get", path: "/friends/requests", operationId: "listFriendRequests", tags: ["Social"], responses: okResponse(z.object({ requests: z.array(friendRequestShape) }).openapi("FriendRequests"), "Pending requests, incoming and outgoing") }), async (c) =>
+    c.json({ requests: await listPendingRequests(ctx.d1(c.env), c.var.auth.user.id) }, 200),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/friends/games",
+      operationId: "getFriendsGames",
+      tags: ["Social"],
+      request: { query: z.object({ limit: limitQuery, cursor: cursorQuery }) },
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("FriendsGames"), "Joinable games created by the caller's friends"),
+    }),
+    async (c) => {
+      const { limit, cursor } = c.req.valid("query");
+      const page = await friendsOpenGames(ctx.d1(c.env), c.var.auth.user.id, limit, decodeOptionalCursor(cursor));
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
+    },
+  );
+
+  // ── User search ──────────────────────────────────────────────────────────────
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/users/search",
+      operationId: "searchUsers",
+      tags: ["Social"],
+      request: { query: z.object({ q: z.string().min(1), limit: limitQuery }) },
+      responses: okResponse(z.object({ users: z.array(playerShape) }).openapi("UserSearch"), "Matching registered users, best match first"),
+    }),
+    async (c) => {
+      requireRegistered(c.var.auth);
+      await enforceRateLimit(c.env, "user_search", c.var.auth.user.id);
+      const { q, limit } = c.req.valid("query");
+      const rows = await searchUsers(ctx.d1(c.env), c.var.auth.user.id, q, limit);
+      return c.json({ users: rows }, 200);
+    },
+  );
+
+  // ── Requests ───────────────────────────────────────────────────────────────
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/friends/requests",
+      operationId: "sendFriendRequest",
+      tags: ["Social"],
+      request: { body: { content: { "application/json": { schema: friendTargetBody } }, required: true } },
+      responses: okResponse(z.object({ status: z.enum(["requested", "accepted"]) }).openapi("FriendRequestResult"), "Request sent, or auto-accepted"),
+    }),
+    async (c) => {
+      requireRegistered(c.var.auth);
+      const caller = c.var.auth.user;
+      await enforceRateLimit(c.env, "friend_request", caller.id);
+      const target = c.req.valid("json").targetUserId;
+      if (target === caller.id) throw new HttpError(400, "You cannot friend yourself");
+      const [targetRow] = await readPlayers(ctx.d1(c.env), [target]);
+      if (targetRow === undefined) throw new HttpError(404, "No such user");
+      if (targetRow.isAnonymous) throw new HttpError(400, "You cannot friend a guest");
+
+      const res = await sendFriendRequest(ctx.d1(c.env), caller.id, target);
+      switch (res.outcome) {
+        case "blocked":
+          throw new HttpError(403, "This user is unavailable");
+        case "requested":
+          pushFriendEvent(ctx, c.env, (p) => c.executionCtx.waitUntil(p), res.notifyUserId, friendRequestPush(caller.displayName));
+          return c.json({ status: "requested" as const }, 200);
+        case "accepted":
+          pushFriendEvent(ctx, c.env, (p) => c.executionCtx.waitUntil(p), res.notifyUserId, friendAcceptedPush(caller.displayName));
+          return c.json({ status: "accepted" as const }, 200);
+        case "already_pending":
+          return c.json({ status: "requested" as const }, 200);
+        case "already_friends":
+          return c.json({ status: "accepted" as const }, 200);
+      }
+    },
+  );
+
+  app.openapi(createRoute({ method: "post", path: "/friends/requests/{userId}/accept", operationId: "acceptFriendRequest", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("The request was accepted") }), async (c) => {
+    requireRegistered(c.var.auth);
+    const caller = c.var.auth.user;
+    const requester = c.req.valid("param").userId;
+    const accepted = await acceptFriendRequest(ctx.d1(c.env), caller.id, requester);
+    if (!accepted) throw new HttpError(404, "No pending request from this user");
+    pushFriendEvent(ctx, c.env, (p) => c.executionCtx.waitUntil(p), requester, friendAcceptedPush(caller.displayName));
+    return c.body(null, 204);
+  });
+
+  // ── Remove / block ───────────────────────────────────────────────────────────
+  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}", operationId: "removeFriend", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Unfriended / request withdrawn / declined (idempotent)") }), async (c) => {
+    // No registered gate: removing/declining is always allowed, and a
+    // relationship can only exist if it was created by a registered caller.
+    await removeRelationship(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("param").userId);
+    return c.body(null, 204);
+  });
+
+  app.openapi(createRoute({ method: "post", path: "/friends/{userId}/block", operationId: "blockUser", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Blocked (idempotent)") }), async (c) => {
+    requireRegistered(c.var.auth);
+    const target = c.req.valid("param").userId;
+    if (target === c.var.auth.user.id) throw new HttpError(400, "You cannot block yourself");
+    await blockUser(ctx.d1(c.env), c.var.auth.user.id, target);
+    return c.body(null, 204);
+  });
+
+  app.openapi(createRoute({ method: "delete", path: "/friends/{userId}/block", operationId: "unblockUser", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Unblocked (idempotent)") }), async (c) => {
+    await unblockUser(ctx.d1(c.env), c.var.auth.user.id, c.req.valid("param").userId);
+    return c.body(null, 204);
+  });
+}

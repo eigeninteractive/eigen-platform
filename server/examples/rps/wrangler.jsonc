@@ -1,0 +1,109 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "rps",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-15",
+  "exports": {
+    "GameDO": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  // The release Flutter build is written into ./public. Exact assets bypass
+  // Worker execution; dynamic engine paths run Worker-first; every other
+  // browser route falls back to Flutter's index.html.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health", "/avatars/*", "/.well-known/*", "/join/*", "/game/*", "/download", "/terms", "/privacy", "/delete-account", "/robots.txt", "/sitemap.xml", "/site.webmanifest"]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GameDO",
+        "name": "GAME_DO"
+      }
+    ]
+  },
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // Public Firebase project id. The matching FIREBASE_CLIENT_EMAIL and
+    // FIREBASE_PRIVATE_KEY are required secrets (or .dev.vars locally) for
+    // FCM and complete account deletion.
+    "FIREBASE_PROJECT_ID": "",
+    // Canonical Flutter web origin: trusted automatically for browser API +
+    // socket access and used for absolute notification click links.
+    "WEB_APP_ORIGIN": "http://localhost:7357"
+  },
+  "upload_source_maps": true,
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "rps_dev",
+      "database_name": "rps-dev",
+      // Placeholder. Local development and the test suite never read this;
+      // `wrangler dev` and vitest-pool-workers simulate D1 locally against the
+      // binding name. Replace it with your own before deploying:
+      //     wrangler d1 create rps-dev
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      // Engine-owned schema, like the DO's: migrations ship inside
+      // @eigeninteractive/server and `deploy` applies them before the code goes out.
+      // App-custom data belongs in a SEPARATE second d1_databases entry with
+      // its own migrations_dir, never in this database.
+      "migrations_dir": "node_modules/@eigeninteractive/server/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "AVATARS",
+      "bucket_name": "eigeninteractive-rps-avatars-dev"
+    }
+  ],
+  // Per-user write rate limits. The engine wires each entry by its conventional
+  // `EIGEN_RATE_LIMIT_*` name, so no code is needed in index.ts. This block is
+  // the entire setup, and the limits below are the recommended starting values.
+  // The `limit`/`period` here are the source of truth (the engine reads
+  // neither); `period` is 10 or 60 only. `namespace_id` is a positive integer
+  // that must be unique WITHIN your Cloudflare account, since ids are account-scoped,
+  // so a value reused by another Worker would share counters. Per-colo,
+  // eventually consistent: an abuse dampener, not a hard quota.
+  "ratelimits": [
+    { "name": "EIGEN_RATE_LIMIT_AVATAR_UPLOAD", "namespace_id": "1001", "simple": { "limit": 5, "period": 60 } },
+    { "name": "EIGEN_RATE_LIMIT_GAME_CREATE", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } },
+    { "name": "EIGEN_RATE_LIMIT_FRIEND_REQUEST", "namespace_id": "1003", "simple": { "limit": 20, "period": 60 } },
+    { "name": "EIGEN_RATE_LIMIT_USER_SEARCH", "namespace_id": "1004", "simple": { "limit": 20, "period": 10 } }
+  ],
+  "triggers": {
+    "crons": ["0 3 * * *"]
+  }
+  /**
+   * Smart Placement
+   * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
+   */
+  // "placement": {  "mode": "smart" }
+  /**
+   * Bindings
+   * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
+   * databases, object storage, AI inference, real-time communication and more.
+   * https://developers.cloudflare.com/workers/runtime-apis/bindings/
+   */
+  /**
+   * Environment Variables
+   * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
+   * Note: Use secrets to store sensitive data.
+   * https://developers.cloudflare.com/workers/configuration/secrets/
+   */
+  // "vars": {  "MY_VARIABLE": "production_value" }
+  /**
+   * Service Bindings (communicate between multiple Workers)
+   * https://developers.cloudflare.com/workers/wrangler/configuration/#service-bindings
+   */
+  // "services": [  {   "binding": "MY_SERVICE",   "service": "my-service"  } ]
+}

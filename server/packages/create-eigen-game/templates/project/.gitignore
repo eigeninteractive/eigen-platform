@@ -1,0 +1,17 @@
+.DS_Store
+server/node_modules/
+server/.wrangler/
+server/.dev.vars*
+!server/.dev.vars.example
+server/.env*
+server/public/*
+!server/public/.gitkeep
+*.log
+
+app/pubspec_overrides.yaml
+
+# The root forwards scripts into server/ and app/, and holds Biome for linting
+# both halves' JavaScript and JSON. Its lockfile is committed like any other;
+# only the installed tree is ignored. Anchored for symmetry with the rest of
+# this file, which names paths explicitly.
+/node_modules/

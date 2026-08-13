@@ -1,0 +1,4 @@
+# Copy to .dev.vars and fill these from the service-account JSON generated at
+# Firebase Console > Project settings > Service accounts. Never commit .dev.vars.
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=

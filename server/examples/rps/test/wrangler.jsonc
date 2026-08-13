@@ -1,0 +1,33 @@
+/**
+ * Test-only worker config for the vitest-pool-workers suite. The deployable
+ * wrangler.jsonc with `main` pointed at the test worker (production config +
+ * test auth). Never deployed.
+ */
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "rps-test",
+  "main": "./worker.ts",
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "exports": {
+    "GameDO": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GameDO",
+        "name": "GAME_DO"
+      }
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "rps_dev",
+      "database_name": "rps-test",
+      "database_id": "rps-test"
+    }
+  ]
+}

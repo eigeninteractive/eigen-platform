@@ -1,0 +1,125 @@
+name: Checks
+
+# The single definition of "is this commit good?", invoked two ways:
+#
+#   - directly, on every pull request;
+#   - by `release.yml` via `workflow_call`, on every push to main, so the
+#     commit that is about to ship a Play Store build clears exactly the
+#     same bar.
+#
+# There is deliberately no `push: [main]` trigger here. Release owns main and
+# calls this, so adding one would run the whole gate twice per merge.
+on:
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+# A pull request's run is superseded freely; a run gating a release is not.
+# Keyed on the SHA rather than the ref so a called run never shares a group
+# with release.yml's own.
+concurrency:
+  group: checks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Needs no secrets or Cloudflare/Play credentials, which is why `release.yml`
+# calls it without `secrets: inherit`. Worker deployment and the signed
+# Android build both happen in `release.yml` instead.
+permissions:
+  contents: read
+
+jobs:
+  server:
+    name: Server
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v7
+
+      # `corepack enable`, not `pnpm/action-setup`, because this project can be
+      # scaffolded with either npm or pnpm (see the {{PACKAGE_MANAGER}}
+      # commands below), and corepack puts both on PATH regardless of which
+      # one a game author actually chose.
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: {{PACKAGE_MANAGER}}
+
+      - name: Install dependencies
+        run: {{PACKAGE_MANAGER}} install
+
+      - name: Test
+        run: {{PACKAGE_MANAGER}} run test
+
+      - name: Typecheck
+        run: {{PACKAGE_MANAGER}} run typecheck
+
+  app:
+    name: App
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: {{PACKAGE_MANAGER}}
+
+      # `contract:check` (below) round-trips through both halves: it
+      # invokes the server's own contract generator, then verifies the app's
+      # generated payloads still match, so the server's Node dependencies
+      # have to exist here too, not just in the `server` job's own runner.
+      - name: Install server dependencies
+        working-directory: server
+        run: {{PACKAGE_MANAGER}} install
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: app/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Install app dependencies
+        working-directory: app
+        run: flutter pub get
+
+      # The generated payload types are committed, so a game rule or a
+      # server schema that changed without regenerating them would otherwise
+      # go unnoticed until a decode failure at runtime.
+      - name: Contract and generated payloads are in sync
+        run: {{PACKAGE_MANAGER}} run contract:check
+
+      - name: Check formatting
+        working-directory: app
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: app
+        run: flutter analyze
+
+      - name: Test
+        working-directory: app
+        run: flutter test
+
+      # A VM widget test can pass while a dependency still imports dart:io or
+      # calls an unsupported plugin. Compiling the real web entrypoint is
+      # what actually proves it ships, mirroring eigen-flutter's own `example`
+      # job, which does the same for the RPS reference app.
+      #
+      # No Android SDK step in this job, for the same reason
+      # `create-eigen-game`'s own `scaffold-e2e.mjs` check skips one:
+      # `flutter analyze`/`test`/`build web` don't need it, and it would
+      # roughly double this job for no extra coverage. The Android build is
+      # verified for real, with a real signing config, in `release.yml`.
+      - name: Build web
+        working-directory: app
+        run: >
+          flutter build web --release
+          --dart-define-from-file=app-config.json

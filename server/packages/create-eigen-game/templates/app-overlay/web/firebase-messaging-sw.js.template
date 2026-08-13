@@ -1,0 +1,15 @@
+// Keep this version aligned with the Firebase JS SDK supported by the
+// firebase_core_web version resolved by the Flutter app.
+importScripts("https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/12.15.0/firebase-messaging-compat.js");
+importScripts("firebase-config.js");
+
+// `firebase:configure` generates this public configuration from the Web app
+// selected by FlutterFire. Firebase Security Rules and the Eigen Worker's
+// verified ID tokens enforce authorization; these identifiers are not server
+// credentials.
+firebase.initializeApp(self.firebaseConfig);
+
+// Initializing Messaging is enough for notification payloads: the browser
+// displays them while the app is backgrounded or closed.
+firebase.messaging();

@@ -1,0 +1,13 @@
+{
+  "files.associations": {
+    "wrangler.json": "jsonc"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit"
+  },
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code"
+  }
+}

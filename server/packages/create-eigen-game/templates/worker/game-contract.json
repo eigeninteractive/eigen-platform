@@ -1,0 +1,109 @@
+{
+  "formatVersion": 1,
+  "game": "Example Game",
+  "versions": {
+    "1": {
+      "schemas": {
+        "state": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "additionalProperties": false,
+          "properties": {
+            "count": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count"
+          ],
+          "type": "object"
+        },
+        "observation": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "additionalProperties": false,
+          "properties": {
+            "count": {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "count"
+          ],
+          "type": "object"
+        },
+        "action": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "properties": {
+            "amount": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "amount"
+          ],
+          "type": "object"
+        },
+        "config": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "additionalProperties": false,
+          "properties": {
+            "target": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "target"
+          ],
+          "type": "object"
+        }
+      }
+    }
+  },
+  "fixtures": [
+    {
+      "path": "v1/counter.json",
+      "document": {
+        "cases": [
+          {
+            "action": {
+              "amount": 1
+            },
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "observation": {
+                "count": 1
+              },
+              "outcome": null,
+              "pending": [
+                1
+              ],
+              "state": {
+                "count": 1
+              },
+              "valid": true
+            },
+            "kind": "action",
+            "name": "increments the counter and passes the turn",
+            "pending": [
+              0
+            ],
+            "playerIndex": 0,
+            "state": {
+              "count": 0
+            }
+          }
+        ],
+        "schemaVersion": 1
+      }
+    }
+  ]
+}

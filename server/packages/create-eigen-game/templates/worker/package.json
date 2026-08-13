@@ -1,0 +1,53 @@
+{
+  "name": "@game/example-game-server",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The authoritative Example Game server on Cloudflare Workers.",
+  "type": "module",
+  "eigen": {
+    "game": "Example Game"
+  },
+  "cloudflare": {
+    "label": "Example Game Worker",
+    "products": [
+      "D1",
+      "Durable Objects"
+    ],
+    "categories": [
+      "starter"
+    ],
+    "bindings": {
+      "GAME_DB": {
+        "description": "The engine-owned D1 database. Wrangler provisions it automatically on first deployment."
+      },
+      "FIREBASE_PROJECT_ID": {
+        "description": "The Firebase project ID used to verify player identity tokens."
+      }
+    }
+  },
+  "scripts": {
+    "cf-typegen": "wrangler types",
+    "contract": "eigen-contract",
+    "contract:check": "eigen-contract --check",
+    "deploy": "wrangler d1 migrations apply GAME_DB --remote && wrangler deploy",
+    "dev": "{{PACKAGE_MANAGER}} run db:migrate:local && wrangler dev",
+    "inspect": "eigen-inspect",
+    "start": "{{PACKAGE_MANAGER}} run db:migrate:local && wrangler dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "wrangler types && tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply GAME_DB --local"
+  },
+  "dependencies": {
+    "@eigeninteractive/rules": "{{ENGINE_VERSION}}",
+    "@eigeninteractive/server": "{{ENGINE_VERSION}}",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@eigeninteractive/testkit": "{{ENGINE_VERSION}}",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
+  }
+}

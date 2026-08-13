@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "kind": "action",
+      "name": "increments the counter and passes the turn",
+      "config": {
+        "target": 10
+      },
+      "state": {
+        "count": 0
+      },
+      "pending": [0],
+      "playerIndex": 0,
+      "action": {
+        "amount": 1
+      },
+      "expected": {
+        "valid": true,
+        "state": {
+          "count": 1
+        },
+        "pending": [1],
+        "outcome": null,
+        "observation": {
+          "count": 1
+        }
+      }
+    }
+  ]
+}

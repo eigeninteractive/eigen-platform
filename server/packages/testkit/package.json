@@ -1,0 +1,68 @@
+{
+  "name": "@eigeninteractive/testkit",
+  "version": "0.4.0",
+  "license": "MIT",
+  "description": "Test helpers for games built on the EigenInteractive engine: drive rules through the real kernel and run shared twin fixtures, with no Worker, database or network.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "eigen-contract": "./bin/eigen-contract.js",
+    "eigen-inspect": "./bin/eigen-inspect.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./local-state": {
+      "types": "./dist/local-state.d.ts",
+      "import": "./dist/local-state.js"
+    }
+  },
+  "files": [
+    "bin",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "eigen",
+    "game-engine",
+    "turn-based",
+    "multiplayer",
+    "cloudflare-workers",
+    "durable-objects"
+  ],
+  "author": "EigenInteractive",
+  "type": "module",
+  "dependencies": {
+    "@eigeninteractive/kernel": "workspace:*",
+    "rand-seed": "^3.0.0",
+    "tsx": "^4.23.1"
+  },
+  "devDependencies": {
+    "@eigeninteractive/rules": "workspace:*",
+    "@types/node": "^26.1.1",
+    "vitest": "^4.1.10"
+  },
+  "peerDependencies": {
+    "@eigeninteractive/rules": "workspace:^",
+    "vitest": "^4.1.0"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-server.git",
+    "directory": "packages/testkit"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

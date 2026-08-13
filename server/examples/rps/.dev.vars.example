@@ -1,0 +1,12 @@
+# Copy to `.dev.vars` (git-ignored) for `wrangler dev`.
+#
+# Fill these from the same Firebase project used by the Flutter app. The email
+# and private key come from Project settings > Service accounts > Generate new
+# private key. Never commit the downloaded JSON or `.dev.vars`.
+#
+# Automated tests remain credential-free: the explicit server testing verifier
+# bypasses production Firebase configuration and never calls Google.
+
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+BOT_SIGNING_SECRET=dev-only-secret

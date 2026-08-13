@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "eigeninteractive/eigen-server"
+    }
+  ],
+  "commit": false,
+  "fixed": [["@eigeninteractive/kernel", "@eigeninteractive/rules", "@eigeninteractive/server", "@eigeninteractive/testkit"]],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": ["rps"]
+}
