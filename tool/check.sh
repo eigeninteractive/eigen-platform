@@ -3,8 +3,10 @@ set -euo pipefail
 
 platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-node "$platform_root/tool/platform.mjs" --check
-node "$platform_root/tool/check-contracts.mjs"
+run_contracts() {
+  node "$platform_root/tool/platform.mjs" --check
+  node "$platform_root/tool/check-contracts.mjs"
+}
 
 assert_no_drift() {
   local label="$1"
@@ -150,10 +152,13 @@ run_scaffold() {
 }
 
 case "${1:-all}" in
+  contracts) run_contracts ;;
   server) run_server ;;
   flutter) run_flutter ;;
   web) run_web ;;
+  scaffold) run_scaffold ;;
   all)
+    run_contracts
     run_server
     run_flutter
     SERVER_ALREADY_BUILT=1
@@ -161,7 +166,7 @@ case "${1:-all}" in
     run_scaffold
     ;;
   *)
-    echo "usage: $0 [all|server|flutter|web]" >&2
+    echo "usage: $0 [all|contracts|server|flutter|web|scaffold]" >&2
     exit 64
     ;;
 esac

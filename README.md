@@ -46,11 +46,11 @@ Run the full cross-platform gate before handing off a change:
 ./tool/check.sh all
 ```
 
-For faster iteration, pass `server`, `flutter`, or `web` instead of `all`. The
-full gate also checks generated contracts and package contents, tests the
-Flutter package on the Dart VM and Chrome, builds the imported example and
-documentation for web, and validates a freshly scaffolded game with release
-Android and web builds.
+For faster iteration, pass `contracts`, `server`, `flutter`, `web`, or
+`scaffold` instead of `all`. The full gate also checks generated contracts and
+package contents, tests the Flutter package on the Dart VM and Chrome, builds
+the imported example and documentation for web, and validates a freshly
+scaffolded game with release Android and web builds.
 
 ## Architecture and documentation
 
@@ -68,7 +68,9 @@ cutover.
 ## CI and releases
 
 Pull requests and package releases run the same whole-platform workflow in
-[`checks.yml`](.github/workflows/checks.yml). npm packages use Changesets;
+[`checks.yml`](.github/workflows/checks.yml). Its contracts, server, Flutter,
+documentation, and scaffold checks run in parallel, then report one stable
+`check` result to branch protection. npm packages use Changesets;
 `eigen_api` and `eigen_flutter` use separate namespaced pub.dev tags. Publishing
 uses registry trusted publishing with GitHub OIDC and protected `npm` / `pub.dev`
 environments, so no registry token is stored in the repository.

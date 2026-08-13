@@ -29,10 +29,12 @@ Run the complete baseline before handoff:
 ./tool/check.sh all
 ```
 
-During iteration, `server`, `flutter`, and `web` may be passed instead of
-`all`. The complete check additionally builds and tests a freshly scaffolded
-game. Generation checks compare both tracked content and the exact file set;
-commit generated changes with their source rather than bypassing those checks.
+During iteration, `contracts`, `server`, `flutter`, `web`, and `scaffold` may
+be passed instead of `all`. CI runs those same five shards concurrently and
+requires their aggregate `check` result. The complete check additionally builds
+and tests a freshly scaffolded game. Generation checks compare both tracked
+content and the exact file set; commit generated changes with their source
+rather than bypassing those checks.
 
 ## Scope and history
 

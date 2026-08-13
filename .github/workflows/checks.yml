@@ -14,9 +14,22 @@ permissions:
   contents: read
 
 jobs:
-  check:
+  contracts:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+
+      - name: Check the platform manifest and contracts
+        run: ./tool/check.sh contracts
+
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -30,9 +43,95 @@ jobs:
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+
+      - uses: actions/setup-java@v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Check server packages and generated API
+        run: ./tool/check.sh server
+
+      # A published npm package can otherwise change without ever entering the
+      # Changesets release queue. The version PR consumes its changesets, so it
+      # is the one intentional exception.
+      - name: Published npm changes have release notes
+        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
+        working-directory: server
+        run: |
+          pnpm changeset status --since=origin/main || {
+            echo "::error::A published npm package changed without a changeset. Run 'pnpm changeset', or 'pnpm changeset --empty' for a non-release change."
+            exit 1
+          }
+
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Check the Flutter package and example
+        run: ./tool/check.sh flutter
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
           cache-dependency-path: |
             server/pnpm-lock.yaml
             web/pnpm-lock.yaml
+
+      - name: Install server dependencies
+        working-directory: server
+        run: pnpm install --frozen-lockfile
+
+      - name: Install documentation dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Check implementor documentation
+        run: ./tool/check.sh web
+
+  scaffold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
 
       - uses: subosito/flutter-action@v2
         with:
@@ -49,27 +148,28 @@ jobs:
         working-directory: server
         run: pnpm install --frozen-lockfile
 
-      - name: Install documentation dependencies
-        working-directory: web
-        run: pnpm install --frozen-lockfile
+      - name: Check a newly scaffolded game
+        run: ./tool/check.sh scaffold
 
-      - name: Install Flutter dependencies
-        working-directory: flutter
+  # Keep this stable job name: main branch protection requires `check`, while
+  # the expensive work above is free to run in parallel.
+  check:
+    name: check
+    if: always()
+    needs: [contracts, server, flutter, web, scaffold]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require every platform shard
+        if: >-
+          needs.contracts.result != 'success' ||
+          needs.server.result != 'success' ||
+          needs.flutter.result != 'success' ||
+          needs.web.result != 'success' ||
+          needs.scaffold.result != 'success'
         run: |
-          flutter pub get
-          flutter pub get --directory example
+          echo "::error::One or more platform check shards did not succeed."
+          exit 1
 
-      - name: Check the complete platform
-        run: ./tool/check.sh all
-
-      # A published npm package can otherwise change without ever entering the
-      # Changesets release queue. The version PR consumes its changesets, so it
-      # is the one intentional exception.
-      - name: Published npm changes have release notes
-        if: github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
-        working-directory: server
-        run: |
-          pnpm changeset status --since=origin/main || {
-            echo "::error::A published npm package changed without a changeset. Run 'pnpm changeset', or 'pnpm changeset --empty' for a non-release change."
-            exit 1
-          }
+      - name: Platform checks passed
+        run: echo "Every platform check shard succeeded."
