@@ -9,9 +9,11 @@
  * only configures a Worker script, and there isn't one.
  *
  * Deploys run in Workers Builds (repo-connected, production branch `main`,
- * non-production branch builds off), with build command `pnpm install && pnpm
- * build` and deploy command `pnpm exec wrangler deploy`. That deploy command
- * must not use `npx`, Cloudflare's default. npm enforces this package.json's
+ * non-production branch builds off), with root directory `web`, build command
+ * `pnpm build`, and deploy command `pnpm exec wrangler deploy`. Workers Builds
+ * must also define `PNPM_VERSION=11.20.0`: the pnpm 10 default cannot parse the
+ * pnpm 11 multi-document lockfile. The deploy command must not use `npx`,
+ * Cloudflare's default. npm enforces this package.json's
  * `devEngines.packageManager` (pnpm) and refuses to run at all, failing the
  * deploy step after a green build.
  *

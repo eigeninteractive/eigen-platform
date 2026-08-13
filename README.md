@@ -72,8 +72,9 @@ Pull requests and package releases run the same whole-platform workflow in
 documentation, and scaffold checks run in parallel, then report one stable
 `check` result to branch protection. npm packages use Changesets;
 `eigen_api` and `eigen_flutter` use separate namespaced pub.dev tags. Publishing
-uses registry trusted publishing with GitHub OIDC and protected `npm` / `pub.dev`
-environments, so no registry token is stored in the repository.
+uses registry trusted publishing with GitHub OIDC and environment-bound `npm` /
+`pub.dev` identities, so no registry token is stored in the repository and
+publishing starts automatically after the release checks pass.
 
 The exact registry settings, routine release flow, first-cutover sequence, and
 failure recovery are documented in
