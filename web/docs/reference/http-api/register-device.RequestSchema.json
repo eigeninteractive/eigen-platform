@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"fid":{"type":"string","minLength":1,"maxLength":256},"platform":{"type":"string","enum":["ios","android","web"]}},"required":["fid","platform"],"title":"DeviceRegistration"}}}}}

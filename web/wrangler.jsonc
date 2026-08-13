@@ -1,0 +1,29 @@
+/**
+ * eigen-web is a **static-assets-only Worker**: there is no `main`, so
+ * Cloudflare's asset server answers every request and no Worker script is ever
+ * invoked. (Workers with static assets is the current target for new projects;
+ * Pages is only kept for existing ones.)
+ *
+ * Because there is no script, the C3 template's `nodejs_compat`,
+ * `upload_source_maps` and `observability` keys were removed, since each of them
+ * only configures a Worker script, and there isn't one.
+ *
+ * Deploys run in Workers Builds (repo-connected, production branch `main`,
+ * non-production branch builds off), with build command `pnpm install && pnpm
+ * build` and deploy command `pnpm exec wrangler deploy`. That deploy command
+ * must not use `npx`, Cloudflare's default. npm enforces this package.json's
+ * `devEngines.packageManager` (pnpm) and refuses to run at all, failing the
+ * deploy step after a green build.
+ *
+ * `pnpm deploy` from a machine with `wrangler login` does the same thing.
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "eigen-web",
+  "compatibility_date": "2026-07-23",
+  "assets": {
+    "directory": "./build",
+    // Docusaurus builds its own 404 page; serve that instead of a bare 404.
+    "not_found_handling": "404-page"
+  }
+}

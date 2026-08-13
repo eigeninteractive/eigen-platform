@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="25.3 19 149 149" width="160" height="160" fill="none">
+  <style>
+    .followed { stroke: #006A60 }
+    .pruned { stroke: #1B1E24 }
+    @media (prefers-color-scheme: dark) {
+      .followed { stroke: #82D5C8 }
+      .pruned { stroke: #F4F1EA }
+    }
+  </style>
+  <path class="followed" d="M80 109L150.711 33.289" stroke-width="26" stroke-linecap="butt"></path>
+  <path class="pruned" d="M80 160V104L48.887 72.887" stroke-width="26" stroke-linejoin="miter" stroke-linecap="butt"></path>
+</svg>

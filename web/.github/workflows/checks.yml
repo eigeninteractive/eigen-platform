@@ -1,0 +1,100 @@
+name: Checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Correctness only. This workflow never deploys; deployment is owned by
+# Cloudflare Workers Builds, which watches `main` directly: it clones the repo,
+# runs the build, and deploys with its own credentials. That means no Cloudflare
+# API token ever has to live in GitHub secrets.
+#
+# The site builds with no sibling checkout: the generated API reference under
+# `docs/reference/` is committed, produced on demand by `pnpm sync-api`.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The generated-reference guard below diffs against the base commit.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Before install, because it needs nothing but Node and this is the check
+      # most likely to fire on a `sync/api-reference` pull request, since that branch
+      # auto-merges, so the engine crossing a release line has to stop it here
+      # or it never gets looked at. See scripts/check-docs-version.mjs.
+      - name: Docs version matches the engine line
+        run: pnpm check-docs-version
+
+      # Also install-free, and for the same reason as above: a broken admonition
+      # is not a build failure. It renders as a literal `:::tip` paragraph and
+      # the build stays green, so this is the only thing that reports it.
+      - name: Admonitions use the directive-label syntax
+        run: pnpm check-admonitions
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome
+        run: pnpm exec biome ci .
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # `onBrokenLinks: "throw"` makes this the real link checker: a docs page
+      # linking at a moved or misspelled route fails the build here.
+      - name: Build
+        run: pnpm build
+
+      # The agent-facing surface is generated in a postBuild hook, so a plugin
+      # regression would otherwise fail silently and only show up as a 404.
+      - name: Agent surface was emitted
+        run: |
+          for f in build/llms.txt build/llms-full.txt build/openapi.json build/docs/intro.md; do
+            test -s "$f" || { echo "::error::missing or empty $f"; exit 1; }
+          done
+
+      # The reference under these paths is DERIVED from eigen-server: every one
+      # of them is deleted and rewritten wholesale by `pnpm sync-api`. A hand
+      # edit here is silently reverted by the next engine release, so the docs
+      # would disagree with the engine until someone noticed. `sync-api.yml`
+      # owns them, and its branch is the only one allowed to change them.
+      #
+      # Deliberately path-scoped rather than all of `docs/reference/`: the
+      # compatibility, cross-repo, envelope, http-surface and project-layout
+      # pages live there too and are authored by hand.
+      #
+      # Last, so a generated-path edit never masks a real build failure.
+      - name: Generated reference is not hand-edited
+        if: github.event_name == 'pull_request' && github.head_ref != 'sync/api-reference'
+        run: |
+          changed=$(git diff --name-only \
+            "${{ github.event.pull_request.base.sha }}" HEAD -- \
+            docs/reference/typescript docs/reference/http-api \
+            static/openapi.json api/openapi.json)
+
+          if [ -n "$changed" ]; then
+            echo "::error::These files are generated from eigen-server and must not be edited by hand:"
+            echo "$changed" | sed 's/^/  /'
+            echo "::error::Change the engine's source instead. The reference refreshes when eigen-server publishes, or run the 'Sync API reference' workflow to refresh it now."
+            exit 1
+          fi

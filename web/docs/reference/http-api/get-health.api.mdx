@@ -1,0 +1,59 @@
+---
+id: get-health
+title: "Liveness probe"
+description: "Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected."
+sidebar_label: "Liveness probe"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVU1v20YQ/SuDvdQWKEoJgh7oNIVjO7b6ERuVihwMIxySY3EjaofZHcpWBf33YpaU68TorcfyQu5idubtmzePO8MteRTLblaZzCxJrggbqU1iBJfBZLdm2LhLTKCy81a2Jru9S0xFofS21bMmMzdd0dgygc5hJzU5sSUKVdDYDTkKAcqaylUKN+Tv2a8DOIbZ5BrQVeAJq7hRsru3y64HlEBgQHg9ncKa0AVg12xBahSQmuCB/Yo82AAVtQ1vqepzcSdYNJTCTKBiCjAaOZbRCOy6PZw/f5XEHEtcE5x3Xg/AdfGFSgkJsAe9A6AnKNl7KqXZPmGjKoU5+Q1VkDseB2FPeQpzvCcQhhKbBh6s1NwJIAivyJ0AQoFVv1DEdunYUwUepSavmBx40vJUpSYxnkLLLlAw2c68nk719S3di39nIJDfWLc0iSnZCTnR09i2jXbEspt8CZpiZ0JZ0xr1S7YtmcxwZMAkpvUqC7E9gCAoXXgWF8Rrgf1ekX7trKdKhTLE3SVGrDQaOEhnr09i1iQ1DyrTIii1ycykPgjuIK+54upL31tPBQZ6VrwWaTU4BpnMFISevEmGjw/s1ygmM798WpjvRXoKH4aEMDvv25FAICeAAfLTTmr29q/IUgbvYz54G8Pe5XDEHvKf4+qnHNjBJyrmXK5IoGuXHisKx6nZJ6ZguVpj+QwztvZX2prEWEVRE1YRscN4gwu7JDee26VD6Ty9RO2AHoW8wwYKlh8CXP1+egbhcAB4E0VEQI9YCmhPKAgUXG0TKLhzKr0YkGOpSXOoeI3WpdBzDfnmVfJWefnxzbv8JIa25McFC6xoqxLLtebR++vF5/ns8uPs4+Xn+cXZHxcLLSCz6jhPQTVJbmkdRWwBHnBFIQ5DzBh02vrLg3Vxi6P+K6szZtmlUVPW3XMkb1BR5GfmhLyi3xBc9EVOb2YmMRvyoedpmr5Jpy/YU1Q6EuTH2DdYMGaJw09PqVI4a6xKQR2EAhzlE2ztpA+YjPJjGLQO+FJFJwP9fZcibw9U1MyrQ56CZTKQf6x8Kp3jb6wyaqflIGuM4zmo47eDgbaeixfi2P0z5P9b8H9pwcPkCj3KpG3QOu1O5xulvHeuW1M//RlrDqI7u53K4k/f7Pe6/bUjP/wtN+it3lFX++TgAdntzqxoq0NeltSqLW6w6XrP+M6x93fPLPTyYmH2+78Bt3et3w==
+sidebar_class_name: "get api-method"
+info_path: docs/reference/http-api/eigeninteractive-engine-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Liveness probe"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/health"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Public, unauthenticated liveness check. Performs no I/O and reads no configuration, so a 200 means only that the worker is deployed and routable. It does **not** imply that D1, the game Durable Objects, or auth are correctly configured. Served `no-store`. Safe to call without a token; a bad token is ignored rather than rejected.
+
+<ParamsDetails>
+  
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./get-health.RequestSchema.json")}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  {...require("./get-health.StatusCodes.json")}
+>
+  
+</StatusCodes>
+
+
+      

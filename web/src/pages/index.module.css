@@ -1,0 +1,55 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ *
+ * Nothing in here sets a colour. Infima owns every surface, border
+ * and text colour on this page, including the hero's, which is why the header
+ * is left as a plain `.hero`: unmodified it paints itself with
+ * `--ifm-background-surface-color` and mutes its text to
+ * `--ifm-color-emphasis-800`, and that is the theme's call to make.
+ *
+ * What is left is measure and spacing, which no theme class expresses.
+ */
+
+/* The template's own hero padding: full-bleed vertically, gutters on mobile. */
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+}
+
+/*
+ * Capped near 60 characters per line. The hero's type is large, and prose set
+ * to the full container width at that size is what makes a landing page go
+ * unread.
+ */
+.heroLede {
+  max-width: 46rem;
+  margin: 0 auto 2rem;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.writeItem + .writeItem {
+  margin-top: 1.25rem;
+}
+
+.writeTerm {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}

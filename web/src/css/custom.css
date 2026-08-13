@@ -1,0 +1,81 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ *
+ * Theming here is deliberately limited to Infima's own tokens: the accent
+ * ramp and the two font families. No component is swizzled. What makes docs
+ * legible is the structure a reader already knows: the sidebar, the search, the
+ * version picker, the code blocks. Changing tokens costs none of that
+ * familiarity and is most of the identity; replacing components would trade the
+ * first for the second.
+ */
+
+/*
+ * The same two faces the Flutter shell bundles and the engine's own pages
+ * serve, so all three surfaces read as one product. Self-hosted rather than
+ * linked from Google Fonts: a docs site should not put a third party on the
+ * page, and the files are subset to latin plus punctuation, currency and
+ * arrows, at 72KB and 20KB, each covering its whole weight range.
+ *
+ * Regenerate with the recipe in eigen-server's `src/site/fonts/README.md`;
+ * these are byte-identical to the files it serves.
+ */
+@font-face {
+  font-family: "Inter";
+  src: url("/fonts/inter.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("/fonts/space-grotesk.woff2") format("woff2");
+  font-weight: 300 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* The brand accent, per static/brand/USAGE.md: Material 3 primary for a
+   Colors.teal seed, the same value the app derives its scheme from and the
+   engine serves its pages with, so the mark in the navbar and the links beside
+   it are one colour. The surrounding ramp is the one
+   Docusaurus' own colour generator produces, HSL lightness scaled by .9/.85/.7
+   and 1.1/1.15/1.3, so the shades stay consistent with how Infima uses them. */
+:root {
+  --ifm-color-primary: #006a60;
+  --ifm-color-primary-dark: #005f56;
+  --ifm-color-primary-darker: #005a52;
+  --ifm-color-primary-darkest: #004a43;
+  --ifm-color-primary-light: #00756a;
+  --ifm-color-primary-lighter: #007a6e;
+  --ifm-color-primary-lightest: #008a7d;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  /* Inter for everything read at length, Space Grotesk for headings: the same
+     split the app and the engine's pages make, and for the same reason: the
+     display face is drawn for size and reads as noise in a paragraph. Infima's
+     own stacks stay behind each as the fallback during the swap. */
+  --ifm-font-family-base: Inter, system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
+  --ifm-heading-font-family: "Space Grotesk", var(--ifm-font-family-base);
+
+  /* Inter's default optical size and slightly tall x-height carry a touch more
+     colour than Infima's stack, so headings can afford to be a little tighter
+     than the framework default. */
+  --ifm-heading-font-weight: 600;
+}
+
+/* The palette carries a separate, lighter accent for dark backgrounds, since the
+   light-mode green does not have the contrast to be reused here. */
+[data-theme="dark"] {
+  --ifm-color-primary: #82d5c8;
+  --ifm-color-primary-dark: #68ccbd;
+  --ifm-color-primary-darker: #5bc8b7;
+  --ifm-color-primary-darkest: #3cb4a1;
+  --ifm-color-primary-light: #9cded3;
+  --ifm-color-primary-lighter: #a9e2d9;
+  --ifm-color-primary-lightest: #cfefea;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
