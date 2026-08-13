@@ -1,0 +1,97 @@
+{
+  "$schema": "../game/v1/game-contract.schema.json",
+  "profileVersion": 1,
+  "contractId": "counter/v1/sha256:8029f5f7709e239aab1c66f84ec0941c1e4da628e9896f71c75a44249f98f915",
+  "game": {
+    "key": "counter",
+    "displayName": "Counter"
+  },
+  "version": 1,
+  "lifecycle": "create",
+  "compatibility": {
+    "protocolMajor": 1,
+    "requiredFeatures": ["command-id-v1", "session-stream-v1"]
+  },
+  "creation": {
+    "access": ["private", "public"],
+    "players": {
+      "kind": "fixed",
+      "minimum": 2,
+      "maximum": 2
+    },
+    "timingModes": [
+      {
+        "id": "untimed",
+        "turnSeconds": null,
+        "budgetSeconds": null,
+        "incrementSeconds": null
+      }
+    ],
+    "bots": "forbidden",
+    "rating": "unrated"
+  },
+  "schemas": {
+    "config": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target"],
+      "properties": {
+        "target": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    },
+    "state": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "action": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "amount"],
+      "properties": {
+        "kind": { "const": "increment" },
+        "amount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
+    "observation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "target"],
+      "properties": {
+        "value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "target": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    }
+  },
+  "client": {
+    "rendererKey": "counter/v1",
+    "prediction": "optional"
+  }
+}

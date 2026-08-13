@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eigeninteractive.com/contracts/protocol/v1/command.schema.json",
+  "title": "EigenInteractive command envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["commandId", "operation", "payload"],
+  "properties": {
+    "commandId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "operation": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9.]{0,79}$"
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

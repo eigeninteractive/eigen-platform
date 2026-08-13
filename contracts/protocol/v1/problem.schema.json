@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eigeninteractive.com/contracts/protocol/v1/problem.schema.json",
+  "title": "EigenInteractive typed problem v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["requestId", "code", "outcome", "retryable"],
+  "properties": {
+    "requestId": { "type": "string", "format": "uuid" },
+    "commandId": { "type": "string", "format": "uuid" },
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-zA-Z0-9]{0,79}$"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["notCommitted", "committed", "unknown"]
+    },
+    "retryable": { "type": "boolean" },
+    "retryAfterMs": { "type": "integer", "minimum": 0, "maximum": 86400000 },
+    "message": { "type": "string", "maxLength": 500 },
+    "details": { "type": "object" }
+  }
+}

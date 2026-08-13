@@ -4,6 +4,7 @@ set -euo pipefail
 platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 node "$platform_root/tool/platform.mjs" --check
+node "$platform_root/tool/check-contracts.mjs"
 
 assert_no_drift() {
   local label="$1"

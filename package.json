@@ -8,6 +8,7 @@
     "check:server": "./tool/check.sh server",
     "check:flutter": "./tool/check.sh flutter",
     "check:web": "./tool/check.sh web",
+    "contracts:check": "node tool/check-contracts.mjs",
     "manifest": "node tool/platform.mjs",
     "manifest:check": "node tool/platform.mjs --check"
   }
