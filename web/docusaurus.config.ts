@@ -282,6 +282,10 @@ const config: Config = {
             specPath: "api/openapi.json",
             outputDir: "docs/reference/http-api",
             downloadUrl: "/openapi.json",
+            // Native zlib output varies across operating-system versions,
+            // which made committed API pages drift between macOS and Linux.
+            // Plain JSON is larger, but deterministic and reviewable.
+            disableCompression: true,
             sidebarOptions: {
               groupPathsBy: "tag",
               categoryLinkSource: "tag",
