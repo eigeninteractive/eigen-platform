@@ -68,7 +68,7 @@ describe("commit: start", () => {
     );
     expect(plan.nextState.playerTimes).toEqual([60_000, 60_000]);
     expect(plan.nextState.deadline).toBe(NOW + 60_000);
-    expect(plan.alarm).toBe(NOW + 60_000 + DEADLINE_GRACE_MS);
+    expect(plan.alarm).toBe(NOW + 60_000 + DEADLINE_GRACE_MS + 1);
   });
 
   it("throws on an empty seed, which is a host bug", () => {
@@ -163,10 +163,10 @@ describe("commit: deadline + grace", () => {
     expectRejection(commit(timed(NOW - DEADLINE_GRACE_MS - 1)), "expired");
   });
 
-  it("arms the next alarm at the new deadline + grace", () => {
+  it("arms the next alarm just after the new deadline + grace", () => {
     const plan = expectPlan(commit(timed(NOW - 100)));
     expect(plan.nextState.deadline).toBe(NOW + 30_000);
-    expect(plan.alarm).toBe(NOW + 30_000 + DEADLINE_GRACE_MS);
+    expect(plan.alarm).toBe(NOW + 30_000 + DEADLINE_GRACE_MS + 1);
   });
 });
 
@@ -244,7 +244,7 @@ describe("commit: budget banks", () => {
     expect(plan.nextState.turnStartedAt).toBe(NOW);
   });
 
-  it("leaves banks untouched when the hook overrides turnSeconds", () => {
+  it("charges the budget turn that ended before starting an override", () => {
     const base = budgetInput();
     const plan = expectPlan(
       commit({
@@ -252,11 +252,28 @@ describe("commit: budget banks", () => {
         intent: { kind: "action", seat: 0, expectedVersion: 4, data: { add: 1, boost: true }, actor: "user" },
       }),
     );
-    expect(plan.nextState.playerTimes).toEqual([50_000, 60_000]);
+    expect(plan.nextState.playerTimes).toEqual([48_000, 60_000]);
     expect(plan.nextState.deadline).toBe(NOW + 5_000);
+    expect(plan.nextState.turnStartedAt).toBeNull();
   });
 
-  it("leaves banks untouched on a finishing action", () => {
+  it("does not charge an override before returning to the budget clock", () => {
+    const plan = expectPlan(
+      commit({
+        ...budgetInput(),
+        state: makeState({
+          playerTimes: [50_000, 60_000],
+          deadline: NOW + 1_000,
+          turnStartedAt: null,
+        }),
+      }),
+    );
+    expect(plan.nextState.playerTimes).toEqual([50_000, 60_000]);
+    expect(plan.nextState.deadline).toBe(NOW + 60_000);
+    expect(plan.nextState.turnStartedAt).toBe(NOW);
+  });
+
+  it("charges a budget turn when its action finishes the game", () => {
     const base = budgetInput();
     const plan = expectPlan(
       commit({
@@ -270,7 +287,73 @@ describe("commit: budget banks", () => {
       }),
     );
     expect(plan.outcomes).not.toBeNull();
+    expect(plan.nextState.playerTimes).toEqual([48_000, 60_000]);
+  });
+
+  it("does not charge an override when its action finishes the game", () => {
+    const plan = expectPlan(
+      commit({
+        ...budgetInput(),
+        state: makeState({
+          state: { count: 9 },
+          playerTimes: [50_000, 60_000],
+          deadline: NOW + 1_000,
+          turnStartedAt: null,
+        }),
+      }),
+    );
+    expect(plan.outcomes).not.toBeNull();
     expect(plan.nextState.playerTimes).toEqual([50_000, 60_000]);
+  });
+
+  it("matches a reference clock across generated budget/override sequences", () => {
+    const sequenceLength = 8;
+    for (let mask = 0; mask < 1 << sequenceLength; mask += 1) {
+      let now = NOW;
+      let state = makeState({
+        version: 0,
+        state: { count: 0 },
+        pending: [0],
+        playerTimes: [60_000, 60_000],
+        deadline: NOW + 60_000,
+        turnStartedAt: NOW,
+      });
+      const expectedBanks = [60_000, 60_000];
+      let currentTurnConsumesBudget = true;
+
+      for (let step = 0; step < sequenceLength; step += 1) {
+        const elapsed = 250 + step * 125;
+        now += elapsed;
+        const seat = state.pending[0];
+        const nextTurnIsOverride = (mask & (1 << step)) !== 0;
+
+        if (currentTurnConsumesBudget) {
+          expectedBanks[seat] = Math.max(0, expectedBanks[seat] - elapsed) + 2_000;
+        }
+
+        const plan = expectPlan(
+          commit(
+            input({
+              game: makeGame({ budgetSeconds: 60, incrementSeconds: 2, config: { target: 100 } }),
+              state,
+              intent: {
+                kind: "action",
+                seat,
+                expectedVersion: state.version,
+                data: { add: 1, ...(nextTurnIsOverride ? { boost: true } : {}) },
+                actor: "user",
+              },
+              now,
+            }),
+          ),
+        );
+
+        expect(plan.nextState.playerTimes, `mask ${mask}, step ${step}`).toEqual(expectedBanks);
+        expect(plan.nextState.turnStartedAt, `mask ${mask}, step ${step}`).toBe(nextTurnIsOverride ? null : now);
+        state = plan.nextState;
+        currentTurnConsumesBudget = !nextTurnIsOverride;
+      }
+    }
   });
 });
 
@@ -318,6 +401,23 @@ describe("commit: timeout", () => {
       ),
     );
     expect(plan.nextState.playerTimes).toEqual([0, 42_000]);
+  });
+
+  it("leaves the underlying bank untouched when an override times out", () => {
+    const plan = expectPlan(
+      commit(
+        timeoutInput({
+          game: makeGame({ budgetSeconds: 60 }),
+          state: makeState({
+            pending: [0],
+            playerTimes: [7_000, 42_000],
+            deadline: NOW - DEADLINE_GRACE_MS - 1,
+            turnStartedAt: null,
+          }),
+        }),
+      ),
+    );
+    expect(plan.nextState.playerTimes).toEqual([7_000, 42_000]);
   });
 });
 

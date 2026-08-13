@@ -177,22 +177,14 @@ describe("actions & dedupe", () => {
 });
 
 describe("deadline alarm", () => {
-  it("arms at deadline + grace and times the pending seat out", async () => {
+  it("arms one millisecond after deadline + grace and times the pending seat out", async () => {
     const { gameId, stub } = await startGame({ turnSeconds: 60 });
     const armed = await runInDurableObject(stub, async (_i, state) => {
       const alarm = await state.storage.getAlarm();
       const v0 = state.storage.sql.exec("SELECT deadline FROM transitions WHERE version = 0").one();
       return { alarm, deadline: v0.deadline as number };
     });
-    expect(armed.alarm).toBe(armed.deadline + 750);
-
-    // Fire early: the kernel abstains (deadline not genuinely expired).
-    await runDurableObjectAlarm(stub);
-    await runInDurableObject(stub, async (_i, state) => {
-      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(1);
-      // The lost race arms nothing new; rearm for the real fire below.
-      await state.storage.setAlarm(Date.now() + 60_000);
-    });
+    expect(armed.alarm).toBe(armed.deadline + 751);
 
     // Simulate genuine expiry: rewrite the deadline into the past.
     await runInDurableObject(stub, async (_i, state) => {

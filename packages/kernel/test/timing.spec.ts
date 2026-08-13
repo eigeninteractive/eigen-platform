@@ -71,7 +71,7 @@ describe("computeNextDeadline precedence chain", () => {
     expect(next).toEqual({ deadline: null, turnStartedAt: null });
   });
 
-  it("2. a hook override wins over budget and per-action", () => {
+  it("2. a hook override wins without starting the budget clock", () => {
     const next = computeNextDeadline({
       now: NOW,
       gameOver: false,
@@ -81,7 +81,7 @@ describe("computeNextDeadline precedence chain", () => {
       newPending: [0],
       newPlayerTimes: [30_000, 30_000],
     });
-    expect(next).toEqual({ deadline: NOW + 10_000, turnStartedAt: NOW });
+    expect(next).toEqual({ deadline: NOW + 10_000, turnStartedAt: null });
   });
 
   it("3. budget mode arms at the minimum remaining bank over pending", () => {
@@ -97,7 +97,7 @@ describe("computeNextDeadline precedence chain", () => {
     expect(next).toEqual({ deadline: NOW + 12_000, turnStartedAt: NOW });
   });
 
-  it("4. per-action mode uses the configured window", () => {
+  it("4. per-action mode uses the configured window without a budget clock", () => {
     const next = computeNextDeadline({
       now: NOW,
       gameOver: false,
@@ -107,7 +107,7 @@ describe("computeNextDeadline precedence chain", () => {
       newPending: [1],
       newPlayerTimes: null,
     });
-    expect(next).toEqual({ deadline: NOW + 45_000, turnStartedAt: NOW });
+    expect(next).toEqual({ deadline: NOW + 45_000, turnStartedAt: null });
   });
 
   it("5. untimed has neither deadline nor turnStartedAt", () => {

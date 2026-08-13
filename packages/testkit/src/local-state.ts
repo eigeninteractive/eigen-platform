@@ -143,6 +143,8 @@ export interface LocalTransition {
   pending: number[];
   deadline: number | null;
   playerTimes: number[] | null;
+  /** Non-null only while this transition's pending turn consumes a budget
+   * bank. Per-action and hook-override deadlines do not set it. */
   turnStartedAt: number | null;
   /** Which seats hold a stored frame at this version. Empty after the finish
    * compaction, which empties `frames` and leaves replay to re-projection. */

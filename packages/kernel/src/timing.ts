@@ -6,9 +6,9 @@
  * The grace window compensates network physics (server time is measured at
  * request arrival, not at the tap). It is ONE constant with exactly two call
  * sites: the kernel accepts an action while `now <= deadline + grace`, and the
- * DO arms its alarm at `deadline + grace`. Whichever arrives first, the latent
- * action or the alarm, commits; the loser sees already-advanced state and
- * no-ops.
+ * DO arms its alarm one millisecond later, at the first genuinely expired
+ * instant. Whichever arrives first, the latent action or the alarm, commits;
+ * the loser sees already-advanced state and no-ops.
  *
  * Budget-mode fairness: the grace forgives *acceptance*, not *time charged*;
  * the elapsed bank deduction (floored at 0) still runs. So does flag-fall: a
@@ -47,10 +47,11 @@ export function deductBank(playerTimes: readonly number[], playerIndex: number, 
 
 export interface NextDeadline {
   deadline: number | null;
+  /** Start of a budget-consuming turn. Null for every other timing mode. */
   turnStartedAt: number | null;
 }
 
-/** Computes the deadline and `turnStartedAt` for the next action: the
+/** Computes the deadline and budget chargeability for the next action: the
  * precedence chain used by start and every commit mode. Pass
  * `gameOver = true` when the transition ends the game.
  *
@@ -78,25 +79,22 @@ export function computeNextDeadline(input: {
 
   if (gameOver) return { deadline: null, turnStartedAt: null };
 
-  const timed = actionSeconds !== null || budgetSeconds !== null || turnSeconds !== null;
-  const turnStartedAt = timed ? now : null;
-
   if (actionSeconds !== null) {
-    return { deadline: now + actionSeconds * 1000, turnStartedAt };
+    return { deadline: now + actionSeconds * 1000, turnStartedAt: null };
   }
   if (budgetSeconds !== null && newPending.length > 0) {
     if (newPlayerTimes === null) {
       throw new GameBugError("budget-timed game has no playerTimes banks");
     }
     const minBank = Math.min(...newPending.map((seat) => newPlayerTimes[seat]));
-    return { deadline: now + minBank, turnStartedAt };
+    return { deadline: now + minBank, turnStartedAt: now };
   }
   if (budgetSeconds !== null) {
     // Budget mode with an empty pending set and no outcome: nothing to time.
-    return { deadline: null, turnStartedAt };
+    return { deadline: null, turnStartedAt: null };
   }
   if (turnSeconds !== null) {
-    return { deadline: now + turnSeconds * 1000, turnStartedAt };
+    return { deadline: now + turnSeconds * 1000, turnStartedAt: null };
   }
   return { deadline: null, turnStartedAt: null };
 }

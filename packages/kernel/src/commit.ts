@@ -58,11 +58,14 @@ export interface StateRow {
   state: JsonObject;
   pending: number[];
   rngSeed: string;
-  /** The true turn deadline shown to clients; the alarm arms at
-   * `deadline + grace`. */
+  /** The true turn deadline shown to clients; the alarm arms one millisecond
+   * after `deadline + grace`. */
   deadline: number | null;
   /** Per-seat budget banks (ms), budget mode only. */
   playerTimes: number[] | null;
+  /** When the current turn is consuming a budget bank. Null for untimed,
+   * per-action, and hook-override turns. This is persisted so charging the
+   * turn that ends never depends on the next envelope. */
   turnStartedAt: number | null;
 }
 
@@ -150,8 +153,8 @@ export interface CommitPlan {
    * computes them inside the rating CAS via `computeRatings` (ratings.ts) and
    * the host delivers them as a follow-up versioned ratings transition. */
   outcomes: OutcomeEntry[] | null;
-  /** The instant the DO must arm its alarm at, the true deadline plus the
-   * grace window, or null to clear it. */
+  /** The instant the DO must arm its alarm at, one millisecond after the true
+   * deadline plus grace, or null to clear it. */
   alarm: number | null;
   effects: Effect[];
 }
@@ -263,10 +266,11 @@ function commitAction(input: CommitInput, intent: Extract<Intent, { kind: "actio
     throw error;
   }
 
-  // Bank deduction: budget mode, no per-action override, game not ending.
-  // The grace forgives acceptance, never time charged.
+  // Charge the turn that just ended. `turnStartedAt` belongs to the persisted
+  // current transition; the new envelope controls only the next turn. The
+  // grace forgives acceptance, never time charged.
   let playerTimes = state.playerTimes;
-  if (game.budgetSeconds !== null && envelope.turnSeconds === undefined && envelope.outcome === undefined) {
+  if (game.budgetSeconds !== null && state.turnStartedAt !== null) {
     if (playerTimes === null) {
       throw new GameBugError("budget-timed game has no playerTimes banks");
     }
@@ -322,7 +326,10 @@ function commitTimeout(input: CommitInput, _intent: Extract<Intent, { kind: "lif
   });
 
   let playerTimes = state.playerTimes;
-  if (game.budgetSeconds !== null && playerTimes !== null) {
+  if (game.budgetSeconds !== null && state.turnStartedAt !== null) {
+    if (playerTimes === null) {
+      throw new GameBugError("budget-timed game has no playerTimes banks");
+    }
     playerTimes = [...playerTimes];
     for (const seat of state.pending) playerTimes[seat] = 0;
   }
@@ -448,7 +455,10 @@ function buildPlan(
     action: t.action,
     frames,
     outcomes,
-    alarm: next.deadline === null ? null : next.deadline + DEADLINE_GRACE_MS,
+    // Expiry is intentionally strict (`deadline + grace < now`), so an alarm
+    // at the equality boundary could abstain and then disappear. Arm at the
+    // first millisecond that is genuinely expired.
+    alarm: next.deadline === null ? null : next.deadline + DEADLINE_GRACE_MS + 1,
     effects: computeEffects(roster, envelope, outcomes, t.actingSeat),
   };
 }

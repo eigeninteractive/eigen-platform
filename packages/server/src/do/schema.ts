@@ -85,7 +85,8 @@ export const transitions = sqliteTable("transitions", {
   /** The action that produced this transition; null for start (v0). */
   action: text({ mode: "json" }).$type<TransitionAction | null>(),
   pending: text({ mode: "json" }).$type<number[]>().notNull(),
-  /** The true client-facing deadline; the alarm arms at deadline + grace. */
+  /** The true client-facing deadline; the alarm arms immediately after
+   * deadline + grace. */
   deadline: integer(),
   playerTimes: text({ mode: "json" }).$type<number[] | null>(),
   turnStartedAt: integer(),
