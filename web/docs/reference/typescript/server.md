@@ -646,10 +646,10 @@ ratingPool: string | null;
 
 Defined in: [server/packages/server/src/d1/apply.ts:311](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L311)
 
-##### reservation
+##### receipt
 
 ```ts
-reservation: CreateReservation;
+receipt: CreateReceipt;
 ```
 
 Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
@@ -2175,17 +2175,18 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:328](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L328)
+Defined in: [server/packages/server/src/d1/apply.ts:329](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L329)
 
-Write the create reservation + the games row + one participants row per
-seat, atomically. The DO lazy-inits from exactly these rows on first contact.
+Write the games row + one participants row per seat, atomically. The DO
+lazy-inits from exactly these rows on first contact.
+
+The create's receipt is two columns of the games row rather than a row of its
+own, so it lands in the same INSERT as the game it identifies and cannot be
+separated from it by any failure.
 
 Callers own both failure modes, distinguished by `isCreateReplay` and
-`isShortCodeCollision`: a reused command id means this create already
-happened, while a duplicate shortCode is a random clash to retry. The
-reservation is inserted FIRST so a replay is the statement SQLite reports,
-rather than being masked by whichever other UNIQUE index also happened to
-trip.
+`isShortCodeCollision`: a reused command id means this create already happened,
+while a duplicate shortCode is a random clash to retry.
 
 #### Parameters
 
@@ -2412,8 +2413,10 @@ function readGameRow(d1, gameId): Promise<
   archivedAt: number | null;
   budgetSeconds: number | null;
   config: JsonObject;
+  createCommandId: string;
   createdAt: number;
   createdBy: string | null;
+  createRequest: string;
   finishedAt: number | null;
   finishId: string | null;
   id: string;
@@ -2435,7 +2438,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:377](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L377)
+Defined in: [server/packages/server/src/d1/apply.ts:372](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L372)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
@@ -2455,8 +2458,10 @@ its `meta`/`roster` on first contact, in one batched round trip.
   `archivedAt`: `number` \| `null`;
   `budgetSeconds`: `number` \| `null`;
   `config`: `JsonObject`;
+  `createCommandId`: `string`;
   `createdAt`: `number`;
   `createdBy`: `string` \| `null`;
+  `createRequest`: `string`;
   `finishedAt`: `number` \| `null`;
   `finishId`: `string` \| `null`;
   `id`: `string`;
