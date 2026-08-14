@@ -6,7 +6,7 @@
  */
 
 import type { RejectCode } from "@eigeninteractive/kernel";
-import type { CommandResult, LobbyRejectCode } from "./protocol.js";
+import type { CommandRejectCode, CommandResult, LobbyRejectCode } from "./protocol.js";
 
 /**
  * Every stable machine code an error body may carry: the kernel's and lobby's
@@ -22,6 +22,7 @@ import type { CommandResult, LobbyRejectCode } from "./protocol.js";
 export type ErrorCode =
   | Exclude<RejectCode, "abstain">
   | LobbyRejectCode
+  | CommandRejectCode
   /** Raised by a route before the command reaches the game. Each one exists
    * because the client renders a distinct response to it: a field-level form
    * error, a "create an account" prompt, a retry with a different file. A
@@ -54,10 +55,10 @@ export class HttpError extends Error {
   }
 }
 
-/** Transport mapping for the kernel's + lobby's stable machine codes: client
- * mistakes are 400, ownership refusals 403, a missing game 404, everything
- * else is a state conflict a client resolves by resyncing (409). */
-export function rejectStatus(code: RejectCode | LobbyRejectCode): 400 | 403 | 404 | 409 {
+/** Transport mapping for stable command codes: client mistakes are 400,
+ * ownership refusals 403, a missing game 404, and state or command-identity
+ * conflicts are 409. The code, not status alone, determines the remedy. */
+export function rejectStatus(code: RejectCode | LobbyRejectCode | CommandRejectCode): 400 | 403 | 404 | 409 {
   switch (code) {
     case "invalidPayload":
     case "illegalMove":

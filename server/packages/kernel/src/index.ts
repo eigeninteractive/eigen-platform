@@ -49,6 +49,7 @@ export {
   parseStoredPayload,
 } from "./schema.js";
 export {
+  alarmForDeadline,
   computeNextDeadline,
   DEADLINE_GRACE_MS,
   deadlineExpired,

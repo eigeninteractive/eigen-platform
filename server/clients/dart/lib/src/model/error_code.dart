@@ -64,6 +64,10 @@ enum ErrorCode {
   creatorCannotLeave(r'creatorCannotLeave'),
 
   /// A stable machine code identifying why a request failed.
+  @JsonValue(r'commandConflict')
+  commandConflict(r'commandConflict'),
+
+  /// A stable machine code identifying why a request failed.
   @JsonValue(r'schemaUnsupported')
   schemaUnsupported(r'schemaUnsupported'),
 

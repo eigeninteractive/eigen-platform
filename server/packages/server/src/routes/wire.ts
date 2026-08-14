@@ -48,6 +48,8 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   notParticipant: "The caller holds no seat in this game",
   notCreator: "A creator-only command from a non-creator",
   creatorCannotLeave: "The creator cancels the game instead of leaving it",
+  // Command receipt rejection: the id is already bound to another intent.
+  commandConflict: "This principal already committed the command id with a different operation, resource, or payload",
   // Raised by a route before the command reaches the game.
   schemaUnsupported: "The game's schema version is newer than this client build supports",
   usernameInvalid: "The submitted username fails the format rules",

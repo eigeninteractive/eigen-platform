@@ -187,7 +187,7 @@ describe("waiting room", () => {
     });
   });
 
-  it("cancel is creator-only, aborts the D1 row, and drops DO storage", async () => {
+  it("cancel is creator-only, aborts the D1 row, and compacts DO game data", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
     expect((await api(u.b, "POST", `/games/${gameId}/cancel`, {})).status).toBe(403);
@@ -249,6 +249,21 @@ describe("active play & frames", () => {
 
     const illegal = await api(u.b, "POST", `/games/${gameId}/action`, { seat: 1, data: { add: 7 }, expectedVersion: 1 });
     expect(illegal.status).toBe(400);
+  });
+
+  it("returns a typed 409 when one principal reuses a committed command id differently", async () => {
+    const u = makeUsers();
+    const gameId = await readyGame(u, { rated: false });
+    const commandId = crypto.randomUUID();
+    const original = { seat: 0, data: { add: 1 }, expectedVersion: 0, commandId };
+
+    const first = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, original));
+    const conflict = await api(u.a, "POST", `/games/${gameId}/action`, { ...original, data: { add: 2 } });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ code: "commandConflict" });
+
+    const replay = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, original));
+    expect(replay).toEqual(first);
   });
 
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {

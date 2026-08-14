@@ -76,6 +76,10 @@ export type LobbyRejectCode =
   /** The creator cannot leave; they cancel instead. */
   | "creatorCannotLeave";
 
+/** A stable command id was already committed by this principal for different
+ * semantic intent. Retrying or resyncing cannot repair this caller defect. */
+export type CommandRejectCode = "commandConflict";
+
 /**
  * The complete live truth about one game, as ONE SEAT sees it: the only message
  * the socket carries, and the body of every accepted command.
@@ -101,8 +105,8 @@ export interface SessionSnapshot {
    * across every path they arrive by, which `version` cannot do because a lobby
    * change has none. Apply a snapshot when `seq` exceeds the held one, OR when
    * it reports a terminal status the held state does not: `finished` and
-   * `aborted` are absorbing, so they need no ordering, and the abort teardown
-   * drops the storage `seq` lived in. */
+   * `aborted` are absorbing, so they need no ordering even if the final socket
+   * delivery is missed. */
   seq: number;
 
   /** Fixed at creation; carried so this is sufficient on its own. */
@@ -155,7 +159,7 @@ export interface FrameMessage {
  * That is harmless rather than stale: `seq` orders it against whatever the
  * client now holds, so an older one is simply discarded. Rejections are computed
  * fresh each time, since re-evaluating one is always sound. */
-export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
+export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode | CommandRejectCode; message: string };
 
 /** The DO surface the worker calls: structurally the RPC stub of any
  * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
@@ -169,9 +173,9 @@ export interface GameStub {
   session(gameId: string, userId: string | null): Promise<SessionSnapshot | null>;
   frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
   repokeFinish(): Promise<boolean>;
-  /** Unconditional teardown: mark the game aborted, drop DO storage.
-   * Used by the cron reap for abandoned lobbies / untimed games, with no creator
-   * gate, unlike the `cancel` command. */
+  /** Unconditional teardown: mark the game aborted and compact game data while
+   * retaining command receipts. Used by the cron reap for abandoned lobbies /
+   * untimed games, with no creator gate, unlike the `cancel` command. */
   abort(gameId: string): Promise<void>;
   fetch(request: Request): Promise<Response>;
 }

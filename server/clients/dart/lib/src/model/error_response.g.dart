@@ -44,6 +44,7 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.notParticipant: 'notParticipant',
   ErrorCode.notCreator: 'notCreator',
   ErrorCode.creatorCannotLeave: 'creatorCannotLeave',
+  ErrorCode.commandConflict: 'commandConflict',
   ErrorCode.schemaUnsupported: 'schemaUnsupported',
   ErrorCode.usernameInvalid: 'usernameInvalid',
   ErrorCode.usernameTaken: 'usernameTaken',

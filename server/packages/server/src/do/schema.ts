@@ -108,13 +108,34 @@ export const frames = sqliteTable(
   (t) => [primaryKey({ columns: [t.version, t.playerIndex] })],
 );
 
-/** `commandId → response` dedupe: a duplicate replays the stored
- * response instead of double-applying. Deleted by the finish compaction. */
-export const commands = sqliteTable("commands", {
-  commandId: text().primaryKey(),
-  response: text({ mode: "json" }).$type<CommandResult>().notNull(),
-  createdAt: integer().notNull(),
-});
+/**
+ * Permanent command receipts, one per committed command.
+ *
+ * The key is the principal AND the id, so two principals may independently
+ * choose the same UUID and neither can read the other's result. `request` is
+ * the canonical intent that id was committed with: equal means replay the
+ * stored `response` without re-running rules or effects, different means the
+ * caller reused an id for something else. Only committed commands are inserted,
+ * in the same transaction as the mutation they describe, so a row here is proof
+ * the mutation happened. Rejections are recomputed instead, since re-evaluating
+ * a refusal is always sound.
+ *
+ * Rows live as long as the game (RFC 0007), so an ancient retry can never be
+ * mistaken for a new mutation. Identity-less system commands write nothing;
+ * see `commandPrincipal`.
+ */
+export const commands = sqliteTable(
+  "commands",
+  {
+    principalId: text().notNull(),
+    commandId: text().notNull(),
+    /** Canonical RFC 8785 JSON; see `command-receipt.ts`. */
+    request: text().notNull(),
+    response: text({ mode: "json" }).$type<CommandResult>().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.principalId, t.commandId] })],
+);
 
 /** What the D1 apply needs, written atomically with the finish and
  * cleared only AFTER the apply succeeds; a surviving row is the recovery

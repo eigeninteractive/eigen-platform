@@ -37,9 +37,10 @@ rules). Highlights:
 - **Leave** compacts seat indexes (safe pre-start, since no transition references
   a seat yet). The creator cannot leave; they cancel.
 - **Add-bot** is creator-only and passes the [bot seating gates](./bots.md).
-- **Cancel** is creator-only, drops the DO's storage, and marks the D1 row
-  `aborted` (the D1 write is *awaited* here, unlike other lobby effects, because
-  the aborted row is the only survivor).
+- **Cancel** is creator-only. It marks the game `aborted` in the DO, compacts the
+  game's data while keeping its command receipts, and mirrors `aborted` to D1 in
+  the background like any other read model: the DO holds the aborted status
+  itself, so a mirror failure never fails a command whose truth is committed.
 - **Start** is creator-only, commits version 0 via the kernel, and arms the
   first deadline.
 

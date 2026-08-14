@@ -31,6 +31,17 @@ export function deadlineExpired(deadline: number | null, now: number): boolean {
   return deadline !== null && deadline + DEADLINE_GRACE_MS < now;
 }
 
+/** The instant a deadline's alarm must fire at: one millisecond past the grace
+ * window, so the first fire is already genuinely expired by
+ * {@link deadlineExpired}. Null for an untimed turn, meaning no alarm.
+ *
+ * The host derives its alarm from the committed deadline with this rather than
+ * being handed a separate number, so the armed alarm and the deadline it
+ * enforces cannot describe different instants. */
+export function alarmForDeadline(deadline: number | null): number | null {
+  return deadline === null ? null : deadline + DEADLINE_GRACE_MS + 1;
+}
+
 /** Deducts the acting player's elapsed thinking time from their budget bank
  * and applies the Fischer increment. Returns a new `playerTimes` array (ms
  * banks, one per seat). Floored at 0: a player who overran their bank lands

@@ -1,16 +1,30 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b9609cf9-4d3a-4f2d-a6e1-1bcb2f00599d",
+  "id": "49ee660d-c8d4-40b6-84e2-46223a3c27b7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "commands": {
       "name": "commands",
       "columns": {
+        "principal_id": {
+          "name": "principal_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
         "command_id": {
           "name": "command_id",
           "type": "text",
-          "primaryKey": true,
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request": {
+          "name": "request",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -31,7 +45,15 @@
       },
       "indexes": {},
       "foreignKeys": {},
-      "compositePrimaryKeys": {},
+      "compositePrimaryKeys": {
+        "commands_principal_id_command_id_pk": {
+          "columns": [
+            "principal_id",
+            "command_id"
+          ],
+          "name": "commands_principal_id_command_id_pk"
+        }
+      },
       "uniqueConstraints": {},
       "checkConstraints": {}
     },

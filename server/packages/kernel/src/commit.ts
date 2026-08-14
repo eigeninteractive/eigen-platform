@@ -22,7 +22,7 @@ import { fanOutObservations, type ObservationFrame } from "./observe.js";
 import type { RatingDelta } from "./ratings.js";
 import { deriveRng } from "./rng.js";
 import { parseClientPayload, parseStoredPayload } from "./schema.js";
-import { computeNextDeadline, DEADLINE_GRACE_MS, deadlineExpired, deductBank } from "./timing.js";
+import { computeNextDeadline, deadlineExpired, deductBank } from "./timing.js";
 
 // ── Snapshot types (what the host loads) ──────────────────────────────────────
 
@@ -153,9 +153,6 @@ export interface CommitPlan {
    * computes them inside the rating CAS via `computeRatings` (ratings.ts) and
    * the host delivers them as a follow-up versioned ratings transition. */
   outcomes: OutcomeEntry[] | null;
-  /** The instant the DO must arm its alarm at, one millisecond after the true
-   * deadline plus grace, or null to clear it. */
-  alarm: number | null;
   effects: Effect[];
 }
 
@@ -455,10 +452,8 @@ function buildPlan(
     action: t.action,
     frames,
     outcomes,
-    // Expiry is intentionally strict (`deadline + grace < now`), so an alarm
-    // at the equality boundary could abstain and then disappear. Arm at the
-    // first millisecond that is genuinely expired.
-    alarm: next.deadline === null ? null : next.deadline + DEADLINE_GRACE_MS + 1,
+    // No alarm instant here: the host derives it from the committed deadline
+    // with `alarmForDeadline`, so one fact has one owner.
     effects: computeEffects(roster, envelope, outcomes, t.actingSeat),
   };
 }

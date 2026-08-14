@@ -1,7 +1,10 @@
 CREATE TABLE `commands` (
-	`command_id` text PRIMARY KEY NOT NULL,
+	`principal_id` text NOT NULL,
+	`command_id` text NOT NULL,
+	`request` text NOT NULL,
 	`response` text NOT NULL,
-	`created_at` integer NOT NULL
+	`created_at` integer NOT NULL,
+	PRIMARY KEY(`principal_id`, `command_id`)
 );
 --> statement-breakpoint
 CREATE TABLE `frames` (

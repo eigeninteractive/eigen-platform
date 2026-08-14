@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type CommitInput, commit, isRejected } from "../src/commit.js";
 import { GameBugError } from "../src/errors.js";
 import { deriveRng } from "../src/rng.js";
-import { DEADLINE_GRACE_MS } from "../src/timing.js";
+import { alarmForDeadline, DEADLINE_GRACE_MS } from "../src/timing.js";
 import { makeGame, makeRoster, makeState, NOW, turnRules } from "./helpers.js";
 
 function input(overrides: Partial<CommitInput> = {}): CommitInput {
@@ -68,7 +68,7 @@ describe("commit: start", () => {
     );
     expect(plan.nextState.playerTimes).toEqual([60_000, 60_000]);
     expect(plan.nextState.deadline).toBe(NOW + 60_000);
-    expect(plan.alarm).toBe(NOW + 60_000 + DEADLINE_GRACE_MS + 1);
+    expect(alarmForDeadline(plan.nextState.deadline)).toBe(NOW + 60_000 + DEADLINE_GRACE_MS + 1);
   });
 
   it("throws on an empty seed, which is a host bug", () => {
@@ -142,7 +142,7 @@ describe("commit: game action", () => {
     expect(plan.outcomes).not.toBeNull();
     expect(plan.outcomes?.[0]).toMatchObject({ playerIndex: 0, result: "win" });
     expect(plan.nextState.deadline).toBeNull();
-    expect(plan.alarm).toBeNull();
+    expect(alarmForDeadline(plan.nextState.deadline)).toBeNull();
     expect(plan.effects).toEqual([{ kind: "notifyFinished", userIds: ["user-a", "user-b"] }]);
   });
 });
@@ -163,10 +163,10 @@ describe("commit: deadline + grace", () => {
     expectRejection(commit(timed(NOW - DEADLINE_GRACE_MS - 1)), "expired");
   });
 
-  it("arms the next alarm just after the new deadline + grace", () => {
+  it("derives the next alarm just after the new deadline + grace", () => {
     const plan = expectPlan(commit(timed(NOW - 100)));
     expect(plan.nextState.deadline).toBe(NOW + 30_000);
-    expect(plan.alarm).toBe(NOW + 30_000 + DEADLINE_GRACE_MS + 1);
+    expect(alarmForDeadline(plan.nextState.deadline)).toBe(NOW + 30_000 + DEADLINE_GRACE_MS + 1);
   });
 });
 

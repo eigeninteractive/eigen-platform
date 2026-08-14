@@ -23,4 +23,4 @@ export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";
 export { createEngine, DEFAULT_CREDIT, type EngineConfig, type LegalConfig, type OperatorConfig, openApiDocument, type SiteConfig } from "./engine.js";
 export type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 export { HttpError } from "./http.js";
-export type { Command, CommandResult, FrameMessage, LobbyRejectCode, Principal, SessionSnapshot } from "./protocol.js";
+export type { Command, CommandRejectCode, CommandResult, FrameMessage, LobbyRejectCode, Principal, SessionSnapshot } from "./protocol.js";

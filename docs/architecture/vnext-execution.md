@@ -27,36 +27,48 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
-| 4: safe mutation identity | In progress, uncommitted | First DO slice (principal-scoped command receipts) written in the `codex/phase4-command-receipts` worktree; held back by two correctness gaps, below |
+| 4: safe mutation identity | Durable Object half done | Receipts, canonical requests, `commandConflict`, derived alarm; HTTP, D1 and client halves open, below |
 | 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
-## Phase 4 open work
+## Phase 4 remaining work
 
-The uncommitted slice implements RFC 0004's Durable Object half: canonical
-RFC 8785 fingerprints, a `(principal_id, command_id)` receipt table, a
-non-destructive `legacy_commands` forward migration, and `commandConflict`. It
-deliberately excludes HTTP retry policy, D1 create reservation, and the Dart
-command journal.
+The Durable Object half of RFC 0004 is implemented and tested. What remains, in
+dependency order, is what makes it load-bearing rather than latent:
 
-Two gaps must close before it lands, because both are caused by the change
-rather than merely uncovered by it:
+1. **Require `commandId` on the wire.** It is still optional, and a route mints
+   one when it is absent, so a caller that omits it gets a fresh id per attempt
+   and no idempotency at all. This is also where the transport is chosen: a body
+   field as today, or the `Idempotency-Key` header the IETF draft and every
+   payments API use. Deciding it moves OpenAPI and the generated Dart client, so
+   it is one atomic change with them.
+2. **D1 create receipts.** Creation has no Durable Object yet, so a duplicate
+   create currently makes a second game. A uniqueness record keyed by
+   `(user_id, command_id)` in the same batch as the game row fixes it.
+3. **Client command journal.** Ids minted and persisted before first dispatch,
+   surviving process restart, with definitive and ambiguous outcomes
+   distinguished.
+4. **Only then**, bounded same-id retry of retryable Worker-to-DO faults. Retries
+   before the three items above are what RFC 0004 exists to prevent.
 
-1. **Alarm recovery after an atomic commit.** `#apply` commits the deadline
-   inside the storage transaction and arms the alarm after it. A retry now
-   returns the stored receipt before reaching that code, and receipts are
-   permanent, so a deadline whose `setAlarm` was lost can never be repaired by a
-   duplicate command. Invariant 12 requires repair without another player
-   action. Replace the post-commit `setAlarm`/`deleteAlarm` pair with one
-   idempotent `reconcileAlarm()` that compares the stored desired deadline
-   against `ctx.storage.getAlarm()`, and call it on the receipt-replay path as
-   well as post-commit. The cancel path already sets this precedent by
-   re-running `#tearDownAborted` on replay.
-2. **Authoritative game-resource binding.** `fingerprintCommand` uses the
-   caller-supplied `cmd.gameId` as the receipt's `resourceId`, and
-   `#ensureInit` returns early once `meta` exists without checking that the id
-   it was handed is the game this object owns. Bind receipts to `meta.gameId`
-   and make a mismatched id fail closed, so a receipt can never name a resource
-   its Durable Object is not authoritative for.
+## Decisions taken while implementing
+
+- **Canonical requests are stored, not hashed.** A digest would have saved a few
+  bytes beside a receipt already holding a session snapshot, in exchange for a
+  Web Crypto await inside the object's read-then-write critical section. RFC 0004
+  is amended accordingly.
+- **Canonicalization is the `canonicalize` package**, RFC 8785's own reference
+  JavaScript implementation, replacing a hand-written canonicalizer.
+- **The alarm is derived from committed state, not tracked beside it.** The
+  review handoff proposed a desired-deadline column plus a generation counter;
+  neither is needed, because an active game's committed deadline already *is* the
+  desired alarm. One reconciler is the normal path and the whole recovery path.
+- **System commands write no receipts.** A deadline timeout is idempotent through
+  the kernel's abstain, which survives a lost schedule and a redeployment, where
+  a stored row only survives storage.
+- **Cancel's D1 mirror is a background read-model write.** It was awaited, and
+  allowed to fail the command, only because the old teardown dropped all DO
+  storage and left the D1 row as the sole survivor. Retaining `meta` removed that
+  premise.
 
 ## Current validation contract
 

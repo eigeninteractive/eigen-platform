@@ -33,7 +33,7 @@ const errorResponses = {
   401: error("Missing or invalid token"),
   403: error("Not allowed"),
   404: error("Not found"),
-  409: error("State conflict; resync and retry"),
+  409: error("State or command-identity conflict; follow the stable error code"),
   422: error("Assertion mismatch"),
 } as const;
 

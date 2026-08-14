@@ -84,7 +84,7 @@ async function startGame(opts: SeedOptions = {}) {
   return { gameId, stub };
 }
 
-function action(gameId: string, seat: number, add: number, expectedVersion: number, userId: string): Command {
+function action(gameId: string, seat: number, add: number, expectedVersion: number, userId: string): Extract<Command, { kind: "action" }> {
   return {
     kind: "action",
     gameId,
@@ -96,16 +96,23 @@ function action(gameId: string, seat: number, add: number, expectedVersion: numb
   };
 }
 
+/** Receipts committed so far. Counted as a delta, since starting a game already
+ * commits one for the creator's `start`. */
+async function receiptCount(stub: ReturnType<typeof stubFor>): Promise<number> {
+  return await runInDurableObject(stub, (_i, state) => state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands").one().n as number);
+}
+
 /** Drive the seeded game to its finish: 0 plays 2, 1 plays 2, 0 plays 2 → 6 ≥ 3
  * on version 3... target 3 reached at second move; keep it explicit instead. */
 async function playToFinish(gameId: string, stub: ReturnType<typeof stubFor>) {
   const a1 = await stub.handle(action(gameId, 0, 2, 0, "user-a"));
   expect(a1).toMatchObject({ ok: true, session: { version: 1 } });
-  const a2 = await stub.handle(action(gameId, 1, 2, 1, "user-b"));
+  const finishingCommand = action(gameId, 1, 2, 1, "user-b");
+  const a2 = await stub.handle(finishingCommand);
   expect(a2).toMatchObject({ ok: true, session: { version: 2, status: "finished" } });
   if (!a2.ok) throw new Error("unreachable");
   expect(a2.session.frame?.outcomes).toBeDefined();
-  return a2;
+  return { command: finishingCommand, result: a2 };
 }
 
 describe("lazy init & start", () => {
@@ -158,7 +165,90 @@ describe("actions & dedupe", () => {
     await runInDurableObject(stub, async (_i, state) => {
       const count = state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one();
       expect(count.n).toBe(2); // v0 + one action, not two
+      const receipt = state.storage.sql.exec("SELECT principal_id, request FROM commands WHERE command_id = ?", move.commandId).one();
+      expect(receipt.principal_id).toBe("user:user-a");
+      expect(JSON.parse(receipt.request as string)).toEqual({
+        version: 1,
+        principal: "user:user-a",
+        operation: "game.action",
+        resource: gameId,
+        payload: { seat: 0, expectedVersion: 0, data: { add: 1 } },
+      });
     });
+  });
+
+  it("rejects same-principal commandId reuse with different semantic intent", async () => {
+    const { gameId, stub } = await startGame();
+    const move = action(gameId, 0, 1, 0, "user-a");
+    expect(await stub.handle(move)).toMatchObject({ ok: true, session: { version: 1 } });
+
+    const conflict = await stub.handle({ ...move, data: { add: 2 } });
+    expect(conflict).toMatchObject({ ok: false, code: "commandConflict" });
+    await runInDurableObject(stub, async (_i, state) => {
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands WHERE command_id = ?", move.commandId).one().n).toBe(1);
+    });
+  });
+
+  it("rejects same-principal commandId reuse across operations", async () => {
+    const { gameId, stub } = await startGame();
+    const move = action(gameId, 0, 1, 0, "user-a");
+    expect(await stub.handle(move)).toMatchObject({ ok: true, session: { version: 1 } });
+
+    expect(
+      await stub.handle({
+        kind: "leave",
+        gameId,
+        commandId: move.commandId,
+        actor: move.actor,
+      }),
+    ).toMatchObject({ ok: false, code: "commandConflict" });
+
+    await runInDurableObject(stub, async (_i, state) => {
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands WHERE command_id = ?", move.commandId).one().n).toBe(1);
+    });
+  });
+
+  it("scopes command identity by immutable principal", async () => {
+    const { gameId, stub } = await startGame();
+    const sharedId = "018f5f59-9f9a-7f47-a6f1-d13b33ef4410";
+    const first = { ...action(gameId, 0, 1, 0, "user-a"), commandId: sharedId };
+    const second = { ...action(gameId, 1, 1, 1, "user-b"), commandId: sharedId };
+
+    expect(await stub.handle(first)).toMatchObject({ ok: true, session: { version: 1 } });
+    expect(await stub.handle(second)).toMatchObject({ ok: true, session: { version: 2 } });
+    await runInDurableObject(stub, async (_i, state) => {
+      const rows = state.storage.sql.exec("SELECT principal_id FROM commands WHERE command_id = ? ORDER BY principal_id", sharedId).toArray();
+      expect(rows).toEqual([{ principal_id: "user:user-a" }, { principal_id: "user:user-b" }]);
+    });
+  });
+
+  it("refuses a command naming a game this object is not authoritative for", async () => {
+    const { gameId, stub } = await startGame();
+    // Routing derives the object from the id, so a mismatch cannot be honoured:
+    // this object would otherwise write a receipt naming another game's resource.
+    const before = await receiptCount(stub);
+    expect(await stub.handle({ ...action(gameId, 0, 1, 0, "user-a"), gameId: "another-game" })).toMatchObject({ ok: false, code: "unknownGame" });
+    await runInDurableObject(stub, async (_i, state) => {
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(1); // v0 only
+    });
+    expect(await receiptCount(stub)).toBe(before);
+  });
+
+  it("stores no receipt for an identity-less system command", async () => {
+    const { stub } = await startGame({ turnSeconds: 60 });
+    const before = await receiptCount(stub);
+    await runInDurableObject(stub, async (_i, state) => {
+      state.storage.sql.exec("UPDATE transitions SET deadline = ? WHERE version = 0", Date.now() - 1000);
+    });
+    await runDurableObjectAlarm(stub);
+    await runInDurableObject(stub, async (_i, state) => {
+      // The timeout committed, and it is idempotent through the kernel's
+      // abstain rather than through a permanent row per turn.
+      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
+    });
+    expect(await receiptCount(stub)).toBe(before);
   });
 
   it("rejects a stale action whose view changed (full-reveal game)", async () => {
@@ -173,6 +263,28 @@ describe("actions & dedupe", () => {
     // user-b naming user-a's seat 0 is rejected as a value, not thrown.
     const res = await stub.handle(action(gameId, 0, 1, 0, "user-b"));
     expect(res).toMatchObject({ ok: false, code: "notParticipant" });
+  });
+});
+
+describe("cancel receipts", () => {
+  it("commits the terminal result atomically and retains it through abort compaction", async () => {
+    const gameId = await seedGame();
+    const stub = stubFor(gameId);
+    const cancel = cmd("cancel", gameId);
+
+    const first = await stub.handle(cancel);
+    expect(first).toMatchObject({ ok: true, session: { status: "aborted", players: [] } });
+    expect(await stub.handle(cancel)).toEqual(first);
+
+    await runInDurableObject(stub, async (_i, state) => {
+      const sql = state.storage.sql;
+      expect(sql.exec("SELECT status FROM meta").one().status).toBe("aborted");
+      expect(sql.exec("SELECT COUNT(*) AS n FROM roster").one().n).toBe(0);
+      expect(sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(0);
+      const receipt = sql.exec("SELECT principal_id, request FROM commands WHERE command_id = ?", cancel.commandId).one();
+      expect(receipt.principal_id).toBe("user:user-a");
+      expect(JSON.parse(receipt.request as string).operation).toBe("game.cancel");
+    });
   });
 });
 
@@ -197,12 +309,48 @@ describe("deadline alarm", () => {
     const row = await db.select({ status: games.status, outcomes: games.outcomes }).from(games).where(eq(games.id, gameId)).get();
     await vi.waitFor(() => expect(row?.status ?? "pending").toBeDefined());
   });
+
+  it("re-arms an alarm lost after its deadline committed, without a new mutation", async () => {
+    // The deadline and the alarm are separate storage writes, so an object that
+    // dies between them commits a deadline nothing is armed for. Deleting the
+    // alarm behind the engine's back reproduces exactly that state.
+    const { gameId, stub } = await startGame({ turnSeconds: 60 });
+    const deadline = await runInDurableObject(stub, async (_i, state) => {
+      await state.storage.deleteAlarm();
+      expect(await state.storage.getAlarm()).toBeNull();
+      return state.storage.sql.exec("SELECT deadline FROM transitions WHERE version = 0").one().deadline as number;
+    });
+
+    // A replayed receipt is the weakest possible traffic: it commits nothing, so
+    // only a reconciler derived from committed state can repair the alarm.
+    const move = action(gameId, 0, 1, 0, "user-a");
+    const first = await stub.handle(move);
+    await runInDurableObject(stub, async (_i, state) => {
+      await state.storage.deleteAlarm();
+    });
+    expect(await stub.handle(move)).toEqual(first);
+
+    await runInDurableObject(stub, async (_i, state) => {
+      const armed = await state.storage.getAlarm();
+      const current = state.storage.sql.exec("SELECT deadline FROM transitions ORDER BY version DESC LIMIT 1").one().deadline as number;
+      expect(armed).toBe(current + 751);
+      expect(current).not.toBe(deadline); // the action moved the turn on
+    });
+  });
+
+  it("clears the alarm when the game is no longer active", async () => {
+    const { gameId, stub } = await startGame({ turnSeconds: 60 });
+    await playToFinish(gameId, stub);
+    await runInDurableObject(stub, async (_i, state) => {
+      expect(await state.storage.getAlarm()).toBeNull();
+    });
+  });
 });
 
 describe("finish sequence", () => {
   it("compacts, applies to D1, and clears the outbox (unrated: no ratings transition)", async () => {
     const { gameId, stub } = await startGame();
-    await playToFinish(gameId, stub);
+    const finish = await playToFinish(gameId, stub);
 
     await vi.waitFor(async () => {
       const row = await db.select({ status: games.status, outcomes: games.outcomes, finishId: games.finishId, finishedAt: games.finishedAt }).from(games).where(eq(games.id, gameId)).get();
@@ -217,12 +365,17 @@ describe("finish sequence", () => {
       await vi.waitFor(() => {
         expect(sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(0);
       });
-      // Compaction rides the outbox clear: live tables drained with it.
+      // Compaction rides the outbox clear: live frames drain, receipts do not.
       expect(sql.exec("SELECT COUNT(*) AS n FROM frames").one().n).toBe(0);
-      expect(sql.exec("SELECT COUNT(*) AS n FROM commands").one().n).toBe(0);
+      expect(sql.exec("SELECT COUNT(*) AS n FROM commands").one().n).toBe(3);
       // Unrated: the chain ends at the finish version.
       expect(sql.exec("SELECT MAX(version) AS v FROM transitions").one().v).toBe(2);
     });
+
+    // Even after finish compaction, the original principal gets the exact
+    // canonical outcome and a different payload cannot reuse that identity.
+    expect(await stub.handle(finish.command)).toEqual(finish.result);
+    expect(await stub.handle({ ...finish.command, data: { add: 1 } })).toMatchObject({ ok: false, code: "commandConflict" });
   });
 
   it("rated: computes deltas at the D1 CAS and appends the ratings transition N+1", async () => {

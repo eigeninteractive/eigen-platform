@@ -58,8 +58,9 @@ alarm one millisecond later, at the first instant for which expiry is true.
 This avoids an equality-boundary alarm abstaining and disappearing. Whichever
 arrives first, the latent action or the alarm, commits; the loser sees
 already-advanced state and no-ops. When the alarm fires it commits a `timeout`
-lifecycle with a deterministic `commandId` (so a double-fire dedupes, and a real
-move that arrived first simply wins).
+lifecycle, which needs no stored receipt to be safe: the kernel abstains once the
+state the timeout was derived from has moved on, so a double fire, a platform
+retry, and a real move that arrived first all resolve the same way.
 
 The grace forgives **acceptance, not time charged**: in budget mode the elapsed
 deduction still runs, so flag-fall is honoured: a player whose bank hits 0 can
@@ -73,10 +74,23 @@ Because the alarm is a durable, per-game, platform-retried timer, the periodic
 scan for overdue turns that a database-backed engine needs simply evaporates.
 The database has no per-row timer, but the DO alarm *is* that timer.
 
-The deadline alarm is the **only** code that sets an alarm on the DO. A stray
+`reconcileAlarm` is the **only** code that writes the DO's alarm. A stray
 `setAlarm` elsewhere would silently disarm a turn deadline.
 
 :::
+
+## The alarm is derived, not tracked
+
+There is no desired-alarm column and no generation counter. An active game's
+committed deadline **is** the desired alarm, so the engine re-derives it from
+storage and writes only when the armed alarm differs.
+
+That matters because the deadline and the alarm are separate storage writes. An
+object that stops between them would otherwise hold a committed deadline nothing
+is armed for, and a deadline is exactly the case where no player is going to act
+and trigger a repair. Since re-deriving is idempotent and cheap, every command
+does it on the way out, whether it committed a transition, replayed a receipt, or
+was refused. Recovery is not a separate mechanism from the normal path.
 
 Untimed games have no alarm at all; their only backstop is the abandoned-game
 reap, described in [Account lifecycle & the cron](./account-lifecycle.md).
