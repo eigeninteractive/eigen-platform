@@ -4,11 +4,20 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
+  # `main` currently accepts direct pushes, so it needs its own advisory run:
+  # without one, a commit that never opened a pull request would receive no
+  # platform check at all until a release gate happened to run.
+  push:
+    branches: [main]
   workflow_call:
 
 concurrency:
-  group: platform-checks-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # `github.workflow` is the top-level caller's name even through
+  # `workflow_call`, so an advisory run and a release or publish gate for the
+  # same ref land in different groups and cannot cancel each other. Superseding
+  # an in-flight advisory run is the point on a branch that moves quickly.
+  group: platform-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 permissions:
   contents: read
@@ -234,8 +243,9 @@ jobs:
         if: needs.scope.outputs.full != 'true'
         run: echo "Scaffold sources are unchanged."
 
-  # Keep this stable job name: main branch protection requires `check`, while
-  # the expensive work above is free to run in parallel.
+  # Keep this stable job name. It is the single status a future `main` branch
+  # protection re-enables as its required check, while the expensive work above
+  # is free to run in parallel. See docs/operations/branch-protection.md.
   check:
     name: check
     if: always()
