@@ -1305,7 +1305,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:175
 
 ### RetryOptions
 
-Defined in: server/packages/server/src/retry.ts:17
+Defined in: [server/packages/server/src/retry.ts:17](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L17)
 
 Bounded retry with jittered exponential backoff.
 
@@ -1329,7 +1329,7 @@ documented remedy is to shed load rather than add to it.
 optional attempts?: number;
 ```
 
-Defined in: server/packages/server/src/retry.ts:19
+Defined in: [server/packages/server/src/retry.ts:19](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L19)
 
 Total attempts including the first. Default 4.
 
@@ -1339,7 +1339,7 @@ Total attempts including the first. Default 4.
 optional baseDelayMs?: number;
 ```
 
-Defined in: server/packages/server/src/retry.ts:21
+Defined in: [server/packages/server/src/retry.ts:21](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L21)
 
 First backoff, doubling each retry. Default 50ms.
 
@@ -1349,7 +1349,7 @@ First backoff, doubling each retry. Default 50ms.
 optional maxDelayMs?: number;
 ```
 
-Defined in: server/packages/server/src/retry.ts:23
+Defined in: [server/packages/server/src/retry.ts:23](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L23)
 
 Backoff ceiling. Default 2000ms.
 
@@ -1359,7 +1359,7 @@ Backoff ceiling. Default 2000ms.
 optional onRetry?: (error, attempt) => void;
 ```
 
-Defined in: server/packages/server/src/retry.ts:29
+Defined in: [server/packages/server/src/retry.ts:29](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L29)
 
 Observe each retry (logging); never throws into the loop.
 
@@ -1380,7 +1380,7 @@ Observe each retry (logging); never throws into the loop.
 shouldRetry: (error) => boolean;
 ```
 
-Defined in: server/packages/server/src/retry.ts:27
+Defined in: [server/packages/server/src/retry.ts:27](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L27)
 
 Which failures are worth retrying. Required: there is no safe default,
 because "retryable" is a property of the transport AND of whether the
@@ -1402,7 +1402,7 @@ operation can be applied twice.
 optional sleep?: (ms) => Promise<void>;
 ```
 
-Defined in: server/packages/server/src/retry.ts:31
+Defined in: [server/packages/server/src/retry.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L31)
 
 Delay primitive, injectable so tests run without real timers.
 
@@ -2332,7 +2332,7 @@ permanent conversion.
 function isRetryableDoError(error): boolean;
 ```
 
-Defined in: server/packages/server/src/game-stub.ts:59
+Defined in: [server/packages/server/src/game-stub.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/game-stub.ts#L59)
 
 True for a Durable Object error Cloudflare marks retryable and does not also
 mark overloaded.
@@ -2533,7 +2533,7 @@ its `meta`/`roster` on first contact, in one batched round trip.
 function retryingGameStub(connect, options?): GameStub;
 ```
 
-Defined in: server/packages/server/src/game-stub.ts:78
+Defined in: [server/packages/server/src/game-stub.ts:78](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/game-stub.ts#L78)
 
 Wrap a game stub so every call retries a transient Durable Object failure.
 
@@ -2596,7 +2596,7 @@ re-derivable from the DO at any time.
 function withRetry<T>(op, options): Promise<T>;
 ```
 
-Defined in: server/packages/server/src/retry.ts:49
+Defined in: [server/packages/server/src/retry.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L49)
 
 Run `op`, retrying a *retryable* failure with jittered exponential backoff up
 to `attempts`. A non-retryable failure, or the last attempt, throws.
