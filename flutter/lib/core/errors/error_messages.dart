@@ -59,6 +59,10 @@ String messageForCode(ErrorCode code) => switch (code) {
   // fix this. It means a paged list needs restarting from the top, which is
   // what a refresh does, so the copy asks for exactly that.
   ErrorCode.invalidCursor => 'That list is out of date. Pull to refresh.',
+  // This app reused a command id for a different intent: our bug, not the
+  // player's, and unlike every other 409 it is not repaired by resyncing. The
+  // copy neither blames them nor invites a retry that would fail identically.
+  ErrorCode.commandConflict => _unexpected,
   ErrorCode.unknownDefaultOpenApi => _unexpected,
 };
 

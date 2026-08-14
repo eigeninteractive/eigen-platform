@@ -47,6 +47,9 @@ void main() {
         'rateLimited',
         // A pagination cursor that did not decode (400).
         'invalidCursor',
+        // A command id this principal already committed with different intent
+        // (409). Unlike every other 409, resyncing does not repair it.
+        'commandConflict',
       });
     });
 
