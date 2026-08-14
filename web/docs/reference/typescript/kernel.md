@@ -179,24 +179,13 @@ action: TransitionAction | null;
 
 Defined in: [server/packages/kernel/src/commit.ts:145](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L145)
 
-##### alarm
-
-```ts
-alarm: number | null;
-```
-
-Defined in: [server/packages/kernel/src/commit.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L158)
-
-The instant the DO must arm its alarm at, one millisecond after the true
-deadline plus grace, or null to clear it.
-
 ##### effects
 
 ```ts
 effects: Effect[];
 ```
 
-Defined in: [server/packages/kernel/src/commit.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L159)
+Defined in: [server/packages/kernel/src/commit.ts:156](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L156)
 
 ##### frames
 
@@ -315,7 +304,7 @@ Defined in: [server/packages/kernel/src/commit.ts:38](https://github.com/eigenin
 
 ### NextDeadline
 
-Defined in: [server/packages/kernel/src/timing.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L48)
+Defined in: [server/packages/kernel/src/timing.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L59)
 
 #### Properties
 
@@ -325,7 +314,7 @@ Defined in: [server/packages/kernel/src/timing.ts:48](https://github.com/eigenin
 deadline: number | null;
 ```
 
-Defined in: [server/packages/kernel/src/timing.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L49)
+Defined in: [server/packages/kernel/src/timing.ts:60](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L60)
 
 ##### turnStartedAt
 
@@ -333,7 +322,7 @@ Defined in: [server/packages/kernel/src/timing.ts:49](https://github.com/eigenin
 turnStartedAt: number | null;
 ```
 
-Defined in: [server/packages/kernel/src/timing.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L51)
+Defined in: [server/packages/kernel/src/timing.ts:62](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L62)
 
 Start of a budget-consuming turn. Null for every other timing mode.
 
@@ -1000,6 +989,34 @@ windows. The client's display-only `kServerDeadlineGrace` mirrors this.
 
 ## Functions
 
+### alarmForDeadline()
+
+```ts
+function alarmForDeadline(deadline): number | null;
+```
+
+Defined in: [server/packages/kernel/src/timing.ts:41](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L41)
+
+The instant a deadline's alarm must fire at: one millisecond past the grace
+window, so the first fire is already genuinely expired by
+[deadlineExpired](#deadlineexpired). Null for an untimed turn, meaning no alarm.
+
+The host derives its alarm from the committed deadline with this rather than
+being handed a separate number, so the armed alarm and the deadline it
+enforces cannot describe different instants.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `deadline` | `number` \| `null` |
+
+#### Returns
+
+`number` \| `null`
+
+***
+
 ### assertBudgetPending()
 
 ```ts
@@ -1190,7 +1207,7 @@ views compare byte-identical regardless of construction order.
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: [server/packages/kernel/src/commit.ts:169](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L169)
+Defined in: [server/packages/kernel/src/commit.ts:166](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L166)
 
 #### Parameters
 
@@ -1210,7 +1227,7 @@ Defined in: [server/packages/kernel/src/commit.ts:169](https://github.com/eigeni
 function computeNextDeadline(input): NextDeadline;
 ```
 
-Defined in: [server/packages/kernel/src/timing.ts:68](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L68)
+Defined in: [server/packages/kernel/src/timing.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L79)
 
 Computes the deadline and budget chargeability for the next action: the
 precedence chain used by start and every commit mode. Pass
@@ -1316,7 +1333,7 @@ function deductBank(
    incrementSeconds): number[];
 ```
 
-Defined in: [server/packages/kernel/src/timing.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L38)
+Defined in: [server/packages/kernel/src/timing.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L49)
 
 Deducts the acting player's elapsed thinking time from their budget bank
 and applies the Fischer increment. Returns a new `playerTimes` array (ms
@@ -1442,7 +1459,7 @@ decision here.
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: [server/packages/kernel/src/commit.ts:163](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L163)
+Defined in: [server/packages/kernel/src/commit.ts:160](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/commit.ts#L160)
 
 Type guard: did `commit()` refuse the intent?
 

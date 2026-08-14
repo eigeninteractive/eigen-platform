@@ -345,24 +345,13 @@ action: TransitionAction | null;
 
 Defined in: server/packages/kernel/dist/index.d.ts:357
 
-##### alarm
-
-```ts
-alarm: number | null;
-```
-
-Defined in: server/packages/kernel/dist/index.d.ts:370
-
-The instant the DO must arm its alarm at, one millisecond after the true
-deadline plus grace, or null to clear it.
-
 ##### effects
 
 ```ts
 effects: Effect[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:371
+Defined in: server/packages/kernel/dist/index.d.ts:368
 
 ##### frames
 
@@ -1280,7 +1269,7 @@ Fail when an emitted contract is missing or differs from its inputs.
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:375
+Defined in: server/packages/kernel/dist/index.d.ts:372
 
 #### Parameters
 
@@ -1325,7 +1314,7 @@ matters.
 function deriveRng(seed, version): Rng;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:391
+Defined in: server/packages/kernel/dist/index.d.ts:388
 
 The deterministic RNG for one transition: rand-seed's sfc32 keyed by the
 game's base seed and the state version the envelope will commit as. The
@@ -1469,7 +1458,7 @@ Render one deterministic, newline-terminated contract document.
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:374
+Defined in: server/packages/kernel/dist/index.d.ts:371
 
 Type guard: did `commit()` refuse the intent?
 
@@ -1548,7 +1537,7 @@ tests that replay a simultaneous-move race.
 function randomSeed(): string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:384
+Defined in: server/packages/kernel/dist/index.d.ts:381
 
 A fresh base seed for a new game: 128 random bits, hex-encoded. Stored on
 the game's v0 state row and copied onto every later row (server-only,

@@ -83,12 +83,17 @@ rejection converted to one) rendered by the app-level error handler.
 | 401 | Missing/invalid token | none |
 | 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
 | 404 | No such game/user | `unknownGame` |
-| 409 | State conflict; resync and retry | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported` |
+| 409 | State or command-identity conflict | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported`, `commandConflict` |
 | 413 / 415 | Avatar too big / wrong type | none |
 | 422 | Assertion mismatch (e.g. `rated`) | none |
 | 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | none |
 | 502 | Account deletion upstream failure (intact; retry) | none |
+
+Read the `code`, not the status: most 409s are resolved by resyncing and retrying,
+but `commandConflict` says this principal already committed that `commandId` with
+different intent. No amount of resyncing repairs that; the caller must use a new
+id for a new intent.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the
