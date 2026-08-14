@@ -15,15 +15,7 @@ part 'action.g.dart';
 )
 class Action {
   /// Returns a new [Action] instance.
-  Action({
-    required this.seat,
-
-    this.data,
-
-    required this.expectedVersion,
-
-    this.commandId,
-  });
+  Action({required this.seat, this.data, required this.expectedVersion});
 
   // minimum: 0
   @JsonKey(name: r'seat', required: true, includeIfNull: false)
@@ -36,24 +28,19 @@ class Action {
   @JsonKey(name: r'expectedVersion', required: true, includeIfNull: false)
   final int expectedVersion;
 
-  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
-  final String? commandId;
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is Action &&
           other.seat == seat &&
           other.data == data &&
-          other.expectedVersion == expectedVersion &&
-          other.commandId == commandId;
+          other.expectedVersion == expectedVersion;
 
   @override
   int get hashCode =>
       seat.hashCode +
       (data == null ? 0 : data.hashCode) +
-      expectedVersion.hashCode +
-      commandId.hashCode;
+      expectedVersion.hashCode;
 
   factory Action.fromJson(Map<String, dynamic> json) => _$ActionFromJson(json);
 

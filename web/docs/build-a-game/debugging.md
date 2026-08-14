@@ -210,7 +210,7 @@ your `.wrangler` state. Nothing about your game needs to change.
 |---|---|
 | A game will not start | `pnpm inspect game <id>`: read `DO meta` status and `Diagnosis`. A start is explicit and creator-only. |
 | A game vanished from a list | The index. A private game is never in the public lobby; check `access` and `status`, then look for `Mirror drift`. |
-| A turn never times out | `alarm`. No alarm and a non-null `deadline` on the newest transition is the bug; an untimed game arms nothing by design. |
+| A turn never times out | `alarm`. No alarm beside a non-null `deadline` on the newest transition is the bug, though any command on the game re-derives and re-arms it; an untimed game arms nothing by design. |
 | A finished game shows no ratings | `outbox`. Surviving rows mean the D1 apply has not landed. |
-| A move was refused | `commands`, which records each `commandId` with the response that was replayed. |
+| A move was refused | `commands`, one receipt per committed command: its `principal_id`, the `command_id` from the caller's `Idempotency-Key`, the canonical `request` it was committed with, and the `response` a matching retry replays. |
 | Seats look wrong | Compare `roster` (authoritative) against `participants` (mirror). |

@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { deviceInstallations } from "../src/d1/schema.js";
-import { testBearer as bearer } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 
 const db = orm(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
@@ -18,7 +18,7 @@ const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: { ...(await bearer({ uid: id })), "content-type": "application/json" },
+    headers: method === "GET" ? { ...(await bearer({ uid: id })), "content-type": "application/json" } : await mutationHeaders({ uid: id }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }

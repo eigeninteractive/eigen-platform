@@ -14,6 +14,21 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Changed
+- Every game mutation now sends the standard `Idempotency-Key` header, minted per
+call as a UUIDv7. Repository methods still accept an optional `commandId` to
+reuse a key deliberately, which is how a retry replays a committed result instead
+of applying a move twice. The engine requires the header, so this pairs with an
+engine that sends it; see
+[Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility).
+
+### Added
+- `newCommandId()`, the mutation identity generator, and handling for the
+`commandConflict` and `idempotencyKeyInvalid` server codes. Both report the
+generic failure message on purpose: each means this app built a bad request, so
+no player action causes or repairs one.
+
 ## [0.6.1] - 2026-08-13
 ### Changed
 - Package source, issue, changelog, and release links now point at the unified
@@ -198,6 +213,7 @@ package font above.
 [0.6.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.6.1
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.1...HEAD
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7

@@ -36,7 +36,6 @@ doc/HealthApi.md
 doc/Join.md
 doc/JoinByCode.md
 doc/Lobby.md
-doc/LobbyCommand.md
 doc/MeApi.md
 doc/MyGames.md
 doc/Outcome.md
@@ -104,7 +103,6 @@ lib/src/model/health.dart
 lib/src/model/join.dart
 lib/src/model/join_by_code.dart
 lib/src/model/lobby.dart
-lib/src/model/lobby_command.dart
 lib/src/model/my_games.dart
 lib/src/model/outcome.dart
 lib/src/model/player.dart

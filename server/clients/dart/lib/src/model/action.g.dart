@@ -16,7 +16,6 @@ Action _$ActionFromJson(Map<String, dynamic> json) =>
           'expectedVersion',
           (v) => (v as num).toInt(),
         ),
-        commandId: $checkedConvert('commandId', (v) => v as String?),
       );
       return val;
     });
@@ -25,5 +24,4 @@ Map<String, dynamic> _$ActionToJson(Action instance) => <String, dynamic>{
   'seat': instance.seat,
   'data': ?instance.data,
   'expectedVersion': instance.expectedVersion,
-  'commandId': ?instance.commandId,
 };

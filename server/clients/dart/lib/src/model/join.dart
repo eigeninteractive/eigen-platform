@@ -15,23 +15,18 @@ part 'join.g.dart';
 )
 class Join {
   /// Returns a new [Join] instance.
-  Join({required this.clientSchemaVersion, this.commandId});
+  Join({required this.clientSchemaVersion});
 
   @JsonKey(name: r'clientSchemaVersion', required: true, includeIfNull: false)
   final int clientSchemaVersion;
 
-  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
-  final String? commandId;
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Join &&
-          other.clientSchemaVersion == clientSchemaVersion &&
-          other.commandId == commandId;
+      other is Join && other.clientSchemaVersion == clientSchemaVersion;
 
   @override
-  int get hashCode => clientSchemaVersion.hashCode + commandId.hashCode;
+  int get hashCode => clientSchemaVersion.hashCode;
 
   factory Join.fromJson(Map<String, dynamic> json) => _$JoinFromJson(json);
 

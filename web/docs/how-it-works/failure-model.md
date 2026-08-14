@@ -16,8 +16,8 @@ self-healing:
 - A failed **D1 finish-apply** leaves the DO's `outbox` row in place; a gated
   admin re-poke re-runs it, idempotent via `finish_id`.
 - A **duplicate command** replays the response stored under its
-  `(principal, commandId)` receipt; the same id carrying different intent is
-  refused as `commandConflict` rather than guessed at. A **duplicate
+  `(principal, Idempotency-Key)` receipt; the same key carrying different intent
+  is refused as `commandConflict` rather than guessed at. A **duplicate
   finish-apply** is a no-op (`finish_id`).
 - A **lost `setAlarm`** after its deadline committed is repaired by the next
   command of any kind, because the alarm is derived from committed state rather

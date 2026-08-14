@@ -9,14 +9,10 @@ part of 'add_bot.dart';
 AddBot _$AddBotFromJson(Map<String, dynamic> json) =>
     $checkedCreate('AddBot', json, ($checkedConvert) {
       $checkKeys(json, requiredKeys: const ['botId']);
-      final val = AddBot(
-        botId: $checkedConvert('botId', (v) => v as String),
-        commandId: $checkedConvert('commandId', (v) => v as String?),
-      );
+      final val = AddBot(botId: $checkedConvert('botId', (v) => v as String));
       return val;
     });
 
 Map<String, dynamic> _$AddBotToJson(AddBot instance) => <String, dynamic>{
   'botId': instance.botId,
-  'commandId': ?instance.commandId,
 };

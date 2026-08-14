@@ -40,15 +40,24 @@ void main() {
       ).equals('That username is already taken.');
     });
 
-    test('gives every known code its own copy', () {
-      // The generated sentinel deliberately shares generic copy. Published
-      // server codes remain unique so specific guidance cannot regress to a
-      // copy-pasted message unnoticed.
-      final knownCodes = ErrorCode.values.where(
-        (code) => code != ErrorCode.unknownDefaultOpenApi,
+    test('gives every actionable code its own copy', () {
+      // Codes a player can act on must stay unique, so specific guidance cannot
+      // regress to a copy-pasted message unnoticed.
+      //
+      // These are the deliberate exceptions: the generated sentinel, plus the
+      // mutation-identity failures, which say this app built a bad request. No
+      // player action causes or repairs one, so there is no honest copy to write
+      // and they share the generic message on purpose.
+      const sharesGenericCopy = {
+        ErrorCode.unknownDefaultOpenApi,
+        ErrorCode.commandConflict,
+        ErrorCode.idempotencyKeyInvalid,
+      };
+      final actionable = ErrorCode.values.where(
+        (code) => !sharesGenericCopy.contains(code),
       );
-      final messages = knownCodes.map(messageForCode).toSet();
-      check(messages).length.equals(knownCodes.length);
+      final messages = actionable.map(messageForCode).toSet();
+      check(messages).length.equals(actionable.length);
     });
 
     test('falls back to generic copy for a code from a newer server', () {

@@ -99,3 +99,20 @@ export async function mintTestToken(opts: TestTokenOptions): Promise<string> {
 export async function testBearer(opts: TestTokenOptions): Promise<Record<string, string>> {
   return { authorization: `Bearer ${await mintTestToken(opts)}` };
 }
+
+/**
+ * Headers for an authenticated JSON mutation: the bearer token, the content
+ * type, and the `Idempotency-Key` every non-idempotent engine route requires.
+ *
+ * Omit `idempotencyKey` and each call gets a fresh one, which is what a new
+ * intent sends. Pass an exact key to reuse it, which is how a test exercises a
+ * retry: the same key with the same request replays the committed result, and
+ * the same key with a different request is refused as `commandConflict`.
+ */
+export async function testMutationHeaders(opts: TestTokenOptions & { idempotencyKey?: string }): Promise<Record<string, string>> {
+  return {
+    ...(await testBearer(opts)),
+    "content-type": "application/json",
+    "Idempotency-Key": opts.idempotencyKey ?? crypto.randomUUID(),
+  };
+}

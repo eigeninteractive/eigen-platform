@@ -151,7 +151,6 @@ Class | Method | HTTP request | Description
  - [Join](doc/Join.md)
  - [JoinByCode](doc/JoinByCode.md)
  - [Lobby](doc/Lobby.md)
- - [LobbyCommand](doc/LobbyCommand.md)
  - [MyGames](doc/MyGames.md)
  - [Outcome](doc/Outcome.md)
  - [Player](doc/Player.md)

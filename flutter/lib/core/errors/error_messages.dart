@@ -59,10 +59,12 @@ String messageForCode(ErrorCode code) => switch (code) {
   // fix this. It means a paged list needs restarting from the top, which is
   // what a refresh does, so the copy asks for exactly that.
   ErrorCode.invalidCursor => 'That list is out of date. Pull to refresh.',
-  // This app reused a command id for a different intent: our bug, not the
-  // player's, and unlike every other 409 it is not repaired by resyncing. The
-  // copy neither blames them nor invites a retry that would fail identically.
+  // Both mean this app built a bad mutation: it reused one Idempotency-Key for
+  // two different intents, or sent none at all. Our defect, not the player's,
+  // and no retry of the same request repairs either, so the copy neither blames
+  // them nor invites one.
   ErrorCode.commandConflict => _unexpected,
+  ErrorCode.idempotencyKeyInvalid => _unexpected,
   ErrorCode.unknownDefaultOpenApi => _unexpected,
 };
 

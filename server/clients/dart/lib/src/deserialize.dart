@@ -26,7 +26,6 @@ import 'package:eigen_api/src/model/health.dart';
 import 'package:eigen_api/src/model/join.dart';
 import 'package:eigen_api/src/model/join_by_code.dart';
 import 'package:eigen_api/src/model/lobby.dart';
-import 'package:eigen_api/src/model/lobby_command.dart';
 import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/outcome.dart';
 import 'package:eigen_api/src/model/player.dart';
@@ -135,8 +134,6 @@ ReturnType deserialize<ReturnType, BaseType>(
       return JoinByCode.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Lobby':
       return Lobby.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'LobbyCommand':
-      return LobbyCommand.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'MyGames':
       return MyGames.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Outcome':

@@ -16,7 +16,6 @@ JoinByCode _$JoinByCodeFromJson(Map<String, dynamic> json) => $checkedCreate(
         'clientSchemaVersion',
         (v) => (v as num).toInt(),
       ),
-      commandId: $checkedConvert('commandId', (v) => v as String?),
       shortCode: $checkedConvert('shortCode', (v) => v as String),
     );
     return val;
@@ -26,6 +25,5 @@ JoinByCode _$JoinByCodeFromJson(Map<String, dynamic> json) => $checkedCreate(
 Map<String, dynamic> _$JoinByCodeToJson(JoinByCode instance) =>
     <String, dynamic>{
       'clientSchemaVersion': instance.clientSchemaVersion,
-      'commandId': ?instance.commandId,
       'shortCode': instance.shortCode,
     };

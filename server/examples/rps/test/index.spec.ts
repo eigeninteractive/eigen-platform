@@ -6,7 +6,7 @@
 
 import { env, exports } from "cloudflare:workers";
 import { readGameRow } from "@eigeninteractive/server";
-import { testBearer } from "@eigeninteractive/server/testing";
+import { testBearer, testMutationHeaders } from "@eigeninteractive/server/testing";
 import { expect, it } from "vitest";
 
 const ALICE = "rps-alice";
@@ -16,7 +16,9 @@ const VIEWER = "rps-viewer";
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
   return await exports.default.fetch(`https://rps.test/api/engine${path}`, {
     method,
-    headers: { ...(await testBearer({ uid })), "content-type": "application/json" },
+    // Mutations need the `Idempotency-Key` the engine requires; a fresh one per
+    // call, since each of these is a new intent rather than a retry.
+    headers: method === "GET" ? { ...(await testBearer({ uid })), "content-type": "application/json" } : await testMutationHeaders({ uid }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }

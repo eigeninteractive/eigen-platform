@@ -49,9 +49,13 @@ command is loggable, replayable, and a CI fixture is just a JSON array of them.
 
 Two idempotency keys keep the pipeline exactly-once:
 
-- **`commandId`** (client → DO): the DO stores each accepted command's response
-  and replays it verbatim for a duplicate, so a client retry never double-applies
-  a move. (Rejections are recomputed fresh, since re-evaluating one is always sound.)
+- **`commandId`** (client → DO): the caller's `Idempotency-Key` header. The DO
+  keys each committed command's response by `(principal, commandId)` and replays
+  it verbatim for a matching retry, so a client retry never double-applies a move.
+  The same key carrying a *different* request is refused as `commandConflict`
+  rather than guessed at, and the key is scoped to its principal, so one caller's
+  key can never replay another's session. (Rejections are recomputed fresh, since
+  re-evaluating one is always sound.)
 - **`finish_id`** (DO → D1): the finishing transition mints one; the D1 apply is
   a no-op if the games row already carries it, so a re-poked finish is safe.
 

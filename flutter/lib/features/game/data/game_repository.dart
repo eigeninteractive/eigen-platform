@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
+import 'package:eigen_flutter/core/api/command_id.dart';
 import 'package:eigen_flutter/core/api/engine_call.dart';
 import 'package:eigen_flutter/core/api/games_page.dart';
 import 'package:eigen_flutter/core/api/game_socket.dart';
@@ -156,9 +157,11 @@ class GameRepository {
     int? turnSeconds,
     int? budgetSeconds,
     int? incrementSeconds,
+    String? commandId,
   }) async {
     return engineData(
       () => _api.createGame(
+        idempotencyKey: commandId ?? newCommandId(),
         createGame: CreateGame(
           access: access,
           schemaVersion: schemaVersion,
@@ -190,9 +193,11 @@ class GameRepository {
     int? turnSeconds,
     int? budgetSeconds,
     int? incrementSeconds,
+    String? commandId,
   }) async {
     return engineData(
       () => _api.createSoloGame(
+        idempotencyKey: commandId ?? newCommandId(),
         createSolo: CreateSolo(
           schemaVersion: schemaVersion,
           config: config,
@@ -223,10 +228,8 @@ class GameRepository {
     final body = await engineData(
       () => _api.joinGame(
         gameId: gameId,
-        join: Join(
-          clientSchemaVersion: clientSchemaVersion,
-          commandId: commandId,
-        ),
+        idempotencyKey: commandId ?? newCommandId(),
+        join: Join(clientSchemaVersion: clientSchemaVersion),
       ),
     );
     return body.session;
@@ -243,10 +246,10 @@ class GameRepository {
   }) async {
     final body = await engineData(
       () => _api.joinGameByCode(
+        idempotencyKey: commandId ?? newCommandId(),
         joinByCode: JoinByCode(
           shortCode: shortCode,
           clientSchemaVersion: clientSchemaVersion,
-          commandId: commandId,
         ),
       ),
     );
@@ -258,7 +261,7 @@ class GameRepository {
     final body = await engineData(
       () => _api.leaveGame(
         gameId: gameId,
-        lobbyCommand: LobbyCommand(commandId: commandId),
+        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
@@ -269,7 +272,7 @@ class GameRepository {
     final body = await engineData(
       () => _api.cancelGame(
         gameId: gameId,
-        lobbyCommand: LobbyCommand(commandId: commandId),
+        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
@@ -284,7 +287,8 @@ class GameRepository {
     final body = await engineData(
       () => _api.addBot(
         gameId: gameId,
-        addBot: AddBot(botId: botId, commandId: commandId),
+        idempotencyKey: commandId ?? newCommandId(),
+        addBot: AddBot(botId: botId),
       ),
     );
     return body.session;
@@ -299,7 +303,7 @@ class GameRepository {
     final body = await engineData(
       () => _api.startGame(
         gameId: gameId,
-        lobbyCommand: LobbyCommand(commandId: commandId),
+        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
@@ -314,8 +318,11 @@ class GameRepository {
   /// this seat could see, the move is refused with [ErrorCode.stateUpdated]
   /// rather than applied to a state the player never saw.
   ///
-  /// Reusing a [commandId] replays the stored response instead of re-executing,
-  /// so a resubmitted move cannot land twice.
+  /// [commandId] identifies this move as one intent; it travels as the
+  /// `Idempotency-Key` header. Pass the same one again and the server replays the
+  /// committed result rather than applying the move twice; pass it with a
+  /// different move and the request is refused. Omitted, each call is a new
+  /// intent with a fresh id.
   ///
   /// The returned session is this seat's own committed view. Feed it to
   /// [sessions] so the move renders without waiting on the socket; see that
@@ -330,11 +337,11 @@ class GameRepository {
     return engineData(
       () => _api.submitAction(
         gameId: gameId,
+        idempotencyKey: commandId ?? newCommandId(),
         action: Action(
           seat: seat,
           data: data,
           expectedVersion: expectedVersion,
-          commandId: commandId,
         ),
       ),
     );
@@ -349,7 +356,8 @@ class GameRepository {
     return engineData(
       () => _api.forfeitGame(
         gameId: gameId,
-        forfeit: Forfeit(seat: seat, commandId: commandId),
+        idempotencyKey: commandId ?? newCommandId(),
+        forfeit: Forfeit(seat: seat),
       ),
     );
   }

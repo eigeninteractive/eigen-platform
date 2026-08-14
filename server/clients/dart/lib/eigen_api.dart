@@ -47,7 +47,6 @@ export 'package:eigen_api/src/model/health.dart';
 export 'package:eigen_api/src/model/join.dart';
 export 'package:eigen_api/src/model/join_by_code.dart';
 export 'package:eigen_api/src/model/lobby.dart';
-export 'package:eigen_api/src/model/lobby_command.dart';
 export 'package:eigen_api/src/model/my_games.dart';
 export 'package:eigen_api/src/model/outcome.dart';
 export 'package:eigen_api/src/model/player.dart';

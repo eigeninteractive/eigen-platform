@@ -104,6 +104,10 @@ enum ErrorCode {
   invalidCursor(r'invalidCursor'),
 
   /// A stable machine code identifying why a request failed.
+  @JsonValue(r'idempotencyKeyInvalid')
+  idempotencyKeyInvalid(r'idempotencyKeyInvalid'),
+
+  /// A stable machine code identifying why a request failed.
   @JsonValue(r'unknown_default_open_api')
   unknownDefaultOpenApi(r'unknown_default_open_api');
 

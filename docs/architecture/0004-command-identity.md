@@ -2,15 +2,24 @@
 
 - Status: accepted
 - Date: 2026-08-13
-- Amended: 2026-08-14, to store the canonical request instead of a digest of it
-  and to say that identity-less system commands carry no receipt
+- Amended: 2026-08-14, to store the canonical request instead of a digest of it,
+  to say that identity-less system commands carry no receipt, and to carry the
+  command id in the standard `Idempotency-Key` header
 
 ## Decision
 
-All state-changing operations require a client-created command ID. UUIDv7 is
-recommended for sortable diagnostics, but identity semantics require only a
-valid UUID with enough entropy. A logical user intent owns one ID across process
-restarts, timeouts, network changes, and retries.
+All state-changing operations require a client-created command ID, carried in the
+`Idempotency-Key` request header defined by the IETF header field of that name.
+The header is the transport; `commandId` is what the engine stores it as.
+
+The value is opaque and length-bounded. UUIDv7 is recommended for sortable
+diagnostics, but the authority has no reason to demand a particular format: a
+receipt is scoped to the caller's principal, so a caller who chooses a repeated
+or guessable key can only collide with themselves. A logical user intent owns one
+ID across process restarts, timeouts, network changes, and retries.
+
+Requiring it uniformly, including on operations that do not yet honour it, is
+deliberate: a client should never have to know which mutations deduplicate.
 
 The authority binds that ID to a canonical request:
 
@@ -71,11 +80,19 @@ redeployment, and it costs no permanent row per turn.
 | --- | --- | --- |
 | none | any valid | execute once and persist canonical outcome atomically |
 | committed | equal | return stored outcome without executing hooks or effects |
-| committed | different | `409 commandConflict`; emit a security/defect metric |
+| committed | different | `422 commandConflict`; emit a security/defect metric |
+| no key sent | n/a | `400 idempotencyKeyInvalid` |
+
+The 422 follows the `Idempotency-Key` specification, and it also keeps 409
+honest: every other 409 in this API means "your view is stale, resync and retry",
+which is exactly what a caller must not do with a reused key.
 
 Only committed commands are recorded, so there is no `processing` state to
 resolve: a receipt exists exactly when its mutation committed, because the two
-share one transaction. A future durable `processing` state would need a
+share one transaction. The specification's `409` "a request is outstanding for
+this key" therefore has no counterpart here, and needs none: the authority
+serializes its commands, so a duplicate arriving while the first is in flight
+waits and then reads the committed receipt. A future durable `processing` state would need a
 narrow justification, and a future expiry policy would add an `expired`
 tombstone row that rejects as `commandExpired` rather than risking treating an
 ancient retry as new.

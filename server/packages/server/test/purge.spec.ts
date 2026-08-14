@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
 import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
-import { testBearer as bearer } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 import { userRow } from "./factories.js";
 import worker from "./worker.js";
 
@@ -23,7 +23,7 @@ const db = orm(env.DB);
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
+    headers: method === "GET" ? { ...(await bearer({ uid, anonymous })), "content-type": "application/json" } : await mutationHeaders({ uid, anonymous }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }

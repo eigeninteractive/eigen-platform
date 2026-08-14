@@ -83,17 +83,34 @@ rejection converted to one) rendered by the app-level error handler.
 | 401 | Missing/invalid token | none |
 | 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
 | 404 | No such game/user | `unknownGame` |
-| 409 | State or command-identity conflict | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported`, `commandConflict` |
+| 409 | Stale view; resync and retry | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported` |
 | 413 / 415 | Avatar too big / wrong type | none |
-| 422 | Assertion mismatch (e.g. `rated`) | none |
+| 422 | Assertion mismatch (e.g. `rated`), or an `Idempotency-Key` reused for a different request | `commandConflict` |
 | 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | none |
 | 502 | Account deletion upstream failure (intact; retry) | none |
 
-Read the `code`, not the status: most 409s are resolved by resyncing and retrying,
-but `commandConflict` says this principal already committed that `commandId` with
-different intent. No amount of resyncing repairs that; the caller must use a new
-id for a new intent.
+## Every mutation carries an `Idempotency-Key`
+
+Non-idempotent routes require the `Idempotency-Key` request header: one opaque
+value per logical intent, reused unchanged on every retry of it. A UUIDv7 is
+recommended for sortable diagnostics, but the value is opaque to the server. A
+receipt is scoped to the caller's principal, so a caller who picks a repeated or
+guessable key can only collide with themselves.
+
+| Same key, same request | Same key, different request | No key |
+|---|---|---|
+| replays the committed result exactly once | `422` `commandConflict` | `400` `idempotencyKeyInvalid` |
+
+`commandConflict` is a 422 rather than a 409 on purpose. Every 409 above means
+"your view is stale, resync and retry", which is exactly what a caller must not
+do with a reused key: the same request will be refused identically until the key
+changes. The `Idempotency-Key` specification separates the two the same way.
+
+There is no "a request is outstanding for this key" response. A game's Durable
+Object serializes its commands, so a duplicate that arrives while the first is
+still in flight simply waits and then reads the committed receipt, which is the
+same answer the first caller got.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the

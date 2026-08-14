@@ -49,7 +49,7 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   notCreator: "A creator-only command from a non-creator",
   creatorCannotLeave: "The creator cancels the game instead of leaving it",
   // Command receipt rejection: the id is already bound to another intent.
-  commandConflict: "This principal already committed the command id with a different operation, resource, or payload",
+  commandConflict: "This principal already committed this Idempotency-Key with a different operation, resource, or payload",
   // Raised by a route before the command reaches the game.
   schemaUnsupported: "The game's schema version is newer than this client build supports",
   usernameInvalid: "The submitted username fails the format rules",
@@ -60,6 +60,7 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
   rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
   invalidCursor: "The pagination cursor did not decode; drop it and request the first page",
+  idempotencyKeyInvalid: "The mutation's Idempotency-Key header was absent or malformed",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can
@@ -329,24 +330,46 @@ export const createSoloBody = z
  * opening frame: the game is already running before any socket exists. */
 export const soloStartedShape = z.object({ session: sessionShape }).openapi("SoloStarted");
 
-/** Client retries reuse the same commandId, so the DO replays the stored
- * response instead of re-executing. */
-const commandId = z.string().min(1).max(128).optional();
+/**
+ * The `Idempotency-Key` header every mutation carries.
+ *
+ * The name and semantics are the IETF `Idempotency-Key` header field: one key
+ * per logical intent, reused across every retry of that intent, so the server
+ * replays its committed result instead of executing twice.
+ *
+ * The value is opaque and only length-bounded. A UUIDv7 is recommended for
+ * sortable diagnostics, but the server has no reason to demand one: a receipt is
+ * scoped to the caller's principal, so a caller who picks a guessable or
+ * repeated key can only collide with themselves.
+ */
+const IDEMPOTENCY_KEY_MAX = 128;
+/** The header's canonical spelling is the schema key: the validator matches an
+ * incoming header name case-insensitively against it, and the OpenAPI parameter
+ * takes its name from it. */
+export const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+export const idempotencyKeyHeader = z.object({
+  [IDEMPOTENCY_KEY_HEADER]: z
+    .string()
+    .min(1)
+    .max(IDEMPOTENCY_KEY_MAX)
+    .openapi({
+      param: { in: "header", required: true },
+      description: "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+      example: "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324",
+    }),
+});
 
 export const joinBody = z
   .object({
     /** The newest schemaVersion this client build ships rules for: the
      * schema gate (an old app cannot join a newer game). */
     clientSchemaVersion: z.number().int(),
-    commandId: commandId,
   })
   .openapi("Join");
 
 export const joinByCodeBody = joinBody.extend({ shortCode: z.string().min(1) }).openapi("JoinByCode");
 
-export const lobbyCommandBody = z.object({ commandId: commandId }).openapi("LobbyCommand");
-
-export const addBotBody = z.object({ botId: z.string(), commandId: commandId }).openapi("AddBot");
+export const addBotBody = z.object({ botId: z.string() }).openapi("AddBot");
 
 export const actionBody = z
   .object({
@@ -356,13 +379,12 @@ export const actionBody = z
     /** Game-defined move payload; parsed by the version unit's action schema. */
     data: z.unknown(),
     expectedVersion: z.number().int().min(0),
-    commandId: commandId,
   })
   .openapi("Action");
 
 /** Forfeit carries the resigning seat, verified against the roster like an
  * action. */
-export const forfeitBody = z.object({ seat: z.number().int().min(0), commandId: commandId }).openapi("Forfeit");
+export const forfeitBody = z.object({ seat: z.number().int().min(0) }).openapi("Forfeit");
 
 // ── Projections ───────────────────────────────────────────────────────────────
 

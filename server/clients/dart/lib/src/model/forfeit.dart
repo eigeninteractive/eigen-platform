@@ -15,22 +15,18 @@ part 'forfeit.g.dart';
 )
 class Forfeit {
   /// Returns a new [Forfeit] instance.
-  Forfeit({required this.seat, this.commandId});
+  Forfeit({required this.seat});
 
   // minimum: 0
   @JsonKey(name: r'seat', required: true, includeIfNull: false)
   final int seat;
 
-  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
-  final String? commandId;
-
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Forfeit && other.seat == seat && other.commandId == commandId;
+      identical(this, other) || other is Forfeit && other.seat == seat;
 
   @override
-  int get hashCode => seat.hashCode + commandId.hashCode;
+  int get hashCode => seat.hashCode;
 
   factory Forfeit.fromJson(Map<String, dynamic> json) =>
       _$ForfeitFromJson(json);

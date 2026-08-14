@@ -50,6 +50,7 @@ import { registerLinkRoutes } from "./routes/links.js";
 import { registerReadRoutes } from "./routes/reads.js";
 import { registerDownloadRoute, registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
+import { IDEMPOTENCY_KEY_HEADER } from "./routes/wire.js";
 import { DEFAULT_CREDIT, type ResolvedSite, type SiteConfig } from "./site/config.js";
 import { renderLegal } from "./site/legal/index.js";
 
@@ -207,7 +208,12 @@ function newOpenApiApp() {
     defaultHook: (result, c) => {
       if (!result.success) {
         const detail = result.error.issues.map((issue) => (issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message)).join("; ");
-        return c.json({ error: `Invalid request: ${detail}` }, 400);
+        // A missing or malformed `Idempotency-Key` is the one request-shape
+        // failure worth a stable code: every other one names a field a caller
+        // can see in its own request body, while this one says the client build
+        // is not sending a mutation identity at all.
+        const idempotencyKey = result.error.issues.some((issue) => issue.path[0] === IDEMPOTENCY_KEY_HEADER);
+        return c.json({ error: `Invalid request: ${detail}`, ...(idempotencyKey ? { code: "idempotencyKeyInvalid" as const } : {}) }, 400);
       }
     },
   });

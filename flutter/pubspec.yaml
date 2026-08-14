@@ -74,6 +74,7 @@ dependencies:
   dart_style: ^3.1.8
   flutter_web_plugins:
     sdk: flutter
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:

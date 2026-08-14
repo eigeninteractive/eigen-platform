@@ -78,7 +78,7 @@ client ──POST /api/engine/games/{id}/action { seat, expectedVersion, data }�
   Worker: verify Firebase token → provision/load user row → build a Command
           (a pre-authenticated value) → call the game's DO stub
     DO (input gate held):
-      dedupe on commandId (replay stored response if seen)
+      receipt check on (principal, Idempotency-Key): replay if committed
       load meta + roster + latest transition from its SQLite
       verify the seat belongs to the caller  (else a clean 403)
       run the KERNEL: validate move, apply the game hook, compute timing,

@@ -11,12 +11,10 @@ Forfeit _$ForfeitFromJson(Map<String, dynamic> json) =>
       $checkKeys(json, requiredKeys: const ['seat']);
       final val = Forfeit(
         seat: $checkedConvert('seat', (v) => (v as num).toInt()),
-        commandId: $checkedConvert('commandId', (v) => v as String?),
       );
       return val;
     });
 
 Map<String, dynamic> _$ForfeitToJson(Forfeit instance) => <String, dynamic>{
   'seat': instance.seat,
-  'commandId': ?instance.commandId,
 };

@@ -15,21 +15,17 @@ part 'add_bot.g.dart';
 )
 class AddBot {
   /// Returns a new [AddBot] instance.
-  AddBot({required this.botId, this.commandId});
+  AddBot({required this.botId});
 
   @JsonKey(name: r'botId', required: true, includeIfNull: false)
   final String botId;
 
-  @JsonKey(name: r'commandId', required: false, includeIfNull: false)
-  final String? commandId;
-
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is AddBot && other.botId == botId && other.commandId == commandId;
+      identical(this, other) || other is AddBot && other.botId == botId;
 
   @override
-  int get hashCode => botId.hashCode + commandId.hashCode;
+  int get hashCode => botId.hashCode;
 
   factory AddBot.fromJson(Map<String, dynamic> json) => _$AddBotFromJson(json);
 

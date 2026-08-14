@@ -12,7 +12,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { deriveBotKey, signForBot } from "../src/bot/bot-auth.js";
 import { orm } from "../src/d1/orm.js";
 import { bots, participants } from "../src/d1/schema.js";
-import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
+import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 
 const BOT_SECRET = "test-bot-signing-secret";
 
@@ -25,10 +25,22 @@ function makeUsers() {
   return { a: `alice-${n}-${crypto.randomUUID()}`, b: `bob-${n}-${crypto.randomUUID()}`, c: `cesar-${n}-${crypto.randomUUID()}` };
 }
 
-async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
+interface ApiOptions {
+  body?: unknown;
+  anonymous?: boolean;
+  /** Reuse an exact `Idempotency-Key` to exercise a retry. Omitted, every
+   * mutation gets a fresh one, which is what an honest new intent sends. */
+  idempotencyKey?: string;
+  /** Send no key at all, to exercise the required-header rejection. */
+  omitIdempotencyKey?: boolean;
+}
+
+async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false, opts: ApiOptions = {}): Promise<Response> {
+  const mutating = method !== "GET";
+  const key = opts.idempotencyKey ?? crypto.randomUUID();
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
+    headers: mutating && opts.omitIdempotencyKey !== true ? await mutationHeaders({ uid, anonymous, idempotencyKey: key }) : { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }
@@ -251,19 +263,32 @@ describe("active play & frames", () => {
     expect(illegal.status).toBe(400);
   });
 
-  it("returns a typed 409 when one principal reuses a committed command id differently", async () => {
+  it("replays a retry and refuses the same Idempotency-Key for a different move", async () => {
     const u = makeUsers();
     const gameId = await readyGame(u, { rated: false });
-    const commandId = crypto.randomUUID();
-    const original = { seat: 0, data: { add: 1 }, expectedVersion: 0, commandId };
+    const key = crypto.randomUUID();
+    const move = { seat: 0, data: { add: 1 }, expectedVersion: 0 };
+    const retry = { idempotencyKey: key };
 
-    const first = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, original));
-    const conflict = await api(u.a, "POST", `/games/${gameId}/action`, { ...original, data: { add: 2 } });
-    expect(conflict.status).toBe(409);
+    const first = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, move, false, retry));
+    // Same key, different move: 422 per the Idempotency-Key specification, and
+    // deliberately not 409, which in this API means "resync and retry" — the one
+    // thing a caller must not do here.
+    const conflict = await api(u.a, "POST", `/games/${gameId}/action`, { ...move, data: { add: 2 } }, false, retry);
+    expect(conflict.status).toBe(422);
     expect(await conflict.json()).toMatchObject({ code: "commandConflict" });
 
-    const replay = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, original));
+    // Same key, same move: the committed result, exactly once.
+    const replay = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, move, false, retry));
     expect(replay).toEqual(first);
+  });
+
+  it("requires an Idempotency-Key on every mutation", async () => {
+    const u = makeUsers();
+    const gameId = await readyGame(u, { rated: false });
+    const res = await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }, false, { omitIdempotencyKey: true });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "idempotencyKeyInvalid" });
   });
 
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {

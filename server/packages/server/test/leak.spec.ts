@@ -9,13 +9,13 @@
 
 import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
-import { testBearer as bearer, mintTestToken as mintToken } from "../src/testing.js";
+import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 import { LEAK_SENTINEL } from "./worker.js";
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: { ...(await bearer({ uid })), "content-type": "application/json" },
+    headers: method === "GET" ? { ...(await bearer({ uid })), "content-type": "application/json" } : await mutationHeaders({ uid }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }

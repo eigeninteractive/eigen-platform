@@ -19,7 +19,7 @@ import { gameInvitePush } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { versionQuery } from "./query.js";
-import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, lobbyCommandBody, soloStartedShape } from "./wire.js";
+import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, IDEMPOTENCY_KEY_HEADER, idempotencyKeyHeader, joinBody, joinByCodeBody, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
 
@@ -33,9 +33,16 @@ const errorResponses = {
   401: error("Missing or invalid token"),
   403: error("Not allowed"),
   404: error("Not found"),
-  409: error("State or command-identity conflict; follow the stable error code"),
-  422: error("Assertion mismatch"),
+  409: error("Stale view; resync and retry"),
+  422: error("Assertion mismatch, or an Idempotency-Key reused for a different request"),
 } as const;
+
+/** A mutation: the caller's `Idempotency-Key` is part of its request contract.
+ * Every non-idempotent route carries this, so a client never has to know which
+ * mutations honour a retry. */
+function mutation<R extends { params?: z.ZodType; body?: unknown }>(request: R) {
+  return { ...request, headers: idempotencyKeyHeader } as const;
+}
 
 /** A 200 OK carrying `schema`, plus the shared error responses. */
 function responses<T extends z.ZodType>(schema: T, description: string) {
@@ -48,6 +55,13 @@ function createdResponses<T extends z.ZodType>(schema: T, description: string) {
 }
 
 const gameIdParam = z.object({ gameId: z.string().min(1) });
+
+/** The caller's idempotency key, validated by the route's header schema. Named
+ * `commandId` from here inward: the header is the transport, the command id is
+ * what the engine stores it as. */
+function commandId(c: { req: { valid: (target: "header") => Record<string, string> } }): string {
+  return c.req.valid("header")[IDEMPOTENCY_KEY_HEADER] as string;
+}
 
 /** Strip the internal `ok` discriminator from an accepted result; success is the
  * HTTP 200, not a body field. One helper for every command kind, because they
@@ -148,13 +162,18 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games",
       operationId: "createGame",
       tags: ["Games"],
-      request: { body: jsonBody(createGameBody) },
+      request: mutation({ body: jsonBody(createGameBody) }),
       responses: createdResponses(createdShape, "The created game"),
     }),
     async (c) => {
       const auth = c.var.auth;
       await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
+      // The Idempotency-Key is required here for a uniform mutation contract,
+      // but creation is a D1 write with no Durable Object yet to hold a receipt,
+      // so a replayed create still makes a second game. Closing that needs a D1
+      // reservation keyed by (user_id, command_id) written in the same batch as
+      // the game row; see RFC 0004's delivery list.
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
       if (body.access === "friends" && auth.claims.isAnonymous) {
@@ -234,7 +253,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/solo",
       operationId: "createSoloGame",
       tags: ["Games"],
-      request: { body: jsonBody(createSoloBody) },
+      request: mutation({ body: jsonBody(createSoloBody) }),
       responses: createdResponses(soloStartedShape, "The created-and-started solo game"),
     }),
     async (c) => {
@@ -313,7 +332,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // the client has the opening board without a round trip. The game is
       // already running before any socket exists, so this is its only delivery.
       const stub = ctx.stub(c.env, gameId);
-      unwrap(await stub.handle(mint(auth, "start", gameId, undefined)));
+      // A fresh id, deliberately not the caller's Idempotency-Key: that key
+      // identifies the create, and one key standing for two operations is the
+      // reuse this design refuses. The engine issues this start itself against a
+      // game that came into existence a moment ago, so its object holds no
+      // receipts and there is no retry here to deduplicate.
+      unwrap(await stub.handle(mint(auth, "start", gameId, crypto.randomUUID())));
       const session = await stub.session(gameId, auth.user.id);
       if (session === null) throw new HttpError(500, "engine bug: started game has no session");
       return c.json({ session }, 201);
@@ -321,7 +345,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   );
 
   // join: worker policy is guest-vs-rated, friends access, schema gate.
-  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, commandId: string | undefined) => {
+  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, key: string) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
       throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
@@ -344,7 +368,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
       throw new HttpError(404, "Unknown game", "unknownGame");
     }
-    return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, commandId)));
+    return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, key)));
   };
 
   app.openapi(
@@ -353,13 +377,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/join",
       operationId: "joinGame",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(joinBody) },
+      request: mutation({ params: gameIdParam, body: jsonBody(joinBody) }),
       responses: responses(commandAcceptedShape, "Seated: the post-join session"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
-      const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
+      const seated = await join(c, game, body.clientSchemaVersion, commandId(c));
       return c.json(seated, 200);
     },
   );
@@ -370,14 +394,14 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/join-by-code",
       operationId: "joinGameByCode",
       tags: ["Games"],
-      request: { body: jsonBody(joinByCodeBody) },
+      request: mutation({ body: jsonBody(joinByCodeBody) }),
       responses: responses(commandAcceptedShape, "Seated: the post-join session"),
     }),
     async (c) => {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.shortCode.toUpperCase());
       if (game === undefined) throw new HttpError(404, "No game with that code", "unknownGame");
-      const seated = await join(c, game, body.clientSchemaVersion, body.commandId);
+      const seated = await join(c, game, body.clientSchemaVersion, commandId(c));
       return c.json(seated, 200);
     },
   );
@@ -388,12 +412,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/leave",
       operationId: "leaveGame",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
+      request: mutation({ params: gameIdParam }),
       responses: responses(commandAcceptedShape, "Left: the post-leave session"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, c.req.valid("json").commandId));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, commandId(c)));
       return c.json(commandResult(result), 200);
     },
   );
@@ -404,12 +428,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/cancel",
       operationId: "cancelGame",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
+      request: mutation({ params: gameIdParam }),
       responses: responses(commandAcceptedShape, "Cancelled"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, c.req.valid("json").commandId));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, commandId(c)));
       return c.json(commandResult(result), 200);
     },
   );
@@ -424,7 +448,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/add-bot",
       operationId: "addBot",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(addBotBody) },
+      request: mutation({ params: gameIdParam, body: jsonBody(addBotBody) }),
       responses: responses(commandAcceptedShape, "Bot seated: the post-commit session"),
     }),
     async (c) => {
@@ -435,7 +459,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const bot = bots[0];
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
-      const cmd: Command = { kind: "add-bot", gameId, commandId: body.commandId ?? crypto.randomUUID(), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
+      const cmd: Command = { kind: "add-bot", gameId, commandId: commandId(c), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
   );
@@ -446,12 +470,12 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/start",
       operationId: "startGame",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(lobbyCommandBody) },
+      request: mutation({ params: gameIdParam }),
       responses: responses(commandAcceptedShape, "Started: the session at version 0"),
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId, c.req.valid("json").commandId));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId, commandId(c)));
       return c.json(commandResult(result), 200);
     },
   );
@@ -466,7 +490,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/action",
       operationId: "submitAction",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(actionBody) },
+      request: mutation({ params: gameIdParam, body: jsonBody(actionBody) }),
       responses: responses(commandAcceptedShape, "Committed: the acting seat's session"),
     }),
     async (c) => {
@@ -475,7 +499,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "action",
         gameId,
-        commandId: body.commandId ?? crypto.randomUUID(),
+        commandId: commandId(c),
         actor: { userId: c.var.auth.user.id, botId: null },
         seat: body.seat,
         expectedVersion: body.expectedVersion,
@@ -491,7 +515,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       path: "/games/{gameId}/forfeit",
       operationId: "forfeitGame",
       tags: ["Games"],
-      request: { params: gameIdParam, body: jsonBody(forfeitBody) },
+      request: mutation({ params: gameIdParam, body: jsonBody(forfeitBody) }),
       responses: responses(commandAcceptedShape, "Forfeit committed"),
     }),
     async (c) => {
@@ -500,7 +524,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "lifecycle",
         gameId,
-        commandId: body.commandId ?? crypto.randomUUID(),
+        commandId: commandId(c),
         actor: { userId: c.var.auth.user.id, botId: null },
         type: "forfeit",
         seat: body.seat,
@@ -573,8 +597,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   });
 }
 
-function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string, commandId: string | undefined): Command {
-  const base = { gameId, commandId: commandId ?? crypto.randomUUID(), actor: { userId: auth.user.id, botId: null } };
+function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string, commandId: string): Command {
+  const base = { gameId, commandId, actor: { userId: auth.user.id, botId: null } };
   switch (kind) {
     case "start":
       return { kind, ...base };

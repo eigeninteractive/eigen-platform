@@ -27,7 +27,7 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
-| 4: safe mutation identity | Durable Object half done | Receipts, canonical requests, `commandConflict`, derived alarm; HTTP, D1 and client halves open, below |
+| 4: safe mutation identity | Server done | Receipts, canonical requests, derived alarm, and a required `Idempotency-Key` on every mutation; D1 create receipts and the client journal open, below |
 | 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 remaining work
@@ -69,6 +69,17 @@ dependency order, is what makes it load-bearing rather than latent:
   allowed to fail the command, only because the old teardown dropped all DO
   storage and left the D1 row as the sole survivor. Retaining `meta` removed that
   premise.
+- **The command id travels as the standard `Idempotency-Key` header**, not a body
+  field, and is required on every mutation including the ones that do not yet
+  honour it. A client should not have to know which mutations deduplicate. The
+  header also separates identity from payload, which is what lets the canonical
+  request be built purely from the caller's intent.
+- **`commandConflict` is a 422, not a 409.** Every other 409 in this API means
+  "resync and retry", which is precisely what must not happen to a reused key.
+  The `Idempotency-Key` specification draws the same line.
+- **Dropped the empty `LobbyCommand` body.** With the id in a header, leave,
+  cancel and start carry nothing, so requiring an empty JSON object was pure
+  ceremony.
 
 ## Current validation contract
 
