@@ -16,6 +16,12 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
+          id: "reference/http-api/get-capabilities",
+          label: "getCapabilities",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "reference/http-api/get-lobby",
           label: "getLobby",
           className: "api-method get",

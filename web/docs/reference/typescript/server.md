@@ -719,7 +719,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L108)
+Defined in: [server/packages/server/src/engine.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L129)
 
 The whitelabel app's display name, the single source of truth for the
 engine's own identity (share metadata and public-page titles today;
@@ -733,7 +733,7 @@ feature blocks are enabled.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:130](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L130)
+Defined in: [server/packages/server/src/engine.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L151)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -743,7 +743,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
-Defined in: [server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L126)
+Defined in: [server/packages/server/src/engine.ts:147](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L147)
 
 Browser origins allowed to call the engine from a different origin.
 
@@ -756,13 +756,40 @@ unsupported. The list also protects browser WebSocket upgrades, whose
 
 Set an empty list to disable the `WEB_APP_ORIGIN` default.
 
+##### creatableSchemaVersions?
+
+```ts
+optional creatableSchemaVersions?: readonly number[];
+```
+
+Defined in: [server/packages/server/src/engine.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L123)
+
+The `schemaVersion`s new games may be created at. Defaults to the highest key
+of `gameModule.versions` alone.
+
+The default is the whole policy for almost every deployment: ship new rules,
+and new games use them. A client that cannot create at that version is out of
+date and is told to update — it can still join, play and replay every version
+it does ship, because that is governed by `versions`, not by this.
+
+Override it for the two cases the default cannot express:
+
+- **Rollback.** A bad rules release needs creation moved back to the previous
+  version WITHOUT unshipping the new one, since games already at it must keep
+  loading. Removing it from `versions` would orphan them.
+- **Coexisting variants.** A deployment using `versions` for genuinely
+  parallel rule sets rather than an upgrade sequence.
+
+Listing several does not make the client negotiate: it always creates at the
+newest version it ships, and this decides whether that is allowed.
+
 ##### deepLink?
 
 ```ts
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L128)
+Defined in: [server/packages/server/src/engine.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L149)
 
 Native deep-link verification and store links. Omit for web-only.
 
@@ -780,7 +807,7 @@ Defined in: [server/packages/server/src/engine.ts:102](https://github.com/eigeni
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L137)
+Defined in: [server/packages/server/src/engine.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L158)
 
 Cron-backstop tuning: guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -792,7 +819,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
+Defined in: [server/packages/server/src/engine.ts:154](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L154)
 
 The public web surface: download page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -806,7 +833,7 @@ optional testing?: {
 };
 ```
 
-Defined in: [server/packages/server/src/engine.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L142)
+Defined in: [server/packages/server/src/engine.ts:163](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L163)
 
 Explicit test-only replacements for Firebase verification and Admin
 effects. Supplying them together prevents a fake verifier from
@@ -843,7 +870,7 @@ firebaseAdmin(env): FirebaseAdminEffects;
 d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L110)
+Defined in: [server/packages/server/src/engine.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L131)
 
 The engine's D1 database (engine-private).
 
@@ -863,7 +890,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L115)
+Defined in: [server/packages/server/src/engine.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L136)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -884,7 +911,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L112)
+Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
 
 The GameDO namespace binding.
 
@@ -2123,7 +2150,7 @@ the call site; the internal loop only absorbs CAS conflicts).
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:425](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L425)
+Defined in: [server/packages/server/src/engine.ts:449](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L449)
 
 Creates the complete Cloudflare Worker for one game deployment.
 
@@ -2422,18 +2449,7 @@ single attempt.
 function openApiDocument(version): OpenAPIObject;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:506](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L506)
-
-Build the API document from an inert app: route handlers never run, so
-the context can refuse everything. `appName` is an unused placeholder here:
-with `deepLink: null` the landing route (its only reader) is never mounted.
-
-`version` is an argument rather than a constant in here because it has
-exactly one correct value, `@eigeninteractive/server`'s own, and changesets
-owns that value. Baked in as a literal it silently disagrees with the package
-on the first release: nothing reads it back, and the CI drift check only
-compares this file against itself, so the lie survives every check. The Dart
-client's pubspec is stamped from the same source for the same reason.
+Defined in: [server/packages/server/src/engine.ts:558](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L558)
 
 #### Parameters
 
