@@ -119,13 +119,11 @@ still in flight simply waits and then reads the committed receipt, which is the
 same answer the first caller got.
 
 Creating a game is covered too, even though there is no game — and therefore no
-Durable Object — to hold a receipt yet. A create reserves its key in the same
-database transaction that writes the game row, so a retried create returns the
-game it already made, with the same `gameId` and `shortCode`, rather than a
-second one. `POST /games/solo` creates *and* starts under one key: the retry
-replays the create and re-presents the start, so it answers with the same running
-game. Unlike a game's own receipts, which are kept as long as the game is, a
-create reservation is pruned once no retry of it could still arrive.
+Durable Object — to hold a receipt yet. A create records its key on the game row
+itself, in the same write, so a retried create returns the game it already made,
+with the same `gameId` and `shortCode`, rather than a second one.
+`POST /games/solo` creates *and* starts under one key: the retry recognises the
+create and re-presents the start, so it answers with the same running game.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the

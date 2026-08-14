@@ -10,8 +10,6 @@
  *   2. **Abandoned-game reap**: never-started lobbies, and untimed active games
  *      (which have no alarm at all) idle too long, aborted so they stop
  *      occupying the lobby and release their DO storage.
- *   3. **Create-reservation prune**: create receipts past the window in which a
- *      client could still retry the create they identify.
  *
  * The windows and per-run batch caps are {@link LIFECYCLE_DEFAULTS}, each
  * overridable via the `lifecycle` block on `createEngine` ({@link LifecycleOptions}).
@@ -21,7 +19,7 @@
 
 import { and, eq, gte, inArray, isNull, lt, notExists, or, sql } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
-import { gameCreations, games, participants, users } from "../d1/schema.js";
+import { games, participants, users } from "../d1/schema.js";
 import { type EngineOps, purgeUser } from "./purge.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -46,13 +44,6 @@ export interface LifecycleOptions {
   guestBatch?: number;
   /** Max games reaped per run (same bounded-batch reasoning). */
   reapBatch?: number;
-  /** How long a create reservation is kept. It exists only to recognise a retry
-   * of its own create, so it needs to outlive the longest window in which a
-   * client might resend one, not to serve as history. A day is several orders of
-   * magnitude beyond the in-request retries clients actually perform; raise it
-   * if a client ever persists unsent commands across restarts, because a pruned
-   * reservation means a retry creates a second game. */
-  createReservationTtlMs?: number;
 }
 
 /** The defaults (old: 7-day guest age, 2-day inactivity). An implementor's
@@ -64,16 +55,14 @@ export const LIFECYCLE_DEFAULTS: Required<LifecycleOptions> = {
   untimedActiveTtlMs: 30 * DAY_MS,
   guestBatch: 200,
   reapBatch: 500,
-  createReservationTtlMs: DAY_MS,
 };
 
 export async function runScheduled(ops: EngineOps, options: LifecycleOptions = {}): Promise<void> {
   const opts: Required<LifecycleOptions> = { ...LIFECYCLE_DEFAULTS, ...definedOnly(options) };
   const now = Date.now();
-  // Isolate the jobs: a failure in one must not skip the others.
+  // Isolate the two jobs: a failure in one must not skip the other.
   await purgeStaleGuests(ops, now, opts).catch((error) => console.error("cron: stale-guest purge failed", error));
   await reapAbandonedGames(ops, now, opts).catch((error) => console.error("cron: abandoned-game reap failed", error));
-  await pruneCreateReservations(ops, now, opts).catch((error) => console.error("cron: create-reservation prune failed", error));
 }
 
 /** Drop `undefined` values so an override object never masks a default with a
@@ -104,17 +93,6 @@ async function purgeStaleGuests(ops: EngineOps, now: number, opts: Required<Life
     await purgeUser(ops, id).catch((error) => console.error(`cron: purging stale guest ${id} failed`, error));
   }
   if (stale.length > 0) console.log(`cron: purged ${stale.length} stale guest(s)`);
-}
-
-/** Drop create reservations older than their TTL.
- *
- * Unbounded, unlike the two batched jobs above: this is one indexed DELETE the
- * database performs itself, not per-row work, and the table's whole purpose is
- * short-lived. Deleting a reservation cannot orphan anything, since the game it
- * names is owned by the `games` row and its own DO. */
-async function pruneCreateReservations(ops: EngineOps, now: number, opts: Required<LifecycleOptions>): Promise<void> {
-  const db = orm(ops.d1);
-  await db.delete(gameCreations).where(lt(gameCreations.createdAt, now - opts.createReservationTtlMs));
 }
 
 async function reapAbandonedGames(ops: EngineOps, now: number, opts: Required<LifecycleOptions>): Promise<void> {

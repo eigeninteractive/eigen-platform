@@ -1,9 +1,8 @@
 /**
  * Account deletion & the cron backstop: the
- * delete-account route, the stale-guest purge, abandoned-game reap and
- * create-reservation prune run by the `scheduled` handler, and the applyFinish
- * purge guard that keeps a deleted identity from being re-rated by a later
- * finish.
+ * delete-account route, the stale-guest purge and abandoned-game reap run by
+ * the `scheduled` handler, and the applyFinish purge guard that keeps a
+ * deleted identity from being re-rated by a later finish.
  *
  * FIREBASE_* is unset in the test worker; its explicit Firebase Admin fake
  * makes account deletion a no-op while every game and D1 purge path stays real.
@@ -14,17 +13,17 @@ import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
-import { gameCreations, games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
+import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
-import { createReservationRow, userRow } from "./factories.js";
+import { createReceiptRow, userRow } from "./factories.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
 
-async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false, idempotencyKey?: string): Promise<Response> {
+async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: method === "GET" ? { ...(await bearer({ uid, anonymous })), "content-type": "application/json" } : await mutationHeaders({ uid, anonymous, idempotencyKey }),
+    headers: method === "GET" ? { ...(await bearer({ uid, anonymous })), "content-type": "application/json" } : await mutationHeaders({ uid, anonymous }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }
@@ -121,26 +120,6 @@ describe("cron: abandoned-game reap", () => {
   });
 });
 
-describe("cron: create-reservation prune", () => {
-  it("drops reservations past their TTL and keeps recent ones", async () => {
-    const a = uid("resv-a");
-    const stale = crypto.randomUUID();
-    const fresh = crypto.randomUUID();
-    await json(await api(a, "POST", "/games", { ...createBody, rated: false }, false, stale), 201);
-    await json(await api(a, "POST", "/games", { ...createBody, rated: false }, false, fresh), 201);
-    await db
-      .update(gameCreations)
-      .set({ createdAt: Date.now() - 2 * 24 * 60 * 60 * 1000 })
-      .where(eq(gameCreations.commandId, stale))
-      .run();
-
-    await runCron();
-
-    expect(await db.select().from(gameCreations).where(eq(gameCreations.commandId, stale)).get()).toBeUndefined();
-    expect(await db.select().from(gameCreations).where(eq(gameCreations.commandId, fresh)).get()).toBeDefined();
-  });
-});
-
 describe("applyFinish purge guard", () => {
   it("skips a rating write for a user who no longer exists, rating the rest", async () => {
     const present = uid("guard-present");
@@ -153,7 +132,7 @@ describe("applyFinish purge guard", () => {
 
     const gameId = crypto.randomUUID();
     await createGame(env.DB, {
-      reservation: createReservationRow(),
+      receipt: createReceiptRow(),
       gameId,
       createdBy: present,
       status: "ready",

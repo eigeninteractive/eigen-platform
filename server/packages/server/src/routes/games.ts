@@ -9,7 +9,7 @@ import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
 import type { GameRules, JsonObject } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { canonicalRequest, userPrincipal } from "../command-request.js";
-import { type CreateGameInput, type CreateReservation, createGame, readCreateReservation } from "../d1/apply.js";
+import { type CreateGameInput, type CreateReceipt, createGame, readCreatedGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
 import { isCreateReplay, isShortCodeCollision } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
@@ -151,7 +151,7 @@ function generateShortCode(): string {
   return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
 
-// ── Create reservations ───────────────────────────────────────────────────────
+// ── Create receipts ───────────────────────────────────────────────────────────
 
 /** What a create produced, whether it ran now or had already run. */
 interface CreatedGame {
@@ -168,30 +168,30 @@ interface CreatedGame {
  * Both create routes go through here so a duplicate create is impossible in one
  * place rather than two. `input.gameId` is the freshly minted id, used only if
  * this create is genuinely new: a replay answers with the id the first attempt
- * reserved, so a caller that retries because it never saw the response gets the
+ * committed, so a caller that retries because it never saw the response gets the
  * game it already made instead of a second one.
  */
-async function createReserved(d1: D1Database, reservation: CreateReservation, input: Omit<CreateGameInput, "reservation" | "shortCode">): Promise<CreatedGame> {
+async function createOnce(d1: D1Database, createdBy: string, receipt: CreateReceipt, input: Omit<CreateGameInput, "receipt" | "shortCode">): Promise<CreatedGame> {
   for (let attempt = 1; ; attempt++) {
     const shortCode = generateShortCode();
     try {
-      await createGame(d1, { ...input, reservation, shortCode });
+      await createGame(d1, { ...input, receipt, shortCode });
       return { gameId: input.gameId, shortCode, replayed: false };
     } catch (error) {
-      if (isCreateReplay(error)) return await replayCreate(d1, reservation);
+      if (isCreateReplay(error)) return await replayCreate(d1, createdBy, receipt);
       if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
     }
   }
 }
 
 /** Answer a create whose command id is already committed. */
-async function replayCreate(d1: D1Database, reservation: CreateReservation): Promise<CreatedGame> {
-  const stored = await readCreateReservation(d1, reservation.principalId, reservation.commandId);
-  // The insert that just failed proves the row exists, and nothing deletes one
-  // mid-request: the cron prune only touches reservations far older than any
-  // in-flight retry. Reaching here means those assumptions broke.
-  if (stored === undefined) throw new HttpError(500, "engine bug: a reserved create has no reservation");
-  if (stored.request !== reservation.request) {
+async function replayCreate(d1: D1Database, createdBy: string, receipt: CreateReceipt): Promise<CreatedGame> {
+  const stored = await readCreatedGame(d1, createdBy, receipt.commandId);
+  // The insert that just failed proves the row exists, and a game row is never
+  // deleted (a purge anonymizes it, a reap aborts it). Reaching here means one of
+  // those two invariants broke.
+  if (stored === undefined) throw new HttpError(500, "engine bug: a committed create has no game");
+  if (stored.request !== receipt.request) {
     throw new HttpError(422, "This command id is already committed with different intent", "commandConflict");
   }
   return { gameId: stored.gameId, shortCode: stored.shortCode, replayed: true };
@@ -200,9 +200,8 @@ async function replayCreate(d1: D1Database, reservation: CreateReservation): Pro
 /** The canonical intent of a create, compared to refuse one key standing for two
  * different games. `resource` is the collection D1 is authoritative for, the
  * create-time counterpart of a DO passing its own game id. */
-function createReservation(userId: string, commandId: string, operation: "game.create" | "game.create-solo", payload: unknown): CreateReservation {
-  const principal = userPrincipal(userId);
-  return { principalId: principal, commandId, request: canonicalRequest({ principal, operation, resource: "games", payload }) };
+function createReceipt(userId: string, commandId: string, operation: "game.create" | "game.create-solo", payload: unknown): CreateReceipt {
+  return { commandId, request: canonicalRequest({ principal: userPrincipal(userId), operation, resource: "games", payload }) };
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -254,9 +253,10 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const rated = canBeRated && (body.rated ?? true);
 
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
-      const created = await createReserved(
+      const created = await createOnce(
         ctx.d1(c.env),
-        createReservation(auth.user.id, commandId(c), "game.create", {
+        auth.user.id,
+        createReceipt(auth.user.id, commandId(c), "game.create", {
           access: body.access,
           schemaVersion: body.schemaVersion,
           config,
@@ -352,9 +352,10 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (seats.length > body.maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
       const key = commandId(c);
-      const created = await createReserved(
+      const created = await createOnce(
         ctx.d1(c.env),
-        createReservation(auth.user.id, key, "game.create-solo", {
+        auth.user.id,
+        createReceipt(auth.user.id, key, "game.create-solo", {
           schemaVersion: body.schemaVersion,
           config,
           turnSeconds: body.turnSeconds,

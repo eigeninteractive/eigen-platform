@@ -1,5 +1,5 @@
 import { canonicalRequest, userPrincipal } from "../src/command-request.js";
-import type { CreateReservation } from "../src/d1/apply.js";
+import type { CreateReceipt } from "../src/d1/apply.js";
 import type { users } from "../src/d1/schema.js";
 
 type UserRow = typeof users.$inferInsert;
@@ -16,14 +16,13 @@ export function userRow(id: string, overrides: Partial<UserRow> = {}): UserRow {
 }
 
 /**
- * A unique create reservation, for a spec that seeds a game through
- * `createGame` directly rather than over HTTP.
+ * A unique create receipt, for a spec that seeds a game through `createGame`
+ * directly rather than over HTTP.
  *
- * Unique by default because a seed helper called twice must produce two games:
- * a shared id would make the second call a replay, which is the very thing the
- * reservation exists to cause. Pass `commandId` to deliberately collide.
+ * Unique by default because a seed helper called twice must produce two games: a
+ * shared id would make the second call a replay, which is the very thing the
+ * receipt exists to cause. Pass `commandId` to deliberately collide.
  */
-export function createReservationRow(userId = "user-a", commandId = crypto.randomUUID()): CreateReservation {
-  const principal = userPrincipal(userId);
-  return { principalId: principal, commandId, request: canonicalRequest({ principal, operation: "game.create", resource: "games", payload: { seed: commandId } }) };
+export function createReceiptRow(userId = "user-a", commandId = crypto.randomUUID()): CreateReceipt {
+  return { commandId, request: canonicalRequest({ principal: userPrincipal(userId), operation: "game.create", resource: "games", payload: { seed: commandId } }) };
 }

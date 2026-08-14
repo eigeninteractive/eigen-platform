@@ -17,7 +17,7 @@ import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame } from "../src/index.js";
 import type { SessionSnapshot } from "../src/protocol.js";
-import { createReservationRow, userRow } from "./factories.js";
+import { createReceiptRow, userRow } from "./factories.js";
 
 /** Typed D1 access for seeds and assertions. The DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
@@ -47,7 +47,7 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     .onConflictDoNothing()
     .run();
   await createGame(env.DB, {
-    reservation: createReservationRow(),
+    receipt: createReceiptRow(),
     gameId,
     createdBy: "user-a",
     status: opts.status ?? "ready",

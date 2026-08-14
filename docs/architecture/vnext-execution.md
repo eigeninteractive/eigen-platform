@@ -27,7 +27,7 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
-| 4: safe mutation identity | Nearly complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, and D1 create reservations; only bounded Worker-to-DO retry is open, below |
+| 4: safe mutation identity | Nearly complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, and create receipts on the games row; only bounded Worker-to-DO retry is open, below |
 | 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 remaining work
@@ -78,14 +78,20 @@ delivery section. RFC 0004 itself is amended, not silently diverged from.
 - **Dropped the empty `LobbyCommand` body.** With the id in a header, leave,
   cancel and start carry nothing, so requiring an empty JSON object was pure
   ceremony.
-- **A create reservation records what was created, not what was returned.** It has
-  to be written in the same D1 batch as the `games` row — that transaction is the
-  whole guarantee — and the response is not known yet, because create-solo starts
-  the game afterwards. So a replay re-derives its answer by resuming the remaining
-  steps idempotently, which as a side effect recovers a create whose process died
-  before the start landed. Storing the response instead would have needed a second
-  write, and a crash between the two would lose the reservation entirely: exactly
-  the duplicate it exists to prevent.
+- **A create receipt is two columns on the games row, not a table.** It was a
+  separate `game_creations` table first, which was wrong: 1:1 with `games`, with
+  two of its columns duplicating the row it pointed at, and needing a cron prune
+  that contradicted this RFC's own rule against expiring receipts. Folding it in
+  matches what this schema already does twice — `outcomes` is a folded former
+  table, and `finish_id` is idempotency metadata living as a column — and deletes
+  the table, the prune job, a public config knob, and an insert per create.
+- **The receipt records what was created, not what was returned.** It is written
+  in the INSERT that creates the game, and the response is not known then, because
+  create-solo starts the game afterwards. So a replay re-derives its answer by
+  resuming the remaining steps idempotently, which as a side effect recovers a
+  create whose process died before the start landed. Storing the response would
+  have needed a second write, and a crash between the two would lose the receipt
+  entirely: exactly the duplicate it exists to prevent.
 - **Create-solo's internal start uses a key derived from the caller's, not a fresh
   one.** Reusing the key outright would let one id stand for two operations, which
   receipts refuse. But minting a fresh one made that half unreplayable, so a retry

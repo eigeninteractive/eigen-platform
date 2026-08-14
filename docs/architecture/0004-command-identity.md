@@ -134,13 +134,14 @@ Implemented:
 - The API half: `Idempotency-Key` is required on every game mutation, with no
   server-minted fallback. The fallback gave every attempt a fresh identity, which
   made the receipts latent rather than load-bearing.
-- The D1 half: a create reservation keyed by `(principal_id, command_id)`,
-  written in the same batch as the `games` row, so a retried create returns the
-  game it already made instead of a second one. Create-solo is two operations
-  under one key: the reservation replays the create, and the start is re-issued
-  under an id *derived* from that key, which also resumes a create whose process
-  died before the start landed. Reservations are pruned by the cron backstop;
-  they only have to outlive a retry of their own create.
+- The D1 half: a create receipt, as two columns on the `games` row itself
+  (`create_command_id`, `create_request`) under a UNIQUE index with `created_by`,
+  so a retried create returns the game it already made instead of a second one.
+  Create-solo is two operations under one key: the create is recognised from its
+  receipt, and the start is re-issued under an id *derived* from that key, which
+  also resumes a create whose process died before the start landed. The receipt
+  lives as long as the game, satisfying the retention rule above at no cost,
+  because the row exists anyway.
 - The client half's outcome classification: `engineCall` distinguishes a server
   decision (an `EngineException` carrying a stable code) from an unknown outcome
   (a transport failure with no response), and the transport retry replays the
@@ -159,9 +160,10 @@ mostly defers a rejection; the board is authoritative and visible on reconnect,
 so "did my move land?" is answered by looking rather than by bookkeeping; and
 duplicate suppression already lives on the server. Revisit when there is an
 intent with no deadline whose loss a player would notice — creating or joining
-over a flaky connection is the realistic trigger. Doing so also means raising
-the create-reservation TTL, since a journal can retry long after the window an
-in-request retry needs.
+over a flaky connection is the realistic trigger. Nothing about the server side
+needs revisiting if that happens: every receipt is retained for the life of the
+resource it belongs to, so a retry arriving arbitrarily late is still recognised
+as a retry.
 
 The DO's storage change is a clean pre-production break with no compatibility
 window: there are no deployed games, so the `commands` table was redefined in

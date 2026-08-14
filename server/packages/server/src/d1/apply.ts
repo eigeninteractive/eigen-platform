@@ -25,7 +25,7 @@ import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
-import { gameCreations, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
+import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -287,9 +287,9 @@ export async function mirrorRoster(d1: D1Database, args: { gameId: string; statu
   await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now })))]);
 }
 
-/** The identity a create is reserved under; see {@link gameCreations}. */
-export interface CreateReservation {
-  principalId: string;
+/** A create's receipt: the caller's key and the canonical intent it commits to.
+ * Stored on the game row itself; see `games.createCommandId`. */
+export interface CreateReceipt {
   commandId: string;
   request: string;
 }
@@ -297,7 +297,7 @@ export interface CreateReservation {
 /** The worker-direct create, engine-owned so implementors never touch
  * the D1 schema: seats already validated by worker policy. */
 export interface CreateGameInput {
-  reservation: CreateReservation;
+  receipt: CreateReceipt;
   gameId: string;
   createdBy: string | null;
   status: Extract<GameStatus, "waiting" | "ready">;
@@ -316,26 +316,19 @@ export interface CreateGameInput {
   now: number;
 }
 
-/** Write the create reservation + the games row + one participants row per
- * seat, atomically. The DO lazy-inits from exactly these rows on first contact.
+/** Write the games row + one participants row per seat, atomically. The DO
+ * lazy-inits from exactly these rows on first contact.
+ *
+ * The create's receipt is two columns of the games row rather than a row of its
+ * own, so it lands in the same INSERT as the game it identifies and cannot be
+ * separated from it by any failure.
  *
  * Callers own both failure modes, distinguished by `isCreateReplay` and
- * `isShortCodeCollision`: a reused command id means this create already
- * happened, while a duplicate shortCode is a random clash to retry. The
- * reservation is inserted FIRST so a replay is the statement SQLite reports,
- * rather than being masked by whichever other UNIQUE index also happened to
- * trip. */
+ * `isShortCodeCollision`: a reused command id means this create already happened,
+ * while a duplicate shortCode is a random clash to retry. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = orm(d1);
   await db.batch([
-    db.insert(gameCreations).values({
-      principalId: input.reservation.principalId,
-      commandId: input.reservation.commandId,
-      request: input.reservation.request,
-      gameId: input.gameId,
-      shortCode: input.shortCode,
-      createdAt: input.now,
-    }),
     db.insert(games).values({
       id: input.gameId,
       createdBy: input.createdBy,
@@ -351,6 +344,8 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       minPlayers: input.minPlayers,
       maxPlayers: input.maxPlayers,
       shortCode: input.shortCode,
+      createCommandId: input.receipt.commandId,
+      createRequest: input.receipt.request,
       createdAt: input.now,
       updatedAt: input.now,
     }),
@@ -358,16 +353,16 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
   ]);
 }
 
-/** The create this principal already committed under `commandId`, if any.
+/** The game this creator already made under `commandId`, if any.
  *
  * Read only after {@link createGame} reports a replay, so the happy path costs
  * no extra round trip. */
-export async function readCreateReservation(d1: D1Database, principalId: string, commandId: string): Promise<{ gameId: string; shortCode: string; request: string } | undefined> {
+export async function readCreatedGame(d1: D1Database, createdBy: string, commandId: string): Promise<{ gameId: string; shortCode: string; request: string } | undefined> {
   const db = orm(d1);
   const rows = await db
-    .select({ gameId: gameCreations.gameId, shortCode: gameCreations.shortCode, request: gameCreations.request })
-    .from(gameCreations)
-    .where(and(eq(gameCreations.principalId, principalId), eq(gameCreations.commandId, commandId)))
+    .select({ gameId: games.id, shortCode: games.shortCode, request: games.createRequest })
+    .from(games)
+    .where(and(eq(games.createdBy, createdBy), eq(games.createCommandId, commandId)))
     .limit(1);
   return rows[0];
 }

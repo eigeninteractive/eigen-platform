@@ -26,4 +26,4 @@ Leave, cancel and start no longer take a request body at all, so the empty
 the bearer token, the content type, and a fresh key — or an exact one, to
 exercise a retry.
 
-Creation deduplicates on it too; see the create-reservation changeset.
+Creation deduplicates on it too; see the create-receipt changeset.

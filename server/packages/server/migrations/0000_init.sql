@@ -22,17 +22,6 @@ CREATE TABLE `device_installations` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_device_installations_user` ON `device_installations` (`user_id`);--> statement-breakpoint
-CREATE TABLE `game_creations` (
-	`principal_id` text NOT NULL,
-	`command_id` text NOT NULL,
-	`request` text NOT NULL,
-	`game_id` text NOT NULL,
-	`short_code` text NOT NULL,
-	`created_at` integer NOT NULL,
-	PRIMARY KEY(`principal_id`, `command_id`)
-);
---> statement-breakpoint
-CREATE INDEX `idx_game_creations_created_at` ON `game_creations` (`created_at`);--> statement-breakpoint
 CREATE TABLE `games` (
 	`id` text PRIMARY KEY NOT NULL,
 	`created_by` text,
@@ -52,6 +41,8 @@ CREATE TABLE `games` (
 	`turn_deadline` integer,
 	`outcomes` text,
 	`finish_id` text,
+	`create_command_id` text NOT NULL,
+	`create_request` text NOT NULL,
 	`finished_at` integer,
 	`archived_at` integer,
 	`created_at` integer NOT NULL,
@@ -62,6 +53,7 @@ CREATE UNIQUE INDEX `games_shortCode_unique` ON `games` (`short_code`);--> state
 CREATE INDEX `idx_games_status_access` ON `games` (`status`,`access`);--> statement-breakpoint
 CREATE INDEX `idx_games_created_by` ON `games` (`created_by`);--> statement-breakpoint
 CREATE INDEX `idx_games_lobby` ON `games` (`created_at`) WHERE access = 'public' AND status IN ('waiting', 'ready');--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_games_create_key` ON `games` (`created_by`,`create_command_id`);--> statement-breakpoint
 CREATE TABLE `participants` (
 	`id` text PRIMARY KEY NOT NULL,
 	`game_id` text NOT NULL,
