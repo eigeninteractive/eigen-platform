@@ -24,9 +24,9 @@
  * read and the commit. The one sanctioned pre-commit await is lazy init, inside
  * `blockConcurrencyWhile` on first contact.
  *
- * {@link BaseGameDO.reconcileAlarm} is the ONLY alarm writer. The alarm is
- * derived from committed state rather than tracked beside it, so re-deriving it
- * is both the normal path and the whole recovery path.
+ * `#reconcileAlarm` is the ONLY alarm writer. The alarm is derived from committed
+ * state rather than tracked beside it, so re-deriving it is both the normal path
+ * and the whole recovery path.
  */
 
 import { DurableObject } from "cloudflare:workers";
@@ -144,7 +144,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // is also the repair for the only way an alarm can go missing: the deadline
     // and the alarm are separate storage writes, so an object that dies between
     // them commits a deadline nothing is armed for. No caller special-cases it.
-    await this.reconcileAlarm();
+    await this.#reconcileAlarm();
     return result;
   }
 
@@ -305,7 +305,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // no socket to tell: the aborted D1 row is the whole outcome.
     const session = meta === undefined ? null : { ...this.#header(meta, { status: "aborted", players: [], seq: meta.seq + 1, version: null }), frame: null };
     this.#tearDownAborted(gameId, "Game aborted", session);
-    await this.reconcileAlarm();
+    await this.#reconcileAlarm();
   }
 
   /** The shared abort teardown: compact the game's data, keeping `meta` and its
@@ -1193,15 +1193,19 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /**
-   * Make the armed alarm match {@link #desiredAlarm}: the only alarm writer.
+   * Make the armed alarm match `#desiredAlarm`: the only alarm writer.
    *
    * Idempotent and cheap, because it compares before writing. Being derived
    * rather than tracked is what makes it a repair as well as a normal write: an
    * object that dies between committing a deadline and arming its alarm is
    * fixed by the next call, without a player having to act, which matters
    * because a deadline exists precisely for the case where nobody does.
+   *
+   * Deliberately `#private`, so it is not reachable as RPC. An operator repair
+   * entry point belongs on `GameStub` alongside `repokeFinish`, chosen and
+   * authorized on purpose rather than inherited from a method's visibility.
    */
-  async reconcileAlarm(): Promise<void> {
+  async #reconcileAlarm(): Promise<void> {
     const desired = this.#desiredAlarm();
     if (desired === (await this.ctx.storage.getAlarm())) return;
     if (desired === null) await this.ctx.storage.deleteAlarm();
