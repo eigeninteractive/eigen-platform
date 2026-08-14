@@ -58,11 +58,12 @@ import { type DrizzleSqliteDODatabase, drizzle } from "drizzle-orm/durable-sqlit
 import { migrate } from "drizzle-orm/durable-sqlite/migrator";
 import { signForBot } from "../bot/bot-auth.js";
 import { applyFinish, mirrorRoster, readGameRow, updateSummary } from "../d1/apply.js";
+import { isTransientD1Error } from "../d1/errors.js";
 import { type Bot, readBot } from "../d1/reads.js";
-import { withRetry } from "../d1/retry.js";
 import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/admin-effects.js";
 import { finishPush, readyPush, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, GameStub, Principal, SessionSnapshot } from "../protocol.js";
+import { withRetry } from "../retry.js";
 import { type CommandIdentity, commandIdentity } from "./command-receipt.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
@@ -507,6 +508,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * pending promise, so the backoff runs to completion without `waitUntil`. */
   #mirrorD1(label: string, write: () => Promise<void>): void {
     void withRetry(write, {
+      shouldRetry: isTransientD1Error,
       onRetry: (error, attempt) => console.warn(`${label} failed (attempt ${attempt}), retrying`, error),
     }).catch((error) => console.error(`${label} failed after retries`, error));
   }

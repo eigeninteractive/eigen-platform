@@ -37,6 +37,7 @@ import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
 import type { BaseGameDO } from "./do/game-do.js";
 import { FirebaseAdminConfigurationError, type FirebaseAdminEffects, firebaseAdminFromEnv } from "./firebase/admin-effects.js";
+import { retryingGameStub } from "./game-stub.js";
 import { doHistoryStore, type HistoryStore } from "./history/store.js";
 import { HttpError } from "./http.js";
 import { type LifecycleOptions, runScheduled } from "./lifecycle/cron.js";
@@ -434,10 +435,15 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
     gameModule: cfg.gameModule,
     appName: cfg.appName,
     d1: (env) => cfg.d1(env as TEnv),
-    stub: (env, gameId) => {
-      const ns = cfg.gameDO(env as TEnv);
-      return ns.get(ns.idFromName(gameId));
-    },
+    // Every call retries a transient Durable Object failure, safe because every
+    // command the Worker sends carries a receipted identity; see `game-stub.ts`.
+    // The namespace lookup is inside the factory so each attempt gets a fresh
+    // stub, which Cloudflare requires after one throws.
+    stub: (env, gameId) =>
+      retryingGameStub(() => {
+        const ns = cfg.gameDO(env as TEnv);
+        return ns.get(ns.idFromName(gameId));
+      }),
     verify: (env, token) => (cfg.testing?.auth ?? createFirebaseVerifier(projectId(env as TEnv))).verify(token),
     clientOrigins: (env) => {
       const configured = cfg.clientOrigins;

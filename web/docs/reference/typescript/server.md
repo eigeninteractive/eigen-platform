@@ -76,7 +76,7 @@ Error.constructor
 
 ### `abstract` BaseGameDO
 
-Defined in: [server/packages/server/src/do/game-do.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L110)
+Defined in: [server/packages/server/src/do/game-do.ts:111](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L111)
 
 Durable Object base class that owns one authoritative game session.
 
@@ -118,7 +118,7 @@ export class GameDO extends BaseGameDO<Env> {
 new BaseGameDO<TEnv>(ctx, env): BaseGameDO<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L124)
+Defined in: [server/packages/server/src/do/game-do.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L125)
 
 ###### Parameters
 
@@ -145,7 +145,7 @@ DurableObject<TEnv>.constructor
 abstract protected readonly gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L112)
+Defined in: [server/packages/server/src/do/game-do.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L113)
 
 The implementor's game: the `versions` map the engine dispatches on.
 
@@ -157,7 +157,7 @@ The implementor's game: the `versions` map the engine dispatches on.
 abort(gameId): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:293](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L293)
+Defined in: [server/packages/server/src/do/game-do.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L294)
 
 Unconditional teardown (cron reap): mark the game aborted in D1 and
 compact its game data, with no creator gate or init requirement. A
@@ -186,7 +186,7 @@ GameStub.abort
 alarm(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:754](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L754)
+Defined in: [server/packages/server/src/do/game-do.ts:756](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L756)
 
 A timeout is derived from committed state, not submitted, so it carries no
 caller identity and stores no receipt. It is idempotent for a better reason
@@ -205,7 +205,7 @@ re-arms the alarm for the next turn on its way out.
 abstract protected d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L115)
+Defined in: [server/packages/server/src/do/game-do.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L116)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 subclass picks the D1 database off its own Env.
@@ -226,7 +226,7 @@ subclass picks the D1 database off its own Env.
 fetch(request): Promise<Response>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:768](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L768)
+Defined in: [server/packages/server/src/do/game-do.ts:770](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L770)
 
 The worker routes the upgrade here after authenticating; the principal
 header is worker-set (never client-supplied; the worker strips inbound
@@ -257,7 +257,7 @@ GameStub.fetch
 protected firebaseAdmin(env): FirebaseAdminEffects;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L118)
+Defined in: [server/packages/server/src/do/game-do.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L119)
 
 Required Firebase Admin effects. Tests override this with the explicit
 fake exported by `@eigeninteractive/server/testing`.
@@ -278,7 +278,7 @@ fake exported by `@eigeninteractive/server/testing`.
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:947](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L947)
+Defined in: [server/packages/server/src/do/game-do.ts:949](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L949)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -310,7 +310,7 @@ GameStub.frames
 handle(cmd): Promise<CommandResult>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L137)
+Defined in: [server/packages/server/src/do/game-do.ts:138](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L138)
 
 ###### Parameters
 
@@ -334,7 +334,7 @@ GameStub.handle
 repokeFinish(): Promise<boolean>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:736](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L736)
+Defined in: [server/packages/server/src/do/game-do.ts:738](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L738)
 
 The gated admin re-poke (step 4): re-runs the D1 apply for a
 finish whose effects never landed. Idempotent end to end: finish_id
@@ -357,7 +357,7 @@ GameStub.repokeFinish
 session(gameId, userId): Promise<SessionSnapshot | null>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:791](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L791)
+Defined in: [server/packages/server/src/do/game-do.ts:793](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L793)
 
 The snapshot over RPC, for the HTTP paths that have no socket.
 
@@ -384,7 +384,7 @@ GameStub.session
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:801](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L801)
+Defined in: [server/packages/server/src/do/game-do.ts:803](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L803)
 
 ###### Returns
 
@@ -396,7 +396,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:801](https://github.com/ei
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:807](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L807)
+Defined in: [server/packages/server/src/do/game-do.ts:809](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L809)
 
 ###### Parameters
 
@@ -415,7 +415,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:807](https://github.com/ei
 webSocketMessage(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:796](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L796)
+Defined in: [server/packages/server/src/do/game-do.ts:798](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L798)
 
 ###### Returns
 
@@ -698,7 +698,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eige
 
 ### EngineConfig
 
-Defined in: [server/packages/server/src/engine.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L100)
+Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 implementor picks bindings off their own Env. Annotate the accessors' `env`
@@ -719,7 +719,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L107)
+Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L108)
 
 The whitelabel app's display name, the single source of truth for the
 engine's own identity (share metadata and public-page titles today;
@@ -733,7 +733,7 @@ feature blocks are enabled.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L129)
+Defined in: [server/packages/server/src/engine.ts:130](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L130)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -743,7 +743,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
-Defined in: [server/packages/server/src/engine.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L125)
+Defined in: [server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L126)
 
 Browser origins allowed to call the engine from a different origin.
 
@@ -762,7 +762,7 @@ Set an empty list to disable the `WEB_APP_ORIGIN` default.
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L127)
+Defined in: [server/packages/server/src/engine.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L128)
 
 Native deep-link verification and store links. Omit for web-only.
 
@@ -772,7 +772,7 @@ Native deep-link verification and store links. Omit for web-only.
 gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
+Defined in: [server/packages/server/src/engine.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L102)
 
 ##### lifecycle?
 
@@ -780,7 +780,7 @@ Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeni
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L136)
+Defined in: [server/packages/server/src/engine.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L137)
 
 Cron-backstop tuning: guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -792,7 +792,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:132](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L132)
+Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
 
 The public web surface: download page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -806,7 +806,7 @@ optional testing?: {
 };
 ```
 
-Defined in: [server/packages/server/src/engine.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L141)
+Defined in: [server/packages/server/src/engine.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L142)
 
 Explicit test-only replacements for Firebase verification and Admin
 effects. Supplying them together prevents a fake verifier from
@@ -843,7 +843,7 @@ firebaseAdmin(env): FirebaseAdminEffects;
 d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L109)
+Defined in: [server/packages/server/src/engine.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L110)
 
 The engine's D1 database (engine-private).
 
@@ -863,7 +863,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L114)
+Defined in: [server/packages/server/src/engine.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L115)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -884,7 +884,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:111](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L111)
+Defined in: [server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L112)
 
 The GameDO namespace binding.
 
@@ -1305,7 +1305,21 @@ Defined in: server/packages/kernel/dist/index.d.ts:175
 
 ### RetryOptions
 
-Defined in: [server/packages/server/src/d1/retry.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L59)
+Defined in: server/packages/server/src/retry.ts:17
+
+Bounded retry with jittered exponential backoff.
+
+Deliberately transport-agnostic: the caller supplies the predicate deciding
+which failures are worth retrying. Two live users, with very different
+predicates and budgets:
+
+- background D1 mirror writes (`isTransientD1Error`, in `d1/errors.ts`);
+- Worker-to-Durable-Object calls (`isRetryableDoError`, in `game-stub.ts`).
+
+The shared discipline is the same in both: retry only *transient
+infrastructure* failures, never a deterministic one, where retrying would burn
+the budget before surfacing the real problem, and never an overload, where the
+documented remedy is to shed load rather than add to it.
 
 #### Properties
 
@@ -1315,7 +1329,7 @@ Defined in: [server/packages/server/src/d1/retry.ts:59](https://github.com/eigen
 optional attempts?: number;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:61](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L61)
+Defined in: server/packages/server/src/retry.ts:19
 
 Total attempts including the first. Default 4.
 
@@ -1325,7 +1339,7 @@ Total attempts including the first. Default 4.
 optional baseDelayMs?: number;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L63)
+Defined in: server/packages/server/src/retry.ts:21
 
 First backoff, doubling each retry. Default 50ms.
 
@@ -1335,7 +1349,7 @@ First backoff, doubling each retry. Default 50ms.
 optional maxDelayMs?: number;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:65](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L65)
+Defined in: server/packages/server/src/retry.ts:23
 
 Backoff ceiling. Default 2000ms.
 
@@ -1345,7 +1359,7 @@ Backoff ceiling. Default 2000ms.
 optional onRetry?: (error, attempt) => void;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:69](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L69)
+Defined in: server/packages/server/src/retry.ts:29
 
 Observe each retry (logging); never throws into the loop.
 
@@ -1360,15 +1374,17 @@ Observe each retry (logging); never throws into the loop.
 
 `void`
 
-##### shouldRetry?
+##### shouldRetry
 
 ```ts
-optional shouldRetry?: (error) => boolean;
+shouldRetry: (error) => boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:67](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L67)
+Defined in: server/packages/server/src/retry.ts:27
 
-Which failures are worth retrying. Default [isTransientD1Error](#istransientd1error).
+Which failures are worth retrying. Required: there is no safe default,
+because "retryable" is a property of the transport AND of whether the
+operation can be applied twice.
 
 ###### Parameters
 
@@ -1386,7 +1402,7 @@ Which failures are worth retrying. Default [isTransientD1Error](#istransientd1er
 optional sleep?: (ms) => Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L71)
+Defined in: server/packages/server/src/retry.ts:31
 
 Delay primitive, injectable so tests run without real timers.
 
@@ -2107,7 +2123,7 @@ the call site; the internal loop only absorbs CAS conflicts).
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:424](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L424)
+Defined in: [server/packages/server/src/engine.ts:425](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L425)
 
 Creates the complete Cloudflare Worker for one game deployment.
 
@@ -2310,25 +2326,52 @@ permanent conversion.
 
 ***
 
+### isRetryableDoError()
+
+```ts
+function isRetryableDoError(error): boolean;
+```
+
+Defined in: server/packages/server/src/game-stub.ts:59
+
+True for a Durable Object error Cloudflare marks retryable and does not also
+mark overloaded.
+
+Structured properties, not message matching, unlike the D1 predicates: the
+runtime sets `retryable` and `overloaded` on the error itself. Requiring
+`retryable === true` fails closed, so an application exception thrown by the
+game (a `GameBugError`, an integrity violation) is never retried — it carries
+no such property, and repeating it would only delay the report.
+
+`overloaded` vetoes the retry even when `retryable` is also set: Cloudflare's
+guidance is explicit that overloaded errors "should not be retried", because
+retrying is what caused the overload.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `error` | `unknown` |
+
+#### Returns
+
+`boolean`
+
+***
+
 ### isTransientD1Error()
 
 ```ts
 function isTransientD1Error(error): boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:55](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L55)
+Defined in: [server/packages/server/src/d1/errors.ts:97](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/errors.ts#L97)
 
 True for the D1 failures worth retrying: a network blip, a storage or
 Durable-Object reset, a code-update restart, or a transient routing failure.
 
-Deliberately narrow. Overload and resource-limit errors are excluded (the
-remedy is to shed load, not retry), as are deterministic failures such as a
-constraint or type error, where retrying only delays the report. The whole
-`cause` chain is examined, because drizzle rewraps failures in its own
-message that does not carry the underlying text.
-
-This is the default predicate for [withRetry](#withretry); pass
-`shouldRetry` to override it.
+Deliberately narrow; see RETRYABLE\_D1. Pass to `withRetry` as its
+`shouldRetry` for an idempotent D1 write.
 
 #### Parameters
 
@@ -2379,7 +2422,7 @@ single attempt.
 function openApiDocument(version): OpenAPIObject;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:500](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L500)
+Defined in: [server/packages/server/src/engine.ts:506](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L506)
 
 Build the API document from an inert app: route handlers never run, so
 the context can refuse everything. `appName` is an unused placeholder here:
@@ -2484,6 +2527,39 @@ its `meta`/`roster` on first contact, in one batched round trip.
 
 ***
 
+### retryingGameStub()
+
+```ts
+function retryingGameStub(connect, options?): GameStub;
+```
+
+Defined in: server/packages/server/src/game-stub.ts:78
+
+Wrap a game stub so every call retries a transient Durable Object failure.
+
+`connect` is called again for each attempt, on purpose: Cloudflare documents
+that a `DurableObjectStub` should not be reused after it throws, because many
+exceptions leave it in a broken state. Retrying on the same stub would fail
+for that reason alone, so the factory — not a stub — is what gets passed in.
+
+Every method is retried except GameStub.fetch, which carries the
+WebSocket upgrade. A retry there is meaningless (the client is upgrading one
+connection, and the `Request` body is not replayable), so it passes straight
+through and a failure surfaces as it always did.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `connect` | () => `GameStub` |
+| `options?` | `Partial`\<[`RetryOptions`](#retryoptions)\> |
+
+#### Returns
+
+`GameStub`
+
+***
+
 ### updateSummary()
 
 ```ts
@@ -2517,21 +2593,22 @@ re-derivable from the DO at any time.
 ### withRetry()
 
 ```ts
-function withRetry<T>(op, options?): Promise<T>;
+function withRetry<T>(op, options): Promise<T>;
 ```
 
-Defined in: [server/packages/server/src/d1/retry.ts:88](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/retry.ts#L88)
+Defined in: server/packages/server/src/retry.ts:49
 
 Run `op`, retrying a *retryable* failure with jittered exponential backoff up
 to `attempts`. A non-retryable failure, or the last attempt, throws.
 
 Safe to leave unawaited inside a Durable Object: the DO stays alive while the
 returned promise (and its backoff timers) is pending, so the whole sequence
-runs to completion without `waitUntil`, exactly like the single-attempt
-writes it wraps.
+runs to completion without `waitUntil`, exactly like the single-attempt writes
+it wraps.
 
-`op` MUST be idempotent: a retry can fire after a write that actually
-landed but whose acknowledgement was lost.
+`op` MUST be idempotent: a retry can fire after an operation that actually
+landed but whose acknowledgement was lost. Nothing here can detect that, so it
+is the caller's invariant, not this function's.
 
 #### Type Parameters
 

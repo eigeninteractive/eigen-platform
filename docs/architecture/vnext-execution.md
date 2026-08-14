@@ -27,24 +27,20 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
-| 4: safe mutation identity | Nearly complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, and create receipts on the games row; only bounded Worker-to-DO retry is open, below |
+| 4: safe mutation identity | Complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, create receipts on the games row, and bounded Worker-to-DO retry |
 | 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
-## Phase 4 remaining work
+## Phase 4 outcome
 
-Every authority that commits a mutation now holds a receipt for it, and the key
-is required on the wire, so the mechanism is load-bearing rather than latent.
-What remains:
-
-1. **Bounded same-id retry of retryable Worker-to-DO faults.** The transport-level
-   retry in the Flutter client is done — a keyed mutation whose failure carried no
-   response is replayed with the same key, which the server answers from its
-   receipt. Retrying a fault *inside* the worker, between it and the Durable
-   Object, is separate and still open.
+Every authority that commits a mutation holds a receipt for it, the key is
+required on the wire, and both retry paths the receipts unlock are in place: the
+Flutter transport retries a keyed mutation whose failure carried no response, and
+the Worker retries a `retryable` Durable Object fault. Phase 4's purpose was to
+make retrying safe, and retrying is now what actually happens.
 
 The client command journal specified in RFC 0004 is **not being built**; the
-reasoning is recorded under "Decisions taken while implementing" and in RFC 0004's
-delivery section. RFC 0004 itself is amended, not silently diverged from.
+reasoning is recorded below and in RFC 0004's delivery section. RFC 0004 itself is
+amended, not silently diverged from.
 
 ## Decisions taken while implementing
 
@@ -98,6 +94,20 @@ delivery section. RFC 0004 itself is amended, not silently diverged from.
   would try to start an already-running game. A derived id (`<key>:start`) is a
   distinct id that is also reproducible, which is what makes the compound
   operation idempotent as a whole.
+- **The Worker retries `retryable` Durable Object faults; a 500 was the wrong
+  answer.** Cloudflare's `retryable` flag does not promise the operation was
+  skipped — the documented guidance is to retry such errors *if requests are
+  idempotent*, which is exactly what the receipts provide. The gap this closes is
+  sharper than it first looks: an unretried DO fault becomes a 500, and a 500
+  carries a response, so the client's own retry policy correctly declines it. The
+  Worker is the only layer that can distinguish the case, so it is the only layer
+  that can fix it. Each attempt builds a fresh stub, because a
+  `DurableObjectStub` must not be reused after it throws; the WebSocket upgrade is
+  excluded, since a `Request` is not replayable.
+- **`withRetry` lost its default predicate.** It defaulted to the D1 predicate,
+  which quietly meant any caller retrying something that was not D1 inherited D1
+  message matching. Made required, so each caller states which failures its
+  operation can survive.
 - **No durable client command journal.** RFC 0004 specified one, and it is the
   standard pattern (Replicache mutation ids, PowerSync's CRUD queue, Brick's
   offline queue). It is not being built, because its value does not survive

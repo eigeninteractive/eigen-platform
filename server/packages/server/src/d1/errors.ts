@@ -68,3 +68,32 @@ export function isShortCodeCollision(error: unknown): boolean {
 export function isCreateReplay(error: unknown): boolean {
   return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgames\.create_command_id\b/i);
 }
+
+/** The transient D1 failures Cloudflare's debug-D1 docs mark "Retry the
+ * operation": a network blip, a storage/Durable-Object reset, a code-update
+ * restart, or a transient routing failure. This mirrors Cloudflare's own
+ * reference `withRetry` (D1 read-replication tutorial), which matches the first
+ * three by substring.
+ *
+ * Two deliberate departures from the reference snippet:
+ *
+ * - Walked down the `cause` chain, not just the top message, for the reason this
+ *   module's header documents at length.
+ * - Overload (`D1 DB is overloaded`) and resource resets (memory/CPU limit) are
+ *   NOT here. The docs' remedy for those is to shed load, not retry: hammering
+ *   an overloaded database is backwards, and doubly so for a cosmetic
+ *   fire-and-forget mirror write. Deterministic failures (constraint/type/
+ *   missing-column) are excluded for the same "retrying only delays the report"
+ *   reason. */
+const RETRYABLE_D1 = [/Network connection lost/i, /caused object to be reset/i, /reset because its code was updated/i, /Cannot resolve D1 DB/i];
+
+/**
+ * True for the D1 failures worth retrying: a network blip, a storage or
+ * Durable-Object reset, a code-update restart, or a transient routing failure.
+ *
+ * Deliberately narrow; see {@link RETRYABLE_D1}. Pass to `withRetry` as its
+ * `shouldRetry` for an idempotent D1 write.
+ */
+export function isTransientD1Error(error: unknown): boolean {
+  return matchesCause(error, ...RETRYABLE_D1);
+}

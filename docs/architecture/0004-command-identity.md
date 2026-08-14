@@ -146,10 +146,12 @@ Implemented:
   decision (an `EngineException` carrying a stable code) from an unknown outcome
   (a transport failure with no response), and the transport retry replays the
   original request, so a retried mutation reuses its key by construction.
+- Bounded same-id retry of `retryable` Worker-to-Durable-Object faults, on every
+  stub call but the WebSocket upgrade, with a fresh stub per attempt. Cloudflare's
+  `retryable` flag does not promise the operation was skipped, so this depended on
+  the receipts above: the object either commits once or replays what it committed.
 
-Still open:
-
-- Bounded same-id retry of retryable Worker-to-DO faults.
+Nothing in this RFC's delivery list is open.
 
 **Not building: a durable client command journal.** Ids are minted per intent
 and live as long as the request. Persisting them to survive a restart was

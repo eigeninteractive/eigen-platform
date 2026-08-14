@@ -18,9 +18,11 @@ export { ensureUser, type UserRow } from "./auth/provision.js";
 // its owner. The signing/verifying halves stay internal; the engine does that.
 export { deriveBotKey } from "./bot/bot-auth.js";
 export { applyFinish, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readGameRow, updateSummary } from "./d1/apply.js";
-export { isTransientD1Error, type RetryOptions, withRetry } from "./d1/retry.js";
+export { isTransientD1Error } from "./d1/errors.js";
 export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";
 export { createEngine, DEFAULT_CREDIT, type EngineConfig, type LegalConfig, type OperatorConfig, openApiDocument, type SiteConfig } from "./engine.js";
 export type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
+export { isRetryableDoError, retryingGameStub } from "./game-stub.js";
 export { HttpError } from "./http.js";
 export type { Command, CommandRejectCode, CommandResult, FrameMessage, LobbyRejectCode, Principal, SessionSnapshot } from "./protocol.js";
+export { type RetryOptions, withRetry } from "./retry.js";
