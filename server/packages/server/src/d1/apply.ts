@@ -25,7 +25,7 @@ import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
-import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
+import { gameCreations, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -287,9 +287,17 @@ export async function mirrorRoster(d1: D1Database, args: { gameId: string; statu
   await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now })))]);
 }
 
+/** The identity a create is reserved under; see {@link gameCreations}. */
+export interface CreateReservation {
+  principalId: string;
+  commandId: string;
+  request: string;
+}
+
 /** The worker-direct create, engine-owned so implementors never touch
  * the D1 schema: seats already validated by worker policy. */
 export interface CreateGameInput {
+  reservation: CreateReservation;
   gameId: string;
   createdBy: string | null;
   status: Extract<GameStatus, "waiting" | "ready">;
@@ -308,12 +316,26 @@ export interface CreateGameInput {
   now: number;
 }
 
-/** Write the games row + one participants row per seat, atomically. The DO
- * lazy-inits from exactly these rows on first contact. Callers own the
- * shortCode retry: a duplicate trips the UNIQUE index and throws. */
+/** Write the create reservation + the games row + one participants row per
+ * seat, atomically. The DO lazy-inits from exactly these rows on first contact.
+ *
+ * Callers own both failure modes, distinguished by `isCreateReplay` and
+ * `isShortCodeCollision`: a reused command id means this create already
+ * happened, while a duplicate shortCode is a random clash to retry. The
+ * reservation is inserted FIRST so a replay is the statement SQLite reports,
+ * rather than being masked by whichever other UNIQUE index also happened to
+ * trip. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = orm(d1);
   await db.batch([
+    db.insert(gameCreations).values({
+      principalId: input.reservation.principalId,
+      commandId: input.reservation.commandId,
+      request: input.reservation.request,
+      gameId: input.gameId,
+      shortCode: input.shortCode,
+      createdAt: input.now,
+    }),
     db.insert(games).values({
       id: input.gameId,
       createdBy: input.createdBy,
@@ -334,6 +356,20 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
     }),
     db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: input.now }))),
   ]);
+}
+
+/** The create this principal already committed under `commandId`, if any.
+ *
+ * Read only after {@link createGame} reports a replay, so the happy path costs
+ * no extra round trip. */
+export async function readCreateReservation(d1: D1Database, principalId: string, commandId: string): Promise<{ gameId: string; shortCode: string; request: string } | undefined> {
+  const db = orm(d1);
+  const rows = await db
+    .select({ gameId: gameCreations.gameId, shortCode: gameCreations.shortCode, request: gameCreations.request })
+    .from(gameCreations)
+    .where(and(eq(gameCreations.principalId, principalId), eq(gameCreations.commandId, commandId)))
+    .limit(1);
+  return rows[0];
 }
 
 /** Lazy-init read: the D1 game + participants rows the DO copies into

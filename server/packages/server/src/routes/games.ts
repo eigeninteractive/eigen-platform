@@ -8,9 +8,10 @@
 import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
 import type { GameRules, JsonObject } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
-import { createGame } from "../d1/apply.js";
+import { canonicalRequest, userPrincipal } from "../command-request.js";
+import { type CreateGameInput, type CreateReservation, createGame, readCreateReservation } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
-import { isShortCodeCollision } from "../d1/errors.js";
+import { isCreateReplay, isShortCodeCollision } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
@@ -150,6 +151,60 @@ function generateShortCode(): string {
   return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
 
+// ── Create reservations ───────────────────────────────────────────────────────
+
+/** What a create produced, whether it ran now or had already run. */
+interface CreatedGame {
+  gameId: string;
+  shortCode: string;
+  /** True when this request re-presented a command id already committed. Every
+   * once-only side effect a create performs is gated on this being false. */
+  replayed: boolean;
+}
+
+/**
+ * The create-side receipt check, and the shortCode retry loop it shares with.
+ *
+ * Both create routes go through here so a duplicate create is impossible in one
+ * place rather than two. `input.gameId` is the freshly minted id, used only if
+ * this create is genuinely new: a replay answers with the id the first attempt
+ * reserved, so a caller that retries because it never saw the response gets the
+ * game it already made instead of a second one.
+ */
+async function createReserved(d1: D1Database, reservation: CreateReservation, input: Omit<CreateGameInput, "reservation" | "shortCode">): Promise<CreatedGame> {
+  for (let attempt = 1; ; attempt++) {
+    const shortCode = generateShortCode();
+    try {
+      await createGame(d1, { ...input, reservation, shortCode });
+      return { gameId: input.gameId, shortCode, replayed: false };
+    } catch (error) {
+      if (isCreateReplay(error)) return await replayCreate(d1, reservation);
+      if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
+    }
+  }
+}
+
+/** Answer a create whose command id is already committed. */
+async function replayCreate(d1: D1Database, reservation: CreateReservation): Promise<CreatedGame> {
+  const stored = await readCreateReservation(d1, reservation.principalId, reservation.commandId);
+  // The insert that just failed proves the row exists, and nothing deletes one
+  // mid-request: the cron prune only touches reservations far older than any
+  // in-flight retry. Reaching here means those assumptions broke.
+  if (stored === undefined) throw new HttpError(500, "engine bug: a reserved create has no reservation");
+  if (stored.request !== reservation.request) {
+    throw new HttpError(422, "This command id is already committed with different intent", "commandConflict");
+  }
+  return { gameId: stored.gameId, shortCode: stored.shortCode, replayed: true };
+}
+
+/** The canonical intent of a create, compared to refuse one key standing for two
+ * different games. `resource` is the collection D1 is authoritative for, the
+ * create-time counterpart of a DO passing its own game id. */
+function createReservation(userId: string, commandId: string, operation: "game.create" | "game.create-solo", payload: unknown): CreateReservation {
+  const principal = userPrincipal(userId);
+  return { principalId: principal, commandId, request: canonicalRequest({ principal, operation, resource: "games", payload }) };
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
@@ -169,11 +224,6 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const auth = c.var.auth;
       await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
-      // The Idempotency-Key is required here for a uniform mutation contract,
-      // but creation is a D1 write with no Durable Object yet to hold a receipt,
-      // so a replayed create still makes a second game. Closing that needs a D1
-      // reservation keyed by (user_id, command_id) written in the same batch as
-      // the game row; see RFC 0004's delivery list.
       // Guests cannot create friends-access games: guests can never have an
       // accepted friend, so the lobby would be permanently unjoinable.
       if (body.access === "friends" && auth.claims.isAnonymous) {
@@ -203,44 +253,50 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       }
       const rated = canBeRated && (body.rated ?? true);
 
-      const gameId = crypto.randomUUID();
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
-      const now = Date.now();
-      for (let attempt = 1; ; attempt++) {
-        const shortCode = generateShortCode();
-        try {
-          await createGame(ctx.d1(c.env), {
-            gameId,
-            createdBy: auth.user.id,
-            status: seats.length >= body.minPlayers ? "ready" : "waiting",
-            access: body.access,
-            schemaVersion: body.schemaVersion,
-            config,
-            turnSeconds: body.turnSeconds,
-            budgetSeconds: body.budgetSeconds,
-            incrementSeconds: body.incrementSeconds,
-            rated,
-            ratingPool: pool,
-            minPlayers: body.minPlayers,
-            maxPlayers: body.maxPlayers,
-            shortCode,
-            seats,
-            now,
-          });
-          // Friends-access game: fan out an invite push to the creator's
-          // accepted friends. Best-effort and off the response path: a friend
-          // with notifications off (or none at all) costs nothing, and a push
-          // failure never affects the create.
-          if (body.access === "friends") {
-            const d1 = ctx.d1(c.env);
-            const admin = ctx.firebaseAdmin(c.env);
-            c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => admin.notifyUser(d1, id, gameInvitePush(auth.user.displayName, gameId))))));
-          }
-          return c.json({ gameId, shortCode }, 201);
-        } catch (error) {
-          if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
-        }
+      const created = await createReserved(
+        ctx.d1(c.env),
+        createReservation(auth.user.id, commandId(c), "game.create", {
+          access: body.access,
+          schemaVersion: body.schemaVersion,
+          config,
+          turnSeconds: body.turnSeconds,
+          budgetSeconds: body.budgetSeconds,
+          incrementSeconds: body.incrementSeconds,
+          rated: body.rated ?? null,
+          minPlayers: body.minPlayers,
+          maxPlayers: body.maxPlayers,
+        }),
+        {
+          gameId: crypto.randomUUID(),
+          createdBy: auth.user.id,
+          status: seats.length >= body.minPlayers ? "ready" : "waiting",
+          access: body.access,
+          schemaVersion: body.schemaVersion,
+          config,
+          turnSeconds: body.turnSeconds,
+          budgetSeconds: body.budgetSeconds,
+          incrementSeconds: body.incrementSeconds,
+          rated,
+          ratingPool: pool,
+          minPlayers: body.minPlayers,
+          maxPlayers: body.maxPlayers,
+          seats,
+          now: Date.now(),
+        },
+      );
+      // Friends-access game: fan out an invite push to the creator's
+      // accepted friends. Best-effort and off the response path: a friend
+      // with notifications off (or none at all) costs nothing, and a push
+      // failure never affects the create. Skipped on a replay: the first
+      // attempt already invited everyone, and a caller retrying a lost
+      // response must not re-notify their whole friend list.
+      if (body.access === "friends" && !created.replayed) {
+        const d1 = ctx.d1(c.env);
+        const admin = ctx.firebaseAdmin(c.env);
+        c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => admin.notifyUser(d1, id, gameInvitePush(auth.user.displayName, created.gameId))))));
       }
+      return c.json({ gameId: created.gameId, shortCode: created.shortCode }, 201);
     },
   );
 
@@ -295,35 +351,38 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (seats.length < body.minPlayers) throw new HttpError(400, "Not enough seats to start the game");
       if (seats.length > body.maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
-      const gameId = crypto.randomUUID();
-      const now = Date.now();
-      let shortCode = "";
-      for (let attempt = 1; ; attempt++) {
-        shortCode = generateShortCode();
-        try {
-          await createGame(ctx.d1(c.env), {
-            gameId,
-            createdBy: auth.user.id,
-            status: "ready",
-            access: "private",
-            schemaVersion: body.schemaVersion,
-            config,
-            turnSeconds: body.turnSeconds,
-            budgetSeconds: body.budgetSeconds,
-            incrementSeconds: body.incrementSeconds,
-            rated,
-            ratingPool: pool,
-            minPlayers: body.minPlayers,
-            maxPlayers: body.maxPlayers,
-            shortCode,
-            seats,
-            now,
-          });
-          break;
-        } catch (error) {
-          if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
-        }
-      }
+      const key = commandId(c);
+      const created = await createReserved(
+        ctx.d1(c.env),
+        createReservation(auth.user.id, key, "game.create-solo", {
+          schemaVersion: body.schemaVersion,
+          config,
+          turnSeconds: body.turnSeconds,
+          budgetSeconds: body.budgetSeconds,
+          incrementSeconds: body.incrementSeconds,
+          rated: body.rated ?? null,
+          minPlayers: body.minPlayers,
+          maxPlayers: body.maxPlayers,
+          botIds: body.botIds,
+        }),
+        {
+          gameId: crypto.randomUUID(),
+          createdBy: auth.user.id,
+          status: "ready",
+          access: "private",
+          schemaVersion: body.schemaVersion,
+          config,
+          turnSeconds: body.turnSeconds,
+          budgetSeconds: body.budgetSeconds,
+          incrementSeconds: body.incrementSeconds,
+          rated,
+          ratingPool: pool,
+          minPlayers: body.minPlayers,
+          maxPlayers: body.maxPlayers,
+          seats,
+          now: Date.now(),
+        },
+      );
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
       // commits v0; a bot due to open plays via its in-DO brain post-commit
@@ -331,14 +390,17 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // committed response carries no frame; read the creator's session back so
       // the client has the opening board without a round trip. The game is
       // already running before any socket exists, so this is its only delivery.
-      const stub = ctx.stub(c.env, gameId);
-      // A fresh id, deliberately not the caller's Idempotency-Key: that key
-      // identifies the create, and one key standing for two operations is the
-      // reuse this design refuses. The engine issues this start itself against a
-      // game that came into existence a moment ago, so its object holds no
-      // receipts and there is no retry here to deduplicate.
-      unwrap(await stub.handle(mint(auth, "start", gameId, crypto.randomUUID())));
-      const session = await stub.session(gameId, auth.user.id);
+      const stub = ctx.stub(c.env, created.gameId);
+      // The start's own id, DERIVED from the caller's key rather than reused as
+      // it or minted fresh. Reusing the key would let one id stand for two
+      // operations, which the receipt design refuses; minting a fresh one would
+      // make this half unreplayable, so a retry would start a game that is
+      // already running. A derived id is a distinct id that is also
+      // reproducible, which is what makes create-solo idempotent as a whole:
+      // the DO replays its committed start, and a create whose process died
+      // before this line ran is resumed here rather than left unstarted.
+      unwrap(await stub.handle(mint(auth, "start", created.gameId, `${key}:start`)));
+      const session = await stub.session(created.gameId, auth.user.id);
       if (session === null) throw new HttpError(500, "engine bug: started game has no session");
       return c.json({ session }, 201);
     },

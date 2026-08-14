@@ -4,9 +4,24 @@ import 'package:eigen_flutter/core/api/retry_policy.dart';
 import 'package:eigen_flutter/core/errors/engine_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-DioException _transport(String method, DioExceptionType type) => DioException(
-  requestOptions: RequestOptions(path: '/api/engine/lobby', method: method),
+DioException _transport(
+  String method,
+  DioExceptionType type, {
+  Map<String, dynamic> headers = const {},
+}) => DioException(
+  requestOptions: RequestOptions(
+    path: '/api/engine/lobby',
+    method: method,
+    headers: headers,
+  ),
   type: type,
+);
+
+/// A mutation as the engine client actually sends one; see `command_id.dart`.
+DioException _keyedWrite(String method, DioExceptionType type) => _transport(
+  method,
+  type,
+  headers: {'Idempotency-Key': '0199a4e0-8f7b-7c3a-b2d5-6894a57f9324'},
 );
 
 DioException _withResponse(String method, int status) => DioException(
@@ -18,24 +33,59 @@ DioException _withResponse(String method, int status) => DioException(
 );
 
 void main() {
-  group('retryTransientGet (transport layer)', () {
+  group('retryTransient (transport layer)', () {
+    const transportFailures = [
+      DioExceptionType.connectionTimeout,
+      DioExceptionType.sendTimeout,
+      DioExceptionType.receiveTimeout,
+      DioExceptionType.connectionError,
+    ];
+
     test('retries a GET whose failure carried no response', () {
-      for (final type in [
-        DioExceptionType.connectionTimeout,
-        DioExceptionType.sendTimeout,
-        DioExceptionType.receiveTimeout,
-        DioExceptionType.connectionError,
-      ]) {
-        check(retryTransientGet(_transport('GET', type), 1)).equals(true);
+      for (final type in transportFailures) {
+        check(retryTransient(_transport('GET', type), 1)).equals(true);
       }
     });
 
-    test('never retries a write, even on a transport failure', () {
-      // A timed-out POST may have landed and the outcome is unknown, so it must
-      // not be replayed.
+    test('retries a keyed mutation, which the server replays not reapplies', () {
+      // Dio resends the original RequestOptions, so the retry carries the same
+      // Idempotency-Key: the engine answers from its committed receipt.
+      for (final type in transportFailures) {
+        check(retryTransient(_keyedWrite('POST', type), 1)).equals(true);
+      }
       for (final method in ['POST', 'PUT', 'DELETE', 'PATCH']) {
         check(
-          retryTransientGet(
+          retryTransient(
+            _keyedWrite(method, DioExceptionType.connectionError),
+            1,
+          ),
+        ).equals(true);
+      }
+    });
+
+    test('matches the key header case-insensitively', () {
+      // HTTP header names are case-insensitive and Dio preserves whatever the
+      // caller wrote, so the check must not depend on one spelling.
+      for (final name in ['idempotency-key', 'IDEMPOTENCY-KEY']) {
+        check(
+          retryTransient(
+            _transport(
+              'POST',
+              DioExceptionType.connectionError,
+              headers: {name: 'k'},
+            ),
+            1,
+          ),
+        ).equals(true);
+      }
+    });
+
+    test('never retries an unkeyed write, even on a transport failure', () {
+      // Without a key the outcome of a timed-out POST is genuinely unknown, and
+      // resending it could apply the same intent twice.
+      for (final method in ['POST', 'PUT', 'DELETE', 'PATCH']) {
+        check(
+          retryTransient(
             _transport(method, DioExceptionType.connectionError),
             1,
           ),
@@ -45,17 +95,20 @@ void main() {
 
     test('never retries a failure that carried a response', () {
       // The server answered: a decision, not a blip, even for a 5xx or a 429.
-      check(retryTransientGet(_withResponse('GET', 500), 1)).equals(false);
-      check(retryTransientGet(_withResponse('GET', 429), 1)).equals(false);
-      check(retryTransientGet(_withResponse('GET', 404), 1)).equals(false);
+      check(retryTransient(_withResponse('GET', 500), 1)).equals(false);
+      check(retryTransient(_withResponse('GET', 429), 1)).equals(false);
+      check(retryTransient(_withResponse('GET', 404), 1)).equals(false);
     });
 
     test('does not retry non-transport error types', () {
       check(
-        retryTransientGet(_transport('GET', DioExceptionType.cancel), 1),
+        retryTransient(_transport('GET', DioExceptionType.cancel), 1),
       ).equals(false);
       check(
-        retryTransientGet(_transport('GET', DioExceptionType.badResponse), 1),
+        retryTransient(_transport('GET', DioExceptionType.badResponse), 1),
+      ).equals(false);
+      check(
+        retryTransient(_keyedWrite('POST', DioExceptionType.cancel), 1),
       ).equals(false);
     });
   });

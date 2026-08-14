@@ -1,33 +1,17 @@
 /**
  * Stable identity for commands committed by a game Durable Object.
  *
- * A receipt answers one question: has THIS principal already committed THIS
- * command id, and did they mean the same thing by it? So identity is a pair of
- * values, both derived here:
- *
- * - `principalId`, the immutable actor the stored result may be replayed to;
- * - `request`, the canonical JSON of the command's semantic intent.
- *
- * `request` is stored and compared verbatim rather than hashed. A digest would
- * save bytes next to a receipt that already stores a whole session snapshot,
- * and it would cost an `await crypto.subtle.digest` in the middle of the
- * Durable Object's read-then-write critical section. An exact string comparison
- * is synchronous, has no collision case to reason about, and says what it means.
- *
- * Canonicalization is RFC 8785 (JCS) via that RFC's own reference JavaScript
- * implementation, so key order, number formatting and Unicode escaping are the
- * spec's problem and not ours. It also throws on NaN and Infinity, which is the
- * I-JSON validation we would otherwise hand-roll.
+ * The document shape, its canonicalization and the principal spellings live in
+ * `../command-request.js`, shared with the create reservation D1 holds for a
+ * game that has no object yet. This module is the game-command half: which
+ * operation name a command carries, and which parts of it were the caller's
+ * choice.
  */
 
-import canonicalize from "canonicalize";
-
+import { botPrincipal, CommandIdentityError, canonicalRequest, userPrincipal } from "../command-request.js";
 import type { Command, Principal } from "../protocol.js";
 
-/** Bumped only if the document shape below changes. An old receipt then reads
- * as a different intent, which is the safe direction: a conflict, never a
- * wrongly replayed result. */
-const REQUEST_VERSION = 1;
+export { CommandIdentityError };
 
 export interface CommandIdentity {
   /** `user:<id>` or `bot:<id>`: the only scope the stored result is replayable
@@ -37,9 +21,6 @@ export interface CommandIdentity {
   /** Canonical RFC 8785 JSON of the command's semantic intent. */
   request: string;
 }
-
-/** A command whose payload is outside the JSON data model RFC 8785 accepts. */
-export class CommandIdentityError extends TypeError {}
 
 /**
  * The principal a receipt is scoped to, or null for an identity-less system
@@ -52,17 +33,18 @@ export class CommandIdentityError extends TypeError {}
  * stronger guarantee than a receipt: it holds across a lost alarm, a replaced
  * object and a redeployment. Giving them receipts would store a permanent row
  * per turn to duplicate a check the kernel already performs.
+ *
+ * @throws {CommandIdentityError} if an actor carries neither or both ids.
  */
 export function commandPrincipal(actor: Principal | null): string | null {
   if (actor === null) return null;
-  if (actor.userId !== null && actor.botId === null) return `user:${actor.userId}`;
-  if (actor.botId !== null && actor.userId === null) return `bot:${actor.botId}`;
+  if (actor.userId !== null && actor.botId === null) return userPrincipal(actor.userId);
+  if (actor.botId !== null && actor.userId === null) return botPrincipal(actor.botId);
   throw new CommandIdentityError("a command principal must carry exactly one immutable id");
 }
 
-/** The stable operation name in the canonical document. Reusing one id across
- * two operations must read as a conflict, so these names are part of the
- * contract and may not be derived from a changeable enum. */
+/** The stable operation name in the canonical document; see
+ * {@link RequestDocument.operation}. */
 function operation(cmd: Command): string {
   switch (cmd.kind) {
     case "join":
@@ -89,8 +71,7 @@ function operation(cmd: Command): string {
   }
 }
 
-/** Only what the caller chose. Host-generated values (arrival time, RNG seed,
- * request metadata) are excluded, or an honest retry would never match. */
+/** Only what the caller chose; see {@link RequestDocument.payload}. */
 function payload(cmd: Command, actionData: unknown): unknown {
   switch (cmd.kind) {
     case "join":
@@ -119,13 +100,9 @@ function payload(cmd: Command, actionData: unknown): unknown {
 export function commandIdentity(cmd: Command, resource: string, actionData: unknown): CommandIdentity | null {
   const principalId = commandPrincipal(cmd.actor);
   if (principalId === null) return null;
-  const document = { version: REQUEST_VERSION, principal: principalId, operation: operation(cmd), resource, payload: payload(cmd, actionData) };
-  let request: string | undefined;
-  try {
-    request = canonicalize(document);
-  } catch (error) {
-    throw new CommandIdentityError(`command payload is not canonicalizable JSON: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  if (request === undefined) throw new CommandIdentityError("command payload canonicalized to nothing");
-  return { principalId, commandId: cmd.commandId, request };
+  return {
+    principalId,
+    commandId: cmd.commandId,
+    request: canonicalRequest({ principal: principalId, operation: operation(cmd), resource, payload: payload(cmd, actionData) }),
+  };
 }

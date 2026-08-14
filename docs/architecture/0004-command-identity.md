@@ -126,18 +126,42 @@ boundary fails; it may not silently become a new command.
 
 ## Delivery
 
-The Durable Object half is implemented: receipts keyed by principal and id,
-canonical requests, `commandConflict`, and retention through both finish and
-cancel compaction. Still open, in this order:
+Implemented:
 
-- API: make `commandId` required and remove the server-minted fallback. Until
-  then a caller that omits one gets a fresh id per attempt and no idempotency,
-  so the receipts are latent rather than load-bearing.
-- D1: command receipts for D1-authoritative creates, which is what makes a
-  duplicate create return the same game rather than a second game.
-- Client: a durable command journal, ids minted before first dispatch, and
-  outcome-certainty classification.
-- Only then: bounded same-id retry of retryable Worker-to-DO faults.
+- The Durable Object half: receipts keyed by principal and id, canonical
+  requests, `commandConflict`, and retention through both finish and cancel
+  compaction.
+- The API half: `Idempotency-Key` is required on every game mutation, with no
+  server-minted fallback. The fallback gave every attempt a fresh identity, which
+  made the receipts latent rather than load-bearing.
+- The D1 half: a create reservation keyed by `(principal_id, command_id)`,
+  written in the same batch as the `games` row, so a retried create returns the
+  game it already made instead of a second one. Create-solo is two operations
+  under one key: the reservation replays the create, and the start is re-issued
+  under an id *derived* from that key, which also resumes a create whose process
+  died before the start landed. Reservations are pruned by the cron backstop;
+  they only have to outlive a retry of their own create.
+- The client half's outcome classification: `engineCall` distinguishes a server
+  decision (an `EngineException` carrying a stable code) from an unknown outcome
+  (a transport failure with no response), and the transport retry replays the
+  original request, so a retried mutation reuses its key by construction.
+
+Still open:
+
+- Bounded same-id retry of retryable Worker-to-DO faults.
+
+**Not building: a durable client command journal.** Ids are minted per intent
+and live as long as the request. Persisting them to survive a restart was
+specified, and is the standard pattern (Replicache's mutation ids, PowerSync's
+CRUD queue, Brick's offline queue), but it buys little here: a game action
+carries a deadline the kernel refuses once passed, so a replayed stale action
+mostly defers a rejection; the board is authoritative and visible on reconnect,
+so "did my move land?" is answered by looking rather than by bookkeeping; and
+duplicate suppression already lives on the server. Revisit when there is an
+intent with no deadline whose loss a player would notice — creating or joining
+over a flaky connection is the realistic trigger. Doing so also means raising
+the create-reservation TTL, since a journal can retry long after the window an
+in-request retry needs.
 
 The DO's storage change is a clean pre-production break with no compatibility
 window: there are no deployed games, so the `commands` table was redefined in

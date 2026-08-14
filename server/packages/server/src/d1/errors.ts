@@ -60,3 +60,12 @@ export function isUniqueViolation(error: unknown): boolean {
 export function isShortCodeCollision(error: unknown): boolean {
   return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgames\.short_code\b/i);
 }
+
+/** A UNIQUE rejection on the `game_creations` primary key: this principal has
+ * already committed a create under this command id, so the caller is retrying
+ * rather than creating. Not an error — the create route answers it by replaying
+ * the reserved game. Narrowed to the column for the same reason as
+ * {@link isShortCodeCollision}. */
+export function isCreateReplay(error: unknown): boolean {
+  return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgame_creations\.principal_id\b/i);
+}

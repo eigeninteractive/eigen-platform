@@ -19,7 +19,7 @@
 import type { GameStatus, Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { sql } from "drizzle-orm";
-import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { check, index, integer, primaryKey, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 /** One row per identity, public and private fields together; authorization is
  * enforced in the routes, not by table separation. Provisioned on first sight
@@ -85,6 +85,42 @@ export const games = sqliteTable(
     // The lobby page: public joinable games, newest first (ported partial index).
     index("idx_games_lobby").on(t.createdAt).where(sql`access = 'public' AND status IN ('waiting', 'ready')`),
   ],
+);
+
+/**
+ * Create reservations: the receipt a create writes in place of the Durable
+ * Object one it cannot have yet.
+ *
+ * Every other game mutation is committed by a game's own DO, which stores its
+ * receipt in the same synchronous transaction as the state change. A create has
+ * no game and therefore no object, so its receipt lives here and is written in
+ * the same D1 batch as the `games` row. That batch is a transaction, so a create
+ * can never leave a game without its reservation nor a reservation without its
+ * game, which is what makes the composite primary key below an actual guard
+ * against a replayed create producing a second game.
+ *
+ * The row records what was created rather than what was returned, because the
+ * response is not yet known when the batch runs: create-solo starts the game
+ * afterwards. A replay therefore re-derives its response by resuming the
+ * remaining steps idempotently, which also recovers a create whose process died
+ * before the start landed.
+ *
+ * Pruned by the cron backstop ({@link LifecycleOptions.createReservationTtlMs}):
+ * this row only has to outlive a retry of its own create, not serve as history.
+ */
+export const gameCreations = sqliteTable(
+  "game_creations",
+  {
+    /** `user:<id>`; see `command-request.ts`. */
+    principalId: text().notNull(),
+    commandId: text().notNull(),
+    /** Canonical RFC 8785 JSON; a reuse carrying different intent is refused. */
+    request: text().notNull(),
+    gameId: text().notNull(),
+    shortCode: text().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.principalId, t.commandId] }), index("idx_game_creations_created_at").on(t.createdAt)],
 );
 
 /** The roster join table: one row per seat, and the indexed access path for

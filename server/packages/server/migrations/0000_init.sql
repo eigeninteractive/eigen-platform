@@ -22,6 +22,17 @@ CREATE TABLE `device_installations` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_device_installations_user` ON `device_installations` (`user_id`);--> statement-breakpoint
+CREATE TABLE `game_creations` (
+	`principal_id` text NOT NULL,
+	`command_id` text NOT NULL,
+	`request` text NOT NULL,
+	`game_id` text NOT NULL,
+	`short_code` text NOT NULL,
+	`created_at` integer NOT NULL,
+	PRIMARY KEY(`principal_id`, `command_id`)
+);
+--> statement-breakpoint
+CREATE INDEX `idx_game_creations_created_at` ON `game_creations` (`created_at`);--> statement-breakpoint
 CREATE TABLE `games` (
 	`id` text PRIMARY KEY NOT NULL,
 	`created_by` text,

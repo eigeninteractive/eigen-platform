@@ -39,14 +39,17 @@ Dio engineDio(Ref ref) {
   );
   dio.interceptors.add(AuthInterceptor(FirebaseAuth.instance));
   dio.interceptors.add(ref.watch(serverClockProvider).interceptor);
-  // Transport-level retry, idempotent reads only. Retries a GET whose failure
-  // carried no response (a dropped connection or a timeout, where the outcome
-  // is unknown) twice with short backoff. A write is never retried (a
-  // timed-out POST may have landed on the server), and any failure that carried
-  // a response is the server's decision, left untouched for `engineCall` to map
-  // (a 429 included; its Retry-After is respected, not auto-retried). The
-  // retry replays the whole interceptor chain, so `AuthInterceptor` re-attaches
-  // a fresh token each attempt; added last so it is the outermost handler.
+  // Transport-level retry for requests that are safe to repeat. Retries a
+  // failure that carried no response (a dropped connection or a timeout, where
+  // the outcome is unknown) twice with short backoff, for a GET or for a
+  // mutation carrying an `Idempotency-Key`: Dio replays the original
+  // RequestOptions, so the retry sends the same key and the engine replays its
+  // committed receipt instead of applying the command twice. Any failure that
+  // carried a response is the server's decision, left untouched for
+  // `engineCall` to map (a 429 included; its Retry-After is respected, not
+  // auto-retried). The retry replays the whole interceptor chain, so
+  // `AuthInterceptor` re-attaches a fresh token each attempt; added last so it
+  // is the outermost handler.
   dio.interceptors.add(
     RetryInterceptor(
       dio: dio,
@@ -55,7 +58,7 @@ Dio engineDio(Ref ref) {
         Duration(milliseconds: 200),
         Duration(milliseconds: 400),
       ],
-      retryEvaluator: retryTransientGet,
+      retryEvaluator: retryTransient,
     ),
   );
   ref.onDispose(dio.close);

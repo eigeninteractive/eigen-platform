@@ -27,28 +27,24 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
-| 4: safe mutation identity | Server done | Receipts, canonical requests, derived alarm, and a required `Idempotency-Key` on every mutation; D1 create receipts and the client journal open, below |
+| 4: safe mutation identity | Nearly complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, and D1 create reservations; only bounded Worker-to-DO retry is open, below |
 | 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 remaining work
 
-The Durable Object half of RFC 0004 is implemented and tested. What remains, in
-dependency order, is what makes it load-bearing rather than latent:
+Every authority that commits a mutation now holds a receipt for it, and the key
+is required on the wire, so the mechanism is load-bearing rather than latent.
+What remains:
 
-1. **Require `commandId` on the wire.** It is still optional, and a route mints
-   one when it is absent, so a caller that omits it gets a fresh id per attempt
-   and no idempotency at all. This is also where the transport is chosen: a body
-   field as today, or the `Idempotency-Key` header the IETF draft and every
-   payments API use. Deciding it moves OpenAPI and the generated Dart client, so
-   it is one atomic change with them.
-2. **D1 create receipts.** Creation has no Durable Object yet, so a duplicate
-   create currently makes a second game. A uniqueness record keyed by
-   `(user_id, command_id)` in the same batch as the game row fixes it.
-3. **Client command journal.** Ids minted and persisted before first dispatch,
-   surviving process restart, with definitive and ambiguous outcomes
-   distinguished.
-4. **Only then**, bounded same-id retry of retryable Worker-to-DO faults. Retries
-   before the three items above are what RFC 0004 exists to prevent.
+1. **Bounded same-id retry of retryable Worker-to-DO faults.** The transport-level
+   retry in the Flutter client is done — a keyed mutation whose failure carried no
+   response is replayed with the same key, which the server answers from its
+   receipt. Retrying a fault *inside* the worker, between it and the Durable
+   Object, is separate and still open.
+
+The client command journal specified in RFC 0004 is **not being built**; the
+reasoning is recorded under "Decisions taken while implementing" and in RFC 0004's
+delivery section. RFC 0004 itself is amended, not silently diverged from.
 
 ## Decisions taken while implementing
 
@@ -70,16 +66,43 @@ dependency order, is what makes it load-bearing rather than latent:
   storage and left the D1 row as the sole survivor. Retaining `meta` removed that
   premise.
 - **The command id travels as the standard `Idempotency-Key` header**, not a body
-  field, and is required on every mutation including the ones that do not yet
-  honour it. A client should not have to know which mutations deduplicate. The
-  header also separates identity from payload, which is what lets the canonical
-  request be built purely from the caller's intent.
+  field, and is required on every game mutation. A client should not have to know
+  which mutations deduplicate. The header also separates identity from payload,
+  which is what lets the canonical request be built purely from the caller's
+  intent. Account, social and device mutations do not require it: they are
+  set-like operations whose repetition is already harmless, so a receipt would add
+  a row and a failure mode to buy nothing.
 - **`commandConflict` is a 422, not a 409.** Every other 409 in this API means
   "resync and retry", which is precisely what must not happen to a reused key.
   The `Idempotency-Key` specification draws the same line.
 - **Dropped the empty `LobbyCommand` body.** With the id in a header, leave,
   cancel and start carry nothing, so requiring an empty JSON object was pure
   ceremony.
+- **A create reservation records what was created, not what was returned.** It has
+  to be written in the same D1 batch as the `games` row — that transaction is the
+  whole guarantee — and the response is not known yet, because create-solo starts
+  the game afterwards. So a replay re-derives its answer by resuming the remaining
+  steps idempotently, which as a side effect recovers a create whose process died
+  before the start landed. Storing the response instead would have needed a second
+  write, and a crash between the two would lose the reservation entirely: exactly
+  the duplicate it exists to prevent.
+- **Create-solo's internal start uses a key derived from the caller's, not a fresh
+  one.** Reusing the key outright would let one id stand for two operations, which
+  receipts refuse. But minting a fresh one made that half unreplayable, so a retry
+  would try to start an already-running game. A derived id (`<key>:start`) is a
+  distinct id that is also reproducible, which is what makes the compound
+  operation idempotent as a whole.
+- **No durable client command journal.** RFC 0004 specified one, and it is the
+  standard pattern (Replicache mutation ids, PowerSync's CRUD queue, Brick's
+  offline queue). It is not being built, because its value does not survive
+  contact with this product: a game action carries a deadline the kernel refuses
+  once passed, so replaying a stale one mostly defers a rejection; the board is
+  authoritative and visible on reconnect, so "did my move land?" is answered by
+  looking; and duplicate suppression is already server-side, now including create.
+  The two parts of the specified item that *did* pay for themselves are done
+  instead — outcome classification in `engineCall`, and a same-key transport retry
+  — for roughly one predicate rather than a persistence layer. The trigger to
+  revisit is a deadline-free intent whose loss a player would notice.
 
 ## Current validation contract
 

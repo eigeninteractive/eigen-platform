@@ -23,6 +23,13 @@ of applying a move twice. The engine requires the header, so this pairs with an
 engine that sends it; see
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility).
 
+- `retryTransientGet` is now `retryTransient`, and it retries a *keyed mutation*
+whose failure carried no response, not only a GET. Dio replays the original
+request, so the retry carries the same `Idempotency-Key` and the engine answers
+from its committed receipt rather than applying the command twice. A mutation
+without a key is still never retried, because its outcome after a timeout is
+genuinely unknown.
+
 ### Added
 - `newCommandId()`, the mutation identity generator, and handling for the
 `commandConflict` and `idempotencyKeyInvalid` server codes. Both report the

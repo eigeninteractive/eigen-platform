@@ -90,13 +90,19 @@ rejection converted to one) rendered by the app-level error handler.
 | 500 | Server fault (game-hook bug, storage) | none |
 | 502 | Account deletion upstream failure (intact; retry) | none |
 
-## Every mutation carries an `Idempotency-Key`
+## Every game mutation carries an `Idempotency-Key`
 
-Non-idempotent routes require the `Idempotency-Key` request header: one opaque
-value per logical intent, reused unchanged on every retry of it. A UUIDv7 is
-recommended for sortable diagnostics, but the value is opaque to the server. A
-receipt is scoped to the caller's principal, so a caller who picks a repeated or
-guessable key can only collide with themselves.
+Every route that changes a game requires the `Idempotency-Key` request header:
+one opaque value per logical intent, reused unchanged on every retry of it. A
+UUIDv7 is recommended for sortable diagnostics, but the value is opaque to the
+server. A receipt is scoped to the caller's principal, so a caller who picks a
+repeated or guessable key can only collide with themselves.
+
+Account, social and device routes do not require one. They are set-like — set a
+username, accept a friend request, register a push token — so repeating one
+reaches the same state it would have reached anyway, and a receipt would buy
+nothing. Game mutations are the ones where applying an intent twice means two
+moves rather than one.
 
 | Same key, same request | Same key, different request | No key |
 |---|---|---|
@@ -111,6 +117,15 @@ There is no "a request is outstanding for this key" response. A game's Durable
 Object serializes its commands, so a duplicate that arrives while the first is
 still in flight simply waits and then reads the committed receipt, which is the
 same answer the first caller got.
+
+Creating a game is covered too, even though there is no game — and therefore no
+Durable Object — to hold a receipt yet. A create reserves its key in the same
+database transaction that writes the game row, so a retried create returns the
+game it already made, with the same `gameId` and `shortCode`, rather than a
+second one. `POST /games/solo` creates *and* starts under one key: the retry
+replays the create and re-presents the start, so it answers with the same running
+game. Unlike a game's own receipts, which are kept as long as the game is, a
+create reservation is pruned once no retry of it could still arrive.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the

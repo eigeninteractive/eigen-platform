@@ -291,6 +291,43 @@ describe("active play & frames", () => {
     expect(await res.json()).toMatchObject({ code: "idempotencyKeyInvalid" });
   });
 
+  it("replays a retried create instead of making a second game", async () => {
+    const u = makeUsers();
+    const key = crypto.randomUUID();
+    const retry = { idempotencyKey: key };
+    const body = { ...createBody, rated: false };
+
+    const first = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
+    const replay = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
+    // Same game, ids and all: the retry is answered from the reservation the
+    // first attempt wrote in the same D1 batch as the games row.
+    expect(replay).toEqual(first);
+
+    // And only one game exists to be listed, which is the point of the whole
+    // mechanism: the caller retried, not created twice.
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.map((g) => g.id)).toEqual([first.gameId]);
+  });
+
+  it("refuses a create key reused for a different game", async () => {
+    const u = makeUsers();
+    const retry = { idempotencyKey: crypto.randomUUID() };
+    await json<Created>(await api(u.a, "POST", "/games", { ...createBody, rated: false }, false, retry), 201);
+
+    const conflict = await api(u.a, "POST", "/games", { ...createBody, rated: false, maxPlayers: 4 }, false, retry);
+    expect(conflict.status).toBe(422);
+    expect(await conflict.json()).toMatchObject({ code: "commandConflict" });
+  });
+
+  it("scopes create keys per user, so two callers may choose the same one", async () => {
+    const u = makeUsers();
+    const retry = { idempotencyKey: crypto.randomUUID() };
+    const body = { ...createBody, rated: false };
+    const a = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
+    const b = await json<Created>(await api(u.b, "POST", "/games", body, false, retry), 201);
+    expect(b.gameId).not.toBe(a.gameId);
+  });
+
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {
     const u = makeUsers();
     const gameId = await readyGame(u);
@@ -471,6 +508,24 @@ describe("bots", () => {
       const frames = await json<{ frames: { version: number; data: { count: number } }[] }>(await api(u.a, "GET", `/games/${solo.session.gameId}/frames?from=0&to=10`));
       expect(frames.frames.find((f) => f.version === 2)?.data.count).toBe(2);
     });
+  });
+
+  it("replays a retried solo create, returning the same started game", async () => {
+    const u = makeUsers();
+    const retry = { idempotencyKey: crypto.randomUUID() };
+
+    const first = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE), false, retry), 201);
+    const replay = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE), false, retry), 201);
+    // Create-solo is two operations under one key. The reservation replays the
+    // create, and the start is re-issued under an id derived from that same key,
+    // so the DO replays its committed start rather than starting a second time
+    // or refusing a game that is already active.
+    expect(replay.session.gameId).toBe(first.session.gameId);
+    expect(replay.session.status).toBe("active");
+    expect(replay.session.version).toBe(first.session.version);
+
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.map((g) => g.id)).toEqual([first.session.gameId]);
   });
 
   it("rejects seating a bot in an untimed game (bots ⇒ timed)", async () => {
