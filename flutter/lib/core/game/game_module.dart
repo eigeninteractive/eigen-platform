@@ -354,7 +354,6 @@ abstract class GameModule {
   /// decode, since `2 <= 3`. The server checks exact membership against this.
   List<int> get supportedSchemaVersions => versions.keys.toList()..sort();
 
-
   /// The rules unit new games use ([versions] at [latestSchemaVersion]).
   GameRules get latestRules => versions[latestSchemaVersion]!;
 
