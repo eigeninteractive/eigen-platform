@@ -551,7 +551,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:19](https://github.com/
 
 ### CreateGameInput
 
-Defined in: [server/packages/server/src/d1/apply.ts:292](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L292)
+Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L299)
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -564,7 +564,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L296)
+Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
 
 ##### budgetSeconds
 
@@ -572,7 +572,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
+Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
 
 ##### config
 
@@ -580,7 +580,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eige
 config: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L298)
+Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
 
 ##### createdBy
 
@@ -588,7 +588,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eige
 createdBy: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L294)
+Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
 
 ##### gameId
 
@@ -596,7 +596,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eige
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L293)
+Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
 
 ##### incrementSeconds
 
@@ -604,7 +604,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eige
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
+Defined in: [server/packages/server/src/d1/apply.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L309)
 
 ##### maxPlayers
 
@@ -612,7 +612,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eige
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
+Defined in: [server/packages/server/src/d1/apply.ts:313](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L313)
 
 ##### minPlayers
 
@@ -620,7 +620,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eige
 minPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
+Defined in: [server/packages/server/src/d1/apply.ts:312](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L312)
 
 ##### now
 
@@ -628,7 +628,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eige
 now: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
+Defined in: [server/packages/server/src/d1/apply.ts:316](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L316)
 
 ##### rated
 
@@ -636,7 +636,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eige
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
+Defined in: [server/packages/server/src/d1/apply.ts:310](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L310)
 
 ##### ratingPool
 
@@ -644,7 +644,15 @@ Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eige
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
+Defined in: [server/packages/server/src/d1/apply.ts:311](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L311)
+
+##### reservation
+
+```ts
+reservation: CreateReservation;
+```
+
+Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
 
 ##### schemaVersion
 
@@ -652,7 +660,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eige
 schemaVersion: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L297)
+Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
 
 ##### seats
 
@@ -660,7 +668,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eige
 seats: Seat[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
+Defined in: [server/packages/server/src/d1/apply.ts:315](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L315)
 
 ##### shortCode
 
@@ -668,7 +676,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eige
 shortCode: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
+Defined in: [server/packages/server/src/d1/apply.ts:314](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L314)
 
 ##### status
 
@@ -676,7 +684,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eige
 status: "waiting" | "ready";
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L295)
+Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
 
 ##### turnSeconds
 
@@ -684,7 +692,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eige
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L299)
+Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
 
 ***
 
@@ -2167,11 +2175,17 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:314](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L314)
+Defined in: [server/packages/server/src/d1/apply.ts:328](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L328)
 
-Write the games row + one participants row per seat, atomically. The DO
-lazy-inits from exactly these rows on first contact. Callers own the
-shortCode retry: a duplicate trips the UNIQUE index and throws.
+Write the create reservation + the games row + one participants row per
+seat, atomically. The DO lazy-inits from exactly these rows on first contact.
+
+Callers own both failure modes, distinguished by `isCreateReplay` and
+`isShortCodeCollision`: a reused command id means this create already
+happened, while a duplicate shortCode is a random clash to retry. The
+reservation is inserted FIRST so a replay is the statement SQLite reports,
+rather than being masked by whichever other UNIQUE index also happened to
+trip.
 
 #### Parameters
 
@@ -2421,7 +2435,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:341](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L341)
+Defined in: [server/packages/server/src/d1/apply.ts:377](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L377)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
