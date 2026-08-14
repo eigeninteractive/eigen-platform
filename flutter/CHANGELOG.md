@@ -22,7 +22,10 @@ reuse a key deliberately, which is how a retry replays a committed result instea
 of applying a move twice. The engine requires the header, so this pairs with an
 engine that sends it; see
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility).
-
+- Join now sends `GameModule.supportedSchemaVersions`, the full set of versions
+this build ships, instead of only the newest. `versions` is sparse, so a maximum
+claimed support for gaps: a `{1, 3}` build could be seated into a v2 game it
+cannot decode. Pairs with an engine that checks exact membership.
 - `retryTransientGet` is now `retryTransient`, and it retries a *keyed mutation*
 whose failure carried no response, not only a GET. Dio replays the original
 request, so the retry carries the same `Idempotency-Key` and the engine answers

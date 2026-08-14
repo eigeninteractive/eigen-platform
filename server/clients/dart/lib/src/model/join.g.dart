@@ -8,16 +8,16 @@ part of 'join.dart';
 
 Join _$JoinFromJson(Map<String, dynamic> json) =>
     $checkedCreate('Join', json, ($checkedConvert) {
-      $checkKeys(json, requiredKeys: const ['clientSchemaVersion']);
+      $checkKeys(json, requiredKeys: const ['clientSchemaVersions']);
       final val = Join(
-        clientSchemaVersion: $checkedConvert(
-          'clientSchemaVersion',
-          (v) => (v as num).toInt(),
+        clientSchemaVersions: $checkedConvert(
+          'clientSchemaVersions',
+          (v) => (v as List<dynamic>).map((e) => (e as num).toInt()).toList(),
         ),
       );
       return val;
     });
 
 Map<String, dynamic> _$JoinToJson(Join instance) => <String, dynamic>{
-  'clientSchemaVersion': instance.clientSchemaVersion,
+  'clientSchemaVersions': instance.clientSchemaVersions,
 };

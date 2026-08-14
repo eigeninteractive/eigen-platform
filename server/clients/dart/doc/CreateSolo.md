@@ -8,7 +8,7 @@ import 'package:eigen_api/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**schemaVersion** | **int** |  | 
+**schemaVersion** | **int** | The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities. | 
 **config** | **Object** |  | 
 **minPlayers** | **int** |  | 
 **maxPlayers** | **int** |  | 

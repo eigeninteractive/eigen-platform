@@ -28,7 +28,8 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
 | 4: safe mutation identity | Complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, create receipts on the games row, and bounded Worker-to-DO retry |
-| 5+: setup authority onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
+| 5: setup authority and version negotiation | Complete | Exact sparse membership on join, server-owned creation version, `GET /capabilities`; contract digests deferred, see RFC 0003's implementation notes |
+| 6+: recovery and security loops onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 outcome
 
@@ -108,6 +109,26 @@ amended, not silently diverged from.
   which quietly meant any caller retrying something that was not D1 inherited D1
   message matching. Made required, so each caller states which failures its
   operation can survive.
+- **Version support is a sparse set; creation is the server's newest version.**
+  Two separate questions, and the old `game.schemaVersion <= clientMaximum` answered
+  neither: it seated a `{1, 3}` client into a v2 game. Join now sends the client's
+  whole set and the server tests membership.
+- **Creation is not an intersection.** RFC 0003 specified selecting from the
+  intersection of server-creatable and client-advertised versions. Built, then
+  removed: it required the client to fetch capabilities, intersect, choose, and then
+  compute its `config` and `rated` assertion against the *chosen* version's rules
+  rather than its newest — the last part being a genuine correctness trap that
+  needed fixing in two dialogs. All of it bought a staged creation cutover. The
+  simpler rule is that new games use the server's newest version and a client that
+  cannot is told to update, which the app already does (`schemaUnsupported` already
+  maps to "Update your app", and `InAppUpdate` already ships). Rollback is the one
+  case the simple rule cannot express, so `creatableSchemaVersions` survives as an
+  operator override rather than a negotiation input.
+- **No contract digests yet.** They detect "same version integer, different rules",
+  a real hazard but a separate one from the soundness bug, and they need a generated
+  per-version manifest both languages consume. Two contract formats currently
+  disagree (the generated `game-contract.json` and the normative
+  `contracts/game/v1/` schema); reconciling them is the actual prerequisite.
 - **No durable client command journal.** RFC 0004 specified one, and it is the
   standard pattern (Replicache mutation ids, PowerSync's CRUD queue, Brick's
   offline queue). It is not being built, because its value does not survive

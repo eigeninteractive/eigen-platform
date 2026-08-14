@@ -277,10 +277,24 @@ type TimingBody = { turnSeconds: number | null; budgetSeconds: number | null; in
 const timingExclusive = (v: TimingBody) => v.turnSeconds === null || v.budgetSeconds === null;
 const incrementNeedsBudget = (v: TimingBody) => v.incrementSeconds === null || v.budgetSeconds !== null;
 
+/** The version a create says it built its `config` for.
+ *
+ * A constrained choice, not a free one: the deployment publishes which versions
+ * are creatable (`EngineConfig.creatableSchemaVersions`) and a create naming
+ * anything outside that set is refused with `schemaUnsupported` rather than
+ * quietly coerced. The caller still states which rules shaped the `config` it is
+ * sending, so a client ahead of or behind the server fails on that mismatch
+ * instead of on an inscrutable config validation error. Read
+ * `GET /capabilities` and pick the newest version in common. */
+const creatableSchemaVersionAssertion = z.number().int().positive().openapi({
+  description: "The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities.",
+  example: 1,
+});
+
 export const createGameBody = z
   .object({
     access: gameAccessShape,
-    schemaVersion: z.number().int(),
+    schemaVersion: creatableSchemaVersionAssertion,
     /** Game-defined; parsed by the version unit's config schema. Uses the
      * shared free-form-object shape so every JSON payload on the wire
      * (config, observation data) generates as one Dart type and a config can
@@ -300,13 +314,42 @@ export const createGameBody = z
 
 export const createdShape = z.object({ gameId: z.string(), shortCode: z.string() }).openapi("Created");
 
+/**
+ * What this deployment can do, so a client can tell before it tries.
+ *
+ * Read at startup, not per request. The two facts are deliberately separate and
+ * neither is derivable from the other: `supportedSchemaVersions` is
+ * every version the server can run (joinable, playable, replayable) and is
+ * sparse, while `creatableSchemaVersion` is the single one new games get. A
+ * client compares both against its own sparse set to know whether it can play at
+ * all, whether it can create, or whether it needs an update — and which of those
+ * three it is, which a bare failure on create could never tell it.
+ *
+ * There is deliberately no `protocolMajor` here. Publishing a constant negotiates
+ * nothing, and there is no major 2 to distinguish from: a field whose only value
+ * is 1 costs a wire type and buys no decision. Adding it when a second major
+ * exists is additive, and a client that never read it behaves then exactly as it
+ * does now.
+ */
+export const capabilitiesShape = z
+  .object({
+    /** Every version a NEW game may be created at, ascending. A client creates at
+     * the newest version it shares with this list; if that intersection is empty
+     * it must update. A subset of `supportedSchemaVersions`. */
+    creatableSchemaVersions: z.array(z.number().int().positive()).openapi({ example: [3] }),
+    /** Every version this deployment can run: joinable, playable, replayable.
+     * Sparse, and never derivable from a maximum. */
+    supportedSchemaVersions: z.array(z.number().int().positive()).openapi({ example: [1, 3] }),
+  })
+  .openapi("Capabilities");
+
 /** Create-solo: a private game seated with the caller plus one or more
  * bots, created and started in one call. Same timing/config fields as
  * `createGameBody` (no `access`, since solo games are always private) plus the
  * bots to seat. */
 export const createSoloBody = z
   .object({
-    schemaVersion: z.number().int(),
+    schemaVersion: creatableSchemaVersionAssertion,
     /** Game-defined; parsed by the version unit's config schema. Uses the
      * shared free-form-object shape so every JSON payload on the wire
      * (config, observation data) generates as one Dart type and a config can
@@ -359,11 +402,23 @@ export const idempotencyKeyHeader = z.object({
     }),
 });
 
+const SCHEMA_VERSIONS_MAX = 32;
+
 export const joinBody = z
   .object({
-    /** The newest schemaVersion this client build ships rules for: the
-     * schema gate (an old app cannot join a newer game). */
-    clientSchemaVersion: z.number().int(),
+    /**
+     * Every `schemaVersion` this client build ships rules for.
+     *
+     * A set, not a maximum. Support is sparse by design — a build may ship
+     * `{1, 3}` after v2 drained — so `gameVersion <= clientMaximum` is not a
+     * compatibility test: it seats a `{1, 3}` client into a v2 game it cannot
+     * decode. The server checks exact membership instead.
+     */
+    clientSchemaVersions: z
+      .array(z.number().int().positive())
+      .min(1)
+      .max(SCHEMA_VERSIONS_MAX)
+      .openapi({ example: [1, 3] }),
   })
   .openapi("Join");
 

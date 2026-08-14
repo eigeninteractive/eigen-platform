@@ -8,6 +8,7 @@ doc/BotAction.md
 doc/BotWebhookApi.md
 doc/Bots.md
 doc/BotsApi.md
+doc/Capabilities.md
 doc/CommandAccepted.md
 doc/CreateGame.md
 doc/CreateSolo.md
@@ -77,6 +78,7 @@ lib/src/model/add_bot.dart
 lib/src/model/bot.dart
 lib/src/model/bot_action.dart
 lib/src/model/bots.dart
+lib/src/model/capabilities.dart
 lib/src/model/command_accepted.dart
 lib/src/model/create_game.dart
 lib/src/model/create_solo.dart

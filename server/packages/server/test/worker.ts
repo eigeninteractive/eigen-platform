@@ -129,6 +129,12 @@ const hiddenRules: GameRules = {
 
 const testGame: GameModule = { versions: { 1: rules, 2: hiddenRules } };
 
+/** This worker's two versions are parallel VARIANTS, not an upgrade sequence: v1
+ * is the plain counter and v2 is the hidden-state game the leak test drives. Both
+ * must therefore be creatable, which the default (the highest version alone) does
+ * not allow. This is exactly the coexisting-variants case the option exists for. */
+const creatableSchemaVersions = [1, 2];
+
 export class GameDO extends BaseGameDO<TestEnv> {
   protected readonly gameModule = testGame;
   protected d1(env: TestEnv): D1Database {
@@ -143,6 +149,7 @@ export class GameDO extends BaseGameDO<TestEnv> {
  * code path production uses, against the checked-in local JWKS. */
 export default createEngine({
   gameModule: testGame,
+  creatableSchemaVersions,
   appName: "Eigen Test",
   d1: (env: TestEnv) => env.DB,
   gameDO: (env: TestEnv) => env.GAME_DO,

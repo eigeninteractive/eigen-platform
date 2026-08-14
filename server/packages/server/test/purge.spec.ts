@@ -65,7 +65,7 @@ describe("delete-account", () => {
     const a = uid("del-a");
     const b = uid("del-b");
     const { gameId } = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
-    await json(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
     await json(await api(a, "POST", `/games/${gameId}/start`, {}));
     await json(await api(a, "POST", `/games/${gameId}/action`, { seat: 0, expectedVersion: 0, data: { add: 2 } }));
 

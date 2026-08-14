@@ -1,7 +1,11 @@
 # 0003: protocol envelopes, errors, and capabilities
 
-- Status: accepted
+- Status: accepted, partly superseded
 - Date: 2026-08-13
+- Amended: 2026-08-14. The version-axes and capability rules below are
+  implemented. Three other parts are superseded by narrower decisions taken while
+  building them, recorded in "Implementation notes" at the end: the HTTP command
+  envelope, the `outcome`/`retryable` fields, and feature-token negotiation.
 
 ## Version axes
 
@@ -103,3 +107,55 @@ intersection of server-create-enabled and client-advertised exact IDs.
 A server MAY temporarily serve majors 1 and 2 through explicit handlers. It
 never parses a major-2 envelope as major 1. Retirement is an observed rollout
 decision recorded in the platform manifest and operator metrics.
+
+## Implementation notes (2026-08-14)
+
+What shipped, and what this record got wrong.
+
+**Exact membership shipped as integer version sets.** Join sends every
+`schemaVersion` the client build ships and the server tests membership before
+seating. `No comparison using <= latestVersion is valid capability negotiation`
+was the correct and load-bearing conclusion; the defect it names was real.
+
+**Contract IDs with digests did not ship.** The soundness fix needs only exact
+membership, which integers provide. A digest additionally detects "same version
+integer, different rules", which is a real but separate hazard, and it requires a
+generated per-version manifest that both languages consume. Two contract formats
+currently exist — the generated `game-contract.json` that feeds the Dart generator
+(no `contractId`, all versions in one file) and the normative
+`contracts/game/v1/game-contract.schema.json` (per-version, digested, with a
+`creation` policy, and no producer). Reconciling those is the real prerequisite,
+and is not scheduled.
+
+**Creation is the highest version, not an intersection.** This record says
+creation "selects from the intersection of server-create-enabled and
+client-advertised exact IDs". Implemented and then removed: it required the client
+to fetch capabilities, intersect, pick a version, and compute its `config` and
+`rated` assertion against *that* version's rules rather than its newest — real
+complexity in two dialogs — to buy a staged creation cutover. The simpler rule is
+that new games use the server's newest version and a client that cannot is told to
+update, which every app already knows how to do. `creatableSchemaVersions` remains
+as an operator override for rollback, where creation must move back without
+unshipping a version games already exist at.
+
+**The HTTP command envelope is superseded.** `{commandId, operation, payload}` in
+every body: `commandId` moved to the standard `Idempotency-Key` header (RFC 0004,
+amended), and `operation` is derived server-side from the route in
+`command-request.ts`. A client-supplied operation name would be a second,
+forgeable source of truth for something the route already determines.
+
+**`outcome` is not deliverable, so it is not sent.** The tri-state
+`notCommitted | committed | unknown` cannot live in a response body: `unknown`
+means the client could not learn whether the commit happened, which is exactly the
+case where no body arrives. The other two values restate the status and `code`.
+The client derives all three correctly at the transport boundary instead — a
+response present means the server decided, a response absent means unknown.
+
+**No feature tokens.** The registry would today hold only tokens true of any
+client that can reach the engine at all, and the server would branch on none of
+them. The mechanism is worth adding with its first genuinely optional feature, so
+its semantics can be designed against a real second case.
+
+**No `protocolMajor` on the wire.** Publishing a constant negotiates nothing, and
+there is no major 2 to distinguish from. Adding it later is additive, and a client
+that never read it behaves then exactly as it does now.

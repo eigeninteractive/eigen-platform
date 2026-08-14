@@ -100,6 +100,27 @@ export interface AvatarsConfig<TEnv> {
  * parameter and both type arguments infer. */
 export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   gameModule: GameModule;
+  /**
+   * The `schemaVersion`s new games may be created at. Defaults to the highest key
+   * of `gameModule.versions` alone.
+   *
+   * The default is the whole policy for almost every deployment: ship new rules,
+   * and new games use them. A client that cannot create at that version is out of
+   * date and is told to update — it can still join, play and replay every version
+   * it does ship, because that is governed by `versions`, not by this.
+   *
+   * Override it for the two cases the default cannot express:
+   *
+   * - **Rollback.** A bad rules release needs creation moved back to the previous
+   *   version WITHOUT unshipping the new one, since games already at it must keep
+   *   loading. Removing it from `versions` would orphan them.
+   * - **Coexisting variants.** A deployment using `versions` for genuinely
+   *   parallel rule sets rather than an upgrade sequence.
+   *
+   * Listing several does not make the client negotiate: it always creates at the
+   * newest version it ships, and this decides whether that is allowed.
+   */
+  creatableSchemaVersions?: readonly number[];
   /** The whitelabel app's display name, the single source of truth for the
    * engine's own identity (share metadata and public-page titles today;
    * FCM titles and share copy later). Deliberately top-level, not nested under
@@ -160,6 +181,9 @@ export { DEFAULT_CREDIT } from "./site/config.js";
 
 export interface RouteContext {
   gameModule: GameModule;
+  /** The resolved {@link EngineConfig.creatableSchemaVersions}, ascending and
+   * validated at startup to be keys of `gameModule.versions`. */
+  creatableSchemaVersions: readonly number[];
   /** The whitelabel app name (see {@link EngineConfig.appName}), read by the
    * `/j` landing page and any future engine-owned copy. */
   appName: string;
@@ -433,6 +457,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   };
   const ctx: RouteContext = {
     gameModule: cfg.gameModule,
+    creatableSchemaVersions: resolveCreatableSchemaVersions(cfg.gameModule, cfg.creatableSchemaVersions),
     appName: cfg.appName,
     d1: (env) => cfg.d1(env as TEnv),
     // Every call retries a transient Durable Object failure, safe because every
@@ -503,12 +528,42 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
  * on the first release: nothing reads it back, and the CI drift check only
  * compares this file against itself, so the lie survives every check. The Dart
  * client's pubspec is stamped from the same source for the same reason. */
+/** The versions new games may be created at, and the startup check that they
+ * are real. Defaults to the highest shipped version alone; see
+ * {@link EngineConfig.creatableSchemaVersions}. */
+export function resolveCreatableSchemaVersions(gameModule: GameModule, configured: readonly number[] | undefined): readonly number[] {
+  const shipped = supportedSchemaVersions(gameModule);
+  if (configured === undefined) return shipped.length === 0 ? [] : [shipped[shipped.length - 1] as number];
+  // Naming a version this deployment does not ship is the misconfiguration worth
+  // failing fast on: discovering it from a player's refused create is strictly
+  // worse than from a boot error. An EMPTY list is not an error — it is the
+  // honest way for a deployment that serves no games (a site- or
+  // notification-only worker) to say so, and `/capabilities` reports it.
+  const unknown = configured.filter((v) => !shipped.includes(v));
+  if (unknown.length > 0) {
+    throw new Error(`createEngine: creatableSchemaVersions [${unknown.join(", ")}] are not among the shipped versions [${shipped.join(", ") || "none"}]`);
+  }
+  return [...new Set(configured)].sort((a, b) => a - b);
+}
+
+/** Every `schemaVersion` this deployment can run, ascending: joinable, playable
+ * and replayable. Creation is narrower; see
+ * {@link EngineConfig.creatableSchemaVersion}. */
+export function supportedSchemaVersions(gameModule: GameModule): number[] {
+  return Object.keys(gameModule.versions)
+    .map(Number)
+    .sort((a, b) => a - b);
+}
+
 export function openApiDocument(version: string): OpenAPIObject {
   const inert = (): never => {
     throw new Error("openApiDocument(): routes are not executable");
   };
   const app = buildApp({
     gameModule: { versions: {} },
+    // Document generation renders schemas, never routes; a real version would be
+    // a lie here, since no rules are registered.
+    creatableSchemaVersions: [],
     appName: "<unused>",
     d1: inert,
     stub: inert,

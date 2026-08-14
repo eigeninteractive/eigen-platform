@@ -21,6 +21,7 @@ export 'package:eigen_api/src/model/add_bot.dart';
 export 'package:eigen_api/src/model/bot.dart';
 export 'package:eigen_api/src/model/bot_action.dart';
 export 'package:eigen_api/src/model/bots.dart';
+export 'package:eigen_api/src/model/capabilities.dart';
 export 'package:eigen_api/src/model/command_accepted.dart';
 export 'package:eigen_api/src/model/create_game.dart';
 export 'package:eigen_api/src/model/create_solo.dart';

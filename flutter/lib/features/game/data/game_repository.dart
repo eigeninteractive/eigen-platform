@@ -213,23 +213,26 @@ class GameRepository {
     );
   }
 
-  /// Takes a seat. [clientSchemaVersion] is the newest version this build ships
-  /// rules for - the server refuses rather than let an old build mis-parse a
-  /// newer game.
+  /// Takes a seat. [clientSchemaVersions] is every version this build ships
+  /// rules for, and the server checks the game's version against it exactly -
+  /// refusing rather than let a build mis-parse a game whose rules it lacks.
+  ///
+  /// A set, not a maximum: [GameModule.versions] is sparse, so a `{1, 3}` build
+  /// claiming "up to 3" would be seated into a v2 game it cannot decode.
   ///
   /// Answers with the same session [joinGameByCode] does: they are one operation
   /// differing only in how the game was named, so a caller handles either result
   /// identically.
   Future<Session> joinGame(
     String gameId, {
-    required int clientSchemaVersion,
+    required List<int> clientSchemaVersions,
     String? commandId,
   }) async {
     final body = await engineData(
       () => _api.joinGame(
         gameId: gameId,
         idempotencyKey: commandId ?? newCommandId(),
-        join: Join(clientSchemaVersion: clientSchemaVersion),
+        join: Join(clientSchemaVersions: clientSchemaVersions),
       ),
     );
     return body.session;
@@ -241,7 +244,7 @@ class GameRepository {
   /// is the only place they learn which game they are now in.
   Future<Session> joinGameByCode(
     String shortCode, {
-    required int clientSchemaVersion,
+    required List<int> clientSchemaVersions,
     String? commandId,
   }) async {
     final body = await engineData(
@@ -249,7 +252,7 @@ class GameRepository {
         idempotencyKey: commandId ?? newCommandId(),
         joinByCode: JoinByCode(
           shortCode: shortCode,
-          clientSchemaVersion: clientSchemaVersion,
+          clientSchemaVersions: clientSchemaVersions,
         ),
       ),
     );

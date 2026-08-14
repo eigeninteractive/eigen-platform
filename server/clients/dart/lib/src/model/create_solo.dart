@@ -35,6 +35,7 @@ class CreateSolo {
     this.incrementSeconds,
   });
 
+  /// The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities.
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
 

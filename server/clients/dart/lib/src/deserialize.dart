@@ -3,6 +3,7 @@ import 'package:eigen_api/src/model/add_bot.dart';
 import 'package:eigen_api/src/model/bot.dart';
 import 'package:eigen_api/src/model/bot_action.dart';
 import 'package:eigen_api/src/model/bots.dart';
+import 'package:eigen_api/src/model/capabilities.dart';
 import 'package:eigen_api/src/model/command_accepted.dart';
 import 'package:eigen_api/src/model/create_game.dart';
 import 'package:eigen_api/src/model/create_solo.dart';
@@ -77,6 +78,8 @@ ReturnType deserialize<ReturnType, BaseType>(
       return BotAction.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Bots':
       return Bots.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'Capabilities':
+      return Capabilities.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'CommandAccepted':
       return CommandAccepted.fromJson(value as Map<String, dynamic>)
           as ReturnType;

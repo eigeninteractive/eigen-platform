@@ -66,6 +66,31 @@ Two gates, deliberately redundant:
   seat is created, not only when the screen later fails to render. The lobby
   additionally greys out the Join button as immediate feedback.
 
+Join sends the app's whole set of shipped versions, and the server tests exact
+membership — the same question `supportsSchema` asks locally, asked again by the
+authority. It is deliberately not "is the game's version at or below the app's
+newest": support is sparse, so that comparison would seat a `{1, 3}` build into a
+v2 game it cannot decode.
+
+## Creating: the newest version, and only that one
+
+New games are created at the **server's** highest shipped version. A build whose
+newest version is older than the server's cannot create, and is refused with
+`schemaUnsupported` — which the app surfaces as *"Update your app…"*, the same
+prompt it already uses elsewhere. It can still join, play and replay every
+version it does ship, because that is governed by `versions`, not by creation.
+
+So a rules release is a single event: deploy the new version and new games use
+it. Clients that have not caught up lose only the ability to *start* games, and
+`GET /capabilities` publishes `creatableSchemaVersions` and
+`supportedSchemaVersions` for an app that wants to say so before the player
+tries.
+
+The one case needing more is a **rollback**: moving creation back after a bad
+release, without unshipping the version that games already exist at. Set
+`creatableSchemaVersions` on `createEngine` for that; it keeps the version
+joinable and replayable while new games go elsewhere.
+
 ## What counts as breaking
 
 **Adding a member to a game payload enum is breaking**, even though it looks

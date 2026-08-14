@@ -7,10 +7,10 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { decodeOptionalCursor } from "../cursor.js";
 import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
-import type { EngineApp, RouteContext } from "../engine.js";
+import { type EngineApp, type RouteContext, supportedSchemaVersions } from "../engine.js";
 import { HttpError } from "../http.js";
 import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
-import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape, sessionShape } from "./wire.js";
+import { botOf, botShape, capabilitiesShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape, sessionShape } from "./wire.js";
 
 function okResponse<T extends z.ZodType>(schema: T, description: string) {
   const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -24,6 +24,28 @@ function okResponse<T extends z.ZodType>(schema: T, description: string) {
 }
 
 export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
+  // What this deployment can run, so a client can tell whether it is compatible
+  // before it tries to create or join anything. Cheap and constant: derived from
+  // the shipped rules registry, touching neither D1 nor a Durable Object.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/capabilities",
+      operationId: "getCapabilities",
+      tags: ["Games"],
+      request: {},
+      responses: okResponse(capabilitiesShape, "The versions this deployment creates, and every version it supports"),
+    }),
+    (c) =>
+      c.json(
+        {
+          creatableSchemaVersions: [...ctx.creatableSchemaVersions],
+          supportedSchemaVersions: supportedSchemaVersions(ctx.gameModule),
+        },
+        200,
+      ),
+  );
+
   app.openapi(
     createRoute({
       method: "get",

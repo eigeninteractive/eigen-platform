@@ -14,6 +14,7 @@ Method | HTTP request | Description
 [**createGame**](GamesApi.md#creategame) | **POST** /api/engine/games | 
 [**createSoloGame**](GamesApi.md#createsologame) | **POST** /api/engine/games/solo | 
 [**forfeitGame**](GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
+[**getCapabilities**](GamesApi.md#getcapabilities) | **GET** /api/engine/capabilities | 
 [**getFrames**](GamesApi.md#getframes) | **GET** /api/engine/games/{gameId}/frames | 
 [**getGame**](GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
 [**getGameSession**](GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
@@ -241,6 +242,43 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getCapabilities**
+> Capabilities getCapabilities()
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
+
+try {
+    final response = api.getCapabilities();
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->getCapabilities: $e\n');
+}
+```
+
+### Parameters
+This endpoint does not need any parameter.
+
+### Return type
+
+[**Capabilities**](Capabilities.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

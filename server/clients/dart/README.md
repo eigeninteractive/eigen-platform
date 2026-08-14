@@ -85,6 +85,7 @@ Class | Method | HTTP request | Description
 [*GamesApi*](doc/GamesApi.md) | [**createGame**](doc/GamesApi.md#creategame) | **POST** /api/engine/games | 
 [*GamesApi*](doc/GamesApi.md) | [**createSoloGame**](doc/GamesApi.md#createsologame) | **POST** /api/engine/games/solo | 
 [*GamesApi*](doc/GamesApi.md) | [**forfeitGame**](doc/GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
+[*GamesApi*](doc/GamesApi.md) | [**getCapabilities**](doc/GamesApi.md#getcapabilities) | **GET** /api/engine/capabilities | 
 [*GamesApi*](doc/GamesApi.md) | [**getFrames**](doc/GamesApi.md#getframes) | **GET** /api/engine/games/{gameId}/frames | 
 [*GamesApi*](doc/GamesApi.md) | [**getGame**](doc/GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
 [*GamesApi*](doc/GamesApi.md) | [**getGameSession**](doc/GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
@@ -125,6 +126,7 @@ Class | Method | HTTP request | Description
  - [Bot](doc/Bot.md)
  - [BotAction](doc/BotAction.md)
  - [Bots](doc/Bots.md)
+ - [Capabilities](doc/Capabilities.md)
  - [CommandAccepted](doc/CommandAccepted.md)
  - [CreateGame](doc/CreateGame.md)
  - [CreateSolo](doc/CreateSolo.md)

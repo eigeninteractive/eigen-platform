@@ -140,7 +140,31 @@ describe("create", () => {
     const u = makeUsers();
     expect((await api(u.a, "POST", "/games", { ...createBody, access: "friends" }, true)).status).toBe(403);
     expect((await api(u.a, "POST", "/games", { ...createBody, turnSeconds: 30, budgetSeconds: 300 })).status).toBe(400);
-    expect((await api(u.a, "POST", "/games", { ...createBody, schemaVersion: 99 })).status).toBe(400);
+    // An unshipped version is refused as `schemaUnsupported`, the same code and
+    // status the join gate uses, rather than a bare 400: "this server does not
+    // create that version" is a capability answer, not a malformed request.
+    const unshipped = await api(u.a, "POST", "/games", { ...createBody, schemaVersion: 99 });
+    expect(unshipped.status).toBe(409);
+    expect(((await unshipped.json()) as { code: string }).code).toBe("schemaUnsupported");
+  });
+});
+
+describe("capabilities", () => {
+  it("publishes what the deployment creates and what it supports", async () => {
+    const u = makeUsers();
+    const caps = await json<{ creatableSchemaVersions: number[]; supportedSchemaVersions: number[] }>(await api(u.a, "GET", "/capabilities"));
+    // The test worker ships {1, 2} and pins neither, so both are creatable.
+    expect(caps).toEqual({ creatableSchemaVersions: [1, 2], supportedSchemaVersions: [1, 2] });
+  });
+
+  it("lets a client create at any published creatable version", async () => {
+    const u = makeUsers();
+    // Both shipped versions are creatable, which is the point of a set: a client
+    // still on v1 keeps working while a newer one creates v2.
+    for (const schemaVersion of [1, 2]) {
+      const res = await api(u.a, "POST", "/games", { ...createBody, schemaVersion, rated: false });
+      expect(res.status, `schemaVersion ${schemaVersion}`).toBe(201);
+    }
   });
 });
 
@@ -149,28 +173,32 @@ describe("waiting room", () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
-    const joined = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    const joined = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
     expect(joined.session.status).toBe("ready");
     expect(joined.session.players.map((p) => p.userId)).toEqual([u.a, u.b]);
     expect(joined.session.version).toBeNull();
 
-    const dup = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
+    const dup = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
     expect(dup.status).toBe(409);
     expect(((await dup.json()) as { code: string }).code).toBe("alreadyJoined");
 
-    const full = await api(u.c, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
+    const full = await api(u.c, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
     expect(((await full.json()) as { code: string }).code).toBe("gameFull");
   });
 
-  it("join-by-code resolves; the schema gate rejects an old client", async () => {
+  it("join-by-code resolves; the schema gate rejects a client without this version", async () => {
     const u = makeUsers();
     const { gameId, shortCode } = await createGame(u.a, { rated: false });
 
-    const old = await api(u.b, "POST", "/games/join-by-code", { shortCode, clientSchemaVersion: 0 });
-    expect(old.status).toBe(409);
-    expect(((await old.json()) as { code: string }).code).toBe("schemaUnsupported");
+    // The game is v1 and this client ships only v2: sparse support, so the old
+    // `game.schemaVersion <= clientMaximum` test would have WRONGLY seated it
+    // (2 >= 1) into a game whose frames it cannot decode. Exact membership is the
+    // whole point, and this is its regression test.
+    const sparse = await api(u.b, "POST", "/games/join-by-code", { shortCode, clientSchemaVersions: [2] });
+    expect(sparse.status).toBe(409);
+    expect(((await sparse.json()) as { code: string }).code).toBe("schemaUnsupported");
 
-    const joined = await json<CommandOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersion: 1 }));
+    const joined = await json<CommandOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersions: [1] }));
     expect(joined.session.players).toHaveLength(2);
     expect((await db.select().from(participants).where(eq(participants.gameId, gameId)).all()).length).toBeGreaterThanOrEqual(1);
   });
@@ -178,13 +206,13 @@ describe("waiting room", () => {
   it("guests cannot join rated games", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a); // rated by default
-    expect((await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }, true)).status).toBe(403);
+    expect((await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }, true)).status).toBe(403);
   });
 
   it("leave compacts and demotes below minPlayers; the creator cannot leave", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
 
     const creator = await api(u.a, "POST", `/games/${gameId}/leave`, {});
     expect(((await creator.json()) as { code: string }).code).toBe("creatorCannotLeave");
@@ -212,7 +240,7 @@ describe("waiting room", () => {
     expect(detail.participants).toEqual([]);
 
     // A late join fails cleanly at the DO (accepted staleness shape).
-    const late = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
+    const late = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
     expect(late.status).toBe(409);
   });
 
@@ -229,7 +257,7 @@ describe("waiting room", () => {
     const early = await api(u.a, "POST", `/games/${gameId}/start`, {});
     expect(early.status).toBe(409); // waiting, not ready
 
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
     expect((await api(u.b, "POST", `/games/${gameId}/start`, {})).status).toBe(403);
 
     const started = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
@@ -241,7 +269,7 @@ describe("waiting room", () => {
 describe("active play & frames", () => {
   async function readyGame(u: ReturnType<typeof makeUsers>, overrides: Record<string, unknown> = {}) {
     const { gameId } = await createGame(u.a, overrides);
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
     // No mirror wait: the DO resolves seats from its own roster, so the
     // joiner can act the moment the join response lands.
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
@@ -437,7 +465,7 @@ describe("socket (session snapshots)", () => {
 
     // Joining pushes the new snapshot to every socket, including this one,
     // whose principal just became seat 1.
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
     await vi.waitFor(() => expect(messages).toHaveLength(2));
     expect(messages[1]).toMatchObject({ type: "session", status: "ready" });
 

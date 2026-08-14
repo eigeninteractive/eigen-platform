@@ -337,9 +337,23 @@ abstract class GameModule {
   /// entry until those games drain (write) / stop being replayable (read).
   Map<int, GameRules> get versions;
 
-  /// The version new games are created at, the highest key of [versions],
-  /// and the value sent as `p_client_schema_version` on join/create.
+  /// The highest key of [versions]: the newest rules this build ships, and the
+  /// version new games are created at.
+  ///
+  /// The server creates only at ITS highest version, so a create from a build
+  /// behind the server is refused with `schemaUnsupported` and the player is
+  /// asked to update. Not a join gate: joining an older game is normal and uses
+  /// [supportedSchemaVersions].
   int get latestSchemaVersion => versions.keys.reduce((a, b) => a > b ? a : b);
+
+  /// Every version this build ships rules for, ascending: exactly what join
+  /// sends.
+  ///
+  /// A set, because [versions] is sparse. Sending a maximum instead would claim
+  /// support for gaps: a `{1, 3}` build would be seated into a v2 game it cannot
+  /// decode, since `2 <= 3`. The server checks exact membership against this.
+  List<int> get supportedSchemaVersions => versions.keys.toList()..sort();
+
 
   /// The rules unit new games use ([versions] at [latestSchemaVersion]).
   GameRules get latestRules => versions[latestSchemaVersion]!;

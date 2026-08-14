@@ -312,9 +312,9 @@ Future<Session> joinByCode(Ref ref, {required String code}) => ref
     .read(gameRepositoryProvider)
     .joinGameByCode(
       code,
-      clientSchemaVersion: ref
+      clientSchemaVersions: ref
           .read(currentGameModuleProvider)
-          .latestSchemaVersion,
+          .supportedSchemaVersions,
     );
 
 /// A finished game's outcomes.

@@ -77,6 +77,22 @@ function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
   return rules;
 }
 
+/**
+ * The creation gate: what a NEW game runs is the deployment's choice, not the
+ * caller's.
+ *
+ * The body's `schemaVersion` says which rules shaped its `config`, so it must be
+ * one the deployment still creates at. Refusing a mismatch rather than coercing
+ * it is what makes a staged rollout safe in both directions: a client ahead of
+ * the server cannot create a version the server has not enabled, and a client
+ * behind it stops creating a version the operator has retired. Coercing would
+ * silently pair a config built for one version with another version's rules.
+ */
+function assertCreatable(ctx: RouteContext, asserted: number): void {
+  if (ctx.creatableSchemaVersions.includes(asserted)) return;
+  throw new HttpError(409, `This server creates schemaVersion [${ctx.creatableSchemaVersions.join(", ")}] games; this app build asked for ${asserted}. Read GET /capabilities.`, "schemaUnsupported");
+}
+
 /** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
  * anything with the game's timing/rated/schema/config: a stored row or a
  * to-be-created spec. Throws an `HttpError` on any failed gate. */
@@ -228,6 +244,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (body.access === "friends" && auth.claims.isAnonymous) {
         throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
       }
+      assertCreatable(ctx, body.schemaVersion);
       const rules = rulesFor(ctx, body.schemaVersion);
       const parsed = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsed.ok) throw new HttpError(400, parsed.message);
@@ -316,6 +333,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const auth = c.var.auth;
       await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
+      assertCreatable(ctx, body.schemaVersion);
       const rules = rulesFor(ctx, body.schemaVersion);
       const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
@@ -408,13 +426,18 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   );
 
   // join: worker policy is guest-vs-rated, friends access, schema gate.
-  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number, key: string) => {
+  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersions: number[], key: string) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
       throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
     }
-    if (game.schemaVersion > clientSchemaVersion) {
-      throw new HttpError(409, "This game requires a newer app version", "schemaUnsupported");
+    // Exact membership, not `game.schemaVersion <= clientMaximum`. Client support
+    // is sparse — a build may ship {1, 3} once v2 has drained — so a maximum
+    // cannot express it, and comparing against one seats a {1, 3} client into a
+    // v2 game whose frames it cannot decode. Checked before seating, so a refusal
+    // leaves no participant row behind.
+    if (!clientSchemaVersions.includes(game.schemaVersion)) {
+      throw new HttpError(409, `This app build does not support this game's version (${game.schemaVersion})`, "schemaUnsupported");
     }
     if (game.access === "friends") {
       if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
@@ -446,7 +469,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
-      const seated = await join(c, game, body.clientSchemaVersion, commandId(c));
+      const seated = await join(c, game, body.clientSchemaVersions, commandId(c));
       return c.json(seated, 200);
     },
   );
@@ -464,7 +487,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.shortCode.toUpperCase());
       if (game === undefined) throw new HttpError(404, "No game with that code", "unknownGame");
-      const seated = await join(c, game, body.clientSchemaVersion, commandId(c));
+      const seated = await join(c, game, body.clientSchemaVersions, commandId(c));
       return c.json(seated, 200);
     },
   );

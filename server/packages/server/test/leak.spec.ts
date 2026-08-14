@@ -45,7 +45,7 @@ describe("leak test", () => {
     ws.addEventListener("message", (event: MessageEvent) => socketFrames.push(event.data as string));
     ws.accept();
 
-    await clean(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 2 }), "join");
+    await clean(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [2] }), "join");
     await clean(await api(a, "POST", `/games/${gameId}/start`, {}), "start");
 
     // Play to a finish: seat 0 (A) opens, then seat 1 (B) closes it out.
