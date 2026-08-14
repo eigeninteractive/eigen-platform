@@ -96,7 +96,7 @@ final class EngineDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$engineDioHash() => r'68273f6df83e12fec7bb6100012b1c5863cdfa4b';
+String _$engineDioHash() => r'25953bd5fcee619f2ef5ec8996ad621faa9575dc';
 
 /// Server time, tracked from the `Date` header of every engine response.
 ///
