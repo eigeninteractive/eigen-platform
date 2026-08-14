@@ -328,26 +328,6 @@ Defined in: [server/packages/server/src/do/game-do.ts:137](https://github.com/ei
 GameStub.handle
 ```
 
-##### reconcileAlarm()
-
-```ts
-reconcileAlarm(): Promise<void>;
-```
-
-Defined in: [server/packages/server/src/do/game-do.ts:1204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1204)
-
-Make the armed alarm match #desiredAlarm: the only alarm writer.
-
-Idempotent and cheap, because it compares before writing. Being derived
-rather than tracked is what makes it a repair as well as a normal write: an
-object that dies between committing a deadline and arming its alarm is
-fixed by the next call, without a player having to act, which matters
-because a deadline exists precisely for the case where nobody does.
-
-###### Returns
-
-`Promise`\<`void`\>
-
 ##### repokeFinish()
 
 ```ts
@@ -445,7 +425,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:796](https://github.com/ei
 
 ### HttpError
 
-Defined in: [server/packages/server/src/http.ts:42](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L42)
+Defined in: [server/packages/server/src/http.ts:46](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L46)
 
 #### Extends
 
@@ -463,7 +443,7 @@ new HttpError(
    retryAfterSeconds?): HttpError;
 ```
 
-Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
+Defined in: [server/packages/server/src/http.ts:54](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L54)
 
 ###### Parameters
 
@@ -492,7 +472,7 @@ Error.constructor
 readonly code: ErrorCode | undefined;
 ```
 
-Defined in: [server/packages/server/src/http.ts:44](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L44)
+Defined in: [server/packages/server/src/http.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L48)
 
 ##### retryAfterSeconds
 
@@ -500,7 +480,7 @@ Defined in: [server/packages/server/src/http.ts:44](https://github.com/eigeninte
 readonly retryAfterSeconds: number | undefined;
 ```
 
-Defined in: [server/packages/server/src/http.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L48)
+Defined in: [server/packages/server/src/http.ts:52](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L52)
 
 Seconds the caller should wait before retrying, rendered as the
 `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
@@ -512,7 +492,7 @@ Seconds the caller should wait before retrying, rendered as the
 readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
 ```
 
-Defined in: [server/packages/server/src/http.ts:43](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L43)
+Defined in: [server/packages/server/src/http.ts:47](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L47)
 
 ## Interfaces
 
@@ -710,7 +690,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eige
 
 ### EngineConfig
 
-Defined in: [server/packages/server/src/engine.ts:99](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L99)
+Defined in: [server/packages/server/src/engine.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L100)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 implementor picks bindings off their own Env. Annotate the accessors' `env`
@@ -731,7 +711,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L106)
+Defined in: [server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L107)
 
 The whitelabel app's display name, the single source of truth for the
 engine's own identity (share metadata and public-page titles today;
@@ -745,7 +725,7 @@ feature blocks are enabled.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L128)
+Defined in: [server/packages/server/src/engine.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L129)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -755,7 +735,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
-Defined in: [server/packages/server/src/engine.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L124)
+Defined in: [server/packages/server/src/engine.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L125)
 
 Browser origins allowed to call the engine from a different origin.
 
@@ -774,7 +754,7 @@ Set an empty list to disable the `WEB_APP_ORIGIN` default.
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L126)
+Defined in: [server/packages/server/src/engine.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L127)
 
 Native deep-link verification and store links. Omit for web-only.
 
@@ -784,7 +764,7 @@ Native deep-link verification and store links. Omit for web-only.
 gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L100)
+Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
 
 ##### lifecycle?
 
@@ -792,7 +772,7 @@ Defined in: [server/packages/server/src/engine.ts:100](https://github.com/eigeni
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:135](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L135)
+Defined in: [server/packages/server/src/engine.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L136)
 
 Cron-backstop tuning: guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -804,7 +784,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L131)
+Defined in: [server/packages/server/src/engine.ts:132](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L132)
 
 The public web surface: download page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -818,7 +798,7 @@ optional testing?: {
 };
 ```
 
-Defined in: [server/packages/server/src/engine.ts:140](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L140)
+Defined in: [server/packages/server/src/engine.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L141)
 
 Explicit test-only replacements for Firebase verification and Admin
 effects. Supplying them together prevents a fake verifier from
@@ -855,7 +835,7 @@ firebaseAdmin(env): FirebaseAdminEffects;
 d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L108)
+Defined in: [server/packages/server/src/engine.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L109)
 
 The engine's D1 database (engine-private).
 
@@ -875,7 +855,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L113)
+Defined in: [server/packages/server/src/engine.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L114)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -896,7 +876,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L110)
+Defined in: [server/packages/server/src/engine.ts:111](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L111)
 
 The GameDO namespace binding.
 
@@ -2119,7 +2099,7 @@ the call site; the internal loop only absorbs CAS conflicts).
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:418](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L418)
+Defined in: [server/packages/server/src/engine.ts:424](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L424)
 
 Creates the complete Cloudflare Worker for one game deployment.
 
@@ -2384,7 +2364,7 @@ single attempt.
 function openApiDocument(version): OpenAPIObject;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:494](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L494)
+Defined in: [server/packages/server/src/engine.ts:500](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L500)
 
 Build the API document from an inert app: route handlers never run, so
 the context can refuse everything. `appName` is an unused placeholder here:

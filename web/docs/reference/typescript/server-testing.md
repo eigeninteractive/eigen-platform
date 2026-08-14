@@ -151,6 +151,34 @@ Authorization header for a minted token.
 
 ***
 
+### testMutationHeaders()
+
+```ts
+function testMutationHeaders(opts): Promise<Record<string, string>>;
+```
+
+Defined in: [server/packages/server/src/testing.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L112)
+
+Headers for an authenticated JSON mutation: the bearer token, the content
+type, and the `Idempotency-Key` every non-idempotent engine route requires.
+
+Omit `idempotencyKey` and each call gets a fresh one, which is what a new
+intent sends. Pass an exact key to reuse it, which is how a test exercises a
+retry: the same key with the same request replays the committed result, and
+the same key with a different request is refused as `commandConflict`.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `opts` | [`TestTokenOptions`](#testtokenoptions) & \{ `idempotencyKey?`: `string`; \} |
+
+#### Returns
+
+`Promise`\<`Record`\<`string`, `string`\>\>
+
+***
+
 ### testVerifier()
 
 ```ts

@@ -412,7 +412,8 @@
           "imageTooLarge",
           "unsupportedImageType",
           "rateLimited",
-          "invalidCursor"
+          "invalidCursor",
+          "idempotencyKeyInvalid"
         ],
         "description": "A stable machine code identifying why a request failed."
       },
@@ -997,11 +998,6 @@
         "properties": {
           "clientSchemaVersion": {
             "type": "integer"
-          },
-          "commandId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
           }
         },
         "required": [
@@ -1027,26 +1023,11 @@
           }
         ]
       },
-      "LobbyCommand": {
-        "type": "object",
-        "properties": {
-          "commandId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
-          }
-        }
-      },
       "AddBot": {
         "type": "object",
         "properties": {
           "botId": {
             "type": "string"
-          },
-          "commandId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
           }
         },
         "required": [
@@ -1064,11 +1045,6 @@
           "expectedVersion": {
             "type": "integer",
             "minimum": 0
-          },
-          "commandId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
           }
         },
         "required": [
@@ -1082,11 +1058,6 @@
           "seat": {
             "type": "integer",
             "minimum": 0
-          },
-          "commandId": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 128
           }
         },
         "required": [
@@ -2250,6 +2221,21 @@
         "tags": [
           "Games"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2312,7 +2298,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2322,7 +2308,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2339,6 +2325,21 @@
         "operationId": "createSoloGame",
         "tags": [
           "Games"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -2402,7 +2403,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2412,7 +2413,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2439,6 +2440,19 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -2503,7 +2517,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2513,7 +2527,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2530,6 +2544,21 @@
         "operationId": "joinGameByCode",
         "tags": [
           "Games"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
+          }
         ],
         "requestBody": {
           "required": true,
@@ -2593,7 +2622,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2603,7 +2632,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2630,18 +2659,21 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LobbyCommand"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Left: the post-leave session",
@@ -2694,7 +2726,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2704,7 +2736,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2731,18 +2763,21 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LobbyCommand"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Cancelled",
@@ -2795,7 +2830,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2805,7 +2840,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2832,6 +2867,19 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -2896,7 +2944,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -2906,7 +2954,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -2933,18 +2981,21 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LobbyCommand"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Started: the session at version 0",
@@ -2997,7 +3048,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3007,7 +3058,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -3034,6 +3085,19 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -3098,7 +3162,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3108,7 +3172,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -3135,6 +3199,19 @@
             "required": true,
             "name": "gameId",
             "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
+            },
+            "required": true,
+            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
+            "in": "header",
+            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -3199,7 +3276,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3209,7 +3286,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
@@ -3311,7 +3388,7 @@
             }
           },
           "409": {
-            "description": "State or command-identity conflict; follow the stable error code",
+            "description": "Stale view; resync and retry",
             "content": {
               "application/json": {
                 "schema": {
@@ -3321,7 +3398,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch",
+            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
             "content": {
               "application/json": {
                 "schema": {
