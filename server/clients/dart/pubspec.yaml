@@ -15,7 +15,7 @@ description: >-
 # `version:` is stamped by the generation script from @eigeninteractive/server's
 # package.json. The wire contract is the server's, so the client carries the
 # server's version. Do not edit it by hand.
-version: 0.5.1
+version: 0.5.2
 homepage: https://eigeninteractive.com
 repository: https://github.com/eigeninteractive/eigen-platform/tree/main/server/clients/dart
 issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
