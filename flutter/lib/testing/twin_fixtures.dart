@@ -144,6 +144,18 @@ final class RatingPoolCase extends TwinFixtureCase {
   final String? expected;
 }
 
+/// A [GameRules.playerLimits] case: the seats one config may be played with.
+final class PlayerLimitsCase extends TwinFixtureCase {
+  const PlayerLimitsCase({
+    required super.name,
+    required this.config,
+    required this.expected,
+  });
+
+  final Map<String, dynamic> config;
+  final PlayerLimits expected;
+}
+
 /// A [GameRules.botSeatable] predicate case.
 final class BotSeatableCase extends TwinFixtureCase {
   const BotSeatableCase({
@@ -205,10 +217,12 @@ TwinFixtureCase _parseCase(String indexed, dynamic raw) {
   final where = name is String ? '$indexed ($name)' : indexed;
   return switch (map['kind']) {
     'action' => _parseActionCase(where, map),
+    'playerLimits' => _parsePlayerLimitsCase(where, map),
     'ratingPool' => _parseRatingPoolCase(where, map),
     'botSeatable' => _parseBotSeatableCase(where, map),
     final kind => throw FormatException(
-      '$where.kind: expected one of action | ratingPool | botSeatable, '
+      '$where.kind: expected one of '
+      'action | playerLimits | ratingPool | botSeatable, '
       'got ${jsonEncode(kind)}',
     ),
   };
@@ -277,6 +291,21 @@ RatingPoolCase _parseRatingPoolCase(String where, Map<String, dynamic> map) {
   );
 }
 
+PlayerLimitsCase _parsePlayerLimitsCase(
+  String where,
+  Map<String, dynamic> map,
+) {
+  final expected = _object('$where.expected', map['expected']);
+  return PlayerLimitsCase(
+    name: _string('$where.name', map['name']),
+    config: _object('$where.config', map['config']),
+    expected: PlayerLimits(
+      minPlayers: _int('$where.expected.minPlayers', expected['minPlayers']),
+      maxPlayers: _int('$where.expected.maxPlayers', expected['maxPlayers']),
+    ),
+  );
+}
+
 BotSeatableCase _parseBotSeatableCase(String where, Map<String, dynamic> map) {
   return BotSeatableCase(
     name: _string('$where.name', map['name']),
@@ -334,6 +363,7 @@ List<String> runTwinFixtureCase(
   TwinFixtureCase fixtureCase,
 ) => switch (fixtureCase) {
   ActionCase() => _runActionCase(rules, fixtureCase),
+  PlayerLimitsCase() => _runPlayerLimitsCase(rules, fixtureCase),
   RatingPoolCase() => _runRatingPoolCase(rules, fixtureCase),
   BotSeatableCase() => _runBotSeatableCase(rules, fixtureCase),
 };
@@ -434,6 +464,21 @@ List<String> _runRatingPoolCase(
   return [
     'ratingPool returned ${jsonEncode(pool)}, fixture expects '
         '${jsonEncode(c.expected)}',
+  ];
+}
+
+List<String> _runPlayerLimitsCase(
+  GameRules<dynamic, dynamic, dynamic> rules,
+  PlayerLimitsCase c,
+) {
+  final failures = <String>[];
+  final config = _parse('config', () => rules.parseConfig(c.config), failures);
+  if (config == null) return failures;
+  final limits = rules.playerLimits(config);
+  if (limits == c.expected) return const [];
+  return [
+    'playerLimits returned ${limits.minPlayers}-${limits.maxPlayers}, '
+        'fixture expects ${c.expected.minPlayers}-${c.expected.maxPlayers}',
   ];
 }
 

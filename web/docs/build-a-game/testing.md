@@ -42,8 +42,8 @@ A fixture file is a list of cases, keyed to one `schemaVersion`:
 }
 ```
 
-`kind` is `action`, `ratingPool` or `botSeatable`. The two runners read the same
-file and check different things:
+`kind` is `action`, `playerLimits`, `ratingPool` or `botSeatable`. The two runners
+read the same file and check different things:
 
 | Field | TypeScript runner | Dart runner |
 |---|---|---|
@@ -109,8 +109,10 @@ file. `eigen-contract` rejects a path such as `v2/case.json` whose document says
 Write fixtures for the interesting states, especially hidden-information reveals
 and `computeObservation` masking, because those are exactly where the two halves
 drift. At minimum: one legal move with its expected observation, one illegal
-move, one game-ending move, and one case per `ratingPool` / `botSeatable` branch.
-Grow the suite with the rules.
+move, one game-ending move, and one case per `playerLimits` / `ratingPool` /
+`botSeatable` branch. `playerLimits` is worth a case even in a fixed-size game:
+it is the only twin the server *enforces*, so drift there fails creation rather
+than a pixel. Grow the suite with the rules.
 
 ## The other layers
 

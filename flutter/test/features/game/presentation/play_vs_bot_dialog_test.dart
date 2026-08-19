@@ -19,8 +19,6 @@ class _SchemaTwoModule extends SampleModule {
 
   @override
   GameCreationSpec get creationSpec => const GameCreationSpec(
-    minPlayers: 2,
-    maxPlayers: 2,
     timingConfigs: {'Rapid': PerActionConfig(maxSeconds: 60)},
   );
 }

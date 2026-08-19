@@ -149,6 +149,33 @@ class RatingPoolArgs {
   final Map<String, dynamic> config;
 }
 
+/// The seats one config may be played with, returned by
+/// [GameRules.playerLimits].
+///
+/// Mirrors the TS `PlayerLimits` field for field. A fixed-size game returns the
+/// same number twice.
+class PlayerLimits {
+  const PlayerLimits({required this.minPlayers, required this.maxPlayers});
+
+  /// Fewest seats this config can be played with.
+  final int minPlayers;
+
+  /// Most seats this config can be played with.
+  final int maxPlayers;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PlayerLimits &&
+      other.minPlayers == minPlayers &&
+      other.maxPlayers == maxPlayers;
+
+  @override
+  int get hashCode => Object.hash(minPlayers, maxPlayers);
+
+  @override
+  String toString() => 'PlayerLimits($minPlayers-$maxPlayers)';
+}
+
 /// A candidate bot seating, passed to [GameRules.botSeatable].
 ///
 /// Field-for-field twin of the TS `BotSeatableArgs` interface. [gameConfig]
@@ -183,6 +210,7 @@ class BotSeatableArgs {
 /// - [previewAction]: the game's own optimistic projection of `applyAction`
 ///   (a standardized contract; infra never calls it);
 /// - rendering ([buildContent]);
+/// - [playerLimits]: the versioned twin of the seat authority;
 /// - display-only twins of the two predicates ([ratingPool] / [botSeatable]).
 ///
 /// Keep the twins in sync with the TS unit for the same version; the server
@@ -294,6 +322,16 @@ abstract class GameRules<TObs, TAction, TConfig> {
   /// game implementors do not choose the haptic.
   Widget buildContent(GameContentContext context);
 
+  /// The seats a game with this config may be played with: the twin of the TS
+  /// `GameRules.playerLimits`, which is the **authority**.
+  ///
+  /// Unlike the two predicates below this is not display-only. The create dialog
+  /// sizes its player control from this, and creation sends the chosen range as an
+  /// assertion; the server refuses a range reaching outside what its rules can
+  /// seat, so a twin that reports a wider range than the server's produces a
+  /// failed create rather than a wrong pixel. Narrowing is allowed.
+  PlayerLimits playerLimits(TConfig config);
+
   /// The rating pool a game with these settings would fall into, or `null` if
   /// it is unrated (casual). Drives the create dialog: the Rated toggle is
   /// shown only when this returns non-null. **Display only**; the server
@@ -380,8 +418,22 @@ abstract class GameModule {
   ///
   /// The default returns [GameCreationSpec.minPlayers] and
   /// [GameCreationSpec.maxPlayers].
-  (int min, int max) playersForConfig(Map<String, dynamic> config) =>
-      (creationSpec.minPlayers, creationSpec.maxPlayers);
+  ///
+  /// This is the twin of the server's `playerLimits`, which is the authority:
+  /// creation sends this range as an assertion and the server refuses one
+  /// reaching outside what its rules can seat. Narrowing is allowed, so this may
+  /// return a tighter range than the rules permit, but a wider one is a create
+  /// that fails rather than a bigger game.
+  ///
+  /// The default delegates to [latestRules] — creation always targets that
+  /// version, and the versioned unit is where the twin actually lives — so most
+  /// modules never override this. Override to narrow the range the create dialog
+  /// offers, not to widen it.
+  (int min, int max) playersForConfig(Map<String, dynamic> config) {
+    final rules = latestRules;
+    final limits = rules.playerLimits(rules.parseConfig(config));
+    return (limits.minPlayers, limits.maxPlayers);
+  }
 
   /// Optional widget for game-specific creation config (board size, variants…).
   ///

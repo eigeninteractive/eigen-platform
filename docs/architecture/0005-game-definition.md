@@ -2,6 +2,8 @@
 
 - Status: accepted
 - Date: 2026-08-13
+- Amended: 2026-08-19. The player-count policy shipped; see "Implementation
+  notes" at the end.
 
 ## Decision
 
@@ -82,3 +84,16 @@ does not waive server conformance or create a second source of validity.
 - API/OpenAPI: replace client-supplied min/max seats with derived response data.
 - Flutter: replace maximum-schema handshake with an exact contract set.
 - Bots: store and advertise exact supported contract IDs.
+
+## Implementation notes (2026-08-19)
+
+**Seat policy shipped as `GameRules.playerLimits`.** "Server-side player-count
+policy derived from validated config" is implemented: the hook returns the seats a
+config may be played with, creation derives them, and the caller's
+`minPlayers`/`maxPlayers` became optional assertions validated against the derived
+bounds (422 on a range outside them). This closes the seat case of "caller-supplied
+derived values do not exist" below; timing and rating pool were already derived.
+
+One deliberate softening of that rule: a caller may still **narrow** the range for
+one lobby, because a preference inside what the rules can play is a genuine choice
+and cannot make a game unrepresentable. Only widening is refused.

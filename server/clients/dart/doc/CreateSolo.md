@@ -10,8 +10,8 @@ Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **schemaVersion** | **int** | The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities. | 
 **config** | **Object** |  | 
-**minPlayers** | **int** |  | 
-**maxPlayers** | **int** |  | 
+**minPlayers** | **int** |  | [optional] 
+**maxPlayers** | **int** |  | [optional] 
 **rated** | **bool** |  | [optional] 
 **botIds** | **List&lt;String&gt;** |  | 
 **turnSeconds** | **int** |  | [optional] 

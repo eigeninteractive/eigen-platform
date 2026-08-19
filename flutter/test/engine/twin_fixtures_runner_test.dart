@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:checks/checks.dart';
 import 'package:eigen_api/eigen_api.dart' show GameAccess;
+import 'package:eigen_flutter/eigen_flutter.dart' show PlayerLimits;
 import 'package:eigen_flutter/testing/twin_fixtures.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -133,6 +134,21 @@ void main() {
       expectSingleFailure(
         runTwinFixtureCase(rules, ratingCase(GameAccess.public, 'blitz')),
         'ratingPool returned "casual"',
+      );
+    });
+
+    test('playerLimits agreement passes and divergence fails', () {
+      PlayerLimitsCase limitsCase(int min, int max) => PlayerLimitsCase(
+        name: 'case',
+        config: const {},
+        expected: PlayerLimits(minPlayers: min, maxPlayers: max),
+      );
+      check(runTwinFixtureCase(rules, limitsCase(2, 2))).isEmpty();
+      // The drift that matters: a twin claiming more seats than the server's
+      // rules can seat turns every create into a 422.
+      expectSingleFailure(
+        runTwinFixtureCase(rules, limitsCase(2, 4)),
+        'playerLimits returned 2-2',
       );
     });
 

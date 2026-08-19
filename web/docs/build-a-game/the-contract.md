@@ -69,7 +69,7 @@ export default {
 } satisfies GameModule;
 ```
 
-A unit is one version's payload schemas plus six hooks (and an optional seventh
+A unit is one version's payload schemas plus seven hooks (and an optional eighth
 for bots):
 
 ```ts

@@ -12,7 +12,7 @@ The server ships as four npm packages. The split is by **trust and purity**, not
 by feature:
 
 ```text
-@eigeninteractive/rules    The implementor contract: GameRules, GameModule, the six hooks,
+@eigeninteractive/rules    The implementor contract: GameRules, GameModule, the seven hooks,
                 the JSON/Envelope/Observation types. Pure types + 2 helpers.
                 Zero engine dependencies; a game author reads only this.
 

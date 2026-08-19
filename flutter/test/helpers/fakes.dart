@@ -54,6 +54,10 @@ class SampleRules
   const SampleRules();
 
   @override
+  PlayerLimits playerLimits(SampleConfig config) =>
+      const PlayerLimits(minPlayers: 2, maxPlayers: 2);
+
+  @override
   SampleConfig parseConfig(Map<String, dynamic> json) => const SampleConfig();
 
   @override
@@ -112,8 +116,7 @@ class SampleModule extends GameModule {
   Map<int, GameRules> get versions => const {1: SampleRules()};
 
   @override
-  GameCreationSpec get creationSpec =>
-      const GameCreationSpec(minPlayers: 2, maxPlayers: 2);
+  GameCreationSpec get creationSpec => const GameCreationSpec();
 
   @override
   Widget? buildCreationConfig({

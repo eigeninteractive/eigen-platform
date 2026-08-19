@@ -26,6 +26,12 @@
       }
     },
     {
+      "kind": "playerLimits",
+      "name": "the example game plays with exactly two seats",
+      "config": {},
+      "expected": { "minPlayers": 2, "maxPlayers": 2 }
+    },
+    {
       "kind": "ratingPool",
       "name": "the example game is never rated",
       "access": "public",

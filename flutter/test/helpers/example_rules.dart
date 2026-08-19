@@ -51,6 +51,10 @@ class ExampleRules
   const ExampleRules();
 
   @override
+  PlayerLimits playerLimits(ExampleConfig config) =>
+      const PlayerLimits(minPlayers: 2, maxPlayers: 2);
+
+  @override
   ExampleConfig parseConfig(Map<String, dynamic> json) => const ExampleConfig();
 
   @override

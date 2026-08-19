@@ -28,7 +28,7 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
 | 4: safe mutation identity | Complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, create receipts on the games row, and bounded Worker-to-DO retry |
-| 5: setup authority and version negotiation | Complete | Exact sparse membership on join, server-owned creation version, `GET /capabilities`; contract digests deferred, see RFC 0003's implementation notes |
+| 5: setup authority and version negotiation | Complete | Exact sparse membership on join, server-owned creation version, rules-derived seat counts, `GET /capabilities`; contract digests deferred, see RFC 0003's implementation notes |
 | 6+: recovery and security loops onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 outcome
@@ -140,6 +140,25 @@ amended, not silently diverged from.
   instead — outcome classification in `engineCall`, and a same-key transport retry
   — for roughly one predicate rather than a persistence layer. The trigger to
   revisit is a deadline-free intent whose loss a player would notice.
+
+- **Seat counts moved from the caller to the rules (2026-08-19).** `POST /games`
+  and `/games/solo` accepted `minPlayers`/`maxPlayers` and checked them only
+  against each other; no hook existed to check them against the game. A create
+  could therefore seat more players than the rules can address — the RPS example
+  stores `moves: z.tuple([move, move])` and casts `playerIndex as 0 | 1`, so the
+  third seat corrupts the state or 500s. This is the same class of defect as the
+  version comparison Phase 5 fixed: the client was authority on a value only the
+  rules can derive. `GameRules.playerLimits({ config })` is now that authority, the
+  two body fields are optional assertions validated against it, and a range outside
+  the derived bounds is a 422 rather than a clamp. Narrowing is still allowed,
+  because a lobby preference inside what the rules can play is a real choice and
+  cannot make a game unrepresentable. Receipts keep fingerprinting the request as
+  *sent*, not as resolved, so two byte-identical retries agree even across a
+  redeploy that moved a bound. `GameCreationSpec.minPlayers`/`maxPlayers` are
+  deleted rather than kept in sync: they were an unversioned second declaration of
+  a per-version fact, and `GameModule.playersForConfig` now delegates to the
+  version's twin. This is the third caller-supplied derived value RFC 0005 names;
+  timing and rating pool were already server-derived.
 
 ## Current validation contract
 

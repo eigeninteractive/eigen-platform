@@ -70,6 +70,9 @@ const rules: GameRules = {
   },
   // Full-reveal observation: every seat (and viewers) sees the raw state.
   computeObservation: ({ state, pending }) => ({ data: state as JsonObject, pendingPlayers: pending }),
+  // A deliberately RANGED game (most real ones are fixed): the tests need both
+  // a narrowing that is allowed and a range that is refused.
+  playerLimits: () => ({ minPlayers: 2, maxPlayers: 4 }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
   // In-DO brains, keyed by bot username: the `test-engine-bot` always
@@ -123,6 +126,7 @@ const hiddenRules: GameRules = {
   },
   // Hidden-info projection: only `count` is ever revealed; `secret` never is.
   computeObservation: ({ state, pending }) => ({ data: { count: (state as HiddenState).count }, pendingPlayers: pending }),
+  playerLimits: () => ({ minPlayers: 2, maxPlayers: 4 }),
   ratingPool: () => "test-pool",
   botSeatable: () => true,
 };

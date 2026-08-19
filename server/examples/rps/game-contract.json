@@ -620,6 +620,17 @@
             }
           },
           {
+            "config": {
+              "targetWins": 3
+            },
+            "expected": {
+              "maxPlayers": 2,
+              "minPlayers": 2
+            },
+            "kind": "playerLimits",
+            "name": "rps is exactly two seats, whatever the target"
+          },
+          {
             "access": "public",
             "config": {
               "targetWins": 3

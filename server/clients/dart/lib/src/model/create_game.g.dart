@@ -9,16 +9,7 @@ part of 'create_game.dart';
 CreateGame _$CreateGameFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('CreateGame', json, ($checkedConvert) {
-  $checkKeys(
-    json,
-    requiredKeys: const [
-      'access',
-      'schemaVersion',
-      'config',
-      'minPlayers',
-      'maxPlayers',
-    ],
-  );
+  $checkKeys(json, requiredKeys: const ['access', 'schemaVersion', 'config']);
   final val = CreateGame(
     access: $checkedConvert(
       'access',
@@ -30,8 +21,8 @@ CreateGame _$CreateGameFromJson(
     ),
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
     config: $checkedConvert('config', (v) => v as Object),
-    minPlayers: $checkedConvert('minPlayers', (v) => (v as num).toInt()),
-    maxPlayers: $checkedConvert('maxPlayers', (v) => (v as num).toInt()),
+    minPlayers: $checkedConvert('minPlayers', (v) => (v as num?)?.toInt()),
+    maxPlayers: $checkedConvert('maxPlayers', (v) => (v as num?)?.toInt()),
     rated: $checkedConvert('rated', (v) => v as bool?),
     turnSeconds: $checkedConvert('turnSeconds', (v) => (v as num?)?.toInt()),
     budgetSeconds: $checkedConvert(
@@ -51,8 +42,8 @@ Map<String, dynamic> _$CreateGameToJson(CreateGame instance) =>
       'access': _$GameAccessEnumMap[instance.access]!,
       'schemaVersion': instance.schemaVersion,
       'config': instance.config,
-      'minPlayers': instance.minPlayers,
-      'maxPlayers': instance.maxPlayers,
+      'minPlayers': ?instance.minPlayers,
+      'maxPlayers': ?instance.maxPlayers,
       'rated': ?instance.rated,
       'turnSeconds': ?instance.turnSeconds,
       'budgetSeconds': ?instance.budgetSeconds,

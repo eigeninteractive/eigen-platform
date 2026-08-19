@@ -33,6 +33,17 @@ from its committed receipt rather than applying the command twice. A mutation
 without a key is still never retried, because its outcome after a timeout is
 genuinely unknown.
 
+- **Breaking.** `GameRules` gains a required `playerLimits(config)` returning
+`PlayerLimits`: the seats one config may be played with, and the twin of the
+server hook of the same name. `GameCreationSpec.minPlayers`/`maxPlayers` are gone,
+because they duplicated it unversioned; `GameModule.playersForConfig` now
+delegates to the latest version's twin, so most modules stop overriding it.
+Creation sends the range as an assertion and **the engine refuses one it cannot
+seat**, so unlike `ratingPool`/`botSeatable` this twin is enforced: drift fails a
+create rather than mis-rendering a control. Narrowing the range is still allowed.
+- Twin fixtures accept a `playerLimits` case kind, so a drifted seat declaration
+fails a test on both sides.
+
 ### Added
 - `newCommandId()`, the mutation identity generator, and handling for the
 `commandConflict` and `idempotencyKeyInvalid` server codes. Both report the

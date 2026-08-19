@@ -1,6 +1,6 @@
 ---
 name: building-a-game
-description: Write or review a game on the EigenInteractive engine, covering the GameRules/GameModule contract, the six hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
+description: Write or review a game on the EigenInteractive engine, covering the GameRules/GameModule contract, the seven hooks, hidden information and the same-view rule, twin fixtures, and wiring a Worker. Use when implementing game rules against @eigeninteractive/rules, adding a schema version, writing an engine bot brain, debugging a rejected move (illegalMove, stateUpdated), or reviewing a game module for determinism and observation-projection mistakes.
 ---
 
 # Building a game on EigenInteractive
@@ -83,7 +83,7 @@ export of `src/module/index.ts`:
 export default { versions: { 1: rulesV1 } } satisfies GameModule;
 ```
 
-A `GameRules` unit is schemas + six hooks (+ optional bot brains):
+A `GameRules` unit is schemas + seven hooks (+ optional bot brains):
 
 ```ts
 interface GameRules<TState, TObservation, TAction, TConfig> {
@@ -93,6 +93,7 @@ interface GameRules<TState, TObservation, TAction, TConfig> {
   applyAction(args): Envelope<TState>;
   applyLifecycle(args): Envelope<TState>;      // timeout / forfeit / autoForfeit
   computeObservation(args): ObservationSlice;  // per-seat projection
+  playerLimits(args): PlayerLimits;            // seats these rules can play
   ratingPool(args): string | null;
   botSeatable(args): boolean;
 

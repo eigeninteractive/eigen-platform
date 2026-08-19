@@ -100,6 +100,17 @@
             "state": {
               "count": 0
             }
+          },
+          {
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "maxPlayers": 2,
+              "minPlayers": 2
+            },
+            "kind": "playerLimits",
+            "name": "two seats, because applyAction passes the turn with 1 - playerIndex"
           }
         ],
         "schemaVersion": 1

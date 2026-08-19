@@ -44,6 +44,7 @@ export {
   type BotSeatableCase,
   deepEquals,
   evaluateTwinCase,
+  type PlayerLimitsCase,
   parseTwinFixtureFile,
   type RatingPoolCase,
   type TwinFixtureCase,

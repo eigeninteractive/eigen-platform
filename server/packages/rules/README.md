@@ -5,7 +5,7 @@ The game-rules contract for the
 engine for turn-based multiplayer games.
 
 This package is **pure types plus two helpers**, with zero engine dependencies.
-A game author reads only this: `GameRules`, `GameModule`, the six hooks, and the
+A game author reads only this: `GameRules`, `GameModule`, the seven hooks, and the
 `Envelope` / `Observation` types.
 
 ```ts

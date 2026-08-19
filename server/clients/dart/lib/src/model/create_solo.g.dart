@@ -9,21 +9,12 @@ part of 'create_solo.dart';
 CreateSolo _$CreateSoloFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('CreateSolo', json, ($checkedConvert) {
-  $checkKeys(
-    json,
-    requiredKeys: const [
-      'schemaVersion',
-      'config',
-      'minPlayers',
-      'maxPlayers',
-      'botIds',
-    ],
-  );
+  $checkKeys(json, requiredKeys: const ['schemaVersion', 'config', 'botIds']);
   final val = CreateSolo(
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
     config: $checkedConvert('config', (v) => v as Object),
-    minPlayers: $checkedConvert('minPlayers', (v) => (v as num).toInt()),
-    maxPlayers: $checkedConvert('maxPlayers', (v) => (v as num).toInt()),
+    minPlayers: $checkedConvert('minPlayers', (v) => (v as num?)?.toInt()),
+    maxPlayers: $checkedConvert('maxPlayers', (v) => (v as num?)?.toInt()),
     rated: $checkedConvert('rated', (v) => v as bool?),
     botIds: $checkedConvert(
       'botIds',
@@ -46,8 +37,8 @@ Map<String, dynamic> _$CreateSoloToJson(CreateSolo instance) =>
     <String, dynamic>{
       'schemaVersion': instance.schemaVersion,
       'config': instance.config,
-      'minPlayers': instance.minPlayers,
-      'maxPlayers': instance.maxPlayers,
+      'minPlayers': ?instance.minPlayers,
+      'maxPlayers': ?instance.maxPlayers,
       'rated': ?instance.rated,
       'botIds': instance.botIds,
       'turnSeconds': ?instance.turnSeconds,

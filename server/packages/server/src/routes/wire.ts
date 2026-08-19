@@ -267,6 +267,26 @@ export const botShape = z
 
 // ── Request bodies ────────────────────────────────────────────────────────────
 
+/**
+ * The caller's chosen seat range: an assertion about the game it wants, not the
+ * authority on what is possible.
+ *
+ * `GameRules.playerLimits` derives the bounds this config can actually be played
+ * with, and a create may only narrow them (a 2-6 game opened as a 3-6 lobby).
+ * Omitting both means exactly the derived bounds, which is every fixed-size
+ * game, so the common case sends nothing. A range reaching outside them is
+ * refused: the rules index seats by these numbers, so a wider one is a corrupt
+ * game rather than a big one.
+ */
+const seatFields = {
+  minPlayers: z.number().int().min(1).optional(),
+  maxPlayers: z.number().int().min(1).optional(),
+};
+
+/** A chosen range must be a range. Bounds against the rules need the parsed
+ * config, so they are checked in the route, not here. */
+const seatsOrdered = (v: { minPlayers?: number; maxPlayers?: number }) => v.minPlayers === undefined || v.maxPlayers === undefined || v.maxPlayers >= v.minPlayers;
+
 const timingFields = {
   turnSeconds: z.number().int().positive().nullable().default(null),
   budgetSeconds: z.number().int().positive().nullable().default(null),
@@ -300,8 +320,7 @@ export const createGameBody = z
      * (config, observation data) generates as one Dart type and a config can
      * round-trip from a read straight back into a create. */
     config: jsonObjectShape,
-    minPlayers: z.number().int().min(1),
-    maxPlayers: z.number().int().min(1),
+    ...seatFields,
     /** The client's concrete rated assertion (Dart twin of `ratingPool`),
      * validated and never coerced. Absent ⇒ rated when eligible. */
     rated: z.boolean().optional(),
@@ -309,7 +328,7 @@ export const createGameBody = z
   })
   .refine(timingExclusive, "turnSeconds and budgetSeconds are mutually exclusive")
   .refine(incrementNeedsBudget, "incrementSeconds requires budgetSeconds")
-  .refine((v) => v.maxPlayers >= v.minPlayers, "maxPlayers must be at least minPlayers")
+  .refine(seatsOrdered, "maxPlayers must be at least minPlayers")
   .openapi("CreateGame");
 
 export const createdShape = z.object({ gameId: z.string(), shortCode: z.string() }).openapi("Created");
@@ -355,8 +374,7 @@ export const createSoloBody = z
      * (config, observation data) generates as one Dart type and a config can
      * round-trip from a read straight back into a create. */
     config: jsonObjectShape,
-    minPlayers: z.number().int().min(1),
-    maxPlayers: z.number().int().min(1),
+    ...seatFields,
     rated: z.boolean().optional(),
     /** The bots to seat alongside the caller, in seat order after seat 0. */
     botIds: z.array(z.string()).min(1),
@@ -364,7 +382,7 @@ export const createSoloBody = z
   })
   .refine(timingExclusive, "turnSeconds and budgetSeconds are mutually exclusive")
   .refine(incrementNeedsBudget, "incrementSeconds requires budgetSeconds")
-  .refine((v) => v.maxPlayers >= v.minPlayers, "maxPlayers must be at least minPlayers")
+  .refine(seatsOrdered, "maxPlayers must be at least minPlayers")
   .openapi("CreateSolo");
 
 /** The started solo game: its ids plus the caller's committed v0 frame (the

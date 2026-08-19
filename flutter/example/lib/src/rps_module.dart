@@ -23,8 +23,6 @@ class RpsModule extends GameModule {
 
   @override
   GameCreationSpec get creationSpec => const GameCreationSpec(
-    minPlayers: 2,
-    maxPlayers: 2,
     // Keys become the segment labels in the new-game dialog, in this order,
     // and the first is selected by default. A per-action clock suits RPS:
     // there is exactly one decision per round and no reason to bank time.

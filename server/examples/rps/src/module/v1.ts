@@ -1,6 +1,6 @@
 /**
  * Schema version 1 of Rock–Paper–Scissors: one self-contained
- * {@link GameRules} unit: the Zod payload contracts plus all six hooks, typed
+ * {@link GameRules} unit: the Zod payload contracts plus all seven hooks, typed
  * to this version's shapes.
  *
  * RPS is the engine's hardest-case-first example: a simultaneous-commitment
@@ -29,7 +29,7 @@
  * running against this unit until they drain.
  */
 
-import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type RatingPoolArgs } from "@eigeninteractive/rules";
+import { type AnyGameRules, type ApplyActionArgs, type ApplyLifecycleArgs, type BotAction, type ComputeObservationArgs, type Envelope, type GameRules, IllegalMoveError, type InitialStateArgs, type ObservationSlice, type OutcomeEntry, type PlayerLimits, type RatingPoolArgs } from "@eigeninteractive/rules";
 import { z } from "zod";
 
 const moveSchema = z.enum(["rock", "paper", "scissors"]).meta({ id: "Move" });
@@ -202,6 +202,13 @@ class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
       },
       pendingPlayers: pending.filter((s) => s === seat),
     };
+  }
+
+  /** Exactly two, always: the state is a pair of moves and a pair of win counts,
+   * and `applyAction` addresses seats as `0 | 1`. A third seat would not be a
+   * bigger game, it would be an unrepresentable one. */
+  playerLimits(): PlayerLimits {
+    return { minPlayers: 2, maxPlayers: 2 };
   }
 
   ratingPool({ access }: RatingPoolArgs<Config>): string | null {

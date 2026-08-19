@@ -112,7 +112,9 @@ void main() {
       check(module.latestRules).isA<SampleRules>();
     });
 
-    test('playersForConfig falls back to the creation spec bounds', () {
+    test('playersForConfig delegates to the latest version twin', () {
+      // Seats come from the versioned `playerLimits`, so a module never restates
+      // them: the create dialog and the server read the same declaration.
       check(module.playersForConfig(const {})).equals((2, 2));
     });
   });

@@ -39,7 +39,7 @@ void main() {
 
   group('GameCreationSpec', () {
     test('defaults to a single Untimed timing option', () {
-      const spec = GameCreationSpec(minPlayers: 2, maxPlayers: 4);
+      const spec = GameCreationSpec();
       check(spec.timingConfigs.keys.single).equals('Untimed');
       check(spec.timingConfigs['Untimed']).isA<UntimedConfig>();
     });

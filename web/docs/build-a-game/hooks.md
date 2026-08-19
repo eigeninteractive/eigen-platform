@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: The hooks
-description: The six server hooks, what the engine has already guaranteed before each is called, and what each one produces on the client.
+description: The seven server hooks, what the engine has already guaranteed before each is called, and what each one produces on the client.
 ---
 
 # The hooks
 
-The six hooks are the deciding half of a game, and they all live in TypeScript.
+The seven hooks are the deciding half of a game, and they all live in TypeScript.
 Each section below ends with **what reaches the client**, because a hook's real
 output is not its return value, it is what a player ends up looking at.
 
@@ -86,6 +86,26 @@ What you reveal here decides which concurrent submissions the engine accepts. Se
 [Hidden information](./hidden-information.md).
 
 :::
+
+## `playerLimits({ config }) → { minPlayers, maxPlayers }`
+
+How many seats these rules can play with this config. A fixed-size game returns
+the same number twice.
+
+This is the authority, not a hint. `initialState` receives `playerCount` seats and
+every hook addresses seats by index, so a game whose state is a fixed shape — a
+pair of hands, a two-element score array — **must** bound it here. Creation
+refuses a range reaching outside what you return, so a third seat in a two-player
+game is a rejected create rather than a corrupt game.
+
+Read `config` when the count is a creation choice: a game offering 4 or 6 players
+puts the choice in config and returns `{ minPlayers: n, maxPlayers: n }` for the
+chosen `n`, so joining flips the game to `ready` at exactly the right threshold.
+
+*On the client:* the Dart twin `GameModule.playersForConfig` sizes the create
+dialog's player control. A caller may **narrow** the range for one lobby (opening
+a 2-6 game as 3-6) and may omit it entirely, in which case the game gets exactly
+what this returns. A wider range is a **422**, like a drifted `rated` assertion.
 
 ## `ratingPool({ access, turnSeconds, budgetSeconds, config, … }) → string | null`
 

@@ -147,6 +147,33 @@ describe("create", () => {
     expect(unshipped.status).toBe(409);
     expect(((await unshipped.json()) as { code: string }).code).toBe("schemaUnsupported");
   });
+
+  // Seat counts are the rules' to decide: the test game plays 2-4 and every hook
+  // indexes seats within that. A caller may pick a narrower lobby, but a range
+  // reaching outside it is refused rather than clamped, because the rules cannot
+  // address the extra seat.
+  it("derives the seat range from the rules when the caller omits it", async () => {
+    const u = makeUsers();
+    const { minPlayers, maxPlayers, ...rest } = createBody;
+    const created = await json<Created>(await api(u.a, "POST", "/games", rest, false), 201);
+    const detail = await json<{ minPlayers: number; maxPlayers: number }>(await api(u.a, "GET", `/games/${created.gameId}`));
+    expect(detail).toMatchObject({ minPlayers: 2, maxPlayers: 4 });
+  });
+
+  it("lets a caller narrow the seat range but never widen it", async () => {
+    const u = makeUsers();
+    const narrowed = await json<Created>(await api(u.a, "POST", "/games", { ...createBody, minPlayers: 3, maxPlayers: 3 }, false), 201);
+    expect(await json<{ maxPlayers: number }>(await api(u.a, "GET", `/games/${narrowed.gameId}`))).toMatchObject({ minPlayers: 3, maxPlayers: 3 });
+
+    // Past the rules' maximum: rps-like games store a fixed-arity state, so this
+    // is the create that used to succeed and corrupt the game.
+    const tooMany = await api(u.a, "POST", "/games", { ...createBody, maxPlayers: 5 });
+    expect(tooMany.status).toBe(422);
+    expect(await tooMany.text()).toMatch(/supports 2-4 players/);
+
+    // Below the minimum: a lobby that reports ready before the game can start.
+    expect((await api(u.a, "POST", "/games", { ...createBody, minPlayers: 1 }, true)).status).toBe(422);
+  });
 });
 
 describe("capabilities", () => {

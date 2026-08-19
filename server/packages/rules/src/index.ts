@@ -28,6 +28,8 @@ export type {
   LifecycleType,
   ObservationSlice,
   OutcomeEntry,
+  PlayerLimits,
+  PlayerLimitsArgs,
   RatingPoolArgs,
   Rng,
   TransitionCause,

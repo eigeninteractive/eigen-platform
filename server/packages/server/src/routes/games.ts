@@ -6,7 +6,7 @@
  */
 
 import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
-import type { GameRules, JsonObject } from "@eigeninteractive/rules";
+import type { GameRules, JsonObject, PlayerLimits } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { canonicalRequest, userPrincipal } from "../command-request.js";
 import { type CreateGameInput, type CreateReceipt, createGame, readCreatedGame } from "../d1/apply.js";
@@ -91,6 +91,33 @@ function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
 function assertCreatable(ctx: RouteContext, asserted: number): void {
   if (ctx.creatableSchemaVersions.includes(asserted)) return;
   throw new HttpError(409, `This server creates schemaVersion [${ctx.creatableSchemaVersions.join(", ")}] games; this app build asked for ${asserted}. Read GET /capabilities.`, "schemaUnsupported");
+}
+
+/**
+ * Resolve the seat range a create actually gets.
+ *
+ * The rules own what is playable: `playerLimits` reads the parsed config and
+ * returns the bounds this version can index seats within. The caller may narrow
+ * that range for one lobby and may omit it entirely, but a range reaching outside
+ * it is refused rather than clamped — a game seated past what its rules can
+ * address does not become a bigger game, it becomes a corrupt one, and silently
+ * shrinking the caller's request would open a lobby that never fills as asked.
+ *
+ * Refusing is a 422 for the same reason a `rated` mismatch is: the Dart
+ * `playersForConfig` twin computes this too, so a disagreement is twin drift or a
+ * forged client, and neither is a state to write a game from.
+ */
+function resolveSeats(rules: GameRules, config: JsonObject, asserted: { minPlayers?: number; maxPlayers?: number }): PlayerLimits {
+  const limits = rules.playerLimits({ config });
+  if (!Number.isSafeInteger(limits.minPlayers) || !Number.isSafeInteger(limits.maxPlayers) || limits.minPlayers < 1 || limits.maxPlayers < limits.minPlayers) {
+    throw new HttpError(500, `game bug: playerLimits returned ${JSON.stringify(limits)}`);
+  }
+  const minPlayers = asserted.minPlayers ?? limits.minPlayers;
+  const maxPlayers = asserted.maxPlayers ?? limits.maxPlayers;
+  if (minPlayers < limits.minPlayers || maxPlayers > limits.maxPlayers) {
+    throw new HttpError(422, `seat mismatch: this game supports ${limits.minPlayers}-${limits.maxPlayers} players; asked for ${minPlayers}-${maxPlayers}`);
+  }
+  return { minPlayers, maxPlayers };
 }
 
 /** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
@@ -215,7 +242,9 @@ async function replayCreate(d1: D1Database, createdBy: string, receipt: CreateRe
 
 /** The canonical intent of a create, compared to refuse one key standing for two
  * different games. `resource` is the collection D1 is authoritative for, the
- * create-time counterpart of a DO passing its own game id. */
+ * create-time counterpart of a DO passing its own game id. Payload fields are the
+ * request as SENT, never a server-derived value: two byte-identical retries must
+ * fingerprint identically even across a redeploy that moved a derived bound. */
 function createReceipt(userId: string, commandId: string, operation: "game.create" | "game.create-solo", payload: unknown): CreateReceipt {
   return { commandId, request: canonicalRequest({ principal: userPrincipal(userId), operation, resource: "games", payload }) };
 }
@@ -249,14 +278,15 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const parsed = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsed.ok) throw new HttpError(400, parsed.message);
       const config = parsed.value as JsonObject;
+      const { minPlayers, maxPlayers } = resolveSeats(rules, config, body);
 
       const pool = rules.ratingPool({
         access: body.access,
         turnSeconds: body.turnSeconds,
         budgetSeconds: body.budgetSeconds,
         incrementSeconds: body.incrementSeconds,
-        minPlayers: body.minPlayers,
-        maxPlayers: body.maxPlayers,
+        minPlayers,
+        maxPlayers,
         config,
       });
       // `rated` is a concrete assertion the client also computes (the Dart
@@ -281,13 +311,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           budgetSeconds: body.budgetSeconds,
           incrementSeconds: body.incrementSeconds,
           rated: body.rated ?? null,
-          minPlayers: body.minPlayers,
-          maxPlayers: body.maxPlayers,
+          minPlayers: body.minPlayers ?? null,
+          maxPlayers: body.maxPlayers ?? null,
         }),
         {
           gameId: crypto.randomUUID(),
           createdBy: auth.user.id,
-          status: seats.length >= body.minPlayers ? "ready" : "waiting",
+          status: seats.length >= minPlayers ? "ready" : "waiting",
           access: body.access,
           schemaVersion: body.schemaVersion,
           config,
@@ -296,8 +326,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           incrementSeconds: body.incrementSeconds,
           rated,
           ratingPool: pool,
-          minPlayers: body.minPlayers,
-          maxPlayers: body.maxPlayers,
+          minPlayers,
+          maxPlayers,
           seats,
           now: Date.now(),
         },
@@ -338,6 +368,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");
       if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
       const config = parsedConfig.value as JsonObject;
+      const { minPlayers, maxPlayers } = resolveSeats(rules, config, body);
 
       // Solo games are always private: no lobby, no invites.
       const pool = rules.ratingPool({
@@ -345,8 +376,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         turnSeconds: body.turnSeconds,
         budgetSeconds: body.budgetSeconds,
         incrementSeconds: body.incrementSeconds,
-        minPlayers: body.minPlayers,
-        maxPlayers: body.maxPlayers,
+        minPlayers,
+        maxPlayers,
         config,
       });
       const canBeRated = pool !== null && !auth.claims.isAnonymous;
@@ -366,8 +397,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         assertBotSeatable(ctx, spec, bot);
         seats.push({ playerIndex: seats.length, userId: null, botId: bot.id, type: "bot" });
       }
-      if (seats.length < body.minPlayers) throw new HttpError(400, "Not enough seats to start the game");
-      if (seats.length > body.maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
+      if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
+      if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
       const key = commandId(c);
       const created = await createOnce(
@@ -380,8 +411,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           budgetSeconds: body.budgetSeconds,
           incrementSeconds: body.incrementSeconds,
           rated: body.rated ?? null,
-          minPlayers: body.minPlayers,
-          maxPlayers: body.maxPlayers,
+          minPlayers: body.minPlayers ?? null,
+          maxPlayers: body.maxPlayers ?? null,
           botIds: body.botIds,
         }),
         {
@@ -396,8 +427,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
           incrementSeconds: body.incrementSeconds,
           rated,
           ratingPool: pool,
-          minPlayers: body.minPlayers,
-          maxPlayers: body.maxPlayers,
+          minPlayers,
+          maxPlayers,
           seats,
           now: Date.now(),
         },

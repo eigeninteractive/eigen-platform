@@ -84,19 +84,15 @@ class BudgetConfig extends TimingModeConfig {
 ///
 /// Returned by [GameModule.creationSpec]. The engine-owned creation dialog
 /// reads this to render only the controls that apply.
+/// Seat counts are deliberately absent: they live on the versioned
+/// [GameRules.playerLimits] twin, because the server derives them per version and
+/// refuses a create that disagrees. Read them through
+/// [GameModule.playersForConfig].
 class GameCreationSpec {
   const GameCreationSpec({
-    required this.minPlayers,
-    required this.maxPlayers,
     this.timingConfigs = const {'Untimed': UntimedConfig()},
     this.defaultConfig = const {},
   });
-
-  /// Minimum players required to transition the game to `ready` status.
-  final int minPlayers;
-
-  /// Maximum players allowed to join. Must be ≥ [minPlayers].
-  final int maxPlayers;
 
   /// Ordered map of timing options shown in the creation dialog.
   ///

@@ -939,9 +939,7 @@
         "required": [
           "access",
           "schemaVersion",
-          "config",
-          "minPlayers",
-          "maxPlayers"
+          "config"
         ]
       },
       "SoloStarted": {
@@ -1013,8 +1011,6 @@
         "required": [
           "schemaVersion",
           "config",
-          "minPlayers",
-          "maxPlayers",
           "botIds"
         ]
       },

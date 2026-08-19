@@ -20,9 +20,9 @@ class CreateSolo {
 
     required this.config,
 
-    required this.minPlayers,
+    this.minPlayers,
 
-    required this.maxPlayers,
+    this.maxPlayers,
 
     this.rated,
 
@@ -43,12 +43,12 @@ class CreateSolo {
   final Object config;
 
   // minimum: 1
-  @JsonKey(name: r'minPlayers', required: true, includeIfNull: false)
-  final int minPlayers;
+  @JsonKey(name: r'minPlayers', required: false, includeIfNull: false)
+  final int? minPlayers;
 
   // minimum: 1
-  @JsonKey(name: r'maxPlayers', required: true, includeIfNull: false)
-  final int maxPlayers;
+  @JsonKey(name: r'maxPlayers', required: false, includeIfNull: false)
+  final int? maxPlayers;
 
   @JsonKey(name: r'rated', required: false, includeIfNull: false)
   final bool? rated;

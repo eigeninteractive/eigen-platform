@@ -42,6 +42,8 @@
  *                                    //   game implements optimism)
  *       }
  *     },
+ *     { "kind": "playerLimits", "name": "...", "config": {},
+ *       "expected": { "minPlayers": 2, "maxPlayers": 2 } },
  *     { "kind": "ratingPool",  "name": "...", "access": "public",
  *       "minPlayers": 2, "maxPlayers": 2, "config": {}, "expected": "blitz" },
  *     { "kind": "botSeatable", "name": "...", "gameConfig": {},
@@ -114,6 +116,14 @@ export interface RatingPoolCase {
   expected: string | null;
 }
 
+/** A `playerLimits` case: the seats one config may be played with. */
+export interface PlayerLimitsCase {
+  kind: "playerLimits";
+  name: string;
+  config: JsonObject;
+  expected: { minPlayers: number; maxPlayers: number };
+}
+
 /** A `botSeatable` predicate case. */
 export interface BotSeatableCase {
   kind: "botSeatable";
@@ -123,7 +133,7 @@ export interface BotSeatableCase {
   expected: boolean;
 }
 
-export type TwinFixtureCase = ActionCase | RatingPoolCase | BotSeatableCase;
+export type TwinFixtureCase = ActionCase | PlayerLimitsCase | RatingPoolCase | BotSeatableCase;
 
 // ── Fixture validation ────────────────────────────────────────────────────────
 //
@@ -231,6 +241,19 @@ function parseRatingPoolCase(where: string, raw: JsonObject): RatingPoolCase {
   };
 }
 
+function parsePlayerLimitsCase(where: string, raw: JsonObject): PlayerLimitsCase {
+  const expected = asObject(`${where}.expected`, raw.expected);
+  return {
+    kind: "playerLimits",
+    name: asString(`${where}.name`, raw.name),
+    config: asObject(`${where}.config`, raw.config),
+    expected: {
+      minPlayers: asNumber(`${where}.expected.minPlayers`, expected.minPlayers),
+      maxPlayers: asNumber(`${where}.expected.maxPlayers`, expected.maxPlayers),
+    },
+  };
+}
+
 function parseBotSeatableCase(where: string, raw: JsonObject): BotSeatableCase {
   return {
     kind: "botSeatable",
@@ -257,12 +280,14 @@ export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFi
     switch (obj.kind) {
       case "action":
         return parseActionCase(where, obj);
+      case "playerLimits":
+        return parsePlayerLimitsCase(where, obj);
       case "ratingPool":
         return parseRatingPoolCase(where, obj);
       case "botSeatable":
         return parseBotSeatableCase(where, obj);
       default:
-        throw new Error(`${where}.kind: expected one of action | ratingPool | botSeatable, got ${JSON.stringify(obj.kind)}`);
+        throw new Error(`${where}.kind: expected one of action | playerLimits | ratingPool | botSeatable, got ${JSON.stringify(obj.kind)}`);
     }
   });
   return { schemaVersion, cases };
@@ -275,12 +300,14 @@ export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): strin
   switch (kase.kind) {
     case "action":
       return evaluateAction(rules, kase);
+    case "playerLimits":
+      return evaluatePlayerLimits(rules, kase);
     case "ratingPool":
       return evaluateRatingPool(rules, kase);
     case "botSeatable":
       return evaluateBotSeatable(rules, kase);
     default:
-      return [`unknown case kind "${(kase as { kind: string }).kind}", expected action | ratingPool | botSeatable`];
+      return [`unknown case kind "${(kase as { kind: string }).kind}", expected action | playerLimits | ratingPool | botSeatable`];
   }
 }
 
@@ -421,6 +448,17 @@ function evaluateRatingPool(rules: GameRules, kase: RatingPoolCase): string[] {
   });
   if (pool !== kase.expected) {
     failures.push(`ratingPool returned ${JSON.stringify(pool)}, fixture expects ${JSON.stringify(kase.expected)}`);
+  }
+  return failures;
+}
+
+function evaluatePlayerLimits(rules: GameRules, kase: PlayerLimitsCase): string[] {
+  const failures: string[] = [];
+  const config = parseWith(rules, "config", kase.config, failures);
+  if (config === undefined) return failures;
+  const limits = rules.playerLimits({ config });
+  if (limits.minPlayers !== kase.expected.minPlayers || limits.maxPlayers !== kase.expected.maxPlayers) {
+    failures.push(`playerLimits returned ${limits.minPlayers}-${limits.maxPlayers}, fixture expects ${kase.expected.minPlayers}-${kase.expected.maxPlayers}`);
   }
   return failures;
 }

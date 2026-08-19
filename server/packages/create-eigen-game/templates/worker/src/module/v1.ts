@@ -52,6 +52,12 @@ export const rulesV1: GameRules<State, Observation, Action, Config> = {
     pendingPlayers: pending,
   }),
 
+  // How many seats these rules can actually play. Two here, because
+  // `applyAction` passes the turn with `1 - playerIndex`. The engine refuses a
+  // create asking for a range outside this, so it is the one place a
+  // fixed-size game says so. Read `config` if the count is a creation choice.
+  playerLimits: () => ({ minPlayers: 2, maxPlayers: 2 }),
+
   ratingPool: () => null,
   botSeatable: () => true,
 };

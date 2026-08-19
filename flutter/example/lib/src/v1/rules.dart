@@ -78,6 +78,11 @@ class RpsRulesV1 extends RpsV1RulesBase {
   Widget buildContent(GameContentContext context) =>
       RpsBoard(context: context, rules: this);
 
+  /// Twin of the TS `playerLimits`. RPS is a pair of hands: two seats, always.
+  @override
+  PlayerLimits playerLimits(RpsV1Config config) =>
+      const PlayerLimits(minPlayers: 2, maxPlayers: 2);
+
   /// Display-only twin of the TS `ratingPool`. The server recomputes it at
   /// creation, so a wrong answer here only mis-renders the Rated toggle.
   @override

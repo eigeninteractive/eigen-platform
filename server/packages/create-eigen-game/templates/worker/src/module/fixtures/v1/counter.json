@@ -26,6 +26,17 @@
           "count": 1
         }
       }
+    },
+    {
+      "kind": "playerLimits",
+      "name": "two seats, because applyAction passes the turn with 1 - playerIndex",
+      "config": {
+        "target": 10
+      },
+      "expected": {
+        "minPlayers": 2,
+        "maxPlayers": 2
+      }
     }
   ]
 }

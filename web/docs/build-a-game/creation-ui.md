@@ -20,8 +20,6 @@ class RpsModule extends GameModule {
 
   @override
   GameCreationSpec get creationSpec => const GameCreationSpec(
-    minPlayers: 2,
-    maxPlayers: 2,
     timingConfigs: {
       'Per move': PerActionConfig(maxSeconds: 300, presets: [30, 60, 120]),
       'Untimed': UntimedConfig(),
@@ -51,9 +49,12 @@ class RpsModule extends GameModule {
   for it, or a `turnSeconds` override on that envelope.
 - **`defaultConfig`** seeds the config map before the player touches anything, so
   a game with no custom UI still creates a valid game.
-- **`playersForConfig`** overrides the range when it depends on a creation-time
-  choice: a party game where the host picks 4 or 6, and min == max so joining
-  flips the game to `ready` at exactly the right threshold.
+- **Seat counts are not here.** They come from the versioned
+  `GameRules.playerLimits` twin, because the server derives them per version and
+  **refuses a create whose range it cannot seat**. Read them via
+  `playersForConfig`, which delegates to the latest version's twin by default.
+  Override `playersForConfig` only to *narrow* what the dialog offers; a wider
+  range is a failed create, not a bigger game.
 
 ## `buildCreationConfig`
 

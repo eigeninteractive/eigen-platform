@@ -165,6 +165,12 @@
       "expected": { "valid": false }
     },
     {
+      "kind": "playerLimits",
+      "name": "rps is exactly two seats, whatever the target",
+      "config": { "targetWins": 3 },
+      "expected": { "minPlayers": 2, "maxPlayers": 2 }
+    },
+    {
       "kind": "ratingPool",
       "name": "public games rate in the standard pool",
       "access": "public",

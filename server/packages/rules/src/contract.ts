@@ -185,6 +185,23 @@ export interface ComputeObservationArgs<TState extends JsonObject = JsonObject, 
   isReplay: boolean;
 }
 
+/** The rules-authoritative player bounds for one config, returned by
+ * {@link GameRules.playerLimits}. `maxPlayers` must be at least `minPlayers`;
+ * a fixed-size game returns the same number twice. */
+export interface PlayerLimits {
+  /** Fewest seats this config can be played with. */
+  minPlayers: number;
+  /** Most seats this config can be played with. */
+  maxPlayers: number;
+}
+
+/** A create's chosen config, passed to {@link GameRules.playerLimits}.
+ * `config` is already parsed against the requested version's config schema, so
+ * a config-driven bound (a "4 or 6 players" choice) can read it directly. */
+export interface PlayerLimitsArgs<TConfig extends JsonObject = JsonObject> {
+  config: TConfig;
+}
+
 /** The chosen game settings, passed to {@link GameRules.ratingPool} at
  * creation so the game can decide its rating pool (or that the game is
  * unrated). `config` is already parsed against the requested version's config
@@ -251,7 +268,7 @@ export interface GameSchemas<TState extends JsonObject = JsonObject, TObservatio
 
 /**
  * Everything one `schemaVersion` of a game needs: the payload contracts plus
- * all six hooks, narrowly typed to that version's shapes.
+ * all seven hooks, narrowly typed to that version's shapes.
  *
  * The type parameters are the version's payload types, inferred from the
  * schemas in {@link schemas} (`z.infer<typeof stateSchema>` etc., using `type`
@@ -290,6 +307,19 @@ export interface GameRules<TState extends JsonObject = JsonObject, TObservation 
    * the simultaneous-move policy: a stale submission survives exactly while
    * the acting seat's projected view is unchanged (the same-view rule). */
   computeObservation(args: ComputeObservationArgs<TState, TAction, TConfig>): ObservationSlice<TObservation>;
+
+  /** Declare how many seats a game with this config may have. The engine
+   * derives the bounds here and validates the caller's chosen `minPlayers`/
+   * `maxPlayers` against them, so a client can narrow the range for one lobby
+   * (a 2-6 game opened as 3-6) but can never widen it past what these rules can
+   * actually play. Omitting them on a create means exactly these bounds.
+   *
+   * This is the authority for a number the rules alone know: `initialState`
+   * receives `playerCount` seats and every hook indexes seats by it, so a game
+   * whose state is a fixed-arity shape MUST bound it here rather than trust the
+   * caller. The Dart `GameModule.playersForConfig` is the twin, used to render
+   * the create dialog; a disagreement is refused rather than coerced. */
+  playerLimits(args: PlayerLimitsArgs<TConfig>): PlayerLimits;
 
   /** Decide whether, and in which pool, a game with these settings is
    * rated. Return the pool name (e.g. `'rapid'`) or `null` for unrated. The

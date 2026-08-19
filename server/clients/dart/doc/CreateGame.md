@@ -11,8 +11,8 @@ Name | Type | Description | Notes
 **access** | [**GameAccess**](GameAccess.md) |  | 
 **schemaVersion** | **int** | The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities. | 
 **config** | **Object** |  | 
-**minPlayers** | **int** |  | 
-**maxPlayers** | **int** |  | 
+**minPlayers** | **int** |  | [optional] 
+**maxPlayers** | **int** |  | [optional] 
 **rated** | **bool** |  | [optional] 
 **turnSeconds** | **int** |  | [optional] 
 **budgetSeconds** | **int** |  | [optional] 
