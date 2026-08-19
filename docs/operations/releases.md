@@ -176,8 +176,9 @@ platform gate itself. The version PR:
 - stamps and regenerates `eigen_api`;
 - regenerates the OpenAPI and TypeScript documentation;
 - updates `platform.json`;
-- carries the server-owned version commit and root/docs generation commit on
-  the same protected release PR.
+- carries all of that as a single commit. Changesets diffs the whole worktree
+  against the base commit, so the cross-workspace regeneration lands with the
+  version bump rather than needing a second commit transported onto the branch.
 
 Review and merge that PR to publish. The next `main` run compares every exact
 local version with npm, then publishes the missing versions automatically. If
@@ -189,7 +190,9 @@ A scaffolder-only release does not create a new client version; it only verifies
 that the tag for the current engine already exists.
 
 When the engine crosses a documentation release line, the version PR is
-expected to fail `check-docs-version`. Before merging, deliberately choose one:
+expected to fail `check-docs-version` on its `web` shard. That is the gate doing
+its job on a complete, reviewable pull request. Before merging, deliberately
+choose one:
 
 1. Relabel current docs in `web/docusaurus.config.ts` when no supported user
    needs the old line.

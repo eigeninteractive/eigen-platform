@@ -169,38 +169,30 @@ jobs:
           echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
           echo "has_changesets=$HAS_CHANGESETS" >> "$GITHUB_OUTPUT"
 
-      # Changesets commits only files under its `cwd`, and v2 did not change that:
-      # `pushChanges` in the action's source passes `cwd` on both the GitHub API
-      # path (`commitChangesSinceBase`) and the git CLI path (`commitAll`), so
-      # neither sees the repository root. Our version script also regenerates
-      # platform.json and web references, so carry that reviewed cross-workspace
-      # diff onto the same release branch.
-      - name: Complete the version pull request
-        if: steps.version_pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          patch="$RUNNER_TEMP/platform-version.patch"
-          git diff --binary -- platform.json web > "$patch"
-          [ -s "$patch" ] || {
-            echo "::error::Versioning produced no root or documentation diff."
-            exit 1
-          }
-
-          git restore --source=HEAD --staged --worktree .
-          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git fetch "$remote" changeset-release/main
-          git switch --force-create changeset-release/main FETCH_HEAD
-          git apply "$patch"
-
-          node tool/platform.mjs --check
-          pnpm --dir web check-docs-version
-
-          git config user.name "eigen-release[bot]"
-          git config user.email "eigen-release[bot]@users.noreply.github.com"
-          git add platform.json web
-          git commit -m "Regenerate platform release references"
-          git push "$remote" HEAD:changeset-release/main
+      # There used to be a step here that carried `platform.json` and the `web`
+      # references onto the release branch by hand -- capture `git diff`, switch
+      # branches, `git apply`, commit, push -- because Changesets was believed to
+      # commit only files under its `cwd`.
+      #
+      # It is deleted, and reading the action's source is what nearly kept it:
+      # `pushChanges` does pass `cwd` on both paths, which looks conclusive. It is
+      # not. On the GitHub API path `cwd` only locates the repository for
+      # `commitChangesSinceBase`, which then diffs the whole worktree against the
+      # base commit. Measured on the first v2.1.0 run: commit fc83bb8 on
+      # `changeset-release/main` carries 56 files, including `platform.json`, both
+      # `openapi.json` copies and the entire generated HTTP reference. The version
+      # PR is complete in one commit now.
+      #
+      # Keeping the step would not merely have been redundant, it failed: it
+      # applies a diff the commit already contains, so the second version run for
+      # any pending Changeset died on `patch does not apply`. That is not a rare
+      # case -- every push to `main` while a Changeset is pending re-runs this job.
+      #
+      # The two assertions it also ran, `platform.mjs --check` and
+      # `check-docs-version`, are not lost: the version PR runs the full platform
+      # gate, which is where both already live. That is the better place for the
+      # docs-line decision in particular -- a red `web` shard on a complete,
+      # reviewable PR, rather than a half-built release branch.
 
       # v1 declined to open a PR when every pending Changeset was empty, leaving
       # markers that would block registry detection forever; this consumes them on
