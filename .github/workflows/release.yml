@@ -128,25 +128,55 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      # Stable v1.9.0 is the current executable release with `cwd` support and
-      # first-class OIDC detection. The v2.0.0 sub-actions do not support cwd;
-      # the post-v2 source fix has not published its compiled dist files yet.
+      # v2.0.0 removed `cwd`; v2.1.0 put it back ("This input existed in v1 but
+      # was incorrectly removed"), which is what makes v2 usable here at all --
+      # this repository's Changesets config lives in `server/`, not the root.
+      #
+      # v2 also renamed every input, and a version bump alone would not have said
+      # so: unknown `with:` keys are a warning, not an error, so `version:` and
+      # `publish:` would have been ignored and both jobs would have run their
+      # default behaviour while reporting success.
       - name: Create or update the version pull request
         id: changesets
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@198f833dd7d863100ea6e28967bc9a9fdefadb0a # v2.1.0
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
-          version: pnpm version-packages
-          title: "Release: version npm packages"
-          commit: "Version npm packages"
-          commitMode: github-api
+          version-script: pnpm version-packages
+          pr-title: "Release: version npm packages"
+          commit-message: "Version npm packages"
+          # `commitMode: github-api` is gone; the GitHub API is now the default
+          # and `push-with-git-cli: true` opts out of it. Left at the default
+          # deliberately: API commits are signed with GitHub's key and attributed
+          # to the release App that owns the token.
 
-      # Changesets intentionally commits only files under its `cwd`. Our
-      # version script also regenerates platform.json and web references, so
-      # carry that reviewed cross-workspace diff onto the same release branch.
+      # The outputs were renamed to kebab-case too, and a hyphenated name cannot
+      # be dereferenced with dot syntax -- `outputs.pr-number` parses as
+      # subtraction rather than as a property. Read both once here through the
+      # index operator into names the steps below can use normally.
+      #
+      # The notice is not decoration. Reading these wrongly is the one mistake in
+      # this workflow that produces no error and no visible symptom, so the values
+      # the branches below turn on are printed where the next release will show
+      # them.
+      - name: Read the version pull request state
+        id: version_pr
+        env:
+          PR_NUMBER: ${{ steps.changesets.outputs['pr-number'] }}
+          HAS_CHANGESETS: ${{ steps.changesets.outputs['has-changesets'] }}
+        run: |
+          echo "::notice::changesets reported pr-number='$PR_NUMBER' has-changesets='$HAS_CHANGESETS'"
+          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "has_changesets=$HAS_CHANGESETS" >> "$GITHUB_OUTPUT"
+
+      # Changesets commits only files under its `cwd`, and v2 did not change that:
+      # `pushChanges` in the action's source passes `cwd` on both the GitHub API
+      # path (`commitChangesSinceBase`) and the git CLI path (`commitAll`), so
+      # neither sees the repository root. Our version script also regenerates
+      # platform.json and web references, so carry that reviewed cross-workspace
+      # diff onto the same release branch.
       - name: Complete the version pull request
-        if: steps.changesets.outputs.pullRequestNumber != ''
+        if: steps.version_pr.outputs.number != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -172,11 +202,15 @@ jobs:
           git commit -m "Regenerate platform release references"
           git push "$remote" HEAD:changeset-release/main
 
-      # The stable action intentionally declines to open a PR when every
-      # pending Changeset is empty. Consume those markers in the same protected
-      # release branch so they cannot permanently block future detection.
+      # v1 declined to open a PR when every pending Changeset was empty, leaving
+      # markers that would block registry detection forever; this consumes them on
+      # the same protected release branch. Whether v2 still declines is not
+      # verified -- it cannot be, short of a release with only empty markers
+      # pending -- and it does not need to be: this condition and the one above
+      # are complements, so if v2 opens a PR instead, the completion step handles
+      # it and this one simply does not run.
       - name: Open a cleanup pull request for empty Changesets
-        if: steps.changesets.outputs.hasChangesets == 'true' && steps.changesets.outputs.pullRequestNumber == ''
+        if: steps.version_pr.outputs.has_changesets == 'true' && steps.version_pr.outputs.number == ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -244,12 +278,11 @@ jobs:
           permission-contents: write
 
       - name: Publish
-        uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
+        uses: changesets/action@198f833dd7d863100ea6e28967bc9a9fdefadb0a # v2.1.0
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
-          publish: pnpm changeset publish
-          commitMode: github-api
+          publish-script: pnpm changeset publish
 
       # pub.dev accepts a trusted-publishing identity only from the package's
       # configured tag pattern, so eigen_api publishes in a separate workflow.
