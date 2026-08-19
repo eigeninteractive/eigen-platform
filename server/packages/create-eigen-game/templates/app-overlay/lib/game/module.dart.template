@@ -11,8 +11,6 @@ class ExampleGameModule extends GameModule {
 
   @override
   GameCreationSpec get creationSpec => const GameCreationSpec(
-    minPlayers: 2,
-    maxPlayers: 2,
     timingConfigs: {'Untimed': UntimedConfig()},
     defaultConfig: {'target': 10},
   );

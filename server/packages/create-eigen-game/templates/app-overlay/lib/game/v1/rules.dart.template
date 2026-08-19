@@ -28,6 +28,13 @@ class ExampleGameRulesV1 extends ExampleGameV1RulesBase {
   Widget buildContent(GameContentContext context) =>
       _CounterBoard(context: context, rules: this);
 
+  /// Twin of the TS `playerLimits`. The server enforces this one: it refuses a
+  /// create whose seat range its rules cannot seat, so keep it equal to the TS
+  /// value for this version.
+  @override
+  PlayerLimits playerLimits(ExampleGameV1Config config) =>
+      const PlayerLimits(minPlayers: 2, maxPlayers: 2);
+
   @override
   String? ratingPool(RatingPoolArgs args) => null;
 
