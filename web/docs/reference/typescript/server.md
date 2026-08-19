@@ -2230,7 +2230,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 | Parameter | Type |
 | ------ | ------ |
 | `projectId` | `string` |
-| `getKey?` | `JWTVerifyGetKey` |
+| `getKey?` | `JWTVerifyGetKey`\<`CryptoKeyStructuralFallback` \| `Uint8Array`\<`ArrayBufferLike`\>\> |
 
 #### Returns
 
