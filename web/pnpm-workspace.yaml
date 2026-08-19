@@ -9,7 +9,15 @@ allowBuilds:
   '@swc/core': true
   core-js: true
   # Docusaurus' dev-server file watcher (native binding; falls back to
-  # polling without it) and the code-sample generator behind the OpenAPI
-  # theme's per-language request snippets.
+  # polling without it).
   '@parcel/watcher': true
-  postman-code-generators: true
+  # The OpenAPI theme's request-snippet generator. Its postinstall is refused
+  # deliberately, and MUST stay refused: it shells out to whichever package
+  # manager `detect-package-manager` finds on PATH, which on a GitHub runner is
+  # always Yarn 1, and Yarn 1 then refuses to run because an ancestor
+  # package.json pins pnpm. Nothing is lost. The postinstall regenerates
+  # `lib/assets/languages.js`, which the published tarball already contains, and
+  # runs a nested install per codegen for `lodash` and `postman-collection` --
+  # both of which are dependencies of postman-code-generators itself, so pnpm has
+  # already placed them on the resolution path every codegen walks up through.
+  postman-code-generators: false
