@@ -18,29 +18,19 @@
               "additionalProperties": false,
               "properties": {
                 "moves": {
-                  "prefixItems": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "$ref": "#/$defs/Move"
-                    }
-                  ],
+                  "items": {
+                    "$ref": "#/$defs/Move"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2,
                   "type": "array"
                 },
                 "winner": {
                   "anyOf": [
                     {
-                      "anyOf": [
-                        {
-                          "const": 0,
-                          "type": "number"
-                        },
-                        {
-                          "const": 1,
-                          "type": "number"
-                        }
-                      ]
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "integer"
                     },
                     {
                       "type": "null"
@@ -59,28 +49,18 @@
           "additionalProperties": false,
           "properties": {
             "commits": {
-              "prefixItems": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Move"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             "lastRound": {
@@ -99,18 +79,13 @@
               "type": "integer"
             },
             "wins": {
-              "prefixItems": [
-                {
-                  "maximum": 9007199254740991,
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                {
-                  "maximum": 9007199254740991,
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              ],
+              "items": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             }
           },
@@ -136,29 +111,19 @@
               "additionalProperties": false,
               "properties": {
                 "moves": {
-                  "prefixItems": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "$ref": "#/$defs/Move"
-                    }
-                  ],
+                  "items": {
+                    "$ref": "#/$defs/Move"
+                  },
+                  "maxItems": 2,
+                  "minItems": 2,
                   "type": "array"
                 },
                 "winner": {
                   "anyOf": [
                     {
-                      "anyOf": [
-                        {
-                          "const": 0,
-                          "type": "number"
-                        },
-                        {
-                          "const": 1,
-                          "type": "number"
-                        }
-                      ]
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "integer"
                     },
                     {
                       "type": "null"
@@ -177,28 +142,18 @@
           "additionalProperties": false,
           "properties": {
             "commits": {
-              "prefixItems": [
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Move"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              ],
+              "items": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Move"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             "lastRound": {
@@ -217,18 +172,13 @@
               "type": "integer"
             },
             "wins": {
-              "prefixItems": [
-                {
-                  "maximum": 9007199254740991,
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                {
-                  "maximum": 9007199254740991,
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              ],
+              "items": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "maxItems": 2,
+              "minItems": 2,
               "type": "array"
             },
             "yourMove": {
@@ -261,6 +211,7 @@
             }
           },
           "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "additionalProperties": false,
           "properties": {
             "move": {
               "$ref": "#/$defs/Move"

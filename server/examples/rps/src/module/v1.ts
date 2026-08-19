@@ -36,9 +36,9 @@ const moveSchema = z.enum(["rock", "paper", "scissors"]).meta({ id: "Move" });
 
 const roundSchema = z
   .object({
-    moves: z.tuple([moveSchema, moveSchema]),
+    moves: z.array(moveSchema).length(2),
     /** Round winner's seat; null for a drawn round. */
-    winner: z.union([z.literal(0), z.literal(1)]).nullable(),
+    winner: z.int().min(0).max(1).nullable(),
   })
   .meta({ id: "Round" });
 
@@ -46,21 +46,21 @@ const stateSchema = z.object({
   /** 1-based; increments when a resolved round leaves the match undecided. */
   round: z.int().min(1),
   /** Rounds won, per seat. */
-  wins: z.tuple([z.int().min(0), z.int().min(0)]),
+  wins: z.array(z.int().min(0)).length(2),
   /** The current round's hidden commits, per seat. */
-  commits: z.tuple([moveSchema.nullable(), moveSchema.nullable()]),
+  commits: z.array(moveSchema.nullable()).length(2),
   /** The last resolved round: the reveal the clients animate. */
   lastRound: roundSchema.nullable(),
 });
 
 const observationSchema = z.object({
   round: z.int().min(1),
-  wins: z.tuple([z.int().min(0), z.int().min(0)]),
+  wins: z.array(z.int().min(0)).length(2),
   lastRound: roundSchema.nullable(),
   /** Present for a live participant; absent from replay/public views. */
   yourMove: moveSchema.nullable().optional(),
   /** Present for replay/public views; absent during live play. */
-  commits: z.tuple([moveSchema.nullable(), moveSchema.nullable()]).optional(),
+  commits: z.array(moveSchema.nullable()).length(2).optional(),
 });
 
 const actionSchema = z.object({ move: moveSchema });

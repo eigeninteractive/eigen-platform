@@ -160,6 +160,38 @@ amended, not silently diverged from.
   version's twin. This is the third caller-supplied derived value RFC 0005 names;
   timing and rating pool were already server-derived.
 
+- **The portable schema profile is enforced, and the wire's duplicate description
+  is deleted (2026-08-19).** Two findings from the same audit. First: nothing
+  checked the profile RFC 0006 specifies, and the shipped RPS example violated it
+  17 times — including a real defect, since `z.tuple` emits `prefixItems`, which
+  bounds no length, so the contract validated a three-element array Zod rejects and
+  a Dart validator built from it would have been weaker than the server. One
+  implementation now lives in `@eigeninteractive/rules`, the emitter runs it, and
+  `tool/check-contracts.mjs` imports it instead of restating it. Two profile rules
+  changed to match what schema libraries actually emit: `anyOf` is admitted as the
+  nullable wrapper (Zod has no other spelling for `.nullable()`, and the Dart
+  generator only ever handled that one shape), and contracts emit the output
+  direction of all four schemas because Zod's input direction omits
+  `additionalProperties: false` on the one payload clients submit. Also fixed a
+  latent digest split-brain: the emitter sorted keys by locale while the checker
+  sorted by code point, and generated JSON Schema is full of capitalized `$defs`
+  names, so the two orders genuinely disagreed.
+
+  Second: `contracts/protocol/v1/` held four hand-written schemas for the wire that
+  no generator or validator ever read, and all four had drifted out of agreement
+  with the shipped protocol. They are deleted. The wire is the Zod schemas in
+  `routes/wire.ts` published as generated OpenAPI 3.1, which is JSON Schema;
+  `Session` and `Frame` are in that document because they are HTTP response shapes
+  too, so the socket payload was already normative and the deletion left no gap.
+  `contracts/` now holds only the game-contract manifest schema, which is the one
+  artifact there with no producer.
+
+  Still open, recorded rather than built: the Dart payload generator ignores
+  `minItems`, `maxItems`, `minimum`, `maximum`, `pattern`, `minLength`,
+  `multipleOf`, and `uniqueItems`, so a constraint is now *described* correctly and
+  still not *checked* client-side. RFC 0006 requires it; the server remains
+  authoritative meanwhile.
+
 ## Current validation contract
 
 `./tool/check.sh all` is the single baseline gate. It covers server packages,

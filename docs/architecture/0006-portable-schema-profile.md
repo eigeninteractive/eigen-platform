@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Date: 2026-08-13
+- Amended: 2026-08-19. The profile is now enforced at emission, and two rules
+  changed to match what schema libraries actually emit. See "Implementation
+  notes" at the end.
 
 ## Decision
 
@@ -69,3 +72,47 @@ Adding a schema feature requires equivalent TypeScript and Dart validation,
 code generation, fixtures, canonicalization rules, and documentation in one
 change. The profile version then increments when older generators cannot safely
 interpret the new manifest.
+
+## Implementation notes (2026-08-19)
+
+**The profile is enforced now; it was not before.** One implementation lives in
+`@eigeninteractive/rules` (`portable-schema.ts`), the contract emitter runs it on
+every emitted payload, and `tool/check-contracts.mjs` imports the same function
+rather than restating it. Before this, nothing checked, and the shipped RPS example
+violated the profile in 17 places.
+
+**One of those violations was a real soundness defect, not a style problem.**
+`z.tuple([Move, Move])` emits `{"type": "array", "prefixItems": [Move, Move]}`.
+`prefixItems` constrains only the listed positions and does not bound the length,
+so the emitted contract validated a three-element array that Zod itself rejects. A
+Dart validator generated from that document would have been **weaker than the
+server** — the exact failure this profile exists to prevent. `prefixItems` stays
+forbidden; `z.array(x).length(n)` emits `items` with `minItems`/`maxItems` and says
+what was meant. A heterogeneous tuple still has no portable spelling and now fails
+the build instead of emitting a lie.
+
+**`anyOf` is admitted in exactly one shape.** This record allowed nullability as
+`type: [T, "null"]` and forbade `anyOf` outright. Zod cannot emit the former: every
+`.nullable()` becomes `anyOf: [T, {"type": "null"}]`, and nullability is
+unavoidable in game state. The profile now accepts `anyOf` with exactly two
+branches, one of them `{"type": "null"}` — semantically identical to the union it
+already allowed. General `anyOf` remains forbidden: overlapping branches have no
+single Dart type and no discriminator to generate a parser from. The Dart payload
+generator independently only ever handled this one shape, which is corroboration
+rather than coincidence.
+
+**Contracts emit the output direction of every schema.** Action previously used the
+input direction, and Zod's input schema omits `additionalProperties: false` — so the
+one payload clients submit was the one described as open. Schemas are required to be
+transform-free, so the two directions describe the same values and the output one is
+simply the honest document.
+
+**Known gap: the Dart generator does not enforce value constraints.** Generated
+output requirement 3 above ("validation that enforces every accepted profile
+keyword") is not met. The generator enforces types, enums, `required`, and
+nullability; it ignores `minItems`, `maxItems`, `minimum`, `maximum`, `pattern`,
+`minLength`, `multipleOf`, and `uniqueItems`. So a fixed-length array is now
+*described* correctly and still not *checked* client-side. That is a strictly
+smaller hole than before — the server remains authoritative and rejects the
+payload — but it is the next piece of this RFC to build, together with the
+below/equal/above boundary tests this record already specifies.

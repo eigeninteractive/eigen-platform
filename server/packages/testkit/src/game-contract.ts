@@ -9,7 +9,7 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, relative, resolve } from "node:path";
-import type { GameModule, StandardJSONSchemaV1 } from "@eigeninteractive/rules";
+import { assertPortableSchema, type GameModule, type StandardJSONSchemaV1 } from "@eigeninteractive/rules";
 import { parseTwinFixtureFile } from "./twin-fixtures.js";
 
 /** Current format of the language-neutral contract consumed by EigenInteractive's Dart generator. */
@@ -57,25 +57,54 @@ export interface EmitGameContractOptions extends BuildGameContractOptions {
   output: string | URL;
 }
 
+/**
+ * Sort object keys so the same schemas always emit the same bytes.
+ *
+ * Ordering is by UTF-16 code unit — plain `Array#sort` — which is what RFC 8785
+ * specifies and what `tool/check-contracts.mjs` uses to digest a manifest. It is
+ * *not* `localeCompare`: that collates case-insensitively, so a `$defs` entry
+ * named `Move` sorts before `additionalProperties` under one rule and after it
+ * under the other. Generated JSON Schema is full of capitalized `$defs` names, so
+ * the two orders genuinely disagree, and a digest computed over one would never
+ * match a document written by the other.
+ */
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
   if (value !== null && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .sort(([a], [b]) => a.localeCompare(b))
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
         .map(([key, item]) => [key, canonical(item)]),
     );
   }
   return value;
 }
 
-function jsonSchema(schema: StandardJSONSchemaV1, label: string, direction: "input" | "output"): Record<string, unknown> {
+/**
+ * Emit one payload schema as portable draft-2020-12 JSON Schema.
+ *
+ * Always the **output** direction. Zod's input schema omits
+ * `additionalProperties: false` on objects, because on input a permissive object
+ * still strips unknown keys rather than rejecting them — but the contract is what
+ * the Dart side generates a validator from, and an open object there means the two
+ * halves disagree about an unknown key. Schemas are required to be transform-free
+ * (see `GameSchemas`), so the two directions describe the same values and the
+ * output one is simply the honest document.
+ *
+ * The result is then checked against the portable profile, because emission is
+ * where an unportable schema can still be fixed cheaply. Skipping this check is
+ * how the profile came to be violated in the first place.
+ */
+function jsonSchema(schema: StandardJSONSchemaV1, label: string): Record<string, unknown> {
   const options = { target: "draft-2020-12" as const };
+  let emitted: unknown;
   try {
-    return canonical(schema["~standard"].jsonSchema[direction](options)) as Record<string, unknown>;
+    emitted = canonical(schema["~standard"].jsonSchema.output(options));
   } catch (error) {
-    throw new Error(`${label} cannot emit its ${direction} type as draft-2020-12 JSON Schema`, { cause: error });
+    throw new Error(`${label} cannot emit its type as draft-2020-12 JSON Schema`, { cause: error });
   }
+  assertPortableSchema(emitted, label);
+  return emitted as Record<string, unknown>;
 }
 
 function fixtureFiles(root: string): string[] {
@@ -129,10 +158,10 @@ export function buildGameContract(options: BuildGameContractOptions): GameContra
         version,
         {
           schemas: {
-            state: jsonSchema(rules.schemas.state, `v${version} state`, "output"),
-            observation: jsonSchema(rules.schemas.observation, `v${version} observation`, "output"),
-            action: jsonSchema(rules.schemas.action, `v${version} action`, "input"),
-            config: jsonSchema(rules.schemas.config, `v${version} config`, "output"),
+            state: jsonSchema(rules.schemas.state, `v${version} state`),
+            observation: jsonSchema(rules.schemas.observation, `v${version} observation`),
+            action: jsonSchema(rules.schemas.action, `v${version} action`),
+            config: jsonSchema(rules.schemas.config, `v${version} config`),
           },
         },
       ]),

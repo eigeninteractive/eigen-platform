@@ -43,6 +43,37 @@ strongly recommends implementors support. Using one explicit modern dialect
 keeps `$defs`, nullable unions, arrays, and references deterministic across
 schema libraries instead of accepting library-specific output.
 
+## Stay inside the portable profile
+
+`eigen-contract` checks every emitted schema against the **portable profile**: the
+subset of draft 2020-12 that TypeScript and generated Dart validate identically. A
+schema outside it fails the build with a JSON pointer, because the emitted document
+is what the Dart validator is generated from — a document weaker than your Zod
+schema means the app accepts moves the server rejects.
+
+Two idioms need the portable spelling rather than the obvious one:
+
+| Want | Use | Not |
+|---|---|---|
+| a fixed-length array | `z.array(x).length(2)` | `z.tuple([x, x])` |
+| a small set of numbers | `z.int().min(0).max(1)` or `z.literal([0, 1])` | `z.union([z.literal(0), z.literal(1)])` |
+
+`z.tuple` emits `prefixItems`, which constrains only the listed positions and
+**does not bound the length at all** — the emitted schema would accept a third
+element that Zod itself rejects. `z.array(x).length(n)` emits `items` with
+`minItems`/`maxItems`, which says what you meant. A heterogeneous tuple has no
+portable spelling; use a named object with `meta({ id })`, which generates a real
+Dart class instead of a positional record.
+
+`z.union` of literals emits a general `anyOf`, which has no single Dart type. A
+nullable value is the one `anyOf` the profile accepts, because `.nullable()` emits
+exactly `anyOf: [T, {"type": "null"}]` and that is equivalent to a `[T, "null"]`
+type union — so `moveSchema.nullable()` is fine and needs no thought.
+
+Keep schemas transform-free. The contract emits the **output** direction of each
+schema, so a `.transform()` or `.default()` would describe something other than
+what crosses the wire.
+
 Give reusable/nested schemas stable `meta({ id: "…" })` names. These names
 become stable Dart type names; wire keys themselves are preserved exactly.
 

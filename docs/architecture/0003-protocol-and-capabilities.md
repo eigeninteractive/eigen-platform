@@ -24,9 +24,8 @@ No comparison using `<= latestVersion` is valid capability negotiation.
 
 ## Client capability manifest
 
-Clients send the shape in
-[`client-capabilities.schema.json`](../../contracts/protocol/v1/client-capabilities.schema.json)
-during session establishment and game creation/join. Feature and contract arrays
+Clients send a capability manifest during session establishment and game
+creation/join. Feature and contract arrays
 are sets: sorted for canonicalization and free of duplicates.
 
 Unknown optional server features are ignored. An unknown required feature or
@@ -44,10 +43,8 @@ Authorization and resource identity come from the authenticated route context,
 not caller-controlled fingerprint fields. RFC 0004 defines deduplication.
 
 A successful response includes `requestId`, `commandId`, and a canonical result.
-Errors use the problem shape in
-[`problem.schema.json`](../../contracts/protocol/v1/problem.schema.json).
-HTTP status remains useful for intermediaries; `code`, `outcome`, and
-`retryable` carry engine semantics.
+Errors use a typed problem shape. HTTP status remains useful for intermediaries;
+`code`, `outcome`, and `retryable` carry engine semantics.
 
 ## Error and retry table
 
@@ -76,8 +73,7 @@ WebSockets are server-to-client notification streams after a short-lived,
 single-use socket ticket is exchanged. Long-lived bearer tokens MUST NOT appear
 in the URL.
 
-The server emits the shape in
-[`session-event.schema.json`](../../contracts/protocol/v1/session-event.schema.json):
+The server emits a session event carrying:
 
 - a monotonically increasing connection-local `streamSeq`;
 - exact `contractId` and authoritative game `version`;
@@ -155,6 +151,18 @@ response present means the server decided, a response absent means unknown.
 client that can reach the engine at all, and the server would branch on none of
 them. The mechanism is worth adding with its first genuinely optional feature, so
 its semantics can be designed against a real second case.
+
+**The `contracts/protocol/v1/` schemas are deleted, not implemented.** This record
+pointed at four hand-written JSON Schemas for the capability manifest, the command
+envelope, the problem shape, and the session event. Nothing ever generated from them
+or validated against them, and by deletion all four disagreed with the shipped
+protocol — the session event named `streamSeq`, `protocolMajor`, `contractId`, and an
+opaque `session` object, where the socket actually sends the flat `Session` shape with
+`seq`. The wire is defined by the Zod schemas in `routes/wire.ts` and published as
+generated OpenAPI 3.1, which *is* JSON Schema; `Session` and `Frame` appear there
+because they are HTTP response shapes too, so the socket payload is already
+normative and machine-readable. A second description that nothing checks is worse
+than none, because it gets read and believed.
 
 **No `protocolMajor` on the wire.** Publishing a constant negotiates nothing, and
 there is no major 2 to distinguish from. Adding it later is additive, and a client

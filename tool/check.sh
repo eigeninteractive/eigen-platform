@@ -5,6 +5,10 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 run_contracts() {
   node "$platform_root/tool/platform.mjs" --check
+  # check-contracts.mjs imports the portable-schema profile from the rules package
+  # rather than restating it, so that one build has to exist first. It is the
+  # cheapest package in the workspace and this keeps contracts the first gate.
+  (cd "$platform_root/server" && pnpm --filter @eigeninteractive/rules build)
   node "$platform_root/tool/check-contracts.mjs"
 }
 

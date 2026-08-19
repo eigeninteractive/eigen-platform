@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+// The portable-schema profile has exactly one implementation, in the package game
+// authors already depend on, so this tool and the contract emitter cannot disagree
+// about what is portable. `tool/check.sh` builds it before running this.
+import { portableSchemaViolations } from "../server/packages/rules/dist/index.js";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const contractsRoot = join(root, "contracts");
@@ -54,75 +58,6 @@ function sortedUniqueStrings(value, path, pattern) {
   return strings;
 }
 
-const allowedSchemaKeywords = new Set([
-  "$schema",
-  "$defs",
-  "$ref",
-  "type",
-  "const",
-  "enum",
-  "minimum",
-  "maximum",
-  "exclusiveMinimum",
-  "exclusiveMaximum",
-  "multipleOf",
-  "minLength",
-  "maxLength",
-  "pattern",
-  "items",
-  "minItems",
-  "maxItems",
-  "uniqueItems",
-  "properties",
-  "required",
-  "additionalProperties",
-  "minProperties",
-  "maxProperties",
-  "oneOf",
-  "title",
-  "description",
-  "deprecated",
-  "examples",
-]);
-
-function portableSchema(value, path) {
-  const schema = object(value, path);
-  for (const keyword of Object.keys(schema)) {
-    if (!allowedSchemaKeywords.has(keyword)) fail(`${path}/${keyword}`, "keyword is outside portable profile v1");
-  }
-
-  if ("$schema" in schema && schema.$schema !== draft) fail(`${path}/$schema`, `must be ${draft}`);
-  if ("$ref" in schema && !string(schema.$ref, `${path}/$ref`).startsWith("#/$defs/")) {
-    fail(`${path}/$ref`, "only local $defs references are allowed");
-  }
-
-  const types = Array.isArray(schema.type) ? schema.type : [schema.type];
-  if (types.includes("object") || "properties" in schema) {
-    if (schema.additionalProperties !== false) fail(path, "object schemas require additionalProperties: false");
-  }
-  if (types.includes("integer")) {
-    for (const bound of ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"]) {
-      if (bound in schema && !Number.isSafeInteger(schema[bound])) fail(`${path}/${bound}`, "integer bound must be a safe integer");
-    }
-  }
-
-  if (schema.properties) {
-    for (const [name, property] of Object.entries(object(schema.properties, `${path}/properties`))) {
-      portableSchema(property, `${path}/properties/${name}`);
-    }
-  }
-  if (schema.items) portableSchema(schema.items, `${path}/items`);
-  if (schema.$defs) {
-    for (const [name, definition] of Object.entries(object(schema.$defs, `${path}/$defs`))) {
-      portableSchema(definition, `${path}/$defs/${name}`);
-    }
-  }
-  if (schema.oneOf) {
-    if (!Array.isArray(schema.oneOf) || schema.oneOf.length < 2) fail(`${path}/oneOf`, "requires at least two branches");
-    schema.oneOf.forEach((branch, index) => portableSchema(branch, `${path}/oneOf/${index}`));
-  }
-}
-
 function canonical(value) {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value !== null && typeof value === "object") {
@@ -163,26 +98,17 @@ function checkContract(contract, path) {
 
   object(contract.schemas, `${path}/schemas`);
   for (const name of ["config", "state", "action", "observation"]) {
-    portableSchema(contract.schemas[name], `${path}/schemas/${name}`);
+    // Same profile check the contract emitter runs, imported rather than
+    // restated: two copies of this rule would drift, and a schema this tool
+    // accepts must be one a generated Dart validator can enforce.
+    for (const violation of portableSchemaViolations(contract.schemas[name])) {
+      fail(`${path}/schemas/${name}${violation.pointer === "/" ? "" : violation.pointer}`, violation.problem);
+    }
   }
 
   const expected = expectedContractId(contract);
   if (id !== expected) fail(`${path}/contractId`, `digest mismatch; expected ${expected}`);
   return id;
-}
-
-function checkCapabilities(capabilities, path, knownContracts) {
-  object(capabilities, path);
-  if (capabilities.protocolMajor !== 1) fail(`${path}/protocolMajor`, "must be 1");
-  sortedUniqueStrings(capabilities.features, `${path}/features`, featurePattern);
-  const contracts = sortedUniqueStrings(capabilities.gameContracts, `${path}/gameContracts`, contractIdPattern);
-  for (const contract of contracts) {
-    if (!knownContracts.has(contract)) fail(`${path}/gameContracts`, `unknown example contract ${contract}`);
-  }
-  object(capabilities.client, `${path}/client`);
-  string(capabilities.client.name, `${path}/client/name`);
-  string(capabilities.client.version, `${path}/client/version`);
-  string(capabilities.client.platform, `${path}/client/platform`);
 }
 
 const jsonFiles = (await filesUnder(contractsRoot)).filter((path) => path.endsWith(".json")).sort();
@@ -207,8 +133,6 @@ for (const path of jsonFiles) {
 }
 
 const contractPath = "contracts/examples/counter-v1.game-contract.json";
-const knownContracts = new Set([checkContract(documents.get(contractPath), contractPath)]);
-const capabilityPath = "contracts/examples/client-capabilities.json";
-checkCapabilities(documents.get(capabilityPath), capabilityPath, knownContracts);
+const contractId = checkContract(documents.get(contractPath), contractPath);
 
-console.log(`contracts: ${jsonFiles.length} JSON documents, ${ids.size} schema IDs, ${knownContracts.size} example contract checked`);
+console.log(`contracts: ${jsonFiles.length} JSON documents, ${ids.size} schema IDs, ${contractId} verified`);

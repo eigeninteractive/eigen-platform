@@ -36,6 +36,7 @@
         },
         "action": {
           "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "additionalProperties": false,
           "properties": {
             "amount": {
               "maximum": 9007199254740991,

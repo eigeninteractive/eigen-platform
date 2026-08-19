@@ -36,6 +36,8 @@ export type {
 } from "./contract.js";
 export { IllegalMoveError, passthroughObservation } from "./helpers.js";
 export type { Json, JsonObject } from "./json.js";
+export type { PortableSchemaViolation } from "./portable-schema.js";
+export { assertPortableSchema, PortableSchemaError, portableSchemaViolations } from "./portable-schema.js";
 export type {
   GamePayloadSchema,
   StandardJSONSchemaV1,
