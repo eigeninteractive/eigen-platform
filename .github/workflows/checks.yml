@@ -63,7 +63,7 @@ jobs:
           fi
           echo "full=$full" >> "$GITHUB_OUTPUT"
 
-  contracts:
+  manifest:
     needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -74,8 +74,8 @@ jobs:
         with:
           node-version-file: server/.nvmrc
 
-      - name: Check the platform manifest and contracts
-        run: ./tool/check.sh contracts
+      - name: Check the platform manifest
+        run: ./tool/check.sh manifest
 
   server:
     needs: scope
@@ -249,13 +249,13 @@ jobs:
   check:
     name: check
     if: always()
-    needs: [scope, contracts, server, flutter, web, scaffold]
+    needs: [scope, manifest, server, flutter, web, scaffold]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Require every platform shard
         if: >-
-          needs.contracts.result != 'success' ||
+          needs.manifest.result != 'success' ||
           needs.server.result != 'success' ||
           needs.flutter.result != 'success' ||
           needs.web.result != 'success' ||

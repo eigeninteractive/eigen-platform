@@ -113,15 +113,13 @@ What shipped, and what this record got wrong.
 seating. `No comparison using <= latestVersion is valid capability negotiation`
 was the correct and load-bearing conclusion; the defect it names was real.
 
-**Contract IDs with digests did not ship.** The soundness fix needs only exact
-membership, which integers provide. A digest additionally detects "same version
-integer, different rules", which is a real but separate hazard, and it requires a
-generated per-version manifest that both languages consume. Two contract formats
-currently exist — the generated `game-contract.json` that feeds the Dart generator
-(no `contractId`, all versions in one file) and the normative
-`contracts/game/v1/game-contract.schema.json` (per-version, digested, with a
-`creation` policy, and no producer). Reconciling those is the real prerequisite,
-and is not scheduled.
+**Contract IDs with digests did not ship, and the format for them is deleted.** The
+soundness fix needs only exact membership, which integers provide. A digest
+additionally detects "same version integer, different rules" — a real but separate
+hazard, and a narrower one than it looks, since the drift check already forces a
+deployment's contract to match its own rules. The per-version digested manifest
+this record leaned on had no producer and no consumer, so it is gone; the digest
+rule is preserved as prose in RFC 0005's "Contract identity".
 
 **Creation is the highest version, not an intersection.** This record says
 creation "selects from the intersection of server-create-enabled and

@@ -42,3 +42,8 @@ has no business knowing these routes exist.
 no observation data — so it cannot become a cheating channel for a live game
 whoever holds the secret. The token is compared by SHA-256 digest in an
 accumulating loop, since Workers has no `timingSafeEqual`.
+
+**Breaking.** `GameStub.repokeFinish` is removed; `reconcile` supersedes it. Two
+operator entry points where one was a strict subset of the other gave a caller no
+way to know the narrow one was the right choice, and nothing outside tests called
+it. The Durable Object retains the retry as a private step of `reconcile`.

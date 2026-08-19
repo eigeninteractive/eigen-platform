@@ -3,13 +3,11 @@ set -euo pipefail
 
 platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-run_contracts() {
+# The platform manifest: versions, package inventory, and cross-repo wiring. The
+# portable schema profile is no longer checked here — it is enforced where it can
+# be acted on, inside the contract emitter (`run_server`).
+run_manifest() {
   node "$platform_root/tool/platform.mjs" --check
-  # check-contracts.mjs imports the portable-schema profile from the rules package
-  # rather than restating it, so that one build has to exist first. It is the
-  # cheapest package in the workspace and this keeps contracts the first gate.
-  (cd "$platform_root/server" && pnpm --filter @eigeninteractive/rules build)
-  node "$platform_root/tool/check-contracts.mjs"
 }
 
 assert_no_drift() {
@@ -166,13 +164,13 @@ run_scaffold() {
 }
 
 case "${1:-all}" in
-  contracts) run_contracts ;;
+  manifest) run_manifest ;;
   server) run_server ;;
   flutter) run_flutter ;;
   web) run_web ;;
   scaffold) run_scaffold "${2:-all}" ;;
   all)
-    run_contracts
+    run_manifest
     run_server
     run_flutter
     SERVER_ALREADY_BUILT=1
@@ -180,7 +178,7 @@ case "${1:-all}" in
     run_scaffold
     ;;
   *)
-    echo "usage: $0 [all|contracts|server|flutter|web|scaffold]" >&2
+    echo "usage: $0 [all|manifest|server|flutter|web|scaffold]" >&2
     exit 64
     ;;
 esac

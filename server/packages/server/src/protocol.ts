@@ -197,9 +197,9 @@ export interface GameStub {
    * exists. `userId` null means "no seat", which yields `frame: null`. */
   session(gameId: string, userId: string | null): Promise<SessionSnapshot | null>;
   frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
-  repokeFinish(): Promise<boolean>;
-  /** Re-derive D1's read model from committed state and retry a finish whose
-   * apply never landed. Idempotent; safe on a healthy game. */
+  /** The one repair entry point: re-derive D1's read model from committed state,
+   * retry a finish whose apply never landed, and re-arm the alarm if it
+   * disagrees. Idempotent; safe on a healthy game. */
   reconcile(gameId: string): Promise<ReconcileReport>;
   /** Unconditional teardown: mark the game aborted and compact game data while
    * retaining command receipts. Used by the cron reap for abandoned lobbies /

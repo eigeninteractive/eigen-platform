@@ -88,7 +88,6 @@ export function retryingGameStub(connect: () => GameStub, options?: Partial<Retr
     handle: (cmd) => call((stub) => stub.handle(cmd)),
     session: (gameId, userId) => call((stub) => stub.session(gameId, userId)),
     frames: (args) => call((stub) => stub.frames(args)),
-    repokeFinish: () => call((stub) => stub.repokeFinish()),
     reconcile: (gameId) => call((stub) => stub.reconcile(gameId)),
     abort: (gameId) => call((stub) => stub.abort(gameId)),
     fetch: (request) => connect().fetch(request),

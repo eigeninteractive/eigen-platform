@@ -24,7 +24,7 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | Phase | Status | Evidence |
 | --- | --- | --- |
 | 0: baseline and authorization | Complete | Source commits, package versions, remotes, existing checks, and owner defaults captured |
-| 1: normative contract | Complete | RFCs 0001–0008 accepted and machine-readable contract boundaries established under `contracts/` |
+| 1: normative contract | Complete | RFCs 0001–0008 accepted. The hand-written `contracts/` tree they specified is deleted: everything machine-readable is generated from the code that implements it (OpenAPI 3.1 from the Zod wire schemas, `game-contract.json` from each game's rules) |
 | 2: repository consolidation | Complete | Unsquashed imports, 52 archive branch refs, 77 tags, same-SHA docs/client wiring, root check and CI |
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
 | 4: safe mutation identity | Complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, create receipts on the games row, and bounded Worker-to-DO retry |
@@ -125,11 +125,16 @@ amended, not silently diverged from.
   maps to "Update your app", and `InAppUpdate` already ships). Rollback is the one
   case the simple rule cannot express, so `creatableSchemaVersions` survives as an
   operator override rather than a negotiation input.
-- **No contract digests yet.** They detect "same version integer, different rules",
-  a real hazard but a separate one from the soundness bug, and they need a generated
-  per-version manifest both languages consume. Two contract formats currently
-  disagree (the generated `game-contract.json` and the normative
-  `contracts/game/v1/` schema); reconciling them is the actual prerequisite.
+- **No contract digests, and the format for them is deleted (2026-08-19).** They
+  detect "same version integer, different rules", a real hazard but a separate one
+  from the soundness bug. The per-version digested manifest they needed sat under
+  `contracts/game/v1/` with one hand-written example, no producer, and no consumer
+  — the same condition that let RFC 0003's protocol schemas rot into being wrong.
+  What the digest adds is also narrower than it looks: the drift check already
+  forces a deployment's contract to match its own rules, leaving only a *shipped
+  app* built against stale rules for a version integer that still exists. The rule
+  is preserved as prose in RFC 0005's "Contract identity", to build against a real
+  incident rather than a hypothesis.
 - **No durable client command journal.** RFC 0004 specified one, and it is the
   standard pattern (Replicache mutation ids, PowerSync's CRUD queue, Brick's
   offline queue). It is not being built, because its value does not survive
@@ -184,8 +189,12 @@ amended, not silently diverged from.
   `routes/wire.ts` published as generated OpenAPI 3.1, which is JSON Schema;
   `Session` and `Frame` are in that document because they are HTTP response shapes
   too, so the socket payload was already normative and the deletion left no gap.
-  `contracts/` now holds only the game-contract manifest schema, which is the one
-  artifact there with no producer.
+  The game-contract manifest schema followed it for the same reason (see the digest
+  entry above), which leaves no `contracts/` directory and no `check-contracts.mjs`
+  at all: everything machine-readable about this platform is now generated from the
+  code that implements it. The gate formerly called `contracts` is accordingly
+  `./tool/check.sh manifest` (and the CI job of the same name), which checks the
+  platform manifest.
 
   Still open, recorded rather than built: the Dart payload generator ignores
   `minItems`, `maxItems`, `minimum`, `maximum`, `pattern`, `minLength`,

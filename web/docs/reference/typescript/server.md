@@ -186,7 +186,7 @@ GameStub.abort
 alarm(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:811](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L811)
+Defined in: [server/packages/server/src/do/game-do.ts:818](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L818)
 
 A timeout is derived from committed state, not submitted, so it carries no
 caller identity and stores no receipt. It is idempotent for a better reason
@@ -226,7 +226,7 @@ subclass picks the D1 database off its own Env.
 fetch(request): Promise<Response>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:825](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L825)
+Defined in: [server/packages/server/src/do/game-do.ts:832](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L832)
 
 The worker routes the upgrade here after authenticating; the principal
 header is worker-set (never client-supplied; the worker strips inbound
@@ -278,7 +278,7 @@ fake exported by `@eigeninteractive/server/testing`.
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:1004](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1004)
+Defined in: [server/packages/server/src/do/game-do.ts:1011](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1011)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -334,7 +334,7 @@ GameStub.handle
 reconcile(gameId): Promise<ReconcileReport>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:774](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L774)
+Defined in: [server/packages/server/src/do/game-do.ts:781](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L781)
 
 Re-derive D1's read model from this object's committed state, and finish any
 post-commit work that never landed.
@@ -377,36 +377,13 @@ already matches.
 GameStub.reconcile
 ```
 
-##### repokeFinish()
-
-```ts
-repokeFinish(): Promise<boolean>;
-```
-
-Defined in: [server/packages/server/src/do/game-do.ts:738](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L738)
-
-The gated admin re-poke (step 4): re-runs the D1 apply for a
-finish whose effects never landed. Idempotent end to end: finish_id
-dedupes the apply, and the outbox row exists iff the ratings transition
-hasn't been committed. Returns false when there is nothing to do.
-
-###### Returns
-
-`Promise`\<`boolean`\>
-
-###### Implementation of
-
-```ts
-GameStub.repokeFinish
-```
-
 ##### session()
 
 ```ts
 session(gameId, userId): Promise<SessionSnapshot | null>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:848](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L848)
+Defined in: [server/packages/server/src/do/game-do.ts:855](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L855)
 
 The snapshot over RPC, for the HTTP paths that have no socket.
 
@@ -433,7 +410,7 @@ GameStub.session
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:858](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L858)
+Defined in: [server/packages/server/src/do/game-do.ts:865](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L865)
 
 ###### Returns
 
@@ -445,7 +422,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:858](https://github.com/ei
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:864](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L864)
+Defined in: [server/packages/server/src/do/game-do.ts:871](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L871)
 
 ###### Parameters
 
@@ -464,7 +441,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:864](https://github.com/ei
 webSocketMessage(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:853](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L853)
+Defined in: [server/packages/server/src/do/game-do.ts:860](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L860)
 
 ###### Returns
 

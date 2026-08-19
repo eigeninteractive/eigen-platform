@@ -18,7 +18,6 @@ being simplified before real applications or users depend on it.
 | [`server/`](server/) | Rules SDK, authoritative kernel, Cloudflare Worker server, testkit, scaffolder, and generated Dart HTTP API |
 | [`flutter/`](flutter/) | Pure Dart client core, Flutter runtime and UI shell, Firebase adapter, and example app |
 | [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
-| [`contracts/`](contracts/) | Machine-readable cross-language and wire-contract definitions |
 | [`docs/architecture/`](docs/architecture/) | Accepted vNext decisions and execution status |
 | [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
 

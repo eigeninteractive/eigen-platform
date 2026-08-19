@@ -731,11 +731,18 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     this.#broadcast(this.#header(meta, { status: "finished", players: roster, seq, version }), wireFrames, roster);
   }
 
-  /** The gated admin re-poke (step 4): re-runs the D1 apply for a
-   * finish whose effects never landed. Idempotent end to end: finish_id
-   * dedupes the apply, and the outbox row exists iff the ratings transition
-   * hasn't been committed. Returns false when there is nothing to do. */
-  async repokeFinish(): Promise<boolean> {
+  /** Re-run the D1 apply for a finish whose effects never landed. Idempotent end
+   * to end: finish_id dedupes the apply, and the outbox row exists iff the
+   * ratings transition hasn't been committed. Returns false when there is nothing
+   * to do.
+   *
+   * Private, and reachable only through {@link reconcile}. It used to be public
+   * RPC as its own operator entry point, which meant two ways to ask for a repair
+   * where one is a strict subset of the other — and the narrow one gives an
+   * operator no way to know it was the right choice. `reconcile` does this plus
+   * the read-model rewrite, is equally idempotent, and reports which part
+   * actually recovered something. */
+  async #repokeFinish(): Promise<boolean> {
     const meta = this.#meta();
     const row = this.#db.select().from(t.outbox).get();
     if (row === undefined) return false;
@@ -779,7 +786,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Retry the finish FIRST: applying it commits the ratings transition and
     // moves this object's own state, so mirroring afterwards mirrors the settled
     // truth rather than a version that is about to change.
-    const finishRepoked = await this.repokeFinish();
+    const finishRepoked = await this.#repokeFinish();
     const meta = this.#meta();
     const roster = this.#roster();
     const latest = this.#latestTransition();

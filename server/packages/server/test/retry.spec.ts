@@ -131,7 +131,7 @@ describe("retryingGameStub", () => {
   });
 
   it("retries the reads and the teardown too, all of which are repeatable", async () => {
-    for (const call of [(s: GameStub) => s.session("g", "u"), (s: GameStub) => s.frames({ seat: 0, from: 0, to: 1 }), (s: GameStub) => s.repokeFinish(), (s: GameStub) => s.abort("g")]) {
+    for (const call of [(s: GameStub) => s.session("g", "u"), (s: GameStub) => s.frames({ seat: 0, from: 0, to: 1 }), (s: GameStub) => s.reconcile("g"), (s: GameStub) => s.abort("g")]) {
       let calls = 0;
       const connect = () =>
         new Proxy(

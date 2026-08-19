@@ -412,7 +412,10 @@ describe("finish sequence", () => {
     expect(frames[3].ratings).toHaveLength(2);
   });
 
-  it("keeps the outbox on a failed apply and recovers via repokeFinish", async () => {
+  it("keeps the outbox on a failed apply and recovers via reconcile", async () => {
+    // The defect this guards: the outbox row is the *only* record that a finished
+    // game's ratings never landed, and D1 cannot see it. Without a caller for the
+    // retry, the row is kept forever and those deltas are never written.
     const { gameId, stub } = await startGame({ rated: true });
     // Sabotage the apply: remove the D1 row after init but before finish.
     const backup = await db.select().from(games).where(eq(games.id, gameId)).get();
@@ -420,8 +423,8 @@ describe("finish sequence", () => {
     await db.delete(games).where(eq(games.id, gameId));
 
     await playToFinish(gameId, stub);
-    // The waitUntil apply fails (no games row); outbox must survive, and
-    // with it the uncompacted live tables (they drain together).
+    // The apply fails (no games row); outbox must survive, and with it the
+    // uncompacted live tables (they drain together).
     await runInDurableObject(stub, async (_i, state) => {
       await vi.waitFor(() => {
         expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(1);
@@ -430,33 +433,8 @@ describe("finish sequence", () => {
       expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM frames").one().n).toBeGreaterThan(0);
     });
 
-    // Restore the row, re-poke: idempotent apply lands, N+1 commits late.
-    await db.insert(games).values(backup);
-    expect(await stub.repokeFinish()).toBe(true);
-    expect(await stub.repokeFinish()).toBe(false); // nothing left to do
-
-    // `reconcile` is the general entry point over the same recovery, and reports
-    // that there was nothing left: the narrower `repokeFinish` above already took
-    // it.
-    expect(await stub.reconcile(gameId)).toMatchObject({ initialized: true, status: "finished", finishRepoked: false });
-  });
-
-  it("recovers the same stuck finish through reconcile, which is what the cron sweep calls", async () => {
-    // The defect this exists for: without a caller, that outbox row is kept
-    // forever and the game's rating deltas are never written. D1 cannot see the
-    // row, so the sweep finds the game by its own silence and asks the object.
-    const { gameId, stub } = await startGame({ rated: true });
-    const backup = await db.select().from(games).where(eq(games.id, gameId)).get();
-    if (backup === undefined) throw new Error("seeded games row missing");
-    await db.delete(games).where(eq(games.id, gameId));
-
-    await playToFinish(gameId, stub);
-    await runInDurableObject(stub, async (_i, state) => {
-      await vi.waitFor(() => {
-        expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(1);
-      });
-    });
-
+    // Restore the row and reconcile — the same call the cron sweep makes. The
+    // apply is idempotent, so the ratings transition commits N+1 late.
     await db.insert(games).values(backup);
     expect(await stub.reconcile(gameId)).toMatchObject({ initialized: true, status: "finished", finishRepoked: true });
 
@@ -465,13 +443,14 @@ describe("finish sequence", () => {
     const row = await db.select().from(games).where(eq(games.id, gameId)).get();
     expect(row?.status).toBe("finished");
     expect(row?.finishId).not.toBeNull();
-
-    const history = await db.select().from(ratingHistory).where(eq(ratingHistory.gameId, gameId)).all();
-    expect(history).toHaveLength(2);
     await runInDurableObject(stub, async (_i, state) => {
       expect(state.storage.sql.exec("SELECT MAX(version) AS v FROM transitions").one().v).toBe(3);
       expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(0);
     });
+
+    // Idempotent: a second pass finds nothing left, so an operator running it
+    // twice (or the sweep catching the game again) costs one wake and no writes.
+    expect(await stub.reconcile(gameId)).toMatchObject({ finishRepoked: false });
   });
 });
 

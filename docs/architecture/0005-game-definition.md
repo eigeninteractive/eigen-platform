@@ -2,8 +2,9 @@
 
 - Status: accepted
 - Date: 2026-08-13
-- Amended: 2026-08-19. The player-count policy shipped; see "Implementation
-  notes" at the end.
+- Amended: 2026-08-19. The player-count policy shipped, and the digested
+  per-version manifest is deliberately not built — see "Contract identity" and
+  "Implementation notes".
 
 ## Decision
 
@@ -20,21 +21,41 @@ TypeScript is the only business-rule authority. Dart receives generated types,
 codecs, validators, presentation descriptors, and optional prediction helpers.
 It does not implement mandatory validity, player-count, bot, or rating policy.
 
-## Contract identity
+## Contract identity — not built; kept as a rule to build against
 
-Generation produces a manifest conforming to
-[`game-contract.schema.json`](../../contracts/game/v1/game-contract.schema.json).
-Its ID is:
+A version integer is a promise a person makes. A digest is a fact a machine
+computes. If a game's v3 rules change without the author bumping to v4, both sides
+still say `3` and silently disagree about what `3` means; a digest over the
+generated manifest changes and the mismatch is detectable.
+
+Should that become worth building, the identity is:
 
 ```text
 <gameKey>/v<gameVersion>/sha256:<canonical-manifest-digest>
 ```
 
-The digest covers the manifest without `$schema` and `contractId`, using RFC
-8785 canonical JSON. Any schema, creation policy, required capability, payload
-descriptor, or visibility change creates a different contract ID. A rules-only
-bug fix that is wire/behavior compatible still produces a new platform release;
-whether it creates a new game version is an explicit game-author decision.
+The digest covers a per-version manifest without its `$schema` and `contractId`,
+using RFC 8785 canonical JSON (object keys ordered by UTF-16 code unit — *not*
+`localeCompare`, which collates capitalized `$defs` names differently and would
+make two conforming implementations disagree). Any schema, creation policy,
+required capability, payload descriptor, or visibility change creates a different
+contract ID. A rules-only bug fix that is wire/behavior compatible still produces
+a new platform release; whether it creates a new game version is an explicit
+game-author decision.
+
+**Why it is not built.** The generated `game-contract.json` that actually feeds the
+Dart generator holds all versions in one file and carries no digest. The
+per-version digested manifest this record originally specified lived under
+`contracts/game/v1/` as a JSON Schema with one hand-written example, no producer,
+and no consumer — the same condition that let the protocol schemas in RFC 0003 rot
+into being wrong. It is deleted; the rule survives here, where design intent
+belongs.
+
+What the digest would add is narrower than it first appears: the drift check
+already forces a deployment's committed contract to match its own rules, and a
+missing version bump is a code review away. The uncovered case is a *shipped app*
+built against stale rules for a version integer that still exists. Build this when
+that case actually bites, against a real incident rather than a hypothetical.
 
 ## Creation flow
 
