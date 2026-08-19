@@ -226,14 +226,31 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * are empty. 0.5.0 is skipped for the same reason, being a web-design release
  * that still speaks the 0.3.x wire.
  *
+ * Raised to 0.7.0 for the 0.5.x engine line, and required in both of the senses
+ * above at once. The wire changed -- `clientSchemaVersions` replaced
+ * `clientSchemaVersion` and every mutation now carries `Idempotency-Key` -- and
+ * `eigen_flutter` 0.7.0 is the first shell pinning `eigen_api: ^0.5.0` that can
+ * speak it. The generated code changed too: the app overlay's `rules.dart`
+ * implements `playerLimits` and returns a `PlayerLimits`, neither of which exists
+ * before 0.7.0, so a scaffold left on `^0.6.0` does not even compile.
+ *
  * Note that this floor and the engine range are raised in one commit on
  * purpose. The scaffolder writes both halves, and `updateInternalDependencies`
  * republishes this package whenever the engine version moves, so between an
  * engine line crossing and this line moving there is a published scaffolder
  * that pairs a new worker with an old shell. That window is real and this is
  * what closes it.
+ *
+ * The 0.7.0 raise is the exception that shows where that promise cannot hold. A
+ * floor names a *published* `eigen_flutter`, and `eigen_flutter` publishes at the
+ * end of the release chain, after the npm packages this scaffolder ships with --
+ * so at the moment the engine crossed to 0.5.x there was no 0.7.0 to point at,
+ * and `create-eigen-game@0.12.0` went out pairing a `^0.5.0` worker with a 0.6.0
+ * shell. A Flutter line move therefore costs a follow-up scaffolder patch, and
+ * `scripts/scaffold-e2e.mjs` is what refuses to let it be forgotten: it resolves
+ * both halves for real and compares the wire lines they land on.
  */
-const flutterClientVersion = "^0.6.0";
+const flutterClientVersion = "^0.7.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {

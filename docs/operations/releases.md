@@ -222,8 +222,24 @@ registry state, opens a generated PR if necessary, and enables auto-merge after
 the platform gate. A manual recovery run accepts an exact expected package:
 
 ```bash
-gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.6.1
+gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.7.0
 ```
+
+### A Flutter line move costs a scaffolder patch
+
+`create-eigen-game` writes both halves of a new project and pins a *published*
+`eigen_flutter` floor. That floor cannot be raised in the release that needs it,
+because `eigen_flutter` publishes at the end of the chain, after the npm packages
+the scaffolder ships beside — so when the engine crosses a line, the scaffolder is
+published first and necessarily still names the previous shell.
+
+So after every `eigen_flutter` line move, raise `flutterClientVersion` in
+`packages/create-eigen-game/src/index.ts`, add a patch Changeset, and let the
+normal npm flow ship it. `scripts/scaffold-e2e.mjs` fails loudly until you do: it
+resolves both halves against the real registries and compares the wire lines they
+land on. This is a known one-patch trailer, not a defect to design away — the
+alternative is a scaffolder that resolves versions at scaffold time, which would
+make a generated project non-reproducible.
 
 ## First releases after cutover
 
