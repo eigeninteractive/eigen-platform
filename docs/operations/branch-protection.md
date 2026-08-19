@@ -40,6 +40,14 @@ still runs, and its `check` job still aggregates every shard:
 A direct push to `main` therefore reports failures but does not prevent them.
 Read the advisory run before building on top of a commit.
 
+One shard rule was pull-request-only and is not any more. The step asserting that
+a published npm package's diff carries a Changeset ran on pull requests alone,
+which in iteration mode meant it ran on almost nothing: `create-eigen-game`
+accumulated four user-visible template changes across direct pushes with no
+Changeset and came within one commit of missing the 0.5.0 release. The `server`
+shard now applies the same rule to a push, over that push's own range, with the
+version commit excepted because it consumes the whole queue by design.
+
 ## Restore the protected posture
 
 ```bash

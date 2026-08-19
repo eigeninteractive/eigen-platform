@@ -131,6 +131,40 @@ jobs:
             exit 1
           }
 
+      # The same rule for a direct push, which opens no pull request and therefore
+      # never reached the step above. That gap is not theoretical: while `main` has
+      # been accepting direct pushes, create-eigen-game accumulated four
+      # user-visible template changes with no changeset and came within one commit
+      # of sitting out the 0.5.0 release, which would have left npm serving
+      # templates typechecked against an engine line that no longer exists.
+      - name: Published npm changes have release notes (direct push)
+        if: needs.scope.outputs.full == 'true' && github.event_name == 'push'
+        working-directory: server
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "::notice::This push has no reachable baseline commit, so there is no range to judge."
+            exit 0
+          fi
+
+          # The version commit is the one intentional exception, exactly as the
+          # `changeset-release/main` branch is for the step above: it consumes the
+          # entire queue and bumps the versions in the same commit, so an empty
+          # queue is the correct state rather than a missing changeset. Detected by
+          # the bump itself and not by a branch name or commit subject, because
+          # `changeset version` is the only thing in this repository that rewrites
+          # those version fields.
+          if git diff "$BEFORE..HEAD" -- 'packages/*/package.json' | grep -qE '^\+\s*"version":'; then
+            echo "::notice::This push bumped published package versions, so the release queue is expected to be empty."
+            exit 0
+          fi
+
+          pnpm changeset status --since="$BEFORE" || {
+            echo "::error::A published npm package changed without a changeset. Run 'pnpm changeset', or 'pnpm changeset --empty' for a non-release change."
+            exit 1
+          }
+
       - name: Documentation-only change
         if: needs.scope.outputs.full != 'true'
         run: echo "Server checks are covered by the documentation build for this scoped change."

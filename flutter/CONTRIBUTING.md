@@ -89,8 +89,15 @@ dependency_overrides:
 
 The example needs its own override with the corresponding relative path because
 it is a separate package root. The override files are generated local wiring,
-not repository source. Never place either override in `pubspec.yaml`; publish
-checks must still validate the declared registry constraint separately.
+not repository source. Never place either override in `pubspec.yaml`.
+
+Because the override wins everywhere, no ordinary check exercises the declared
+constraint at all: `tool/check.sh` links the local client before running, so the
+range in `pubspec.yaml` is read only by a publish, which resolves without the
+override. `tool/check-dart-pin.mjs` closes that gap in the `manifest` shard by
+asserting the declared range is a caret on the generated client's own line. Raise
+the pin in the same change that moves the engine to a new line, and it will fail
+loudly if you forget.
 
 Generated response enums include `unknownDefaultOpenApi`. Exhaustive switches
 must handle it, normally by presenting an update-required state. It is a

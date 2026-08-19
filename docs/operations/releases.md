@@ -47,6 +47,10 @@ when their own user-visible contents change.
   partial upload is safe.
 - Pub.dev tags are package-namespaced because two Dart packages share this
   repository.
+- The `manifest` shard asserts that `flutter/pubspec.yaml`'s `eigen_api` range is
+  a caret on the generated client's line. Nothing else can: `tool/check.sh` links
+  the local client first, so a publish is otherwise the first thing to resolve the
+  declared range. See `tool/check-dart-pin.mjs`.
 
 ## Required GitHub configuration
 
@@ -152,7 +156,9 @@ pnpm changeset
 ```
 
 For an internal-only change, use `pnpm changeset --empty`. CI rejects a
-published-package diff with neither kind. If only empty markers are pending,
+published-package diff with neither kind, on a pull request and on a direct push
+to `main` alike; the version commit is the only exception, since it consumes the
+queue and bumps the versions together. If only empty markers are pending,
 the release workflow opens a small protected cleanup PR so they cannot block
 later registry detection.
 
