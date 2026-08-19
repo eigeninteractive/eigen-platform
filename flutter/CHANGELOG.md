@@ -14,7 +14,13 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.7.0] - 2026-08-19
+### Added
+- `newCommandId()`, the mutation identity generator, and handling for the
+`commandConflict` and `idempotencyKeyInvalid` server codes. Both report the
+generic failure message on purpose: each means this app built a bad request, so
+no player action causes or repairs one.
+
 ### Changed
 - Every game mutation now sends the standard `Idempotency-Key` header, minted per
 call as a UUIDv7. Repository methods still accept an optional `commandId` to
@@ -50,12 +56,6 @@ cannot be built against the 0.4.x client.
 `eigen-platform` repository. Future releases use namespaced
 `eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
 artifacts.
-
-### Added
-- `newCommandId()`, the mutation identity generator, and handling for the
-`commandConflict` and `idempotencyKeyInvalid` server codes. Both report the
-generic failure message on purpose: each means this app built a bad request, so
-no player action causes or repairs one.
 
 ### Fixed
 - A delayed active snapshot with a higher sequence can no longer resurrect a
@@ -231,9 +231,9 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...HEAD
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7
