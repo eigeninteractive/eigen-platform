@@ -72,6 +72,63 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 Error.constructor
 ```
 
+***
+
+### PortableSchemaError
+
+Defined in: [server/packages/rules/src/portable-schema.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L63)
+
+Thrown by [assertPortableSchema](#assertportableschema); carries every violation found.
+
+#### Extends
+
+- `Error`
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new PortableSchemaError(label, violations): PortableSchemaError;
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:64](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L64)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `label` | `string` |
+| `violations` | readonly [`PortableSchemaViolation`](#portableschemaviolation)[] |
+
+###### Returns
+
+[`PortableSchemaError`](#portableschemaerror)
+
+###### Overrides
+
+```ts
+Error.constructor
+```
+
+#### Properties
+
+##### label
+
+```ts
+readonly label: string;
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:65](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L65)
+
+##### violations
+
+```ts
+readonly violations: readonly PortableSchemaViolation[];
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:66](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L66)
+
 ## Interfaces
 
 ### ApplyActionArgs
@@ -991,6 +1048,36 @@ Defined in: [server/packages/rules/src/contract.ts:202](https://github.com/eigen
 
 ***
 
+### PortableSchemaViolation
+
+Defined in: [server/packages/rules/src/portable-schema.ts:55](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L55)
+
+A profile violation: where it is, and what is wrong.
+
+#### Properties
+
+##### pointer
+
+```ts
+pointer: string;
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:57](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L57)
+
+JSON pointer into the schema document.
+
+##### problem
+
+```ts
+problem: string;
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L59)
+
+What the profile requires instead.
+
+***
+
 ### RatingPoolArgs
 
 Defined in: [server/packages/rules/src/contract.ts:209](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L209)
@@ -1386,6 +1473,29 @@ them as animation only when it has the frame's predecessor, and as static
 
 ## Functions
 
+### assertPortableSchema()
+
+```ts
+function assertPortableSchema(schema, label): void;
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:175](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L175)
+
+Throw [PortableSchemaError](#portableschemaerror) unless `schema` is inside the profile.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `schema` | `unknown` |
+| `label` | `string` |
+
+#### Returns
+
+`void`
+
+***
+
 ### passthroughObservation()
 
 ```ts
@@ -1418,3 +1528,30 @@ simultaneous submissions: any opponent move changes every seat's view.
 #### Returns
 
 [`ObservationSlice`](#observationslice)\<`TState`\>
+
+***
+
+### portableSchemaViolations()
+
+```ts
+function portableSchemaViolations(schema, pointer?): PortableSchemaViolation[];
+```
+
+Defined in: [server/packages/rules/src/portable-schema.ts:87](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/portable-schema.ts#L87)
+
+Collect every way `schema` leaves the profile. Empty ⇒ portable.
+
+Reports all violations rather than the first, because a schema written against
+the wrong idiom usually breaks in several places at once and fixing them one
+build at a time is miserable.
+
+#### Parameters
+
+| Parameter | Type | Default value |
+| ------ | ------ | ------ |
+| `schema` | `unknown` | `undefined` |
+| `pointer` | `string` | `""` |
+
+#### Returns
+
+[`PortableSchemaViolation`](#portableschemaviolation)[]

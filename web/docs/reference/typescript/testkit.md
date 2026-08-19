@@ -1259,7 +1259,7 @@ Current format of the language-neutral contract consumed by EigenInteractive's D
 function buildGameContract(options): GameContract;
 ```
 
-Defined in: [server/packages/testkit/src/game-contract.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L121)
+Defined in: [server/packages/testkit/src/game-contract.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L150)
 
 Build a deterministic in-memory contract without touching the filesystem.
 
@@ -1305,7 +1305,7 @@ Use this in CI through `eigen-contract --check`.
 function checkGameContract(options): void;
 ```
 
-Defined in: [server/packages/testkit/src/game-contract.ts:165](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L165)
+Defined in: [server/packages/testkit/src/game-contract.ts:194](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L194)
 
 Fail when an emitted contract is missing or differs from its inputs.
 
@@ -1425,7 +1425,7 @@ games should invoke the executable through their package script.
 function emitGameContract(options): void;
 ```
 
-Defined in: [server/packages/testkit/src/game-contract.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L159)
+Defined in: [server/packages/testkit/src/game-contract.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L188)
 
 Emit one deterministic, newline-terminated `game-contract.json`.
 
@@ -1472,7 +1472,7 @@ Run one fixture case against a rules unit, returning failure descriptions
 function gameContractFilename(game): string;
 ```
 
-Defined in: [server/packages/testkit/src/game-contract.ts:173](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L173)
+Defined in: [server/packages/testkit/src/game-contract.ts:202](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L202)
 
 A useful default filename for scripts that accept an output directory.
 
@@ -1494,7 +1494,7 @@ A useful default filename for scripts that accept an output directory.
 function gameContractJson(options): string;
 ```
 
-Defined in: [server/packages/testkit/src/game-contract.ts:154](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L154)
+Defined in: [server/packages/testkit/src/game-contract.ts:183](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L183)
 
 Render one deterministic, newline-terminated contract document.
 
