@@ -3,6 +3,27 @@ version: 2
 # Component dependencies are released deliberately through Changesets and the
 # Dart package changelog. Keep the CI actions current without mixing automated
 # dependency releases into those workflows.
+#
+# TypeScript majors are held back in both npm ecosystems below, and the two halves
+# are held for different reasons.
+#
+# `/web` is genuinely blocked. `typedoc` peers at `<=6.0.x` and 0.28.20 is its
+# latest stable; the only newer publishes are 1.0.0-dev prereleases, and
+# `typedoc-plugin-markdown` -- which is what actually generates the TypeScript
+# reference -- peers at `typedoc: 0.28.x` exactly, so it could not follow even if
+# the prerelease were acceptable in a docs build.
+#
+# `/server` is not blocked. It was, while `tsup` generated declarations: that step
+# injects a compiler option TypeScript 7 removes and crashes on TS 7 internals
+# (egoist/tsup#1388, #1389). Declarations come from `tsc` now, and `tsup`'s
+# esbuild path never touches the TypeScript compiler API, so the engine passes the
+# complete platform gate on 7.0.2 -- measured, not assumed. It is held only to
+# keep one TypeScript version across the repository while `/web` is pinned, which
+# is a preference and can be dropped whenever that stops being worth it.
+#
+# Either way the hold matters because each group's pattern is `*`: one unadopted
+# major fails the whole grouped PR, and a dozen ordinary updates stop landing with
+# it.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -18,6 +39,10 @@ updates:
     directory: /server
     schedule:
       interval: monthly
+    # See the header: nothing blocks 7 here; held to match `/web`.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       server-dependencies:
         patterns: ["*"]
@@ -28,6 +53,10 @@ updates:
     directory: /web
     schedule:
       interval: monthly
+    # See the header: `typedoc` and its markdown plugin both cap at 6.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       documentation-dependencies:
         patterns: ["*"]

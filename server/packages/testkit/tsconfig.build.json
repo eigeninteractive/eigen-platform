@@ -1,0 +1,30 @@
+{
+  // Declarations come from `tsc`, not from `tsup --dts`.
+  //
+  // tsup's declaration step injects `baseUrl` unconditionally
+  // (`dist/rollup.js`: `baseUrl: compilerOptions.baseUrl || "."`), which
+  // TypeScript 6 reports as deprecated and TypeScript 7 removes -- see
+  // egoist/tsup#1388 and #1389, both open against the latest release. The only
+  // way to keep that step was a repo-wide `ignoreDeprecations`, which would also
+  // have silenced every other 6.0 deprecation we might introduce by accident.
+  // Emitting with `tsc` honours this configuration exactly and injects nothing,
+  // so the shim is gone and the option we never chose is not set at all.
+  //
+  // Separate from tsconfig.json because that one is the typecheck project: it
+  // may include `test`, and declarations must cover only what ships.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    // Off deliberately: a declaration map points at `src`, which `files` does
+    // not ship, so publishing one would give consumers a map that resolves to
+    // nothing. The base config turns it on for local typechecking.
+    "declarationMap": false,
+    // TypeScript 6 requires this explicitly (TS5011) rather than inferring the
+    // common source directory.
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}

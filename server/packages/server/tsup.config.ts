@@ -3,7 +3,6 @@ import { defineConfig } from "tsup";
 export default defineConfig((options) => ({
   entry: ["src/index.ts", "src/openapi.ts", "src/testing.ts"],
   format: "esm",
-  dts: true,
   sourcemap: true,
   // Not while watching. `--watch` cleans before every rebuild, so `dist/` is
   // empty for a moment on each save, and a game linked to this checkout

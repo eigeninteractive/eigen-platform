@@ -18,7 +18,7 @@
     "templates"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/cli.ts --format esm --dts --sourcemap --clean",
+    "build": "tsup src/index.ts src/cli.ts --format esm --sourcemap --clean && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p templates/worker/tsconfig.json"
   },
@@ -33,7 +33,7 @@
     "@eigeninteractive/testkit": "workspace:*",
     "@types/node": "^26.1.1",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
+    "typescript": "~6.0.2",
     "vitest": "^4.1.10",
     "wrangler": "^4.110.0",
     "zod": "^4.4.3"

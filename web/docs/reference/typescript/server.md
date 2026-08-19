@@ -1274,7 +1274,7 @@ Defined in: [server/packages/server/src/protocol.ts:17](https://github.com/eigen
 
 ### RatingDelta
 
-Defined in: server/packages/kernel/dist/index.d.ts:171
+Defined in: server/packages/kernel/dist/ratings.d.ts:47
 
 One rated identity's before → after, exactly the rating_history row minus
 store keys. Computed by the D1 applier inside the rating CAS and delivered
@@ -1288,7 +1288,7 @@ on the post-finish ratings transition (the `kind: "ratings"` action).
 displayAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:179
+Defined in: server/packages/kernel/dist/ratings.d.ts:55
 
 ##### displayBefore
 
@@ -1296,7 +1296,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:179
 displayBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:176
+Defined in: server/packages/kernel/dist/ratings.d.ts:52
 
 ##### displayChange
 
@@ -1304,7 +1304,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:176
 displayChange: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:180
+Defined in: server/packages/kernel/dist/ratings.d.ts:56
 
 ##### identity
 
@@ -1312,7 +1312,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:180
 identity: RatingIdentity;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:172
+Defined in: server/packages/kernel/dist/ratings.d.ts:48
 
 ##### muAfter
 
@@ -1320,7 +1320,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:172
 muAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:177
+Defined in: server/packages/kernel/dist/ratings.d.ts:53
 
 ##### muBefore
 
@@ -1328,7 +1328,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:177
 muBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:174
+Defined in: server/packages/kernel/dist/ratings.d.ts:50
 
 ##### pool
 
@@ -1336,7 +1336,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:174
 pool: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:173
+Defined in: server/packages/kernel/dist/ratings.d.ts:49
 
 ##### sigmaAfter
 
@@ -1344,7 +1344,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:173
 sigmaAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:178
+Defined in: server/packages/kernel/dist/ratings.d.ts:54
 
 ##### sigmaBefore
 
@@ -1352,7 +1352,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:178
 sigmaBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:175
+Defined in: server/packages/kernel/dist/ratings.d.ts:51
 
 ***
 
@@ -2118,7 +2118,7 @@ Defined in: [server/packages/server/src/auth/provision.ts:19](https://github.com
 const DEADLINE_GRACE_MS: 750 = 750;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:443
+Defined in: server/packages/kernel/dist/timing.d.ts:22
 
 Grace window (ms) added to every deadline comparison so a player who
 submits on time is not rejected because network latency carried the request
@@ -2314,7 +2314,7 @@ owners you would re-issue all of them for.
 function displayRating(mu, sigma): number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:184
+Defined in: server/packages/kernel/dist/ratings.d.ts:60
 
 max(0, round((mu − 3σ) · 40)): the one server-side home of the display
 formula (the client mirrors it for optimistic display only).

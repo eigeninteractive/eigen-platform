@@ -3,7 +3,6 @@ import { defineConfig } from "tsup";
 export default defineConfig((options) => ({
   entry: ["src/index.ts", "src/contract-cli.ts", "src/inspect-cli.ts", "src/local-state.ts"],
   format: "esm",
-  dts: true,
   sourcemap: true,
   // tsup rewrites `node:foo` imports to bare `foo` by default, for consumers
   // old enough to predate the prefix. That is silently wrong for one import

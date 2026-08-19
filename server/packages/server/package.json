@@ -21,7 +21,7 @@
     "openapi.json"
   ],
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && tsc -p tsconfig.build.json",
     "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts",
     "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
     "dev": "tsup --watch",

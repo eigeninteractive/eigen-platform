@@ -46,7 +46,7 @@
   "devDependencies": {
     "@eigeninteractive/testkit": "{{ENGINE_VERSION}}",
     "@types/node": "^26.1.1",
-    "typescript": "^5.9.3",
+    "typescript": "~6.0.2",
     "vitest": "^4.1.10",
     "wrangler": "^4.110.0"
   }

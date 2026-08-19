@@ -239,7 +239,7 @@ Authoritative TypeScript rules registry.
 
 ### CommitInput
 
-Defined in: server/packages/kernel/dist/index.d.ts:288
+Defined in: server/packages/kernel/dist/commit.d.ts:89
 
 #### Properties
 
@@ -249,7 +249,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:288
 game: GameRow;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:289
+Defined in: server/packages/kernel/dist/commit.d.ts:90
 
 ##### intent
 
@@ -257,7 +257,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:289
 intent: Intent;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:294
+Defined in: server/packages/kernel/dist/commit.d.ts:95
 
 ##### now
 
@@ -265,7 +265,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:294
 now: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:297
+Defined in: server/packages/kernel/dist/commit.d.ts:98
 
 The commit instant (epoch ms), sampled once by the host and never read
 here.
@@ -276,7 +276,7 @@ here.
 roster: Seat[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:293
+Defined in: server/packages/kernel/dist/commit.d.ts:94
 
 ##### rules
 
@@ -284,7 +284,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:293
 rules: GameRules;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:300
+Defined in: server/packages/kernel/dist/commit.d.ts:101
 
 The version unit for the game's `schemaVersion`, already resolved by
 the host from the `GameModule.versions` map.
@@ -298,7 +298,7 @@ optional staleViews?: {
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:308
+Defined in: server/packages/kernel/dist/commit.d.ts:109
 
 Same-view material for a stale game action: the acting seat's stored
 frames at `expectedVersion` and at the current version. Only consulted
@@ -324,7 +324,7 @@ expected: SeatView | null;
 state: StateRow | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:292
+Defined in: server/packages/kernel/dist/commit.d.ts:93
 
 The latest transition, or null before v0 (only a `start` intent is
 meaningful then).
@@ -333,7 +333,7 @@ meaningful then).
 
 ### CommitPlan
 
-Defined in: server/packages/kernel/dist/index.d.ts:354
+Defined in: server/packages/kernel/dist/commit.d.ts:155
 
 #### Properties
 
@@ -343,7 +343,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:354
 action: TransitionAction | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:357
+Defined in: server/packages/kernel/dist/commit.d.ts:158
 
 ##### effects
 
@@ -351,7 +351,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:357
 effects: Effect[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:368
+Defined in: server/packages/kernel/dist/commit.d.ts:169
 
 ##### frames
 
@@ -359,7 +359,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:368
 frames: ObservationFrame[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:360
+Defined in: server/packages/kernel/dist/commit.d.ts:161
 
 Per-seat projected frames (identified seats only), persisted with the
 transition, fanned out over sockets. No raw state escapes the kernel.
@@ -370,7 +370,7 @@ transition, fanned out over sockets. No raw state escapes the kernel.
 nextState: StateRow;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:356
+Defined in: server/packages/kernel/dist/commit.d.ts:157
 
 The next transition row, already versioned (`v+1`, or 0 for start).
 
@@ -380,7 +380,7 @@ The next transition row, already versioned (`v+1`, or 0 for start).
 outcomes: OutcomeEntry[] | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:367
+Defined in: server/packages/kernel/dist/commit.d.ts:168
 
 Per-seat results when this transition ends the game, else null.
 
@@ -578,7 +578,7 @@ state: Record<string, unknown>;
 
 ### GameRow
 
-Defined in: server/packages/kernel/dist/index.d.ts:223
+Defined in: server/packages/kernel/dist/commit.d.ts:24
 
 The game's standing configuration: the DO `meta` snapshot.
 
@@ -590,7 +590,7 @@ The game's standing configuration: the DO `meta` snapshot.
 budgetSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:230
+Defined in: server/packages/kernel/dist/commit.d.ts:31
 
 ##### config
 
@@ -598,7 +598,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:230
 config: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:228
+Defined in: server/packages/kernel/dist/commit.d.ts:29
 
 Stored creation config; parsed against the version unit's config schema
 before any hook sees it.
@@ -609,7 +609,7 @@ before any hook sees it.
 incrementSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:231
+Defined in: server/packages/kernel/dist/commit.d.ts:32
 
 ##### rated
 
@@ -617,7 +617,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:231
 rated: boolean;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:232
+Defined in: server/packages/kernel/dist/commit.d.ts:33
 
 ##### ratingPool
 
@@ -625,7 +625,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:232
 ratingPool: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:233
+Defined in: server/packages/kernel/dist/commit.d.ts:34
 
 ##### schemaVersion
 
@@ -633,7 +633,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:233
 schemaVersion: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:225
+Defined in: server/packages/kernel/dist/commit.d.ts:26
 
 ##### status
 
@@ -641,7 +641,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:225
 status: GameStatus;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:224
+Defined in: server/packages/kernel/dist/commit.d.ts:25
 
 ##### turnSeconds
 
@@ -649,13 +649,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:224
 turnSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:229
+Defined in: server/packages/kernel/dist/commit.d.ts:30
 
 ***
 
 ### ObservationFrame
 
-Defined in: server/packages/kernel/dist/index.d.ts:115
+Defined in: server/packages/kernel/dist/observe.d.ts:8
 
 One seat's projected frame, tagged with its seat. The host stamps
 version/timing when it persists and fans these out.
@@ -668,7 +668,7 @@ version/timing when it persists and fans these out.
 data: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:117
+Defined in: server/packages/kernel/dist/observe.d.ts:10
 
 ##### pendingPlayers
 
@@ -676,7 +676,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:117
 pendingPlayers: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:118
+Defined in: server/packages/kernel/dist/observe.d.ts:11
 
 ##### playerIndex
 
@@ -684,7 +684,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:118
 playerIndex: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:116
+Defined in: server/packages/kernel/dist/observe.d.ts:9
 
 ***
 
@@ -837,7 +837,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:110](https://github.co
 
 ### Rejected
 
-Defined in: server/packages/kernel/dist/index.d.ts:45
+Defined in: server/packages/kernel/dist/errors.d.ts:40
 
 An intent the kernel refused. A value, not a throw: rejections are part
 of the normal protocol.
@@ -850,7 +850,7 @@ of the normal protocol.
 code: RejectCode;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:47
+Defined in: server/packages/kernel/dist/errors.d.ts:42
 
 ##### message
 
@@ -858,7 +858,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:47
 message: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:48
+Defined in: server/packages/kernel/dist/errors.d.ts:43
 
 ##### rejected
 
@@ -866,13 +866,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:48
 rejected: true;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:46
+Defined in: server/packages/kernel/dist/errors.d.ts:41
 
 ***
 
 ### Seat
 
-Defined in: server/packages/kernel/dist/index.d.ts:237
+Defined in: server/packages/kernel/dist/commit.d.ts:38
 
 One seat of the roster. Both ids null ⇒ the account was purged mid-game
 (the seat plays on as "Deleted User" for display, but can never act).
@@ -885,7 +885,7 @@ One seat of the roster. Both ids null ⇒ the account was purged mid-game
 botId: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:240
+Defined in: server/packages/kernel/dist/commit.d.ts:41
 
 ##### playerIndex
 
@@ -893,7 +893,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:240
 playerIndex: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:238
+Defined in: server/packages/kernel/dist/commit.d.ts:39
 
 ##### type
 
@@ -901,7 +901,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:238
 type: "bot" | "human";
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:241
+Defined in: server/packages/kernel/dist/commit.d.ts:42
 
 ##### userId
 
@@ -909,13 +909,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:241
 userId: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:239
+Defined in: server/packages/kernel/dist/commit.d.ts:40
 
 ***
 
 ### SeatView
 
-Defined in: server/packages/kernel/dist/index.d.ts:93
+Defined in: server/packages/kernel/dist/guards.d.ts:42
 
 A seat's stored projection at one version: what the same-view compare
 runs on (and what the DO persists per transition as `frames[]`).
@@ -928,7 +928,7 @@ runs on (and what the DO persists per transition as `frames[]`).
 data: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:94
+Defined in: server/packages/kernel/dist/guards.d.ts:43
 
 ##### pendingPlayers
 
@@ -936,13 +936,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:94
 pendingPlayers: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:95
+Defined in: server/packages/kernel/dist/guards.d.ts:44
 
 ***
 
 ### StateRow
 
-Defined in: server/packages/kernel/dist/index.d.ts:245
+Defined in: server/packages/kernel/dist/commit.d.ts:46
 
 The latest committed transition: state plus the engine-owned clocks. All
 instants are epoch milliseconds.
@@ -955,7 +955,7 @@ instants are epoch milliseconds.
 deadline: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:252
+Defined in: server/packages/kernel/dist/commit.d.ts:53
 
 The true turn deadline shown to clients; the alarm arms one millisecond
 after `deadline + grace`.
@@ -966,7 +966,7 @@ after `deadline + grace`.
 pending: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:248
+Defined in: server/packages/kernel/dist/commit.d.ts:49
 
 ##### playerTimes
 
@@ -974,7 +974,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:248
 playerTimes: number[] | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:254
+Defined in: server/packages/kernel/dist/commit.d.ts:55
 
 Per-seat budget banks (ms), budget mode only.
 
@@ -984,7 +984,7 @@ Per-seat budget banks (ms), budget mode only.
 rngSeed: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:249
+Defined in: server/packages/kernel/dist/commit.d.ts:50
 
 ##### state
 
@@ -992,7 +992,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:249
 state: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:247
+Defined in: server/packages/kernel/dist/commit.d.ts:48
 
 ##### turnStartedAt
 
@@ -1000,7 +1000,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:247
 turnStartedAt: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:258
+Defined in: server/packages/kernel/dist/commit.d.ts:59
 
 When the current turn is consuming a budget bank. Null for untimed,
 per-action, and hook-override turns. This is persisted so charging the
@@ -1012,7 +1012,7 @@ turn that ends never depends on the next envelope.
 version: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:246
+Defined in: server/packages/kernel/dist/commit.d.ts:47
 
 ***
 
@@ -1062,7 +1062,7 @@ type Effect =
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:342
+Defined in: server/packages/kernel/dist/commit.d.ts:143
 
 A push/wake the host should attempt post-commit (single attempt + error
 log, with no retry machinery in v1). The kernel names seats; the host resolves
@@ -1096,7 +1096,7 @@ type Intent =
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:262
+Defined in: server/packages/kernel/dist/commit.d.ts:63
 
 What the host asks the kernel to do: the kernel-facing half of a
 `Command` (authorization already happened at the edge; dedupe at the DO).
@@ -1219,7 +1219,7 @@ type RejectCode =
   | "abstain";
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:24
+Defined in: server/packages/kernel/dist/errors.d.ts:19
 
 Why an intent was refused. Stable machine codes: the host's transport
 mapping and the client's retry policy key on these, so treat renames as
@@ -1327,7 +1327,7 @@ Fail when an emitted contract is missing or differs from its inputs.
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:372
+Defined in: server/packages/kernel/dist/commit.d.ts:173
 
 #### Parameters
 
@@ -1372,7 +1372,7 @@ matters.
 function deriveRng(seed, version): Rng;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:388
+Defined in: server/packages/kernel/dist/rng.d.ts:15
 
 The deterministic RNG for one transition: rand-seed's sfc32 keyed by the
 game's base seed and the state version the envelope will commit as. The
@@ -1516,7 +1516,7 @@ Render one deterministic, newline-terminated contract document.
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:371
+Defined in: server/packages/kernel/dist/commit.d.ts:172
 
 Type guard: did `commit()` refuse the intent?
 
@@ -1595,7 +1595,7 @@ tests that replay a simultaneous-move race.
 function randomSeed(): string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:381
+Defined in: server/packages/kernel/dist/rng.d.ts:8
 
 A fresh base seed for a new game: 128 random bits, hex-encoded. Stored on
 the game's v0 state row and copied onto every later row (server-only,
