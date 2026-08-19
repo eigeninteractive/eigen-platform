@@ -32,7 +32,6 @@ request, so the retry carries the same `Idempotency-Key` and the engine answers
 from its committed receipt rather than applying the command twice. A mutation
 without a key is still never retried, because its outcome after a timeout is
 genuinely unknown.
-
 - **Breaking.** `GameRules` gains a required `playerLimits(config)` returning
 `PlayerLimits`: the seats one config may be played with, and the twin of the
 server hook of the same name. `GameCreationSpec.minPlayers`/`maxPlayers` are gone,
@@ -43,19 +42,20 @@ seat**, so unlike `ratingPool`/`botSeatable` this twin is enforced: drift fails 
 create rather than mis-rendering a control. Narrowing the range is still allowed.
 - Twin fixtures accept a `playerLimits` case kind, so a drifted seat declaration
 fails a test on both sides.
+- `eigen_api` pin raised to `^0.5.0`. The engine's 0.5 wire contract renames
+`clientSchemaVersion` to `clientSchemaVersions` and requires `Idempotency-Key` on
+every mutation, so a shell speaking 0.4.x cannot talk to it and this package
+cannot be built against the 0.4.x client.
+- Package source, issue, changelog, and release links now point at the unified
+`eigen-platform` repository. Future releases use namespaced
+`eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
+artifacts.
 
 ### Added
 - `newCommandId()`, the mutation identity generator, and handling for the
 `commandConflict` and `idempotencyKeyInvalid` server codes. Both report the
 generic failure message on purpose: each means this app built a bad request, so
 no player action causes or repairs one.
-
-## [0.6.1] - 2026-08-13
-### Changed
-- Package source, issue, changelog, and release links now point at the unified
-`eigen-platform` repository. Future releases use namespaced
-`eigen_flutter-vX.Y.Z` tags so they cannot collide with other platform
-artifacts.
 
 ### Fixed
 - A delayed active snapshot with a higher sequence can no longer resurrect a
@@ -231,10 +231,9 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[0.6.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.6.1
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.1...HEAD
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...HEAD
 [0.4.1]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.7...v0.4.0
 [0.3.7]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.3.6...v0.3.7
