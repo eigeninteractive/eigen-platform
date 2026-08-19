@@ -1,5 +1,13 @@
 # @eigeninteractive/testkit
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [[`e8be483`](https://github.com/eigeninteractive/eigen-platform/commit/e8be48352e5e6408ebb4bd05d7d0c00a162ec12e)]:
+  - @eigeninteractive/rules@0.5.1
+  - @eigeninteractive/kernel@0.5.1
+
 ## 0.5.0
 
 ### Minor Changes
