@@ -31,11 +31,11 @@
     "@eigeninteractive/rules": "workspace:*",
     "@eigeninteractive/server": "workspace:*",
     "@eigeninteractive/testkit": "workspace:*",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.2.0",
     "tsup": "^8.5.1",
     "typescript": "~6.0.2",
     "vitest": "^4.1.10",
-    "wrangler": "^4.110.0",
+    "wrangler": "^4.123.0",
     "zod": "^4.4.3"
   },
   "engines": {
