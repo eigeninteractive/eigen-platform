@@ -1,5 +1,30 @@
 # @eigeninteractive/kernel
 
+## 0.5.0
+
+### Patch Changes
+
+- [`517b06b`](https://github.com/eigeninteractive/eigen-platform/commit/517b06badf929f2ee8beb0a8670ac051acc2987a) Thanks [@seenu-k](https://github.com/seenu-k)! - Store command results as principal-scoped Durable Object receipts, and derive the
+  deadline alarm from committed state.
+  
+  A retry carrying the same `(principal, commandId)` and the same canonical RFC 8785
+  request replays the committed result; the same id carrying different intent is
+  refused as `commandConflict` rather than guessed at. Receipts survive finish and
+  cancel compaction. Identity-less system commands, such as a deadline timeout,
+  store no receipt: they are idempotent because the kernel abstains once the state
+  they were derived from has moved on.
+  
+  `CommitPlan.alarm` is gone. The host now derives the alarm from the committed
+  deadline with the new `alarmForDeadline` helper and reconciles it after every
+  command, so a `setAlarm` lost after its deadline committed repairs itself without
+  a player having to act.
+  
+  Pre-production storage break: the Durable Object `commands` table is redefined in
+  the initial migration rather than migrated forward. Discard local development
+  state (`rm -rf .wrangler`) before running against it.
+- Updated dependencies [[`6075b87`](https://github.com/eigeninteractive/eigen-platform/commit/6075b87bc44a2ca536c989531590a169b112b081), [`d87de0e`](https://github.com/eigeninteractive/eigen-platform/commit/d87de0eb19b0bfed248ea43f24ceb9fc62332db0), [`25b9239`](https://github.com/eigeninteractive/eigen-platform/commit/25b923910be86edbfd66a0cd7dbf8e3955fc3f67)]:
+  - @eigeninteractive/rules@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

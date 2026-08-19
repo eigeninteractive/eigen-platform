@@ -1,5 +1,229 @@
 # @eigeninteractive/server
 
+## 0.5.0
+
+### Minor Changes
+
+- [`4e3e470`](https://github.com/eigeninteractive/eigen-platform/commit/4e3e4701be05aabceb6456304f9fadadc939d167) Thanks [@seenu-k](https://github.com/seenu-k)! - Deduplicate game creation on the `Idempotency-Key`, so a retried create returns
+  the game it already made instead of a second one.
+  
+  Every other game mutation is committed by a game's Durable Object, which stores
+  its receipt beside the state change. Creation has no game yet, so its receipt is
+  two new columns on the `games` row — `create_command_id` and `create_request` —
+  written in the same INSERT as the rest of it. A new
+  `idx_games_create_key` UNIQUE index on `(created_by, create_command_id)` is what
+  makes a second create under the same key impossible.
+  
+  - A retried `POST /games` returns the original `gameId` and `shortCode`, and
+    fans out no second round of friend invites.
+  - A retried `POST /games/solo` returns the same running game. It is two
+    operations under one key: the create is recognised from its receipt, and the
+    start is re-issued under an id derived from that key, which also resumes a
+    create whose process died before the start landed.
+  - Reusing a key for a materially different create is refused with
+    `422 commandConflict`, matching the behaviour of every other mutation.
+  - Keys are scoped per creator, so two callers may independently choose the same
+    one.
+  
+  The receipt is kept for the life of the game, like the Durable Object's own
+  receipts and for the same reason: an expired receipt would let an ancient retry
+  become a new mutation. It costs nothing, because the row exists anyway.
+  
+  **Migration.** These columns are added to the initial D1 migration rather than a
+  forward one, since no deployment exists yet: re-apply migrations
+  (`wrangler d1 migrations apply`) and discard local development data
+  (`rm -rf .wrangler`).
+
+- [`15e2577`](https://github.com/eigeninteractive/eigen-platform/commit/15e257714336292d49ecb0445ff7b2a424f6c63d) Thanks [@seenu-k](https://github.com/seenu-k)! - Retry a transient Durable Object failure instead of turning it into a 500.
+  
+  A Durable Object call can fail for reasons unrelated to the command: the object
+  was reset because its code was updated (which happens on every deploy), its host
+  was rescheduled, a network hop dropped. Cloudflare marks those errors
+  `retryable`. Until now they surfaced as `500 Internal server error`, which is the
+  worst available answer — it carries a response, so a client cannot distinguish it
+  from a deliberate server decision and correctly declines to retry. A player lost
+  a move to a deploy.
+  
+  Every game stub call except the WebSocket upgrade now retries such a failure
+  twice with jittered backoff (~300ms worst case), and each attempt builds a fresh
+  stub, because Cloudflare documents that a `DurableObjectStub` must not be reused
+  after it throws.
+  
+  This is safe only because every command the Worker sends carries a stable
+  identity — the caller's `Idempotency-Key`, a derived id for create-solo's start,
+  or a deterministic id for the account purge and the bot webhook — so the object
+  either commits once or replays its receipt. `retryable` does **not** promise the
+  operation was skipped; Cloudflare's guidance is to retry such errors *if requests
+  are idempotent*, and receipts are what make them so. Overloaded errors are never
+  retried, and an exception thrown by the game itself is never retried, since the
+  predicate requires the runtime's own `retryable` flag.
+  
+  `isRetryableDoError` and `retryingGameStub` are exported for implementors calling
+  a game stub directly.
+  
+  **Breaking, for direct `withRetry` callers only.** `RetryOptions.shouldRetry` is
+  now required and `withRetry` moved to `@eigeninteractive/server`'s root module
+  (the package export path is unchanged). It previously defaulted to the D1
+  predicate, which silently made "retry with D1 semantics" the behaviour for any
+  caller, including ones retrying something that was not D1. Pass
+  `shouldRetry: isTransientD1Error` to keep the old behaviour.
+
+- [`94532bc`](https://github.com/eigeninteractive/eigen-platform/commit/94532bc441537c7a269abb12a0c17ce14f8a2d2a) Thanks [@seenu-k](https://github.com/seenu-k)! - Check schema-version support exactly, and move creation authority to the server.
+  
+  **Breaking.** `Join` and `JoinByCode` replace `clientSchemaVersion: number` with
+  `clientSchemaVersions: number[]`, the full set of versions the client build ships.
+  
+  The old field was a maximum, compared as `game.schemaVersion <= clientMaximum`.
+  That is not a compatibility test: `GameModule.versions` is deliberately sparse — a
+  build may ship `{1, 3}` once v2 has drained — so the comparison seated a `{1, 3}`
+  client into a v2 game whose frames it cannot decode. The server now tests exact
+  membership, before a seat is created.
+  
+  **Creation is the server's decision.** New games may only be created at the
+  deployment's highest shipped version. A create asserting any other version is
+  refused with `409 schemaUnsupported`, which clients already surface as "update
+  your app". Previously the client's own newest version decided, so an app could
+  race ahead of a server that could not run that version, and an old app could keep
+  creating a version the operator had retired. An unshipped version now answers
+  `schemaUnsupported` rather than a bare 400, matching the join gate.
+  
+  `EngineConfig.creatableSchemaVersions` overrides the default for the two cases it
+  cannot express: rolling creation back after a bad rules release without
+  unshipping the version that games already exist at, and a deployment whose
+  `versions` are parallel variants rather than an upgrade sequence. Listing several
+  does not make clients negotiate — a client always creates at the newest version it
+  ships, and this decides whether that is allowed. A configured version the
+  deployment does not ship fails at startup rather than at a player's first create.
+  
+  **New:** `GET /api/engine/capabilities` publishes `creatableSchemaVersions` and
+  `supportedSchemaVersions`, so a client can tell whether it is compatible before
+  trying. Nothing is required to read it: the refusal path carries the same
+  information, and a stale client that ignores it behaves exactly as it does now.
+
+- [`d6f16dd`](https://github.com/eigeninteractive/eigen-platform/commit/d6f16dd0f9fd4170440d009330424aa1c0181e9a) Thanks [@seenu-k](https://github.com/seenu-k)! - Carry the mutation command id in the standard `Idempotency-Key` request header,
+  and require it.
+  
+  **Breaking.** Every game mutation now requires the `Idempotency-Key` header and
+  no longer accepts a `commandId` body field. The server no longer mints one when
+  it is absent: that fallback silently gave every attempt a fresh identity, which
+  is no idempotency at all. A request without the header is refused with
+  `400 idempotencyKeyInvalid`.
+  
+  Account, social and device routes are unchanged and require no key: they are
+  set-like operations whose repetition already reaches the same state.
+  
+  `commandConflict` moves from 409 to 422, matching the `Idempotency-Key`
+  specification and keeping 409 honest: every other 409 here means "your view is
+  stale, resync and retry", which is exactly what a caller must not do with a key
+  already committed for a different request.
+  
+  Leave, cancel and start no longer take a request body at all, so the empty
+  `LobbyCommand` schema is gone.
+  
+  `@eigeninteractive/server/testing` gains `testMutationHeaders`, which supplies
+  the bearer token, the content type, and a fresh key — or an exact one, to
+  exercise a retry.
+  
+  Creation deduplicates on it too; see the create-receipt changeset.
+
+- [`d87de0e`](https://github.com/eigeninteractive/eigen-platform/commit/d87de0eb19b0bfed248ea43f24ceb9fc62332db0) Thanks [@seenu-k](https://github.com/seenu-k)! - Make seat counts rules-authoritative with a new `playerLimits` hook.
+  
+  **Breaking.** `GameRules` gains a required `playerLimits({ config }) →
+  { minPlayers, maxPlayers }`: the seats a version can actually be played with, read
+  from the parsed config.
+  
+  Seat counts were entirely caller-supplied. `POST /games` and `POST /games/solo`
+  took `minPlayers`/`maxPlayers` and validated them only against *each other*, and
+  no hook existed to check them against the rules — so a client could create a
+  three-seat game of a two-seat game. That is not a bigger game: `initialState`
+  receives `playerCount` seats and hooks index by it, so the example RPS rules
+  (`moves: z.tuple([move, move])`, `playerIndex as 0 | 1`) would mis-slot the third
+  seat's move or fail state validation. RFC 0005 requires that caller-supplied
+  derived values not exist; this closes the seat case.
+  
+  Creation now derives the bounds and validates the caller's range against them.
+  The two body fields are **optional**: omitted means exactly what the rules
+  declared, which is every fixed-size game. A caller may still *narrow* the range
+  for one lobby (opening a 2-6 game as 3-6). A range reaching outside the derived
+  bounds is refused with **422**, matching how a drifted `rated` assertion is
+  refused rather than coerced. `playerLimits` returning a malformed range is a 500
+  naming the hook, not a corrupt game.
+  
+  Twin fixtures gain a `playerLimits` case kind so TS/Dart drift on the seat
+  declaration fails a test. It is the one twin the server enforces, so drift there
+  breaks creation instead of a rendering detail — worth a case even in a fixed-size
+  game.
+
+- [`1c598e2`](https://github.com/eigeninteractive/eigen-platform/commit/1c598e24314fc89141008424fa65f39534245017) Thanks [@seenu-k](https://github.com/seenu-k)! - Repair D1 read models that have fallen behind the Durable Object, and add the
+  operator surface that runs the same repair on demand.
+  
+  **The defect.** `GameStub.repokeFinish` existed, was tested, and **nothing called
+  it.** A finish whose D1 apply fails keeps its outbox row in the DO precisely so it
+  can be retried — but with no caller, that row was kept forever and the game's
+  rating deltas were never written. Silent, permanent, and invisible from D1, which
+  just holds a plausible row that stopped changing. The same silence is what a lost
+  post-commit mirror write looks like, since `#mirrorD1` gives up after its retries
+  rather than failing a commit whose truth is already durable.
+  
+  **`GameStub.reconcile(gameId)`** is the repair: rewrite D1's roster and summary
+  rows from committed state, retry a retained finish, re-arm the alarm if it
+  disagrees, and report what it found. Idempotent, so it is safe on a healthy game.
+  It deliberately does **not** lazy-init — lazy init reads the games row *from D1*,
+  so an object with no committed state has nothing more authoritative than the row it
+  would be repairing, and reconciling it would read the stale copy, write it back,
+  and report success. That case reports `initialized: false` instead.
+  
+  **A third cron job** finds candidates without being told which defect it is
+  looking at: an active game long past its committed turn deadline (its alarm should
+  have fired and written by now), or any non-terminal game with no D1 update for
+  `mirrorStaleMs`. The second is the only signal that finds a stuck finish on an
+  untimed game, which has no deadline to be late for. Oldest first, batch-capped —
+  each candidate wakes a Durable Object, so this is the tightest of the three
+  batches. New `lifecycle` options: `deadlineGraceMs` (6h), `mirrorStaleMs` (7d),
+  `reconcileBatch` (100). `mirrorStaleMs` must stay below `untimedActiveTtlMs` or the
+  reap aborts such a game before this can repair it.
+  
+  **New: `/api/ops`,** gated by an `OPS_TOKEN` secret. `GET /api/ops/games/{id}`
+  shows the DO's view and D1's side by side; `POST /api/ops/games/{id}/reconcile`
+  runs the repair. Every route answers **404** while `OPS_TOKEN` is unset, so a
+  deployment that never configures one has no surface to probe rather than a guarded
+  one. Not in the OpenAPI document and not in the generated clients: a player's app
+  has no business knowing these routes exist.
+  
+  `inspect` returns the **unseated** session view — what a spectator sees, carrying
+  no observation data — so it cannot become a cheating channel for a live game
+  whoever holds the secret. The token is compared by SHA-256 digest in an
+  accumulating loop, since Workers has no `timingSafeEqual`.
+  
+  **Breaking.** `GameStub.repokeFinish` is removed; `reconcile` supersedes it. Two
+  operator entry points where one was a strict subset of the other gave a caller no
+  way to know the narrow one was the right choice, and nothing outside tests called
+  it. The Durable Object retains the retry as a private step of `reconcile`.
+
+### Patch Changes
+
+- [`517b06b`](https://github.com/eigeninteractive/eigen-platform/commit/517b06badf929f2ee8beb0a8670ac051acc2987a) Thanks [@seenu-k](https://github.com/seenu-k)! - Store command results as principal-scoped Durable Object receipts, and derive the
+  deadline alarm from committed state.
+  
+  A retry carrying the same `(principal, commandId)` and the same canonical RFC 8785
+  request replays the committed result; the same id carrying different intent is
+  refused as `commandConflict` rather than guessed at. Receipts survive finish and
+  cancel compaction. Identity-less system commands, such as a deadline timeout,
+  store no receipt: they are idempotent because the kernel abstains once the state
+  they were derived from has moved on.
+  
+  `CommitPlan.alarm` is gone. The host now derives the alarm from the committed
+  deadline with the new `alarmForDeadline` helper and reconciles it after every
+  command, so a `setAlarm` lost after its deadline committed repairs itself without
+  a player having to act.
+  
+  Pre-production storage break: the Durable Object `commands` table is redefined in
+  the initial migration rather than migrated forward. Discard local development
+  state (`rm -rf .wrangler`) before running against it.
+- Updated dependencies [[`517b06b`](https://github.com/eigeninteractive/eigen-platform/commit/517b06badf929f2ee8beb0a8670ac051acc2987a), [`6075b87`](https://github.com/eigeninteractive/eigen-platform/commit/6075b87bc44a2ca536c989531590a169b112b081), [`d87de0e`](https://github.com/eigeninteractive/eigen-platform/commit/d87de0eb19b0bfed248ea43f24ceb9fc62332db0), [`25b9239`](https://github.com/eigeninteractive/eigen-platform/commit/25b923910be86edbfd66a0cd7dbf8e3955fc3f67)]:
+  - @eigeninteractive/kernel@0.5.0
+  - @eigeninteractive/rules@0.5.0
+
 ## 0.4.1
 
 ### Patch Changes

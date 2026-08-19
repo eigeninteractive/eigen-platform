@@ -1,6 +1,6 @@
 {
   "name": "@eigeninteractive/kernel",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "license": "MIT",
   "description": "The pure decision core of the EigenInteractive engine: given a game, state, roster and intent it returns a commit plan or a rejection. No I/O, no platform APIs.",
   "main": "./dist/index.js",
