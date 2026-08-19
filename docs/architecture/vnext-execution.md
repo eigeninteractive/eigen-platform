@@ -29,7 +29,8 @@ Implementation authorization adopts the review handoff's recommended defaults:
 | 3: existing correctness defects | Complete | Timing ownership/alarm boundary, terminal absorption, gap integrity, and pending-control cleanup imported with tests |
 | 4: safe mutation identity | Complete | Receipts, canonical requests, derived alarm, a required `Idempotency-Key` on every game mutation, create receipts on the games row, and bounded Worker-to-DO retry |
 | 5: setup authority and version negotiation | Complete | Exact sparse membership on join, server-owned creation version, rules-derived seat counts, `GET /capabilities`; contract digests deferred, see RFC 0003's implementation notes |
-| 6+: recovery and security loops onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
+| 6: recovery loops | In progress | Read-model reconciliation (cron sweep + `GameStub.reconcile`) and the `/api/ops` operator surface; socket tickets and `EngineLimits` not started |
+| 7+: security loops onward | Not started | Must follow accepted RFCs and add failing invariant tests first |
 
 ## Phase 4 outcome
 
@@ -191,6 +192,36 @@ amended, not silently diverged from.
   `multipleOf`, and `uniqueItems`, so a constraint is now *described* correctly and
   still not *checked* client-side. RFC 0006 requires it; the server remains
   authoritative meanwhile.
+
+- **Read-model reconciliation, and the operator surface (2026-08-19).**
+  `repokeFinish` existed, was tested, and had no caller — so a finish whose D1
+  apply failed kept its outbox row forever and that game's rating deltas were never
+  written. Permanent, silent, and invisible from D1, which holds a plausible row
+  that merely stopped changing. A lost post-commit mirror write presents
+  identically, which is why one sweep covers both rather than two mechanisms
+  covering one each.
+
+  `GameStub.reconcile` writes D1 from committed state, retries a retained finish,
+  and re-arms the alarm, reporting each. Awaited rather than fire-and-forget,
+  unlike the post-commit mirror it repairs: a repair that failed silently is worse
+  than none, because whoever asked would believe the divergence was resolved. It
+  refuses to lazy-init, which is the subtle part — lazy init reads the games row
+  *from D1*, so reconciling an object with no committed state would read the stale
+  copy, write it back, and report success.
+
+  Candidates come from two D1-visible proofs of quiet rather than from a guess at
+  which defect it is: an active game long past its committed deadline, and any
+  non-terminal game unchanged for `mirrorStaleMs`. The second exists solely for
+  untimed games, which have no deadline to be late for and would otherwise be
+  reaped at 30 days with their ratings still unwritten.
+
+  `/api/ops` is gated by `OPS_TOKEN` alone — an operator is not a player and holds
+  no user row — 404s entirely when unset, and stays out of the OpenAPI document so
+  repair operations never reach a generated client. Its inspect route returns the
+  unseated session view, so it carries no observation data and cannot become a
+  cheating channel. `repokeFinish` is kept alongside `reconcile` rather than folded
+  into it: it is a narrower, cheaper operation with a distinct meaning, already
+  published and tested.
 
 ## Current validation contract
 

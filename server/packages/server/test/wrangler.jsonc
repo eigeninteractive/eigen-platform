@@ -9,8 +9,9 @@
   "main": "./worker.ts",
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["nodejs_compat"],
-  // external-bot HMAC secret (a real deploy sets it with `wrangler secret`).
-  "vars": { "BOT_SIGNING_SECRET": "test-bot-signing-secret" },
+  // external-bot HMAC secret + the operator surface secret (a real deploy sets
+  // both with `wrangler secret`).
+  "vars": { "BOT_SIGNING_SECRET": "test-bot-signing-secret", "OPS_TOKEN": "test-ops-token" },
   "exports": {
     "GameDO": {
       "type": "durable-object",

@@ -48,6 +48,7 @@ import { registerAvatarServe, registerAvatarUpload } from "./routes/avatars.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
 import { registerGameRoutes } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
+import { buildOpsApp } from "./routes/ops.js";
 import { registerReadRoutes } from "./routes/reads.js";
 import { registerDownloadRoute, registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
@@ -199,6 +200,9 @@ export interface RouteContext {
    * `BOT_SIGNING_SECRET` convention. Null when unset; the `/api/bot/action`
    * route then refuses every request (external bots are unsupported). */
   botSigningSecret(env: unknown): string | null;
+  /** The operator secret, read from env by the `OPS_TOKEN` convention. Null when
+   * unset, which makes the whole `/api/ops` surface answer 404. */
+  opsToken(env: unknown): string | null;
   /** Required Firebase Admin effects used by FCM and account deletion. */
   firebaseAdmin(env: unknown): FirebaseAdminEffects;
   /** The finished-game replay backend (seam #2). V1 is DO-backed; the
@@ -400,6 +404,11 @@ export function buildApp(ctx: RouteContext) {
   if (ctx.site !== null) registerSiteRoutes(app, ctx);
   app.route("/api/engine", engine);
   app.route("/api/bot", bot);
+  // The operator surface, gated by its own secret rather than by Firebase: an
+  // operator is not a player and holds no user row. Mounted unconditionally
+  // because the secret is per-request env, not build-time config; it answers 404
+  // for every request when `OPS_TOKEN` is unset.
+  app.route("/api/ops", buildOpsApp(ctx));
   return app;
 }
 
@@ -484,6 +493,10 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
     },
     botSigningSecret: (env) => {
       const secret = (env as Record<string, unknown>).BOT_SIGNING_SECRET;
+      return typeof secret === "string" && secret.length > 0 ? secret : null;
+    },
+    opsToken: (env) => {
+      const secret = (env as Record<string, unknown>).OPS_TOKEN;
       return typeof secret === "string" && secret.length > 0 ? secret : null;
     },
     firebaseAdmin: (env) => cfg.testing?.firebaseAdmin(env as TEnv) ?? firebaseAdminFromEnv(env),
@@ -571,6 +584,7 @@ export function openApiDocument(version: string): OpenAPIObject {
     clientOrigins: () => [],
     webAssets: () => null,
     botSigningSecret: () => null,
+    opsToken: () => null,
     firebaseAdmin: inert,
     history: inert,
     deepLink: null,

@@ -165,6 +165,31 @@ export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false
  * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
  * paths (purge, cron reap) can depend on it without importing the app
  * factory. */
+/**
+ * What one {@link GameStub.reconcile} call found and repaired.
+ *
+ * Reported rather than logged so both callers can use it: the cron sweep counts
+ * repairs, and the operator route answers with it.
+ */
+export interface ReconcileReport {
+  gameId: string;
+  /** False when the object holds no committed state, so D1's row is the only
+   * truth there is and there was nothing to reconcile. */
+  initialized: boolean;
+  /** The authoritative status, or null when uninitialized. */
+  status: GameStatus | null;
+  /** D1's roster/summary rows were rewritten from this object's state. True for a
+   * healthy game too: the rewrite is unconditional and idempotent, because
+   * detecting drift would cost a read that tells the caller nothing it can act on
+   * differently. */
+  mirrorRewritten: boolean;
+  /** A retained finish outbox row was re-applied — the divergence that otherwise
+   * costs a finished game its rating deltas permanently. */
+  finishRepoked: boolean;
+  /** The armed alarm disagreed with the committed deadline and was corrected. */
+  alarmRearmed: boolean;
+}
+
 export interface GameStub {
   handle(cmd: Command): Promise<CommandResult>;
   /** The current snapshot for one principal, for the paths with no socket: a
@@ -173,6 +198,9 @@ export interface GameStub {
   session(gameId: string, userId: string | null): Promise<SessionSnapshot | null>;
   frames(args: { seat: number | null; from: number; to: number; isReplay?: boolean }): Promise<FrameMessage[]>;
   repokeFinish(): Promise<boolean>;
+  /** Re-derive D1's read model from committed state and retry a finish whose
+   * apply never landed. Idempotent; safe on a healthy game. */
+  reconcile(gameId: string): Promise<ReconcileReport>;
   /** Unconditional teardown: mark the game aborted and compact game data while
    * retaining command receipts. Used by the cron reap for abandoned lobbies /
    * untimed games, with no creator gate, unlike the `cancel` command. */

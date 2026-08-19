@@ -35,9 +35,33 @@ notably **not** a timeout sweep (the [DO alarm](./timing.md) owns that):
 - **Abandoned-game reap**: never-started lobbies past a TTL, and untimed active
   games (which have no alarm) idle past a longer TTL, `abort`ed so they stop
   occupying the lobby and release their DO storage.
+- **Read-model reconciliation**: games D1 still believes are live but has stopped
+  hearing from, repaired from the authoritative Durable Object.
 
-Both jobs are best-effort, isolated (one failing never blocks the other), and
+All three are best-effort, isolated (one failing never blocks the others), and
 batch-capped so a backlog drains over days. Every window and cap is a **default
 overridable via a `lifecycle` block on `createEngine`** (`guestMaxAgeMs`,
 `guestInactivityMs`, `lobbyTtlMs`, `untimedActiveTtlMs`, `guestBatch`,
-`reapBatch`).
+`reapBatch`, `deadlineGraceMs`, `mirrorStaleMs`, `reconcileBatch`).
+
+### Why reconciliation exists
+
+D1's game rows are a [read model](./storage.md): the DO writes them off the
+response path, because a commit whose truth is already durable must never fail on
+a display copy. That choice has a cost. A mirror write can be lost after its
+retries, leaving D1 quietly stale. And a finish whose D1 apply fails keeps its
+outbox row in the DO, waiting to be asked again — otherwise that game's rating
+deltas are never written at all, which is the worst outcome available here.
+
+D1 cannot tell which happened, or even that anything did: it holds a plausible row
+that has simply stopped changing. So the sweep looks for the two ways a live game
+can be *provably* quiet — an active game long past its committed turn deadline
+(whose alarm should have fired and written by now), and any non-terminal game with
+no D1 update for a week (the only signal available for an untimed game, which has
+no deadline to be late for) — and asks the object what is true.
+
+The repair itself is idempotent: it rewrites the roster and summary rows from
+committed state, retries a retained finish, and re-arms the alarm if it disagrees.
+A healthy game caught by a coarse predicate costs one wake and changes nothing. The
+same repair is available for a single game through the
+[operator surface](../ship-it/configure.md#the-operator-surface-optional).

@@ -62,7 +62,7 @@ import { isTransientD1Error } from "../d1/errors.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/admin-effects.js";
 import { finishPush, readyPush, turnPush } from "../notify/push.js";
-import type { Command, CommandResult, FrameMessage, GameStub, Principal, SessionSnapshot } from "../protocol.js";
+import type { Command, CommandResult, FrameMessage, GameStub, Principal, ReconcileReport, SessionSnapshot } from "../protocol.js";
 import { withRetry } from "../retry.js";
 import { type CommandIdentity, commandIdentity } from "./command-receipt.js";
 import migrations from "./migrations/migrations.js";
@@ -745,6 +745,61 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return this.#db.select({ finishId: t.outbox.finishId }).from(t.outbox).get() === undefined;
   }
 
+  /**
+   * Re-derive D1's read model from this object's committed state, and finish any
+   * post-commit work that never landed.
+   *
+   * The repair counterpart to the fire-and-forget mirror. `#mirrorD1` writes the
+   * roster/summary rows off the response path and gives up after its retries,
+   * because a commit whose truth is already durable must not fail on a read
+   * model — which leaves D1 stale with nothing to notice. Likewise a finish whose
+   * D1 apply failed keeps its outbox row precisely so this can retry it. Both are
+   * the same defect from D1's side (a game that stopped being updated), and both
+   * are fixed by the same act: write what the DO knows.
+   *
+   * Deliberately does NOT lazy-init. Lazy init reads the games row *from D1*, so
+   * an object with no `meta` has nothing more authoritative than the row it would
+   * be repairing — reconciling it would read the stale copy and write it straight
+   * back, reporting success. No meta row means this object never committed
+   * anything, and the answer is honestly "nothing to reconcile".
+   *
+   * The writes here are **awaited**, unlike the post-commit mirror: a repair that
+   * failed silently is worse than no repair, because the operator or sweep that
+   * asked for it would believe the divergence was resolved.
+   *
+   * Idempotent, so a sweep may call it on a healthy game: the mirror is rewritten
+   * to the same values, `repokeFinish` reports nothing to do, and the alarm
+   * already matches.
+   */
+  async reconcile(gameId: string): Promise<ReconcileReport> {
+    const loaded = this.#loadMeta();
+    if (loaded === undefined || loaded.gameId !== gameId) {
+      return { gameId, initialized: false, status: null, mirrorRewritten: false, finishRepoked: false, alarmRearmed: false };
+    }
+    // Retry the finish FIRST: applying it commits the ratings transition and
+    // moves this object's own state, so mirroring afterwards mirrors the settled
+    // truth rather than a version that is about to change.
+    const finishRepoked = await this.repokeFinish();
+    const meta = this.#meta();
+    const roster = this.#roster();
+    const latest = this.#latestTransition();
+    const now = Date.now();
+    const d1 = this.d1(this.env);
+    // The roster mirror owns `status` and rewrites participants wholesale, which
+    // is why it is idempotent. A finished game keeps its roster; a cancelled one
+    // has none, and writing that empty roster is the same thing `#cancel` did.
+    await mirrorRoster(d1, { gameId, status: meta.status, seats: roster, now });
+    // The per-turn summary only exists once play has started. `applyFinish` owns
+    // the terminal row, so a finished game gets nothing further from here — its
+    // repair is the outbox retry above.
+    if (latest !== null && meta.status === "active") {
+      const state = this.#toStateRow(latest, meta);
+      await updateSummary(d1, { gameId, status: "active", pendingPlayers: state.pending, turnDeadline: state.deadline, now });
+    }
+    const alarmRearmed = await this.#reconcileAlarm();
+    return { gameId, initialized: true, status: meta.status, mirrorRewritten: true, finishRepoked, alarmRearmed };
+  }
+
   // ── Deadline alarm: the ONLY alarm client ─────────────────────────
 
   /** A timeout is derived from committed state, not submitted, so it carries no
@@ -1203,15 +1258,16 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * fixed by the next call, without a player having to act, which matters
    * because a deadline exists precisely for the case where nobody does.
    *
-   * Deliberately `#private`, so it is not reachable as RPC. An operator repair
-   * entry point belongs on `GameStub` alongside `repokeFinish`, chosen and
-   * authorized on purpose rather than inherited from a method's visibility.
+   * Deliberately `#private`, so it is not reachable as RPC. The operator repair
+   * entry point is `reconcile`, chosen and authorized on purpose rather than
+   * inherited from a method's visibility. Returns whether it had to write.
    */
-  async #reconcileAlarm(): Promise<void> {
+  async #reconcileAlarm(): Promise<boolean> {
     const desired = this.#desiredAlarm();
-    if (desired === (await this.ctx.storage.getAlarm())) return;
+    if (desired === (await this.ctx.storage.getAlarm())) return false;
     if (desired === null) await this.ctx.storage.deleteAlarm();
     else await this.ctx.storage.setAlarm(desired);
+    return true;
   }
 }
 

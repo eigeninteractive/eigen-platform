@@ -435,6 +435,37 @@ describe("finish sequence", () => {
     expect(await stub.repokeFinish()).toBe(true);
     expect(await stub.repokeFinish()).toBe(false); // nothing left to do
 
+    // `reconcile` is the general entry point over the same recovery, and reports
+    // that there was nothing left: the narrower `repokeFinish` above already took
+    // it.
+    expect(await stub.reconcile(gameId)).toMatchObject({ initialized: true, status: "finished", finishRepoked: false });
+  });
+
+  it("recovers the same stuck finish through reconcile, which is what the cron sweep calls", async () => {
+    // The defect this exists for: without a caller, that outbox row is kept
+    // forever and the game's rating deltas are never written. D1 cannot see the
+    // row, so the sweep finds the game by its own silence and asks the object.
+    const { gameId, stub } = await startGame({ rated: true });
+    const backup = await db.select().from(games).where(eq(games.id, gameId)).get();
+    if (backup === undefined) throw new Error("seeded games row missing");
+    await db.delete(games).where(eq(games.id, gameId));
+
+    await playToFinish(gameId, stub);
+    await runInDurableObject(stub, async (_i, state) => {
+      await vi.waitFor(() => {
+        expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(1);
+      });
+    });
+
+    await db.insert(games).values(backup);
+    expect(await stub.reconcile(gameId)).toMatchObject({ initialized: true, status: "finished", finishRepoked: true });
+
+    // The deltas landed, and D1 now carries the terminal row it never got.
+    expect(await db.select().from(ratingHistory).where(eq(ratingHistory.gameId, gameId)).all()).toHaveLength(2);
+    const row = await db.select().from(games).where(eq(games.id, gameId)).get();
+    expect(row?.status).toBe("finished");
+    expect(row?.finishId).not.toBeNull();
+
     const history = await db.select().from(ratingHistory).where(eq(ratingHistory.gameId, gameId)).all();
     expect(history).toHaveLength(2);
     await runInDurableObject(stub, async (_i, state) => {

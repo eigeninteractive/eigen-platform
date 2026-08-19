@@ -29,13 +29,14 @@ mounted.
 |---|---|---|---|
 | Durable Object | `GameDO` (SQLite storage, via the `exports` field) | **yes** | The per-game session + history |
 | D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. `migrations_dir` points at `node_modules/@eigeninteractive/server/migrations` |
-| Cron trigger | daily | **yes** in practice | The guest purge + abandoned-game reap. Without it those two backstops never run |
+| Cron trigger | daily | **yes** in practice | The guest purge, abandoned-game reap, and read-model reconciliation. Without it those three backstops never run |
 | Assets | `ASSETS` → `./public` | **yes for web** | Flutter bundle, served directly unless a path is in `run_worker_first` |
 | R2 bucket | any binding | optional | Avatar uploads (`avatars` config block) |
 | Var | `FIREBASE_PROJECT_ID` | **yes** | Token verification, and the only thing it needs. Written by scaffolding from the configured project; empty ⇒ every authed request 500s |
 | Var | `WEB_APP_ORIGIN` | **yes for web** | Canonical Flutter origin used for absolute notification click links and automatically trusted for cross-origin browser REST and WebSocket requests |
 | Secret | `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | **yes** | Push (FCM) **and** the Identity-Toolkit admin delete used by account deletion |
 | Secret | `BOT_SIGNING_SECRET` | optional | External bots (the per-bot HMAC is derived from it) |
+| Secret | `OPS_TOKEN` | optional | The operator surface (`/api/ops`). Unset ⇒ every route there answers 404 |
 
 The entries under `wrangler.jsonc` → `vars` are Worker environment variables,
 not TypeScript constants. They are used locally and uploaded with every
@@ -48,7 +49,8 @@ for Auth; notifications do not introduce a second backend account. Production
 authenticated requests reject missing Admin credentials instead of silently
 running without push or leaving a Firebase identity behind during account
 deletion. Optional feature blocks still stay off when absent; for example, no
-`BOT_SIGNING_SECRET` means external bot webhooks are rejected.
+`BOT_SIGNING_SECRET` means external bot webhooks are rejected, and no `OPS_TOKEN`
+means the operator surface does not exist rather than being guarded.
 
 The full type is in the
 [`@eigeninteractive/server` reference](../reference/typescript/server.md).
@@ -339,6 +341,44 @@ instead of crashing during response decoding. The fallback is read-only; never
 send it back to a route.
 
 :::
+
+## The operator surface (optional)
+
+Set `OPS_TOKEN` with `wrangler secret put OPS_TOKEN` to enable `/api/ops`. It
+authenticates with that secret alone — an operator is not a player and holds no
+account — and every route answers `404` while the secret is unset, so a deployment
+that never sets one has nothing to probe.
+
+Two routes, both about one game:
+
+```bash
+# What the Durable Object holds, and what D1 believes, side by side.
+curl -H "Authorization: Bearer $OPS_TOKEN" \
+  https://your-worker/api/ops/games/<gameId>
+
+# Rewrite D1's copy from the object, and retry a finish whose apply never landed.
+curl -X POST -H "Authorization: Bearer $OPS_TOKEN" \
+  https://your-worker/api/ops/games/<gameId>/reconcile
+```
+
+`reconcile` is idempotent and safe on a healthy game, which matters because the
+reason to run it is usually a suspicion rather than a diagnosis. It reports what it
+found: `finishRepoked` means a finished game's rating deltas had never been written
+and now are; `alarmRearmed` means the armed deadline disagreed with committed state.
+`initialized: false` means the object holds no committed state, so D1's row is the
+only truth there is and there was nothing to reconcile against.
+
+You should rarely need it. The daily cron already sweeps for the same divergence —
+active games long past their deadline, and non-terminal games D1 has not heard from
+in a week — and repairs them the same way. This is the entry point for a specific
+game you are looking at now.
+
+`inspect` deliberately returns the **unseated** view of the game, exactly what a
+spectator sees. It carries no observation data, so it cannot become a cheating
+channel for a live game no matter who holds the secret.
+
+These routes are not in the OpenAPI document and not in the generated clients. A
+player's app has no business knowing they exist.
 
 ## Registering bots
 

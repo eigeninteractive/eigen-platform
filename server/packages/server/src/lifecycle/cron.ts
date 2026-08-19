@@ -10,6 +10,8 @@
  *   2. **Abandoned-game reap**: never-started lobbies, and untimed active games
  *      (which have no alarm at all) idle too long, aborted so they stop
  *      occupying the lobby and release their DO storage.
+ *   3. **Read-model reconciliation**: games D1 still believes are live but has
+ *      stopped hearing from, repaired from the authoritative Durable Object.
  *
  * The windows and per-run batch caps are {@link LIFECYCLE_DEFAULTS}, each
  * overridable via the `lifecycle` block on `createEngine` ({@link LifecycleOptions}).
@@ -44,6 +46,22 @@ export interface LifecycleOptions {
   guestBatch?: number;
   /** Max games reaped per run (same bounded-batch reasoning). */
   reapBatch?: number;
+  /** How far past its committed turn deadline an active game may sit before D1's
+   * copy is treated as diverged. A timed game's alarm fires within its deadline
+   * plus the engine's grace, and that fire writes to D1, so silence well past it
+   * means either the alarm or the mirror write was lost. Generous enough that a
+   * slow platform retry is never mistaken for divergence. */
+  deadlineGraceMs?: number;
+  /** How long a non-terminal game may go without any D1 update before it is
+   * reconciled. This is the only signal that finds a *finish* whose D1 apply
+   * failed on an untimed game, which has no deadline to be late for — its row
+   * simply stops changing. Must stay below `untimedActiveTtlMs`, or the reap
+   * aborts such a game before this ever gets to repair it. */
+  mirrorStaleMs?: number;
+  /** Max games reconciled per run. Each one wakes a Durable Object, so this is
+   * the tightest batch: a backlog is drained over several days rather than
+   * turning a daily sweep into a fan-out. */
+  reconcileBatch?: number;
 }
 
 /** The defaults (old: 7-day guest age, 2-day inactivity). An implementor's
@@ -55,6 +73,9 @@ export const LIFECYCLE_DEFAULTS: Required<LifecycleOptions> = {
   untimedActiveTtlMs: 30 * DAY_MS,
   guestBatch: 200,
   reapBatch: 500,
+  deadlineGraceMs: 6 * 60 * 60 * 1000,
+  mirrorStaleMs: 7 * DAY_MS,
+  reconcileBatch: 100,
 };
 
 export async function runScheduled(ops: EngineOps, options: LifecycleOptions = {}): Promise<void> {
@@ -63,6 +84,7 @@ export async function runScheduled(ops: EngineOps, options: LifecycleOptions = {
   // Isolate the two jobs: a failure in one must not skip the other.
   await purgeStaleGuests(ops, now, opts).catch((error) => console.error("cron: stale-guest purge failed", error));
   await reapAbandonedGames(ops, now, opts).catch((error) => console.error("cron: abandoned-game reap failed", error));
+  await reconcileDivergedGames(ops, now, opts).catch((error) => console.error("cron: read-model reconciliation failed", error));
 }
 
 /** Drop `undefined` values so an override object never masks a default with a
@@ -113,4 +135,58 @@ async function reapAbandonedGames(ops: EngineOps, now: number, opts: Required<Li
       .catch((error) => console.error(`cron: reaping abandoned game ${id} failed`, error));
   }
   if (abandoned.length > 0) console.log(`cron: reaped ${abandoned.length} abandoned game(s)`);
+}
+
+/**
+ * Repair games whose D1 read model has fallen behind the Durable Object.
+ *
+ * Two different defects present identically from D1's side, which is why one
+ * sweep covers both. A post-commit mirror write can be lost: `#mirrorD1` retries
+ * transient failures and then gives up, because a commit whose truth is already
+ * durable must never fail on a read model. And a finish's D1 apply can fail, in
+ * which case the DO keeps its outbox row and waits to be asked again — otherwise
+ * the game's rating deltas are lost permanently, which is the worst outcome here
+ * and the reason this job exists at all.
+ *
+ * D1 cannot tell which happened, or even that anything did: it holds a plausible
+ * row that has simply stopped changing. So the candidates are the two ways a
+ * live game can be provably quiet, and the DO decides what was actually wrong:
+ *
+ * 1. an active game well past its committed turn deadline — its alarm should have
+ *    fired and written by now; and
+ * 2. any non-terminal game with no D1 update for `mirrorStaleMs` — the only
+ *    signal available for an untimed game, which has no deadline to be late for.
+ *
+ * Oldest first, so a backlog drains in a stable order rather than starving the
+ * longest-diverged rows. `reconcile` is idempotent, so a healthy game caught by a
+ * coarse predicate costs one wake and changes nothing.
+ */
+async function reconcileDivergedGames(ops: EngineOps, now: number, opts: Required<LifecycleOptions>): Promise<void> {
+  const db = orm(ops.d1);
+  const live = ["waiting", "ready", "active"] as const;
+  const diverged = await db
+    .select({ id: games.id })
+    .from(games)
+    .where(and(inArray(games.status, [...live]), or(and(eq(games.status, "active"), lt(games.turnDeadline, now - opts.deadlineGraceMs)), lt(games.updatedAt, now - opts.mirrorStaleMs))))
+    .orderBy(games.updatedAt)
+    .limit(opts.reconcileBatch)
+    .all();
+
+  let repaired = 0;
+  for (const { id } of diverged) {
+    // Isolated per game: one unreachable object must not skip the rest, and
+    // anything skipped is a candidate again next run.
+    const report = await ops
+      .stub(id)
+      .reconcile(id)
+      .catch((error) => {
+        console.error(`cron: reconciling game ${id} failed`, error);
+        return null;
+      });
+    // Count only the repairs that recovered something a player would notice. A
+    // rewritten mirror is unconditional and says nothing about whether it was
+    // wrong, so it is deliberately not counted.
+    if (report !== null && (report.finishRepoked || report.alarmRearmed)) repaired++;
+  }
+  if (diverged.length > 0) console.log(`cron: reconciled ${diverged.length} diverged game(s), recovered ${repaired}`);
 }
