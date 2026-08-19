@@ -275,10 +275,26 @@ jobs:
             exit 0
           fi
 
-          npm view "@eigeninteractive/server@$server_v" version --json >/dev/null || {
-            echo "::error::@eigeninteractive/server@$server_v is not published; refusing to tag eigen_api."
+          # Poll rather than ask once. This guard runs seconds after the publish
+          # step wrote to the same registry, and npm's read path is eventually
+          # consistent: the 0.5.0 and 0.5.1 releases both failed here with E404
+          # on a version that was already live, and both needed a manual rerun.
+          # The check is still a real gate -- it refuses to tag a version npm
+          # never accepted -- it just stops treating propagation lag as that.
+          published=false
+          for attempt in $(seq 1 12); do
+            if npm view "@eigeninteractive/server@$server_v" version --json >/dev/null 2>&1; then
+              published=true
+              break
+            fi
+            echo "::notice::npm has not surfaced @eigeninteractive/server@$server_v yet (attempt $attempt/12); waiting 10s."
+            sleep 10
+          done
+
+          if [ "$published" != "true" ]; then
+            echo "::error::@eigeninteractive/server@$server_v is not published after two minutes; refusing to tag eigen_api."
             exit 1
-          }
+          fi
 
           git tag "$tag"
           git push "$remote" "$tag"

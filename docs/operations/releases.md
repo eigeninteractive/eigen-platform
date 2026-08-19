@@ -47,6 +47,11 @@ when their own user-visible contents change.
   partial upload is safe.
 - Pub.dev tags are package-namespaced because two Dart packages share this
   repository.
+- The `eigen_api` tag guard polls npm rather than asking once. It runs seconds
+  after the publish step wrote to the same registry, and npm's read path is
+  eventually consistent, so both the 0.5.0 and 0.5.1 releases failed there with a
+  404 for a version that was already live. It still refuses to tag a version npm
+  never accepted; it waits up to two minutes first.
 - The `manifest` shard asserts that `flutter/pubspec.yaml`'s `eigen_api` range is
   a caret on the generated client's line. Nothing else can: `tool/check.sh` links
   the local client first, so a publish is otherwise the first thing to resolve the
