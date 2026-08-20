@@ -1,5 +1,29 @@
 # @eigeninteractive/testkit
 
+## 0.6.0
+
+### Minor Changes
+
+- [`54882cd`](https://github.com/eigeninteractive/eigen-platform/commit/54882cd6b847dd03011da2abb0dbdd33f82acd70) Thanks [@seenu-k](https://github.com/seenu-k)! - Simplify the pre-production engine contract around server-authoritative game
+  creation, contiguous game versions, operation-specific mutation correctness,
+  and short-lived WebSocket tickets. New games now use exactly the latest rules
+  version; the capabilities endpoint and generic command-receipt protocol are
+  removed. Rules declare allowed timing policies, and the kernel fixes charging
+  and deadline-alarm behavior across timed transitions. Unknown public game IDs
+  are rejected from the retained D1 registry before a Durable Object is derived
+  or woken. Game and external-bot JSON bodies are capped at 64 KiB, and the
+  server-only WebSocket closes clients that send application messages.
+  
+  Build all public TypeScript packages with tsdown, including declaration maps,
+  from their own package dependencies rather than cross-workspace `node_modules`
+  paths.
+
+### Patch Changes
+
+- Updated dependencies [[`54882cd`](https://github.com/eigeninteractive/eigen-platform/commit/54882cd6b847dd03011da2abb0dbdd33f82acd70)]:
+  - @eigeninteractive/rules@0.6.0
+  - @eigeninteractive/kernel@0.6.0
+
 ## 0.5.2
 
 ### Patch Changes
