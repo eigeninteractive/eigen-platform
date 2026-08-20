@@ -45,9 +45,7 @@ void main() {
       // regress to a copy-pasted message unnoticed.
       //
       // The generated sentinel is the deliberate exception.
-      const sharesGenericCopy = {
-        ErrorCode.unknownDefaultOpenApi,
-      };
+      const sharesGenericCopy = {ErrorCode.unknownDefaultOpenApi};
       final actionable = ErrorCode.values.where(
         (code) => !sharesGenericCopy.contains(code),
       );

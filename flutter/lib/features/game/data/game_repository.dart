@@ -249,29 +249,18 @@ class GameRepository {
 
   /// Gives up a seat before the game starts. The creator cancels instead.
   Future<Session> leaveGame(String gameId) async {
-    final body = await engineData(
-      () => _api.leaveGame(
-        gameId: gameId,
-      ),
-    );
+    final body = await engineData(() => _api.leaveGame(gameId: gameId));
     return body.session;
   }
 
   /// Abandons a game that has not started. Creator only.
   Future<Session> cancelGame(String gameId) async {
-    final body = await engineData(
-      () => _api.cancelGame(
-        gameId: gameId,
-      ),
-    );
+    final body = await engineData(() => _api.cancelGame(gameId: gameId));
     return body.session;
   }
 
   /// Seats a bot alongside the humans. Creator only, pre-start.
-  Future<Session> addBot(
-    String gameId, {
-    required String botId,
-  }) async {
+  Future<Session> addBot(String gameId, {required String botId}) async {
     final body = await engineData(
       () => _api.addBot(
         gameId: gameId,
@@ -287,11 +276,7 @@ class GameRepository {
   /// the same transition over its own socket, since a start has no single acting
   /// seat.
   Future<Session> startGame(String gameId) async {
-    final body = await engineData(
-      () => _api.startGame(
-        gameId: gameId,
-      ),
-    );
+    final body = await engineData(() => _api.startGame(gameId: gameId));
     return body.session;
   }
 

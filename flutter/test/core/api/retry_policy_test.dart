@@ -5,10 +5,7 @@ import 'package:eigen_flutter/core/errors/engine_exception.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DioException _transport(String method, DioExceptionType type) => DioException(
-  requestOptions: RequestOptions(
-    path: '/api/engine/lobby',
-    method: method,
-  ),
+  requestOptions: RequestOptions(path: '/api/engine/lobby', method: method),
   type: type,
 );
 
@@ -62,8 +59,9 @@ void main() {
       check(
         retryTransient(_transport('GET', DioExceptionType.badResponse), 1),
       ).equals(false);
-      check(retryTransient(_transport('POST', DioExceptionType.cancel), 1))
-          .equals(false);
+      check(
+        retryTransient(_transport('POST', DioExceptionType.cancel), 1),
+      ).equals(false);
     });
   });
 
