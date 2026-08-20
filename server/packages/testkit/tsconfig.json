@@ -2,12 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     // This package is Node-side tooling -- the contract emitter, the inspect
-    // CLI, local state -- so it uses `node:fs`, `node:util`, `process` and
-    // `console`, and already depends on `@types/node`. Naming it is newly
-    // necessary rather than merely tidy: automatic `@types/*` inclusion
-    // resolves against `baseUrl`, which tsup pins to this package directory,
-    // and under TS 6 that stops finding the workspace root's `@types`. Without
-    // this the declaration build fails on `console` and `process`.
+    // CLI, local state -- so name the Node ambient types it actually uses.
     "types": ["node"]
   },
   "include": ["src"]

@@ -228,7 +228,7 @@ export function registerDownloadRoute(app: EngineApp, ctx: RouteContext): void {
   // Keep the engine manifest available even before legal-site configuration,
   // because Page links it from the out-of-box download page.
   //
-  // The EigenInteractive primary, matching site.css and the Flutter shell's
+  // The EigenInteractive primary, matching site.css.txt and the Flutter shell's
   // default seed. It reaches the manifest and so the browser's install UI, and
   // a game that has not configured `site` yet should still look like something
   // rather than like Material's baseline purple.

@@ -15,7 +15,7 @@ import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
 import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
-import { createReceiptRow, userRow } from "./factories.js";
+import { userRow } from "./factories.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
@@ -65,7 +65,7 @@ describe("delete-account", () => {
     const a = uid("del-a");
     const b = uid("del-b");
     const { gameId } = await json<{ gameId: string }>(await api(a, "POST", "/games", { ...createBody, rated: false }), 201);
-    await json(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    await json(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     await json(await api(a, "POST", `/games/${gameId}/start`, {}));
     await json(await api(a, "POST", `/games/${gameId}/action`, { seat: 0, expectedVersion: 0, data: { add: 2 } }));
 
@@ -132,7 +132,6 @@ describe("applyFinish purge guard", () => {
 
     const gameId = crypto.randomUUID();
     await createGame(env.DB, {
-      receipt: createReceiptRow(),
       gameId,
       createdBy: present,
       status: "ready",

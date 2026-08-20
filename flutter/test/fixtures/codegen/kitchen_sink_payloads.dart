@@ -72,6 +72,98 @@ bool _payloadBool(Object? value, String path) {
   throw FormatException('$path: expected a boolean');
 }
 
+T _payloadNumberBounds<T extends num>(
+  T value,
+  String path,
+  num? minimum,
+  num? maximum,
+  num? exclusiveMinimum,
+  num? exclusiveMaximum,
+) {
+  if (minimum != null && value < minimum) {
+    throw FormatException('$path: must be at least $minimum');
+  }
+  if (maximum != null && value > maximum) {
+    throw FormatException('$path: must be at most $maximum');
+  }
+  if (exclusiveMinimum != null && value <= exclusiveMinimum) {
+    throw FormatException('$path: must be greater than $exclusiveMinimum');
+  }
+  if (exclusiveMaximum != null && value >= exclusiveMaximum) {
+    throw FormatException('$path: must be less than $exclusiveMaximum');
+  }
+  return value;
+}
+
+String _payloadStringBounds(
+  String value,
+  String path,
+  int? minimum,
+  int? maximum,
+) {
+  final length = value.runes.length;
+  if (minimum != null && length < minimum) {
+    throw FormatException('$path: must contain at least $minimum characters');
+  }
+  if (maximum != null && length > maximum) {
+    throw FormatException('$path: must contain at most $maximum characters');
+  }
+  return value;
+}
+
+List<dynamic> _payloadListBounds(
+  List<dynamic> value,
+  String path,
+  int? minimum,
+  int? maximum,
+  bool unique,
+) {
+  if (minimum != null && value.length < minimum) {
+    throw FormatException('$path: must contain at least $minimum items');
+  }
+  if (maximum != null && value.length > maximum) {
+    throw FormatException('$path: must contain at most $maximum items');
+  }
+  if (unique) {
+    for (var index = 0; index < value.length; index++) {
+      if (value
+          .take(index)
+          .any((prior) => _payloadEquals(prior, value[index]))) {
+        throw FormatException('$path[$index]: duplicate item');
+      }
+    }
+  }
+  return value;
+}
+
+int _payloadIntChoice(int value, String path, List<int> allowed) {
+  if (allowed.contains(value)) return value;
+  throw FormatException('$path: expected one of $allowed');
+}
+
+void _payloadObjectBounds(
+  Map<String, dynamic> value,
+  String path,
+  Set<String> allowedKeys,
+  bool rejectUnknown,
+  int? minimum,
+  int? maximum,
+) {
+  if (minimum != null && value.length < minimum) {
+    throw FormatException('$path: must contain at least $minimum properties');
+  }
+  if (maximum != null && value.length > maximum) {
+    throw FormatException('$path: must contain at most $maximum properties');
+  }
+  if (rejectUnknown) {
+    for (final key in value.keys) {
+      if (!allowedKeys.contains(key)) {
+        throw FormatException('$path.$key: unknown field');
+      }
+    }
+  }
+}
+
 enum Game2048ArenaV1Move {
   classValue,
   inProgress,
@@ -101,16 +193,34 @@ final class Game2048ArenaV1Profile {
 
   factory Game2048ArenaV1Profile.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV1Profile";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"display-name", "nickname"},
+      false,
+      null,
+      null,
+    );
     return Game2048ArenaV1Profile(
-      displayName: _payloadString(
-        _payloadRequired(json, "display-name", "$path.display-name"),
+      displayName: _payloadStringBounds(
+        _payloadString(
+          _payloadRequired(json, "display-name", "$path.display-name"),
+          "$path.display-name",
+        ),
         "$path.display-name",
+        null,
+        null,
       ),
       nickname: _payloadRequired(json, "nickname", "$path.nickname") == null
           ? null
-          : _payloadString(
-              _payloadRequired(json, "nickname", "$path.nickname"),
+          : _payloadStringBounds(
+              _payloadString(
+                _payloadRequired(json, "nickname", "$path.nickname"),
+                "$path.nickname",
+              ),
               "$path.nickname",
+              null,
+              null,
             ),
     );
   }
@@ -150,6 +260,21 @@ final class Game2048ArenaV1Observation {
 
   factory Game2048ArenaV1Observation.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV1Observation";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{
+        "profile",
+        "history",
+        "matrix",
+        "possible-moves",
+        "note",
+        "quote'\$key",
+      },
+      false,
+      null,
+      null,
+    );
     return Game2048ArenaV1Observation(
       profile: Game2048ArenaV1Profile.fromJson(
         _payloadMap(
@@ -158,7 +283,13 @@ final class Game2048ArenaV1Observation {
         ),
       ),
       history: json.containsKey("history")
-          ? _payloadList(json["history"], "$path.history").indexed.map((entry) {
+          ? _payloadListBounds(
+              _payloadList(json["history"], "$path.history"),
+              "$path.history",
+              null,
+              null,
+              false,
+            ).indexed.map((entry) {
               final index = entry.$1;
               final item = entry.$2;
               return Game2048ArenaV1Profile.fromJson(
@@ -167,18 +298,37 @@ final class Game2048ArenaV1Observation {
             }).toList()
           : null,
       matrix:
-          _payloadList(
-            _payloadRequired(json, "matrix", "$path.matrix"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "matrix", "$path.matrix"),
+              "$path.matrix",
+            ),
             "$path.matrix",
+            null,
+            null,
+            false,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
-            return _payloadInt(item, "$path.matrix[$index]");
+            return _payloadNumberBounds(
+              _payloadInt(item, "$path.matrix[$index]"),
+              "$path.matrix[$index]",
+              null,
+              null,
+              null,
+              null,
+            );
           }).toList(),
       possibleMoves:
-          _payloadList(
-            _payloadRequired(json, "possible-moves", "$path.possible-moves"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "possible-moves", "$path.possible-moves"),
+              "$path.possible-moves",
+            ),
             "$path.possible-moves",
+            null,
+            null,
+            false,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
@@ -190,11 +340,21 @@ final class Game2048ArenaV1Observation {
                   );
           }).toList(),
       note: json.containsKey("note")
-          ? _payloadString(json["note"], "$path.note")
+          ? _payloadStringBounds(
+              _payloadString(json["note"], "$path.note"),
+              "$path.note",
+              null,
+              null,
+            )
           : null,
-      quoteKey: _payloadString(
-        _payloadRequired(json, "quote'\$key", "$path.quote'\$key"),
+      quoteKey: _payloadStringBounds(
+        _payloadString(
+          _payloadRequired(json, "quote'\$key", "$path.quote'\$key"),
+          "$path.quote'\$key",
+        ),
         "$path.quote'\$key",
+        null,
+        null,
       ),
     );
   }
@@ -250,6 +410,14 @@ final class Game2048ArenaV1ActionMetadata {
 
   factory Game2048ArenaV1ActionMetadata.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV1ActionMetadata";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"switch"},
+      false,
+      null,
+      null,
+    );
     return Game2048ArenaV1ActionMetadata(
       switchValue: _payloadBool(
         _payloadRequired(json, "switch", "$path.switch"),
@@ -281,19 +449,40 @@ final class Game2048ArenaV1Action {
 
   factory Game2048ArenaV1Action.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV1Action";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"move", "targets", "metadata"},
+      true,
+      null,
+      null,
+    );
     return Game2048ArenaV1Action(
       move: Game2048ArenaV1Move.fromJson(
         _payloadRequired(json, "move", "$path.move"),
         "$path.move",
       ),
       targets:
-          _payloadList(
-            _payloadRequired(json, "targets", "$path.targets"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "targets", "$path.targets"),
+              "$path.targets",
+            ),
             "$path.targets",
+            1,
+            2,
+            true,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
-            return _payloadInt(item, "$path.targets[$index]");
+            return _payloadNumberBounds(
+              _payloadInt(item, "$path.targets[$index]"),
+              "$path.targets[$index]",
+              null,
+              null,
+              null,
+              null,
+            );
           }).toList(),
       metadata: json.containsKey("metadata")
           ? Game2048ArenaV1ActionMetadata.fromJson(
@@ -361,25 +550,48 @@ final class Game2048ArenaV1Config {
 
   factory Game2048ArenaV1Config.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV1Config";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"mode", "level", "labels"},
+      true,
+      null,
+      null,
+    );
     return Game2048ArenaV1Config(
       mode: Game2048ArenaV1ConfigMode.fromJson(
         _payloadRequired(json, "mode", "$path.mode"),
         "$path.mode",
       ),
-      level: _payloadInt(
-        _payloadRequired(json, "level", "$path.level"),
+      level: _payloadIntChoice(
+        _payloadInt(
+          _payloadRequired(json, "level", "$path.level"),
+          "$path.level",
+        ),
         "$path.level",
+        const [1, 2],
       ),
       labels:
-          _payloadList(
-            _payloadRequired(json, "labels", "$path.labels"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "labels", "$path.labels"),
+              "$path.labels",
+            ),
             "$path.labels",
+            null,
+            null,
+            false,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
             return item == null
                 ? null
-                : _payloadString(item, "$path.labels[$index]");
+                : _payloadStringBounds(
+                    _payloadString(item, "$path.labels[$index]"),
+                    "$path.labels[$index]",
+                    null,
+                    null,
+                  );
           }).toList(),
     );
   }
@@ -443,10 +655,15 @@ final class Game2048ArenaV2Observation {
 
   factory Game2048ArenaV2Observation.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV2Observation";
+    _payloadObjectBounds(json, path, const <String>{"turn"}, false, null, null);
     return Game2048ArenaV2Observation(
-      turn: _payloadInt(
-        _payloadRequired(json, "turn", "$path.turn"),
+      turn: _payloadNumberBounds(
+        _payloadInt(_payloadRequired(json, "turn", "$path.turn"), "$path.turn"),
         "$path.turn",
+        null,
+        null,
+        null,
+        null,
       ),
     );
   }
@@ -469,6 +686,7 @@ final class Game2048ArenaV2Action {
 
   factory Game2048ArenaV2Action.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV2Action";
+    _payloadObjectBounds(json, path, const <String>{"pass"}, false, null, null);
     return Game2048ArenaV2Action(
       pass: _payloadBool(
         _payloadRequired(json, "pass", "$path.pass"),
@@ -495,10 +713,25 @@ final class Game2048ArenaV2Config {
 
   factory Game2048ArenaV2Config.fromJson(Map<String, dynamic> json) {
     const path = "Game2048ArenaV2Config";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"board-size"},
+      false,
+      null,
+      null,
+    );
     return Game2048ArenaV2Config(
-      boardSize: _payloadInt(
-        _payloadRequired(json, "board-size", "$path.board-size"),
+      boardSize: _payloadNumberBounds(
+        _payloadInt(
+          _payloadRequired(json, "board-size", "$path.board-size"),
+          "$path.board-size",
+        ),
         "$path.board-size",
+        null,
+        null,
+        null,
+        null,
       ),
     );
   }

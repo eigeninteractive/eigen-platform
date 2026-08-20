@@ -73,6 +73,7 @@ const rules: GameRules = {
   // A deliberately RANGED game (most real ones are fixed): the tests need both
   // a narrowing that is allowed and a range that is refused.
   playerLimits: () => ({ minPlayers: 2, maxPlayers: 4 }),
+  timingOptions: () => [{ mode: "untimed" }, { mode: "perAction", minSeconds: 30, maxSeconds: 3600 }, { mode: "budget", minBudgetSeconds: 120, maxBudgetSeconds: 86400, minIncrementSeconds: 0, maxIncrementSeconds: 60 }],
   ratingPool: () => "test-pool",
   botSeatable: () => true,
   // In-DO brains, keyed by bot username: the `test-engine-bot` always
@@ -89,6 +90,7 @@ export const LEAK_SENTINEL = "SUPER-SECRET-do-not-leak-42";
 type HiddenState = { count: number; secret: string };
 
 const hiddenRules: GameRules = {
+  ...rules,
   schemas: {
     state: schemaOf((v): v is HiddenState => isObject(v) && typeof v.count === "number" && typeof v.secret === "string"),
     observation: schemaOf((v): v is JsonObject => isObject(v) && typeof v.count === "number"),
@@ -127,17 +129,12 @@ const hiddenRules: GameRules = {
   // Hidden-info projection: only `count` is ever revealed; `secret` never is.
   computeObservation: ({ state, pending }) => ({ data: { count: (state as HiddenState).count }, pendingPlayers: pending }),
   playerLimits: () => ({ minPlayers: 2, maxPlayers: 4 }),
+  timingOptions: () => [{ mode: "untimed" }, { mode: "perAction", minSeconds: 30, maxSeconds: 3600 }, { mode: "budget", minBudgetSeconds: 120, maxBudgetSeconds: 86400, minIncrementSeconds: 0, maxIncrementSeconds: 60 }],
   ratingPool: () => "test-pool",
   botSeatable: () => true,
 };
 
-const testGame: GameModule = { versions: { 1: rules, 2: hiddenRules } };
-
-/** This worker's two versions are parallel VARIANTS, not an upgrade sequence: v1
- * is the plain counter and v2 is the hidden-state game the leak test drives. Both
- * must therefore be creatable, which the default (the highest version alone) does
- * not allow. This is exactly the coexisting-variants case the option exists for. */
-const creatableSchemaVersions = [1, 2];
+const testGame: GameModule = { versions: { 1: hiddenRules } };
 
 export class GameDO extends BaseGameDO<TestEnv> {
   protected readonly gameModule = testGame;
@@ -153,7 +150,6 @@ export class GameDO extends BaseGameDO<TestEnv> {
  * code path production uses, against the checked-in local JWKS. */
 export default createEngine({
   gameModule: testGame,
-  creatableSchemaVersions,
   appName: "Eigen Test",
   d1: (env: TestEnv) => env.DB,
   gameDO: (env: TestEnv) => env.GAME_DO,

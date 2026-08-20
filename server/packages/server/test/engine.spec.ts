@@ -25,22 +25,10 @@ function makeUsers() {
   return { a: `alice-${n}-${crypto.randomUUID()}`, b: `bob-${n}-${crypto.randomUUID()}`, c: `cesar-${n}-${crypto.randomUUID()}` };
 }
 
-interface ApiOptions {
-  body?: unknown;
-  anonymous?: boolean;
-  /** Reuse an exact `Idempotency-Key` to exercise a retry. Omitted, every
-   * mutation gets a fresh one, which is what an honest new intent sends. */
-  idempotencyKey?: string;
-  /** Send no key at all, to exercise the required-header rejection. */
-  omitIdempotencyKey?: boolean;
-}
-
-async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false, opts: ApiOptions = {}): Promise<Response> {
-  const mutating = method !== "GET";
-  const key = opts.idempotencyKey ?? crypto.randomUUID();
+async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
-    headers: mutating && opts.omitIdempotencyKey !== true ? await mutationHeaders({ uid, anonymous, idempotencyKey: key }) : { ...(await bearer({ uid, anonymous })), "content-type": "application/json" },
+    headers: method === "GET" ? await bearer({ uid, anonymous }) : await mutationHeaders({ uid, anonymous }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
 }
@@ -74,6 +62,10 @@ const createBody = { access: "public" as const, schemaVersion: 1, config: { targ
 
 async function createGame(uid: string, overrides: Record<string, unknown> = {}): Promise<Created> {
   return await json<Created>(await api(uid, "POST", "/games", { ...createBody, ...overrides }), 201);
+}
+
+async function socketTicket(uid: string, gameId: string): Promise<string> {
+  return (await json<{ ticket: string }>(await api(uid, "POST", `/games/${gameId}/socket-ticket`), 200)).ticket;
 }
 
 describe("create", () => {
@@ -140,12 +132,19 @@ describe("create", () => {
     const u = makeUsers();
     expect((await api(u.a, "POST", "/games", { ...createBody, access: "friends" }, true)).status).toBe(403);
     expect((await api(u.a, "POST", "/games", { ...createBody, turnSeconds: 30, budgetSeconds: 300 })).status).toBe(400);
-    // An unshipped version is refused as `schemaUnsupported`, the same code and
-    // status the join gate uses, rather than a bare 400: "this server does not
-    // create that version" is a capability answer, not a malformed request.
+    // A client ahead of the deployed server gets an explicit deployment
+    // mismatch rather than misleading "update your app" copy.
     const unshipped = await api(u.a, "POST", "/games", { ...createBody, schemaVersion: 99 });
     expect(unshipped.status).toBe(409);
-    expect(((await unshipped.json()) as { code: string }).code).toBe("schemaUnsupported");
+    expect(((await unshipped.json()) as { code: string }).code).toBe("serverUpdateRequired");
+  });
+
+  it("enforces the versioned rules' timing bands", async () => {
+    const u = makeUsers();
+    expect((await api(u.a, "POST", "/games", { ...createBody, turnSeconds: 29 })).status).toBe(422);
+    expect((await api(u.a, "POST", "/games", { ...createBody, turnSeconds: 3601 })).status).toBe(422);
+    expect((await api(u.a, "POST", "/games", { ...createBody, budgetSeconds: 119, incrementSeconds: 0 })).status).toBe(422);
+    expect((await api(u.a, "POST", "/games", { ...createBody, budgetSeconds: 120, incrementSeconds: 0 })).status).toBe(201);
   });
 
   // Seat counts are the rules' to decide: the test game plays 2-4 and every hook
@@ -176,56 +175,29 @@ describe("create", () => {
   });
 });
 
-describe("capabilities", () => {
-  it("publishes what the deployment creates and what it supports", async () => {
-    const u = makeUsers();
-    const caps = await json<{ creatableSchemaVersions: number[]; supportedSchemaVersions: number[] }>(await api(u.a, "GET", "/capabilities"));
-    // The test worker ships {1, 2} and pins neither, so both are creatable.
-    expect(caps).toEqual({ creatableSchemaVersions: [1, 2], supportedSchemaVersions: [1, 2] });
-  });
-
-  it("lets a client create at any published creatable version", async () => {
-    const u = makeUsers();
-    // Both shipped versions are creatable, which is the point of a set: a client
-    // still on v1 keeps working while a newer one creates v2.
-    for (const schemaVersion of [1, 2]) {
-      const res = await api(u.a, "POST", "/games", { ...createBody, schemaVersion, rated: false });
-      expect(res.status, `schemaVersion ${schemaVersion}`).toBe(201);
-    }
-  });
-});
-
 describe("waiting room", () => {
   it("join → ready; duplicate join and overflow reject cleanly", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
-    const joined = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    const joined = await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     expect(joined.session.status).toBe("ready");
     expect(joined.session.players.map((p) => p.userId)).toEqual([u.a, u.b]);
     expect(joined.session.version).toBeNull();
 
-    const dup = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
+    const dup = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
     expect(dup.status).toBe(409);
     expect(((await dup.json()) as { code: string }).code).toBe("alreadyJoined");
 
-    const full = await api(u.c, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
+    const full = await api(u.c, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
     expect(((await full.json()) as { code: string }).code).toBe("gameFull");
   });
 
-  it("join-by-code resolves; the schema gate rejects a client without this version", async () => {
+  it("join-by-code resolves against the client's supported prefix", async () => {
     const u = makeUsers();
     const { gameId, shortCode } = await createGame(u.a, { rated: false });
 
-    // The game is v1 and this client ships only v2: sparse support, so the old
-    // `game.schemaVersion <= clientMaximum` test would have WRONGLY seated it
-    // (2 >= 1) into a game whose frames it cannot decode. Exact membership is the
-    // whole point, and this is its regression test.
-    const sparse = await api(u.b, "POST", "/games/join-by-code", { shortCode, clientSchemaVersions: [2] });
-    expect(sparse.status).toBe(409);
-    expect(((await sparse.json()) as { code: string }).code).toBe("schemaUnsupported");
-
-    const joined = await json<CommandOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersions: [1] }));
+    const joined = await json<CommandOk>(await api(u.b, "POST", "/games/join-by-code", { shortCode: shortCode.toLowerCase(), clientSchemaVersion: 1 }));
     expect(joined.session.players).toHaveLength(2);
     expect((await db.select().from(participants).where(eq(participants.gameId, gameId)).all()).length).toBeGreaterThanOrEqual(1);
   });
@@ -233,13 +205,13 @@ describe("waiting room", () => {
   it("guests cannot join rated games", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a); // rated by default
-    expect((await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }, true)).status).toBe(403);
+    expect((await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }, true)).status).toBe(403);
   });
 
   it("leave compacts and demotes below minPlayers; the creator cannot leave", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
 
     const creator = await api(u.a, "POST", `/games/${gameId}/leave`, {});
     expect(((await creator.json()) as { code: string }).code).toBe("creatorCannotLeave");
@@ -267,7 +239,7 @@ describe("waiting room", () => {
     expect(detail.participants).toEqual([]);
 
     // A late join fails cleanly at the DO (accepted staleness shape).
-    const late = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
+    const late = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
     expect(late.status).toBe(409);
   });
 
@@ -284,7 +256,7 @@ describe("waiting room", () => {
     const early = await api(u.a, "POST", `/games/${gameId}/start`, {});
     expect(early.status).toBe(409); // waiting, not ready
 
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     expect((await api(u.b, "POST", `/games/${gameId}/start`, {})).status).toBe(403);
 
     const started = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
@@ -296,7 +268,7 @@ describe("waiting room", () => {
 describe("active play & frames", () => {
   async function readyGame(u: ReturnType<typeof makeUsers>, overrides: Record<string, unknown> = {}) {
     const { gameId } = await createGame(u.a, overrides);
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     // No mirror wait: the DO resolves seats from its own roster, so the
     // joiner can act the moment the join response lands.
     await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/start`, {}));
@@ -318,69 +290,25 @@ describe("active play & frames", () => {
     expect(illegal.status).toBe(400);
   });
 
-  it("replays a retry and refuses the same Idempotency-Key for a different move", async () => {
+  it("rejects a repeated action through its authoritative expectedVersion", async () => {
     const u = makeUsers();
     const gameId = await readyGame(u, { rated: false });
-    const key = crypto.randomUUID();
     const move = { seat: 0, data: { add: 1 }, expectedVersion: 0 };
-    const retry = { idempotencyKey: key };
-
-    const first = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, move, false, retry));
-    // Same key, different move: 422 per the Idempotency-Key specification, and
-    // deliberately not 409, which in this API means "resync and retry" — the one
-    // thing a caller must not do here.
-    const conflict = await api(u.a, "POST", `/games/${gameId}/action`, { ...move, data: { add: 2 } }, false, retry);
-    expect(conflict.status).toBe(422);
-    expect(await conflict.json()).toMatchObject({ code: "commandConflict" });
-
-    // Same key, same move: the committed result, exactly once.
-    const replay = await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, move, false, retry));
-    expect(replay).toEqual(first);
+    await json<CommandOk>(await api(u.a, "POST", `/games/${gameId}/action`, move));
+    const repeated = await api(u.a, "POST", `/games/${gameId}/action`, move);
+    expect(repeated.status).toBe(409);
+    expect(await repeated.json()).toMatchObject({ code: "stateUpdated" });
   });
 
-  it("requires an Idempotency-Key on every mutation", async () => {
+  it("treats two create requests as two games", async () => {
     const u = makeUsers();
-    const gameId = await readyGame(u, { rated: false });
-    const res = await api(u.a, "POST", `/games/${gameId}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 }, false, { omitIdempotencyKey: true });
-    expect(res.status).toBe(400);
-    expect(await res.json()).toMatchObject({ code: "idempotencyKeyInvalid" });
-  });
-
-  it("replays a retried create instead of making a second game", async () => {
-    const u = makeUsers();
-    const key = crypto.randomUUID();
-    const retry = { idempotencyKey: key };
     const body = { ...createBody, rated: false };
 
-    const first = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
-    const replay = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
-    // Same game, ids and all: the retry is answered from the reservation the
-    // first attempt wrote in the same D1 batch as the games row.
-    expect(replay).toEqual(first);
-
-    // And only one game exists to be listed, which is the point of the whole
-    // mechanism: the caller retried, not created twice.
+    const first = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    const second = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    expect(second.gameId).not.toBe(first.gameId);
     const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(mine.games.map((g) => g.id)).toEqual([first.gameId]);
-  });
-
-  it("refuses a create key reused for a different game", async () => {
-    const u = makeUsers();
-    const retry = { idempotencyKey: crypto.randomUUID() };
-    await json<Created>(await api(u.a, "POST", "/games", { ...createBody, rated: false }, false, retry), 201);
-
-    const conflict = await api(u.a, "POST", "/games", { ...createBody, rated: false, maxPlayers: 4 }, false, retry);
-    expect(conflict.status).toBe(422);
-    expect(await conflict.json()).toMatchObject({ code: "commandConflict" });
-  });
-
-  it("scopes create keys per user, so two callers may choose the same one", async () => {
-    const u = makeUsers();
-    const retry = { idempotencyKey: crypto.randomUUID() };
-    const body = { ...createBody, rated: false };
-    const a = await json<Created>(await api(u.a, "POST", "/games", body, false, retry), 201);
-    const b = await json<Created>(await api(u.b, "POST", "/games", body, false, retry), 201);
-    expect(b.gameId).not.toBe(a.gameId);
+    expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.gameId, second.gameId]));
   });
 
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {
@@ -448,8 +376,8 @@ describe("socket (session snapshots)", () => {
   it("accepts the configured browser origin and rejects an unknown one", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
-    const token = await mintToken({ uid: u.a });
-    const url = `https://x/api/engine/games/${gameId}/socket?token=${token}`;
+    const ticket = await socketTicket(u.a, gameId);
+    const url = `https://x/api/engine/games/${gameId}/socket?ticket=${ticket}`;
 
     const denied = await exports.default.fetch(url, {
       headers: {
@@ -474,8 +402,8 @@ describe("socket (session snapshots)", () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
-    const token = await mintToken({ uid: u.b });
-    const res = await exports.default.fetch(`https://x/api/engine/games/${gameId}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const ticket = await socketTicket(u.b, gameId);
+    const res = await exports.default.fetch(`https://x/api/engine/games/${gameId}/socket?ticket=${ticket}`, { headers: { Upgrade: "websocket" } });
     expect(res.status).toBe(101);
     const ws = res.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
@@ -492,7 +420,7 @@ describe("socket (session snapshots)", () => {
 
     // Joining pushes the new snapshot to every socket, including this one,
     // whose principal just became seat 1.
-    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] }));
+    await json<CommandOk>(await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }));
     await vi.waitFor(() => expect(messages).toHaveLength(2));
     expect(messages[1]).toMatchObject({ type: "session", status: "ready" });
 
@@ -504,6 +432,19 @@ describe("socket (session snapshots)", () => {
     expect(messages[2]).toMatchObject({ type: "session", status: "active", version: 0 });
     expect(messages[2]?.frame).toMatchObject({ version: 0 });
     ws.close();
+  });
+
+  it("rejects Firebase tokens and tickets minted for another game", async () => {
+    const u = makeUsers();
+    const first = await createGame(u.a, { rated: false });
+    const second = await createGame(u.a, { rated: false });
+    const firebaseToken = await mintToken({ uid: u.a });
+    const rawFirebase = await exports.default.fetch(`https://x/api/engine/games/${first.gameId}/socket?token=${firebaseToken}`, { headers: { Upgrade: "websocket" } });
+    expect(rawFirebase.status).toBe(401);
+
+    const wrongGameTicket = await socketTicket(u.a, second.gameId);
+    const wrongGame = await exports.default.fetch(`https://x/api/engine/games/${first.gameId}/socket?ticket=${wrongGameTicket}`, { headers: { Upgrade: "websocket" } });
+    expect(wrongGame.status).toBe(401);
   });
 });
 
@@ -565,22 +506,14 @@ describe("bots", () => {
     });
   });
 
-  it("replays a retried solo create, returning the same started game", async () => {
+  it("treats two solo create requests as two games", async () => {
     const u = makeUsers();
-    const retry = { idempotencyKey: crypto.randomUUID() };
-
-    const first = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE), false, retry), 201);
-    const replay = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE), false, retry), 201);
-    // Create-solo is two operations under one key. The reservation replays the
-    // create, and the start is re-issued under an id derived from that same key,
-    // so the DO replays its committed start rather than starting a second time
-    // or refusing a game that is already active.
-    expect(replay.session.gameId).toBe(first.session.gameId);
-    expect(replay.session.status).toBe("active");
-    expect(replay.session.version).toBe(first.session.version);
+    const first = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
+    const second = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
+    expect(second.session.gameId).not.toBe(first.session.gameId);
 
     const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(mine.games.map((g) => g.id)).toEqual([first.session.gameId]);
+    expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.session.gameId, second.session.gameId]));
   });
 
   it("rejects seating a bot in an untimed game (bots ⇒ timed)", async () => {

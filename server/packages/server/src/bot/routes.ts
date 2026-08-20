@@ -75,11 +75,9 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
 
       // The DO resolves and enforces the named seat: it must belong to this bot
       // id or the command is a protocol violation (a 500 the operator sees).
-      // Deterministic commandId so a bot's retry of the same turn dedupes.
       const cmd: Command = {
         kind: "action",
         gameId: claim.gameId,
-        commandId: `botaction:${claim.botId}:${claim.gameId}:v${claim.version}:seat${claim.playerIndex}`,
         actor: { userId: null, botId: claim.botId },
         seat: claim.playerIndex,
         expectedVersion: claim.version,

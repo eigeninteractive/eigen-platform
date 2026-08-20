@@ -549,9 +549,9 @@ class _GameCardState extends ConsumerState<_GameCard> {
           .read(gameRepositoryProvider)
           .joinGame(
             widget.game.id,
-            clientSchemaVersions: ref
+            clientSchemaVersion: ref
                 .read(currentGameModuleProvider)
-                .supportedSchemaVersions,
+                .latestSchemaVersion,
           );
       if (!mounted) return;
       setState(() => _isLoading = false);

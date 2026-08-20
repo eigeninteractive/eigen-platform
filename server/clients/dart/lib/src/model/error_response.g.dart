@@ -44,8 +44,8 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.notParticipant: 'notParticipant',
   ErrorCode.notCreator: 'notCreator',
   ErrorCode.creatorCannotLeave: 'creatorCannotLeave',
-  ErrorCode.commandConflict: 'commandConflict',
-  ErrorCode.schemaUnsupported: 'schemaUnsupported',
+  ErrorCode.clientUpdateRequired: 'clientUpdateRequired',
+  ErrorCode.serverUpdateRequired: 'serverUpdateRequired',
   ErrorCode.usernameInvalid: 'usernameInvalid',
   ErrorCode.usernameTaken: 'usernameTaken',
   ErrorCode.friendsOnly: 'friendsOnly',
@@ -54,6 +54,5 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.unsupportedImageType: 'unsupportedImageType',
   ErrorCode.rateLimited: 'rateLimited',
   ErrorCode.invalidCursor: 'invalidCursor',
-  ErrorCode.idempotencyKeyInvalid: 'idempotencyKeyInvalid',
   ErrorCode.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

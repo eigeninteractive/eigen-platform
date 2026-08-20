@@ -129,7 +129,6 @@ function renderGame(view: LocalGameView): string {
     }
     out.push(`roster        ${view.roster.length === 0 ? "(empty)" : view.roster.map(seatLabel).join("   ")}`);
     out.push(`alarm         ${view.alarm === null || view.alarm.scheduledTime === null ? "none armed" : `${new Date(view.alarm.scheduledTime).toISOString()} (${relative(view.alarm.scheduledTime)})`}`);
-    out.push(`commands      ${view.commands.length} recorded`);
     if (view.outbox.length > 0) out.push(`outbox        ${view.outbox.length} UNAPPLIED finish row(s): ${view.outbox.map((row) => short(row.finishId)).join(", ")}`);
   }
 

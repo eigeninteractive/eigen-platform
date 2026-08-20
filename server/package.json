@@ -14,7 +14,7 @@
     "openapi": "pnpm --filter @eigeninteractive/server openapi",
     "dart-client": "scripts/generate-dart-client.sh",
     "changeset": "changeset",
-    "version-packages": "changeset version && pnpm --filter \"@eigeninteractive/server^...\" build && pnpm openapi && scripts/generate-dart-client.sh && pnpm --dir ../web sync-api && node ../tool/platform.mjs"
+    "version-packages": "changeset version && node ../tool/sync-dart-api-pin.mjs && pnpm --filter \"@eigeninteractive/server^...\" build && pnpm openapi && scripts/generate-dart-client.sh && pnpm --dir ../web sync-api && node ../tool/platform.mjs"
   },
   "packageManager": "pnpm@11.20.0",
   "devEngines": {
@@ -30,7 +30,7 @@
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "3.0.0",
     "@cloudflare/vitest-pool-workers": "^0.21.3",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.22.14",
     "typescript": "~6.0.2",
     "vitest": "^4.1.10",
     "wrangler": "^4.123.0"

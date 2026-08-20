@@ -50,9 +50,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
+    "@cloudflare/workers-types": "^5.20260819.1",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "opentype.js": "^2.0.0",
     "sharp": "^0.35.3",

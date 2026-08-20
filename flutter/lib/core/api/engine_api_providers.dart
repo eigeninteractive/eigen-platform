@@ -40,12 +40,10 @@ Dio engineDio(Ref ref) {
   dio.interceptors.add(AuthInterceptor(FirebaseAuth.instance));
   dio.interceptors.add(ref.watch(serverClockProvider).interceptor);
   // Transport-level retry for requests that are safe to repeat. Retries a
-  // failure that carried no response (a dropped connection or a timeout, where
-  // the outcome is unknown) twice with short backoff, for a GET or for a
-  // mutation carrying an `Idempotency-Key`: Dio replays the original
-  // RequestOptions, so the retry sends the same key and the engine replays its
-  // committed receipt instead of applying the command twice. Any failure that
-  // carried a response is the server's decision, left untouched for
+  // failed GET that carried no response (a dropped connection or timeout)
+  // twice with short backoff. Mutations with ambiguous outcomes are never
+  // retried. Any failure that carried a response is the server's decision,
+  // left untouched for
   // `engineCall` to map (a 429 included; its Retry-After is respected, not
   // auto-retried). The retry replays the whole interceptor chain, so
   // `AuthInterceptor` re-attaches a fresh token each attempt; added last so it
@@ -99,5 +97,5 @@ BotsApi botsApi(Ref ref) => BotsApi(ref.watch(engineDioProvider));
 @Riverpod(keepAlive: true)
 GameSocket gameSocket(Ref ref) => GameSocket(
   baseUrl: ref.watch(appConfigProvider).engine.apiBaseUrl,
-  auth: FirebaseAuth.instance,
+  api: ref.watch(gamesApiProvider),
 );

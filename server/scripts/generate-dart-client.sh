@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Regenerates `clients/dart`, the eigen_api Dart REST client, from
-# packages/server/openapi.json.
+# Regenerates the OpenAPI contract from the server route graph, then regenerates
+# `clients/dart`, the eigen_api Dart REST client, from that contract.
 #
 # The client lives here, in the repo that owns the wire contract, and is
 # published to pub.dev by the release workflow. That is deliberate: a breaking
@@ -35,6 +35,48 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SPEC="$ROOT/packages/server/openapi.json"
 OUT="$ROOT/clients/dart"
+STAGE="$(mktemp -d "$ROOT/clients/.eigen-api.XXXXXX")"
+trap 'rm -rf "$STAGE"' EXIT
+
+require_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "error: $1 is required to generate eigen_api" >&2
+    return 1
+  fi
+}
+
+# macOS does not put Android Studio's bundled JDK on PATH. Flutter developers
+# commonly already have this JDK, so use it before asking them to install a
+# second runtime. Explicit JAVA_HOME always wins.
+if ! java -version >/dev/null 2>&1 && [[ "$(uname -s)" == "Darwin" ]]; then
+  android_studio_jdk="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+  if [[ -x "$android_studio_jdk/bin/java" ]]; then
+    export JAVA_HOME="$android_studio_jdk"
+    export PATH="$JAVA_HOME/bin:$PATH"
+  fi
+fi
+
+require_command node
+require_command pnpm
+require_command dart
+if ! java -version >/dev/null 2>&1; then
+  echo "error: Java 21+ is required by OpenAPI Generator." >&2
+  echo "Install a JDK, or set JAVA_HOME. On macOS, Android Studio's bundled JDK is detected automatically when installed in /Applications." >&2
+  exit 1
+fi
+
+java_version_output="$(java -version 2>&1)"
+java_major="$(awk -F'[\".]' '/version/ { print $2 }' <<<"$java_version_output")"
+if [[ ! "$java_major" =~ ^[0-9]+$ ]] || (( java_major < 21 )); then
+  echo "error: Java 21+ is required; found Java ${java_major:-unknown}. Set JAVA_HOME to a supported JDK." >&2
+  exit 1
+fi
+
+# The hand-owned package files must exist in the staged tree before generation:
+# the checked-in ignore file protects them from the dart-dio template.
+cp "$OUT/pubspec.yaml" "$STAGE/pubspec.yaml"
+cp "$OUT/analysis_options.yaml" "$STAGE/analysis_options.yaml"
+cp "$OUT/.openapi-generator-ignore" "$STAGE/.openapi-generator-ignore"
 
 # The published version tracks the engine's, read from the same package.json
 # field changesets owns (and that `emit-openapi.mjs` stamps into the spec's
@@ -47,41 +89,47 @@ OUT="$ROOT/clients/dart"
 VERSION="$(node -p "require('$ROOT/packages/server/package.json').version")"
 echo "==> eigen_api version $VERSION (from @eigeninteractive/server)"
 
-# Clearing lib/ and doc/ guarantees no orphan file survives a schema removal.
+# Never generate a fresh-looking client from a stale checked-in contract. The
+# route graph is the source of truth; OpenAPI and Dart are consecutive derived
+# artifacts owned by this one command.
+echo "==> emitting OpenAPI from server routes"
+( cd "$ROOT" && pnpm --filter @eigeninteractive/server openapi >/dev/null )
+
+# Generate and validate completely off to the side. The checked-in client is not
+# touched until every fallible generator/build/format step has succeeded.
 # dlx runs from ROOT so the wrapper reads the version pin in ./openapitools.json.
 echo "==> generating (dart-dio + json_serializable)"
-rm -rf "$OUT/lib" "$OUT/doc"
 ( cd "$ROOT" && pnpm dlx @openapitools/openapi-generator-cli generate \
-  -i "$SPEC" -g dart-dio -o "$OUT" \
+  -i "$SPEC" -g dart-dio -o "$STAGE" \
   --additional-properties=pubName=eigen_api,pubLibrary=eigen_api,serializationLibrary=json_serializable,skipCopyWith=true,enumUnknownDefaultCase=true \
   --global-property=modelTests=false,apiTests=false,modelDocs=true,apiDocs=true )
 
 # Stamp the version into the hand-owned pubspec, so `pnpm changeset version`
 # and this script cannot disagree about what is being published.
 echo "==> stamping version"
-perl -pi -e "s/^version: .*/version: $VERSION/" "$OUT/pubspec.yaml"
+perl -pi -e "s/^version: .*/version: $VERSION/" "$STAGE/pubspec.yaml"
 
 # Build the serializers. These are committed too: a consumer never runs
 # build_runner on a dependency, so a package whose `part 'x.g.dart';`
 # directives point at nothing does not compile.
 echo "==> build_runner"
-( cd "$OUT" && dart pub get >/dev/null && dart run build_runner build --delete-conflicting-outputs >/dev/null )
+( cd "$STAGE" && dart pub get >/dev/null && dart run build_runner build --delete-conflicting-outputs >/dev/null )
 
 # openapi-generator's output is not `dart format` clean, and these sources are
 # committed, so format them here, in the script that owns the artifact.
 # Formatting rather than excluding also normalises generator reflow, so a
 # generator upgrade diffs as real changes instead of line-breaking churn.
 echo "==> dart format"
-( cd "$OUT" && dart format lib >/dev/null )
+( cd "$STAGE" && dart format lib >/dev/null )
 
 # pub.dev refuses to publish without a LICENSE, and renders CHANGELOG.md as a
 # tab. Both are derived here rather than hand-maintained: the licence is the
 # repository's, and this package has no changes of its own to describe: its
 # version *is* the engine's.
 echo "==> licence, changelog, README banner"
-cp "$ROOT/LICENSE" "$OUT/LICENSE"
+cp "$ROOT/LICENSE" "$STAGE/LICENSE"
 
-cat > "$OUT/CHANGELOG.md" <<EOF
+cat > "$STAGE/CHANGELOG.md" <<EOF
 # Changelog
 
 This package is generated from the Eigen engine's OpenAPI specification and its
@@ -103,7 +151,7 @@ EOF
 
 # Prepended rather than hand-owned, so the generator keeps the API/generator
 # version lines below it current.
-cat > "$OUT/README.tmp" <<'EOF'
+cat > "$STAGE/README.tmp" <<'EOF'
 > [!IMPORTANT]
 > **Do not depend on this package directly.** It is a build artifact,
 > regenerated wholesale on every wire change, and its surface is not designed
@@ -118,7 +166,15 @@ cat > "$OUT/README.tmp" <<'EOF'
 > <https://eigeninteractive.com/docs/reference/http-surface>.
 
 EOF
-cat "$OUT/README.md" >> "$OUT/README.tmp"
-mv "$OUT/README.tmp" "$OUT/README.md"
+cat "$STAGE/README.md" >> "$STAGE/README.tmp"
+mv "$STAGE/README.tmp" "$STAGE/README.md"
+
+echo "==> installing staged client"
+rm -rf "$OUT/lib" "$OUT/doc"
+mv "$STAGE/lib" "$OUT/lib"
+mv "$STAGE/doc" "$OUT/doc"
+for file in README.md CHANGELOG.md LICENSE build.yaml pubspec.yaml; do
+  cp "$STAGE/$file" "$OUT/$file"
+done
 
 echo "==> done: clients/dart @ $VERSION"

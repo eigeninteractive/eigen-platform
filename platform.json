@@ -22,7 +22,10 @@
       "sourceRepository": "https://github.com/eigeninteractive/eigen-flutter.git",
       "baseCommit": "95fe8c196a192b635ad2cbc8ec58f97a17c47dca",
       "importCommit": "461917323107f23a74f55ebb4f64fe1555990176",
-      "package": "0.7.0"
+      "packages": {
+        "eigen_flutter": "0.7.0",
+        "eigen_codegen": "0.1.0"
+      }
     },
     "web": {
       "path": "web",

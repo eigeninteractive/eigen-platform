@@ -72,6 +72,98 @@ bool _payloadBool(Object? value, String path) {
   throw FormatException('$path: expected a boolean');
 }
 
+T _payloadNumberBounds<T extends num>(
+  T value,
+  String path,
+  num? minimum,
+  num? maximum,
+  num? exclusiveMinimum,
+  num? exclusiveMaximum,
+) {
+  if (minimum != null && value < minimum) {
+    throw FormatException('$path: must be at least $minimum');
+  }
+  if (maximum != null && value > maximum) {
+    throw FormatException('$path: must be at most $maximum');
+  }
+  if (exclusiveMinimum != null && value <= exclusiveMinimum) {
+    throw FormatException('$path: must be greater than $exclusiveMinimum');
+  }
+  if (exclusiveMaximum != null && value >= exclusiveMaximum) {
+    throw FormatException('$path: must be less than $exclusiveMaximum');
+  }
+  return value;
+}
+
+String _payloadStringBounds(
+  String value,
+  String path,
+  int? minimum,
+  int? maximum,
+) {
+  final length = value.runes.length;
+  if (minimum != null && length < minimum) {
+    throw FormatException('$path: must contain at least $minimum characters');
+  }
+  if (maximum != null && length > maximum) {
+    throw FormatException('$path: must contain at most $maximum characters');
+  }
+  return value;
+}
+
+List<dynamic> _payloadListBounds(
+  List<dynamic> value,
+  String path,
+  int? minimum,
+  int? maximum,
+  bool unique,
+) {
+  if (minimum != null && value.length < minimum) {
+    throw FormatException('$path: must contain at least $minimum items');
+  }
+  if (maximum != null && value.length > maximum) {
+    throw FormatException('$path: must contain at most $maximum items');
+  }
+  if (unique) {
+    for (var index = 0; index < value.length; index++) {
+      if (value
+          .take(index)
+          .any((prior) => _payloadEquals(prior, value[index]))) {
+        throw FormatException('$path[$index]: duplicate item');
+      }
+    }
+  }
+  return value;
+}
+
+int _payloadIntChoice(int value, String path, List<int> allowed) {
+  if (allowed.contains(value)) return value;
+  throw FormatException('$path: expected one of $allowed');
+}
+
+void _payloadObjectBounds(
+  Map<String, dynamic> value,
+  String path,
+  Set<String> allowedKeys,
+  bool rejectUnknown,
+  int? minimum,
+  int? maximum,
+) {
+  if (minimum != null && value.length < minimum) {
+    throw FormatException('$path: must contain at least $minimum properties');
+  }
+  if (maximum != null && value.length > maximum) {
+    throw FormatException('$path: must contain at most $maximum properties');
+  }
+  if (rejectUnknown) {
+    for (final key in value.keys) {
+      if (!allowedKeys.contains(key)) {
+        throw FormatException('$path.$key: unknown field');
+      }
+    }
+  }
+}
+
 enum RpsV1Move {
   rock,
   paper,
@@ -98,11 +190,25 @@ final class RpsV1Round {
 
   factory RpsV1Round.fromJson(Map<String, dynamic> json) {
     const path = "RpsV1Round";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"moves", "winner"},
+      true,
+      null,
+      null,
+    );
     return RpsV1Round(
       moves:
-          _payloadList(
-            _payloadRequired(json, "moves", "$path.moves"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "moves", "$path.moves"),
+              "$path.moves",
+            ),
             "$path.moves",
+            2,
+            2,
+            false,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
@@ -110,9 +216,16 @@ final class RpsV1Round {
           }).toList(),
       winner: _payloadRequired(json, "winner", "$path.winner") == null
           ? null
-          : _payloadInt(
-              _payloadRequired(json, "winner", "$path.winner"),
+          : _payloadNumberBounds(
+              _payloadInt(
+                _payloadRequired(json, "winner", "$path.winner"),
+                "$path.winner",
+              ),
               "$path.winner",
+              0,
+              1,
+              null,
+              null,
             ),
     );
   }
@@ -150,9 +263,23 @@ final class RpsV1Observation {
 
   factory RpsV1Observation.fromJson(Map<String, dynamic> json) {
     const path = "RpsV1Observation";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"commits", "lastRound", "round", "wins", "yourMove"},
+      true,
+      null,
+      null,
+    );
     return RpsV1Observation(
       commits: json.containsKey("commits")
-          ? _payloadList(json["commits"], "$path.commits").indexed.map((entry) {
+          ? _payloadListBounds(
+              _payloadList(json["commits"], "$path.commits"),
+              "$path.commits",
+              2,
+              2,
+              false,
+            ).indexed.map((entry) {
               final index = entry.$1;
               final item = entry.$2;
               return item == null
@@ -168,18 +295,38 @@ final class RpsV1Observation {
                 "$path.lastRound",
               ),
             ),
-      round: _payloadInt(
-        _payloadRequired(json, "round", "$path.round"),
+      round: _payloadNumberBounds(
+        _payloadInt(
+          _payloadRequired(json, "round", "$path.round"),
+          "$path.round",
+        ),
         "$path.round",
+        1,
+        9007199254740991,
+        null,
+        null,
       ),
       wins:
-          _payloadList(
-            _payloadRequired(json, "wins", "$path.wins"),
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "wins", "$path.wins"),
+              "$path.wins",
+            ),
             "$path.wins",
+            2,
+            2,
+            false,
           ).indexed.map((entry) {
             final index = entry.$1;
             final item = entry.$2;
-            return _payloadInt(item, "$path.wins[$index]");
+            return _payloadNumberBounds(
+              _payloadInt(item, "$path.wins[$index]"),
+              "$path.wins[$index]",
+              0,
+              9007199254740991,
+              null,
+              null,
+            );
           }).toList(),
       yourMove: json.containsKey("yourMove")
           ? json["yourMove"] == null
@@ -235,6 +382,7 @@ final class RpsV1Action {
 
   factory RpsV1Action.fromJson(Map<String, dynamic> json) {
     const path = "RpsV1Action";
+    _payloadObjectBounds(json, path, const <String>{"move"}, true, null, null);
     return RpsV1Action(
       move: RpsV1Move.fromJson(
         _payloadRequired(json, "move", "$path.move"),
@@ -261,10 +409,25 @@ final class RpsV1Config {
 
   factory RpsV1Config.fromJson(Map<String, dynamic> json) {
     const path = "RpsV1Config";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"targetWins"},
+      true,
+      null,
+      null,
+    );
     return RpsV1Config(
-      targetWins: _payloadInt(
-        _payloadRequired(json, "targetWins", "$path.targetWins"),
+      targetWins: _payloadNumberBounds(
+        _payloadInt(
+          _payloadRequired(json, "targetWins", "$path.targetWins"),
+          "$path.targetWins",
+        ),
         "$path.targetWins",
+        1,
+        10,
+        null,
+        null,
       ),
     );
   }

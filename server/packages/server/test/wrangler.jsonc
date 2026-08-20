@@ -11,7 +11,11 @@
   "compatibility_flags": ["nodejs_compat"],
   // external-bot HMAC secret + the operator surface secret (a real deploy sets
   // both with `wrangler secret`).
-  "vars": { "BOT_SIGNING_SECRET": "test-bot-signing-secret", "OPS_TOKEN": "test-ops-token" },
+  "vars": {
+    "BOT_SIGNING_SECRET": "test-bot-signing-secret",
+    "OPS_TOKEN": "test-ops-token",
+    "SOCKET_TICKET_SECRET": "test-socket-ticket-secret-at-least-32-characters"
+  },
   "exports": {
     "GameDO": {
       "type": "durable-object",

@@ -1,7 +1,7 @@
 ---
 sidebar_position: 11
 title: Changing a shipped game
-description: What to do when the rules change after players are using them. A new unit on both sides, why draining and replay retire at different times, and the checklist.
+description: "What to do when rules change after players use them: publish an immutable new version and retain every earlier version while games exist."
 ---
 
 # Changing a shipped game
@@ -37,59 +37,46 @@ edit it directly, regenerate `game-contract.json` and the Dart payload library,
 and let both fixture suites expose the required client changes. Creating v2 for
 every development edit only preserves history that nobody consumes.
 
-## Two gates, and one is longer than you think
+## Retain every published version
 
-Retiring an old unit splits into two lifetimes, and conflating them is how
-replays break:
+Eigen initially retains every finished game and re-projects its observations
+through the rules version it was created with. Therefore every published rules
+unit remains installed on both sides while a retained game may reference it:
 
-- **The write path**, anything that advances state (`applyAction`,
-  `applyLifecycle`), can go once active games at that version have drained.
-- **The read path**, `computeObservation` on the server plus `parseObservation`
-  and rendering on the client, must survive **as long as you want to replay games
-  created under that schema.** Replay re-projects historic transitions at the
-  game's own version, so this is not bounded by draining at all.
+- register versions contiguously from 1 (`{1, 2, 3}`);
+- never edit the meaning of a published entry; and
+- never remove an entry merely because its active games have drained.
 
-> **Draining gates the write path; replay gates the read path, and replay
-> outlives draining.**
-
-Only delete a `versions` entry once both are satisfied.
+Removing old code becomes valid only after a future deletion/retention policy
+proves that no stored game references it. That policy does not exist yet.
 
 ## How an old client is protected
 
 Two gates, deliberately redundant:
 
-- **The client** looks the game's version up in `GameModule.versions` and raises
-  `UnsupportedGameSchemaException` rather than mis-parsing with old code.
-  `supportsSchema` is key membership, not `<= latest`, so a retired old version
-  is correctly unsupported.
+- **The client** supports every positive version through
+  `GameModule.latestSchemaVersion` and raises
+  `UnsupportedGameSchemaException` for a newer game rather than mis-parsing it.
 - **The server** refuses the join, so an unsupported game is rejected *before* a
   seat is created, not only when the screen later fails to render. The lobby
   additionally greys out the Join button as immediate feedback.
 
-Join sends the app's whole set of shipped versions, and the server tests exact
-membership — the same question `supportsSchema` asks locally, asked again by the
-authority. It is deliberately not "is the game's version at or below the app's
-newest": support is sparse, so that comparison would seat a `{1, 3}` build into a
-v2 game it cannot decode.
+Join sends that one latest version. Because versions are never skipped or
+removed, `game.schemaVersion <= client.latestSchemaVersion` is the complete
+compatibility test.
 
 ## Creating: the newest version, and only that one
 
-New games are created at the **server's** highest shipped version. A build whose
-newest version is older than the server's cannot create, and is refused with
-`schemaUnsupported` — which the app surfaces as *"Update your app…"*, the same
-prompt it already uses elsewhere. It can still join, play and replay every
-version it does ship, because that is governed by `versions`, not by creation.
+New games are created at the **server's** highest shipped version. The client
+sends its latest version as an assertion and creation requires exact equality.
+A client behind receives `clientUpdateRequired`, which the app presents as an
+update blocker. A client ahead receives `serverUpdateRequired`, which identifies
+a deployment mismatch instead of incorrectly asking the player to update.
 
-So a rules release is a single event: deploy the new version and new games use
-it. Clients that have not caught up lose only the ability to *start* games, and
-`GET /capabilities` publishes `creatableSchemaVersions` and
-`supportedSchemaVersions` for an app that wants to say so before the player
-tries.
-
-The one case needing more is a **rollback**: moving creation back after a bad
-release, without unshipping the version that games already exist at. Set
-`creatableSchemaVersions` on `createEngine` for that; it keeps the version
-joinable and replayable while new games go elsewhere.
+There is no capabilities endpoint or create-version override. Deploy the server
+before releasing a client that creates the new version; if a release must be
+rolled back, roll back both rules implementations without deleting the published
+registry entry.
 
 ## What counts as breaking
 
@@ -109,7 +96,7 @@ removing it, is breaking.
 
 | The change | What it needs |
 |---|---|
-| Alters the observation / action / config shape, or makes in-flight games inconsistent | **Breaking**: new `GameRules` unit on both sides, new fixtures, drain before retiring the write path |
+| Alters the observation / action / config shape, or changes recorded behavior | **Breaking**: append a `GameRules` unit on both sides and add fixtures |
 | Purely additive (a new optional field) | Nullable or defaulted, **no bump** |
 | Server-only rule logic, same shapes | Change `applyAction` only, **no bump** |
 | A new wire enum value | **Breaking**: bump, and ship both sides together |

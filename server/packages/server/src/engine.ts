@@ -37,7 +37,6 @@ import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
 import type { BaseGameDO } from "./do/game-do.js";
 import { FirebaseAdminConfigurationError, type FirebaseAdminEffects, firebaseAdminFromEnv } from "./firebase/admin-effects.js";
-import { retryingGameStub } from "./game-stub.js";
 import { doHistoryStore, type HistoryStore } from "./history/store.js";
 import { HttpError } from "./http.js";
 import { type LifecycleOptions, runScheduled } from "./lifecycle/cron.js";
@@ -46,13 +45,12 @@ import type { GameStub } from "./protocol.js";
 import { registerAccountRoutes } from "./routes/account.js";
 import { registerAvatarServe, registerAvatarUpload } from "./routes/avatars.js";
 import { registerDeviceRoutes } from "./routes/devices.js";
-import { registerGameRoutes } from "./routes/games.js";
+import { registerGameRoutes, registerGameSocketRoute } from "./routes/games.js";
 import { registerLinkRoutes } from "./routes/links.js";
 import { buildOpsApp } from "./routes/ops.js";
 import { registerReadRoutes } from "./routes/reads.js";
 import { registerDownloadRoute, registerSiteRoutes } from "./routes/site.js";
 import { registerSocialRoutes } from "./routes/social.js";
-import { IDEMPOTENCY_KEY_HEADER } from "./routes/wire.js";
 import { DEFAULT_CREDIT, type ResolvedSite, type SiteConfig } from "./site/config.js";
 import { renderLegal } from "./site/legal/index.js";
 
@@ -101,27 +99,6 @@ export interface AvatarsConfig<TEnv> {
  * parameter and both type arguments infer. */
 export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   gameModule: GameModule;
-  /**
-   * The `schemaVersion`s new games may be created at. Defaults to the highest key
-   * of `gameModule.versions` alone.
-   *
-   * The default is the whole policy for almost every deployment: ship new rules,
-   * and new games use them. A client that cannot create at that version is out of
-   * date and is told to update — it can still join, play and replay every version
-   * it does ship, because that is governed by `versions`, not by this.
-   *
-   * Override it for the two cases the default cannot express:
-   *
-   * - **Rollback.** A bad rules release needs creation moved back to the previous
-   *   version WITHOUT unshipping the new one, since games already at it must keep
-   *   loading. Removing it from `versions` would orphan them.
-   * - **Coexisting variants.** A deployment using `versions` for genuinely
-   *   parallel rule sets rather than an upgrade sequence.
-   *
-   * Listing several does not make the client negotiate: it always creates at the
-   * newest version it ships, and this decides whether that is allowed.
-   */
-  creatableSchemaVersions?: readonly number[];
   /** The whitelabel app's display name, the single source of truth for the
    * engine's own identity (share metadata and public-page titles today;
    * FCM titles and share copy later). Deliberately top-level, not nested under
@@ -182,15 +159,16 @@ export { DEFAULT_CREDIT } from "./site/config.js";
 
 export interface RouteContext {
   gameModule: GameModule;
-  /** The resolved {@link EngineConfig.creatableSchemaVersions}, ascending and
-   * validated at startup to be keys of `gameModule.versions`. */
-  creatableSchemaVersions: readonly number[];
+  /** Latest installed game version. Versions are a contiguous prefix from 1. */
+  latestSchemaVersion: number;
   /** The whitelabel app name (see {@link EngineConfig.appName}), read by the
    * `/j` landing page and any future engine-owned copy. */
   appName: string;
   d1(env: unknown): D1Database;
   stub(env: unknown, gameId: string): GameStub;
   verify(env: unknown, token: string): Promise<AuthClaims>;
+  /** Dedicated secret for short-lived WebSocket tickets. */
+  socketTicketSecret(env: unknown): string;
   /** Cross-origin browser clients trusted by this deployment. */
   clientOrigins(env: unknown): readonly string[];
   /** Flutter web assets exposed through Cloudflare's conventional `ASSETS`
@@ -237,12 +215,7 @@ function newOpenApiApp() {
     defaultHook: (result, c) => {
       if (!result.success) {
         const detail = result.error.issues.map((issue) => (issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message)).join("; ");
-        // A missing or malformed `Idempotency-Key` is the one request-shape
-        // failure worth a stable code: every other one names a field a caller
-        // can see in its own request body, while this one says the client build
-        // is not sending a mutation identity at all.
-        const idempotencyKey = result.error.issues.some((issue) => issue.path[0] === IDEMPOTENCY_KEY_HEADER);
-        return c.json({ error: `Invalid request: ${detail}`, ...(idempotencyKey ? { code: "idempotencyKeyInvalid" as const } : {}) }, 400);
+        return c.json({ error: `Invalid request: ${detail}` }, 400);
       }
     },
   });
@@ -279,9 +252,7 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
     // remains a configuration-free liveness probe.
     ctx.firebaseAdmin(c.env);
     const header = c.req.header("authorization");
-    // The query fallback exists for WebSocket upgrades, since browsers cannot set
-    // headers on those. Everything else sends the Authorization header.
-    const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : c.req.query("token");
+    const token = header?.startsWith("Bearer ") ? header.slice("Bearer ".length) : undefined;
     if (token === undefined || token.length === 0) {
       throw new HttpError(401, "Missing bearer token");
     }
@@ -345,7 +316,7 @@ export function buildApp(ctx: RouteContext) {
     type: "http",
     scheme: "bearer",
     bearerFormat: "JWT",
-    description: "A Firebase ID token, sent as `Authorization: Bearer <token>` (or `?token=` on WebSocket upgrades).",
+    description: "A Firebase ID token, sent as `Authorization: Bearer <token>`.",
   });
   app.openAPIRegistry.registerComponent("securitySchemes", "botHmac", {
     type: "apiKey",
@@ -402,6 +373,10 @@ export function buildApp(ctx: RouteContext) {
   registerDownloadRoute(app, ctx);
   if (ctx.avatars !== null) registerAvatarServe(app, ctx);
   if (ctx.site !== null) registerSiteRoutes(app, ctx);
+  // Browser WebSocket APIs cannot attach a bearer header. Keep the upgrade
+  // outside Firebase middleware and authenticate it with the short-lived,
+  // game-bound ticket issued by the authenticated engine API.
+  registerGameSocketRoute(app, ctx);
   app.route("/api/engine", engine);
   app.route("/api/bot", bot);
   // The operator surface, gated by its own secret rather than by Firebase: an
@@ -466,19 +441,21 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
   };
   const ctx: RouteContext = {
     gameModule: cfg.gameModule,
-    creatableSchemaVersions: resolveCreatableSchemaVersions(cfg.gameModule, cfg.creatableSchemaVersions),
+    latestSchemaVersion: latestSchemaVersion(cfg.gameModule),
     appName: cfg.appName,
     d1: (env) => cfg.d1(env as TEnv),
-    // Every call retries a transient Durable Object failure, safe because every
-    // command the Worker sends carries a receipted identity; see `game-stub.ts`.
-    // The namespace lookup is inside the factory so each attempt gets a fresh
-    // stub, which Cloudflare requires after one throws.
-    stub: (env, gameId) =>
-      retryingGameStub(() => {
-        const ns = cfg.gameDO(env as TEnv);
-        return ns.get(ns.idFromName(gameId));
-      }),
+    stub: (env, gameId) => {
+      const namespace = cfg.gameDO(env as TEnv);
+      return namespace.get(namespace.idFromName(gameId));
+    },
     verify: (env, token) => (cfg.testing?.auth ?? createFirebaseVerifier(projectId(env as TEnv))).verify(token),
+    socketTicketSecret: (env) => {
+      const secret = (env as Record<string, unknown>).SOCKET_TICKET_SECRET;
+      if (typeof secret !== "string" || secret.length < 32) {
+        throw new HttpError(500, "SOCKET_TICKET_SECRET must be configured with at least 32 characters");
+      }
+      return secret;
+    },
     clientOrigins: (env) => {
       const configured = cfg.clientOrigins;
       if (configured !== undefined) {
@@ -541,31 +518,25 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
  * on the first release: nothing reads it back, and the CI drift check only
  * compares this file against itself, so the lie survives every check. The Dart
  * client's pubspec is stamped from the same source for the same reason. */
-/** The versions new games may be created at, and the startup check that they
- * are real. Defaults to the highest shipped version alone; see
- * {@link EngineConfig.creatableSchemaVersions}. */
-export function resolveCreatableSchemaVersions(gameModule: GameModule, configured: readonly number[] | undefined): readonly number[] {
-  const shipped = supportedSchemaVersions(gameModule);
-  if (configured === undefined) return shipped.length === 0 ? [] : [shipped[shipped.length - 1] as number];
-  // Naming a version this deployment does not ship is the misconfiguration worth
-  // failing fast on: discovering it from a player's refused create is strictly
-  // worse than from a boot error. An EMPTY list is not an error — it is the
-  // honest way for a deployment that serves no games (a site- or
-  // notification-only worker) to say so, and `/capabilities` reports it.
-  const unknown = configured.filter((v) => !shipped.includes(v));
-  if (unknown.length > 0) {
-    throw new Error(`createEngine: creatableSchemaVersions [${unknown.join(", ")}] are not among the shipped versions [${shipped.join(", ") || "none"}]`);
-  }
-  return [...new Set(configured)].sort((a, b) => a - b);
-}
-
-/** Every `schemaVersion` this deployment can run, ascending: joinable, playable
- * and replayable. Creation is narrower; see
- * {@link EngineConfig.creatableSchemaVersion}. */
-export function supportedSchemaVersions(gameModule: GameModule): number[] {
-  return Object.keys(gameModule.versions)
+/** Validate the installed registry and return its newest version.
+ *
+ * A deployment retains every published version while games may reference it,
+ * so support is exactly the integer prefix `1...latest`. Gaps usually mean an
+ * old rules unit was removed and would orphan a retained game; fail at startup
+ * instead of discovering that through a player request. An empty registry is
+ * allowed for a site- or notification-only Worker and reports latest version 0.
+ */
+export function latestSchemaVersion(gameModule: GameModule): number {
+  const versions = Object.keys(gameModule.versions)
     .map(Number)
     .sort((a, b) => a - b);
+  for (let index = 0; index < versions.length; index += 1) {
+    const expected = index + 1;
+    if (versions[index] !== expected) {
+      throw new Error(`createEngine: gameModule.versions must be contiguous from 1; expected ${expected}, found ${versions[index]}`);
+    }
+  }
+  return versions.length;
 }
 
 export function openApiDocument(version: string): OpenAPIObject {
@@ -576,11 +547,12 @@ export function openApiDocument(version: string): OpenAPIObject {
     gameModule: { versions: {} },
     // Document generation renders schemas, never routes; a real version would be
     // a lie here, since no rules are registered.
-    creatableSchemaVersions: [],
+    latestSchemaVersion: 0,
     appName: "<unused>",
     d1: inert,
     stub: inert,
     verify: inert,
+    socketTicketSecret: inert,
     clientOrigins: () => [],
     webAssets: () => null,
     botSigningSecret: () => null,

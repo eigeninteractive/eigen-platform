@@ -287,17 +287,9 @@ export async function mirrorRoster(d1: D1Database, args: { gameId: string; statu
   await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now })))]);
 }
 
-/** A create's receipt: the caller's key and the canonical intent it commits to.
- * Stored on the game row itself; see `games.createCommandId`. */
-export interface CreateReceipt {
-  commandId: string;
-  request: string;
-}
-
 /** The worker-direct create, engine-owned so implementors never touch
  * the D1 schema: seats already validated by worker policy. */
 export interface CreateGameInput {
-  receipt: CreateReceipt;
   gameId: string;
   createdBy: string | null;
   status: Extract<GameStatus, "waiting" | "ready">;
@@ -319,13 +311,8 @@ export interface CreateGameInput {
 /** Write the games row + one participants row per seat, atomically. The DO
  * lazy-inits from exactly these rows on first contact.
  *
- * The create's receipt is two columns of the games row rather than a row of its
- * own, so it lands in the same INSERT as the game it identifies and cannot be
- * separated from it by any failure.
- *
- * Callers own both failure modes, distinguished by `isCreateReplay` and
- * `isShortCodeCollision`: a reused command id means this create already happened,
- * while a duplicate shortCode is a random clash to retry. */
+ * A duplicate short code is the only expected insert collision; callers retry
+ * it with a newly generated code. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = orm(d1);
   await db.batch([
@@ -344,27 +331,11 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       minPlayers: input.minPlayers,
       maxPlayers: input.maxPlayers,
       shortCode: input.shortCode,
-      createCommandId: input.receipt.commandId,
-      createRequest: input.receipt.request,
       createdAt: input.now,
       updatedAt: input.now,
     }),
     db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: input.now }))),
   ]);
-}
-
-/** The game this creator already made under `commandId`, if any.
- *
- * Read only after {@link createGame} reports a replay, so the happy path costs
- * no extra round trip. */
-export async function readCreatedGame(d1: D1Database, createdBy: string, commandId: string): Promise<{ gameId: string; shortCode: string; request: string } | undefined> {
-  const db = orm(d1);
-  const rows = await db
-    .select({ gameId: games.id, shortCode: games.shortCode, request: games.createRequest })
-    .from(games)
-    .where(and(eq(games.createdBy, createdBy), eq(games.createCommandId, commandId)))
-    .limit(1);
-  return rows[0];
 }
 
 /** Lazy-init read: the D1 game + participants rows the DO copies into

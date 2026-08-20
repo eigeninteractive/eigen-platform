@@ -96,6 +96,7 @@ export const turnRules: GameRules = {
   },
   computeObservation: passthroughObservation,
   playerLimits: () => ({ minPlayers: 2, maxPlayers: 2 }),
+  timingOptions: () => [{ mode: "untimed" }],
   ratingPool: () => "main",
   botSeatable: () => true,
 };

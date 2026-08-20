@@ -100,7 +100,7 @@ void main() {
       check(module.latestSchemaVersion).equals(1);
     });
 
-    test('rejects a version with no rules entry (newer build or retired)', () {
+    test('rejects a version newer than this contiguous bundle', () {
       check(module.supportsSchema(2)).isFalse();
     });
   });

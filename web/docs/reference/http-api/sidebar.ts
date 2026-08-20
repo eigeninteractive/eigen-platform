@@ -16,12 +16,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "reference/http-api/get-capabilities",
-          label: "getCapabilities",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "reference/http-api/get-lobby",
           label: "getLobby",
           className: "api-method get",
@@ -109,6 +103,12 @@ const sidebar: SidebarsConfig = {
           id: "reference/http-api/get-frames",
           label: "getFrames",
           className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/create-socket-ticket",
+          label: "createSocketTicket",
+          className: "api-method post",
         },
       ],
     },

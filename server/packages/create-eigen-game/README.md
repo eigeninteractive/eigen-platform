@@ -83,7 +83,7 @@ application manifest or `gradle.properties`. It adds the application-level core
 library desugaring block required by `flutter_local_notifications`, because an
 Android library cannot supply that compiler setting transitively. The CLI then
 uses `flutter pub add` and the public
-`eigen_flutter:generate_payloads` executable instead of editing Flutter's
+`eigen_codegen:generate_payloads` executable instead of editing Flutter's
 generated YAML by hand.
 
 The public CLI intentionally has no server-only or app-only modes.

@@ -17,7 +17,8 @@ import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { type Command, createGame } from "../src/index.js";
 import type { SessionSnapshot } from "../src/protocol.js";
-import { createReceiptRow, userRow } from "./factories.js";
+import { userRow } from "./factories.js";
+import { LEAK_SENTINEL } from "./worker.js";
 
 /** Typed D1 access for seeds and assertions. The DO's own SQLite is
  * inspected raw (`state.storage.sql.exec`) on purpose: those checks verify
@@ -47,7 +48,6 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     .onConflictDoNothing()
     .run();
   await createGame(env.DB, {
-    receipt: createReceiptRow(),
     gameId,
     createdBy: "user-a",
     status: opts.status ?? "ready",
@@ -72,9 +72,8 @@ function stubFor(gameId: string) {
   return env.GAME_DO.get(env.GAME_DO.idFromName(gameId));
 }
 
-let commandCounter = 0;
 function cmd<K extends Command["kind"]>(kind: K, gameId: string, extra: Record<string, unknown> = {}): Command {
-  return { kind, gameId, commandId: `cmd-${++commandCounter}`, actor: { userId: "user-a", botId: null }, ...extra } as Command;
+  return { kind, gameId, actor: { userId: "user-a", botId: null }, ...extra } as Command;
 }
 
 async function startGame(opts: SeedOptions = {}) {
@@ -89,18 +88,11 @@ function action(gameId: string, seat: number, add: number, expectedVersion: numb
   return {
     kind: "action",
     gameId,
-    commandId: `cmd-${++commandCounter}`,
     actor: { userId, botId: null },
     seat,
     expectedVersion,
     data: { add },
   };
-}
-
-/** Receipts committed so far. Counted as a delta, since starting a game already
- * commits one for the creator's `start`. */
-async function receiptCount(stub: ReturnType<typeof stubFor>): Promise<number> {
-  return await runInDurableObject(stub, (_i, state) => state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands").one().n as number);
 }
 
 /** Drive the seeded game to its finish: 0 plays 2, 1 plays 2, 0 plays 2 → 6 ≥ 3
@@ -126,7 +118,10 @@ describe("lazy init & start", () => {
       const roster = state.storage.sql.exec("SELECT * FROM roster ORDER BY player_index").toArray();
       expect(roster).toHaveLength(2);
       const v0 = state.storage.sql.exec("SELECT * FROM transitions WHERE version = 0").one();
-      expect(JSON.parse(v0.state as string)).toEqual({ count: 0 });
+      expect(JSON.parse(v0.state as string)).toEqual({
+        count: 0,
+        secret: LEAK_SENTINEL,
+      });
     });
   });
 
@@ -147,7 +142,7 @@ describe("lazy init & start", () => {
   });
 });
 
-describe("actions & dedupe", () => {
+describe("actions and version guards", () => {
   it("alternates turns, versions strictly serial, own frame rides the response", async () => {
     const { gameId, stub } = await startGame();
     const a1 = await stub.handle(action(gameId, 0, 1, 0, "user-a"));
@@ -157,89 +152,28 @@ describe("actions & dedupe", () => {
     expect(a1.session.frame?.pendingPlayers).toEqual([1]);
   });
 
-  it("replays the stored response for a duplicate commandId instead of double-applying", async () => {
+  it("rejects an action repeated against an old expectedVersion", async () => {
     const { gameId, stub } = await startGame();
     const move = action(gameId, 0, 1, 0, "user-a");
-    const first = await stub.handle(move);
-    const replay = await stub.handle(move);
-    expect(replay).toEqual(first);
+    expect(await stub.handle(move)).toMatchObject({ ok: true, session: { version: 1 } });
+    expect(await stub.handle(move)).toMatchObject({ ok: false, code: "stateUpdated" });
     await runInDurableObject(stub, async (_i, state) => {
       const count = state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one();
-      expect(count.n).toBe(2); // v0 + one action, not two
-      const receipt = state.storage.sql.exec("SELECT principal_id, request FROM commands WHERE command_id = ?", move.commandId).one();
-      expect(receipt.principal_id).toBe("user:user-a");
-      expect(JSON.parse(receipt.request as string)).toEqual({
-        version: 1,
-        principal: "user:user-a",
-        operation: "game.action",
-        resource: gameId,
-        payload: { seat: 0, expectedVersion: 0, data: { add: 1 } },
-      });
-    });
-  });
-
-  it("rejects same-principal commandId reuse with different semantic intent", async () => {
-    const { gameId, stub } = await startGame();
-    const move = action(gameId, 0, 1, 0, "user-a");
-    expect(await stub.handle(move)).toMatchObject({ ok: true, session: { version: 1 } });
-
-    const conflict = await stub.handle({ ...move, data: { add: 2 } });
-    expect(conflict).toMatchObject({ ok: false, code: "commandConflict" });
-    await runInDurableObject(stub, async (_i, state) => {
-      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
-      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands WHERE command_id = ?", move.commandId).one().n).toBe(1);
-    });
-  });
-
-  it("rejects same-principal commandId reuse across operations", async () => {
-    const { gameId, stub } = await startGame();
-    const move = action(gameId, 0, 1, 0, "user-a");
-    expect(await stub.handle(move)).toMatchObject({ ok: true, session: { version: 1 } });
-
-    expect(
-      await stub.handle({
-        kind: "leave",
-        gameId,
-        commandId: move.commandId,
-        actor: move.actor,
-      }),
-    ).toMatchObject({ ok: false, code: "commandConflict" });
-
-    await runInDurableObject(stub, async (_i, state) => {
-      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
-      expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM commands WHERE command_id = ?", move.commandId).one().n).toBe(1);
-    });
-  });
-
-  it("scopes command identity by immutable principal", async () => {
-    const { gameId, stub } = await startGame();
-    const sharedId = "018f5f59-9f9a-7f47-a6f1-d13b33ef4410";
-    const first = { ...action(gameId, 0, 1, 0, "user-a"), commandId: sharedId };
-    const second = { ...action(gameId, 1, 1, 1, "user-b"), commandId: sharedId };
-
-    expect(await stub.handle(first)).toMatchObject({ ok: true, session: { version: 1 } });
-    expect(await stub.handle(second)).toMatchObject({ ok: true, session: { version: 2 } });
-    await runInDurableObject(stub, async (_i, state) => {
-      const rows = state.storage.sql.exec("SELECT principal_id FROM commands WHERE command_id = ? ORDER BY principal_id", sharedId).toArray();
-      expect(rows).toEqual([{ principal_id: "user:user-a" }, { principal_id: "user:user-b" }]);
+      expect(count.n).toBe(2);
     });
   });
 
   it("refuses a command naming a game this object is not authoritative for", async () => {
     const { gameId, stub } = await startGame();
-    // Routing derives the object from the id, so a mismatch cannot be honoured:
-    // this object would otherwise write a receipt naming another game's resource.
-    const before = await receiptCount(stub);
+    // Routing derives the object from the id, so a mismatch cannot be honoured.
     expect(await stub.handle({ ...action(gameId, 0, 1, 0, "user-a"), gameId: "another-game" })).toMatchObject({ ok: false, code: "unknownGame" });
     await runInDurableObject(stub, async (_i, state) => {
       expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(1); // v0 only
     });
-    expect(await receiptCount(stub)).toBe(before);
   });
 
-  it("stores no receipt for an identity-less system command", async () => {
+  it("applies an identity-less system command once from current state", async () => {
     const { stub } = await startGame({ turnSeconds: 60 });
-    const before = await receiptCount(stub);
     await runInDurableObject(stub, async (_i, state) => {
       state.storage.sql.exec("UPDATE transitions SET deadline = ? WHERE version = 0", Date.now() - 1000);
     });
@@ -249,7 +183,6 @@ describe("actions & dedupe", () => {
       // abstain rather than through a permanent row per turn.
       expect(state.storage.sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(2);
     });
-    expect(await receiptCount(stub)).toBe(before);
   });
 
   it("rejects a stale action whose view changed (full-reveal game)", async () => {
@@ -267,8 +200,8 @@ describe("actions & dedupe", () => {
   });
 });
 
-describe("cancel receipts", () => {
-  it("commits the terminal result atomically and retains it through abort compaction", async () => {
+describe("cancel", () => {
+  it("is idempotent through the terminal lifecycle state", async () => {
     const gameId = await seedGame();
     const stub = stubFor(gameId);
     const cancel = cmd("cancel", gameId);
@@ -282,9 +215,6 @@ describe("cancel receipts", () => {
       expect(sql.exec("SELECT status FROM meta").one().status).toBe("aborted");
       expect(sql.exec("SELECT COUNT(*) AS n FROM roster").one().n).toBe(0);
       expect(sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(0);
-      const receipt = sql.exec("SELECT principal_id, request FROM commands WHERE command_id = ?", cancel.commandId).one();
-      expect(receipt.principal_id).toBe("user:user-a");
-      expect(JSON.parse(receipt.request as string).operation).toBe("game.cancel");
     });
   });
 });
@@ -322,14 +252,17 @@ describe("deadline alarm", () => {
       return state.storage.sql.exec("SELECT deadline FROM transitions WHERE version = 0").one().deadline as number;
     });
 
-    // A replayed receipt is the weakest possible traffic: it commits nothing, so
-    // only a reconciler derived from committed state can repair the alarm.
+    // A stale repeated action commits nothing, so only a reconciler derived
+    // from committed state can repair the alarm.
     const move = action(gameId, 0, 1, 0, "user-a");
-    const first = await stub.handle(move);
+    await stub.handle(move);
     await runInDurableObject(stub, async (_i, state) => {
       await state.storage.deleteAlarm();
     });
-    expect(await stub.handle(move)).toEqual(first);
+    expect(await stub.handle(move)).toMatchObject({
+      ok: false,
+      code: "stateUpdated",
+    });
 
     await runInDurableObject(stub, async (_i, state) => {
       const armed = await state.storage.getAlarm();
@@ -366,17 +299,14 @@ describe("finish sequence", () => {
       await vi.waitFor(() => {
         expect(sql.exec("SELECT COUNT(*) AS n FROM outbox").one().n).toBe(0);
       });
-      // Compaction rides the outbox clear: live frames drain, receipts do not.
+      // Compaction rides the outbox clear: live frames drain.
       expect(sql.exec("SELECT COUNT(*) AS n FROM frames").one().n).toBe(0);
-      expect(sql.exec("SELECT COUNT(*) AS n FROM commands").one().n).toBe(3);
       // Unrated: the chain ends at the finish version.
       expect(sql.exec("SELECT MAX(version) AS v FROM transitions").one().v).toBe(2);
     });
 
-    // Even after finish compaction, the original principal gets the exact
-    // canonical outcome and a different payload cannot reuse that identity.
-    expect(await stub.handle(finish.command)).toEqual(finish.result);
-    expect(await stub.handle({ ...finish.command, data: { add: 1 } })).toMatchObject({ ok: false, code: "commandConflict" });
+    // A repeated action is refused by the terminal lifecycle state.
+    expect(await stub.handle(finish.command)).toMatchObject({ ok: false, code: "notActive" });
   });
 
   it("rated: computes deltas at the D1 CAS and appends the ratings transition N+1", async () => {

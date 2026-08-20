@@ -36,7 +36,8 @@ void main() {
         'creatorCannotLeave',
         // Raised by a route before the command reaches the game. Each exists
         // because the UI renders something specific for it.
-        'schemaUnsupported',
+        'clientUpdateRequired',
+        'serverUpdateRequired',
         'usernameInvalid',
         'usernameTaken',
         'friendsOnly',
@@ -47,12 +48,6 @@ void main() {
         'rateLimited',
         // A pagination cursor that did not decode (400).
         'invalidCursor',
-        // Mutation identity failures. A key already committed with a different
-        // intent is a 422, not a 409, because unlike every other conflict here
-        // resyncing and retrying does not repair it; an absent or malformed key
-        // is a 400.
-        'commandConflict',
-        'idempotencyKeyInvalid',
       });
     });
 

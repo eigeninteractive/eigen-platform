@@ -39,7 +39,7 @@ it("plays a full game: waiting room, same-view simultaneous commits, finish, rep
   expect(created.status).toBe(201);
   const { gameId } = (await created.json()) as { gameId: string };
 
-  const joined = await api(BOB, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [1] });
+  const joined = await api(BOB, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 });
   // Every accepted command answers with the caller's own session, so a join, a
   // start and a move are all read the same way.
   expect((await joined.json()) as object).toMatchObject({ session: { status: "ready", version: null } });

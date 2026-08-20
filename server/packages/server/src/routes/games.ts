@@ -6,12 +6,12 @@
  */
 
 import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
-import type { GameRules, JsonObject, PlayerLimits } from "@eigeninteractive/rules";
+import type { GameRules, JsonObject, PlayerLimits, TimingOption } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
-import { canonicalRequest, userPrincipal } from "../command-request.js";
-import { type CreateGameInput, type CreateReceipt, createGame, readCreatedGame } from "../d1/apply.js";
+import { issueSocketTicket, verifySocketTicket } from "../auth/socket-ticket.js";
+import { type CreateGameInput, createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
-import { isCreateReplay, isShortCodeCollision } from "../d1/errors.js";
+import { isShortCodeCollision } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
@@ -20,7 +20,7 @@ import { gameInvitePush } from "../notify/push.js";
 import type { Command, CommandResult } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { versionQuery } from "./query.js";
-import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, IDEMPOTENCY_KEY_HEADER, idempotencyKeyHeader, joinBody, joinByCodeBody, soloStartedShape } from "./wire.js";
+import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, socketTicketShape, soloStartedShape } from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
 
@@ -35,14 +35,11 @@ const errorResponses = {
   403: error("Not allowed"),
   404: error("Not found"),
   409: error("Stale view; resync and retry"),
-  422: error("Assertion mismatch, or an Idempotency-Key reused for a different request"),
+  422: error("Assertion mismatch"),
 } as const;
 
-/** A mutation: the caller's `Idempotency-Key` is part of its request contract.
- * Every non-idempotent route carries this, so a client never has to know which
- * mutations honour a retry. */
 function mutation<R extends { params?: z.ZodType; body?: unknown }>(request: R) {
-  return { ...request, headers: idempotencyKeyHeader } as const;
+  return request;
 }
 
 /** A 200 OK carrying `schema`, plus the shared error responses. */
@@ -56,13 +53,6 @@ function createdResponses<T extends z.ZodType>(schema: T, description: string) {
 }
 
 const gameIdParam = z.object({ gameId: z.string().min(1) });
-
-/** The caller's idempotency key, validated by the route's header schema. Named
- * `commandId` from here inward: the header is the transport, the command id is
- * what the engine stores it as. */
-function commandId(c: { req: { valid: (target: "header") => Record<string, string> } }): string {
-  return c.req.valid("header")[IDEMPOTENCY_KEY_HEADER] as string;
-}
 
 /** Strip the internal `ok` discriminator from an accepted result; success is the
  * HTTP 200, not a body field. One helper for every command kind, because they
@@ -82,15 +72,18 @@ function rulesFor(ctx: RouteContext, schemaVersion: number): GameRules {
  * caller's.
  *
  * The body's `schemaVersion` says which rules shaped its `config`, so it must be
- * one the deployment still creates at. Refusing a mismatch rather than coercing
+ * exactly the deployment's latest. Refusing a mismatch rather than coercing
  * it is what makes a staged rollout safe in both directions: a client ahead of
  * the server cannot create a version the server has not enabled, and a client
- * behind it stops creating a version the operator has retired. Coercing would
+ * behind it is told to update. Coercing would
  * silently pair a config built for one version with another version's rules.
  */
 function assertCreatable(ctx: RouteContext, asserted: number): void {
-  if (ctx.creatableSchemaVersions.includes(asserted)) return;
-  throw new HttpError(409, `This server creates schemaVersion [${ctx.creatableSchemaVersions.join(", ")}] games; this app build asked for ${asserted}. Read GET /capabilities.`, "schemaUnsupported");
+  if (asserted === ctx.latestSchemaVersion) return;
+  if (asserted < ctx.latestSchemaVersion) {
+    throw new HttpError(409, `This app supports game schema ${asserted}, but new games require schema ${ctx.latestSchemaVersion}`, "clientUpdateRequired");
+  }
+  throw new HttpError(409, `This app supports game schema ${asserted}, but this server only has schema ${ctx.latestSchemaVersion}`, "serverUpdateRequired");
 }
 
 /**
@@ -118,6 +111,57 @@ function resolveSeats(rules: GameRules, config: JsonObject, asserted: { minPlaye
     throw new HttpError(422, `seat mismatch: this game supports ${limits.minPlayers}-${limits.maxPlayers} players; asked for ${minPlayers}-${maxPlayers}`);
   }
   return { minPlayers, maxPlayers };
+}
+
+interface TimingSelection {
+  turnSeconds: number | null;
+  budgetSeconds: number | null;
+  incrementSeconds: number | null;
+}
+
+function validTimingOption(option: TimingOption): boolean {
+  switch (option.mode) {
+    case "untimed":
+      return true;
+    case "perAction":
+      return Number.isSafeInteger(option.minSeconds) && Number.isSafeInteger(option.maxSeconds) && option.minSeconds > 0 && option.maxSeconds >= option.minSeconds;
+    case "budget":
+      return (
+        Number.isSafeInteger(option.minBudgetSeconds) &&
+        Number.isSafeInteger(option.maxBudgetSeconds) &&
+        Number.isSafeInteger(option.minIncrementSeconds) &&
+        Number.isSafeInteger(option.maxIncrementSeconds) &&
+        option.minBudgetSeconds > 0 &&
+        option.maxBudgetSeconds >= option.minBudgetSeconds &&
+        option.minIncrementSeconds >= 0 &&
+        option.maxIncrementSeconds >= option.minIncrementSeconds
+      );
+  }
+}
+
+function timingMatches(option: TimingOption, selection: TimingSelection): boolean {
+  switch (option.mode) {
+    case "untimed":
+      return selection.turnSeconds === null && selection.budgetSeconds === null && selection.incrementSeconds === null;
+    case "perAction":
+      return selection.turnSeconds !== null && selection.budgetSeconds === null && selection.incrementSeconds === null && selection.turnSeconds >= option.minSeconds && selection.turnSeconds <= option.maxSeconds;
+    case "budget": {
+      const increment = selection.incrementSeconds ?? 0;
+      return selection.turnSeconds === null && selection.budgetSeconds !== null && selection.budgetSeconds >= option.minBudgetSeconds && selection.budgetSeconds <= option.maxBudgetSeconds && increment >= option.minIncrementSeconds && increment <= option.maxIncrementSeconds;
+    }
+  }
+}
+
+/** Validate the transport-level timing tuple against this game version's
+ * config-dependent policy. */
+function assertTimingAllowed(rules: GameRules, config: JsonObject, selection: TimingSelection): void {
+  const options = rules.timingOptions({ config });
+  if (options.length === 0 || options.some((option) => !validTimingOption(option))) {
+    throw new HttpError(500, `game bug: timingOptions returned ${JSON.stringify(options)}`);
+  }
+  if (!options.some((option) => timingMatches(option, selection))) {
+    throw new HttpError(422, "timing mismatch: these rules do not allow the requested timing");
+  }
 }
 
 /** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
@@ -194,59 +238,29 @@ function generateShortCode(): string {
   return [...bytes].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
 }
 
-// ── Create receipts ───────────────────────────────────────────────────────────
+// ── Create (D1 UNIQUE short code + bounded collision retry) ─────────────────
 
-/** What a create produced, whether it ran now or had already run. */
+/** The stable identifiers produced by a successful create. */
 interface CreatedGame {
   gameId: string;
   shortCode: string;
-  /** True when this request re-presented a command id already committed. Every
-   * once-only side effect a create performs is gated on this being false. */
-  replayed: boolean;
 }
 
 /**
- * The create-side receipt check, and the shortCode retry loop it shares with.
- *
- * Both create routes go through here so a duplicate create is impossible in one
- * place rather than two. `input.gameId` is the freshly minted id, used only if
- * this create is genuinely new: a replay answers with the id the first attempt
- * committed, so a caller that retries because it never saw the response gets the
- * game it already made instead of a second one.
+ * Both create routes share one bounded short-code collision loop. Creation is
+ * intentionally not transport-idempotent at this stage: after an ambiguous
+ * network failure the client resynchronizes and the player may create again.
  */
-async function createOnce(d1: D1Database, createdBy: string, receipt: CreateReceipt, input: Omit<CreateGameInput, "receipt" | "shortCode">): Promise<CreatedGame> {
+async function createOnce(d1: D1Database, input: Omit<CreateGameInput, "shortCode">): Promise<CreatedGame> {
   for (let attempt = 1; ; attempt++) {
     const shortCode = generateShortCode();
     try {
-      await createGame(d1, { ...input, receipt, shortCode });
-      return { gameId: input.gameId, shortCode, replayed: false };
+      await createGame(d1, { ...input, shortCode });
+      return { gameId: input.gameId, shortCode };
     } catch (error) {
-      if (isCreateReplay(error)) return await replayCreate(d1, createdBy, receipt);
       if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
     }
   }
-}
-
-/** Answer a create whose command id is already committed. */
-async function replayCreate(d1: D1Database, createdBy: string, receipt: CreateReceipt): Promise<CreatedGame> {
-  const stored = await readCreatedGame(d1, createdBy, receipt.commandId);
-  // The insert that just failed proves the row exists, and a game row is never
-  // deleted (a purge anonymizes it, a reap aborts it). Reaching here means one of
-  // those two invariants broke.
-  if (stored === undefined) throw new HttpError(500, "engine bug: a committed create has no game");
-  if (stored.request !== receipt.request) {
-    throw new HttpError(422, "This command id is already committed with different intent", "commandConflict");
-  }
-  return { gameId: stored.gameId, shortCode: stored.shortCode, replayed: true };
-}
-
-/** The canonical intent of a create, compared to refuse one key standing for two
- * different games. `resource` is the collection D1 is authoritative for, the
- * create-time counterpart of a DO passing its own game id. Payload fields are the
- * request as SENT, never a server-derived value: two byte-identical retries must
- * fingerprint identically even across a redeploy that moved a derived bound. */
-function createReceipt(userId: string, commandId: string, operation: "game.create" | "game.create-solo", payload: unknown): CreateReceipt {
-  return { commandId, request: canonicalRequest({ principal: userPrincipal(userId), operation, resource: "games", payload }) };
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
@@ -279,6 +293,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (!parsed.ok) throw new HttpError(400, parsed.message);
       const config = parsed.value as JsonObject;
       const { minPlayers, maxPlayers } = resolveSeats(rules, config, body);
+      assertTimingAllowed(rules, config, body);
 
       const pool = rules.ratingPool({
         access: body.access,
@@ -300,45 +315,30 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const rated = canBeRated && (body.rated ?? true);
 
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
-      const created = await createOnce(
-        ctx.d1(c.env),
-        auth.user.id,
-        createReceipt(auth.user.id, commandId(c), "game.create", {
-          access: body.access,
-          schemaVersion: body.schemaVersion,
-          config,
-          turnSeconds: body.turnSeconds,
-          budgetSeconds: body.budgetSeconds,
-          incrementSeconds: body.incrementSeconds,
-          rated: body.rated ?? null,
-          minPlayers: body.minPlayers ?? null,
-          maxPlayers: body.maxPlayers ?? null,
-        }),
-        {
-          gameId: crypto.randomUUID(),
-          createdBy: auth.user.id,
-          status: seats.length >= minPlayers ? "ready" : "waiting",
-          access: body.access,
-          schemaVersion: body.schemaVersion,
-          config,
-          turnSeconds: body.turnSeconds,
-          budgetSeconds: body.budgetSeconds,
-          incrementSeconds: body.incrementSeconds,
-          rated,
-          ratingPool: pool,
-          minPlayers,
-          maxPlayers,
-          seats,
-          now: Date.now(),
-        },
-      );
+      const created = await createOnce(ctx.d1(c.env), {
+        gameId: crypto.randomUUID(),
+        createdBy: auth.user.id,
+        status: seats.length >= minPlayers ? "ready" : "waiting",
+        access: body.access,
+        schemaVersion: body.schemaVersion,
+        config,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+        rated,
+        ratingPool: pool,
+        minPlayers,
+        maxPlayers,
+        seats,
+        now: Date.now(),
+      });
       // Friends-access game: fan out an invite push to the creator's
       // accepted friends. Best-effort and off the response path: a friend
       // with notifications off (or none at all) costs nothing, and a push
       // failure never affects the create. Skipped on a replay: the first
       // attempt already invited everyone, and a caller retrying a lost
       // response must not re-notify their whole friend list.
-      if (body.access === "friends" && !created.replayed) {
+      if (body.access === "friends") {
         const d1 = ctx.d1(c.env);
         const admin = ctx.firebaseAdmin(c.env);
         c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => admin.notifyUser(d1, id, gameInvitePush(auth.user.displayName, created.gameId))))));
@@ -369,6 +369,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
       const config = parsedConfig.value as JsonObject;
       const { minPlayers, maxPlayers } = resolveSeats(rules, config, body);
+      assertTimingAllowed(rules, config, body);
 
       // Solo games are always private: no lobby, no invites.
       const pool = rules.ratingPool({
@@ -400,39 +401,23 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
       if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
-      const key = commandId(c);
-      const created = await createOnce(
-        ctx.d1(c.env),
-        auth.user.id,
-        createReceipt(auth.user.id, key, "game.create-solo", {
-          schemaVersion: body.schemaVersion,
-          config,
-          turnSeconds: body.turnSeconds,
-          budgetSeconds: body.budgetSeconds,
-          incrementSeconds: body.incrementSeconds,
-          rated: body.rated ?? null,
-          minPlayers: body.minPlayers ?? null,
-          maxPlayers: body.maxPlayers ?? null,
-          botIds: body.botIds,
-        }),
-        {
-          gameId: crypto.randomUUID(),
-          createdBy: auth.user.id,
-          status: "ready",
-          access: "private",
-          schemaVersion: body.schemaVersion,
-          config,
-          turnSeconds: body.turnSeconds,
-          budgetSeconds: body.budgetSeconds,
-          incrementSeconds: body.incrementSeconds,
-          rated,
-          ratingPool: pool,
-          minPlayers,
-          maxPlayers,
-          seats,
-          now: Date.now(),
-        },
-      );
+      const created = await createOnce(ctx.d1(c.env), {
+        gameId: crypto.randomUUID(),
+        createdBy: auth.user.id,
+        status: "ready",
+        access: "private",
+        schemaVersion: body.schemaVersion,
+        config,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+        rated,
+        ratingPool: pool,
+        minPlayers,
+        maxPlayers,
+        seats,
+        now: Date.now(),
+      });
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
       // commits v0; a bot due to open plays via its in-DO brain post-commit
@@ -441,15 +426,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // the client has the opening board without a round trip. The game is
       // already running before any socket exists, so this is its only delivery.
       const stub = ctx.stub(c.env, created.gameId);
-      // The start's own id, DERIVED from the caller's key rather than reused as
-      // it or minted fresh. Reusing the key would let one id stand for two
-      // operations, which the receipt design refuses; minting a fresh one would
-      // make this half unreplayable, so a retry would start a game that is
-      // already running. A derived id is a distinct id that is also
-      // reproducible, which is what makes create-solo idempotent as a whole:
-      // the DO replays its committed start, and a create whose process died
-      // before this line ran is resumed here rather than left unstarted.
-      unwrap(await stub.handle(mint(auth, "start", created.gameId, `${key}:start`)));
+      // Starting is an idempotent lifecycle transition, so this compound route
+      // needs no generic command identity or receipt.
+      unwrap(await stub.handle(mint(auth, "start", created.gameId)));
       const session = await stub.session(created.gameId, auth.user.id);
       if (session === null) throw new HttpError(500, "engine bug: started game has no session");
       return c.json({ session }, 201);
@@ -457,18 +436,16 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
   );
 
   // join: worker policy is guest-vs-rated, friends access, schema gate.
-  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersions: number[], key: string) => {
+  const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number) => {
     const auth = c.var.auth;
     if (game.rated && auth.claims.isAnonymous) {
       throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
     }
-    // Exact membership, not `game.schemaVersion <= clientMaximum`. Client support
-    // is sparse — a build may ship {1, 3} once v2 has drained — so a maximum
-    // cannot express it, and comparing against one seats a {1, 3} client into a
-    // v2 game whose frames it cannot decode. Checked before seating, so a refusal
-    // leaves no participant row behind.
-    if (!clientSchemaVersions.includes(game.schemaVersion)) {
-      throw new HttpError(409, `This app build does not support this game's version (${game.schemaVersion})`, "schemaUnsupported");
+    // Published rules remain a contiguous prefix in every client bundle. A
+    // client advertising N therefore supports every retained game at 1...N.
+    // Check before seating so a refusal leaves no participant row behind.
+    if (game.schemaVersion > clientSchemaVersion) {
+      throw new HttpError(409, `This game uses schema ${game.schemaVersion}, but this app supports through schema ${clientSchemaVersion}`, "clientUpdateRequired");
     }
     if (game.access === "friends") {
       if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
@@ -485,7 +462,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
       throw new HttpError(404, "Unknown game", "unknownGame");
     }
-    return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id, key)));
+    return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id)));
   };
 
   app.openapi(
@@ -500,7 +477,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const game = await loadGame(ctx, c.env, c.req.valid("param").gameId);
-      const seated = await join(c, game, body.clientSchemaVersions, commandId(c));
+      const seated = await join(c, game, body.clientSchemaVersion);
       return c.json(seated, 200);
     },
   );
@@ -518,7 +495,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const body = c.req.valid("json");
       const game = await readGameByCode(ctx.d1(c.env), body.shortCode.toUpperCase());
       if (game === undefined) throw new HttpError(404, "No game with that code", "unknownGame");
-      const seated = await join(c, game, body.clientSchemaVersions, commandId(c));
+      const seated = await join(c, game, body.clientSchemaVersion);
       return c.json(seated, 200);
     },
   );
@@ -534,7 +511,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId, commandId(c)));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId));
       return c.json(commandResult(result), 200);
     },
   );
@@ -550,7 +527,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId, commandId(c)));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId));
       return c.json(commandResult(result), 200);
     },
   );
@@ -576,7 +553,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const bot = bots[0];
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
-      const cmd: Command = { kind: "add-bot", gameId, commandId: commandId(c), actor: { userId: auth.user.id, botId: null }, botId: bot.id };
+      const cmd: Command = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
   );
@@ -592,7 +569,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
-      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId, commandId(c)));
+      const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId));
       return c.json(commandResult(result), 200);
     },
   );
@@ -616,7 +593,6 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "action",
         gameId,
-        commandId: commandId(c),
         actor: { userId: c.var.auth.user.id, botId: null },
         seat: body.seat,
         expectedVersion: body.expectedVersion,
@@ -641,7 +617,6 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const cmd: Command = {
         kind: "lifecycle",
         gameId,
-        commandId: commandId(c),
         actor: { userId: c.var.auth.user.id, botId: null },
         type: "forfeit",
         seat: body.seat,
@@ -687,35 +662,63 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
-  // The WebSocket: one socket for the game's whole lifetime.
-  // Not an OpenAPI route (documents can't describe the upgrade); auth rides
-  // the `?token=` query. The worker stamps the principal header itself;
-  // inbound x-eigen-* headers are dropped wholesale.
-  app.get("/games/:gameId/socket", async (c) => {
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/games/{gameId}/socket-ticket",
+      operationId: "createSocketTicket",
+      tags: ["Games"],
+      request: { params: gameIdParam },
+      responses: responses(socketTicketShape, "A short-lived credential for this game's WebSocket"),
+    }),
+    async (c) => {
+      const gameId = c.req.valid("param").gameId;
+      await loadGame(ctx, c.env, gameId);
+      const ticket = await issueSocketTicket(ctx.socketTicketSecret(c.env), {
+        gameId,
+        userId: c.var.auth.user.id,
+      });
+      return c.json({ ticket }, 200);
+    },
+  );
+}
+
+/** Register the ticket-authenticated upgrade on the outer app, outside the
+ * Firebase middleware used by the ordinary engine routes. */
+export function registerGameSocketRoute(app: EngineApp, ctx: RouteContext): void {
+  app.get("/api/engine/games/:gameId/socket", async (c) => {
     if (c.req.header("upgrade")?.toLowerCase() !== "websocket") {
       throw new HttpError(400, "Expected a WebSocket upgrade");
     }
     // Browsers always send Origin on a WebSocket handshake. It is not covered
     // by CORS, so enforce the same exact-origin policy here. Native clients
-    // normally omit Origin and continue to authenticate solely with Firebase.
+    // normally omit Origin and continue to authenticate solely with the ticket.
     const origin = c.req.header("origin");
     if (origin !== undefined && origin !== new URL(c.req.url).origin && !ctx.clientOrigins(c.env).includes(origin)) {
       throw new HttpError(403, "Browser origin is not allowed");
     }
     const gameId = c.req.param("gameId");
+    const ticket = c.req.query("ticket");
+    if (ticket === undefined || ticket.length === 0) throw new HttpError(401, "Missing socket ticket");
+    let userId: string;
+    try {
+      ({ userId } = await verifySocketTicket(ctx.socketTicketSecret(c.env), ticket, gameId));
+    } catch {
+      throw new HttpError(401, "Invalid or expired socket ticket");
+    }
     await loadGame(ctx, c.env, gameId); // 404 without waking a DO for garbage ids
     const headers = new Headers();
     for (const [key, value] of c.req.raw.headers) {
       if (!key.toLowerCase().startsWith("x-eigen-")) headers.set(key, value);
     }
     headers.set("x-eigen-game", gameId);
-    headers.set("x-eigen-user", c.var.auth.user.id);
+    headers.set("x-eigen-user", userId);
     return await ctx.stub(c.env, gameId).fetch(new Request(c.req.raw.url, { headers }));
   });
 }
 
-function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string, commandId: string): Command {
-  const base = { gameId, commandId, actor: { userId: auth.user.id, botId: null } };
+function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string): Command {
+  const base = { gameId, actor: { userId: auth.user.id, botId: null } };
   switch (kind) {
     case "start":
       return { kind, ...base };

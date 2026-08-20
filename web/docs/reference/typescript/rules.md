@@ -291,7 +291,7 @@ The trigger, always equal to `data.type`.
 
 ### BotActionArgs
 
-Defined in: [server/packages/rules/src/contract.ts:238](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L238)
+Defined in: [server/packages/rules/src/contract.ts:259](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L259)
 
 A seated engine bot's turn to move, passed to the matching entry in
 [GameRules.botActions](#botactions). The brain runs inside the game's Durable
@@ -323,7 +323,7 @@ pure (replay uses the recorded action, never re-runs the brain).
 botConfig: JsonObject;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:240](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L240)
+Defined in: [server/packages/rules/src/contract.ts:261](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L261)
 
 ##### config
 
@@ -345,7 +345,7 @@ HookContext.config
 observation: ObservationSlice<TObservation>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:239](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L239)
+Defined in: [server/packages/rules/src/contract.ts:260](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L260)
 
 ##### playerIndex
 
@@ -353,7 +353,7 @@ Defined in: [server/packages/rules/src/contract.ts:239](https://github.com/eigen
 playerIndex: number;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:241](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L241)
+Defined in: [server/packages/rules/src/contract.ts:262](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L262)
 
 ##### rng
 
@@ -361,13 +361,13 @@ Defined in: [server/packages/rules/src/contract.ts:241](https://github.com/eigen
 rng: Rng;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:242](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L242)
+Defined in: [server/packages/rules/src/contract.ts:263](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L263)
 
 ***
 
 ### BotSeatableArgs
 
-Defined in: [server/packages/rules/src/contract.ts:223](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L223)
+Defined in: [server/packages/rules/src/contract.ts:244](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L244)
 
 A candidate bot seating, passed to [GameRules.botSeatable](#botseatable).
 `gameConfig` is parsed against the game's version schema; `botConfig` is the
@@ -388,7 +388,7 @@ schemas, so it stays opaque.
 botConfig: JsonObject;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:225](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L225)
+Defined in: [server/packages/rules/src/contract.ts:246](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L246)
 
 ##### gameConfig
 
@@ -396,7 +396,7 @@ Defined in: [server/packages/rules/src/contract.ts:225](https://github.com/eigen
 gameConfig: TConfig;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:224](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L224)
+Defined in: [server/packages/rules/src/contract.ts:245](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L245)
 
 ***
 
@@ -556,7 +556,7 @@ touch any player's bank). Omit to use the game's configured timing.
 
 ### GameModule
 
-Defined in: [server/packages/rules/src/contract.ts:378](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L378)
+Defined in: [server/packages/rules/src/contract.ts:405](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L405)
 
 The complete game-specific surface: the same-named twin of the Dart
 `GameModule` (whose extras are client-only creation/about UI). Implement
@@ -573,12 +573,13 @@ branches on version.
 versions: Record<number, AnyGameRules>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:386](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L386)
+Defined in: [server/packages/rules/src/contract.ts:414](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L414)
 
 The [GameRules](#gamerules) units keyed by `schemaVersion`: exactly the
-versions this build ships. Sparse on purpose: game creation rejects a
-version not present here, loading a stored game requires its version's
-entry, and a drained old version is retired by deleting its entry. The
+contiguous prefix `1..latest` this build ships. New games always use the
+latest entry, while loading a retained game resolves its stored version.
+Old entries stay installed for as long as retained games reference them.
+The
 value type is [AnyGameRules](#anygamerules); each entry is authored against its
 concrete payload types and erased here; safe because the engine parses
 each payload with the same entry's schemas before invoking its hooks.
@@ -587,10 +588,10 @@ each payload with the same entry's schemas before invoking its hooks.
 
 ### GameRules
 
-Defined in: [server/packages/rules/src/contract.ts:281](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L281)
+Defined in: [server/packages/rules/src/contract.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L302)
 
 Everything one `schemaVersion` of a game needs: the payload contracts plus
-all seven hooks, narrowly typed to that version's shapes.
+all hooks, narrowly typed to that version's shapes.
 
 The type parameters are the version's payload types, inferred from the
 schemas in [schemas](#schemas) (`z.infer<typeof stateSchema>` etc., using `type`
@@ -617,7 +618,7 @@ change incompatibly, ship a new `GameRules` under the next version key
 optional botActions?: Record<string, BotAction<TAction, TObservation, TConfig>>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:349](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L349)
+Defined in: [server/packages/rules/src/contract.ts:376](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L376)
 
 Optional: the in-DO bot brains, **keyed by bot username**. When a
 seated `engine`-type bot's turn starts, the engine resolves its registry
@@ -637,7 +638,7 @@ rejected exactly like a human's, so a buggy brain fails that seat's turn
 schemas: GameSchemas<TState, TObservation, TAction, TConfig>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:283](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L283)
+Defined in: [server/packages/rules/src/contract.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L304)
 
 The payload contracts for this version.
 
@@ -649,7 +650,7 @@ The payload contracts for this version.
 applyAction(args): Envelope<TState>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L294)
+Defined in: [server/packages/rules/src/contract.ts:315](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L315)
 
 Apply a player's move. The engine has already confirmed it is this
 seat's turn at the expected version, so do not re-check turn order. Only
@@ -673,7 +674,7 @@ bug and surfaces as a server error.
 applyLifecycle(args): Envelope<TState>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L301)
+Defined in: [server/packages/rules/src/contract.ts:322](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L322)
 
 Resolve a lifecycle action (`forfeit`/`timeout`) into an envelope.
 Lifecycle actions operate on the game from outside its rules. They may
@@ -697,7 +698,7 @@ it cannot be "illegal"; it always resolves.
 botSeatable(args): boolean;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:336](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L336)
+Defined in: [server/packages/rules/src/contract.ts:363](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L363)
 
 Decide whether a bot's declared capabilities (`botConfig`) support a
 game with `gameConfig`. The engine gates seating on this before
@@ -720,7 +721,7 @@ Return `true` to allow.
 computeObservation(args): ObservationSlice<TObservation>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L309)
+Defined in: [server/packages/rules/src/contract.ts:330](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L330)
 
 Project the state into one seat's view, including what that seat may
 see of the transition that produced it (`args.cause`), so the client can
@@ -745,7 +746,7 @@ the acting seat's projected view is unchanged (the same-view rule).
 initialState(args): Envelope<TState>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:287](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L287)
+Defined in: [server/packages/rules/src/contract.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L308)
 
 Starting envelope. Draw any setup randomness (deck shuffle, first
 player…) from `args.rng`.
@@ -766,7 +767,7 @@ player…) from `args.rng`.
 playerLimits(args): PlayerLimits;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:322](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L322)
+Defined in: [server/packages/rules/src/contract.ts:343](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L343)
 
 Declare how many seats a game with this config may have. The engine
 derives the bounds here and validates the caller's chosen `minPlayers`/
@@ -796,7 +797,7 @@ the create dialog; a disagreement is refused rather than coerced.
 ratingPool(args): string | null;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:330](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L330)
+Defined in: [server/packages/rules/src/contract.ts:357](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L357)
 
 Decide whether, and in which pool, a game with these settings is
 rated. Return the pool name (e.g. `'rapid'`) or `null` for unrated. The
@@ -815,11 +816,34 @@ the Rated/Casual toggle and send the same value.
 
 `string` \| `null`
 
+##### timingOptions()
+
+```ts
+timingOptions(args): readonly TimingOption[];
+```
+
+Defined in: [server/packages/rules/src/contract.ts:349](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L349)
+
+Declare every timing band this config accepts. The engine validates a
+create against these versioned rules after parsing config; the Flutter
+creation spec may mirror the same ranges for immediate UI feedback, but it
+is never authoritative. Return at least one option.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `args` | [`TimingOptionsArgs`](#timingoptionsargs)\<`TConfig`\> |
+
+###### Returns
+
+readonly [`TimingOption`](#timingoption)[]
+
 ***
 
 ### GameSchemas
 
-Defined in: [server/packages/rules/src/contract.ts:258](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L258)
+Defined in: [server/packages/rules/src/contract.ts:279](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L279)
 
 The declarative payload contracts for one `schemaVersion`: the Standard
 Schemas the engine uses to parse (and validate) every game payload crossing
@@ -846,7 +870,7 @@ bug.
 action: GamePayloadSchema<TAction>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:264](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L264)
+Defined in: [server/packages/rules/src/contract.ts:285](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L285)
 
 A player move's `data`, as submitted by clients and bots.
 
@@ -856,7 +880,7 @@ A player move's `data`, as submitted by clients and bots.
 config: GamePayloadSchema<TConfig>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:266](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L266)
+Defined in: [server/packages/rules/src/contract.ts:287](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L287)
 
 The per-instance creation config stored on the game.
 
@@ -866,7 +890,7 @@ The per-instance creation config stored on the game.
 observation: GamePayloadSchema<TObservation>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:262](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L262)
+Defined in: [server/packages/rules/src/contract.ts:283](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L283)
 
 One participant's projected view, as returned by `computeObservation`.
 
@@ -876,7 +900,7 @@ One participant's projected view, as returned by `computeObservation`.
 state: GamePayloadSchema<TState>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:260](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L260)
+Defined in: [server/packages/rules/src/contract.ts:281](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L281)
 
 The pure game payload stored per transition.
 
@@ -1080,7 +1104,7 @@ What the profile requires instead.
 
 ### RatingPoolArgs
 
-Defined in: [server/packages/rules/src/contract.ts:209](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L209)
+Defined in: [server/packages/rules/src/contract.ts:230](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L230)
 
 The chosen game settings, passed to [GameRules.ratingPool](#ratingpool) at
 creation so the game can decide its rating pool (or that the game is
@@ -1101,7 +1125,7 @@ schema.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:210](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L210)
+Defined in: [server/packages/rules/src/contract.ts:231](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L231)
 
 ##### budgetSeconds
 
@@ -1109,7 +1133,7 @@ Defined in: [server/packages/rules/src/contract.ts:210](https://github.com/eigen
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:212](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L212)
+Defined in: [server/packages/rules/src/contract.ts:233](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L233)
 
 ##### config
 
@@ -1117,7 +1141,7 @@ Defined in: [server/packages/rules/src/contract.ts:212](https://github.com/eigen
 config: TConfig;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:216](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L216)
+Defined in: [server/packages/rules/src/contract.ts:237](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L237)
 
 ##### incrementSeconds
 
@@ -1125,7 +1149,7 @@ Defined in: [server/packages/rules/src/contract.ts:216](https://github.com/eigen
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:213](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L213)
+Defined in: [server/packages/rules/src/contract.ts:234](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L234)
 
 ##### maxPlayers
 
@@ -1133,7 +1157,7 @@ Defined in: [server/packages/rules/src/contract.ts:213](https://github.com/eigen
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:215](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L215)
+Defined in: [server/packages/rules/src/contract.ts:236](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L236)
 
 ##### minPlayers
 
@@ -1141,7 +1165,7 @@ Defined in: [server/packages/rules/src/contract.ts:215](https://github.com/eigen
 minPlayers: number;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:214](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L214)
+Defined in: [server/packages/rules/src/contract.ts:235](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L235)
 
 ##### turnSeconds
 
@@ -1149,7 +1173,7 @@ Defined in: [server/packages/rules/src/contract.ts:214](https://github.com/eigen
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:211](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L211)
+Defined in: [server/packages/rules/src/contract.ts:232](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L232)
 
 ***
 
@@ -1177,6 +1201,28 @@ Defined in: [server/packages/rules/src/contract.ts:54](https://github.com/eigeni
 ###### Returns
 
 `number`
+
+***
+
+### TimingOptionsArgs
+
+Defined in: [server/packages/rules/src/contract.ts:222](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L222)
+
+#### Type Parameters
+
+| Type Parameter | Default type |
+| ------ | ------ |
+| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+
+#### Properties
+
+##### config
+
+```ts
+config: TConfig;
+```
+
+Defined in: [server/packages/rules/src/contract.ts:223](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L223)
 
 ## Type Aliases
 
@@ -1216,7 +1262,7 @@ Who performed a logged action.
 type AnyGameRules = GameRules<any, any, any, any>;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:368](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L368)
+Defined in: [server/packages/rules/src/contract.ts:395](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L395)
 
 A [GameRules](#gamerules) unit with its payload types erased: the type of a rules
 entry once it is stored in a [GameModule.versions](#versions) registry that holds
@@ -1240,7 +1286,7 @@ with no `as`-cast, because `any` disables the variance check at this seam.
 type BotAction<TAction, TObservation, TConfig> = (args) => TAction;
 ```
 
-Defined in: [server/packages/rules/src/contract.ts:247](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L247)
+Defined in: [server/packages/rules/src/contract.ts:268](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L268)
 
 One engine bot's move function: the value type in
 [GameRules.botActions](#botactions).
@@ -1431,6 +1477,38 @@ teamIndex: number;
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:72](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L72)
+
+***
+
+### TimingOption
+
+```ts
+type TimingOption =
+  | {
+  mode: "untimed";
+}
+  | {
+  maxSeconds: number;
+  minSeconds: number;
+  mode: "perAction";
+}
+  | {
+  maxBudgetSeconds: number;
+  maxIncrementSeconds: number;
+  minBudgetSeconds: number;
+  minIncrementSeconds: number;
+  mode: "budget";
+};
+```
+
+Defined in: [server/packages/rules/src/contract.ts:211](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L211)
+
+One server-authoritative timing band accepted when creating a game.
+
+An array of bands, rather than one optional range per mode, can represent
+disjoint choices such as blitz and daily without silently accepting every
+value between them. Labels, slider steps, defaults, and presets remain client
+presentation concerns.
 
 ***
 

@@ -31,7 +31,7 @@ hand. A forgotten `pnpm -r build` means the game is testing a stale engine,
 which fails as a puzzle rather than as an error:
 
 ```bash
-pnpm dev          # tsup --watch in every library, rebuilds in milliseconds
+pnpm dev          # tsdown --watch in every library, rebuilds in milliseconds
 ```
 
 `dist` is deliberately not cleaned between watch rebuilds. It is emptied and

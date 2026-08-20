@@ -82,7 +82,7 @@ on or safely serialized back.
 ## CI checks
 
 The Worker regenerates `game-contract.json` and fails on a diff. The app runs
-`eigen_flutter:generate_payloads --check` and its copied fixtures. Separate
+`eigen_codegen:generate_payloads --check` and its copied fixtures. Separate
 repositories can fetch the artifact from a release, registry, or object store;
 pin it by checksum instead of depending on a sibling checkout path.
 

@@ -11,9 +11,9 @@ A bot is a registry row whose `type` selects how its moves are produced:
 - **`engine`**: the brain ships *in the game module*, as
   `GameRules.botActions[username]`. When a seated engine bot's turn starts, the
   DO resolves its row → username → move function, runs it **in-process
-  post-commit**, and self-applies the returned move as that seat's action (a
-  normal serialized command with a deterministic `commandId`, so it dedupes and
-  chains through consecutive bot turns). A bot game needs no external service.
+  post-commit**, and self-applies the returned move as that seat's action. The
+  current authoritative state decides whether it can commit, and consecutive
+  bot turns chain in the same object. A bot game needs no external service.
 - **`external`**: the bot is hosted elsewhere. On its turn the DO sends a single
   signed **wake** carrying the bot's freshly-committed observation; the bot later
   POSTs its move to `/api/bot/action`. Fire-and-forget, single attempt, so a lost

@@ -62,7 +62,7 @@ async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]
  * rest of the purge continues (an orphaned seat is caught by the cron reap /
  * timeout, never blocking the account deletion). */
 async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promise<void> {
-  const base = { gameId: seat.gameId, commandId: `purge:${userId}:${seat.gameId}`, actor: { userId, botId: null } };
+  const base = { gameId: seat.gameId, actor: { userId, botId: null } };
   const cmd: Command = seat.status === "active" ? { kind: "lifecycle", type: "forfeit", seat: seat.seat, ...base } : seat.isCreator ? { kind: "cancel", ...base } : { kind: "leave", ...base };
   try {
     const result = await ops.stub(seat.gameId).handle(cmd);

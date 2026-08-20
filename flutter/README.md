@@ -112,12 +112,16 @@ it is not part of Firebase's app SDK configuration.
 ## The game boundary
 
 The authoritative TypeScript module declares `state`, `observation`, `action`,
-and `config` once. It emits `game-contract.json`; this package's executable
-turns that artifact into immutable Dart payloads, a typed rules base, and
-fixture copies:
+and `config` once. It emits `game-contract.json`; the development-only
+`eigen_codegen` package turns that artifact into immutable Dart payloads, a
+typed rules base, and fixture copies:
 
 ```bash
-dart run eigen_flutter:generate_payloads \
+flutter pub add --dev eigen_codegen
+```
+
+```bash
+dart run eigen_codegen:generate_payloads \
   --contract ../server/game-contract.json \
   --output lib/game/generated/payloads.dart \
   --fixtures-output test/fixtures

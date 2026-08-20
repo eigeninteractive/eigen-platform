@@ -48,10 +48,9 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   notParticipant: "The caller holds no seat in this game",
   notCreator: "A creator-only command from a non-creator",
   creatorCannotLeave: "The creator cancels the game instead of leaving it",
-  // Command receipt rejection: the id is already bound to another intent.
-  commandConflict: "This principal already committed this Idempotency-Key with a different operation, resource, or payload",
   // Raised by a route before the command reaches the game.
-  schemaUnsupported: "The game's schema version is newer than this client build supports",
+  clientUpdateRequired: "This client build is older than the game or server rules it needs",
+  serverUpdateRequired: "This client build is newer than the deployed server rules",
   usernameInvalid: "The submitted username fails the format rules",
   usernameTaken: "The submitted username is already in use",
   friendsOnly: "The game is limited to the creator's friends",
@@ -60,7 +59,6 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
   rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
   invalidCursor: "The pagination cursor did not decode; drop it and request the first page",
-  idempotencyKeyInvalid: "The mutation's Idempotency-Key header was absent or malformed",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can
@@ -290,24 +288,16 @@ const seatsOrdered = (v: { minPlayers?: number; maxPlayers?: number }) => v.minP
 const timingFields = {
   turnSeconds: z.number().int().positive().nullable().default(null),
   budgetSeconds: z.number().int().positive().nullable().default(null),
-  incrementSeconds: z.number().int().positive().nullable().default(null),
+  incrementSeconds: z.number().int().nonnegative().nullable().default(null),
 };
 
 type TimingBody = { turnSeconds: number | null; budgetSeconds: number | null; incrementSeconds: number | null };
 const timingExclusive = (v: TimingBody) => v.turnSeconds === null || v.budgetSeconds === null;
 const incrementNeedsBudget = (v: TimingBody) => v.incrementSeconds === null || v.budgetSeconds !== null;
 
-/** The version a create says it built its `config` for.
- *
- * A constrained choice, not a free one: the deployment publishes which versions
- * are creatable (`EngineConfig.creatableSchemaVersions`) and a create naming
- * anything outside that set is refused with `schemaUnsupported` rather than
- * quietly coerced. The caller still states which rules shaped the `config` it is
- * sending, so a client ahead of or behind the server fails on that mismatch
- * instead of on an inscrutable config validation error. Read
- * `GET /capabilities` and pick the newest version in common. */
+/** The newest schema version bundled by the client creating the game. */
 const creatableSchemaVersionAssertion = z.number().int().positive().openapi({
-  description: "The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities.",
+  description: "The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version.",
   example: 1,
 });
 
@@ -333,34 +323,8 @@ export const createGameBody = z
 
 export const createdShape = z.object({ gameId: z.string(), shortCode: z.string() }).openapi("Created");
 
-/**
- * What this deployment can do, so a client can tell before it tries.
- *
- * Read at startup, not per request. The two facts are deliberately separate and
- * neither is derivable from the other: `supportedSchemaVersions` is
- * every version the server can run (joinable, playable, replayable) and is
- * sparse, while `creatableSchemaVersion` is the single one new games get. A
- * client compares both against its own sparse set to know whether it can play at
- * all, whether it can create, or whether it needs an update — and which of those
- * three it is, which a bare failure on create could never tell it.
- *
- * There is deliberately no `protocolMajor` here. Publishing a constant negotiates
- * nothing, and there is no major 2 to distinguish from: a field whose only value
- * is 1 costs a wire type and buys no decision. Adding it when a second major
- * exists is additive, and a client that never read it behaves then exactly as it
- * does now.
- */
-export const capabilitiesShape = z
-  .object({
-    /** Every version a NEW game may be created at, ascending. A client creates at
-     * the newest version it shares with this list; if that intersection is empty
-     * it must update. A subset of `supportedSchemaVersions`. */
-    creatableSchemaVersions: z.array(z.number().int().positive()).openapi({ example: [3] }),
-    /** Every version this deployment can run: joinable, playable, replayable.
-     * Sparse, and never derivable from a maximum. */
-    supportedSchemaVersions: z.array(z.number().int().positive()).openapi({ example: [1, 3] }),
-  })
-  .openapi("Capabilities");
+/** A narrow, short-lived credential for the browser WebSocket handshake. */
+export const socketTicketShape = z.object({ ticket: z.string() }).openapi("SocketTicket");
 
 /** Create-solo: a private game seated with the caller plus one or more
  * bots, created and started in one call. Same timing/config fields as
@@ -391,52 +355,11 @@ export const createSoloBody = z
  * opening frame: the game is already running before any socket exists. */
 export const soloStartedShape = z.object({ session: sessionShape }).openapi("SoloStarted");
 
-/**
- * The `Idempotency-Key` header every mutation carries.
- *
- * The name and semantics are the IETF `Idempotency-Key` header field: one key
- * per logical intent, reused across every retry of that intent, so the server
- * replays its committed result instead of executing twice.
- *
- * The value is opaque and only length-bounded. A UUIDv7 is recommended for
- * sortable diagnostics, but the server has no reason to demand one: a receipt is
- * scoped to the caller's principal, so a caller who picks a guessable or
- * repeated key can only collide with themselves.
- */
-const IDEMPOTENCY_KEY_MAX = 128;
-/** The header's canonical spelling is the schema key: the validator matches an
- * incoming header name case-insensitively against it, and the OpenAPI parameter
- * takes its name from it. */
-export const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
-export const idempotencyKeyHeader = z.object({
-  [IDEMPOTENCY_KEY_HEADER]: z
-    .string()
-    .min(1)
-    .max(IDEMPOTENCY_KEY_MAX)
-    .openapi({
-      param: { in: "header", required: true },
-      description: "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-      example: "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324",
-    }),
-});
-
-const SCHEMA_VERSIONS_MAX = 32;
-
 export const joinBody = z
   .object({
-    /**
-     * Every `schemaVersion` this client build ships rules for.
-     *
-     * A set, not a maximum. Support is sparse by design — a build may ship
-     * `{1, 3}` after v2 drained — so `gameVersion <= clientMaximum` is not a
-     * compatibility test: it seats a `{1, 3}` client into a v2 game it cannot
-     * decode. The server checks exact membership instead.
-     */
-    clientSchemaVersions: z
-      .array(z.number().int().positive())
-      .min(1)
-      .max(SCHEMA_VERSIONS_MAX)
-      .openapi({ example: [1, 3] }),
+    /** Newest game schema bundled by this client. Published versions are
+     * retained contiguously, so this means the client supports `1...latest`. */
+    clientSchemaVersion: z.number().int().positive().openapi({ example: 3 }),
   })
   .openapi("Join");
 

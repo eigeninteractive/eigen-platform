@@ -200,7 +200,8 @@ the Dart payloads and copied fixtures:
 
 ```bash
 cd app
-dart run eigen_flutter:generate_payloads \
+flutter pub add --dev eigen_codegen
+dart run eigen_codegen:generate_payloads \
   --contract path/to/game-contract.json \
   --output lib/game/generated/payloads.dart \
   --fixtures-output test/fixtures

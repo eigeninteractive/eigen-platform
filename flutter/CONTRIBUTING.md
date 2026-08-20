@@ -67,7 +67,10 @@ deterministic `game-contract.json`:
 
 ```bash
 cd example
-dart run eigen_flutter:generate_payloads
+dart run eigen_codegen:generate_payloads \
+  --contract ../../server/examples/rps/game-contract.json \
+  --output lib/src/v1/payloads.dart \
+  --fixtures-output test/fixtures
 ```
 
 Never hand-edit generated payloads or fixture copies. The example is also

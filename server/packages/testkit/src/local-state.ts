@@ -177,8 +177,6 @@ export interface LocalGameView {
   meta: LocalGameMeta | null;
   roster: LocalSeat[];
   transitions: LocalTransition[];
-  /** Recorded `commandId` dedupe entries, newest first. */
-  commands: { commandId: string; createdAt: number; result: unknown }[];
   /** Unapplied finish rows: a surviving row means the D1 finish apply has not
    * succeeded and the admin re-poke is the recovery. */
   outbox: { finishId: string; createdAt: number; outcomes: unknown }[];
@@ -449,7 +447,6 @@ export class LocalStore {
     let meta: LocalGameMeta | null = null;
     let roster: LocalSeat[] = [];
     let transitions: LocalTransition[] = [];
-    let commands: LocalGameView["commands"] = [];
     let outbox: LocalGameView["outbox"] = [];
 
     if (durableObject !== null) {
@@ -470,13 +467,6 @@ export class LocalStore {
         }
         transitions = (db.prepare("select * from transitions order by version").all() as Record<string, unknown>[]).map((row) => toTransition(row, frameSeats));
       }
-      if (tableExists(db, "commands")) {
-        commands = (db.prepare("select command_id, response, created_at from commands order by created_at desc").all() as { command_id: string; response: unknown; created_at: number }[]).map((row) => ({
-          commandId: row.command_id,
-          createdAt: row.created_at,
-          result: json(row.response),
-        }));
-      }
       if (tableExists(db, "outbox")) {
         outbox = (db.prepare("select finish_id, outcomes, created_at from outbox order by created_at").all() as { finish_id: string; outcomes: unknown; created_at: number }[]).map((row) => ({
           finishId: row.finish_id,
@@ -487,7 +477,7 @@ export class LocalStore {
     }
 
     const alarm = durableObject === null ? null : this.alarm(durableObject);
-    const view: Omit<LocalGameView, "diagnosis"> = { gameId, index, indexSeats, durableObject, meta, roster, transitions, commands, outbox, alarm };
+    const view: Omit<LocalGameView, "diagnosis"> = { gameId, index, indexSeats, durableObject, meta, roster, transitions, outbox, alarm };
     return { ...view, diagnosis: diagnose(view) };
   }
 

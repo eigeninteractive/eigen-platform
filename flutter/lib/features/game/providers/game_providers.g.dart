@@ -1047,7 +1047,7 @@ final class JoinByCodeProvider
   }
 }
 
-String _$joinByCodeHash() => r'ad941153f9b3a500f417977df0881d953e6d8389';
+String _$joinByCodeHash() => r'4f697b9f5509bdce2c19ba31d656622a3233c319';
 
 /// Joins a game by invite code, answering with the seated session.
 ///

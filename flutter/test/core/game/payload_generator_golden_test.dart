@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:eigen_flutter/src/codegen/payload_generator.dart';
+import 'package:eigen_codegen/eigen_codegen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fixtures/codegen/kitchen_sink_payloads.dart';
@@ -67,6 +67,28 @@ void main() {
     expect(action.metadata!.switchValue, isTrue);
     expect(action.toJson(), actionWire);
     expect(() => action.targets.add(5), throwsUnsupportedError);
+    expect(
+      () => Game2048ArenaV1Action.fromJson(<String, dynamic>{
+        'move': 'in-progress',
+        'targets': <dynamic>[1, 1],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => Game2048ArenaV1Action.fromJson(<String, dynamic>{
+        'move': 'in-progress',
+        'targets': <dynamic>[],
+      }),
+      throwsFormatException,
+    );
+    expect(
+      () => Game2048ArenaV1Action.fromJson(<String, dynamic>{
+        'move': 'in-progress',
+        'targets': <dynamic>[1],
+        'future-field': true,
+      }),
+      throwsFormatException,
+    );
 
     final configWire = <String, dynamic>{
       'mode': 'team-play',
@@ -78,6 +100,13 @@ void main() {
     expect(config.mode, Game2048ArenaV1ConfigMode.teamPlay);
     expect(config.labels, <String?>['ranked', null]);
     expect(config.toJson(), configWire);
+    expect(
+      () => Game2048ArenaV1Config.fromJson(<String, dynamic>{
+        ...configWire,
+        'level': 3,
+      }),
+      throwsFormatException,
+    );
     expect(() => config.labels.add('new'), throwsUnsupportedError);
   });
 

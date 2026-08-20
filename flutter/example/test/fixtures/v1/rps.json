@@ -1,0 +1,372 @@
+{
+  "cases": [
+    {
+      "action": {
+        "move": "rock"
+      },
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "observation": {
+          "lastRound": null,
+          "round": 1,
+          "wins": [
+            0,
+            0
+          ],
+          "yourMove": "rock"
+        },
+        "outcome": null,
+        "pending": [
+          1
+        ],
+        "state": {
+          "commits": [
+            "rock",
+            null
+          ],
+          "lastRound": null,
+          "round": 1,
+          "wins": [
+            0,
+            0
+          ]
+        },
+        "valid": true
+      },
+      "kind": "action",
+      "name": "first commit of a round is recorded and hidden",
+      "obs": {
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ],
+        "yourMove": null
+      },
+      "pending": [
+        0,
+        1
+      ],
+      "playerIndex": 0,
+      "state": {
+        "commits": [
+          null,
+          null
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "action": {
+        "move": "scissors"
+      },
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "observation": {
+          "lastRound": {
+            "moves": [
+              "rock",
+              "scissors"
+            ],
+            "winner": 0
+          },
+          "round": 1,
+          "wins": [
+            1,
+            0
+          ],
+          "yourMove": null
+        },
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 0,
+            "result": "win",
+            "teamIndex": 0
+          },
+          {
+            "placement": 2,
+            "playerIndex": 1,
+            "result": "loss",
+            "teamIndex": 1
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "scissors"
+            ],
+            "winner": 0
+          },
+          "round": 1,
+          "wins": [
+            1,
+            0
+          ]
+        },
+        "valid": true
+      },
+      "kind": "action",
+      "name": "second commit resolves the round and the match at targetWins 1",
+      "obs": {
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ],
+        "yourMove": null
+      },
+      "pending": [
+        1
+      ],
+      "playerIndex": 1,
+      "state": {
+        "commits": [
+          "rock",
+          null
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "action": {
+        "move": "paper"
+      },
+      "config": {
+        "targetWins": 2
+      },
+      "expected": {
+        "observation": {
+          "lastRound": {
+            "moves": [
+              "paper",
+              "paper"
+            ],
+            "winner": null
+          },
+          "round": 2,
+          "wins": [
+            0,
+            0
+          ],
+          "yourMove": null
+        },
+        "outcome": null,
+        "pending": [
+          0,
+          1
+        ],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "paper",
+              "paper"
+            ],
+            "winner": null
+          },
+          "round": 2,
+          "wins": [
+            0,
+            0
+          ]
+        },
+        "valid": true
+      },
+      "kind": "action",
+      "name": "a drawn round advances the round with no win",
+      "obs": {
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ],
+        "yourMove": null
+      },
+      "pending": [
+        1
+      ],
+      "playerIndex": 1,
+      "state": {
+        "commits": [
+          "paper",
+          null
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "action": {
+        "move": "scissors"
+      },
+      "config": {
+        "targetWins": 2
+      },
+      "expected": {
+        "outcome": null,
+        "pending": [
+          0,
+          1
+        ],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "scissors",
+              "paper"
+            ],
+            "winner": 0
+          },
+          "round": 2,
+          "wins": [
+            1,
+            0
+          ]
+        },
+        "valid": true
+      },
+      "kind": "action",
+      "name": "a decided round below targetWins continues the match",
+      "obs": {
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ],
+        "yourMove": null
+      },
+      "pending": [
+        0
+      ],
+      "playerIndex": 0,
+      "state": {
+        "commits": [
+          null,
+          "paper"
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "action": {
+        "move": "paper"
+      },
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "valid": false
+      },
+      "kind": "action",
+      "name": "committing twice in one round is illegal",
+      "obs": {
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ],
+        "yourMove": "rock"
+      },
+      "pending": [
+        1
+      ],
+      "playerIndex": 0,
+      "state": {
+        "commits": [
+          "rock",
+          null
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "maxPlayers": 2,
+        "minPlayers": 2
+      },
+      "kind": "playerLimits",
+      "name": "rps is exactly two seats, whatever the target"
+    },
+    {
+      "access": "public",
+      "config": {
+        "targetWins": 3
+      },
+      "expected": "standard",
+      "kind": "ratingPool",
+      "maxPlayers": 2,
+      "minPlayers": 2,
+      "name": "public games rate in the standard pool"
+    },
+    {
+      "access": "private",
+      "config": {
+        "targetWins": 3
+      },
+      "expected": null,
+      "kind": "ratingPool",
+      "maxPlayers": 2,
+      "minPlayers": 2,
+      "name": "private games are unrated"
+    },
+    {
+      "botConfig": {},
+      "expected": true,
+      "gameConfig": {
+        "targetWins": 3
+      },
+      "kind": "botSeatable",
+      "name": "rps seats every bot"
+    }
+  ],
+  "schemaVersion": 1
+}

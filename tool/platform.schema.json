@@ -22,7 +22,6 @@
             "additionalProperties": { "type": "string" }
           },
           "dartApi": { "type": "string" },
-          "package": { "type": "string" },
           "docsLine": { "type": "string" }
         }
       }

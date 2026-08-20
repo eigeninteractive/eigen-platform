@@ -54,7 +54,7 @@ export const FONTS: readonly BundledFont[] = [
 /**
  * `@font-face` rules for the bundled faces, prepended to the stylesheet.
  *
- * Generated rather than written in `site.css` so the URLs and the routes cannot
+ * Generated rather than written in `site.css.txt` so the URLs and the routes cannot
  * disagree: both come from [FONTS].
  */
 export const fontFaceCss: string = FONTS.map((font) => `@font-face{font-family:"${font.family}";src:url(${font.url}) format("woff2");font-weight:${font.weights};font-style:normal;font-display:swap}`).join("");

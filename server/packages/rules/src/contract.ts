@@ -202,6 +202,27 @@ export interface PlayerLimitsArgs<TConfig extends JsonObject = JsonObject> {
   config: TConfig;
 }
 
+/** One server-authoritative timing band accepted when creating a game.
+ *
+ * An array of bands, rather than one optional range per mode, can represent
+ * disjoint choices such as blitz and daily without silently accepting every
+ * value between them. Labels, slider steps, defaults, and presets remain client
+ * presentation concerns. */
+export type TimingOption =
+  | { mode: "untimed" }
+  | { mode: "perAction"; minSeconds: number; maxSeconds: number }
+  | {
+      mode: "budget";
+      minBudgetSeconds: number;
+      maxBudgetSeconds: number;
+      minIncrementSeconds: number;
+      maxIncrementSeconds: number;
+    };
+
+export interface TimingOptionsArgs<TConfig extends JsonObject = JsonObject> {
+  config: TConfig;
+}
+
 /** The chosen game settings, passed to {@link GameRules.ratingPool} at
  * creation so the game can decide its rating pool (or that the game is
  * unrated). `config` is already parsed against the requested version's config
@@ -268,7 +289,7 @@ export interface GameSchemas<TState extends JsonObject = JsonObject, TObservatio
 
 /**
  * Everything one `schemaVersion` of a game needs: the payload contracts plus
- * all seven hooks, narrowly typed to that version's shapes.
+ * all hooks, narrowly typed to that version's shapes.
  *
  * The type parameters are the version's payload types, inferred from the
  * schemas in {@link schemas} (`z.infer<typeof stateSchema>` etc., using `type`
@@ -320,6 +341,12 @@ export interface GameRules<TState extends JsonObject = JsonObject, TObservation 
    * caller. The Dart `GameModule.playersForConfig` is the twin, used to render
    * the create dialog; a disagreement is refused rather than coerced. */
   playerLimits(args: PlayerLimitsArgs<TConfig>): PlayerLimits;
+
+  /** Declare every timing band this config accepts. The engine validates a
+   * create against these versioned rules after parsing config; the Flutter
+   * creation spec may mirror the same ranges for immediate UI feedback, but it
+   * is never authoritative. Return at least one option. */
+  timingOptions(args: TimingOptionsArgs<TConfig>): readonly TimingOption[];
 
   /** Decide whether, and in which pool, a game with these settings is
    * rated. Return the pool name (e.g. `'rapid'`) or `null` for unrated. The
@@ -377,9 +404,10 @@ export type AnyGameRules = GameRules<any, any, any, any>;
  */
 export interface GameModule {
   /** The {@link GameRules} units keyed by `schemaVersion`: exactly the
-   * versions this build ships. Sparse on purpose: game creation rejects a
-   * version not present here, loading a stored game requires its version's
-   * entry, and a drained old version is retired by deleting its entry. The
+   * contiguous prefix `1..latest` this build ships. New games always use the
+   * latest entry, while loading a retained game resolves its stored version.
+   * Old entries stay installed for as long as retained games reference them.
+   * The
    * value type is {@link AnyGameRules}; each entry is authored against its
    * concrete payload types and erased here; safe because the engine parses
    * each payload with the same entry's schemas before invoking its hooks. */

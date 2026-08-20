@@ -46,7 +46,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "A Firebase ID token, sent as `Authorization: Bearer <token>` (or `?token=` on WebSocket upgrades)."
+        "description": "A Firebase ID token, sent as `Authorization: Bearer <token>`."
       },
       "botHmac": {
         "type": "apiKey",
@@ -66,81 +66,6 @@
         "required": [
           "status"
         ]
-      },
-      "Capabilities": {
-        "type": "object",
-        "properties": {
-          "creatableSchemaVersions": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "exclusiveMinimum": 0
-            },
-            "example": [
-              3
-            ]
-          },
-          "supportedSchemaVersions": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "exclusiveMinimum": 0
-            },
-            "example": [
-              1,
-              3
-            ]
-          }
-        },
-        "required": [
-          "creatableSchemaVersions",
-          "supportedSchemaVersions"
-        ]
-      },
-      "ErrorResponse": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "code": {
-            "$ref": "#/components/schemas/ErrorCode"
-          }
-        },
-        "required": [
-          "error"
-        ]
-      },
-      "ErrorCode": {
-        "type": "string",
-        "enum": [
-          "notActive",
-          "notReady",
-          "expired",
-          "notPending",
-          "stateUpdated",
-          "invalidPayload",
-          "illegalMove",
-          "unknownGame",
-          "notJoinable",
-          "gameFull",
-          "alreadyJoined",
-          "notParticipant",
-          "notCreator",
-          "creatorCannotLeave",
-          "commandConflict",
-          "schemaUnsupported",
-          "usernameInvalid",
-          "usernameTaken",
-          "friendsOnly",
-          "registrationRequired",
-          "imageTooLarge",
-          "unsupportedImageType",
-          "rateLimited",
-          "invalidCursor",
-          "idempotencyKeyInvalid"
-        ],
-        "description": "A stable machine code identifying why a request failed."
       },
       "Lobby": {
         "type": "object",
@@ -446,6 +371,50 @@
           "botId",
           "type"
         ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "notActive",
+          "notReady",
+          "expired",
+          "notPending",
+          "stateUpdated",
+          "invalidPayload",
+          "illegalMove",
+          "unknownGame",
+          "notJoinable",
+          "gameFull",
+          "alreadyJoined",
+          "notParticipant",
+          "notCreator",
+          "creatorCannotLeave",
+          "clientUpdateRequired",
+          "serverUpdateRequired",
+          "usernameInvalid",
+          "usernameTaken",
+          "friendsOnly",
+          "registrationRequired",
+          "imageTooLarge",
+          "unsupportedImageType",
+          "rateLimited",
+          "invalidCursor"
+        ],
+        "description": "A stable machine code identifying why a request failed."
       },
       "MyGames": {
         "type": "object",
@@ -894,7 +863,7 @@
           "schemaVersion": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "description": "The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities.",
+            "description": "The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version.",
             "example": 1
           },
           "config": {
@@ -932,7 +901,7 @@
               "integer",
               "null"
             ],
-            "exclusiveMinimum": 0,
+            "minimum": 0,
             "default": null
           }
         },
@@ -959,7 +928,7 @@
           "schemaVersion": {
             "type": "integer",
             "exclusiveMinimum": 0,
-            "description": "The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities.",
+            "description": "The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version.",
             "example": 1
           },
           "config": {
@@ -1004,7 +973,7 @@
               "integer",
               "null"
             ],
-            "exclusiveMinimum": 0,
+            "minimum": 0,
             "default": null
           }
         },
@@ -1028,22 +997,14 @@
       "Join": {
         "type": "object",
         "properties": {
-          "clientSchemaVersions": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "exclusiveMinimum": 0
-            },
-            "minItems": 1,
-            "maxItems": 32,
-            "example": [
-              1,
-              3
-            ]
+          "clientSchemaVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "example": 3
           }
         },
         "required": [
-          "clientSchemaVersions"
+          "clientSchemaVersion"
         ]
       },
       "JoinByCode": {
@@ -1118,6 +1079,17 @@
         },
         "required": [
           "frames"
+        ]
+      },
+      "SocketTicket": {
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticket"
         ]
       },
       "UsernameUpdated": {
@@ -1405,66 +1377,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Health"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/engine/capabilities": {
-      "get": {
-        "operationId": "getCapabilities",
-        "tags": [
-          "Games"
-        ],
-        "responses": {
-          "200": {
-            "description": "The versions this deployment creates, and every version it supports",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Capabilities"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not allowed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -2323,21 +2235,6 @@
         "tags": [
           "Games"
         ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2410,7 +2307,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2427,21 +2324,6 @@
         "operationId": "createSoloGame",
         "tags": [
           "Games"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
-          }
         ],
         "requestBody": {
           "required": true,
@@ -2515,7 +2397,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2542,19 +2424,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -2629,7 +2498,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2646,21 +2515,6 @@
         "operationId": "joinGameByCode",
         "tags": [
           "Games"
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
-          }
         ],
         "requestBody": {
           "required": true,
@@ -2734,7 +2588,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2761,19 +2615,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "responses": {
@@ -2838,7 +2679,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2865,19 +2706,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "responses": {
@@ -2942,7 +2770,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -2969,19 +2797,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -3056,7 +2871,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -3083,19 +2898,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "responses": {
@@ -3160,7 +2962,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -3187,19 +2989,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -3274,7 +3063,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -3301,19 +3090,6 @@
             "required": true,
             "name": "gameId",
             "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 128,
-              "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-              "example": "0199a4e0-8f7b-7c3a-b2d5-6894a57f9324"
-            },
-            "required": true,
-            "description": "Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.",
-            "in": "header",
-            "name": "Idempotency-Key"
           }
         ],
         "requestBody": {
@@ -3388,7 +3164,7 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {
@@ -3500,7 +3276,98 @@
             }
           },
           "422": {
-            "description": "Assertion mismatch, or an Idempotency-Key reused for a different request",
+            "description": "Assertion mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/games/{gameId}/socket-ticket": {
+      "post": {
+        "operationId": "createSocketTicket",
+        "tags": [
+          "Games"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": true,
+            "name": "gameId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A short-lived credential for this game's WebSocket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SocketTicket"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Assertion mismatch",
             "content": {
               "application/json": {
                 "schema": {

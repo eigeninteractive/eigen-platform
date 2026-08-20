@@ -103,12 +103,20 @@ run_server() {
 run_flutter() {
   check_changelog_links
   "$platform_root/tool/link-local-dart.sh"
+
+  cd "$platform_root/flutter/packages/eigen_codegen"
+  dart pub get
+  dart format --output=none --set-exit-if-changed .
+  dart analyze
+  dart test
+  dart pub publish --dry-run
+
   cd "$platform_root/flutter"
   flutter pub get
   dart format --output=none --set-exit-if-changed \
     $(git ls-files '*.dart' ':!:**/*.g.dart' ':!:**/*.freezed.dart' | sed 's#^flutter/##')
   dart run build_runner build
-  dart fix --apply
+  dart fix --dry-run
   assert_no_drift "Flutter code generation" flutter
   flutter analyze
   dart doc --dry-run .
@@ -117,6 +125,13 @@ run_flutter() {
 
   cd example
   flutter pub get
+  dart run eigen_codegen:generate_payloads \
+    --contract ../../server/examples/rps/game-contract.json \
+    --output lib/src/v1/payloads.dart \
+    --fixtures-output test/fixtures
+  assert_no_drift "Example payload generation" \
+    flutter/example/lib/src/v1/payloads.dart \
+    flutter/example/test/fixtures
   dart format --output=none --set-exit-if-changed .
   flutter analyze
   flutter test
@@ -164,7 +179,9 @@ run_scaffold() {
   esac
 
   cd "$platform_root/server"
-  pnpm -r build
+  if [[ "${SERVER_ALREADY_BUILT:-0}" != "1" ]]; then
+    pnpm -r build
+  fi
   node packages/create-eigen-game/scripts/scaffold-e2e.mjs "$target"
 }
 
@@ -177,10 +194,14 @@ case "${1:-all}" in
   all)
     run_manifest
     run_server
-    run_flutter
-    SERVER_ALREADY_BUILT=1
-    run_web
-    run_scaffold
+    SERVER_ALREADY_BUILT=1 run_flutter & flutter_pid=$!
+    SERVER_ALREADY_BUILT=1 run_web & web_pid=$!
+    SERVER_ALREADY_BUILT=1 run_scaffold & scaffold_pid=$!
+    status=0
+    wait "$flutter_pid" || status=$?
+    wait "$web_pid" || status=$?
+    wait "$scaffold_pid" || status=$?
+    exit "$status"
     ;;
   *)
     echo "usage: $0 [all|manifest|server|flutter|web|scaffold]" >&2

@@ -78,14 +78,13 @@ client ──POST /api/engine/games/{id}/action { seat, expectedVersion, data }�
   Worker: verify Firebase token → provision/load user row → build a Command
           (a pre-authenticated value) → call the game's DO stub
     DO (input gate held):
-      receipt check on (principal, Idempotency-Key): replay if committed
       load meta + roster + latest transition from its SQLite
       verify the seat belongs to the caller  (else a clean 403)
       run the KERNEL: validate move, apply the game hook, compute timing,
                       project per-seat observations, decide finish
       if rejected → return the rejection as a value
       else → ONE SQLite transaction: append the transition (next version),
-             write per-seat frames, store the command response, arm/clear alarm
+             write per-seat frames and derive the desired alarm
       post-commit (gate released): fan out frames over sockets, mirror the
              summary to D1, run bot turns / pushes / finish apply
   ◄── the caller's own committed frame rides the HTTP response

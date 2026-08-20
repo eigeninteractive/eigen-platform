@@ -211,6 +211,10 @@ class RpsRulesV1 implements GameRules<State, Observation, Action, Config> {
     return { minPlayers: 2, maxPlayers: 2 };
   }
 
+  timingOptions() {
+    return [{ mode: "perAction", minSeconds: 30, maxSeconds: 300 }, { mode: "untimed" }] as const;
+  }
+
   ratingPool({ access }: RatingPoolArgs<Config>): string | null {
     return access === "public" ? "standard" : null;
   }

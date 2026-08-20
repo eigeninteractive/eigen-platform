@@ -14,6 +14,28 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- WebSocket connections authenticate with a fresh, short-lived, game-scoped
+  ticket obtained over authenticated HTTPS. Firebase ID tokens no longer appear
+  in WebSocket URLs.
+- Game versions declare contiguous support from version 1 through
+  `latestSchemaVersion`, so create and join compatibility have one simple rule.
+
+### Changed
+- Creation sends the client's latest bundled game version and treats an older
+  client as an update-required blocker. The server always creates the latest
+  installed game version; the capabilities endpoint and sparse-version
+  negotiation are gone.
+- Mutations are sent once and ambiguous transport failures resynchronize from
+  authoritative state. The generic command ID, durable receipt protocol, and
+  mutation retry path are removed.
+- Contract payload generation moved to the development-only `eigen_codegen`
+  package. It enforces the portable schema profile and rejects unsupported
+  constraints instead of silently generating weaker Dart validation.
+- Timing and seat choices remain mirrored for immediate UI feedback, but the
+  TypeScript rules are authoritative and the server rejects disagreement.
+
 ## [0.7.0] - 2026-08-19
 ### Added
 - `newCommandId()`, the mutation identity generator, and handling for the
@@ -231,6 +253,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.7.0...HEAD
 [0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.4.1...v0.5.0

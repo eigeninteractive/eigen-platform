@@ -9,7 +9,7 @@ import 'package:eigen_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **access** | [**GameAccess**](GameAccess.md) |  | 
-**schemaVersion** | **int** | The schemaVersion this config was built for. Must be one of the server's creatableSchemaVersions, published by GET /capabilities. | 
+**schemaVersion** | **int** | The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version. | 
 **config** | **Object** |  | 
 **minPlayers** | **int** |  | [optional] 
 **maxPlayers** | **int** |  | [optional] 

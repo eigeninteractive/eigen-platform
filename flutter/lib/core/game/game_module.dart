@@ -221,7 +221,7 @@ class BotSeatableArgs {
 /// erased (`Map<int, GameRules>` on the module) and calls through the erased
 /// type; your own code (widgets, bots) works against the concrete subclass.
 ///
-/// `eigen_flutter:generate_payloads` emits a typed abstract base class that
+/// `eigen_codegen:generate_payloads` emits a typed abstract base class that
 /// implements the four JSON methods below. Game implementations extend that
 /// generated base and only supply game behavior.
 abstract class GameRules<TObs, TAction, TConfig> {
@@ -366,39 +366,44 @@ abstract class GameModule {
   /// The [GameRules] units keyed by `schemaVersion`: exactly the versions
   /// this build ships, mirroring the keys of the TS `GameModule.versions`.
   ///
-  /// Sparse on purpose: loading a game requires its version's entry
-  /// ([supportsSchema]), new games are created at the highest key
-  /// ([latestSchemaVersion]), and a drained old version is retired by
-  /// deleting its entry. A brand-new game starts at `{1: ...}`.
+  /// Versions form a contiguous prefix beginning at 1. Loading a retained game
+  /// requires keeping its rules entry, while new games use the highest key
+  /// ([latestSchemaVersion]). A brand-new game starts at `{1: ...}`.
   ///
-  /// Bump when shipping a breaking rules/schema change, keeping the old
-  /// entry until those games drain (write) / stop being replayable (read).
+  /// Bump when shipping a breaking rules/schema change and never change or
+  /// remove an older entry while a retained game can still reference it.
   Map<int, GameRules> get versions;
 
   /// The highest key of [versions]: the newest rules this build ships, and the
   /// version new games are created at.
   ///
-  /// The server creates only at ITS highest version, so a create from a build
-  /// behind the server is refused with `schemaUnsupported` and the player is
-  /// asked to update. Not a join gate: joining an older game is normal and uses
-  /// [supportedSchemaVersions].
-  int get latestSchemaVersion => versions.keys.reduce((a, b) => a > b ? a : b);
-
-  /// Every version this build ships rules for, ascending: exactly what join
-  /// sends.
-  ///
-  /// A set, because [versions] is sparse. Sending a maximum instead would claim
-  /// support for gaps: a `{1, 3}` build would be seated into a v2 game it cannot
-  /// decode, since `2 <= 3`. The server checks exact membership against this.
-  List<int> get supportedSchemaVersions => versions.keys.toList()..sort();
+  /// The server creates only at its highest version, so a create from a build
+  /// behind the server is refused with `clientUpdateRequired`. Joining an older
+  /// game is normal because this value describes the retained prefix too.
+  int get latestSchemaVersion {
+    final shipped = versions.keys.toList()..sort();
+    if (shipped.isEmpty) {
+      throw StateError('GameModule.versions must contain schema version 1');
+    }
+    for (var index = 0; index < shipped.length; index += 1) {
+      final expected = index + 1;
+      if (shipped[index] != expected) {
+        throw StateError(
+          'GameModule.versions must be contiguous from 1; '
+          'expected $expected, found ${shipped[index]}',
+        );
+      }
+    }
+    return shipped.length;
+  }
 
   /// The rules unit new games use ([versions] at [latestSchemaVersion]).
   GameRules get latestRules => versions[latestSchemaVersion]!;
 
-  /// Whether this build can load a game created at [version], i.e. [versions]
-  /// ships an entry for it. Sparse like the TS side: an old version dropped
-  /// after draining is unsupported even if lower than [latestSchemaVersion].
-  bool supportsSchema(int version) => versions.containsKey(version);
+  /// Whether this build can load a game created at [version]. Retained versions
+  /// are exactly the positive integer prefix through [latestSchemaVersion].
+  bool supportsSchema(int version) =>
+      version > 0 && version <= latestSchemaVersion;
 
   /// Declarative description of valid creation parameters for this game type.
   ///
@@ -456,8 +461,8 @@ abstract class GameModule {
 }
 
 /// Thrown when a game's `games.schema_version` has no entry in
-/// [GameModule.versions]. It was created by a newer app version (or one this
-/// build has retired) and can't be loaded until the user updates.
+/// [GameModule.versions]. It was created by a newer app version and can't be
+/// loaded until the user updates.
 class UnsupportedGameSchemaException implements Exception {
   const UnsupportedGameSchemaException({
     required this.gameSchema,

@@ -44,14 +44,9 @@ void main() {
       // Codes a player can act on must stay unique, so specific guidance cannot
       // regress to a copy-pasted message unnoticed.
       //
-      // These are the deliberate exceptions: the generated sentinel, plus the
-      // mutation-identity failures, which say this app built a bad request. No
-      // player action causes or repairs one, so there is no honest copy to write
-      // and they share the generic message on purpose.
+      // The generated sentinel is the deliberate exception.
       const sharesGenericCopy = {
         ErrorCode.unknownDefaultOpenApi,
-        ErrorCode.commandConflict,
-        ErrorCode.idempotencyKeyInvalid,
       };
       final actionable = ErrorCode.values.where(
         (code) => !sharesGenericCopy.contains(code),

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "1a87aae0-f612-459e-b4f7-0d276c75b3a2",
+  "id": "49cd7cd8-e098-4da1-8db3-6522f6725c73",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -276,20 +276,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "create_command_id": {
-          "name": "create_command_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "create_request": {
-          "name": "create_request",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "finished_at": {
           "name": "finished_at",
           "type": "integer",
@@ -349,14 +335,6 @@
           ],
           "isUnique": false,
           "where": "access = 'public' AND status IN ('waiting', 'ready')"
-        },
-        "idx_games_create_key": {
-          "name": "idx_games_create_key",
-          "columns": [
-            "created_by",
-            "create_command_id"
-          ],
-          "isUnique": true
         }
       },
       "foreignKeys": {},

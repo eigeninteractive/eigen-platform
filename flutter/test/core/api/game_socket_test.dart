@@ -3,29 +3,29 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('buildGameSocketUri', () {
-    test('uses wss and the token query for an HTTPS Worker origin', () {
+    test('uses wss and the ticket query for an HTTPS Worker origin', () {
       final uri = buildGameSocketUri(
         apiBaseUrl: 'https://game.example',
         gameId: 'game 1',
-        token: 'header.payload+/=',
+        ticket: 'header.payload+/=',
       );
 
       expect(uri.scheme, 'wss');
       expect(uri.host, 'game.example');
       expect(uri.path, '/api/engine/games/game%201/socket');
-      expect(uri.queryParameters, {'token': 'header.payload+/='});
+      expect(uri.queryParameters, {'ticket': 'header.payload+/='});
     });
 
     test('uses ws for a local HTTP Worker', () {
       final uri = buildGameSocketUri(
         apiBaseUrl: 'http://localhost:8787',
         gameId: 'g1',
-        token: 'token',
+        ticket: 'ticket',
       );
 
       expect(
         uri.toString(),
-        'ws://localhost:8787/api/engine/games/g1/socket?token=token',
+        'ws://localhost:8787/api/engine/games/g1/socket?ticket=ticket',
       );
     });
 
@@ -34,7 +34,7 @@ void main() {
         () => buildGameSocketUri(
           apiBaseUrl: 'ftp://game.example',
           gameId: 'g1',
-          token: 'token',
+          ticket: 'ticket',
         ),
         throwsArgumentError,
       );

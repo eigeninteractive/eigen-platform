@@ -44,7 +44,9 @@ String messageForCode(ErrorCode code) => switch (code) {
   ErrorCode.creatorCannotLeave =>
     'You created this game; cancel it instead of leaving.',
   // Raised before the command reached the game.
-  ErrorCode.schemaUnsupported => 'Update your app to play this game.',
+  ErrorCode.clientUpdateRequired => 'Update your app to play this game.',
+  ErrorCode.serverUpdateRequired =>
+    'This app is newer than the game server. Try again after it is updated.',
   ErrorCode.usernameInvalid =>
     'Usernames are 3–20 characters: lowercase letters, digits, dots, or '
         'underscores.',
@@ -59,12 +61,6 @@ String messageForCode(ErrorCode code) => switch (code) {
   // fix this. It means a paged list needs restarting from the top, which is
   // what a refresh does, so the copy asks for exactly that.
   ErrorCode.invalidCursor => 'That list is out of date. Pull to refresh.',
-  // Both mean this app built a bad mutation: it reused one Idempotency-Key for
-  // two different intents, or sent none at all. Our defect, not the player's,
-  // and no retry of the same request repairs either, so the copy neither blames
-  // them nor invites one.
-  ErrorCode.commandConflict => _unexpected,
-  ErrorCode.idempotencyKeyInvalid => _unexpected,
   ErrorCode.unknownDefaultOpenApi => _unexpected,
 };
 

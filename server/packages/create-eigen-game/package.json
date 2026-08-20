@@ -15,10 +15,11 @@
   },
   "files": [
     "dist",
+    "src",
     "templates"
   ],
   "scripts": {
-    "build": "tsup src/index.ts src/cli.ts --format esm --sourcemap --clean && tsc -p tsconfig.build.json",
+    "build": "tsdown",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p templates/worker/tsconfig.json"
   },
@@ -32,7 +33,6 @@
     "@eigeninteractive/server": "workspace:*",
     "@eigeninteractive/testkit": "workspace:*",
     "@types/node": "^26.2.0",
-    "tsup": "^8.5.1",
     "typescript": "~6.0.2",
     "vitest": "^4.1.10",
     "wrangler": "^4.123.0",

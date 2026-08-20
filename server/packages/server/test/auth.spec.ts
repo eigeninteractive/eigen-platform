@@ -5,6 +5,7 @@
 
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { issueSocketTicket, verifySocketTicket } from "../src/auth/socket-ticket.js";
 import { AuthError } from "../src/index.js";
 import { testBearer as bearer, mintTestToken as mintToken, testVerifier } from "../src/testing.js";
 
@@ -36,6 +37,23 @@ describe("createFirebaseVerifier", () => {
   it("rejects a wrong audience and a wrong issuer", async () => {
     await expect(verifier.verify(await mintToken({ uid: "u4", claims: { aud: "other-project" } }))).rejects.toThrow(AuthError);
     await expect(verifier.verify(await mintToken({ uid: "u4", claims: { iss: "https://evil.example" } }))).rejects.toThrow(AuthError);
+  });
+});
+
+describe("socket tickets", () => {
+  const secret = "test-socket-ticket-secret-at-least-32-characters";
+  const now = new Date("2026-08-20T00:00:00.000Z");
+
+  it("is bound to the authenticated user and one game", async () => {
+    const ticket = await issueSocketTicket(secret, { gameId: "game-a", userId: "user-a" }, now);
+    await expect(verifySocketTicket(secret, ticket, "game-a", now)).resolves.toEqual({ gameId: "game-a", userId: "user-a" });
+    await expect(verifySocketTicket(secret, ticket, "game-b", now)).rejects.toThrow();
+    await expect(verifySocketTicket(`${secret}-wrong`, ticket, "game-a", now)).rejects.toThrow();
+  });
+
+  it("expires after its short lifetime", async () => {
+    const ticket = await issueSocketTicket(secret, { gameId: "game-a", userId: "user-a" }, now);
+    await expect(verifySocketTicket(secret, ticket, "game-a", new Date(now.getTime() + 61_000))).rejects.toThrow();
   });
 });
 

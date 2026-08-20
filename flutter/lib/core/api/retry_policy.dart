@@ -8,10 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// line: a retry is only ever safe for a failure whose outcome is unknown (a
 /// transport blip), never for one the server decided.
 ///
-/// Neither survives the process. An intent that must outlive a restart would
-/// need its id written down before its first dispatch, which nothing here does;
-/// see `command_id.dart`.
-
 /// Whether a failed request should be retried at the transport layer, wired into
 /// the `RetryInterceptor` on the engine Dio.
 ///
@@ -20,21 +16,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// server. A failure that carried a response is the server's answer, not a blip,
 /// so it is left for `engineCall` to surface (a 429's Retry-After included).
 ///
-/// A request is repeatable if replaying it cannot change the outcome beyond what
-/// the first attempt already did:
-///
-/// * a GET, which changes nothing;
-/// * a mutation carrying an `Idempotency-Key`, because the engine commits one
-///   receipt per key and replays that committed result rather than applying the
-///   command twice.
-///
-/// Dio replays the original [RequestOptions], so a retry sends the *same* key by
-/// construction — which is exactly the property the receipt needs. A mutation
-/// without a key stays unretried: its outcome after a timeout is genuinely
-/// unknown, and resending it could apply the same intent twice.
+/// Only GET is repeatable. A mutation whose response is lost has an ambiguous
+/// outcome, so the client resynchronizes instead of resending it automatically.
 FutureOr<bool> retryTransient(DioException error, int attempt) {
   if (error.response != null) return false;
-  if (!_repeatable(error.requestOptions)) return false;
+  if (error.requestOptions.method.toUpperCase() != 'GET') return false;
   return switch (error.type) {
     DioExceptionType.connectionTimeout ||
     DioExceptionType.sendTimeout ||
@@ -42,14 +28,6 @@ FutureOr<bool> retryTransient(DioException error, int attempt) {
     DioExceptionType.connectionError => true,
     _ => false,
   };
-}
-
-/// Whether resending [options] is safe; see [retryTransient].
-bool _repeatable(RequestOptions options) {
-  if (options.method.toUpperCase() == 'GET') return true;
-  return options.headers.keys.any(
-    (name) => name.toLowerCase() == 'idempotency-key',
-  );
 }
 
 /// The provider-retry policy installed on the root [ProviderScope].

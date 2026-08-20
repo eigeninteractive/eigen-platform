@@ -13,13 +13,11 @@ version: 2
 # reference -- peers at `typedoc: 0.28.x` exactly, so it could not follow even if
 # the prerelease were acceptable in a docs build.
 #
-# `/server` is not blocked. It was, while `tsup` generated declarations: that step
-# injects a compiler option TypeScript 7 removes and crashes on TS 7 internals
-# (egoist/tsup#1388, #1389). Declarations come from `tsc` now, and `tsup`'s
-# esbuild path never touches the TypeScript compiler API, so the engine passes the
-# complete platform gate on 7.0.2 -- measured, not assumed. It is held only to
-# keep one TypeScript version across the repository while `/web` is pinned, which
-# is a preference and can be dropped whenever that stops being worth it.
+# `/server` is not blocked. Its `tsdown` build uses rolldown-plugin-dts, which
+# supports TypeScript 6 and selects the native TypeScript 7 declaration generator
+# when TS 7 is installed. It is held only to keep one TypeScript version across
+# the repository while `/web` is pinned, which is a preference and can be dropped
+# whenever that stops being worth it.
 #
 # Either way the hold matters because each group's pattern is `*`: one unadopted
 # major fails the whole grouped PR, and a dozen ordinary updates stop landing with

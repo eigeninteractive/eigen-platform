@@ -6,7 +6,7 @@
  */
 
 import type { RejectCode } from "@eigeninteractive/kernel";
-import type { CommandRejectCode, CommandResult, LobbyRejectCode } from "./protocol.js";
+import type { CommandResult, LobbyRejectCode } from "./protocol.js";
 
 /**
  * Every stable machine code an error body may carry: the kernel's and lobby's
@@ -22,12 +22,12 @@ import type { CommandRejectCode, CommandResult, LobbyRejectCode } from "./protoc
 export type ErrorCode =
   | Exclude<RejectCode, "abstain">
   | LobbyRejectCode
-  | CommandRejectCode
   /** Raised by a route before the command reaches the game. Each one exists
    * because the client renders a distinct response to it: a field-level form
    * error, a "create an account" prompt, a retry with a different file. A
    * failure the client can only report generically stays uncoded. */
-  | "schemaUnsupported"
+  | "clientUpdateRequired"
+  | "serverUpdateRequired"
   | "usernameInvalid"
   | "usernameTaken"
   | "friendsOnly"
@@ -37,11 +37,7 @@ export type ErrorCode =
   | "rateLimited"
   /** A pagination cursor that did not decode. Distinct because a client can
    * act on it: discard the cursor and re-request the first page. */
-  | "invalidCursor"
-  /** A mutation's `Idempotency-Key` header was absent or malformed. Coded
-   * because it is unambiguously a client-build defect: no user action produces
-   * or repairs it, so a client reports it rather than prompting a retry. */
-  | "idempotencyKeyInvalid";
+  | "invalidCursor";
 
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
@@ -60,14 +56,8 @@ export class HttpError extends Error {
 }
 
 /** Transport mapping for stable command codes: client mistakes are 400,
- * ownership refusals 403, a missing game 404, a reused idempotency key 422, and
- * every remaining state conflict 409.
- *
- * The 422 keeps 409 honest. Every other 409 here means "your view is stale,
- * resync and retry", which is exactly what a caller must NOT do with a reused
- * command id. The `Idempotency-Key` specification separates them the same way,
- * with 422 for a key already used with a different request. */
-export function rejectStatus(code: RejectCode | LobbyRejectCode | CommandRejectCode): 400 | 403 | 404 | 409 | 422 {
+ * ownership refusals 403, a missing game 404, and state conflicts 409. */
+export function rejectStatus(code: RejectCode | LobbyRejectCode): 400 | 403 | 404 | 409 {
   switch (code) {
     case "invalidPayload":
     case "illegalMove":
@@ -77,8 +67,6 @@ export function rejectStatus(code: RejectCode | LobbyRejectCode | CommandRejectC
       return 403;
     case "unknownGame":
       return 404;
-    case "commandConflict":
-      return 422;
     default:
       return 409;
   }

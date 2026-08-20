@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/command_id.dart';
 import 'package:eigen_flutter/core/api/engine_call.dart';
 import 'package:eigen_flutter/core/api/games_page.dart';
 import 'package:eigen_flutter/core/api/game_socket.dart';
@@ -157,11 +156,9 @@ class GameRepository {
     int? turnSeconds,
     int? budgetSeconds,
     int? incrementSeconds,
-    String? commandId,
   }) async {
     return engineData(
       () => _api.createGame(
-        idempotencyKey: commandId ?? newCommandId(),
         createGame: CreateGame(
           access: access,
           schemaVersion: schemaVersion,
@@ -193,11 +190,9 @@ class GameRepository {
     int? turnSeconds,
     int? budgetSeconds,
     int? incrementSeconds,
-    String? commandId,
   }) async {
     return engineData(
       () => _api.createSoloGame(
-        idempotencyKey: commandId ?? newCommandId(),
         createSolo: CreateSolo(
           schemaVersion: schemaVersion,
           config: config,
@@ -213,26 +208,21 @@ class GameRepository {
     );
   }
 
-  /// Takes a seat. [clientSchemaVersions] is every version this build ships
-  /// rules for, and the server checks the game's version against it exactly -
-  /// refusing rather than let a build mis-parse a game whose rules it lacks.
-  ///
-  /// A set, not a maximum: [GameModule.versions] is sparse, so a `{1, 3}` build
-  /// claiming "up to 3" would be seated into a v2 game it cannot decode.
+  /// Takes a seat. [clientSchemaVersion] is the newest version this build
+  /// ships. Published versions are retained contiguously, so the server accepts
+  /// a game at any version less than or equal to it.
   ///
   /// Answers with the same session [joinGameByCode] does: they are one operation
   /// differing only in how the game was named, so a caller handles either result
   /// identically.
   Future<Session> joinGame(
     String gameId, {
-    required List<int> clientSchemaVersions,
-    String? commandId,
+    required int clientSchemaVersion,
   }) async {
     final body = await engineData(
       () => _api.joinGame(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
-        join: Join(clientSchemaVersions: clientSchemaVersions),
+        join: Join(clientSchemaVersion: clientSchemaVersion),
       ),
     );
     return body.session;
@@ -244,15 +234,13 @@ class GameRepository {
   /// is the only place they learn which game they are now in.
   Future<Session> joinGameByCode(
     String shortCode, {
-    required List<int> clientSchemaVersions,
-    String? commandId,
+    required int clientSchemaVersion,
   }) async {
     final body = await engineData(
       () => _api.joinGameByCode(
-        idempotencyKey: commandId ?? newCommandId(),
         joinByCode: JoinByCode(
           shortCode: shortCode,
-          clientSchemaVersions: clientSchemaVersions,
+          clientSchemaVersion: clientSchemaVersion,
         ),
       ),
     );
@@ -260,22 +248,20 @@ class GameRepository {
   }
 
   /// Gives up a seat before the game starts. The creator cancels instead.
-  Future<Session> leaveGame(String gameId, {String? commandId}) async {
+  Future<Session> leaveGame(String gameId) async {
     final body = await engineData(
       () => _api.leaveGame(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
   }
 
   /// Abandons a game that has not started. Creator only.
-  Future<Session> cancelGame(String gameId, {String? commandId}) async {
+  Future<Session> cancelGame(String gameId) async {
     final body = await engineData(
       () => _api.cancelGame(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
@@ -285,12 +271,10 @@ class GameRepository {
   Future<Session> addBot(
     String gameId, {
     required String botId,
-    String? commandId,
   }) async {
     final body = await engineData(
       () => _api.addBot(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
         addBot: AddBot(botId: botId),
       ),
     );
@@ -302,11 +286,10 @@ class GameRepository {
   /// Answers with the caller's own session at version 0; every other seat gets
   /// the same transition over its own socket, since a start has no single acting
   /// seat.
-  Future<Session> startGame(String gameId, {String? commandId}) async {
+  Future<Session> startGame(String gameId) async {
     final body = await engineData(
       () => _api.startGame(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
       ),
     );
     return body.session;
@@ -321,12 +304,6 @@ class GameRepository {
   /// this seat could see, the move is refused with [ErrorCode.stateUpdated]
   /// rather than applied to a state the player never saw.
   ///
-  /// [commandId] identifies this move as one intent; it travels as the
-  /// `Idempotency-Key` header. Pass the same one again and the server replays the
-  /// committed result rather than applying the move twice; pass it with a
-  /// different move and the request is refused. Omitted, each call is a new
-  /// intent with a fresh id.
-  ///
   /// The returned session is this seat's own committed view. Feed it to
   /// [sessions] so the move renders without waiting on the socket; see that
   /// method for why both paths carry it.
@@ -335,12 +312,10 @@ class GameRepository {
     required int seat,
     required int expectedVersion,
     required Object? data,
-    String? commandId,
   }) async {
     return engineData(
       () => _api.submitAction(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
         action: Action(
           seat: seat,
           data: data,
@@ -354,12 +329,10 @@ class GameRepository {
   Future<CommandAccepted> forfeitGame({
     required String gameId,
     required int seat,
-    String? commandId,
   }) async {
     return engineData(
       () => _api.forfeitGame(
         gameId: gameId,
-        idempotencyKey: commandId ?? newCommandId(),
         forfeit: Forfeit(seat: seat),
       ),
     );

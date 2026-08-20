@@ -15,10 +15,10 @@ part 'join_by_code.g.dart';
 )
 class JoinByCode {
   /// Returns a new [JoinByCode] instance.
-  JoinByCode({required this.clientSchemaVersions, required this.shortCode});
+  JoinByCode({required this.clientSchemaVersion, required this.shortCode});
 
-  @JsonKey(name: r'clientSchemaVersions', required: true, includeIfNull: false)
-  final List<int> clientSchemaVersions;
+  @JsonKey(name: r'clientSchemaVersion', required: true, includeIfNull: false)
+  final int clientSchemaVersion;
 
   @JsonKey(name: r'shortCode', required: true, includeIfNull: false)
   final String shortCode;
@@ -27,11 +27,11 @@ class JoinByCode {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is JoinByCode &&
-          other.clientSchemaVersions == clientSchemaVersions &&
+          other.clientSchemaVersion == clientSchemaVersion &&
           other.shortCode == shortCode;
 
   @override
-  int get hashCode => clientSchemaVersions.hashCode + shortCode.hashCode;
+  int get hashCode => clientSchemaVersion.hashCode + shortCode.hashCode;
 
   factory JoinByCode.fromJson(Map<String, dynamic> json) =>
       _$JoinByCodeFromJson(json);

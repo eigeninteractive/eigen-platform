@@ -10,11 +10,11 @@ JoinByCode _$JoinByCodeFromJson(Map<String, dynamic> json) => $checkedCreate(
   'JoinByCode',
   json,
   ($checkedConvert) {
-    $checkKeys(json, requiredKeys: const ['clientSchemaVersions', 'shortCode']);
+    $checkKeys(json, requiredKeys: const ['clientSchemaVersion', 'shortCode']);
     final val = JoinByCode(
-      clientSchemaVersions: $checkedConvert(
-        'clientSchemaVersions',
-        (v) => (v as List<dynamic>).map((e) => (e as num).toInt()).toList(),
+      clientSchemaVersion: $checkedConvert(
+        'clientSchemaVersion',
+        (v) => (v as num).toInt(),
       ),
       shortCode: $checkedConvert('shortCode', (v) => v as String),
     );
@@ -24,6 +24,6 @@ JoinByCode _$JoinByCodeFromJson(Map<String, dynamic> json) => $checkedCreate(
 
 Map<String, dynamic> _$JoinByCodeToJson(JoinByCode instance) =>
     <String, dynamic>{
-      'clientSchemaVersions': instance.clientSchemaVersions,
+      'clientSchemaVersion': instance.clientSchemaVersion,
       'shortCode': instance.shortCode,
     };

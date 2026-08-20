@@ -5,7 +5,7 @@ the authoritative TypeScript schemas. Regenerate them after changing a schema
 or shared fixture:
 
 ```sh
-dart run eigen_flutter:generate_payloads \
+dart run eigen_codegen:generate_payloads \
   --contract ../server/game-contract.json \
   --output lib/game/generated/payloads.dart \
   --fixtures-output test/fixtures

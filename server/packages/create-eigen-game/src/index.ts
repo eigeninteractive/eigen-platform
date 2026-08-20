@@ -226,13 +226,10 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * are empty. 0.5.0 is skipped for the same reason, being a web-design release
  * that still speaks the 0.3.x wire.
  *
- * Raised to 0.7.0 for the 0.5.x engine line, and required in both of the senses
- * above at once. The wire changed -- `clientSchemaVersions` replaced
- * `clientSchemaVersion` and every mutation now carries `Idempotency-Key` -- and
- * `eigen_flutter` 0.7.0 is the first shell pinning `eigen_api: ^0.5.0` that can
- * speak it. The generated code changed too: the app overlay's `rules.dart`
- * implements `playerLimits` and returns a `PlayerLimits`, neither of which exists
- * before 0.7.0, so a scaffold left on `^0.6.0` does not even compile.
+ * Raised to 0.7.0 for the 0.5.x engine line and the `PlayerLimits` client API.
+ * vNext later simplified the wire again: versions are a contiguous prefix and
+ * generic mutation identities are gone. The next Flutter release must raise
+ * this floor before the corresponding scaffolder is published.
  *
  * Note that this floor and the engine range are raised in one commit on
  * purpose. The scaffolder writes both halves, and `updateInternalDependencies`
@@ -251,6 +248,9 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * both halves for real and compares the wire lines they land on.
  */
 const flutterClientVersion = "^0.7.0";
+
+/** Development-only contract compiler installed into the generated app. */
+const dartCodegenVersion = "^0.1.0";
 
 const gameSlug = (value: string): string => {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) {
@@ -904,7 +904,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
       reporter.step("Adding the Flutter packages", () => {
         configureLauncherIconsAndSplash(appRoot);
         run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
-        run("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
+        run("flutter", ["pub", "add", `dev:eigen_codegen@${dartCodegenVersion}`, "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
       });
       // Actually apply the icons rather than only configuring them. Both tools
       // write generated files (mipmaps, `web/icons/`, splash drawables and
@@ -937,7 +937,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
       const [contract, contractArgs] = packageCommand(manager, "contract");
       reporter.step("Generating the contract and payloads", () => {
         run(contract, contractArgs, serverRoot);
-        run("dart", ["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json", "--output", "lib/game/generated/payloads.dart", "--fixtures-output", "test/fixtures"], appRoot);
+        run("dart", ["run", "eigen_codegen:generate_payloads", "--contract", "../server/game-contract.json", "--output", "lib/game/generated/payloads.dart", "--fixtures-output", "test/fixtures"], appRoot);
       });
     }
 

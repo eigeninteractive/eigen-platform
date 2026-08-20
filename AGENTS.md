@@ -23,8 +23,9 @@ D1, alarms, or other Cloudflare platform work.
 - One SQLite Durable Object is authoritative for each game.
 - TypeScript rules are the sole authoritative game implementation.
 - D1 is a registry and read model, not the live game writer.
-- Every mutation has a stable client-created identity and an
-  authorization-scoped canonical fingerprint.
+- Mutation correctness is operation-specific: versioned actions use an
+  authoritative expected version, desired-state operations are naturally
+  idempotent, and the client resynchronizes after an ambiguous transport result.
 - HTTP responses, WebSocket sessions, gap recovery, and local cache enter one
   serialized client coordinator.
 - The pure Dart client must not depend on Flutter, Riverpod, Firebase,

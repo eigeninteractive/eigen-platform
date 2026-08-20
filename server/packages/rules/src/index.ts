@@ -32,6 +32,8 @@ export type {
   PlayerLimitsArgs,
   RatingPoolArgs,
   Rng,
+  TimingOption,
+  TimingOptionsArgs,
   TransitionCause,
 } from "./contract.js";
 export { IllegalMoveError, passthroughObservation } from "./helpers.js";

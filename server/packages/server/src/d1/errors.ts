@@ -61,14 +61,6 @@ export function isShortCodeCollision(error: unknown): boolean {
   return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgames\.short_code\b/i);
 }
 
-/** A UNIQUE rejection on `idx_games_create_key`: this creator has already made a
- * game under this command id, so the caller is retrying rather than creating. Not
- * an error — the create route answers it by returning that game. Narrowed to the
- * column for the same reason as {@link isShortCodeCollision}. */
-export function isCreateReplay(error: unknown): boolean {
-  return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgames\.create_command_id\b/i);
-}
-
 /** The transient D1 failures Cloudflare's debug-D1 docs mark "Retry the
  * operation": a network blip, a storage/Durable-Object reset, a code-update
  * restart, or a transient routing failure. This mirrors Cloudflare's own

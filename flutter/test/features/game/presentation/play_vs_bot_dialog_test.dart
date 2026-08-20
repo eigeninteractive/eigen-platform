@@ -15,7 +15,10 @@ class _SchemaTwoModule extends SampleModule {
   const _SchemaTwoModule();
 
   @override
-  Map<int, GameRules> get versions => const {2: SampleRules()};
+  Map<int, GameRules> get versions => const {
+    1: SampleRules(),
+    2: SampleRules(),
+  };
 
   @override
   GameCreationSpec get creationSpec => const GameCreationSpec(

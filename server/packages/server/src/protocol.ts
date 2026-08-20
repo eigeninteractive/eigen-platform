@@ -1,7 +1,6 @@
 /**
  * The worker ⇄ DO ⇄ client protocol types: commands
- * are self-contained, pre-authenticated VALUES: loggable, replayable, and a
- * CI fixture is a JSON array of them. The worker verifies the Firebase token
+ * are self-contained, pre-authenticated values. The worker verifies the Firebase token
  * and runs every policy check BEFORE minting a command; the DO enforces
  * integrity (seat occupancy, status, versions) under its input gate.
  */
@@ -21,14 +20,13 @@ export interface Principal {
 /** Everything that crosses the worker → DO boundary after creation (
  * create itself is a worker-direct D1 write; the DO does not exist yet). */
 export type Command =
-  | { kind: "join" | "leave"; gameId: string; commandId: string; actor: Principal }
-  | { kind: "cancel"; gameId: string; commandId: string; actor: Principal }
-  | { kind: "start"; gameId: string; commandId: string; actor: Principal }
-  | { kind: "add-bot"; gameId: string; commandId: string; actor: Principal; botId: string }
+  | { kind: "join" | "leave"; gameId: string; actor: Principal }
+  | { kind: "cancel"; gameId: string; actor: Principal }
+  | { kind: "start"; gameId: string; actor: Principal }
+  | { kind: "add-bot"; gameId: string; actor: Principal; botId: string }
   | {
       kind: "action";
       gameId: string;
-      commandId: string;
       actor: Principal;
       /** The acting seat, carried uniformly by humans and bots. The
        * DO verifies it belongs to the actor (user id from the token, bot id
@@ -44,7 +42,6 @@ export type Command =
   | {
       kind: "lifecycle";
       gameId: string;
-      commandId: string;
       /** Null for identity-less system lifecycles (timeout, autoForfeit). */
       actor: Principal | null;
       type: LifecycleType;
@@ -75,10 +72,6 @@ export type LobbyRejectCode =
   | "notCreator"
   /** The creator cannot leave; they cancel instead. */
   | "creatorCannotLeave";
-
-/** A stable command id was already committed by this principal for different
- * semantic intent. Retrying or resyncing cannot repair this caller defect. */
-export type CommandRejectCode = "commandConflict";
 
 /**
  * The complete live truth about one game, as ONE SEAT sees it: the only message
@@ -154,12 +147,9 @@ export interface FrameMessage {
  * the caller's own post-commit {@link SessionSnapshot}, so a lobby command and a
  * move answer with the same value and the client feeds both into one path.
  *
- * Accepted results are stored for commandId dedupe and replayed verbatim to a
- * retry, which means a retry receives the snapshot as it was at first execution.
- * That is harmless rather than stale: `seq` orders it against whatever the
- * client now holds, so an older one is simply discarded. Rejections are computed
- * fresh each time, since re-evaluating one is always sound. */
-export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode | CommandRejectCode; message: string };
+ * Rejections are values and are recomputed against the authoritative current
+ * state on every attempt. */
+export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
 
 /** The DO surface the worker calls: structurally the RPC stub of any
  * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
@@ -201,8 +191,8 @@ export interface GameStub {
    * retry a finish whose apply never landed, and re-arm the alarm if it
    * disagrees. Idempotent; safe on a healthy game. */
   reconcile(gameId: string): Promise<ReconcileReport>;
-  /** Unconditional teardown: mark the game aborted and compact game data while
-   * retaining command receipts. Used by the cron reap for abandoned lobbies /
+  /** Unconditional teardown: mark the game aborted and compact game data. Used
+   * by the cron reap for abandoned lobbies /
    * untimed games, with no creator gate, unlike the `cancel` command. */
   abort(gameId: string): Promise<void>;
   fetch(request: Request): Promise<Response>;

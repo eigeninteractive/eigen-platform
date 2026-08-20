@@ -1,7 +1,7 @@
 /**
  * The leak test: the kernel's per-seat projection is the ONLY thing keeping
  * hidden state server-side; nothing downstream re-filters it. This
- * drives a full lifecycle of the hidden-info version-2 game (whose raw state
+ * drives a full lifecycle of the hidden-info game (whose raw state
  * carries `LEAK_SENTINEL`, stripped by `computeObservation`) and asserts the
  * sentinel escapes through no response body and no socket frame: live play,
  * command responses, the summary read, and post-finish replay alike.
@@ -9,7 +9,7 @@
 
 import { exports } from "cloudflare:workers";
 import { describe, expect, it, vi } from "vitest";
-import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 import { LEAK_SENTINEL } from "./worker.js";
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
@@ -32,20 +32,21 @@ describe("leak test", () => {
     const a = `leak-a-${crypto.randomUUID()}`;
     const b = `leak-b-${crypto.randomUUID()}`;
 
-    // A hidden-info (schemaVersion 2) 2-player game, so `secret` is live state.
-    const create = await api(a, "POST", "/games", { access: "public", schemaVersion: 2, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false });
+    // A hidden-info 2-player game, so `secret` is live state.
+    const create = await api(a, "POST", "/games", { access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false });
     const { gameId } = JSON.parse(await clean(create, "create")) as { gameId: string };
 
     // Open B's socket before the game starts and collect every frame it fans out.
-    const token = await mintToken({ uid: b });
-    const sockRes = await exports.default.fetch(`https://x/api/engine/games/${gameId}/socket?token=${token}`, { headers: { Upgrade: "websocket" } });
+    const ticketResponse = await api(b, "POST", `/games/${gameId}/socket-ticket`);
+    const { ticket } = JSON.parse(await clean(ticketResponse, "socket ticket")) as { ticket: string };
+    const sockRes = await exports.default.fetch(`https://x/api/engine/games/${gameId}/socket?ticket=${ticket}`, { headers: { Upgrade: "websocket" } });
     const ws = sockRes.webSocket;
     if (!ws) throw new Error("no websocket on the 101 response");
     const socketFrames: string[] = [];
     ws.addEventListener("message", (event: MessageEvent) => socketFrames.push(event.data as string));
     ws.accept();
 
-    await clean(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersions: [2] }), "join");
+    await clean(await api(b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }), "join");
     await clean(await api(a, "POST", `/games/${gameId}/start`, {}), "start");
 
     // Play to a finish: seat 0 (A) opens, then seat 1 (B) closes it out.

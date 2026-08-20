@@ -12,9 +12,9 @@ Method | HTTP request | Description
 [**addBot**](GamesApi.md#addbot) | **POST** /api/engine/games/{gameId}/add-bot | 
 [**cancelGame**](GamesApi.md#cancelgame) | **POST** /api/engine/games/{gameId}/cancel | 
 [**createGame**](GamesApi.md#creategame) | **POST** /api/engine/games | 
+[**createSocketTicket**](GamesApi.md#createsocketticket) | **POST** /api/engine/games/{gameId}/socket-ticket | 
 [**createSoloGame**](GamesApi.md#createsologame) | **POST** /api/engine/games/solo | 
 [**forfeitGame**](GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
-[**getCapabilities**](GamesApi.md#getcapabilities) | **GET** /api/engine/capabilities | 
 [**getFrames**](GamesApi.md#getframes) | **GET** /api/engine/games/{gameId}/frames | 
 [**getGame**](GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
 [**getGameSession**](GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
@@ -28,7 +28,7 @@ Method | HTTP request | Description
 
 
 # **addBot**
-> CommandAccepted addBot(gameId, idempotencyKey, addBot)
+> CommandAccepted addBot(gameId, addBot)
 
 
 
@@ -38,11 +38,10 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final AddBot addBot = ; // AddBot | 
 
 try {
-    final response = api.addBot(gameId, idempotencyKey, addBot);
+    final response = api.addBot(gameId, addBot);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->addBot: $e\n');
@@ -54,7 +53,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **addBot** | [**AddBot**](AddBot.md)|  | 
 
 ### Return type
@@ -73,7 +71,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **cancelGame**
-> CommandAccepted cancelGame(gameId, idempotencyKey)
+> CommandAccepted cancelGame(gameId)
 
 
 
@@ -83,10 +81,9 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 
 try {
-    final response = api.cancelGame(gameId, idempotencyKey);
+    final response = api.cancelGame(gameId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->cancelGame: $e\n');
@@ -98,7 +95,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
 
 ### Return type
 
@@ -116,7 +112,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createGame**
-> Created createGame(idempotencyKey, createGame)
+> Created createGame(createGame)
 
 
 
@@ -125,11 +121,10 @@ Name | Type | Description  | Notes
 import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final CreateGame createGame = ; // CreateGame | 
 
 try {
-    final response = api.createGame(idempotencyKey, createGame);
+    final response = api.createGame(createGame);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->createGame: $e\n');
@@ -140,7 +135,6 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **createGame** | [**CreateGame**](CreateGame.md)|  | 
 
 ### Return type
@@ -158,8 +152,8 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **createSoloGame**
-> SoloStarted createSoloGame(idempotencyKey, createSolo)
+# **createSocketTicket**
+> SocketTicket createSocketTicket(gameId)
 
 
 
@@ -168,11 +162,51 @@ Name | Type | Description  | Notes
 import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
+final String gameId = gameId_example; // String | 
+
+try {
+    final response = api.createSocketTicket(gameId);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->createSocketTicket: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **gameId** | **String**|  | 
+
+### Return type
+
+[**SocketTicket**](SocketTicket.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createSoloGame**
+> SoloStarted createSoloGame(createSolo)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
 final CreateSolo createSolo = ; // CreateSolo | 
 
 try {
-    final response = api.createSoloGame(idempotencyKey, createSolo);
+    final response = api.createSoloGame(createSolo);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->createSoloGame: $e\n');
@@ -183,7 +217,6 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **createSolo** | [**CreateSolo**](CreateSolo.md)|  | 
 
 ### Return type
@@ -202,7 +235,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **forfeitGame**
-> CommandAccepted forfeitGame(gameId, idempotencyKey, forfeit)
+> CommandAccepted forfeitGame(gameId, forfeit)
 
 
 
@@ -212,11 +245,10 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final Forfeit forfeit = ; // Forfeit | 
 
 try {
-    final response = api.forfeitGame(gameId, idempotencyKey, forfeit);
+    final response = api.forfeitGame(gameId, forfeit);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->forfeitGame: $e\n');
@@ -228,7 +260,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **forfeit** | [**Forfeit**](Forfeit.md)|  | 
 
 ### Return type
@@ -242,43 +273,6 @@ Name | Type | Description  | Notes
 ### HTTP request headers
 
  - **Content-Type**: application/json
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **getCapabilities**
-> Capabilities getCapabilities()
-
-
-
-### Example
-```dart
-import 'package:eigen_api/api.dart';
-
-final api = EigenApi().getGamesApi();
-
-try {
-    final response = api.getCapabilities();
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling GamesApi->getCapabilities: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-[**Capabilities**](Capabilities.md)
-
-### Authorization
-
-[firebase](../README.md#firebase)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
  - **Accept**: application/json
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
@@ -499,7 +493,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **joinGame**
-> CommandAccepted joinGame(gameId, idempotencyKey, join)
+> CommandAccepted joinGame(gameId, join)
 
 
 
@@ -509,11 +503,10 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final Join join = ; // Join | 
 
 try {
-    final response = api.joinGame(gameId, idempotencyKey, join);
+    final response = api.joinGame(gameId, join);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->joinGame: $e\n');
@@ -525,7 +518,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **join** | [**Join**](Join.md)|  | 
 
 ### Return type
@@ -544,7 +536,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **joinGameByCode**
-> CommandAccepted joinGameByCode(idempotencyKey, joinByCode)
+> CommandAccepted joinGameByCode(joinByCode)
 
 
 
@@ -553,11 +545,10 @@ Name | Type | Description  | Notes
 import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final JoinByCode joinByCode = ; // JoinByCode | 
 
 try {
-    final response = api.joinGameByCode(idempotencyKey, joinByCode);
+    final response = api.joinGameByCode(joinByCode);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->joinGameByCode: $e\n');
@@ -568,7 +559,6 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **joinByCode** | [**JoinByCode**](JoinByCode.md)|  | 
 
 ### Return type
@@ -587,7 +577,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **leaveGame**
-> CommandAccepted leaveGame(gameId, idempotencyKey)
+> CommandAccepted leaveGame(gameId)
 
 
 
@@ -597,10 +587,9 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 
 try {
-    final response = api.leaveGame(gameId, idempotencyKey);
+    final response = api.leaveGame(gameId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->leaveGame: $e\n');
@@ -612,7 +601,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
 
 ### Return type
 
@@ -630,7 +618,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **startGame**
-> CommandAccepted startGame(gameId, idempotencyKey)
+> CommandAccepted startGame(gameId)
 
 
 
@@ -640,10 +628,9 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 
 try {
-    final response = api.startGame(gameId, idempotencyKey);
+    final response = api.startGame(gameId);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->startGame: $e\n');
@@ -655,7 +642,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
 
 ### Return type
 
@@ -673,7 +659,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **submitAction**
-> CommandAccepted submitAction(gameId, idempotencyKey, action)
+> CommandAccepted submitAction(gameId, action)
 
 
 
@@ -683,11 +669,10 @@ import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getGamesApi();
 final String gameId = gameId_example; // String | 
-final String idempotencyKey = 0199a4e0-8f7b-7c3a-b2d5-6894a57f9324; // String | Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
 final Action action = ; // Action | 
 
 try {
-    final response = api.submitAction(gameId, idempotencyKey, action);
+    final response = api.submitAction(gameId, action);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling GamesApi->submitAction: $e\n');
@@ -699,7 +684,6 @@ try {
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **gameId** | **String**|  | 
- **idempotencyKey** | **String**| Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`. | 
  **action** | [**Action**](Action.md)|  | 
 
 ### Return type

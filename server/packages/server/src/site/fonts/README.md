@@ -10,8 +10,8 @@ included, because nothing on these pages sets one.
 
 ## Why TypeScript and not `.woff2`
 
-`tsup` can inline a binary as base64 through its loader map, and that is how
-`site.css` reaches the worker. It does not survive testing: `vitest-pool-workers`
+The package build can inline a binary as base64 through its loader map, and that is how
+`site.css.txt` reaches the worker. It does not survive testing: `vitest-pool-workers`
 resolves worker-side modules outside vite's plugin graph, so a loader-provided
 import is empty under test. For the stylesheet that shows up as pages rendering
 unstyled in the suite; for a font it would be a route that answers 500 in every

@@ -74,6 +74,14 @@ const { root } = scaffoldGame({
     // carrying `allowBuilds`, and replacing it would silently drop that and
     // turn this into a test of a project no user has.
     if (args[0] === "install") appendFileSync(resolve(cwd, "pnpm-workspace.yaml"), overrides());
+    // eigen_codegen is a package from this same platform commit. Its first
+    // release cannot exist on pub.dev until this source has landed, and every
+    // later version has the same release-window problem as the npm packages
+    // above. Put the local override in place before `pub add` asks the solver
+    // for it; the emitted caret range is still asserted by scaffold unit tests.
+    if (command === "flutter" && args.includes(`dev:eigen_codegen@^0.1.0`)) {
+      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter/packages/eigen_codegen"))}`, ""].join("\n"));
+    }
     shell(command, args, cwd);
   },
 });
@@ -179,7 +187,12 @@ if (speakers.length === 0) {
 // today. The rest of this gate must check what this monorepo is about to ship.
 // Root dependency overrides apply transitively, so both the Flutter shell and
 // the generated Dart transport are pinned to the same checkout.
-writeFileSync(resolve(appRoot, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join("\n"));
+writeFileSync(
+  resolve(appRoot, "pubspec_overrides.yaml"),
+  ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter/packages/eigen_codegen"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join(
+    "\n",
+  ),
+);
 shell("flutter", ["pub", "get"], appRoot);
 
 // The server half. `contract` already ran during bootstrap; this is the part a

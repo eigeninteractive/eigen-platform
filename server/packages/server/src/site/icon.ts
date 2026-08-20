@@ -19,7 +19,7 @@
  * Flutter build, and the engine cannot put files in it.
  */
 
-/** The EigenInteractive primary, matching `site.css` and the Flutter shell's
+/** The EigenInteractive primary, matching `site.css.txt` and the Flutter shell's
  * default seed. Used when a game has not configured `site.primaryColor`. */
 export const DEFAULT_PRIMARY = "#006a60";
 

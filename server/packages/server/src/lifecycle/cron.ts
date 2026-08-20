@@ -127,8 +127,8 @@ async function reapAbandonedGames(ops: EngineOps, now: number, opts: Required<Li
     .all();
 
   for (const { id } of abandoned) {
-    // abort() marks the D1 row aborted and compacts game data while preserving
-    // command receipt evidence; idempotent, so a partial run is safe to repeat.
+    // abort() marks the D1 row aborted and compacts game data. It is idempotent,
+    // so a partial run is safe to repeat.
     await ops
       .stub(id)
       .abort(id)

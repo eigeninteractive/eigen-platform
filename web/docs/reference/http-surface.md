@@ -38,8 +38,9 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | `POST /games/{id}/join` · `POST /games/join-by-code` | Join |
 | `POST /games/{id}/leave` · `/cancel` · `/add-bot` · `/start` | Waiting-room commands |
 | `POST /games/{id}/action` · `/forfeit` | Active play (carry the caller's `seat`) |
+| `POST /games/{id}/socket-ticket` | Mint a signed, game-scoped ticket valid for 60 seconds |
 | `GET /games/{id}/session` | The caller's current session snapshot, from the game's own Durable Object |
-| `GET /games/{id}/socket` | WebSocket upgrade (`?token=` auth); per-seat session snapshots |
+| `GET /games/{id}/socket` | WebSocket upgrade (`?ticket=` auth); per-seat session snapshots |
 
 **Profile / account / devices / social writes:**
 
@@ -83,50 +84,27 @@ rejection converted to one) rendered by the app-level error handler.
 | 401 | Missing/invalid token | none |
 | 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
 | 404 | No such game/user | `unknownGame` |
-| 409 | Stale view; resync and retry | `stateUpdated`, `notActive`, `notReady`, `expired`, `notPending`, `gameFull`, `alreadyJoined`, `notJoinable`, `creatorCannotLeave`, `schemaUnsupported` |
+| 409 | Stale view, lifecycle conflict, or version mismatch | `stateUpdated`, `notActive`, `notReady`, `gameFull`, `clientUpdateRequired`, `serverUpdateRequired` |
 | 413 / 415 | Avatar too big / wrong type | none |
-| 422 | Assertion mismatch (e.g. `rated`), or an `Idempotency-Key` reused for a different request | `commandConflict` |
+| 422 | A creation assertion disagrees with the authoritative game policy | none |
 | 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | none |
 | 502 | Account deletion upstream failure (intact; retry) | none |
 
-## Every game mutation carries an `Idempotency-Key`
+## Mutations use operation-specific correctness
 
-Every route that changes a game requires the `Idempotency-Key` request header:
-one opaque value per logical intent, reused unchanged on every retry of it. A
-UUIDv7 is recommended for sortable diagnostics, but the value is opaque to the
-server. A receipt is scoped to the caller's principal, so a caller who picks a
-repeated or guessable key can only collide with themselves.
+There is no generic mutation key or permanent command-receipt protocol. Actions
+carry the authoritative game version they were based on and stale actions are
+rejected. Join and leave express a desired membership state; start and cancel
+are idempotent lifecycle transitions; bot seating is guarded by the lobby
+version it was chosen from.
 
-Account, social and device routes do not require one. They are set-like — set a
-username, accept a friend request, register a push token — so repeating one
-reaches the same state it would have reached anyway, and a receipt would buy
-nothing. Game mutations are the ones where applying an intent twice means two
-moves rather than one.
-
-| Same key, same request | Same key, different request | No key |
-|---|---|---|
-| replays the committed result exactly once | `422` `commandConflict` | `400` `idempotencyKeyInvalid` |
-
-`commandConflict` is a 422 rather than a 409 on purpose. Every 409 above means
-"your view is stale, resync and retry", which is exactly what a caller must not
-do with a reused key: the same request will be refused identically until the key
-changes. The `Idempotency-Key` specification separates the two the same way.
-
-There is no "a request is outstanding for this key" response. A game's Durable
-Object serializes its commands, so a duplicate that arrives while the first is
-still in flight simply waits and then reads the committed receipt, which is the
-same answer the first caller got.
-
-Creating a game is covered too, even though there is no game — and therefore no
-Durable Object — to hold a receipt yet. A create records its key on the game row
-itself, in the same write, so a retried create returns the game it already made,
-with the same `gameId` and `shortCode`, rather than a second one.
-`POST /games/solo` creates *and* starts under one key: the retry recognises the
-create and re-presents the start, so it answers with the same running game.
+Creation is the one deliberately ambiguous case. If the connection fails before
+the response arrives, the client reloads its game list and the player may create
+again. The platform does not retain permanent receipts for this rare early-stage
+case.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the
 accepted-lobby-staleness codes, which a client resolves by resyncing. Kernel
-rejections are *values*, not exceptions, and recomputing one is always sound, so
-they are never cached the way accepted commands are.
+rejections are *values*, not exceptions.

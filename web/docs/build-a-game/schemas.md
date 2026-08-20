@@ -105,10 +105,16 @@ convention it imports `src/module/index.ts`, reads fixtures from
 `fixtures`, and `contract` keys under `eigen` override those paths.
 
 The artifact contains all versioned schemas and validated twin fixtures. The
-Flutter app consumes that file:
+Flutter app consumes that file. Install the development-only compiler once:
 
 ```bash
-dart run eigen_flutter:generate_payloads \
+flutter pub add --dev eigen_codegen
+```
+
+Then generate the client payloads:
+
+```bash
+dart run eigen_codegen:generate_payloads \
   --contract game-contract.json \
   --output lib/game/generated/payloads.dart \
   --fixtures-output test/fixtures

@@ -64,12 +64,12 @@ enum ErrorCode {
   creatorCannotLeave(r'creatorCannotLeave'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'commandConflict')
-  commandConflict(r'commandConflict'),
+  @JsonValue(r'clientUpdateRequired')
+  clientUpdateRequired(r'clientUpdateRequired'),
 
   /// A stable machine code identifying why a request failed.
-  @JsonValue(r'schemaUnsupported')
-  schemaUnsupported(r'schemaUnsupported'),
+  @JsonValue(r'serverUpdateRequired')
+  serverUpdateRequired(r'serverUpdateRequired'),
 
   /// A stable machine code identifying why a request failed.
   @JsonValue(r'usernameInvalid')
@@ -102,10 +102,6 @@ enum ErrorCode {
   /// A stable machine code identifying why a request failed.
   @JsonValue(r'invalidCursor')
   invalidCursor(r'invalidCursor'),
-
-  /// A stable machine code identifying why a request failed.
-  @JsonValue(r'idempotencyKeyInvalid')
-  idempotencyKeyInvalid(r'idempotencyKeyInvalid'),
 
   /// A stable machine code identifying why a request failed.
   @JsonValue(r'unknown_default_open_api')

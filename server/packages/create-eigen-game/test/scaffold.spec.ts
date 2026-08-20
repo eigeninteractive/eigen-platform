@@ -80,7 +80,7 @@ describe("scaffoldGame", () => {
     expect(dartTwinTest).toContain("const module = MyGameModule()");
     expect(readFileSync(resolve(root, "server/test/twin.spec.ts"), "utf8")).toContain("twinFixtureTests");
     expect(readFileSync(resolve(root, "server/src/module/fixtures/v1/counter.json"), "utf8")).toContain('"schemaVersion": 1');
-    expect(readFileSync(resolve(root, "app/lib/game/README.md"), "utf8")).toContain("eigen_flutter:generate_payloads");
+    expect(readFileSync(resolve(root, "app/lib/game/README.md"), "utf8")).toContain("eigen_codegen:generate_payloads");
     const bootstrap = readFileSync(resolve(root, "app/web/flutter_bootstrap.js"), "utf8");
     expect(bootstrap).toContain("firebase-messaging-sw.js");
     expect(bootstrap).not.toContain("cdnjs.cloudflare.com");
@@ -161,7 +161,7 @@ describe("scaffoldGame", () => {
     expect(rootManifest.name).toBe("my-game");
     expect(rootManifest.private).toBe(true);
     expect(rootManifest.scripts.contract).toContain("cd server && npm run contract");
-    expect(rootManifest.scripts.contract).toContain("cd ../app && dart run eigen_flutter:generate_payloads");
+    expect(rootManifest.scripts.contract).toContain("cd ../app && dart run eigen_codegen:generate_payloads");
     expect(rootManifest.scripts.contract).toContain("--fixtures-output test/fixtures");
     expect(rootManifest.scripts["contract:check"]).toContain("npm run contract:check");
     expect(rootManifest.scripts["contract:check"]).toMatch(/--check$/);
@@ -200,7 +200,7 @@ describe("scaffoldGame", () => {
     // failure here is legible on its own, and because these are dev
     // dependencies (`dev:` prefix) while the engine/Firebase packages above
     // are not.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "dev:eigen_codegen@^0.1.0", "dev:flutter_launcher_icons", "dev:flutter_native_splash"], expect.stringMatching(/\/app$/));
     // Configuring the icon tools is not enough: both write committed files,
     // so they have to actually run or the app ships Flutter's own blue logo.
     expect(run).toHaveBeenCalledWith("dart", ["run", "flutter_launcher_icons"], expect.stringMatching(/\/app$/));
@@ -218,7 +218,8 @@ describe("scaffoldGame", () => {
     const serverCalls = run.mock.calls.filter(([, , cwd]) => /\/server$/.test(cwd));
     expect(serverCalls.findIndex(([, args]) => args[1] === "cf-typegen")).toBeGreaterThan(serverCalls.findIndex(([, args]) => args[0] === "install"));
     expect(run).toHaveBeenCalledWith("pnpm", ["run", "contract"], expect.stringMatching(/\/server$/));
-    expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_flutter:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", expect.arrayContaining(["pub", "add", "dev:eigen_codegen@^0.1.0"]), expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("dart", expect.arrayContaining(["run", "eigen_codegen:generate_payloads", "--contract", "../server/game-contract.json"]), expect.stringMatching(/\/app$/));
     const androidGradle = readFileSync(resolve(root, "app/android/app/build.gradle.kts"), "utf8");
     expect(androidGradle).toContain("isCoreLibraryDesugaringEnabled = true");
     expect(androidGradle).toContain('coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")');

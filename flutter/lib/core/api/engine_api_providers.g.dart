@@ -435,4 +435,4 @@ final class GameSocketProvider
   }
 }
 
-String _$gameSocketHash() => r'37164e6253b3bd19da4031c14bb1648fcc606ec7';
+String _$gameSocketHash() => r'cdf9bb11586d06288a5f8954d79dae5f996edcc3';

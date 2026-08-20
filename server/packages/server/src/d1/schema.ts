@@ -70,24 +70,6 @@ export const games = sqliteTable(
     outcomes: text({ mode: "json" }).$type<OutcomeEntry[] | null>(),
     /** The D1 apply's idempotency key; set when the apply lands. */
     finishId: text(),
-    /**
-     * The create's idempotency key, and the canonical intent it was committed
-     * with: this game's receipt for its own creation.
-     *
-     * Every other game mutation is committed by the game's Durable Object, which
-     * stores a receipt beside the state change. A create has no game yet and so
-     * no object, so the receipt is these two columns, written in the same INSERT
-     * as the rest of the row. `idx_games_create_key` makes a second create under
-     * the same key impossible; the route answers that rejection by returning this
-     * game instead. `create_request` is compared so one key cannot stand for two
-     * different games.
-     *
-     * Kept for the life of the game, like the DO's own receipts and for the same
-     * reason: an expired receipt would let an ancient retry become a new
-     * mutation. Free here, because the row exists anyway.
-     */
-    createCommandId: text().notNull(),
-    createRequest: text().notNull(),
     /** Stamped by the finish apply (and the future abort path); history
      * lists sort by it. */
     finishedAt: integer(),
@@ -102,11 +84,6 @@ export const games = sqliteTable(
     index("idx_games_created_by").on(t.createdBy),
     // The lobby page: public joinable games, newest first (ported partial index).
     index("idx_games_lobby").on(t.createdAt).where(sql`access = 'public' AND status IN ('waiting', 'ready')`),
-    // The create receipt. Scoped by creator, so two users may independently pick
-    // the same key. A purge nulls `created_by`, and SQLite treats NULLs in a
-    // UNIQUE index as distinct, so the guard dissolves for a purged account —
-    // deliberately: a deleted user has no create left to retry.
-    uniqueIndex("idx_games_create_key").on(t.createdBy, t.createCommandId),
   ],
 );
 

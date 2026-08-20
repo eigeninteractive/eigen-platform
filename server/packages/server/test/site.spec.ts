@@ -8,9 +8,9 @@
  * token substitution, which fails startup rather than a request and so has no
  * request path to test through.
  *
- * KNOWN GAP: `site.css` is not covered by any of this. `tsup` inlines it as
- * text at build time via its `.css` loader, but under `vitest-pool-workers`
- * `import styles from "./site.css"` resolves to an empty module, so every page
+ * KNOWN GAP: `site.css.txt` is not covered by any of this. `tsdown` inlines it as
+ * text at build time via its `.txt` loader, but under `vitest-pool-workers`
+ * `import styles from "./site.css.txt"` resolves to an empty module, so every page
  * here renders with an empty `<style>`, so the palette, the inlined display face
  * and the layout are all absent from what these assertions see. A vite `load`
  * plugin, a `transform` plugin and a workerd `Text` module rule were all tried;
@@ -249,7 +249,7 @@ describe("crawler files", () => {
   it("declares both brand faces and serves them itself", async () => {
     const html = await (await get("/download")).text();
 
-    // Generated in TypeScript rather than written into site.css, so unlike the
+    // Generated in TypeScript rather than written into site.css.txt, so unlike the
     // rest of the stylesheet these rules are visible here, and generated from
     // the same table the routes below serve, so the two cannot drift.
     expect(html).toContain('font-family:"Inter"');

@@ -19,9 +19,8 @@
  * through drizzle's durable-sqlite driver, which is fully SYNCHRONOUS
  * (`.get()`/`.all()`/`.run()`, and `db.transaction` wraps
  * `storage.transactionSync` with a non-async callback, so an `await` inside it
- * is a syntax error, which is the guarantee made structural). Command identity
- * and receipt lookup are synchronous too, so nothing awaits between the receipt
- * read and the commit. The one sanctioned pre-commit await is lazy init, inside
+ * is a syntax error, which is the guarantee made structural). The one
+ * sanctioned pre-commit await is lazy init, inside
  * `blockConcurrencyWhile` on first contact.
  *
  * `#reconcileAlarm` is the ONLY alarm writer. The alarm is derived from committed
@@ -43,7 +42,6 @@ import {
   type Intent,
   isRejected,
   type ObservationFrame,
-  parseClientPayload,
   parseStoredPayload,
   type RatingDelta,
   randomSeed,
@@ -64,7 +62,6 @@ import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/adm
 import { finishPush, readyPush, turnPush } from "../notify/push.js";
 import type { Command, CommandResult, FrameMessage, GameStub, Principal, ReconcileReport, SessionSnapshot } from "../protocol.js";
 import { withRetry } from "../retry.js";
-import { type CommandIdentity, commandIdentity } from "./command-receipt.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
 
@@ -76,7 +73,6 @@ const WAKE_TIMEOUT_MS = 10_000;
 
 type MetaRow = typeof t.meta.$inferSelect;
 type TransitionRow = typeof t.transitions.$inferSelect;
-type CommandReceiptRow = typeof t.commands.$inferSelect;
 
 /** What each hibernating socket remembers: the authenticated
  * principal only. Seats are resolved against the CURRENT roster at every
@@ -141,7 +137,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     }
     const result = await this.#execute(cmd);
     // The desired alarm is a function of committed state, so re-deriving it here
-    // covers a fresh commit, a replayed receipt and a refusal with one rule. It
+    // covers a fresh commit and a refusal with one rule. It
     // is also the repair for the only way an alarm can go missing: the deadline
     // and the alarm are separate storage writes, so an object that dies between
     // them commits a deadline nothing is armed for. No caller special-cases it.
@@ -149,25 +145,16 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return result;
   }
 
-  /** Receipt gate, then dispatch. A committed receipt for this principal and id
-   * replays its stored result; the same id carrying different intent is a caller
-   * defect no resync can repair. */
   async #execute(cmd: Command): Promise<CommandResult> {
-    const identity = this.#identity(cmd);
-    const stored = identity === null ? null : this.#storedReceipt(identity);
-    if (stored !== null && identity !== null) {
-      return stored.request === identity.request ? stored.response : { ok: false, code: "commandConflict", message: "This command id is already committed with different intent" };
-    }
-
     switch (cmd.kind) {
       case "join":
       case "leave":
       case "add-bot":
-        return this.#lobbyCommand(cmd, identity);
+        return this.#lobbyCommand(cmd);
       case "cancel":
-        return await this.#cancel(cmd, identity);
+        return await this.#cancel(cmd);
       default:
-        return await this.#commitCommand(cmd, identity);
+        return await this.#commitCommand(cmd);
     }
   }
 
@@ -178,7 +165,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * transaction, then the snapshot push and the D1 mirror post-commit.
    * Refusals here are *expected* lobby races (accepted staleness: the lobby
    * may show a game that just filled), so they come back as values. */
-  #lobbyCommand(cmd: Extract<Command, { kind: "join" | "leave" | "add-bot" }>, identity: CommandIdentity | null): CommandResult {
+  #lobbyCommand(cmd: Extract<Command, { kind: "join" | "leave" | "add-bot" }>): CommandResult {
     const meta = this.#meta();
     const roster = this.#roster();
     const now = Date.now();
@@ -239,7 +226,6 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         .set({ seq, ...(status !== meta.status ? { status } : {}) })
         .where(eq(t.meta.id, 1))
         .run();
-      this.#writeReceipt(tx, identity, response, now);
     });
 
     // ── post-commit ──
@@ -260,11 +246,11 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   }
 
   /** Cancel: creator-only, lobby statuses only; status → `aborted`, then compact
-   * the empty game's data while keeping `meta` and its command receipts. The DO
+   * the empty game's data while keeping `meta`. The DO
    * is authoritative for the aborted status, so the D1 mirror is a read model
    * like any other: retried in the background, never a reason to fail a command
    * whose truth is already committed. */
-  async #cancel(cmd: Extract<Command, { kind: "cancel" }>, identity: CommandIdentity | null): Promise<CommandResult> {
+  async #cancel(cmd: Extract<Command, { kind: "cancel" }>): Promise<CommandResult> {
     const meta = this.#meta();
     if (meta.status !== "waiting" && meta.status !== "ready" && meta.status !== "aborted") {
       return { ok: false, code: "notJoinable", message: `Game is ${meta.status}` };
@@ -281,7 +267,6 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       if (meta.status !== "aborted") {
         tx.update(t.meta).set({ status: "aborted", seq }).where(eq(t.meta.id, 1)).run();
       }
-      this.#writeReceipt(tx, identity, response, Date.now());
     });
     this.#tearDownAborted(meta.gameId, "Game cancelled", session);
     return response;
@@ -309,8 +294,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     await this.#reconcileAlarm();
   }
 
-  /** The shared abort teardown: compact the game's data, keeping `meta` and its
-   * permanent receipts, then tell and close any sockets and mirror the aborted
+  /** The shared abort teardown: compact the game's data while keeping `meta`,
+   * then tell and close any sockets and mirror the aborted
    * status to D1 in the background. Fully synchronous through the storage write,
    * so nothing interleaves between the status flip and the compaction. The
    * caller reconciles the alarm, which an aborted game no longer wants. */
@@ -334,7 +319,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     this.#mirrorD1(`aborted mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() }));
   }
 
-  async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, identity: CommandIdentity | null): Promise<CommandResult> {
+  async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>): Promise<CommandResult> {
     const meta = this.#meta();
     const roster = this.#roster();
     // Creator-only start: a clean rejection, not a throw. Any seated
@@ -367,7 +352,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (isRejected(result)) {
       return { ok: false, code: result.code, message: result.message };
     }
-    return await this.#apply(cmd, meta, roster, result, now, actingSeat, identity);
+    return await this.#apply(cmd, meta, roster, result, now, actingSeat);
   }
 
   /** Verify the acting seat against the authoritative roster; the D1
@@ -421,7 +406,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** Apply the plan: ONE SQLite transaction, gate held. Everything
    * after the transaction is post-commit: interleaving is harmless. */
-  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null, identity: CommandIdentity | null): Promise<CommandResult> {
+  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null): Promise<CommandResult> {
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
@@ -445,13 +430,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           turnStartedAt: next.turnStartedAt,
         })
         .run();
-      // Every transition writes its frames and its dedupe row, uniformly,
-      // with no finish special case. Compaction is NOT here: live tables drain
+      // Every transition writes its frames uniformly, with no finish special
+      // case. Compaction is NOT here: live tables drain
       // when the outbox clears (`#commitRatingsTransition`).
       if (plan.frames.length > 0) {
         tx.insert(t.frames).values(this.#frameRows(next.version, plan.frames)).run();
       }
-      this.#writeReceipt(tx, identity, response, now);
       // `seq` advances on every commit; status and the seed only when they move.
       // `outcomes` is retained here, unlike the outbox row below that the
       // compaction drains, so a cold open of a finished game is answerable.
@@ -570,9 +554,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** In-DO brain: look the engine bot's move function up by its username in
    * the game's `botActions`, run it, and self-apply the result as this seat's
-   * action: a normal serialized command, so it commits as the next version,
-   * dedupes on its deterministic commandId, and (if it leaves another bot
-   * pending) chains through the same effect dispatch. */
+   * action: a normal serialized command, so it commits as the next version and
+   * (if it leaves another bot pending) chains through the same effect dispatch. */
   async #runBotBrain(meta: MetaRow, bot: Extract<Bot, { type: "engine" }>, seat: number, observation: ObservationSlice, next: StateRow): Promise<void> {
     const rules = this.#rules(meta);
     const action = rules.botActions?.[bot.username];
@@ -593,7 +576,6 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const result = await this.handle({
       kind: "action",
       gameId: meta.gameId,
-      commandId: `bot:${bot.id}:seat${seat}:v${next.version}`,
       actor: { userId: null, botId: bot.id },
       seat,
       expectedVersion: next.version,
@@ -695,8 +677,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   /** After a successful D1 apply: append the ratings transition N+1 (rated
    * games), then complete the pipeline **compaction rides the outbox
    * clear**, one storage transaction: live-only `frames` drain exactly when
-   * the outbox does. Permanent command receipts are deliberately untouched.
-   * Then fan out.
+   * the outbox does. Then fan out.
    * Safe post-await: a finished game accepts no mutating commands, so
    * nothing can have moved the chain since the finish committed. */
   #commitRatingsTransition(meta: MetaRow, roster: Seat[], finalState: StateRow, deltas: RatingDelta[] | null): void {
@@ -810,15 +791,14 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   // ── Deadline alarm: the ONLY alarm client ─────────────────────────
 
   /** A timeout is derived from committed state, not submitted, so it carries no
-   * caller identity and stores no receipt. It is idempotent for a better reason
-   * than a stored result: the kernel abstains once the state it was derived from
+   * caller identity. It is idempotent because the kernel abstains once the state it was derived from
    * has moved on, so a double fire, a retry after an alarm handler throws, and a
    * race with a latent on-time action all resolve the same way. `handle()`
    * re-arms the alarm for the next turn on its way out. */
   async alarm(): Promise<void> {
     const meta = this.#loadMeta();
     if (meta === undefined || meta.status !== "active") return;
-    await this.handle({ kind: "lifecycle", type: "timeout", gameId: meta.gameId, commandId: crypto.randomUUID(), actor: null });
+    await this.handle({ kind: "lifecycle", type: "timeout", gameId: meta.gameId, actor: null });
   }
 
   // ── Sockets (hibernating/) ──────────────────────────────────────
@@ -1196,52 +1176,6 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       .where(and(eq(t.frames.version, version), eq(t.frames.playerIndex, seat)))
       .get();
     return row === undefined ? null : { data: row.data, pendingPlayers: row.pendingPlayers };
-  }
-
-  // ── Command receipts ───────────────────────────────────────────────
-
-  /**
-   * The identity this command's receipt is stored under, or null when it will
-   * not produce one.
-   *
-   * `meta.gameId` is the resource, never `cmd.gameId`: the receipt names the
-   * game this object is authoritative for, whatever id routing supplied.
-   *
-   * Action data is canonicalized from its PARSED form so schema defaults and
-   * unknown-key stripping are already applied and an honest retry matches. The
-   * kernel parses it again at commit as its own trust boundary. Data that fails
-   * to parse yields no identity: the kernel is certain to reject it, a rejection
-   * is never stored, and so there is nothing for an id to collide with.
-   */
-  #identity(cmd: Command): CommandIdentity | null {
-    let actionData: unknown = null;
-    if (cmd.kind === "action") {
-      const parsed = parseClientPayload(this.#rules(this.#meta()).schemas.action, cmd.data, "action");
-      if (!parsed.ok) return null;
-      actionData = parsed.value;
-    }
-    return commandIdentity(cmd, this.#meta().gameId, actionData);
-  }
-
-  #storedReceipt(identity: CommandIdentity): CommandReceiptRow | null {
-    return (
-      this.#db
-        .select()
-        .from(t.commands)
-        .where(and(eq(t.commands.principalId, identity.principalId), eq(t.commands.commandId, identity.commandId)))
-        .get() ?? null
-    );
-  }
-
-  /** Write the receipt inside the caller's transaction, so a row exists exactly
-   * when its mutation committed. A null identity is an identity-less system
-   * command, idempotent against state instead. */
-  #writeReceipt(tx: DrizzleSqliteDODatabase, identity: CommandIdentity | null, response: CommandResult, createdAt: number): void {
-    if (identity === null) return;
-    if (!response.ok) throw new GameBugError("attempted to persist a command rejection as a committed receipt");
-    tx.insert(t.commands)
-      .values({ ...identity, response, createdAt })
-      .run();
   }
 
   // ── Deadline alarm: derived state, never tracked ───────────────────

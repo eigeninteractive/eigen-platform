@@ -57,6 +57,7 @@ export const rulesV1: GameRules<State, Observation, Action, Config> = {
   // create asking for a range outside this, so it is the one place a
   // fixed-size game says so. Read `config` if the count is a creation choice.
   playerLimits: () => ({ minPlayers: 2, maxPlayers: 2 }),
+  timingOptions: () => [{ mode: "untimed" }],
 
   ratingPool: () => null,
   botSeatable: () => true,

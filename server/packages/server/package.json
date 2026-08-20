@@ -17,17 +17,18 @@
   },
   "files": [
     "dist",
+    "src",
     "migrations",
     "openapi.json"
   ],
   "scripts": {
-    "build": "tsup && tsc -p tsconfig.build.json",
+    "build": "tsdown",
     "db:generate:d1": "drizzle-kit generate --config drizzle-d1.config.ts",
     "db:generate:do": "drizzle-kit generate --config drizzle-do.config.ts",
-    "dev": "tsup --watch",
+    "dev": "tsdown --watch",
     "fonts": "node scripts/encode-fonts.mjs",
     "fonts:check": "node scripts/encode-fonts.mjs --check",
-    "openapi": "tsup && node scripts/emit-openapi.mjs",
+    "openapi": "tsdown && node scripts/emit-openapi.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json"
   },
@@ -44,7 +45,6 @@
   "dependencies": {
     "@eigeninteractive/kernel": "workspace:*",
     "@hono/zod-openapi": "^1.6.0",
-    "canonicalize": "^4.0.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.13.2",
     "jose": "^6.2.9",

@@ -20,7 +20,7 @@ import { isUniqueViolation } from "../src/d1/errors.js";
 import { orm } from "../src/d1/orm.js";
 import { playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { applyFinish, createGame } from "../src/index.js";
-import { createReceiptRow, userRow } from "./factories.js";
+import { userRow } from "./factories.js";
 
 const db = orm(env.DB);
 const POOL = "cas-pool";
@@ -37,7 +37,6 @@ async function seedRatedGame(a: string, b: string): Promise<string> {
     .onConflictDoNothing()
     .run();
   await createGame(env.DB, {
-    receipt: createReceiptRow(),
     gameId,
     createdBy: a,
     status: "ready",

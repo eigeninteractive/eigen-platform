@@ -11,7 +11,6 @@ import 'package:dio/dio.dart';
 
 import 'package:eigen_api/src/model/action.dart';
 import 'package:eigen_api/src/model/add_bot.dart';
-import 'package:eigen_api/src/model/capabilities.dart';
 import 'package:eigen_api/src/model/command_accepted.dart';
 import 'package:eigen_api/src/model/create_game.dart';
 import 'package:eigen_api/src/model/create_solo.dart';
@@ -25,6 +24,7 @@ import 'package:eigen_api/src/model/join_by_code.dart';
 import 'package:eigen_api/src/model/lobby.dart';
 import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/session.dart';
+import 'package:eigen_api/src/model/socket_ticket.dart';
 import 'package:eigen_api/src/model/solo_started.dart';
 
 class GamesApi {
@@ -37,7 +37,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [addBot]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -50,7 +49,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> addBot({
     required String gameId,
-    required String idempotencyKey,
     required AddBot addBot,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -67,10 +65,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -141,7 +136,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -153,7 +147,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> cancelGame({
     required String gameId,
-    required String idempotencyKey,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -169,10 +162,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -227,7 +217,6 @@ class GamesApi {
   ///
   ///
   /// Parameters:
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [createGame]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -239,7 +228,6 @@ class GamesApi {
   /// Returns a [Future] containing a [Response] with a [Created] as data
   /// Throws [DioException] if API call or serialization fails
   Future<Response<Created>> createGame({
-    required String idempotencyKey,
     required CreateGame createGame,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -251,10 +239,7 @@ class GamesApi {
     final _path = r'/api/engine/games';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -316,11 +301,92 @@ class GamesApi {
     );
   }
 
+  /// createSocketTicket
+  ///
+  ///
+  /// Parameters:
+  /// * [gameId]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [SocketTicket] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<SocketTicket>> createSocketTicket({
+    required String gameId,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/games/{gameId}/socket-ticket'.replaceAll(
+      '{'
+      r'gameId'
+      '}',
+      gameId.toString(),
+    );
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    SocketTicket? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<SocketTicket, SocketTicket>(
+              rawData,
+              'SocketTicket',
+              growable: true,
+            );
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<SocketTicket>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// createSoloGame
   ///
   ///
   /// Parameters:
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [createSolo]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -332,7 +398,6 @@ class GamesApi {
   /// Returns a [Future] containing a [Response] with a [SoloStarted] as data
   /// Throws [DioException] if API call or serialization fails
   Future<Response<SoloStarted>> createSoloGame({
-    required String idempotencyKey,
     required CreateSolo createSolo,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -344,10 +409,7 @@ class GamesApi {
     final _path = r'/api/engine/games/solo';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -418,7 +480,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [forfeit]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -431,7 +492,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> forfeitGame({
     required String gameId,
-    required String idempotencyKey,
     required Forfeit forfeit,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -448,10 +508,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -506,81 +563,6 @@ class GamesApi {
     }
 
     return Response<CommandAccepted>(
-      data: _responseData,
-      headers: _response.headers,
-      isRedirect: _response.isRedirect,
-      requestOptions: _response.requestOptions,
-      redirects: _response.redirects,
-      statusCode: _response.statusCode,
-      statusMessage: _response.statusMessage,
-      extra: _response.extra,
-    );
-  }
-
-  /// getCapabilities
-  ///
-  ///
-  /// Parameters:
-  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
-  /// * [headers] - Can be used to add additional headers to the request
-  /// * [extras] - Can be used to add flags to the request
-  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
-  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
-  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
-  ///
-  /// Returns a [Future] containing a [Response] with a [Capabilities] as data
-  /// Throws [DioException] if API call or serialization fails
-  Future<Response<Capabilities>> getCapabilities({
-    CancelToken? cancelToken,
-    Map<String, dynamic>? headers,
-    Map<String, dynamic>? extra,
-    ValidateStatus? validateStatus,
-    ProgressCallback? onSendProgress,
-    ProgressCallback? onReceiveProgress,
-  }) async {
-    final _path = r'/api/engine/capabilities';
-    final _options = Options(
-      method: r'GET',
-      headers: <String, dynamic>{...?headers},
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[
-          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
-        ],
-        ...?extra,
-      },
-      validateStatus: validateStatus,
-    );
-
-    final _response = await _dio.request<Object>(
-      _path,
-      options: _options,
-      cancelToken: cancelToken,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
-    );
-
-    Capabilities? _responseData;
-
-    try {
-      final rawData = _response.data;
-      _responseData = rawData == null
-          ? null
-          : deserialize<Capabilities, Capabilities>(
-              rawData,
-              'Capabilities',
-              growable: true,
-            );
-    } catch (error, stackTrace) {
-      throw DioException(
-        requestOptions: _response.requestOptions,
-        response: _response,
-        type: DioExceptionType.unknown,
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-
-    return Response<Capabilities>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -1010,7 +992,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [join]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -1023,7 +1004,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> joinGame({
     required String gameId,
-    required String idempotencyKey,
     required Join join,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1040,10 +1020,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -1113,7 +1090,6 @@ class GamesApi {
   ///
   ///
   /// Parameters:
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [joinByCode]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -1125,7 +1101,6 @@ class GamesApi {
   /// Returns a [Future] containing a [Response] with a [CommandAccepted] as data
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> joinGameByCode({
-    required String idempotencyKey,
     required JoinByCode joinByCode,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1137,10 +1112,7 @@ class GamesApi {
     final _path = r'/api/engine/games/join-by-code';
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -1211,7 +1183,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1223,7 +1194,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> leaveGame({
     required String gameId,
-    required String idempotencyKey,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1239,10 +1209,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -1298,7 +1265,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -1310,7 +1276,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> startGame({
     required String gameId,
-    required String idempotencyKey,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -1326,10 +1291,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
@@ -1385,7 +1347,6 @@ class GamesApi {
   ///
   /// Parameters:
   /// * [gameId]
-  /// * [idempotencyKey] - Stable id for this logical intent, reused unchanged on every retry. A UUIDv7 is recommended. Reusing one for a different request is rejected with `commandConflict`.
   /// * [action]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
@@ -1398,7 +1359,6 @@ class GamesApi {
   /// Throws [DioException] if API call or serialization fails
   Future<Response<CommandAccepted>> submitAction({
     required String gameId,
-    required String idempotencyKey,
     required Action action,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -1415,10 +1375,7 @@ class GamesApi {
     );
     final _options = Options(
       method: r'POST',
-      headers: <String, dynamic>{
-        r'Idempotency-Key': idempotencyKey,
-        ...?headers,
-      },
+      headers: <String, dynamic>{...?headers},
       extra: <String, dynamic>{
         'secure': <Map<String, String>>[
           {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},

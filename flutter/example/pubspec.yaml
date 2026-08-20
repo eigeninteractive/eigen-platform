@@ -21,6 +21,7 @@ dependencies:
   firebase_messaging: ^16.2.2
 
 dev_dependencies:
+  eigen_codegen: ^0.1.0
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0

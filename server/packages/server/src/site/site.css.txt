@@ -1,0 +1,299 @@
+/*
+ * The stylesheet for every engine-rendered public page: the landing page, the
+ * legal documents, and the `/j` share page.
+ *
+ * A real .css file rather than a template literal in TypeScript: it highlights,
+ * formats, and diffs like the CSS it is. tsdown inlines the `.css.txt` file as
+ * text (see `tsdown.config.ts`) and it is emitted in a single <style> tag,
+ * because an external stylesheet would add a blocking round trip to a page
+ * whose whole job is to render instantly for someone who followed a link.
+ *
+ * `--primary` is set on the root element from `site.primaryColor`; the value
+ * here is the fallback for pages rendered without site config.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/*
+ * The EigenInteractive palette, which is the Material 3 scheme generated from
+ * `Colors.teal`, the same seed the Flutter shell defaults to, so a game that
+ * has configured nothing looks like one product across the app and its pages.
+ * These are `ColorScheme.fromSeed` output rather than hand-picked neighbours,
+ * including the neutrals, which carry the seed's hue and are why the greys here
+ * are faintly green.
+ *
+ * `--primary` is overridden on the root element from `site.primaryColor`, and
+ * an inline style beats both blocks below, so a configured game keeps its own
+ * colour in either scheme.
+ */
+:root {
+  --primary: #006a60;
+  --on-primary: #ffffff;
+  --bg: #f4fbf8;
+  --surface: #e3e9e6;
+  --fg: #161d1c;
+  --muted: #3f4947;
+  --outline: #6f7977;
+
+  /*
+   * The same pairing and the same split as the app: Space Grotesk is drawn for
+   * size and reads as noise in a paragraph, so it takes the headings and the
+   * call to action while Inter takes everything read at length. Both are served
+   * by the worker (see site/fonts.ts); the stacks behind them are what renders
+   * during the swap.
+   */
+  --display-font: "Space Grotesk", system-ui, sans-serif;
+  --body-font: Inter, system-ui, -apple-system, "Segoe UI", roboto, sans-serif;
+}
+
+/*
+ * The dark scheme flips the primary to its light tone, which is why
+ * `--on-primary` has to move with it: white on `#82d5c8` is the one pairing in
+ * this palette that fails contrast outright. A game that configures its own
+ * colour overrides both together, from an inline style computed in page.tsx.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #82d5c8;
+    --on-primary: #00382f;
+    --bg: #0e1513;
+    --surface: #1b2220;
+    --fg: #dde4e1;
+    --muted: #bec9c5;
+    --outline: #899390;
+  }
+}
+
+body {
+  font-family: var(--body-font);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.6;
+  padding: 3rem 1.5rem;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* A column tall enough to reach the viewport's bottom, so `footer` can be
+   pushed there rather than trailing whatever content happens to end above it.
+   The subtraction is the body padding, which is outside this box. */
+.wrap {
+  width: 100%;
+  max-width: 44rem;
+  min-height: calc(100dvh - 6rem);
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  font-family: var(--display-font);
+  font-size: clamp(2rem, 7vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  font-family: var(--display-font);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 2rem 0 0.5rem;
+}
+
+p,
+ul,
+ol {
+  margin-bottom: 1rem;
+  color: var(--muted);
+}
+
+ul,
+ol {
+  padding-left: 1.25rem;
+}
+
+li {
+  margin-bottom: 0.35rem;
+}
+
+a {
+  color: var(--primary);
+}
+
+strong {
+  color: var(--fg);
+}
+
+.lead {
+  font-size: 1.05rem;
+  margin-bottom: 2rem;
+}
+
+.meta {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 2rem;
+}
+
+/*
+ * The download page only; the legal documents are prose and stay left-aligned.
+ * It is a short page with one job, so it takes the leftover height and centres
+ * itself in it rather than clinging to the top of a mostly empty viewport.
+ */
+.hero {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.25rem;
+  padding: 2rem 0 3rem;
+}
+
+/* Overriding the document rhythm rather than adding to it: `gap` owns the
+   spacing inside the hero, and margins from `p`/`.lead` would double it. */
+.hero h1,
+.hero p,
+.hero .lead {
+  margin-bottom: 0;
+}
+
+.hero .lead {
+  max-width: 32rem;
+}
+
+/* The app's own launcher icon, or the engine's mark standing in for it. The
+   radius is a proportion so it keeps the squircle at any size, and the shadow
+   is what separates it from a flat background when the icon's own edges are
+   pale. */
+.logo {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 24%;
+  background: var(--surface);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 12%),
+    0 12px 28px -12px rgb(0 0 0 / 35%);
+}
+
+/* A raster launcher icon is drawn edge to edge and needs the whole plate. The
+   mark is not: it is a bare glyph, so it needs the margin an icon designer
+   would have drawn into the file. */
+svg.logo {
+  padding: 1.15rem;
+}
+
+/* The pre-launch state: quieter than the tagline above it, since it is a
+   status rather than something to read. */
+.note {
+  color: var(--outline);
+  font-size: 0.95rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--on-primary);
+  text-decoration: none;
+  padding: 0.8rem 1.75rem;
+  border-radius: 100px;
+  font-family: var(--display-font);
+  font-weight: 600;
+  border: 1px solid transparent;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+}
+
+/* Secondary actions. The border replaces the fill rather than sitting on top of
+   it, so both variants occupy the same box and the row stays on one baseline. */
+.btn.ghost {
+  background: transparent;
+  color: var(--primary);
+  border-color: var(--outline);
+}
+
+/* `gap` owns the spacing here; the buttons' own margins are for the legal
+   pages, which have no flex row around them. */
+.actions .btn {
+  margin: 0;
+}
+
+.shots {
+  align-self: stretch;
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1rem;
+  scroll-snap-type: x mandatory;
+}
+
+.shots img {
+  height: 16rem;
+  width: auto;
+  border-radius: 1rem;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border: 1px solid var(--outline);
+}
+
+/* `margin-top: auto` pins this to the bottom of `.wrap`, which is at least a
+   viewport tall, so a short page ends in a footer rather than in a void. */
+footer {
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--outline);
+  font-size: 0.8rem;
+  color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+footer a {
+  color: var(--muted);
+}
+
+/* Pushed to the trailing edge, away from the operator's own links: it is the
+   engine's line, not theirs. It wraps under them on a narrow screen, where
+   `auto` collapses to nothing.
+   Only when there is something to be pushed away from. On a game with no
+   `site` yet the credit is the whole footer, and a lone right-aligned line
+   reads as a leftover rather than a choice. */
+.credit:not(:first-child) {
+  margin-left: auto;
+}
+
+/* Only the brand inside the line is a link, and it is marked by colour alone;
+   an underline here would compete with the operator's legal links, which are
+   the footer's actual navigation. Colour-only is legible because the two are
+   the accent and the muted body tone, far enough apart in both schemes to read
+   as different kinds of thing rather than as one link and its hover state. */
+.credit a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+/* The one place the underline comes back, because colour alone is not a cue a
+   keyboard user or a colour-blind visitor can act on, and this is the moment
+   they need it. At rest the line stays clean. */
+.credit a:hover,
+.credit a:focus-visible {
+  text-decoration: underline;
+}

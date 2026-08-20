@@ -95,11 +95,11 @@ describe("blocking: the seating boundary", () => {
     const game = await createGame(a);
     await block(a, b);
 
-    const byId = await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersions: [1] });
+    const byId = await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 });
     expect(byId.status).toBe(404);
     expect(((await byId.json()) as { code: string }).code).toBe("unknownGame");
 
-    const byCode = await api(b, "POST", "/games/join-by-code", { shortCode: game.shortCode, clientSchemaVersions: [1] });
+    const byCode = await api(b, "POST", "/games/join-by-code", { shortCode: game.shortCode, clientSchemaVersion: 1 });
     expect(byCode.status).toBe(404);
     expect(((await byCode.json()) as { code: string }).code).toBe("unknownGame");
   });
@@ -109,7 +109,7 @@ describe("blocking: the seating boundary", () => {
     const b = await user("b");
     const game = await createGame(b); // B hosts.
     await block(a, b); // A blocks B, then A tries to join B's game.
-    expect((await api(a, "POST", `/games/${game.gameId}/join`, { clientSchemaVersions: [1] })).status).toBe(404);
+    expect((await api(a, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 })).status).toBe(404);
   });
 
   it("lets an unblocked third party join normally", async () => {
@@ -119,7 +119,7 @@ describe("blocking: the seating boundary", () => {
     const game = await createGame(a);
     await block(a, b);
     // C is blocked with nobody: the seat is open to them.
-    const joined = await json<{ session: { players: unknown[] } }>(await api(c, "POST", `/games/${game.gameId}/join`, { clientSchemaVersions: [1] }));
+    const joined = await json<{ session: { players: unknown[] } }>(await api(c, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 }));
     expect(joined.session.players.length).toBe(2);
   });
 });
@@ -140,7 +140,7 @@ describe("blocking: friends' open games", () => {
     expect(before.games.map((g) => g.id)).toContain(game.gameId);
 
     // B joins C's game (B and C are not blocked), then A blocks B.
-    expect((await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersions: [1] })).status).toBe(200);
+    expect((await api(b, "POST", `/games/${game.gameId}/join`, { clientSchemaVersion: 1 })).status).toBe(200);
     await block(a, b);
 
     // Now the game seats someone A blocked, so it drops out of A's friends' games.

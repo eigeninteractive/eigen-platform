@@ -176,8 +176,8 @@ export function commit(input: CommitInput): CommitPlan | Rejected {
 
 function commitStart(input: CommitInput, intent: Extract<Intent, { kind: "start" }>): CommitPlan | Rejected {
   const { game, roster, rules } = input;
-  // Idempotent like the old engine_commit_start: a duplicate start (fresh
-  // commandId, game already running) is a clean no-op, not an error.
+  // A duplicate start when the game is already running is a clean no-op, not an
+  // error.
   if (game.status === "active") {
     return reject("abstain", "Game is already active");
   }
@@ -498,9 +498,8 @@ function computeEffects(roster: readonly Seat[], envelope: Envelope, outcomes: O
     if (member.botId !== null) {
       // A bot always needs its wake, even the acting seat re-entering pending
       // (an extra turn): a bot has no live client to act on its own, so its
-      // only signal to move again is a fresh wake. A duplicate is harmless
-      // (the in-DO self-apply dedupes on commandId; an external wake carries
-      // the same version and loses the version check at commit).
+      // only signal to move again is a fresh wake. A duplicate is harmless:
+      // it carries the same expected version and loses the version check.
       effects.push({ kind: "wakeBot", seat, botId: member.botId });
     } else if (seat !== actingSeat && member.userId !== null) {
       // A human actor is live in-app and needs no push; only newly-waiting

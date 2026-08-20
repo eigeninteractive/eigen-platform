@@ -3,18 +3,20 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:eigen_api/eigen_api.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eigen_flutter/core/api/engine_call.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Builds the browser-compatible authenticated socket URI.
 ///
 /// WebSocket browser APIs cannot attach an Authorization header to the HTTP
-/// upgrade, so the Firebase ID token is carried in the query string. Uri's
-/// query encoder protects tokens and game ids containing reserved characters.
+/// upgrade, so a narrow, short-lived socket ticket is carried in the query
+/// string. Firebase credentials remain on the ordinary HTTPS request that
+/// obtains the ticket. Uri's query encoder protects tickets and game ids
+/// containing reserved characters.
 Uri buildGameSocketUri({
   required String apiBaseUrl,
   required String gameId,
-  required String token,
+  required String ticket,
 }) {
   final base = Uri.parse(apiBaseUrl);
   final socketScheme = switch (base.scheme) {
@@ -29,7 +31,7 @@ Uri buildGameSocketUri({
   return base.replace(
     scheme: socketScheme,
     path: '/api/engine/games/$gameId/socket',
-    queryParameters: {'token': token},
+    queryParameters: {'ticket': ticket},
   );
 }
 
@@ -57,19 +59,18 @@ typedef GameSocketEvent = Session;
 /// gap detection, and recovery are the repository's, because recovering a gap
 /// means an HTTP range fetch this layer knows nothing about.
 ///
-/// Auth rides the query string rather than a header because browsers cannot set
-/// headers on a WebSocket upgrade. The token is re-read on every connection
-/// attempt, so a reconnect after a long background period presents a fresh one.
+/// A fresh short-lived ticket is obtained on every connection attempt, so a
+/// reconnect after a long background period never reuses expired credentials.
 class GameSocket {
   GameSocket({
     required this._baseUrl,
-    required this._auth,
+    required this._api,
     this._initialBackoff = const Duration(milliseconds: 500),
     this._maxBackoff = const Duration(seconds: 30),
   });
 
   final String _baseUrl;
-  final FirebaseAuth _auth;
+  final GamesApi _api;
   final Duration _initialBackoff;
   final Duration _maxBackoff;
 
@@ -90,16 +91,12 @@ class GameSocket {
     var backoff = _initialBackoff;
 
     while (true) {
-      final token = await _auth.currentUser?.getIdToken();
-      if (token == null) {
-        // Signed out, most likely mid-teardown as the auth redirect runs.
-        // Nothing to listen to, and retrying cannot help.
-        return;
-      }
-
       WebSocketChannel? channel;
       try {
-        channel = WebSocketChannel.connect(_socketUri(gameId, token));
+        final ticket = await engineData(
+          () => _api.createSocketTicket(gameId: gameId),
+        );
+        channel = WebSocketChannel.connect(_socketUri(gameId, ticket.ticket));
         await channel.ready;
         backoff = _initialBackoff;
 
@@ -124,12 +121,12 @@ class GameSocket {
     }
   }
 
-  /// `https://host` → `wss://host/api/engine/games/{id}/socket?token=…`.
-  Uri _socketUri(String gameId, String token) {
+  /// `https://host` → `wss://host/api/engine/games/{id}/socket?ticket=…`.
+  Uri _socketUri(String gameId, String ticket) {
     return buildGameSocketUri(
       apiBaseUrl: _baseUrl,
       gameId: gameId,
-      token: token,
+      ticket: ticket,
     );
   }
 

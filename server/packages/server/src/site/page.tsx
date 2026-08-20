@@ -18,7 +18,7 @@ import type { PropsWithChildren } from "hono/jsx";
 import { CREDIT_BRAND, CREDIT_URL, DEFAULT_CREDIT } from "./config.js";
 import { fontFaceCss } from "./fonts.js";
 import { ENGINE_ICON_URL } from "./icon.js";
-import styles from "./site.css";
+import styles from "./site.css.txt";
 
 /** Icon paths, defaulted to what `flutter_launcher_icons` already emits into a
  * Flutter app's `web/` directory (see the
