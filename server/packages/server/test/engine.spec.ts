@@ -253,6 +253,16 @@ describe("waiting room", () => {
     expect((await listDurableObjectIds(env.GAME_DO)).map(String).sort()).toEqual(before);
   });
 
+  it("rejects oversized game JSON before creating a game", async () => {
+    const u = makeUsers();
+    const res = await api(u.a, "POST", "/games", {
+      ...createBody,
+      config: { target: 3, padding: "x".repeat(64 * 1024) },
+    });
+    expect(res.status).toBe(413);
+    await expect(res.json()).resolves.toEqual({ error: "Game request body exceeds 64 KiB" });
+  });
+
   it("start is creator-only and needs ready", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });

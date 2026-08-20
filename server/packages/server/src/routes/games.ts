@@ -35,6 +35,7 @@ const errorResponses = {
   403: error("Not allowed"),
   404: error("Not found"),
   409: error("Stale view; resync and retry"),
+  413: error("Request body too large"),
   422: error("Assertion mismatch"),
 } as const;
 

@@ -35,6 +35,7 @@ mounted.
 | Var | `FIREBASE_PROJECT_ID` | **yes** | Token verification, and the only thing it needs. Written by scaffolding from the configured project; empty ⇒ every authed request 500s |
 | Var | `WEB_APP_ORIGIN` | **yes for web** | Canonical Flutter origin used for absolute notification click links and automatically trusted for cross-origin browser REST and WebSocket requests |
 | Secret | `FIREBASE_CLIENT_EMAIL` + `FIREBASE_PRIVATE_KEY` | **yes** | Push (FCM) **and** the Identity-Toolkit admin delete used by account deletion |
+| Secret | `SOCKET_TICKET_SECRET` | **yes** | Signs the 60-second game-scoped credentials used by WebSocket upgrades; at least 32 characters |
 | Secret | `BOT_SIGNING_SECRET` | optional | External bots (the per-bot HMAC is derived from it) |
 | Secret | `OPS_TOKEN` | optional | The operator surface (`/api/ops`). Unset ⇒ every route there answers 404 |
 
@@ -44,7 +45,8 @@ deployment, so keep `FIREBASE_PROJECT_ID` and `WEB_APP_ORIGIN` there as the
 single source of truth. `.dev.vars` is only for the Firebase credentials and
 other secrets that must not be committed.
 
-The Firebase service account belongs to the same project the app already uses
+Generate the socket-ticket secret independently with `openssl rand -base64 32`;
+it is an engine signing key, not a Firebase value. The Firebase service account belongs to the same project the app already uses
 for Auth; notifications do not introduce a second backend account. Production
 authenticated requests reject missing Admin credentials instead of silently
 running without push or leaving a Firebase identity behind during account

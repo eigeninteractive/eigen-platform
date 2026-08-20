@@ -837,9 +837,12 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return this.#sessionFor(userId);
   }
 
-  async webSocketMessage(): Promise<void> {
-    // Client → server traffic rides HTTP commands; ping/pong is handled by
-    // the auto-responder without waking the DO. Anything else is ignored.
+  async webSocketMessage(ws: WebSocket): Promise<void> {
+    // This is a server-to-client stream. Client commands ride authenticated
+    // HTTP, while ping/pong is handled by the auto-responder without waking the
+    // object. Close on any application message so a valid ticket cannot turn
+    // this ignored callback into an unbounded stream of DO invocations.
+    ws.close(1008, "Client messages are not supported");
   }
 
   async webSocketClose(): Promise<void> {

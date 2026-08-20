@@ -2306,6 +2306,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -2388,6 +2398,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -2497,6 +2517,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -2579,6 +2609,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -2678,6 +2718,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -2761,6 +2811,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -2870,6 +2930,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -2953,6 +3023,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -3062,6 +3142,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -3155,6 +3245,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -3275,6 +3375,16 @@
               }
             }
           },
+          "413": {
+            "description": "Request body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Assertion mismatch",
             "content": {
@@ -3358,6 +3468,16 @@
           },
           "409": {
             "description": "Stale view; resync and retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {
@@ -4209,6 +4329,26 @@
           },
           "401": {
             "description": "Invalid signature",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown game",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body too large",
             "content": {
               "application/json": {
                 "schema": {

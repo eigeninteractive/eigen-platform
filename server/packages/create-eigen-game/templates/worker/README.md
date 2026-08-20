@@ -28,13 +28,16 @@ the Worker's non-secret environment variables in local development and
 production. Copy `.dev.vars.example` to `.dev.vars`, then fill
 `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` from the same Firebase
 project's service-account JSON. These credentials are required for FCM and
-complete Firebase account deletion; `.dev.vars` is git-ignored.
+complete Firebase account deletion. Also replace `SOCKET_TICKET_SECRET` with at
+least 32 random characters; `openssl rand -base64 32` generates one.
+`.dev.vars` is git-ignored.
 
-For deployment, store both values as Wrangler secrets:
+For deployment, store all three values as Wrangler secrets:
 
 ```sh
 npx wrangler secret put FIREBASE_CLIENT_EMAIL
 npx wrangler secret put FIREBASE_PRIVATE_KEY
+npx wrangler secret put SOCKET_TICKET_SECRET
 ```
 
 `WEB_APP_ORIGIN` is the exact Flutter web origin the engine automatically

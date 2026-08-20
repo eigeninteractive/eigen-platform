@@ -57,6 +57,9 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 `Eigen-Signature` HMAC over the exact body. See
 [External-bot HMAC](../how-it-works/bots.md#external-bot-hmac).
 
+Game and external-bot JSON request bodies are limited to **64 KiB** before auth
+or parsing. Game configuration and action payloads must fit inside that bound.
+
 ## Public web
 
 `GET /.well-known/assetlinks.json` · `apple-app-site-association` ·
@@ -85,7 +88,8 @@ rejection converted to one) rendered by the app-level error handler.
 | 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
 | 404 | No such game/user | `unknownGame` |
 | 409 | Stale view, lifecycle conflict, or version mismatch | `stateUpdated`, `notActive`, `notReady`, `gameFull`, `clientUpdateRequired`, `serverUpdateRequired` |
-| 413 / 415 | Avatar too big / wrong type | none |
+| 413 | Game/bot JSON or avatar too big | none or `imageTooLarge` |
+| 415 | Avatar type not accepted | `unsupportedImageType` |
 | 422 | A creation assertion disagrees with the authoritative game policy | none |
 | 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | none |

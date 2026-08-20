@@ -37,6 +37,7 @@ compatibility and command machinery from earlier phases.
 | Creation policy | Versioned server rules validate player limits and timing options after parsing config. Flutter may mirror these rules for responsive UX. |
 | Socket authentication | Authenticated HTTP mints a signed 60-second game ticket; upgrade verification happens before Durable Object routing. |
 | Unknown game routing | Public commands and session reads prove the retained D1 row exists before deriving or waking a Durable Object. |
+| Basic input bounds | Hono rejects game and bot JSON bodies above 64 KiB before auth/parsing; the server-only socket closes clients that send application messages. |
 | TypeScript packaging | Public packages use one idiomatic `tsdown` build for JavaScript, declarations, JavaScript source maps, and declaration maps. Sources ship for editor navigation. |
 | Dart generation | `eigen_codegen` is a separate pure-Dart development package. Its portable schema compiler enforces supported constraints and rejects unknown semantics instead of silently dropping them. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
@@ -45,11 +46,9 @@ compatibility and command machinery from earlier phases.
 
 1. Complete the Dart dependency split described by RFC 0009:
    `eigen_client`, `eigen_flutter`, `eigen_firebase`, and `eigen_shell`.
-2. Add basic HTTP body and WebSocket frame size limits. Broader resource budgets
-   remain deferred until usage justifies them.
-3. Finish generated API/docs synchronization, release notes, and publish-order
+2. Finish generated API/docs synchronization, release notes, and publish-order
    automation for the new package graph.
-4. Run every workspace shard and both scaffold targets from a clean checkout,
+3. Run every workspace shard and both scaffold targets from a clean checkout,
    then release the breaking pre-1.0 package lines in dependency order.
 
 ## Deliberately deferred

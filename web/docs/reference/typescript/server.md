@@ -289,7 +289,7 @@ fake exported by `@eigeninteractive/server/testing`.
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:991](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L991)
+Defined in: [server/packages/server/src/do/game-do.ts:994](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L994)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -421,7 +421,7 @@ GameStub.session
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:845](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L845)
+Defined in: [server/packages/server/src/do/game-do.ts:848](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L848)
 
 ###### Returns
 
@@ -439,7 +439,7 @@ DurableObject.webSocketClose
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:851](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L851)
+Defined in: [server/packages/server/src/do/game-do.ts:854](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L854)
 
 ###### Parameters
 
@@ -461,10 +461,16 @@ DurableObject.webSocketError
 ##### webSocketMessage()
 
 ```ts
-webSocketMessage(): Promise<void>;
+webSocketMessage(ws): Promise<void>;
 ```
 
 Defined in: [server/packages/server/src/do/game-do.ts:840](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L840)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `ws` | `WebSocket` |
 
 ###### Returns
 
@@ -745,7 +751,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eige
 
 ### EngineConfig
 
-Defined in: [server/packages/server/src/engine.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L100)
+Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 implementor picks bindings off their own Env. Annotate the accessors' `env`
@@ -766,7 +772,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L107)
+Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L108)
 
 The whitelabel app's display name, the single source of truth for the
 engine's own identity (share metadata and public-page titles today;
@@ -780,7 +786,7 @@ feature blocks are enabled.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L129)
+Defined in: [server/packages/server/src/engine.ts:130](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L130)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -790,7 +796,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
-Defined in: [server/packages/server/src/engine.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L125)
+Defined in: [server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L126)
 
 Browser origins allowed to call the engine from a different origin.
 
@@ -809,7 +815,7 @@ Set an empty list to disable the `WEB_APP_ORIGIN` default.
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L127)
+Defined in: [server/packages/server/src/engine.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L128)
 
 Native deep-link verification and store links. Omit for web-only.
 
@@ -819,7 +825,7 @@ Native deep-link verification and store links. Omit for web-only.
 gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
+Defined in: [server/packages/server/src/engine.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L102)
 
 ##### lifecycle?
 
@@ -827,7 +833,7 @@ Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeni
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L136)
+Defined in: [server/packages/server/src/engine.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L137)
 
 Cron-backstop tuning: guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -839,7 +845,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:132](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L132)
+Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
 
 The public web surface: download page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -853,7 +859,7 @@ optional testing?: {
 };
 ```
 
-Defined in: [server/packages/server/src/engine.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L141)
+Defined in: [server/packages/server/src/engine.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L142)
 
 Explicit test-only replacements for Firebase verification and Admin
 effects. Supplying them together prevents a fake verifier from
@@ -890,7 +896,7 @@ firebaseAdmin(env): FirebaseAdminEffects;
 d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L109)
+Defined in: [server/packages/server/src/engine.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L110)
 
 The engine's D1 database (engine-private).
 
@@ -910,7 +916,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L114)
+Defined in: [server/packages/server/src/engine.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L115)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -931,7 +937,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:111](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L111)
+Defined in: [server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L112)
 
 The GameDO namespace binding.
 
@@ -2129,7 +2135,7 @@ the call site; the internal loop only absorbs CAS conflicts).
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:433](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L433)
+Defined in: [server/packages/server/src/engine.ts:448](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L448)
 
 Creates the complete Cloudflare Worker for one game deployment.
 
@@ -2390,7 +2396,7 @@ single attempt.
 function openApiDocument(version): OpenAPIObject;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:542](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L542)
+Defined in: [server/packages/server/src/engine.ts:557](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L557)
 
 #### Parameters
 

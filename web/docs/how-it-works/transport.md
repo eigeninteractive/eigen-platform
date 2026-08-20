@@ -17,10 +17,12 @@ None of it is game code; a game never opens a socket or resolves an identity.
   the browser popup with `signInWithPopup`. `linkWithCredential` on native and
   `linkWithPopup` on web upgrade a guest in place, preserving the uid, so every
   game, rating and friendship carries over with no data migration.
-  Every request sends the Firebase ID token as `Authorization: Bearer <token>`;
-  WebSocket upgrades send it as `?token=` (browsers can't set headers on an
-  upgrade). Tokens refresh on the Firebase SDK's schedule; the client attaches
-  the current one per request.
+  Every ordinary request sends the Firebase ID token as `Authorization: Bearer
+  <token>`. Before each WebSocket connection, the client uses that authenticated
+  HTTPS channel to mint a signed, game-scoped ticket valid for 60 seconds and
+  sends only that narrow credential as `?ticket=` (browsers cannot set headers
+  on an upgrade). Firebase tokens refresh on the SDK's schedule and never appear
+  in a socket URL.
 
   :::note[Apple Sign-In is scoped but not wired]
 
@@ -64,7 +66,9 @@ None of it is game code; a game never opens a socket or resolves an identity.
 A game has **one WebSocket for its whole lifetime**
 (`/api/engine/games/{id}/socket`), opened before the game starts, and it carries
 exactly one kind of message: a **session snapshot**, the complete live truth
-about the game as the receiving seat sees it.
+about the game as the receiving seat sees it. It is a server-to-client stream;
+commands use HTTP, and sending an application message on the socket closes it
+with policy code `1008`.
 
 ```jsonc
 {

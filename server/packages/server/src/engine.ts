@@ -30,6 +30,7 @@
 import type { GameModule } from "@eigeninteractive/rules";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { ErrorHandler, MiddlewareHandler } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
@@ -227,6 +228,17 @@ function newOpenApiApp() {
  * a different app type. */
 export type EngineApp = ReturnType<typeof newOpenApiApp>;
 
+/** Configs and actions are intentionally small JSON documents. Cloudflare's
+ * account-level request ceiling starts at 100 MB, which is a transport limit,
+ * not an application contract; reject far earlier before auth, parsing, D1, or
+ * a Durable Object sees the body. Avatar uploads have their own explicit limit
+ * and do not pass through this middleware. */
+const GAME_REQUEST_MAX_BYTES = 64 * 1024;
+const gameBodyLimit = bodyLimit({
+  maxSize: GAME_REQUEST_MAX_BYTES,
+  onError: (c) => c.json({ error: "Game request body exceeds 64 KiB" }, 413),
+});
+
 const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof HttpError) {
     const headers = error.retryAfterSeconds !== undefined ? { "Retry-After": String(error.retryAfterSeconds) } : undefined;
@@ -291,6 +303,8 @@ function browserCors(ctx: RouteContext): MiddlewareHandler<AppEnv> {
 export function buildApp(ctx: RouteContext) {
   const engine = newOpenApiApp();
   engine.onError(errorHandler);
+  engine.use("/games", gameBodyLimit);
+  engine.use("/games/*", gameBodyLimit);
   engine.use("*", authMiddleware(ctx));
   registerReadRoutes(engine, ctx);
   registerGameRoutes(engine, ctx);
@@ -301,6 +315,7 @@ export function buildApp(ctx: RouteContext) {
 
   const bot = newOpenApiApp();
   bot.onError(errorHandler);
+  bot.use("/action", gameBodyLimit);
   registerBotRoutes(bot, ctx);
 
   const app = newOpenApiApp();

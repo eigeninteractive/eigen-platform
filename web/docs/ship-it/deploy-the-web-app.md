@@ -27,8 +27,9 @@ the browser integration points differ:
 
 - Firebase Auth opens Google's Firebase-managed popup;
 - REST, avatars, and sockets are same-origin in production;
-- the game feed uses `wss://…?token=…`, because browser WebSocket upgrades
-  cannot set an `Authorization` header;
+- the game feed uses `wss://…?ticket=…`, with a short-lived ticket minted over
+  authenticated HTTPS because browser WebSocket upgrades cannot set an
+  `Authorization` header;
 - Firebase Messaging runs background delivery in a service worker;
 - server responses stay in Riverpod memory for the browser session and are
   fetched again after a reload. Firebase Auth and small user preferences retain

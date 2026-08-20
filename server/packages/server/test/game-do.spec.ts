@@ -453,6 +453,18 @@ describe("hibernating sockets", () => {
     ws.close();
   });
 
+  it("closes a socket that sends client application messages", async () => {
+    const { gameId, stub } = await startGame();
+    const { ws, messages } = await openSocket(gameId, stub, "user-a");
+    await vi.waitFor(() => expect(messages).toHaveLength(1));
+
+    const closed = new Promise<CloseEvent>((resolve) => {
+      ws.addEventListener("close", resolve, { once: true });
+    });
+    ws.send("commands belong on HTTP");
+    await expect(closed).resolves.toMatchObject({ code: 1008, reason: "Client messages are not supported" });
+  });
+
   it("never sends a seat's view to another seat's socket", async () => {
     const { gameId, stub } = await startGame();
     const a = await openSocket(gameId, stub, "user-a");

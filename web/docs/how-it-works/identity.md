@@ -8,13 +8,19 @@ description: Firebase ID tokens verified in-worker, guest accounts, usernames, a
 
 ## Firebase ID tokens, verified in-worker
 
-Every `/api/engine/*` request carries a Firebase ID token, either as `Authorization:
-Bearer <token>`, or as `?token=` on WebSocket upgrades (browsers can't set
-headers on upgrades). The Worker verifies it with jose against Google's
+Every ordinary `/api/engine/*` request carries a Firebase ID token as
+`Authorization: Bearer <token>`. A WebSocket first obtains a signed, 60-second,
+game-scoped ticket over that authenticated HTTPS channel and presents the ticket
+on the upgrade; the Firebase credential never enters a URL. The Worker verifies
+Firebase tokens with jose against Google's
 securetoken JWKS: RS256 pinned (no algorithm confusion), issuer and audience
 checked against the configured `FIREBASE_PROJECT_ID`, expiry enforced. A failure
 is a deliberately unspecific 401: signature, expiry, issuer, and audience
 failures all read the same to a client ("re-authenticate").
+
+Socket tickets are HS256 JWTs with fixed issuer and audience plus the game id,
+user id, expiry, and unique id. The upgrade verifies the signature, scope, and
+expiry before it derives the game's Durable Object.
 
 The verified claims carry the uid, `isAnonymous` (the `anonymous`
 sign-in-provider claim, which drives every guest gate), and the profile fields

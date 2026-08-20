@@ -9,8 +9,9 @@ description: Authorization enforced explicitly in application code. Token gating
 Authorization is enforced explicitly in application code rather than delegated
 to the database, so every check is visible at the route that depends on it.
 
-- **Every `/api/engine/*` route is token-gated**; the socket upgrade included
-  (its `?token=` is verified by the same middleware).
+- **Every `/api/engine/*` route is token-gated.** The socket upgrade instead
+  verifies the narrow `?ticket=` minted by the authenticated socket-ticket
+  endpoint, so long-lived Firebase credentials never enter a URL.
 - **Reads are uid-scoped**: "my games", ratings, rating history, and profile all
   filter to the caller. `getPlayers` returns only *public* identity (username,
   display name, avatar, anonymity), never email. A user's own email is returned
@@ -26,9 +27,10 @@ to the database, so every check is visible at the route that depends on it.
 - **Bot webhooks are HMAC-authenticated** with domain-bound, constant-time
   verification (see [Bots](./bots.md)); the client cannot forge a bot move and a
   bot cannot reflect a wake into an action.
-- **Tokens are RS256-pinned** and issuer/audience-checked; secrets
-  (`BOT_SIGNING_SECRET`, the `FIREBASE_*` service account) are read from env by
-  convention and absent by default (each feature is simply off when unconfigured).
+- **Firebase tokens are RS256-pinned** and issuer/audience-checked. Socket
+  tickets are HS256-signed with the required `SOCKET_TICKET_SECRET` and bind
+  both user and game. Other secrets (`BOT_SIGNING_SECRET`, the `FIREBASE_*`
+  service account) are read from env by convention.
 - **The Worker strips inbound `x-eigen-*` headers** before forwarding a socket
   upgrade to the DO and sets the principal itself, so a client cannot spoof its
   identity to the DO.

@@ -52,6 +52,8 @@ the required Firebase trio (`FIREBASE_PROJECT_ID`,
 `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`) from the same project used
 by the app. Set `WEB_APP_ORIGIN` for absolute web-notification links and as the
 automatically trusted browser origin for local or deliberately split hosting.
+Set the required `SOCKET_TICKET_SECRET` to at least 32 random characters; it
+signs only the narrow 60-second credentials used for socket upgrades.
 Set `clientOrigins` only to replace that convention with multiple or
 non-standard browser origins. Add `BOT_SIGNING_SECRET` to enable external bots.
 
@@ -135,6 +137,7 @@ abuse dampener, not a hard quota.
 ```bash
 pnpm exec wrangler secret put FIREBASE_CLIENT_EMAIL
 pnpm exec wrangler secret put FIREBASE_PRIVATE_KEY
+openssl rand -base64 32 | pnpm exec wrangler secret put SOCKET_TICKET_SECRET
 pnpm exec wrangler secret put BOT_SIGNING_SECRET      # if external bots are wanted
 pnpm deploy              # = wrangler d1 migrations apply --remote && wrangler deploy
 ```
@@ -149,6 +152,9 @@ schema. Secrets persist across deploys and do not need re-setting.
 - [ ] `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` stored as Worker
       secrets from that same project's service-account JSON. Missing values
       reject authenticated traffic.
+- [ ] `SOCKET_TICKET_SECRET` stored as a Worker secret with at least 32 random
+      characters. Missing or short values prevent socket tickets from being
+      minted or verified.
 - [ ] `WEB_APP_ORIGIN` is the exact deployed Flutter origin, and the same domain is
       authorized in Firebase Auth.
 - [ ] D1 database created and its `database_id` written into `wrangler.jsonc`.

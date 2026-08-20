@@ -21,6 +21,7 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
+import { gameExists } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
 import type { Command } from "../protocol.js";
@@ -55,6 +56,8 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
         204: { description: "The move was accepted and applied" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Malformed body" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Invalid signature" },
+        404: { content: { "application/json": { schema: errorShape } }, description: "Unknown game" },
+        413: { content: { "application/json": { schema: errorShape } }, description: "Request body too large" },
       },
     }),
     async (c) => {
@@ -71,6 +74,10 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
       const raw = await c.req.text();
       if (!(await verifyBotSignature(secret, claim.botId, "action", raw, signature))) {
         throw new HttpError(401, "Invalid signature");
+      }
+
+      if (!(await gameExists(ctx.d1(c.env), claim.gameId))) {
+        throw new HttpError(404, "Unknown game", "unknownGame");
       }
 
       // The DO resolves and enforces the named seat: it must belong to this bot

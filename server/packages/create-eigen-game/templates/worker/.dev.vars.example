@@ -2,3 +2,4 @@
 # Firebase Console > Project settings > Service accounts. Never commit .dev.vars.
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
+SOCKET_TICKET_SECRET=replace-with-at-least-32-random-characters

@@ -9,4 +9,5 @@
 
 FIREBASE_CLIENT_EMAIL=
 FIREBASE_PRIVATE_KEY=
+SOCKET_TICKET_SECRET=dev-only-socket-ticket-secret-32-characters
 BOT_SIGNING_SECRET=dev-only-secret
