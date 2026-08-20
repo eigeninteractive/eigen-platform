@@ -185,11 +185,25 @@ if (speakers.length === 0) {
 
 // The published resolution above checks what a newly scaffolded project gets
 // today. The rest of this gate must check what this monorepo is about to ship.
-// Root dependency overrides apply transitively, so both the Flutter shell and
-// the generated Dart transport are pinned to the same checkout.
+// Root dependency overrides apply transitively, so the Flutter shell, pure
+// client runtime, generator, and generated Dart transport are pinned to the
+// same checkout. Every unpublished workspace package must be named explicitly:
+// a path dependency does not make its own sibling path dependencies available
+// to the root solver.
 writeFileSync(
   resolve(appRoot, "pubspec_overrides.yaml"),
-  ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join("\n"),
+  [
+    "dependency_overrides:",
+    "  eigen_api:",
+    `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`,
+    "  eigen_client:",
+    `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_client"))}`,
+    "  eigen_codegen:",
+    `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`,
+    "  eigen_flutter:",
+    `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`,
+    "",
+  ].join("\n"),
 );
 shell("flutter", ["pub", "get"], appRoot);
 
