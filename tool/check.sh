@@ -82,6 +82,11 @@ run_server() {
   assert_no_drift "Dart API generation" server/clients/dart
 
   cd "$platform_root/server/clients/dart"
+  # Generation rewrites this package but does not install it. A developer may
+  # already have .dart_tool/package_config.json from an earlier run; a clean CI
+  # checkout never does. Make the shard self-contained rather than depending on
+  # ambient pub state.
+  dart pub get
   dart analyze
   dart pub publish --dry-run
 
