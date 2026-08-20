@@ -1,4 +1,4 @@
-import 'package:eigen_flutter/core/api/server_clock.dart';
+import 'package:eigen_client/src/api/server_clock.dart';
 
 /// Timing data passed to [GameRules.buildContent] for every active game.
 ///

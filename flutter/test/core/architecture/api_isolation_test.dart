@@ -31,49 +31,23 @@ final _serverAccess = <RegExp>[
   RegExp(r'\b(?:Games|Social|Me|Players|Bots|BotWebhook)Api\b'),
 ];
 
-/// This test is the layering boundary. Transport used to live in a separate
-/// pure-Dart package where the compiler enforced the split; folding it into
-/// `eigen_flutter` traded that for a rule checked here. Keeping the rule is
-/// what made the fold safe - without it the boundary is a convention nobody
-/// notices breaking.
+/// Flutter-side layering checks supplement the compiler-enforced
+/// `eigen_client` package boundary.
 void main() {
-  test('the public barrel exports types, never the API classes', () {
-    // A game app depends on `eigen_flutter`, not on `eigen_api`, so the barrel
-    // must re-export the wire *vocabulary* a game renders from, without handing
-    // apps the ability to call the server directly. A wholesale
-    // `export 'package:eigen_api/eigen_api.dart';` would do exactly that, which
-    // is why this checks for the `show` clause rather than merely for an export.
+  test('the Flutter barrel delegates its pure surface to eigen_client', () {
     final barrel = File('lib/eigen_flutter.dart').readAsStringSync();
 
     check(
-      because: 'the barrel must re-export the generated types a game needs',
+      because:
+          'game apps should receive the pure domain vocabulary transitively',
       barrel,
-    ).contains("export 'package:eigen_api/eigen_api.dart'");
+    ).contains("export 'package:eigen_client/eigen_client.dart';");
 
-    final leaked = RegExp(
-      r"export 'package:eigen_api/eigen_api\.dart';",
-    ).hasMatch(barrel);
     check(
       because:
-          'exporting eigen_api wholesale leaks GamesApi/SocialApi/... into every '
-          'app that depends on eigen_flutter; keep the explicit `show` list',
-      leaked,
-    ).isFalse();
-
-    for (final api in const [
-      'GamesApi',
-      'SocialApi',
-      'MeApi',
-      'PlayersApi',
-      'BotsApi',
-      'BotWebhookApi',
-      'EigenApi',
-    ]) {
-      check(
-        because: '$api must not be part of the public surface',
-        barrel,
-      ).not((b) => b.contains(api));
-    }
+          'the generated client remains an eigen_client implementation detail',
+      barrel,
+    ).not((source) => source.contains('package:eigen_api/'));
   });
 
   test('only the data layer talks to the server', () {

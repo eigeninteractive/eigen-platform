@@ -1,5 +1,7 @@
 import 'package:eigen_api/eigen_api.dart' show Friend, Player;
 import 'package:eigen_flutter/core/config/app_config.dart';
+import 'package:eigen_flutter/features/game/providers/game_providers.dart';
+import 'package:eigen_flutter/features/rating/providers/rating_providers.dart';
 import 'package:eigen_flutter/features/social/presentation/social_screen.dart';
 import 'package:eigen_flutter/features/social/providers/social_providers.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
@@ -63,6 +65,10 @@ void main() {
           friendsProvider.overrideWith(() => _EmptyFriends(friends)),
           incomingRequestsProvider.overrideWith((ref) async => const []),
           playerInfoCacheProvider(id: 'ada-id').overrideWith(_AdaPlayer.new),
+          playerRatingsProvider('ada-id').overrideWith((ref) async => const []),
+          playerPublicFinishedGamesProvider(
+            playerId: 'ada-id',
+          ).overrideWith((ref) async => const []),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),

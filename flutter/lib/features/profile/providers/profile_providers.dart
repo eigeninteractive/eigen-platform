@@ -1,8 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/avatar_url.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';

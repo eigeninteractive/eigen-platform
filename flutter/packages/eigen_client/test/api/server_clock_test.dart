@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
-import 'package:eigen_flutter/core/api/server_clock.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 Response<dynamic> _responseDated(String? date) => Response<dynamic>(
   requestOptions: RequestOptions(path: '/api/engine/lobby'),

@@ -1,5 +1,5 @@
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 /// Player ratings and the caller's own rating log.
 ///

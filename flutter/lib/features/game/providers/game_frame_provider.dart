@@ -1,9 +1,6 @@
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
-import 'package:eigen_flutter/core/game/game_frame.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/game/game_transition.dart';
-import 'package:eigen_flutter/core/game/timing_context.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 

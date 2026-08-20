@@ -13,17 +13,11 @@ import 'package:eigen_flutter/core/updates/required_update_button.dart';
 import 'package:eigen_flutter/core/utils/deep_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/game/game_session.dart';
-import 'package:eigen_flutter/core/game/players_context.dart';
-import 'package:eigen_flutter/core/game/my_seat.dart';
-import 'package:eigen_flutter/core/game/timing_context.dart';
 import 'package:eigen_flutter/core/notifications/game_notification_nudge.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_api/eigen_api.dart';
-
 import 'package:eigen_flutter/features/game/presentation/widgets/budget_clock.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/turn_countdown.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';

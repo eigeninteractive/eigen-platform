@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
+import 'package:eigen_client/src/api/engine_exception.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 /// Runs a generated API call, rethrowing a server-reported failure as the

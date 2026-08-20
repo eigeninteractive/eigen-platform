@@ -5,8 +5,7 @@ import 'dart:typed_data';
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/game_socket.dart';
-import 'package:eigen_flutter/core/game/game_session.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/features/game/data/game_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 

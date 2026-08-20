@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 /// Uploads the signed-in user's avatar.
 ///

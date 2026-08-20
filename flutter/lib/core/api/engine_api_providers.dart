@@ -1,10 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/auth_interceptor.dart';
-import 'package:eigen_flutter/core/api/game_socket.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/retry_policy.dart';
-import 'package:eigen_flutter/core/api/server_clock.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -37,7 +35,12 @@ Dio engineDio(Ref ref) {
       receiveTimeout: const Duration(seconds: 20),
     ),
   );
-  dio.interceptors.add(AuthInterceptor(FirebaseAuth.instance));
+  dio.interceptors.add(
+    BearerTokenInterceptor(() async {
+      final user = FirebaseAuth.instance.currentUser;
+      return user == null ? null : await user.getIdToken();
+    }),
+  );
   dio.interceptors.add(ref.watch(serverClockProvider).interceptor);
   // Transport-level retry for requests that are safe to repeat. Retries a
   // failed GET that carried no response (a dropped connection or timeout)
@@ -46,8 +49,8 @@ Dio engineDio(Ref ref) {
   // left untouched for
   // `engineCall` to map (a 429 included; its Retry-After is respected, not
   // auto-retried). The retry replays the whole interceptor chain, so
-  // `AuthInterceptor` re-attaches a fresh token each attempt; added last so it
-  // is the outermost handler.
+  // The bearer-token interceptor re-attaches a fresh token each attempt; added
+  // last so it is the outermost handler.
   dio.interceptors.add(
     RetryInterceptor(
       dio: dio,
@@ -97,5 +100,10 @@ BotsApi botsApi(Ref ref) => BotsApi(ref.watch(engineDioProvider));
 @Riverpod(keepAlive: true)
 GameSocket gameSocket(Ref ref) => GameSocket(
   baseUrl: ref.watch(appConfigProvider).engine.apiBaseUrl,
-  api: ref.watch(gamesApiProvider),
+  ticketProvider: (gameId) async {
+    final ticket = await engineData(
+      () => ref.read(gamesApiProvider).createSocketTicket(gameId: gameId),
+    );
+    return ticket.ticket;
+  },
 );

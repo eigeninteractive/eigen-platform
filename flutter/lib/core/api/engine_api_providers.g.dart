@@ -96,7 +96,7 @@ final class EngineDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$engineDioHash() => r'25953bd5fcee619f2ef5ec8996ad621faa9575dc';
+String _$engineDioHash() => r'7fd61bd18f4f2e60b73e8f03024671a576fc030c';
 
 /// Server time, tracked from the `Date` header of every engine response.
 ///
@@ -435,4 +435,4 @@ final class GameSocketProvider
   }
 }
 
-String _$gameSocketHash() => r'cdf9bb11586d06288a5f8954d79dae5f996edcc3';
+String _$gameSocketHash() => r'327708754788e1d421ad44fa76d6b95f2043017c';

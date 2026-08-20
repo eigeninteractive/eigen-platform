@@ -1,5 +1,5 @@
-import 'package:eigen_flutter/core/game/game_player.dart';
-import 'package:eigen_flutter/core/game/my_seat.dart';
+import 'package:eigen_client/src/domain/game_player.dart';
+import 'package:eigen_client/src/domain/my_seat.dart';
 
 /// Player identity data passed to [GameRules.buildContent].
 ///

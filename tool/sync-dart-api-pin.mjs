@@ -12,7 +12,10 @@ import { fileURLToPath } from "node:url";
 
 const platformRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const serverPackage = join(platformRoot, "server/packages/server/package.json");
-const flutterPubspec = join(platformRoot, "flutter/pubspec.yaml");
+const consumerPubspecs = [
+  join(platformRoot, "flutter/pubspec.yaml"),
+  join(platformRoot, "flutter/packages/eigen_client/pubspec.yaml"),
+];
 
 const { version } = JSON.parse(await readFile(serverPackage, "utf8"));
 const match = /^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(version);
@@ -20,10 +23,12 @@ if (!match) throw new Error(`Cannot derive a Dart compatibility line from server
 
 const [, major, minor] = match;
 const lowerBound = major === "0" ? `0.${minor}.0` : `${major}.0.0`;
-const pubspec = await readFile(flutterPubspec, "utf8");
 const dependency = /^( {2}eigen_api:)\s*\S+\s*$/m;
-if (!dependency.test(pubspec)) throw new Error("flutter/pubspec.yaml must declare eigen_api as a one-line dependency.");
-
-const next = pubspec.replace(dependency, `$1 ^${lowerBound}`);
-await writeFile(flutterPubspec, next);
-console.log(`Pinned eigen_flutter to eigen_api ^${lowerBound} for server ${version}.`);
+for (const pubspecPath of consumerPubspecs) {
+  const pubspec = await readFile(pubspecPath, "utf8");
+  if (!dependency.test(pubspec)) {
+    throw new Error(`${pubspecPath} must declare eigen_api as a one-line dependency.`);
+  }
+  await writeFile(pubspecPath, pubspec.replace(dependency, `$1 ^${lowerBound}`));
+}
+console.log(`Pinned Dart consumers to eigen_api ^${lowerBound} for server ${version}.`);

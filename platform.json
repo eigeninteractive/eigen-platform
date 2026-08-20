@@ -24,6 +24,7 @@
       "importCommit": "461917323107f23a74f55ebb4f64fe1555990176",
       "packages": {
         "eigen_flutter": "0.7.0",
+        "eigen_client": "0.1.0",
         "eigen_codegen": "0.1.0"
       }
     },

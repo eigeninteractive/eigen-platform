@@ -1,4 +1,4 @@
-import 'package:eigen_flutter/core/game/game_frame.dart';
+import 'package:eigen_client/src/domain/game_frame.dart';
 
 /// The step from one frame to the next: the unit a game animates.
 ///

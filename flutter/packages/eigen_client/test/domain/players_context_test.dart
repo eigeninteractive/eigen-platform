@@ -1,9 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:eigen_flutter/core/game/game_player.dart';
-import 'package:eigen_flutter/core/game/my_seat.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/game/players_context.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 final _alice = GamePlayer(
   playerIndex: 0,

@@ -1,7 +1,6 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:flutter_test/flutter_test.dart';
 

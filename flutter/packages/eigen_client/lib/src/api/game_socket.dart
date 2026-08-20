@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Builds the browser-compatible authenticated socket URI.
@@ -64,13 +63,13 @@ typedef GameSocketEvent = Session;
 class GameSocket {
   GameSocket({
     required this._baseUrl,
-    required this._api,
+    required this._ticketProvider,
     this._initialBackoff = const Duration(milliseconds: 500),
     this._maxBackoff = const Duration(seconds: 30),
   });
 
   final String _baseUrl;
-  final GamesApi _api;
+  final Future<String> Function(String gameId) _ticketProvider;
   final Duration _initialBackoff;
   final Duration _maxBackoff;
 
@@ -93,10 +92,8 @@ class GameSocket {
     while (true) {
       WebSocketChannel? channel;
       try {
-        final ticket = await engineData(
-          () => _api.createSocketTicket(gameId: gameId),
-        );
-        channel = WebSocketChannel.connect(_socketUri(gameId, ticket.ticket));
+        final ticket = await _ticketProvider(gameId);
+        channel = WebSocketChannel.connect(_socketUri(gameId, ticket));
         await channel.ready;
         backoff = _initialBackoff;
 

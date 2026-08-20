@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
-import 'package:eigen_flutter/core/game/game_session.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/features/auth/data/models/auth_user.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/presentation/screens/game_screen.dart';

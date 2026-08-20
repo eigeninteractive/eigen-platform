@@ -38,7 +38,10 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLIENT = "server/clients/dart/pubspec.yaml";
-const SHELL = "flutter/pubspec.yaml";
+const CONSUMERS = [
+  "flutter/pubspec.yaml",
+  "flutter/packages/eigen_client/pubspec.yaml",
+];
 
 async function read(path) {
   return await readFile(join(root, path), "utf8");
@@ -64,50 +67,39 @@ const client = parseVersion(clientText[1], CLIENT);
 // reaches the caret check below and is refused for the right reason rather than
 // looking like a missing dependency. An empty value means a nested block
 // (`hosted:`, `path:`), which this script genuinely cannot read.
-const declared = /^\s{2}eigen_api:\s*(\S.*?)\s*$/m.exec(await read(SHELL));
-if (!declared) {
-  fail(`${SHELL} declares no \`eigen_api\` dependency, or declares it as a block this script cannot read.`);
-}
-const constraint = declared[1].replace(/^["']|["']$/g, "");
-
 function fail(...lines) {
   for (const text of lines) console.error(text);
   process.exit(1);
 }
 
-if (!constraint.startsWith("^")) {
-  fail(
-    `✗ ${SHELL} pins eigen_api as "${constraint}".`,
-    "",
-    `  Expected a caret range on the generated client's line. See the header of`,
-    `  tool/check-dart-pin.mjs for why a wider range is refused rather than`,
-    `  accepted, and relax this check deliberately if the shell is meant to`,
-    "  support more than one engine line.",
-  );
+for (const consumer of CONSUMERS) {
+  const declared = /^\s{2}eigen_api:\s*(\S.*?)\s*$/m.exec(await read(consumer));
+  if (!declared) {
+    fail(`${consumer} declares no \`eigen_api\` dependency, or declares it as a block this script cannot read.`);
+  }
+  const constraint = declared[1].replace(/^["']|["']$/g, "");
+
+  if (!constraint.startsWith("^")) {
+    fail(
+      `✗ ${consumer} pins eigen_api as "${constraint}".`,
+      "",
+      "  Expected a caret range on the generated client's compatibility line.",
+    );
+  }
+
+  const pinned = parseVersion(constraint.slice(1), consumer);
+  if (line(pinned) !== line(client)) {
+    fail(
+      `✗ ${consumer} pins eigen_api "${constraint}", but the generated client is ${client.major}.${client.minor}.${client.patch} (line ${line(client)}.x).`,
+      "",
+      `  Raise the pin to "^${client.major}.${client.minor}.0" once that client is published.`,
+    );
+  }
+  if (pinned.patch > client.patch) {
+    fail(
+      `✗ ${consumer} pins eigen_api "${constraint}", which is above the generated client ${client.major}.${client.minor}.${client.patch}.`,
+    );
+  }
+
+  console.log(`✓ ${consumer} eigen_api pin "${constraint}" admits ${client.major}.${client.minor}.${client.patch}.`);
 }
-
-const pinned = parseVersion(constraint.slice(1), SHELL);
-
-if (line(pinned) !== line(client)) {
-  fail(
-    `✗ ${SHELL} pins eigen_api "${constraint}", but the generated client is ${client.major}.${client.minor}.${client.patch} (line ${line(client)}.x).`,
-    "",
-    "  The shell cannot resolve the client this repository generates, so the next",
-    "  publish would fail — or worse, succeed against a client its own source",
-    "  cannot compile against. Every local check hides this, because",
-    "  tool/link-local-dart.sh overrides the dependency with a path.",
-    "",
-    `  Raise the pin to "^${client.major}.${client.minor}.0" once that client is published.`,
-  );
-}
-
-if (pinned.patch > client.patch) {
-  fail(
-    `✗ ${SHELL} pins eigen_api "${constraint}", which is above the generated client ${client.major}.${client.minor}.${client.patch}.`,
-    "",
-    "  The lower bound has run ahead of the client this repository generates, so",
-    "  the range admits no version that exists here.",
-  );
-}
-
-console.log(`✓ eigen_api pin "${constraint}" admits the generated client ${client.major}.${client.minor}.${client.patch}.`);

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:eigen_flutter/core/game/game_creation_spec.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
 
 /// Timing values resolved from a [TimingSelector], ready for the create RPCs.

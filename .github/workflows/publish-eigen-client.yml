@@ -1,0 +1,64 @@
+name: Publish eigen_client
+
+on:
+  push:
+    tags: ["eigen_client-v*"]
+
+concurrency:
+  group: publish-eigen-client
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  gate:
+    name: Checks
+    uses: ./.github/workflows/checks.yml
+    permissions:
+      contents: read
+
+  publish:
+    name: Publish to pub.dev
+    needs: gate
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: flutter/packages/eigen_client
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Verify tag and package version
+        run: |
+          tag="${GITHUB_REF_NAME#eigen_client-v}"
+          package=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          [ "$tag" = "$package" ] || {
+            echo "::error::tag eigen_client-v$tag does not match pubspec version $package"
+            exit 1
+          }
+
+      - name: Check whether the version is already published
+        id: published
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          if curl -sf --retry 3 https://pub.dev/api/packages/eigen_client \
+               | jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::eigen_client $v is already published."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish dry run
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --dry-run
+
+      - name: Publish
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --force

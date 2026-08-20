@@ -1,5 +1,4 @@
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/game/game_creation_spec.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/features/game/presentation/widgets/play_vs_bot_dialog.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';

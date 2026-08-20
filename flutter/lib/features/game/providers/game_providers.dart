@@ -1,14 +1,9 @@
 import 'dart:async';
 
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
-import 'package:eigen_flutter/core/game/game_creation_spec.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/game/game_player.dart';
-import 'package:eigen_flutter/core/game/game_session.dart';
-import 'package:eigen_flutter/core/game/my_seat.dart';
-import 'package:eigen_flutter/core/game/players_context.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/data/game_repository.dart';

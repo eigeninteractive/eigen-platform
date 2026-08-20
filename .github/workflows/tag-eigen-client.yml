@@ -1,0 +1,56 @@
+name: Tag eigen_client
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [flutter/packages/eigen_client/pubspec.yaml]
+
+concurrency:
+  group: tag-eigen-client
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  tag:
+    name: Tag an existing pub.dev release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Tag if this version is published
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' flutter/packages/eigen_client/pubspec.yaml)
+          tag="eigen_client-v$v"
+          [ -n "$v" ] || { echo "::error::eigen_client pubspec has no version"; exit 1; }
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::notice::$tag already exists."
+            exit 0
+          fi
+
+          if ! published=$(curl -sf --retry 3 https://pub.dev/api/packages/eigen_client); then
+            echo "::notice::eigen_client must be published manually once before pub.dev can trust GitHub OIDC; no tag was created."
+            exit 0
+          fi
+          if ! jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null <<<"$published"; then
+            echo "::notice::eigen_client $v is not published yet; no tag was created."
+            exit 0
+          fi
+
+          git tag "$tag"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$tag"

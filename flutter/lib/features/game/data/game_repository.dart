@@ -1,10 +1,7 @@
 import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
-import 'package:eigen_flutter/core/api/games_page.dart';
-import 'package:eigen_flutter/core/api/game_socket.dart';
-import 'package:eigen_flutter/core/game/game_session.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 /// Number of games fetched per lobby page.
 const lobbyPageSize = 50;

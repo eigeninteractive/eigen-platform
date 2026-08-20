@@ -3,14 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
-import 'package:eigen_flutter/core/game/game_creation_spec.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 
 import 'package:eigen_flutter/features/game/presentation/widgets/timing_selector.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/shared/widgets/adaptive_single_choice.dart';
-import 'package:eigen_api/eigen_api.dart';
 
 /// Dialog for creating a new game.
 ///

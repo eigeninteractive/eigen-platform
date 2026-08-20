@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:eigen_flutter/core/api/avatar_url.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 const _base = 'https://api.example.com';
 

@@ -28,57 +28,18 @@
 /// for end-to-end TypeScript and Dart examples.
 library eigen_flutter;
 
-/// The wire types a game renders from.
+/// The pure Dart client and wire vocabulary a game renders from.
 ///
-/// Re-exported deliberately: they are generated, but they *are* this engine's
-/// domain vocabulary; there are no hand-written mirrors to hide them behind,
-/// and inventing some would be pure transcription. A game app must be able to
-/// name a [GameStatus] or an [OutcomeResultEnum] without depending on
-/// `eigen_api` itself, which is a build artifact that `tool/generate_api.sh`
-/// deletes and rewrites wholesale.
-///
-/// Listed explicitly rather than exported wholesale so the generated `*Api`
-/// classes and their Dio plumbing stay out of an app's namespace: naming a type
-/// is part of the contract, calling the server is not.
-export 'package:eigen_api/eigen_api.dart'
-    show
-        Bot,
-        ErrorCode,
-        Frame,
-        Friend,
-        FriendRequest,
-        GameAccess,
-        GameStatus,
-        GameSummary,
-        Outcome,
-        OutcomeResultEnum,
-        Player,
-        Profile,
-        Rating,
-        RatingDelta,
-        RatingIdentity,
-        Seat,
-        SeatTypeEnum,
-        Session;
+/// `eigen_client` deliberately exports models and client-domain types without
+/// the generated `*Api` classes, so Flutter presentation can expose the useful
+/// vocabulary without exposing raw HTTP capabilities.
+export 'package:eigen_client/eigen_client.dart';
 
 export 'app_runner.dart' show runEngineApp, MyApp;
 
-/// Server time. Exported because [TimingContext.clock] is typed as it, so
-/// without this a game could read the field but never name it, which is what
-/// building a [GameContentContext] in a widget test requires.
-export 'core/api/server_clock.dart' show ServerClock;
 export 'core/config/app_config.dart'
     show AppConfig, Branding, EngineConfig, appConfigProvider;
-export 'core/errors/engine_exception.dart';
-export 'core/game/game_creation_spec.dart';
-export 'core/game/game_frame.dart';
-export 'core/game/game_session.dart';
-export 'core/game/game_transition.dart';
 export 'core/game/game_module.dart';
-export 'core/game/game_player.dart';
-export 'core/game/my_seat.dart';
-export 'core/game/players_context.dart';
-export 'core/game/timing_context.dart';
 export 'features/game/providers/game_providers.dart'
     show currentGameModuleProvider;
 export 'features/game/presentation/widgets/timer_builders.dart'

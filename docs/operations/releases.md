@@ -14,13 +14,15 @@ directly; no npm or pub.dev publishing credential is stored in GitHub.
 | `@eigeninteractive/testkit` | `server/packages/testkit` | npm | fixed engine group |
 | `create-eigen-game` | `server/packages/create-eigen-game` | npm | independent |
 | `eigen_api` | `server/clients/dart` | pub.dev | follows the engine group |
+| `eigen_client` | `flutter/packages/eigen_client` | pub.dev | independent |
+| `eigen_codegen` | `flutter/packages/eigen_codegen` | pub.dev | independent |
 | `eigen_flutter` | `flutter` | pub.dev | independent |
 | Implementor documentation | `web` | Cloudflare | continuous from `main` |
 
 The four engine npm packages move together because their public types and
 runtime are tightly coupled. `eigen_api` carries the same version as the engine
-whose HTTP contract generated it. The scaffolder and Flutter package move only
-when their own user-visible contents change.
+whose HTTP contract generated it. The scaffolder and the three hand-written
+Dart packages move only when their own user-visible contents change.
 
 ## Safety model
 
@@ -45,17 +47,17 @@ when their own user-visible contents change.
   A no-op main push therefore finishes quickly. Changesets then resolves
   workspace ranges and publishes only missing versions, so a retry after a
   partial upload is safe.
-- Pub.dev tags are package-namespaced because two Dart packages share this
+- Pub.dev tags are package-namespaced because multiple Dart packages share this
   repository.
 - The `eigen_api` tag guard polls npm rather than asking once. It runs seconds
   after the publish step wrote to the same registry, and npm's read path is
   eventually consistent, so both the 0.5.0 and 0.5.1 releases failed there with a
   404 for a version that was already live. It still refuses to tag a version npm
   never accepted; it waits up to two minutes first.
-- The `manifest` shard asserts that `flutter/pubspec.yaml`'s `eigen_api` range is
-  a caret on the generated client's line. Nothing else can: `tool/check.sh` links
-  the local client first, so a publish is otherwise the first thing to resolve the
-  declared range. See `tool/check-dart-pin.mjs`.
+- The `manifest` shard asserts that every direct `eigen_api` consumer uses a
+  caret on the generated client's line. Nothing else can: `tool/check.sh` links
+  the local client first, so a publish is otherwise the first thing to resolve
+  the declared range. See `tool/check-dart-pin.mjs`.
 
 ## Required GitHub configuration
 
@@ -130,9 +132,30 @@ Tag pattern: eigen_flutter-v{{version}}
 Environment: pub.dev (required)
 ```
 
+`eigen_client`:
+
+```text
+Repository:  eigeninteractive/eigen-platform
+Tag pattern: eigen_client-v{{version}}
+Environment: pub.dev (required)
+```
+
+`eigen_codegen`:
+
+```text
+Repository:  eigeninteractive/eigen-platform
+Tag pattern: eigen_codegen-v{{version}}
+Environment: pub.dev (required)
+```
+
 Pub.dev requires a tag-triggered GitHub Actions identity and the version in the
-tag must match `pubspec.yaml`. Separate patterns are mandatory here because the
-repository publishes two Dart packages.
+tag must match `pubspec.yaml`. Separate patterns are mandatory for packages
+published from the same repository.
+
+Pub.dev cannot establish trusted publishing for a package that does not exist
+yet. Publish version `0.1.0` of each new package interactively once, transfer it
+to the EigenInteractive verified publisher if applicable, then configure the
+automated-publishing form above. All later versions use GitHub OIDC.
 
 ### One-time Flutter comparison anchor
 
@@ -224,6 +247,20 @@ dated changelog, then merge it. **Tag eigen_flutter** creates
 `eigen_flutter-vX.Y.Z`; **Publish eigen_flutter** reruns the platform gate,
 resolves dependencies without the monorepo override, and publishes
 automatically.
+
+## eigen_client and eigen_codegen release flow
+
+Both packages use independent versions and namespaced tags. After their first
+interactive publication, change the package version and changelog together,
+merge to `main`, then run the matching **Tag eigen_client** or
+**Tag eigen_codegen** workflow. The tag workflow creates a tag only when that
+exact version already exists on pub.dev; for a future automated release, create
+the namespaced tag at the reviewed release commit and the matching **Publish**
+workflow gates and uploads it through OIDC.
+
+`eigen_client` must be published before any `eigen_flutter` version that
+depends on its new line. `eigen_codegen` is dev-only and does not affect runtime
+resolution.
 
 After publication it dispatches **Sync compatibility table**, which reads the
 registry state, opens a generated PR if necessary, and enables auto-merge after

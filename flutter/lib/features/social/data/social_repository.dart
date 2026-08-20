@@ -1,6 +1,5 @@
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
-import 'package:eigen_flutter/core/api/games_page.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 /// The friend graph: friends, pending requests, blocks, and user search.
 ///

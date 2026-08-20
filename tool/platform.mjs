@@ -24,7 +24,7 @@ async function docsLine() {
 }
 
 async function buildManifest() {
-  const [rules, kernel, server, testkit, scaffolder, dartApi, flutter, codegen, docs] =
+  const [rules, kernel, server, testkit, scaffolder, dartApi, flutter, client, codegen, docs] =
     await Promise.all([
       json("server/packages/rules/package.json"),
       json("server/packages/kernel/package.json"),
@@ -33,6 +33,7 @@ async function buildManifest() {
       json("server/packages/create-eigen-game/package.json"),
       yamlVersion("server/clients/dart/pubspec.yaml"),
       yamlVersion("flutter/pubspec.yaml"),
+      yamlVersion("flutter/packages/eigen_client/pubspec.yaml"),
       yamlVersion("flutter/packages/eigen_codegen/pubspec.yaml"),
       docsLine(),
     ]);
@@ -65,6 +66,7 @@ async function buildManifest() {
         importCommit: "461917323107f23a74f55ebb4f64fe1555990176",
         packages: {
           eigen_flutter: flutter,
+          eigen_client: client,
           eigen_codegen: codegen,
         },
       },

@@ -1,6 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:eigen_flutter/core/game/game_creation_spec.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('PerActionConfig', () {

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 /// Converts a raw exception into a message suitable for display in a snackbar
 /// or inline form error.

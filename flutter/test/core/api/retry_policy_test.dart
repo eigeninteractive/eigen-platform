@@ -1,7 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
 import 'package:eigen_flutter/core/api/retry_policy.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 DioException _transport(String method, DioExceptionType type) => DioException(

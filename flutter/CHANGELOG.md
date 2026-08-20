@@ -16,6 +16,9 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
 ### Added
+- The protocol-facing domain model, authenticated transport seams, server
+  clock, and live socket now live in the independent pure-Dart `eigen_client`
+  package. `eigen_flutter` re-exports that surface for game apps.
 - WebSocket connections authenticate with a fresh, short-lived, game-scoped
   ticket obtained over authenticated HTTPS. Firebase ID tokens no longer appear
   in WebSocket URLs.

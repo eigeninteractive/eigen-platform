@@ -6,6 +6,7 @@
 .flutter-plugins-dependencies
 .packages
 build/
+packages/
 pubspec.lock
 
 .idea/

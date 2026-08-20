@@ -1,9 +1,7 @@
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/core/api/engine_call.dart';
-import 'package:eigen_flutter/core/errors/engine_exception.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 /// A [DioException] as Dio raises it for a non-2xx response.
 DioException _serverSaidNo(int status, Object? body) {
