@@ -14,8 +14,8 @@ directly; no npm or pub.dev publishing credential is stored in GitHub.
 | `@eigeninteractive/testkit` | `server/packages/testkit` | npm | fixed engine group |
 | `create-eigen-game` | `server/packages/create-eigen-game` | npm | independent |
 | `eigen_api` | `server/clients/dart` | pub.dev | follows the engine group |
-| `eigen_client` | `flutter/packages/eigen_client` | pub.dev | independent |
-| `eigen_codegen` | `flutter/packages/eigen_codegen` | pub.dev | independent |
+| `eigen_client` | `dart/eigen_client` | pub.dev | independent |
+| `eigen_codegen` | `dart/eigen_codegen` | pub.dev | independent |
 | `eigen_flutter` | `flutter` | pub.dev | independent |
 | Implementor documentation | `web` | Cloudflare | continuous from `main` |
 

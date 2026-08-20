@@ -14,7 +14,7 @@ const platformRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const serverPackage = join(platformRoot, "server/packages/server/package.json");
 const consumerPubspecs = [
   join(platformRoot, "flutter/pubspec.yaml"),
-  join(platformRoot, "flutter/packages/eigen_client/pubspec.yaml"),
+  join(platformRoot, "dart/eigen_client/pubspec.yaml"),
 ];
 
 const { version } = JSON.parse(await readFile(serverPackage, "utf8"));

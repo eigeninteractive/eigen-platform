@@ -80,7 +80,7 @@ const { root } = scaffoldGame({
     // above. Put the local override in place before `pub add` asks the solver
     // for it; the emitted caret range is still asserted by scaffold unit tests.
     if (command === "flutter" && args.includes(`dev:eigen_codegen@^0.1.0`)) {
-      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter/packages/eigen_codegen"))}`, ""].join("\n"));
+      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, ""].join("\n"));
     }
     shell(command, args, cwd);
   },
@@ -189,9 +189,7 @@ if (speakers.length === 0) {
 // the generated Dart transport are pinned to the same checkout.
 writeFileSync(
   resolve(appRoot, "pubspec_overrides.yaml"),
-  ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter/packages/eigen_codegen"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join(
-    "\n",
-  ),
+  ["dependency_overrides:", "  eigen_api:", `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`, "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, "  eigen_flutter:", `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`, ""].join("\n"),
 );
 shell("flutter", ["pub", "get"], appRoot);
 

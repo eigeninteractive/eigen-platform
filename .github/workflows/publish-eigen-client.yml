@@ -28,7 +28,7 @@ jobs:
       id-token: write
     defaults:
       run:
-        working-directory: flutter/packages/eigen_client
+        working-directory: dart/eigen_client
     steps:
       - uses: actions/checkout@v7
 

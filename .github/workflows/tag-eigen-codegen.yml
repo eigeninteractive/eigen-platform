@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [flutter/packages/eigen_codegen/pubspec.yaml]
+    paths: [dart/eigen_codegen/pubspec.yaml]
 
 concurrency:
   group: tag-eigen-codegen
@@ -34,7 +34,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          v=$(awk '/^version:/ { print $2; exit }' flutter/packages/eigen_codegen/pubspec.yaml)
+          v=$(awk '/^version:/ { print $2; exit }' dart/eigen_codegen/pubspec.yaml)
           tag="eigen_codegen-v$v"
           [ -n "$v" ] || { echo "::error::eigen_codegen pubspec has no version"; exit 1; }
 

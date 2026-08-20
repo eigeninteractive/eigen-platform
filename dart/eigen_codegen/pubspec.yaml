@@ -2,7 +2,7 @@ name: eigen_codegen
 description: Development-only Dart payload generator for EigenInteractive game contracts.
 version: 0.1.0
 homepage: https://eigeninteractive.com
-repository: https://github.com/eigeninteractive/eigen-platform/tree/main/flutter/packages/eigen_codegen
+repository: https://github.com/eigeninteractive/eigen-platform/tree/main/dart/eigen_codegen
 documentation: https://eigeninteractive.com/docs/build-a-game/schemas
 issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 

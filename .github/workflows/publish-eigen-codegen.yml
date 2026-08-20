@@ -28,7 +28,7 @@ jobs:
       id-token: write
     defaults:
       run:
-        working-directory: flutter/packages/eigen_codegen
+        working-directory: dart/eigen_codegen
     steps:
       - uses: actions/checkout@v7
 

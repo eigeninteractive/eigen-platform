@@ -40,7 +40,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLIENT = "server/clients/dart/pubspec.yaml";
 const CONSUMERS = [
   "flutter/pubspec.yaml",
-  "flutter/packages/eigen_client/pubspec.yaml",
+  "dart/eigen_client/pubspec.yaml",
 ];
 
 async function read(path) {

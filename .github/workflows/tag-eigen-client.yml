@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: [flutter/packages/eigen_client/pubspec.yaml]
+    paths: [dart/eigen_client/pubspec.yaml]
 
 concurrency:
   group: tag-eigen-client
@@ -34,7 +34,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          v=$(awk '/^version:/ { print $2; exit }' flutter/packages/eigen_client/pubspec.yaml)
+          v=$(awk '/^version:/ { print $2; exit }' dart/eigen_client/pubspec.yaml)
           tag="eigen_client-v$v"
           [ -n "$v" ] || { echo "::error::eigen_client pubspec has no version"; exit 1; }
 

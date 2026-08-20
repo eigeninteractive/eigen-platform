@@ -104,7 +104,7 @@ run_flutter() {
   check_changelog_links
   "$platform_root/tool/link-local-dart.sh"
 
-  cd "$platform_root/flutter/packages/eigen_client"
+  cd "$platform_root/dart/eigen_client"
   dart pub get
   dart format --output=none --set-exit-if-changed .
   dart analyze
@@ -112,7 +112,7 @@ run_flutter() {
   dart test --platform chrome test/api/game_socket_test.dart
   dart pub publish --dry-run
 
-  cd "$platform_root/flutter/packages/eigen_codegen"
+  cd "$platform_root/dart/eigen_codegen"
   dart pub get
   dart format --output=none --set-exit-if-changed .
   dart analyze

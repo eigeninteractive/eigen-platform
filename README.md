@@ -16,7 +16,8 @@ being simplified before real applications or users depend on it.
 | Path | Responsibility |
 | --- | --- |
 | [`server/`](server/) | Rules SDK, authoritative kernel, Cloudflare Worker server, testkit, scaffolder, and generated Dart HTTP API |
-| [`flutter/`](flutter/) | Pure Dart client core, Flutter runtime and UI shell, Firebase adapter, and example app |
+| [`dart/`](dart/) | Pure Dart client runtime and development-only contract generator |
+| [`flutter/`](flutter/) | Flutter runtime and UI shell, Firebase integration, and example app |
 | [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
 | [`docs/architecture/`](docs/architecture/) | Accepted vNext decisions and execution status |
 | [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
@@ -36,6 +37,8 @@ component's dependencies from its own dependency root:
 ```bash
 (cd server && pnpm install --frozen-lockfile)
 (cd web && pnpm install --frozen-lockfile)
+(cd dart/eigen_client && dart pub get)
+(cd dart/eigen_codegen && dart pub get)
 (cd flutter && flutter pub get && flutter pub get --directory example)
 ```
 
