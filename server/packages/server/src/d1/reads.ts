@@ -137,6 +137,14 @@ export async function readGame(d1: D1Database, gameId: string): Promise<GameWith
   return (await withRatings(d1, [{ ...row, participants: seatRows }]))[0];
 }
 
+/** Cheap public-command guard: reject arbitrary ids before deriving and waking
+ * a Durable Object. Games are retained indefinitely, so existence is monotonic
+ * and this single indexed lookup cannot race with a later deletion. */
+export async function gameExists(d1: D1Database, gameId: string): Promise<boolean> {
+  const row = await orm(d1).select({ id: games.id }).from(games).where(eq(games.id, gameId)).get();
+  return row !== undefined;
+}
+
 /** Join-by-code resolution (worker policy). */
 export async function readGameByCode(d1: D1Database, shortCode: string): Promise<GameWithRoster | undefined> {
   const db = orm(d1);

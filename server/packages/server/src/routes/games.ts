@@ -12,7 +12,7 @@ import { issueSocketTicket, verifySocketTicket } from "../auth/socket-ticket.js"
 import { type CreateGameInput, createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
 import { isShortCodeCollision } from "../d1/errors.js";
-import { type BotRow, type GameWithRoster, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
+import { type BotRow, type GameWithRoster, gameExists, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
@@ -224,6 +224,15 @@ async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promis
   const game = await readGame(ctx.d1(env), gameId);
   if (game === undefined) throw new HttpError(404, "Unknown game", "unknownGame");
   return game;
+}
+
+/** Commands need the Durable Object only after D1 proves this retained game
+ * exists. `idFromName()` accepts every string, so skipping this guard lets an
+ * authenticated typo or probe materialize an empty SQLite-backed object. */
+async function assertGameExists(ctx: RouteContext, env: unknown, gameId: string): Promise<void> {
+  if (!(await gameExists(ctx.d1(env), gameId))) {
+    throw new HttpError(404, "Unknown game", "unknownGame");
+  }
 }
 
 // ── Short codes (D1 UNIQUE + retry loop) ────────────────────────────────
@@ -511,6 +520,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
+      await assertGameExists(ctx, c.env, gameId);
       const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "leave", gameId));
       return c.json(commandResult(result), 200);
     },
@@ -527,6 +537,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
+      await assertGameExists(ctx, c.env, gameId);
       const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "cancel", gameId));
       return c.json(commandResult(result), 200);
     },
@@ -569,6 +580,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
+      await assertGameExists(ctx, c.env, gameId);
       const result = await ctx.stub(c.env, gameId).handle(mint(c.var.auth, "start", gameId));
       return c.json(commandResult(result), 200);
     },
@@ -590,6 +602,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const { gameId } = c.req.valid("param");
+      await assertGameExists(ctx, c.env, gameId);
       const cmd: Command = {
         kind: "action",
         gameId,
@@ -614,6 +627,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const body = c.req.valid("json");
       const { gameId } = c.req.valid("param");
+      await assertGameExists(ctx, c.env, gameId);
       const cmd: Command = {
         kind: "lifecycle",
         gameId,

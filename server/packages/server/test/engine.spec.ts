@@ -6,6 +6,7 @@
  * read routes.
  */
 
+import { listDurableObjectIds } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -245,9 +246,11 @@ describe("waiting room", () => {
 
   it("answers 404 for a command against a game that does not exist", async () => {
     const u = makeUsers();
+    const before = (await listDurableObjectIds(env.GAME_DO)).map(String).sort();
     const res = await api(u.a, "POST", `/games/${crypto.randomUUID()}/action`, { seat: 0, data: { add: 1 }, expectedVersion: 0 });
     expect(res.status).toBe(404);
     expect(((await res.json()) as { code: string }).code).toBe("unknownGame");
+    expect((await listDurableObjectIds(env.GAME_DO)).map(String).sort()).toEqual(before);
   });
 
   it("start is creator-only and needs ready", async () => {

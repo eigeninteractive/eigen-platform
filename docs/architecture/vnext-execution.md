@@ -36,6 +36,7 @@ compatibility and command machinery from earlier phases.
 | Mutation model | Generic receipts and public `Idempotency-Key` requirements are removed. Lifecycle and membership operations rely on their operation-specific idempotence. |
 | Creation policy | Versioned server rules validate player limits and timing options after parsing config. Flutter may mirror these rules for responsive UX. |
 | Socket authentication | Authenticated HTTP mints a signed 60-second game ticket; upgrade verification happens before Durable Object routing. |
+| Unknown game routing | Public commands and session reads prove the retained D1 row exists before deriving or waking a Durable Object. |
 | TypeScript packaging | Public packages use one idiomatic `tsdown` build for JavaScript, declarations, JavaScript source maps, and declaration maps. Sources ship for editor navigation. |
 | Dart generation | `eigen_codegen` is a separate pure-Dart development package. Its portable schema compiler enforces supported constraints and rejects unknown semantics instead of silently dropping them. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
@@ -44,12 +45,11 @@ compatibility and command machinery from earlier phases.
 
 1. Complete the Dart dependency split described by RFC 0009:
    `eigen_client`, `eigen_flutter`, `eigen_firebase`, and `eigen_shell`.
-2. Reject an unknown game ID in D1 before allocating or waking a Durable Object.
-3. Add basic HTTP body and WebSocket frame size limits. Broader resource budgets
+2. Add basic HTTP body and WebSocket frame size limits. Broader resource budgets
    remain deferred until usage justifies them.
-4. Finish generated API/docs synchronization, release notes, and publish-order
+3. Finish generated API/docs synchronization, release notes, and publish-order
    automation for the new package graph.
-5. Run every workspace shard and both scaffold targets from a clean checkout,
+4. Run every workspace shard and both scaffold targets from a clean checkout,
    then release the breaking pre-1.0 package lines in dependency order.
 
 ## Deliberately deferred

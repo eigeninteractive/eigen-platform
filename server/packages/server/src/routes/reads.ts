@@ -6,7 +6,7 @@
 
 import { createRoute, z } from "@hono/zod-openapi";
 import { decodeOptionalCursor } from "../cursor.js";
-import { clampIds, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
+import { clampIds, gameExists, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
@@ -89,6 +89,9 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const { gameId } = c.req.valid("param");
+      if (!(await gameExists(ctx.d1(c.env), gameId))) {
+        throw new HttpError(404, "Unknown game", "unknownGame");
+      }
       const session = await ctx.stub(c.env, gameId).session(gameId, c.var.auth.user.id);
       if (session === null) throw new HttpError(404, "Unknown game", "unknownGame");
       return c.json(session, 200);
