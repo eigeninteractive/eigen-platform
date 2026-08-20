@@ -26,14 +26,14 @@ Dart packages move only when their own user-visible contents change.
 
 ## Safety model
 
-- Pull requests, direct pushes to `main`, and every publish run call
-  `.github/workflows/checks.yml`, the exact same whole-platform gate. Its five
-  validation shards run concurrently; the final `check` job succeeds only when
-  all five do.
+- Pull requests and direct pushes to `main` call `.github/workflows/checks.yml`.
+  Its five validation shards run concurrently; the final `check` job succeeds
+  only when all five do. A green `main` run calls npm publication directly, so
+  the exact same commit is not checked twice before it ships.
 - Publishing is the one place that gate is still mandatory. `main` itself is in
-  [iteration mode](branch-protection.md) and reports the same check without
-  gating a merge or a push, so a release may be the first hard stop a red
-  platform check reaches.
+  [iteration mode](branch-protection.md) and reports the check without gating a
+  merge or push, but its publish callback cannot start unless the aggregate
+  `check` job succeeded.
 - npm and pub.dev use short-lived GitHub OIDC identities. There are no registry
   tokens to store or rotate.
 - The `npm` and `pub.dev` GitHub environments bind each registry identity to
@@ -42,6 +42,9 @@ Dart packages move only when their own user-visible contents change.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It holds no permission `main`'s protected posture would need to
   exempt it from.
+- Pub.dev tag jobs repeat the tagged package's own resolution, analysis, tests,
+  and publish dry run. They do not rerun unrelated server, documentation, or
+  scaffold shards after the tag's `main` commit has already passed them.
 - An unprivileged registry-comparison job proves that at least one exact local
   version is absent before the platform gate and OIDC-enabled npm job start.
   A no-op main push therefore finishes quickly. Changesets then resolves
@@ -203,11 +206,12 @@ platform gate itself. The version PR:
   against the base commit, so the cross-workspace regeneration lands with the
   version bump rather than needing a second commit transported onto the branch.
 
-Review and merge that PR to publish. The next `main` run compares every exact
-local version with npm, then publishes the missing versions automatically. If
-the matching `eigen_api-vX.Y.Z` tag does not exist, the publish job creates it
-after verifying that exact server version is on npm. **Publish eigen_api** then
-reruns the platform gate and publishes the generated client automatically.
+Review and merge that PR to publish. After the next `main` platform run is
+green, its release callback compares every exact local version with npm and
+publishes the missing versions automatically. If the matching
+`eigen_api-vX.Y.Z` tag does not exist, the publish job creates it after verifying
+that exact server version is on npm. **Publish eigen_api** then analyzes and
+dry-runs the tagged Dart package before publishing it automatically.
 
 A scaffolder-only release does not create a new client version; it only verifies
 that the tag for the current engine already exists.

@@ -11,15 +11,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  gate:
-    name: Checks
-    uses: ./.github/workflows/checks.yml
-    permissions:
-      contents: read
-
   publish:
     name: Publish to pub.dev
-    needs: gate
     runs-on: ubuntu-latest
     environment: pub.dev
     timeout-minutes: 20
@@ -65,6 +58,12 @@ jobs:
             exit 1
           }
           flutter pub get
+
+      - name: Check Flutter package
+        run: |
+          flutter analyze
+          dart doc --dry-run .
+          flutter test
 
       - name: Check whether the version is already published
         id: published

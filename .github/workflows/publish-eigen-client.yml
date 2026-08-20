@@ -11,15 +11,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  gate:
-    name: Checks
-    uses: ./.github/workflows/checks.yml
-    permissions:
-      contents: read
-
   publish:
     name: Publish to pub.dev
-    needs: gate
     runs-on: ubuntu-latest
     environment: pub.dev
     timeout-minutes: 15
@@ -54,6 +47,14 @@ jobs:
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Check pure Dart client
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          dart pub get
+          dart format --output=none --set-exit-if-changed .
+          dart analyze
+          dart test
 
       - name: Publish dry run
         if: steps.published.outputs.skip == 'false'

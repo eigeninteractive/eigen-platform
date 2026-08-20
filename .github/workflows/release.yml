@@ -1,14 +1,21 @@
 name: Release npm packages
 
-# Changesets owns the five npm packages under server/. A push to main either
-# refreshes the version PR, publishes an already-versioned release, or exits.
-# The exact whole-platform gate is rerun on the commit that would ship.
+# Changesets owns the five npm packages under server/. A push to main refreshes
+# the version PR or exits. Once the one Platform checks DAG succeeds, it calls
+# this workflow back in publish mode for that exact commit. Keeping publication
+# behind the existing DAG avoids running every expensive shard twice.
 on:
   push:
     branches: [main]
+  workflow_call:
+    inputs:
+      after_checks:
+        description: Publish missing versions after the caller's platform gate.
+        type: boolean
+        default: false
 
 concurrency:
-  group: release-npm
+  group: release-npm-${{ inputs.after_checks == true && 'publish' || 'version' }}
   cancel-in-progress: false
 
 permissions: {}
@@ -71,18 +78,10 @@ jobs:
           echo "has_changesets=$has_changesets" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
 
-  gate:
-    name: Checks
-    needs: plan
-    if: needs.plan.outputs.publish == 'true'
-    uses: ./.github/workflows/checks.yml
-    permissions:
-      contents: read
-
   version:
     name: Open or update the version pull request
     needs: plan
-    if: needs.plan.outputs.has_changesets == 'true'
+    if: inputs.after_checks != true && needs.plan.outputs.has_changesets == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -228,8 +227,8 @@ jobs:
 
   publish:
     name: Publish to npm
-    needs: [plan, gate]
-    if: needs.plan.outputs.publish == 'true'
+    needs: plan
+    if: inputs.after_checks == true && needs.plan.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20

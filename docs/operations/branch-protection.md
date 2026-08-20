@@ -32,10 +32,13 @@ still runs, and its `check` job still aggregates every shard:
 - **pull requests** into `main` run it and report the result without gating the
   merge button;
 - **direct pushes** to `main` run it as an advisory run, added because a
-  direct push opens no pull request;
-- **releases and publishes** call the same workflow as a hard gate. That gate is
-  unchanged: an irreversible registry upload still cannot proceed on a red
-  platform check.
+  direct push opens no pull request; documentation-only pushes use the same
+  narrow fast lane as documentation pull requests;
+- **npm publishing** is a downstream job of that same `main` workflow. It cannot
+  proceed unless the aggregate `check` job is green, and it does not duplicate
+  the expensive shards;
+- **pub.dev tag publishing** repeats the tagged package's resolution, analysis,
+  tests, and dry run, but not unrelated platform shards.
 
 A direct push to `main` therefore reports failures but does not prevent them.
 Read the advisory run before building on top of a commit.

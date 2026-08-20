@@ -12,10 +12,9 @@ on:
   workflow_call:
 
 concurrency:
-  # `github.workflow` is the top-level caller's name even through
-  # `workflow_call`, so an advisory run and a release or publish gate for the
-  # same ref land in different groups and cannot cancel each other. Superseding
-  # an in-flight advisory run is the point on a branch that moves quickly.
+  # Superseding an in-flight advisory run is the point on a branch that moves
+  # quickly. Package tag workflows still call this gate under their own
+  # top-level workflow name and therefore have an independent concurrency key.
   group: platform-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
@@ -34,16 +33,19 @@ jobs:
           fetch-depth: 0
 
       # A narrow documentation-only fast lane keeps ordinary docs iteration
-      # quick. Every non-PR invocation and every unknown path fails closed to
-      # the complete platform gate used by release workflows.
+      # quick on pull requests and direct main pushes. Tags, reusable callers,
+      # missing baselines, and every unknown path fail closed to the complete
+      # platform gate.
       - name: Classify the change scope
         id: classify
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           full=true
-          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$BASE_SHA" ]; then
+          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]] \
+               && [ -n "$BASE_SHA" ] \
+               && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
             mapfile -t changed < <(git diff --name-only "$BASE_SHA"...HEAD)
             if [ "${#changed[@]}" -gt 0 ]; then
               full=false
@@ -300,3 +302,18 @@ jobs:
 
       - name: Platform checks passed
         run: echo "Every platform check shard succeeded."
+
+  # The exact green main commit is the npm release gate. release.yml also runs
+  # directly on pushes to maintain the Changesets version PR; this callback is
+  # its separate publish mode and does not open or update that PR again.
+  release:
+    name: npm release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: check
+    uses: ./.github/workflows/release.yml
+    with:
+      after_checks: true
+    secrets: inherit
+    permissions:
+      contents: write
+      id-token: write
