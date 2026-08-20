@@ -4,11 +4,15 @@ library;
 export 'package:eigen_api/eigen_api.dart'
     show
         Bot,
+        CommandAccepted,
+        Created,
         ErrorCode,
         Frame,
         FrameTypeEnum,
         Friend,
         FriendRequest,
+        FriendRequestDirectionEnum,
+        FriendRequestResultStatusEnum,
         GameAccess,
         GameStatus,
         GameSummary,
@@ -18,14 +22,17 @@ export 'package:eigen_api/eigen_api.dart'
         Profile,
         Rating,
         RatingDelta,
+        RatingHistoryEntry,
         RatingIdentity,
         Seat,
         SeatTypeEnum,
-        Session;
+        Session,
+        SoloStarted;
 
 export 'src/api/access_token_provider.dart';
 export 'src/api/avatar_url.dart';
 export 'src/api/engine_call.dart';
+export 'src/api/eigen_client_runtime.dart';
 export 'src/api/engine_exception.dart';
 export 'src/api/game_socket.dart';
 export 'src/api/games_page.dart';
@@ -38,3 +45,11 @@ export 'src/domain/game_transition.dart';
 export 'src/domain/my_seat.dart';
 export 'src/domain/players_context.dart';
 export 'src/domain/timing_context.dart';
+export 'src/repositories/avatar_storage_service.dart';
+export 'src/repositories/device_repository.dart';
+export 'src/repositories/game_repository.dart';
+export 'src/repositories/player_batch_loader.dart';
+export 'src/repositories/player_repository.dart';
+export 'src/repositories/profile_repository.dart';
+export 'src/repositories/rating_repository.dart';
+export 'src/repositories/social_repository.dart';

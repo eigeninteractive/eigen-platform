@@ -58,7 +58,7 @@ final class ProfileRepositoryProvider
   }
 }
 
-String _$profileRepositoryHash() => r'78bba9b39ca9d4165245c1c76da80c1ba4596a5a';
+String _$profileRepositoryHash() => r'a0100da780d9dc371c329f3f9b798019312f12cc';
 
 /// Provider for AvatarStorageService instance.
 
@@ -111,7 +111,7 @@ final class AvatarStorageServiceProvider
 }
 
 String _$avatarStorageServiceHash() =>
-    r'fdef1b84f1a570dbb2637b020dba3183ffad6129';
+    r'7b26fe6852ed1c85b26b5ec31b4b937806210761';
 
 /// The signed-in user's own profile.
 ///

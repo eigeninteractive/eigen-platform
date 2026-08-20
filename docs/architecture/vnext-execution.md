@@ -40,12 +40,15 @@ compatibility and command machinery from earlier phases.
 | Basic input bounds | Hono rejects game and bot JSON bodies above 64 KiB before auth/parsing; the server-only socket closes clients that send application messages. |
 | TypeScript packaging | Public packages use one idiomatic `tsdown` build for JavaScript, declarations, JavaScript source maps, and declaration maps. Sources ship for editor navigation. |
 | Dart generation | `eigen_codegen` is a separate pure-Dart development package. Its portable schema compiler enforces supported constraints and rejects unknown semantics instead of silently dropping them. |
+| Dart client core | `eigen_client` is an independent publishable pure-Dart package. One configured `EigenClient` owns generated HTTP resources, repositories, socket tickets, player batching, and live-session gap recovery. Flutter supplies authentication and transport policy without importing generated API classes. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
 
 ## Work still to do
 
-1. Complete the Dart dependency split described by RFC 0009:
-   `eigen_client`, `eigen_flutter`, `eigen_firebase`, and `eigen_shell`.
+1. Complete the remaining Flutter dependency split described by RFC 0009:
+   move Firebase implementations into `eigen_firebase`, make `eigen_flutter`
+   the embeddable presentation package, and move the complete product into
+   `eigen_shell`.
 2. Finish generated API/docs synchronization, release notes, and publish-order
    automation for the new package graph.
 3. Run every workspace shard and both scaffold targets from a clean checkout,

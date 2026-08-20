@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
 
 /// Uploads the signed-in user's avatar.
 ///
@@ -14,7 +15,7 @@ import 'package:eigen_client/eigen_client.dart';
 /// R2 has no client-direct writes and no row-level security, so the image is
 /// streamed through the worker rather than uploaded from the device.
 class AvatarStorageService {
-  AvatarStorageService(this._dio);
+  AvatarStorageService(Dio http) : _dio = http;
 
   final Dio _dio;
 

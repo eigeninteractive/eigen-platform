@@ -53,7 +53,7 @@ final class RatingRepositoryProvider
   }
 }
 
-String _$ratingRepositoryHash() => r'4d91be5d7c2842b5a96c2687d90b3835add2c74c';
+String _$ratingRepositoryHash() => r'b0e88ea45b61207b0b252143d3fae926730dcbf6';
 
 /// All pool ratings for [id], ordered by highest display rating.
 ///

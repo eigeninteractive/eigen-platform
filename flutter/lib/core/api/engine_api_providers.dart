@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/retry_policy.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
@@ -73,37 +72,13 @@ Dio engineDio(Ref ref) {
 @Riverpod(keepAlive: true)
 ServerClock serverClock(Ref ref) => ServerClock();
 
-/// Games, the lobby, and the frame history: the whole play surface.
-@Riverpod(keepAlive: true)
-GamesApi gamesApi(Ref ref) => GamesApi(ref.watch(engineDioProvider));
-
-/// Friends, friend requests, user search, and friends' open games.
-@Riverpod(keepAlive: true)
-SocialApi socialApi(Ref ref) => SocialApi(ref.watch(engineDioProvider));
-
-/// The caller's own profile, ratings, devices, username, and account deletion.
-@Riverpod(keepAlive: true)
-MeApi meApi(Ref ref) => MeApi(ref.watch(engineDioProvider));
-
-/// Batch identity lookup for rendering other players.
-@Riverpod(keepAlive: true)
-PlayersApi playersApi(Ref ref) => PlayersApi(ref.watch(engineDioProvider));
-
-/// The bot catalog offered when creating a solo game.
-@Riverpod(keepAlive: true)
-BotsApi botsApi(Ref ref) => BotsApi(ref.watch(engineDioProvider));
-
-/// Opens per-game frame sockets.
+/// The pure Dart engine runtime.
 ///
-/// Stateless and shared: one instance dials as many games as the session needs,
-/// and each `connect` owns its own connection and reconnect loop.
+/// Flutter configures authentication, timeouts, retry, and server-time tracking
+/// on [engineDioProvider]. The client package owns generated HTTP resources,
+/// repositories, socket-ticket exchange, and live-session coordination.
 @Riverpod(keepAlive: true)
-GameSocket gameSocket(Ref ref) => GameSocket(
+EigenClient engineClient(Ref ref) => EigenClient(
+  http: ref.watch(engineDioProvider),
   baseUrl: ref.watch(appConfigProvider).engine.apiBaseUrl,
-  ticketProvider: (gameId) async {
-    final ticket = await engineData(
-      () => ref.read(gamesApiProvider).createSocketTicket(gameId: gameId),
-    );
-    return ticket.ticket;
-  },
 );

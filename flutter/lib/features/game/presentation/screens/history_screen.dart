@@ -6,13 +6,12 @@ import 'package:intl/intl.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
 import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/theme/app_semantic_colors.dart';
-import 'package:eigen_flutter/features/game/data/game_repository.dart';
+import 'package:eigen_client/eigen_client.dart';
 
 import 'package:eigen_flutter/features/game/presentation/extensions/game_ui.dart';
 import 'package:eigen_flutter/features/rating/presentation/extensions/rating_ui.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/shared/widgets/empty_state_view.dart';
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 
 typedef _HistoryEntry = ({

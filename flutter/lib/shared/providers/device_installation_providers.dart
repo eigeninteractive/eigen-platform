@@ -7,5 +7,5 @@ part 'device_installation_providers.g.dart';
 /// Singleton [DeviceInstallationRepository] instance.
 @Riverpod(keepAlive: true)
 DeviceInstallationRepository deviceInstallationRepository(Ref ref) {
-  return DeviceInstallationRepository(ref.watch(meApiProvider));
+  return DeviceInstallationRepository(ref.watch(engineClientProvider).devices);
 }

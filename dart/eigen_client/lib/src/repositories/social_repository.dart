@@ -1,5 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
+import '../api/games_page.dart';
 
 /// The friend graph: friends, pending requests, blocks, and user search.
 ///
@@ -7,7 +10,7 @@ import 'package:eigen_client/eigen_client.dart';
 /// The server owns the side effects a write implies - notably the friend
 /// request and friend accepted pushes - so there is nothing to fan out here.
 class SocialRepository {
-  SocialRepository(this._api);
+  SocialRepository(Dio http) : _api = SocialApi(http);
 
   final SocialApi _api;
 

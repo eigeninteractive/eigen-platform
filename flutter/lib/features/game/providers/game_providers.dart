@@ -6,7 +6,6 @@ import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_flutter/features/game/data/game_repository.dart';
 import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
@@ -18,12 +17,7 @@ part 'game_providers.g.dart';
 /// Provider for GameRepository instance.
 @Riverpod(keepAlive: true)
 GameRepository gameRepository(Ref ref) {
-  return GameRepository(
-    ref.watch(gamesApiProvider),
-    ref.watch(botsApiProvider),
-    ref.watch(playersApiProvider),
-    ref.watch(gameSocketProvider),
-  );
+  return ref.watch(engineClientProvider).games;
 }
 
 /// The active [GameModule].

@@ -1,14 +1,13 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/features/rating/data/rating_repository.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 
 part 'rating_providers.g.dart';
 
 @Riverpod(keepAlive: true)
 RatingRepository ratingRepository(Ref ref) =>
-    RatingRepository(ref.watch(meApiProvider), ref.watch(playersApiProvider));
+    ref.watch(engineClientProvider).ratings;
 
 /// All pool ratings for [id], ordered by highest display rating.
 ///

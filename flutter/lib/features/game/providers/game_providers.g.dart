@@ -52,7 +52,7 @@ final class GameRepositoryProvider
   }
 }
 
-String _$gameRepositoryHash() => r'876f2c91a563f9542ed11e76beff4c65cf491fd7';
+String _$gameRepositoryHash() => r'e2d90e8cf3258a0fdb078e4a86f16b31d51e5487';
 
 /// The active [GameModule].
 ///

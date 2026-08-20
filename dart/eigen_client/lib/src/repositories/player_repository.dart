@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
 
 /// Thrown when a player lookup matches no row.
 ///
@@ -29,7 +31,7 @@ class PlayerNotFoundException implements Exception {
 ///
 /// Everything returned is public-safe: no email, no account state.
 class PlayerRepository {
-  PlayerRepository(this._api);
+  PlayerRepository(Dio http) : _api = PlayersApi(http);
 
   final PlayersApi _api;
 

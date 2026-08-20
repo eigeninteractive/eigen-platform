@@ -153,286 +153,60 @@ final class ServerClockProvider
 
 String _$serverClockHash() => r'3305c9476050c05d8e503d96005e86648cb7520f';
 
-/// Games, the lobby, and the frame history: the whole play surface.
-
-@ProviderFor(gamesApi)
-final gamesApiProvider = GamesApiProvider._();
-
-/// Games, the lobby, and the frame history: the whole play surface.
-
-final class GamesApiProvider
-    extends $FunctionalProvider<GamesApi, GamesApi, GamesApi>
-    with $Provider<GamesApi> {
-  /// Games, the lobby, and the frame history: the whole play surface.
-  GamesApiProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'gamesApiProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$gamesApiHash();
-
-  @$internal
-  @override
-  $ProviderElement<GamesApi> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  GamesApi create(Ref ref) {
-    return gamesApi(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(GamesApi value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<GamesApi>(value),
-    );
-  }
-}
-
-String _$gamesApiHash() => r'7bbd627104ae92dc65e2c6aa9cc058f353124f3a';
-
-/// Friends, friend requests, user search, and friends' open games.
-
-@ProviderFor(socialApi)
-final socialApiProvider = SocialApiProvider._();
-
-/// Friends, friend requests, user search, and friends' open games.
-
-final class SocialApiProvider
-    extends $FunctionalProvider<SocialApi, SocialApi, SocialApi>
-    with $Provider<SocialApi> {
-  /// Friends, friend requests, user search, and friends' open games.
-  SocialApiProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'socialApiProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$socialApiHash();
-
-  @$internal
-  @override
-  $ProviderElement<SocialApi> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  SocialApi create(Ref ref) {
-    return socialApi(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(SocialApi value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<SocialApi>(value),
-    );
-  }
-}
-
-String _$socialApiHash() => r'738df19b580328cfe878a9d9cde7d209d737ca8b';
-
-/// The caller's own profile, ratings, devices, username, and account deletion.
-
-@ProviderFor(meApi)
-final meApiProvider = MeApiProvider._();
-
-/// The caller's own profile, ratings, devices, username, and account deletion.
-
-final class MeApiProvider extends $FunctionalProvider<MeApi, MeApi, MeApi>
-    with $Provider<MeApi> {
-  /// The caller's own profile, ratings, devices, username, and account deletion.
-  MeApiProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'meApiProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$meApiHash();
-
-  @$internal
-  @override
-  $ProviderElement<MeApi> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  MeApi create(Ref ref) {
-    return meApi(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(MeApi value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<MeApi>(value),
-    );
-  }
-}
-
-String _$meApiHash() => r'17064db78b804bf61498e8db88c855f24ec09b77';
-
-/// Batch identity lookup for rendering other players.
-
-@ProviderFor(playersApi)
-final playersApiProvider = PlayersApiProvider._();
-
-/// Batch identity lookup for rendering other players.
-
-final class PlayersApiProvider
-    extends $FunctionalProvider<PlayersApi, PlayersApi, PlayersApi>
-    with $Provider<PlayersApi> {
-  /// Batch identity lookup for rendering other players.
-  PlayersApiProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'playersApiProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$playersApiHash();
-
-  @$internal
-  @override
-  $ProviderElement<PlayersApi> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  PlayersApi create(Ref ref) {
-    return playersApi(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(PlayersApi value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<PlayersApi>(value),
-    );
-  }
-}
-
-String _$playersApiHash() => r'434215711d3904aa6b6f3aa622563d24a1930117';
-
-/// The bot catalog offered when creating a solo game.
-
-@ProviderFor(botsApi)
-final botsApiProvider = BotsApiProvider._();
-
-/// The bot catalog offered when creating a solo game.
-
-final class BotsApiProvider
-    extends $FunctionalProvider<BotsApi, BotsApi, BotsApi>
-    with $Provider<BotsApi> {
-  /// The bot catalog offered when creating a solo game.
-  BotsApiProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'botsApiProvider',
-        isAutoDispose: false,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$botsApiHash();
-
-  @$internal
-  @override
-  $ProviderElement<BotsApi> $createElement($ProviderPointer pointer) =>
-      $ProviderElement(pointer);
-
-  @override
-  BotsApi create(Ref ref) {
-    return botsApi(ref);
-  }
-
-  /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(BotsApi value) {
-    return $ProviderOverride(
-      origin: this,
-      providerOverride: $SyncValueProvider<BotsApi>(value),
-    );
-  }
-}
-
-String _$botsApiHash() => r'1276c14ace1843bc663054a7d2fa0b3845f2b4f6';
-
-/// Opens per-game frame sockets.
+/// The pure Dart engine runtime.
 ///
-/// Stateless and shared: one instance dials as many games as the session needs,
-/// and each `connect` owns its own connection and reconnect loop.
+/// Flutter configures authentication, timeouts, retry, and server-time tracking
+/// on [engineDioProvider]. The client package owns generated HTTP resources,
+/// repositories, socket-ticket exchange, and live-session coordination.
 
-@ProviderFor(gameSocket)
-final gameSocketProvider = GameSocketProvider._();
+@ProviderFor(engineClient)
+final engineClientProvider = EngineClientProvider._();
 
-/// Opens per-game frame sockets.
+/// The pure Dart engine runtime.
 ///
-/// Stateless and shared: one instance dials as many games as the session needs,
-/// and each `connect` owns its own connection and reconnect loop.
+/// Flutter configures authentication, timeouts, retry, and server-time tracking
+/// on [engineDioProvider]. The client package owns generated HTTP resources,
+/// repositories, socket-ticket exchange, and live-session coordination.
 
-final class GameSocketProvider
-    extends $FunctionalProvider<GameSocket, GameSocket, GameSocket>
-    with $Provider<GameSocket> {
-  /// Opens per-game frame sockets.
+final class EngineClientProvider
+    extends $FunctionalProvider<EigenClient, EigenClient, EigenClient>
+    with $Provider<EigenClient> {
+  /// The pure Dart engine runtime.
   ///
-  /// Stateless and shared: one instance dials as many games as the session needs,
-  /// and each `connect` owns its own connection and reconnect loop.
-  GameSocketProvider._()
+  /// Flutter configures authentication, timeouts, retry, and server-time tracking
+  /// on [engineDioProvider]. The client package owns generated HTTP resources,
+  /// repositories, socket-ticket exchange, and live-session coordination.
+  EngineClientProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'gameSocketProvider',
+        name: r'engineClientProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$gameSocketHash();
+  String debugGetCreateSourceHash() => _$engineClientHash();
 
   @$internal
   @override
-  $ProviderElement<GameSocket> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<EigenClient> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  GameSocket create(Ref ref) {
-    return gameSocket(ref);
+  EigenClient create(Ref ref) {
+    return engineClient(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(GameSocket value) {
+  Override overrideWithValue(EigenClient value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<GameSocket>(value),
+      providerOverride: $SyncValueProvider<EigenClient>(value),
     );
   }
 }
 
-String _$gameSocketHash() => r'327708754788e1d421ad44fa76d6b95f2043017c';
+String _$engineClientHash() => r'ce7d0913d6d0f5eb3c0619336e9c94ee4506de2b';

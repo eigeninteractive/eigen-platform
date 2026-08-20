@@ -1,7 +1,8 @@
 import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/shared/data/player_repository.dart';
+
+import 'player_repository.dart';
 
 /// Coalesces single-id player lookups into one batch request per frame.
 ///

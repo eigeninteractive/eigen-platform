@@ -1,7 +1,12 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
+import '../api/game_socket.dart';
+import '../api/games_page.dart';
+import '../domain/game_session.dart';
 
 /// Number of games fetched per lobby page.
 const lobbyPageSize = 50;
@@ -51,7 +56,10 @@ void _validateGapFrames(
 /// one-way feed. That is what makes a command's outcome unambiguous: it is the
 /// HTTP status, not something to correlate against a later broadcast.
 class GameRepository {
-  GameRepository(this._api, this._bots, this._players, this._socket);
+  GameRepository(Dio http, this._socket)
+    : _api = GamesApi(http),
+      _bots = BotsApi(http),
+      _players = PlayersApi(http);
 
   final GamesApi _api;
   final BotsApi _bots;

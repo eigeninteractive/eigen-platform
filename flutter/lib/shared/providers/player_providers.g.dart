@@ -57,7 +57,7 @@ final class PlayerRepositoryProvider
   }
 }
 
-String _$playerRepositoryHash() => r'27c1100badb97e583e6cd43c48994cb7d15f859e';
+String _$playerRepositoryHash() => r'6202fe72c9790427173076d60d04415b08d1feae';
 
 /// Coalesces the per-id [PlayerInfoCache] misses into one batch request.
 ///

@@ -7,9 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 final _allowedCallers = [
   // The transport core: Dio, the interceptors, the socket, the API providers.
   RegExp(r'^core/api/'),
-  // Feature and shared data layers (repositories, services).
-  RegExp(r'^features/[^/]+/data/'),
-  RegExp(r'^shared/data/'),
   // The error vocabulary. `humanize` names `DioException` to tell a transport
   // failure from a server refusal - it classifies a thrown object rather than
   // making a request. Widgets still depend only on `EngineException` and
@@ -32,7 +29,8 @@ final _serverAccess = <RegExp>[
 ];
 
 /// Flutter-side layering checks supplement the compiler-enforced
-/// `eigen_client` package boundary.
+/// `eigen_client` package boundary. Pure HTTP repositories belong in that
+/// package; Flutter owns only UI, state, and platform adapters.
 void main() {
   test('the Flutter barrel delegates its pure surface to eigen_client', () {
     final barrel = File('lib/eigen_flutter.dart').readAsStringSync();

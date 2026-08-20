@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
 
 /// Player ratings and the caller's own rating log.
 ///
@@ -7,7 +9,7 @@ import 'package:eigen_client/eigen_client.dart';
 /// delivered to a live game as a post-finish transition; this repository only
 /// reads the settled values.
 class RatingRepository {
-  RatingRepository(this._me, this._players);
+  RatingRepository(Dio http) : _me = MeApi(http), _players = PlayersApi(http);
 
   final MeApi _me;
   final PlayersApi _players;

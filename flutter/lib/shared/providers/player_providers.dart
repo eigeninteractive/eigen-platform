@@ -1,8 +1,6 @@
-import 'package:eigen_api/eigen_api.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
-import 'package:eigen_flutter/shared/data/player_batch_loader.dart';
-import 'package:eigen_flutter/shared/data/player_repository.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:riverpod_annotation/experimental/json_persist.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,7 +10,7 @@ part 'player_providers.g.dart';
 /// Singleton [PlayerRepository] instance.
 @Riverpod(keepAlive: true)
 PlayerRepository playerRepository(Ref ref) {
-  return PlayerRepository(ref.watch(playersApiProvider));
+  return ref.watch(engineClientProvider).players;
 }
 
 /// Coalesces the per-id [PlayerInfoCache] misses into one batch request.

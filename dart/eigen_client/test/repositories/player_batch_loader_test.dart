@@ -1,8 +1,6 @@
 import 'package:checks/checks.dart';
-import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_flutter/shared/data/player_batch_loader.dart';
-import 'package:eigen_flutter/shared/data/player_repository.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:eigen_client/eigen_client.dart';
+import 'package:test/test.dart';
 
 Player _player(String id) => Player(
   id: id,
@@ -73,7 +71,7 @@ void main() {
         check((await present).id).equals('here');
         final error = await absent.then<Object?>(
           (_) => null,
-          onError: (e) => e,
+          onError: (Object error) => error,
         );
         check(error)
             .isA<PlayerNotFoundException>()
@@ -93,11 +91,11 @@ void main() {
       final bFuture = loader.load('b');
       final aError = await aFuture.then<Object?>(
         (_) => null,
-        onError: (e) => e,
+        onError: (Object error) => error,
       );
       final bError = await bFuture.then<Object?>(
         (_) => null,
-        onError: (e) => e,
+        onError: (Object error) => error,
       );
 
       check(aError).isA<StateError>();

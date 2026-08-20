@@ -60,4 +60,4 @@ final class DeviceInstallationRepositoryProvider
 }
 
 String _$deviceInstallationRepositoryHash() =>
-    r'47dd4d1bc01a7f8001c580c8970df09f8084e75d';
+    r'fcfe96f105d464fdaa9723781760ef9d6e12edad';

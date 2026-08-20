@@ -6,8 +6,6 @@ import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_flutter/features/profile/data/avatar_storage_service.dart';
-import 'package:eigen_flutter/features/profile/data/profile_repository.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:riverpod_annotation/experimental/json_persist.dart';
@@ -18,13 +16,13 @@ part 'profile_providers.g.dart';
 /// Provider for ProfileRepository instance.
 @Riverpod(keepAlive: true)
 ProfileRepository profileRepository(Ref ref) {
-  return ProfileRepository(ref.watch(meApiProvider));
+  return ref.watch(engineClientProvider).profile;
 }
 
 /// Provider for AvatarStorageService instance.
 @Riverpod(keepAlive: true)
 AvatarStorageService avatarStorageService(Ref ref) {
-  return AvatarStorageService(ref.watch(engineDioProvider));
+  return ref.watch(engineClientProvider).avatar;
 }
 
 /// The signed-in user's own profile.

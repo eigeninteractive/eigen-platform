@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:eigen_api/eigen_api.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:eigen_flutter/features/social/data/social_repository.dart';
 import 'package:flutter_riverpod/experimental/mutation.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:riverpod_annotation/experimental/json_persist.dart';
@@ -15,7 +15,7 @@ part 'social_providers.g.dart';
 
 @Riverpod(keepAlive: true)
 SocialRepository socialRepository(Ref ref) {
-  return SocialRepository(ref.watch(socialApiProvider));
+  return ref.watch(engineClientProvider).social;
 }
 
 /// The caller's accepted friends.

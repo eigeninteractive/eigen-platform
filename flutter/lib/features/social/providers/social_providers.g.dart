@@ -53,7 +53,7 @@ final class SocialRepositoryProvider
   }
 }
 
-String _$socialRepositoryHash() => r'15c29990c79f1e77bbd76c340e675898cf60936e';
+String _$socialRepositoryHash() => r'107233b370a11a092470167df122bae1c4bee922';
 
 /// The caller's accepted friends.
 ///

@@ -48,7 +48,7 @@ Run the full cross-platform gate before handing off a change:
 ./tool/check.sh all
 ```
 
-For faster iteration, pass `contracts`, `server`, `flutter`, `web`, or
+For faster iteration, pass `manifest`, `server`, `flutter`, `web`, or
 `scaffold` instead of `all`. The full gate also checks generated contracts and
 package contents, tests the Flutter package on the Dart VM and Chrome, builds
 the imported example and documentation for web, and validates a freshly

@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
-import 'package:eigen_client/eigen_client.dart';
+
+import '../api/engine_call.dart';
 
 /// The signed-in user's own profile.
 ///
@@ -7,7 +9,7 @@ import 'package:eigen_client/eigen_client.dart';
 /// passed: `/me` is always "whoever this request is authenticated as". Reading
 /// *another* player's public identity is [PlayerRepository]'s job.
 class ProfileRepository {
-  ProfileRepository(this._api);
+  ProfileRepository(Dio http) : _api = MeApi(http);
 
   final MeApi _api;
 

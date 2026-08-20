@@ -4,10 +4,8 @@ import 'dart:typed_data';
 
 import 'package:checks/checks.dart';
 import 'package:dio/dio.dart';
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_client/eigen_client.dart';
-import 'package:eigen_flutter/features/game/data/game_repository.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:test/test.dart';
 
 /// One frame's wire JSON. Only the fields the pipeline reasons about matter.
 Map<String, dynamic> _frameJson(int version) => {
@@ -116,11 +114,7 @@ class _ScriptedSocket implements GameSocket {
   final dio = Dio(BaseOptions(baseUrl: 'https://engine.test'))
     ..httpClientAdapter = adapter;
   final socket = _ScriptedSocket();
-  return (
-    repo: GameRepository(GamesApi(dio), BotsApi(dio), PlayersApi(dio), socket),
-    socket: socket,
-    adapter: adapter,
-  );
+  return (repo: GameRepository(dio, socket), socket: socket, adapter: adapter);
 }
 
 Future<({List<GameSession> sessions, List<Object> errors})> _captured(
@@ -133,7 +127,9 @@ Future<({List<GameSession> sessions, List<Object> errors})> _captured(
   await drive();
   // Drain the asynchronous stream/Dio pipeline without depending on wall-clock
   // timing, which becomes flaky when the test runner executes many suites.
-  await pumpEventQueue();
+  for (var i = 0; i < 20; i++) {
+    await Future<void>.delayed(Duration.zero);
+  }
   await sub.cancel();
   return (sessions: seen, errors: errors);
 }
