@@ -41,7 +41,7 @@
       "sourceRepository": "https://github.com/eigeninteractive/eigen-web.git",
       "baseCommit": "6fdadef77dceed34825254dc45f694bf5e53b671",
       "importCommit": "0a45cf20e5c6b26e82e504d053d67c07f4e63282",
-      "docsLine": "0.5.x"
+      "docsLine": "0.6.x"
     }
   }
 }
