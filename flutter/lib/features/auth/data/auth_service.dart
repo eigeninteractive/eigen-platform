@@ -1,33 +1,19 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
-import 'package:eigen_flutter/features/auth/data/models/auth_user.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-/// The authentication boundary.
-///
-/// The app-facing identity and event surface uses the domain types in
-/// `auth_user.dart`; the credential is carried only between the Firebase-backed
-/// upgrade steps. The engine never sees a password or provider credential - it
-/// only verifies the Firebase ID token that results, which the transport layer
-/// attaches to every request.
-abstract interface class AuthGateway {
-  AuthUser? get currentUser;
-  Stream<AuthStateChange> get authStateChanges;
-  Future<void> signInWithGoogle();
-  Future<void> signInAnonymously();
-  Future<void> upgradeWithGoogle();
-  Future<void> switchToExistingGoogleAccount(AuthCredential? credential);
-  Future<void> signOut();
-}
 
 /// Firebase-backed implementation of [AuthGateway].
 class AuthService implements AuthGateway {
   AuthService(this._auth, {required this.googleWebClientId});
 
   final FirebaseAuth _auth;
+  AuthCredential? _pendingExistingAccountCredential;
+  bool _hasPendingExistingAccount = false;
 
   /// Google Sign-In server client id, injected from `EngineConfig`.
   final String googleWebClientId;
@@ -150,11 +136,8 @@ class AuthService implements AuthGateway {
   /// friends carry over untouched - the engine keys everything on that uid and
   /// never learns the account changed.
   ///
-  /// Throws [AccountExistsException] when the chosen Google account already
-  /// belongs to someone: the two identities cannot merge, so the caller offers
-  /// to switch into that account instead and abandon the guest data.
   @override
-  Future<void> upgradeWithGoogle() async {
+  Future<AuthUpgradeResult> upgradeWithGoogle() async {
     final user = _auth.currentUser;
     if (user == null) {
       throw StateError('No guest session to upgrade.');
@@ -165,12 +148,16 @@ class AuthService implements AuthGateway {
       } else {
         await user.linkWithCredential(await _googleCredential());
       }
+      cancelExistingAccountSwitch();
       developer.log('Guest upgraded to Google', name: 'auth.service');
+      return AuthUpgradeResult.linked;
     } on FirebaseAuthException catch (error, stackTrace) {
       // Both codes mean the same thing to a user: that Google account is taken.
       if (error.code == 'credential-already-in-use' ||
           error.code == 'email-already-in-use') {
-        throw AccountExistsException(error.credential);
+        _pendingExistingAccountCredential = error.credential;
+        _hasPendingExistingAccount = true;
+        return AuthUpgradeResult.existingAccount;
       }
       developer.log(
         'Failed to upgrade guest account',
@@ -188,10 +175,27 @@ class AuthService implements AuthGateway {
   /// one, avoiding a second account prompt. Some providers/platforms omit it,
   /// in which case the normal sign-in flow is the safe fallback.
   @override
-  Future<void> switchToExistingGoogleAccount(AuthCredential? credential) =>
-      credential == null
-      ? signInWithGoogle()
-      : _auth.signInWithCredential(credential);
+  Future<void> switchToExistingGoogleAccount() async {
+    if (!_hasPendingExistingAccount) {
+      throw StateError('No existing Google account switch is pending.');
+    }
+    final credential = _pendingExistingAccountCredential;
+    try {
+      if (credential == null) {
+        await signInWithGoogle();
+      } else {
+        await _auth.signInWithCredential(credential);
+      }
+    } finally {
+      cancelExistingAccountSwitch();
+    }
+  }
+
+  @override
+  void cancelExistingAccountSwitch() {
+    _pendingExistingAccountCredential = null;
+    _hasPendingExistingAccount = false;
+  }
 
   /// Clears the local session.
   ///
@@ -213,16 +217,4 @@ class AuthService implements AuthGateway {
       rethrow;
     }
   }
-}
-
-/// Thrown by [AuthService.upgradeWithGoogle] when the selected Google account
-/// already belongs to a registered user, so the guest cannot be linked to it.
-class AccountExistsException implements Exception {
-  const AccountExistsException(this.credential);
-
-  /// Credential recovered from the failed link, when the platform exposes it.
-  final AuthCredential? credential;
-
-  @override
-  String toString() => 'AccountExistsException: Google account already in use';
 }

@@ -40,6 +40,8 @@ export 'app_runner.dart' show runEngineApp, MyApp;
 export 'core/config/app_config.dart'
     show AppConfig, Branding, EngineConfig, appConfigProvider;
 export 'core/game/game_module.dart';
+export 'features/auth/domain/auth_gateway.dart';
+export 'features/auth/domain/auth_user.dart';
 export 'features/game/providers/game_providers.dart'
     show currentGameModuleProvider;
 export 'features/game/presentation/widgets/timer_builders.dart'

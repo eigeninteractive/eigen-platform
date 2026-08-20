@@ -16,6 +16,9 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
 ### Added
+- A provider-neutral `AuthGateway`, auth identity model, and upgrade result are
+  now public so authentication adapters can live outside `eigen_flutter`
+  without exposing Firebase credential types to presentation code.
 - The protocol-facing domain model, authenticated transport seams, server
   clock, and live socket now live in the independent pure-Dart `eigen_client`
   package. `eigen_flutter` re-exports that surface for game apps.

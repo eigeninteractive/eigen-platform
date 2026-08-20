@@ -13,7 +13,7 @@ abstract class AuthUser with _$AuthUser {
       _AuthUser;
 }
 
-/// Auth lifecycle events surfaced by [AuthService.authStateChanges].
+/// Auth lifecycle events surfaced by the authentication state stream.
 ///
 /// Derived by diffing consecutive sessions rather than reported by the provider,
 /// so these are exactly the transitions the app acts on, with no provider-specific

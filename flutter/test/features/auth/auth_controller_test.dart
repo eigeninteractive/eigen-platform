@@ -2,10 +2,9 @@ import 'package:checks/checks.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/analytics/analytics_service.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
-import 'package:eigen_flutter/features/auth/data/auth_service.dart';
-import 'package:eigen_flutter/features/auth/data/models/auth_user.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +14,7 @@ import '../../helpers/container.dart';
 final class _FakeAuthGateway implements AuthGateway {
   bool throwExistingAccount = false;
   bool switched = false;
+  bool cancelled = false;
 
   @override
   AuthUser? get currentUser => const AuthUser(id: 'guest-1', isAnonymous: true);
@@ -32,14 +32,17 @@ final class _FakeAuthGateway implements AuthGateway {
   Future<void> signOut() async {}
 
   @override
-  Future<void> switchToExistingGoogleAccount(AuthCredential? credential) async {
+  Future<void> switchToExistingGoogleAccount() async {
     switched = true;
   }
 
   @override
-  Future<void> upgradeWithGoogle() async {
-    if (throwExistingAccount) throw const AccountExistsException(null);
-  }
+  Future<AuthUpgradeResult> upgradeWithGoogle() async => throwExistingAccount
+      ? AuthUpgradeResult.existingAccount
+      : AuthUpgradeResult.linked;
+
+  @override
+  void cancelExistingAccountSwitch() => cancelled = true;
 }
 
 final class _FakeAnalytics implements AnalyticsService {
@@ -114,6 +117,7 @@ void main() {
       expect(container.read(authControllerProvider), isA<AsyncData<void>>());
 
       controller.cancelExistingAccountSwitch();
+      check(auth.cancelled).isTrue();
       await check(controller.switchToExisting()).throws<StateError>();
       check(auth.switched).isFalse();
     },

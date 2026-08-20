@@ -310,7 +310,7 @@ final class AuthControllerProvider
   }
 }
 
-String _$authControllerHash() => r'c0f0ab6d1f8388972015d51a9b09b1a4982fde38';
+String _$authControllerHash() => r'79fdbf0cd3f9c03fecdd558edc34b61ec6d62183';
 
 /// Authentication controller for managing auth operations
 /// Manages operation state (loading/error) for auth actions like sign-in/sign-out

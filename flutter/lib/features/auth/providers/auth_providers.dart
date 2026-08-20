@@ -8,7 +8,8 @@ import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/data/auth_service.dart';
-import 'package:eigen_flutter/features/auth/data/models/auth_user.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 import 'package:eigen_flutter/features/profile/providers/profile_providers.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -81,7 +82,6 @@ bool isAnonymous(Ref ref) {
 /// Manages operation state (loading/error) for auth actions like sign-in/sign-out
 @Riverpod(keepAlive: true)
 class AuthController extends _$AuthController {
-  AuthCredential? _pendingExistingAccountCredential;
   bool _hasPendingExistingAccount = false;
 
   @override
@@ -128,22 +128,20 @@ class AuthController extends _$AuthController {
     final analytics = ref.read(analyticsServiceProvider);
     final guestId = ref.read(currentUserProvider)?.id;
     try {
-      try {
-        await authService.upgradeWithGoogle();
-        if (guestId != null) {
-          ref.invalidate(currentUserProfileProvider);
-          ref.invalidate(playerInfoCacheProvider(id: guestId));
-        }
-        unawaited(analytics.guestUpgraded());
-        unawaited(analytics.setAccountType(isGuest: false));
-        state = const AsyncData(null);
-        return UpgradeOutcome.linked;
-      } on AccountExistsException catch (error) {
-        _pendingExistingAccountCredential = error.credential;
+      final result = await authService.upgradeWithGoogle();
+      if (result == AuthUpgradeResult.existingAccount) {
         _hasPendingExistingAccount = true;
         state = const AsyncData(null);
         return UpgradeOutcome.existingAccount;
       }
+      if (guestId != null) {
+        ref.invalidate(currentUserProfileProvider);
+        ref.invalidate(playerInfoCacheProvider(id: guestId));
+      }
+      unawaited(analytics.guestUpgraded());
+      unawaited(analytics.setAccountType(isGuest: false));
+      state = const AsyncData(null);
+      return UpgradeOutcome.linked;
     } catch (e, stackTrace) {
       state = AsyncError(e, stackTrace);
       rethrow;
@@ -162,12 +160,9 @@ class AuthController extends _$AuthController {
     }
 
     state = const AsyncLoading();
-    final credential = _pendingExistingAccountCredential;
     final guestId = ref.read(currentUserProvider)?.id;
     try {
-      await ref
-          .read(authServiceProvider)
-          .switchToExistingGoogleAccount(credential);
+      await ref.read(authServiceProvider).switchToExistingGoogleAccount();
       // Keep the guest session and its local state intact until the account
       // switch really succeeds. The signed-in auth event re-registers this
       // installation for the destination account.
@@ -191,14 +186,13 @@ class AuthController extends _$AuthController {
       state = AsyncError(error, stackTrace);
       rethrow;
     } finally {
-      _pendingExistingAccountCredential = null;
       _hasPendingExistingAccount = false;
     }
   }
 
   /// Keeps the current guest session after the user declines an account switch.
   void cancelExistingAccountSwitch() {
-    _pendingExistingAccountCredential = null;
+    ref.read(authServiceProvider).cancelExistingAccountSwitch();
     _hasPendingExistingAccount = false;
   }
 

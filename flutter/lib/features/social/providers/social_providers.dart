@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:eigen_api/eigen_api.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';

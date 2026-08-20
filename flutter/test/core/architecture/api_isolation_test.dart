@@ -48,6 +48,22 @@ void main() {
     ).not((source) => source.contains('package:eigen_api/'));
   });
 
+  test('the public auth contract is provider neutral', () {
+    final domain = Directory('lib/features/auth/domain')
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+
+    check(domain).not((source) => source.contains('package:firebase_'));
+    check(domain).not((source) => source.contains('package:google_sign_in/'));
+
+    final barrel = File('lib/eigen_flutter.dart').readAsStringSync();
+    check(barrel).contains("export 'features/auth/domain/auth_gateway.dart';");
+    check(barrel).contains("export 'features/auth/domain/auth_user.dart';");
+  });
+
   test('only the data layer talks to the server', () {
     final libDir = Directory('lib');
     check(

@@ -9,7 +9,7 @@ import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/navigation/router/app_router.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/updates/update_notifier.dart';
-import 'package:eigen_flutter/features/auth/data/models/auth_user.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/profile/providers/profile_providers.dart';
