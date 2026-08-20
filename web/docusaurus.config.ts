@@ -223,10 +223,10 @@ const config: Config = {
           // `lastVersion` at the base path, so these pages stay at /docs/*.
           // Once the engine has adopters who cannot follow a line break, run
           //
-          //   pnpm docusaurus docs:version 0.5.x
+          //   pnpm docusaurus docs:version 0.6.x
           //
-          // and 0.5.x freezes into `versioned_docs/version-0.5.x` at
-          // /docs/0.5.x/* while `docs/` becomes the new line at /docs/*. The
+          // and 0.6.x freezes into `versioned_docs/version-0.6.x` at
+          // /docs/0.6.x/* while `docs/` becomes the new line at /docs/*. The
           // generated reference freezes with it, which is exactly right:
           // `sync-api` keeps writing to `docs/`, so no part of that pipeline
           // has to learn about versions. CONTRIBUTING.md has the procedure.
@@ -234,7 +234,7 @@ const config: Config = {
           versions: {
             current: {
               // Asserted against api/openapi.json; see check-docs-version.
-              label: "0.5.x",
+              label: "0.6.x",
             },
           },
         },
@@ -401,7 +401,7 @@ const config: Config = {
         },
         { to: "/showcase", label: "Showcase", position: "left" },
         { to: "/blog", label: "Changelog", position: "left" },
-        // Renders as "0.5.x", the label from `versions.current` above. With one
+        // Renders as "0.6.x", the label from `versions.current` above. With one
         // version live it exists to answer "which engine is this describing",
         // and it becomes an ordinary switcher once a version is cut.
         //
