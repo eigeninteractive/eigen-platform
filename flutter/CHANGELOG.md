@@ -14,59 +14,59 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.9.0] - 2026-08-21
 ### Added
 - `EigenFlutterScope`, an embeddable composition boundary that installs the
-  game module, app configuration, adapter overrides, and Riverpod retry policy
-  beneath an application-owned root.
+game module, app configuration, adapter overrides, and Riverpod retry policy
+beneath an application-owned root.
 - A supported `shell_support.dart` integration surface for the separately
-  published first-party shell.
+published first-party shell.
 
 ### Changed
 - **Breaking.** App startup, `MaterialApp.router`, navigation, product screens,
-  update/review flows, and their platform plugins moved to `eigen_shell`.
-  `eigen_flutter` now contains only reusable contracts, integration state, and
-  presentation primitives and no longer exports `runEngineApp` or `MyApp`.
+update/review flows, and their platform plugins moved to `eigen_shell`.
+`eigen_flutter` now contains only reusable contracts, integration state, and
+presentation primitives and no longer exports `runEngineApp` or `MyApp`.
 - Google sign-in and Cropper.js assets moved with their owning screens to
-  `eigen_shell`, substantially reducing the lower package's dependency graph.
+`eigen_shell`, substantially reducing the lower package's dependency graph.
 - Account orchestration, profile, friend, and rating state moved with the
-  first-party product; `eigen_flutter` retains only provider-neutral auth state
-  and reusable game/player integration.
+first-party product; `eigen_flutter` retains only provider-neutral auth state
+and reusable game/player integration.
 
 ## [0.8.0] - 2026-08-21
 ### Added
 - Provider-neutral composition ports for authentication, bearer tokens,
-  analytics, route observers, and notifications, with explicit unavailable or
-  no-op defaults for embedding without a provider SDK.
+analytics, route observers, and notifications, with explicit unavailable or
+no-op defaults for embedding without a provider SDK.
 - A provider-neutral `AuthGateway`, auth identity model, and upgrade result are
-  now public so authentication adapters can live outside `eigen_flutter`
-  without exposing Firebase credential types to presentation code.
+now public so authentication adapters can live outside `eigen_flutter`
+without exposing Firebase credential types to presentation code.
 - The protocol-facing domain model, authenticated transport seams, server
-  clock, and live socket now live in the independent pure-Dart `eigen_client`
-  package. `eigen_flutter` re-exports that surface for game apps.
+clock, and live socket now live in the independent pure-Dart `eigen_client`
+package. `eigen_flutter` re-exports that surface for game apps.
 - WebSocket connections authenticate with a fresh, short-lived, game-scoped
-  ticket obtained over authenticated HTTPS. Firebase ID tokens no longer appear
-  in WebSocket URLs.
+ticket obtained over authenticated HTTPS. Firebase ID tokens no longer appear
+in WebSocket URLs.
 - Game versions declare contiguous support from version 1 through
-  `latestSchemaVersion`, so create and join compatibility have one simple rule.
+`latestSchemaVersion`, so create and join compatibility have one simple rule.
 
 ### Changed
 - Firebase Auth, Analytics, Crashlytics, Cloud Messaging, Installations, the
-  Android plugin, and the Firebase configuration executable moved to the
-  optional `eigen_firebase` package. `EngineConfig` now contains only Eigen
-  server/app-host values, and `runEngineApp` accepts an adapter initializer.
+Android plugin, and the Firebase configuration executable moved to the
+optional `eigen_firebase` package. `EngineConfig` now contains only Eigen
+server/app-host values, and `runEngineApp` accepts an adapter initializer.
 - Creation sends the client's latest bundled game version and treats an older
-  client as an update-required blocker. The server always creates the latest
-  installed game version; the capabilities endpoint and sparse-version
-  negotiation are gone.
+client as an update-required blocker. The server always creates the latest
+installed game version; the capabilities endpoint and sparse-version
+negotiation are gone.
 - Mutations are sent once and ambiguous transport failures resynchronize from
-  authoritative state. The generic command ID, durable receipt protocol, and
-  mutation retry path are removed.
+authoritative state. The generic command ID, durable receipt protocol, and
+mutation retry path are removed.
 - Contract payload generation moved to the development-only `eigen_codegen`
-  package. It enforces the portable schema profile and rejects unsupported
-  constraints instead of silently generating weaker Dart validation.
+package. It enforces the portable schema profile and rejects unsupported
+constraints instead of silently generating weaker Dart validation.
 - Timing and seat choices remain mirrored for immediate UI feedback, but the
-  TypeScript rules are authoritative and the server rejects disagreement.
+TypeScript rules are authoritative and the server rejects disagreement.
 
 ## [0.7.0] - 2026-08-19
 ### Added
@@ -285,7 +285,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.8.0...HEAD
+[0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.8.0...eigen_flutter-v0.9.0
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.7.0...eigen_flutter-v0.8.0
 [0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-flutter/compare/v0.5.0...v0.6.0
