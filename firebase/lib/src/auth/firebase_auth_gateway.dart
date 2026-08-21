@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 
-import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
-import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
+import 'package:eigen_flutter/adapters.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Firebase-backed implementation of [AuthGateway].
-class AuthService implements AuthGateway {
-  AuthService(this._auth, {required this.googleWebClientId});
+class FirebaseAuthGateway implements AuthGateway {
+  FirebaseAuthGateway(this._auth, {required this.googleWebClientId});
 
   final FirebaseAuth _auth;
   AuthCredential? _pendingExistingAccountCredential;

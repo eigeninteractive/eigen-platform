@@ -1,5 +1,5 @@
 import 'package:app_settings/app_settings.dart';
-import 'package:eigen_flutter/core/notifications/firebase_notification_service.dart';
+import 'package:eigen_flutter/core/notifications/notification_service.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

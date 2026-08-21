@@ -64,6 +64,28 @@ void main() {
     check(barrel).contains("export 'features/auth/domain/auth_user.dart';");
   });
 
+  test('the Flutter package has no Firebase implementation dependency', () {
+    final firebaseImports = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .where((file) {
+          final source = file.readAsStringSync();
+          return source.contains("package:firebase_") ||
+              source.contains("package:google_sign_in/") ||
+              source.contains("package:flutter_local_notifications/");
+        })
+        .map((file) => file.path.replaceFirst(RegExp(r'^lib/'), ''))
+        .toList();
+
+    check(
+      because:
+          'provider SDKs belong in eigen_firebase, connected only through '
+          'the public adapter boundary',
+      firebaseImports,
+    ).isEmpty();
+  });
+
   test('only the data layer talks to the server', () {
     final libDir = Directory('lib');
     check(

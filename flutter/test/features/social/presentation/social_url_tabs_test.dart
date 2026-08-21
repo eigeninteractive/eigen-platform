@@ -34,11 +34,7 @@ class _AdaPlayer extends PlayerInfoCache {
 void main() {
   const config = AppConfig(
     branding: Branding(appName: 'Test', seedColor: Colors.teal),
-    engine: EngineConfig(
-      apiBaseUrl: 'https://example.test',
-      googleWebClientId: 'client',
-      firebaseVapidKey: 'key',
-    ),
+    engine: EngineConfig(apiBaseUrl: 'https://example.test'),
   );
   late GoRouter router;
 

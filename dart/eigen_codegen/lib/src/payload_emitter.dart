@@ -97,9 +97,11 @@ final class _PayloadEmitter {
     final source = library.accept(
       DartEmitter(useNullSafetySyntax: true, orderDirectives: true),
     );
-    return DartFormatter(
-      languageVersion: DartFormatter.latestLanguageVersion,
-    ).format('$source');
+    // Generated source targets this package's minimum SDK language version,
+    // not whichever newer style happens to ship with dart_style. Otherwise a
+    // formatter release can make generation disagree with `dart format` in a
+    // consuming Dart 3.12 package even when the contract did not change.
+    return DartFormatter(languageVersion: Version(3, 12, 0)).format('$source');
   }
 
   Spec _emitDeclaration(_PayloadDeclaration declaration) =>

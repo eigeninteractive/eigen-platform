@@ -14,8 +14,8 @@
 library;
 
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_firebase/eigen_firebase.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
@@ -27,7 +27,7 @@ const _firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const _appHost = String.fromEnvironment('APP_HOST');
 
 Future<void> main() async {
-  await runEngineApp(
+  await runFirebaseEngineApp(
     // The game. One value, one line: the seam the whole framework is
     // built around.
     module: const RpsModule(),
@@ -42,13 +42,16 @@ Future<void> main() async {
         // `wss`. These public build-time values are injected once here rather
         // than read throughout the framework.
         apiBaseUrl: _apiBaseUrl,
-        googleWebClientId: _googleWebClientId,
         appHost: _appHost.isEmpty ? null : _appHost,
-        firebaseVapidKey: _firebaseVapidKey,
       ),
     ),
     firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+    firebase: FirebaseAdapterConfig(
+      googleWebClientId: _googleWebClientId,
+      vapidKey: _firebaseVapidKey,
+    ),
     onBackgroundMessage: _onBackgroundMessage,
+    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   );
 }
 

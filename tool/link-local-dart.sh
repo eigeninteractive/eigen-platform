@@ -15,6 +15,8 @@ printf '%s\n' \
 
 printf '%s\n' \
   'dependency_overrides:' \
+  '  eigen_flutter:' \
+  '    path: ../' \
   '  eigen_api:' \
   '    path: ../../server/clients/dart' \
   '  eigen_client:' \
@@ -22,6 +24,16 @@ printf '%s\n' \
   '  eigen_codegen:' \
   '    path: ../../dart/eigen_codegen' \
   > "$platform_root/flutter/example/pubspec_overrides.yaml"
+
+printf '%s\n' \
+  'dependency_overrides:' \
+  '  eigen_flutter:' \
+  '    path: ../flutter' \
+  '  eigen_client:' \
+  '    path: ../dart/eigen_client' \
+  '  eigen_api:' \
+  '    path: ../server/clients/dart' \
+  > "$platform_root/firebase/pubspec_overrides.yaml"
 
 printf '%s\n' \
   'dependency_overrides:' \

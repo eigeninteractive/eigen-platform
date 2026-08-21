@@ -155,9 +155,10 @@ Four things that are easy to get wrong on this side:
 - **The rules unit carries no player metadata.** Player counts are declared on
   `GameCreationSpec`; identities arrive via `PlayersContext`.
 
-## One dependency, one import
+## One game dependency, one import
 
-A game app depends on **`eigen_flutter` alone** and imports **only its barrel**:
+Game rules and presentation depend on **`eigen_flutter` alone** and import
+**only its game-facing barrel**:
 
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
@@ -170,6 +171,9 @@ vocabulary a game renders from (`GameStatus`, `Outcome`, `Player`, `Seat`,
 out of your namespace:
 
 > **Naming a type is part of the contract; calling the server is not.**
+
+The app composition root may additionally depend on an integration package such
+as `eigen_firebase`; game modules never do.
 
 ## What the engine owns, and you never reimplement
 

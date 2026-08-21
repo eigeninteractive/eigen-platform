@@ -1,4 +1,4 @@
-group = "com.eigeninteractive.eigen_flutter"
+group = "com.eigeninteractive.eigen_firebase"
 version = "1.0-SNAPSHOT"
 
 buildscript {
@@ -24,7 +24,7 @@ plugins {
 }
 
 android {
-    namespace = "com.eigeninteractive.eigen_flutter"
+    namespace = "com.eigeninteractive.eigen_firebase"
     compileSdk = 36
 
     compileOptions {

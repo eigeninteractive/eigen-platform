@@ -9,11 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 const _config = AppConfig(
   branding: Branding(appName: 'Test App'),
-  engine: EngineConfig(
-    apiBaseUrl: 'https://example.test',
-    googleWebClientId: 'client',
-    firebaseVapidKey: 'vapid',
-  ),
+  engine: EngineConfig(apiBaseUrl: 'https://example.test'),
 );
 
 Future<void> _pump(WidgetTester tester, Widget child, {ThemeData? theme}) =>

@@ -17,12 +17,13 @@ directly; no npm or pub.dev publishing credential is stored in GitHub.
 | `eigen_client` | `dart/eigen_client` | pub.dev | independent |
 | `eigen_codegen` | `dart/eigen_codegen` | pub.dev | independent |
 | `eigen_flutter` | `flutter` | pub.dev | independent |
+| `eigen_firebase` | `firebase` | pub.dev | independent optional adapter |
 | Implementor documentation | `web` | Cloudflare | continuous from `main` |
 
 The four engine npm packages move together because their public types and
 runtime are tightly coupled. `eigen_api` carries the same version as the engine
-whose HTTP contract generated it. The scaffolder and the three hand-written
-Dart packages move only when their own user-visible contents change.
+whose HTTP contract generated it. The scaffolder and the four hand-written Dart
+packages move only when their own user-visible contents change.
 
 ## Safety model
 
@@ -151,6 +152,14 @@ Tag pattern: eigen_codegen-v{{version}}
 Environment: pub.dev (required)
 ```
 
+`eigen_firebase` (after its first interactive publication):
+
+```text
+Repository:  eigeninteractive/eigen-platform
+Tag pattern: eigen_firebase-v{{version}}
+Environment: pub.dev (required)
+```
+
 Pub.dev requires a tag-triggered GitHub Actions identity and the version in the
 tag must match `pubspec.yaml`. Separate patterns are mandatory for packages
 published from the same repository.
@@ -252,26 +261,28 @@ dated changelog, then merge it. **Tag eigen_flutter** creates
 resolves dependencies without the monorepo override, and publishes
 automatically.
 
-## eigen_client and eigen_codegen release flow
+## eigen_client, eigen_codegen, and eigen_firebase release flow
 
-Both packages use independent versions and namespaced tags. After their first
-interactive publication, change the package version and changelog together,
-merge to `main`, then run the matching **Tag eigen_client** or
-**Tag eigen_codegen** workflow. The tag workflow creates a tag only when that
-exact version already exists on pub.dev; for a future automated release, create
-the namespaced tag at the reviewed release commit and the matching **Publish**
-workflow gates and uploads it through OIDC.
+These packages use independent versions and namespaced tags. After their first
+interactive publication, change the package version and changelog together and
+merge to `main`. The matching **Tag eigen_client**, **Tag eigen_codegen**, or
+**Tag eigen_firebase** workflow creates the namespaced tag automatically; the
+matching **Publish** workflow validates and uploads that tag through OIDC. A
+manual workflow dispatch safely repairs a missed tag. For a package that does
+not yet exist on pub.dev, the tag helper deliberately exits without creating a
+tag so its first version can be published interactively.
 
 `eigen_client` must be published before any `eigen_flutter` version that
-depends on its new line. `eigen_codegen` is dev-only and does not affect runtime
-resolution.
+depends on its new line. `eigen_flutter` must be published before an
+`eigen_firebase` version that depends on that line. `eigen_codegen` is dev-only
+and does not affect runtime resolution.
 
 After publication it dispatches **Sync compatibility table**, which reads the
 registry state, opens a generated PR if necessary, and enables auto-merge after
 the platform gate. A manual recovery run accepts an exact expected package:
 
 ```bash
-gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.7.0
+gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.8.0
 ```
 
 ### A Flutter line move costs a scaffolder patch

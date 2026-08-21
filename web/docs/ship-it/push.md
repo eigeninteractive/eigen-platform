@@ -55,7 +55,7 @@ the device rows server-side.
 
 The **background handler** must be a top-level `@pragma('vm:entry-point')`
 function that re-initialises Firebase and does nothing else; the OS renders the
-notification from the payload. It is passed into `runEngineApp` by the app,
+notification from the payload. It is passed into `runFirebaseEngineApp` by the app,
 because it needs the app's own `DefaultFirebaseOptions`. Web background delivery
 instead runs in `web/firebase-messaging-sw.js`; the Dart handler is not
 registered in a browser.
@@ -107,7 +107,7 @@ white box. The correct asset is a **monochrome silhouette vector drawable** name
 `AndroidInitializationSettings` (foreground banners), and
 `AndroidNotificationDetails(icon:)` (per-notification, for consistency).
 
-**`eigen_flutter` ships a default, and the manifest meta-data that points at
+**`eigen_firebase` ships a default, and the manifest meta-data that points at
 it.** Notifications work with no manifest to edit and no drawable to create:
 the engine names the resource, so the engine provides it.
 

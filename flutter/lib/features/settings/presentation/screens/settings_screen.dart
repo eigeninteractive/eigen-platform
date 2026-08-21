@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/adaptive/adaptive_layout.dart';
 import 'package:eigen_flutter/core/errors/error_messages.dart';
-import 'package:eigen_flutter/core/notifications/firebase_notification_service.dart';
+import 'package:eigen_flutter/core/notifications/notification_service.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/theme/theme_provider.dart';
 import 'package:eigen_flutter/core/utils/deep_links.dart';

@@ -15,11 +15,7 @@ const _gameId = 'game-12345678';
 
 const _config = AppConfig(
   branding: Branding(appName: 'Test'),
-  engine: EngineConfig(
-    apiBaseUrl: 'https://example.test',
-    googleWebClientId: 'client',
-    firebaseVapidKey: 'vapid',
-  ),
+  engine: EngineConfig(apiBaseUrl: 'https://example.test'),
 );
 
 final _game = GameSummary(

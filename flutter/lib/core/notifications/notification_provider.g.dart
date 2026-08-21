@@ -8,22 +8,22 @@ part of 'notification_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Application-wide [FirebaseNotificationService] instance.
+/// Application-wide push boundary.
 
 @ProviderFor(notificationService)
 final notificationServiceProvider = NotificationServiceProvider._();
 
-/// Application-wide [FirebaseNotificationService] instance.
+/// Application-wide push boundary.
 
 final class NotificationServiceProvider
     extends
         $FunctionalProvider<
-          FirebaseNotificationService,
-          FirebaseNotificationService,
-          FirebaseNotificationService
+          NotificationService,
+          NotificationService,
+          NotificationService
         >
-    with $Provider<FirebaseNotificationService> {
-  /// Application-wide [FirebaseNotificationService] instance.
+    with $Provider<NotificationService> {
+  /// Application-wide push boundary.
   NotificationServiceProvider._()
     : super(
         from: null,
@@ -40,26 +40,26 @@ final class NotificationServiceProvider
 
   @$internal
   @override
-  $ProviderElement<FirebaseNotificationService> $createElement(
+  $ProviderElement<NotificationService> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  FirebaseNotificationService create(Ref ref) {
+  NotificationService create(Ref ref) {
     return notificationService(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(FirebaseNotificationService value) {
+  Override overrideWithValue(NotificationService value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<FirebaseNotificationService>(value),
+      providerOverride: $SyncValueProvider<NotificationService>(value),
     );
   }
 }
 
 String _$notificationServiceHash() =>
-    r'7df0b76d7328f6a26c91324e6274442479c9e77b';
+    r'd3ad71fb80e6e113c0e58bf0f66b07f943cd16ec';
 
 /// Current app-facing notification permission and capability state.
 ///

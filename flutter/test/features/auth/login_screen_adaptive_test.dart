@@ -29,8 +29,6 @@ void main() {
                 engine: EngineConfig(
                   apiBaseUrl: 'https://example.test',
                   appHost: 'example.test',
-                  googleWebClientId: 'test-client',
-                  firebaseVapidKey: 'test-vapid-key',
                 ),
               ),
             ),

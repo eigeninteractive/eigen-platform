@@ -3,11 +3,11 @@ import 'dart:developer' as developer;
 
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:eigen_flutter/core/notifications/firebase_messaging_registration.dart';
+import 'package:eigen_firebase/src/notifications/firebase_messaging_registration.dart';
+import 'package:eigen_flutter/adapters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:eigen_flutter/shared/data/device_installation_repository.dart';
 
 // ── Android notification channels ────────────────────────────────────────────
 // Each channel appears as an independent toggle in Android system settings,
@@ -75,40 +75,6 @@ enum _NotificationCategory {
   };
 }
 
-/// App-facing notification permission and capability state.
-///
-/// Firebase's [AuthorizationStatus.denied] is ambiguous on Android 13+: it can
-/// mean either "not asked yet" or "the user denied the prompt". The service
-/// combines it with whether this app has made a user-initiated request so the
-/// Settings UI can offer the right next action.
-enum NotificationPermissionState {
-  /// Messaging is unsupported in this browser.
-  ///
-  /// A missing VAPID key is a deployment error caught by `runEngineApp`, not a
-  /// player-facing capability state.
-  unavailable,
-
-  /// The app can ask, and has not received a decision yet.
-  promptable,
-
-  /// Notifications are authorized (including Apple's provisional grant).
-  enabled,
-
-  /// Permission was denied or subsequently disabled in system/browser settings.
-  blocked,
-}
-
-/// Permission was granted, but FCM or server registration could not be
-/// completed. The service retries when the app resumes.
-final class NotificationRegistrationException implements Exception {
-  const NotificationRegistrationException([this.cause]);
-
-  final Object? cause;
-
-  @override
-  String toString() => 'NotificationRegistrationException: $cause';
-}
-
 /// Resolves Firebase's platform status into the state the UI needs.
 @visibleForTesting
 NotificationPermissionState resolveNotificationPermissionState({
@@ -132,18 +98,40 @@ NotificationPermissionState resolveNotificationPermissionState({
 // ── Service ───────────────────────────────────────────────────────────────────
 
 /// FCM push notification service using Firebase Cloud Messaging.
-class FirebaseNotificationService {
-  FirebaseNotificationService({
-    required this._messaging,
-    required this._messagingRegistration,
-    required this._installations,
-    required this._installationRepository,
-    required this._localNotifications,
-    required this._preferences,
-    required this._activeGameId,
-    required this._currentUserId,
-    required this._vapidKey,
-  });
+class FirebaseNotificationService implements NotificationService {
+  factory FirebaseNotificationService({
+    required FirebaseMessaging messaging,
+    required FirebaseMessagingRegistration messagingRegistration,
+    required FirebaseInstallations installations,
+    required DeviceInstallationRepository installationRepository,
+    required FlutterLocalNotificationsPlugin localNotifications,
+    required SharedPreferencesAsync preferences,
+    required String? Function() activeGameId,
+    required String? Function() currentUserId,
+    required String vapidKey,
+  }) => FirebaseNotificationService._(
+    messaging,
+    messagingRegistration,
+    installations,
+    installationRepository,
+    localNotifications,
+    preferences,
+    activeGameId,
+    currentUserId,
+    vapidKey,
+  );
+
+  FirebaseNotificationService._(
+    this._messaging,
+    this._messagingRegistration,
+    this._installations,
+    this._installationRepository,
+    this._localNotifications,
+    this._preferences,
+    this._activeGameId,
+    this._currentUserId,
+    this._vapidKey,
+  );
 
   final FirebaseMessaging _messaging;
   final FirebaseMessagingRegistration _messagingRegistration;
@@ -157,7 +145,7 @@ class FirebaseNotificationService {
   /// registration follows the live session without holding an auth handle.
   final String? Function() _currentUserId;
 
-  /// Public VAPID key for FCM Web Push, injected from [EngineConfig].
+  /// Public VAPID key for FCM Web Push.
   final String _vapidKey;
 
   final StreamController<String> _nav = StreamController<String>.broadcast();
@@ -170,8 +158,10 @@ class FirebaseNotificationService {
   static const _registeredKey = 'notifications_registered_installation';
   static const _permissionRequestedKey = 'notifications_permission_requested';
 
+  @override
   Stream<String> get navigationStream => _nav.stream;
 
+  @override
   Future<void> initialize() async {
     if (_initialized) return;
     final pending = _initializing;
@@ -283,6 +273,7 @@ class FirebaseNotificationService {
   /// about who is logged in. A no-op when signed out; otherwise the idempotent
   /// upsert also repairs a row the server may have pruned after a 404. Errors
   /// are logged, never thrown.
+  @override
   Future<void> registerInstallation() async {
     try {
       await syncPermissionAndRegistration();
@@ -304,6 +295,7 @@ class FirebaseNotificationService {
   /// the Firebase installation intact. Deleting the installation would reset
   /// Crashlytics / Remote Config / A&B identity. The row delete alone stops the
   /// server targeting this user on this device.
+  @override
   Future<void> deleteCurrentInstallation() async {
     try {
       final fid = await _installations.getId();
@@ -320,6 +312,7 @@ class FirebaseNotificationService {
   }
 
   /// Returns the current permission/capability state without prompting.
+  @override
   Future<NotificationPermissionState> permissionState() async {
     final available = await _messagingAvailable();
     if (!available) return NotificationPermissionState.unavailable;
@@ -343,6 +336,7 @@ class FirebaseNotificationService {
   ///
   /// Callers must invoke this from an Enable button or equivalent contextual
   /// gesture. Initialization deliberately never calls it.
+  @override
   Future<NotificationPermissionState> requestPermission() async {
     if (!await _messagingAvailable()) {
       return NotificationPermissionState.unavailable;
@@ -381,6 +375,7 @@ class FirebaseNotificationService {
   /// Called on startup, sign-in, FID changes, and app resume. This repairs a
   /// transient registration failure and notices permission changes made in
   /// Settings.
+  @override
   Future<NotificationPermissionState> syncPermissionAndRegistration() async {
     final state = await permissionState();
     if (state == NotificationPermissionState.enabled) {

@@ -67,10 +67,11 @@ that schema, and its migrations will not know about them.
 
 ## The app
 
-One `AppConfig` passed to `runEngineApp`: `Branding` (name, theme seed) plus
-`EngineConfig` (the injected runtime values). The app reads Dart compilation
-environment declarations once at this composition root; the framework does not
-read hidden process or file state.
+One provider-neutral `AppConfig` contains `Branding` and the Eigen server
+values. The standard scaffold additionally passes `FirebaseAdapterConfig` to
+`runFirebaseEngineApp`. The app reads Dart compilation environment declarations
+once at this composition root; neither package reads hidden process or file
+state.
 
 ```dart
 const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
@@ -79,20 +80,23 @@ const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const appHost = String.fromEnvironment('APP_HOST');
 const authDomain = String.fromEnvironment('AUTH_DOMAIN');
 
-await runEngineApp(
+await runFirebaseEngineApp(
   module: const RpsModule(),
   config: AppConfig(
     branding: const Branding(appName: 'Rock Paper Scissors', seedColor: Colors.teal),
     engine: EngineConfig(
       apiBaseUrl: apiBaseUrl,
-      googleWebClientId: googleWebClientId,
-      firebaseVapidKey: firebaseVapidKey,
       appHost: appHost.isEmpty ? null : appHost,
-      authDomain: authDomain.isEmpty ? null : authDomain,
     ),
   ),
   firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+  firebase: FirebaseAdapterConfig(
+    googleWebClientId: googleWebClientId,
+    vapidKey: firebaseVapidKey,
+    authDomain: authDomain.isEmpty ? null : authDomain,
+  ),
   onBackgroundMessage: _onBackgroundMessage,
+  telemetry: FirebaseTelemetryPolicy.releaseOnly(),
 );
 ```
 
@@ -115,8 +119,8 @@ flutter build appbundle --release \
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
 
 These values are embedded in the Android binary or downloaded web bundle and
-must never be treated as secrets. `runEngineApp` validates all of them before
-initializing Firebase and reports every missing or malformed value together.
+must never be treated as secrets. `runEngineApp` validates the server values;
+the Firebase adapter validates its own values before initializing Firebase.
 Worker service-account keys, bot signing keys, and other real credentials stay
 in Worker secrets.
 
@@ -149,7 +153,7 @@ All of that filling-in is `configure_firebase`'s, not the scaffolder's, so
 state**. The Worker half is the `--worker` flag:
 
 ```bash
-dart run eigen_flutter:configure_firebase --worker ../server
+dart run eigen_firebase:configure_firebase --worker ../server
 ```
 
 The generated `firebase:configure` script already passes it. An app-only
@@ -164,17 +168,22 @@ which you meant.
 
 ## Firebase, once per deployment
 
-Firebase is mandatory on the client. A fresh scaffold contains a throwing
-`firebase_options.dart` seam so analysis works before project setup, but the app
-will not start until FlutterFire replaces it with real platform configuration.
+Firebase is the standard scaffold's optional identity, push, analytics, and
+crash adapter. A fresh scaffold chooses it and contains a throwing
+`firebase_options.dart` seam, so that app will not start until FlutterFire
+replaces the placeholder. An embedded app can omit `eigen_firebase`, call
+`runEngineApp`, and install different adapters through
+`package:eigen_flutter/adapters.dart`.
 
 1. **Create the project**, either at console.firebase.google.com or by letting
    step 2 do it: the first run offers to. The two differ in one respect. Only
    the console's create flow links a Google Analytics account, so a project
    created through the CLI reports *"Google Analytics not enabled for Project"*
-   and the engine's automatic events have nowhere to land. Link one afterwards
-   under Settings → Integrations → Google Analytics. Crashlytics reports either
-   way.
+   and Firebase Analytics events have nowhere to land. Link one afterwards
+   under Settings → Integrations → Google Analytics. Telemetry collection is
+   disabled unless the app explicitly passes an enabling
+   `FirebaseTelemetryPolicy`; the standard scaffold enables it only in release
+   builds.
 2. Install and authenticate the official tooling:
 
    ```bash
@@ -225,7 +234,7 @@ will not start until FlutterFire replaces it with real platform configuration.
    `app/web/firebase-config.js`. This keeps
    `app/lib/firebase_options.dart` and the messaging worker on the same
    Firebase Web app without copying identifiers. In a standalone app
-   repository, run `dart run eigen_flutter:configure_firebase` from the Flutter
+   repository, run `dart run eigen_firebase:configure_firebase` from the Flutter
    root.
 
    **Commit what it writes.** `app/firebase.json`,
@@ -250,11 +259,11 @@ will not start until FlutterFire replaces it with real platform configuration.
 4. Enable **Crashlytics** for Android and verify **Cloud Messaging** is on.
    Crashlytics has no Flutter web implementation; use your hosting/browser
    observability for uncaught web failures.
-5. **Android FID registration:** `eigen_flutter` is an Android Flutter plugin.
+5. **Android FID registration:** `eigen_firebase` is an Android Flutter plugin.
    Its library manifest enables
    `firebase_messaging_installation_id_enabled`, and its exported Firebase BoM
    constraint selects a native Messaging SDK with FID registration. This works
-   for scaffolded and hand-created apps that depend on `eigen_flutter`; do not
+   for scaffolded and hand-created apps that depend on `eigen_firebase`; do not
    edit the generated application manifest or `gradle.properties`. The engine's
    explicit BoM constraint can be removed once FlutterFire selects Messaging
    25.1.0 or newer itself. See Firebase's

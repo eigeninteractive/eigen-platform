@@ -84,11 +84,7 @@ Future<void> _pump(
         appConfigProvider.overrideWithValue(
           const AppConfig(
             branding: Branding(appName: 'Test'),
-            engine: EngineConfig(
-              apiBaseUrl: 'https://example.test',
-              googleWebClientId: 'client',
-              firebaseVapidKey: 'vapid',
-            ),
+            engine: EngineConfig(apiBaseUrl: 'https://example.test'),
           ),
         ),
         currentUserProvider.overrideWithValue(

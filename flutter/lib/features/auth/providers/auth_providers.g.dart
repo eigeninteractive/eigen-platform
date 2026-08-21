@@ -8,17 +8,29 @@ part of 'auth_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider for AuthService instance
+/// Application authentication boundary.
+///
+/// Production identity packages override this at the composition root. The
+/// default keeps the embeddable Flutter package provider-neutral and signed
+/// out.
 
 @ProviderFor(authService)
 final authServiceProvider = AuthServiceProvider._();
 
-/// Provider for AuthService instance
+/// Application authentication boundary.
+///
+/// Production identity packages override this at the composition root. The
+/// default keeps the embeddable Flutter package provider-neutral and signed
+/// out.
 
 final class AuthServiceProvider
     extends $FunctionalProvider<AuthGateway, AuthGateway, AuthGateway>
     with $Provider<AuthGateway> {
-  /// Provider for AuthService instance
+  /// Application authentication boundary.
+  ///
+  /// Production identity packages override this at the composition root. The
+  /// default keeps the embeddable Flutter package provider-neutral and signed
+  /// out.
   AuthServiceProvider._()
     : super(
         from: null,
@@ -52,7 +64,7 @@ final class AuthServiceProvider
   }
 }
 
-String _$authServiceHash() => r'15d3682203a7cc48a19f41b4fcf3edc5740b4943';
+String _$authServiceHash() => r'920a74d9124603dcaca710bca20bcb1b7786c488';
 
 /// The signed-in user's id, or null when signed out.
 ///

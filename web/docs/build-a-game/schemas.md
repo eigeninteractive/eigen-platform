@@ -141,7 +141,8 @@ Every version includes its number: version 1 uses `RpsV1RulesBase`, version 2
 uses `RpsV2RulesBase`, and so on. The generated base is replaced whenever the
 contract is regenerated, while the subclass remains entirely game-owned.
 The generator and its `code_builder`/`dart_style` implementation dependencies
-ship inside `eigen_flutter`; the game app declares only `eigen_flutter`.
+ship only in the development package `eigen_codegen`; they do not enter the
+runtime app. Generated types import the supported `eigen_flutter` barrel.
 
 Unknown fields are ignored while known fields are decoded strictly. That is the
 useful read-side balance: additive object fields survive an older app, while a

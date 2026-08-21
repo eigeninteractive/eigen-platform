@@ -1,6 +1,6 @@
 # vNext execution status
 
-Last updated: 2026-08-20.
+Last updated: 2026-08-21.
 
 This is a progress ledger, not a normative contract. The accepted RFCs are the
 authority; [RFC 0009](0009-vnext-simplifications.md) supersedes the speculative
@@ -41,14 +41,14 @@ compatibility and command machinery from earlier phases.
 | TypeScript packaging | Public packages use one idiomatic `tsdown` build for JavaScript, declarations, JavaScript source maps, and declaration maps. Sources ship for editor navigation. |
 | Dart generation | `eigen_codegen` is a separate pure-Dart development package. Its portable schema compiler enforces supported constraints and rejects unknown semantics instead of silently dropping them. |
 | Dart client core | `eigen_client` is an independent publishable pure-Dart package. One configured `EigenClient` owns generated HTTP resources, repositories, socket tickets, player batching, and live-session gap recovery. Flutter supplies authentication and transport policy without importing generated API classes. |
+| Firebase adapter | `eigen_flutter` exposes provider-neutral auth, token, analytics, navigation-observer, and notification ports. `eigen_firebase` owns the Firebase SDKs, Android integration, Firebase configuration CLI, and explicit telemetry policy. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
 
 ## Work still to do
 
 1. Complete the remaining Flutter dependency split described by RFC 0009:
-   move Firebase implementations into `eigen_firebase`, make `eigen_flutter`
-   the embeddable presentation package, and move the complete product into
-   `eigen_shell`.
+   make `eigen_flutter` the embeddable presentation package and move the
+   complete product into `eigen_shell`.
 2. Finish generated API/docs synchronization, release notes, and publish-order
    automation for the new package graph.
 3. Run every workspace shard and both scaffold targets from a clean checkout,

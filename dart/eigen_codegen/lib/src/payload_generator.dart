@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
+import 'package:pub_semver/pub_semver.dart';
 
 part 'payload_emitter.dart';
 

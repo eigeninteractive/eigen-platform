@@ -210,11 +210,7 @@ Widget _harness(Widget content) => ProviderScope(
     appConfigProvider.overrideWithValue(
       const AppConfig(
         branding: Branding(appName: 'RPS', seedColor: Colors.teal),
-        engine: EngineConfig(
-          apiBaseUrl: 'https://example.invalid',
-          googleWebClientId: 'test',
-          firebaseVapidKey: 'test-vapid-key',
-        ),
+        engine: EngineConfig(apiBaseUrl: 'https://example.invalid'),
       ),
     ),
   ],

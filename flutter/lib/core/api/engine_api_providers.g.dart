@@ -8,6 +8,67 @@ part of 'engine_api_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Supplies the current short-lived bearer token to engine transports.
+///
+/// Identity adapters override this provider. The null-token default keeps the
+/// transport usable with servers that install a local or public auth policy.
+
+@ProviderFor(engineAccessToken)
+final engineAccessTokenProvider = EngineAccessTokenProvider._();
+
+/// Supplies the current short-lived bearer token to engine transports.
+///
+/// Identity adapters override this provider. The null-token default keeps the
+/// transport usable with servers that install a local or public auth policy.
+
+final class EngineAccessTokenProvider
+    extends
+        $FunctionalProvider<
+          AccessTokenProvider,
+          AccessTokenProvider,
+          AccessTokenProvider
+        >
+    with $Provider<AccessTokenProvider> {
+  /// Supplies the current short-lived bearer token to engine transports.
+  ///
+  /// Identity adapters override this provider. The null-token default keeps the
+  /// transport usable with servers that install a local or public auth policy.
+  EngineAccessTokenProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'engineAccessTokenProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$engineAccessTokenHash();
+
+  @$internal
+  @override
+  $ProviderElement<AccessTokenProvider> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  AccessTokenProvider create(Ref ref) {
+    return engineAccessToken(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AccessTokenProvider value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AccessTokenProvider>(value),
+    );
+  }
+}
+
+String _$engineAccessTokenHash() => r'0d8dbd32722121270abb6c93d55df10b7b8faac5';
+
 /// The app-wide HTTP client for the engine: the data layer's single backend
 /// handle.
 ///
@@ -96,7 +157,7 @@ final class EngineDioProvider extends $FunctionalProvider<Dio, Dio, Dio>
   }
 }
 
-String _$engineDioHash() => r'7fd61bd18f4f2e60b73e8f03024671a576fc030c';
+String _$engineDioHash() => r'0d1f9a893c6d34b3ef67294b4a509185fd0654b6';
 
 /// Server time, tracked from the `Date` header of every engine response.
 ///

@@ -4,15 +4,12 @@ import 'dart:developer' as developer;
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
-import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
-import 'package:eigen_flutter/features/auth/data/auth_service.dart';
 import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
 import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 import 'package:eigen_flutter/features/profile/providers/profile_providers.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 part 'auth_providers.g.dart';
 
@@ -27,18 +24,13 @@ enum UpgradeOutcome {
   existingAccount,
 }
 
-/// Provider for AuthService instance
+/// Application authentication boundary.
+///
+/// Production identity packages override this at the composition root. The
+/// default keeps the embeddable Flutter package provider-neutral and signed
+/// out.
 @Riverpod(keepAlive: true)
-AuthGateway authService(Ref ref) {
-  final googleWebClientId = ref
-      .watch(appConfigProvider)
-      .engine
-      .googleWebClientId;
-  return AuthService(
-    FirebaseAuth.instance,
-    googleWebClientId: googleWebClientId,
-  );
-}
+AuthGateway authService(Ref ref) => const UnavailableAuthGateway();
 
 /// The signed-in user's id, or null when signed out.
 ///

@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:eigen_flutter/src/codegen/firebase_link.dart';
+import 'package:eigen_firebase/src/codegen/firebase_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as path;
 
@@ -25,7 +25,7 @@ Map<String, dynamic> _googleServices({
   'project_info': {'project_id': 'go-fish-1a2b3'},
   'client': [
     {
-      'client_info': {'android_client_info': {}},
+      'client_info': {'android_client_info': <String, dynamic>{}},
       'oauth_client': oauth,
     },
   ],

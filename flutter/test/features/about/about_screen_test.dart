@@ -25,11 +25,7 @@ void main() {
       seedColor: Colors.indigo,
       madeByCredit: 'Made by tester',
     ),
-    engine: EngineConfig(
-      apiBaseUrl: 'https://example.test',
-      googleWebClientId: 'client',
-      firebaseVapidKey: 'test-vapid-key',
-    ),
+    engine: EngineConfig(apiBaseUrl: 'https://example.test'),
   );
 
   Future<void> pumpAbout(WidgetTester tester, GameModule module) async {

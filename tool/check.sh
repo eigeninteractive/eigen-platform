@@ -135,7 +135,16 @@ run_flutter() {
   dart doc --dry-run .
   flutter test
 
-  cd example
+  cd "$platform_root/firebase"
+  flutter pub get
+  dart format --output=none --set-exit-if-changed \
+    $(git ls-files '*.dart' | sed 's#^firebase/##')
+  flutter analyze
+  dart doc --dry-run .
+  flutter test
+  dart pub publish --dry-run
+
+  cd "$platform_root/flutter/example"
   flutter pub get
   dart run eigen_codegen:generate_payloads \
     --contract ../../server/examples/rps/game-contract.json \

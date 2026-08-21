@@ -14,8 +14,6 @@ part of 'app_config.dart';
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-/// const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-/// const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 ///
 /// appConfigProvider.overrideWithValue(
 ///   AppConfig(
@@ -25,8 +23,6 @@ part of 'app_config.dart';
 ///     ),
 ///     engine: EngineConfig(
 ///       apiBaseUrl: apiBaseUrl,
-///       googleWebClientId: googleWebClientId,
-///       firebaseVapidKey: firebaseVapidKey,
 ///     ),
 ///   ),
 /// )
@@ -42,8 +38,6 @@ final appConfigProvider = AppConfigProvider._();
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-/// const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-/// const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 ///
 /// appConfigProvider.overrideWithValue(
 ///   AppConfig(
@@ -53,8 +47,6 @@ final appConfigProvider = AppConfigProvider._();
 ///     ),
 ///     engine: EngineConfig(
 ///       apiBaseUrl: apiBaseUrl,
-///       googleWebClientId: googleWebClientId,
-///       firebaseVapidKey: firebaseVapidKey,
 ///     ),
 ///   ),
 /// )
@@ -70,8 +62,6 @@ final class AppConfigProvider
   /// construct their own `ProviderScope` can override it directly:
   /// ```dart
   /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-  /// const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-  /// const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
   ///
   /// appConfigProvider.overrideWithValue(
   ///   AppConfig(
@@ -81,8 +71,6 @@ final class AppConfigProvider
   ///     ),
   ///     engine: EngineConfig(
   ///       apiBaseUrl: apiBaseUrl,
-  ///       googleWebClientId: googleWebClientId,
-  ///       firebaseVapidKey: firebaseVapidKey,
   ///     ),
   ///   ),
   /// )

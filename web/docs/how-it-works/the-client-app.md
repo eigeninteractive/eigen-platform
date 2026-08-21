@@ -7,44 +7,36 @@ description: Package layout, startup order, local persistence, offline UX, navig
 # Package layout
 
 ```text
-eigen-flutter/
-└── lib/
-    ├── eigen_flutter.dart   # the public barrel
-    ├── app_runner.dart      # runEngineApp(...), the entry point
-    ├── src/api/
-    │   ├── generated/       # GENERATED REST client, never hand-edited
-    │   └── generated_from.dart  # which engine build produced it
-    ├── core/
-    │   ├── api/             # Dio + auth interceptor, engineCall, the socket,
-    │   │                    #   ServerClock, avatar-URL resolution
-    │   ├── config/          # AppConfig (Branding + EngineConfig)
-    │   ├── game/            # the game contract: GameModule, GameRules,
-    │   │                    #   GameFrame, PlayersContext, TimingContext,
-    │   │                    #   MySeat, GameCreationSpec, timing constants
-    │   ├── analytics/ notifications/ updates/ review/ connectivity/
-    │   ├── storage/ theme/ navigation/ errors/ utils/ startup/
-    ├── features/            # about auth game home profile rating settings social
-    │   └── <feature>/{data,providers,presentation}
-    ├── shared/{data,providers,widgets}
-    └── testing/             # the Dart half of the twin-fixture runner
+dart/eigen_client/lib/       # pure Dart HTTP, socket, domain, repositories
+flutter/lib/
+├── eigen_flutter.dart       # game-facing public barrel
+├── adapters.dart            # supported integration-provider boundary
+├── app_runner.dart          # provider-neutral runEngineApp(...)
+├── core/                    # Flutter config, game UI contracts, navigation
+├── features/                # current first-party presentation features
+├── shared/                  # shared presentation/data glue
+└── testing/                 # Dart half of the twin-fixture runner
+firebase/lib/
+├── eigen_firebase.dart      # runFirebaseEngineApp(...)
+└── src/                     # Auth, telemetry, push, and configuration CLI
 ```
 
 The layering rule is enforced by a test, not convention:
-`test/core/architecture/api_isolation_test.dart` restricts `package:dio` and the
-six generated `*Api` classes to `core/api/`, the feature `data/` layers, and
-`shared/data/`. Generated *models* may be used anywhere; they are the domain
-vocabulary. What is confined is the **capability to make a request**, not the
-types that come back. That test is what made folding transport into this package
-safe after the separate pure-Dart package was dropped.
+`flutter/test/core/architecture/api_isolation_test.dart` keeps Dio and generated
+HTTP capabilities at the transport boundary and rejects every Firebase SDK
+import from `eigen_flutter`. `firebase/test/architecture_test.dart` separately
+proves the optional adapter composes only through supported public entry
+points. Generated *models* remain domain vocabulary; the capability to make a
+request stays inside `eigen_client` and the narrow Flutter transport setup.
 
 A consuming app is a standard Flutter app with the game under `lib/game/`:
 
 ```text
 my_app/
-├── pubspec.yaml             # depends on eigen_flutter (path, until published)
+├── pubspec.yaml             # eigen_flutter plus optional eigen_firebase
 ├── app-config.json          # public Android + web build-time values
 ├── lib/
-│   ├── main.dart            # ~30-line entry: runEngineApp(module, config, …)
+│   ├── main.dart            # ~30-line entry: runFirebaseEngineApp(...)
 │   ├── firebase_options.dart
 │   └── game/
 │       ├── game_module.dart # versions map + creation/about UI
@@ -58,7 +50,7 @@ my_app/
 └── fastlane/                # Fastfile + Appfile
 ```
 
-`dart run eigen_flutter:configure_firebase` generates FlutterFire's platform
+`dart run eigen_firebase:configure_firebase` generates FlutterFire's platform
 files and `web/firebase-config.js` from the same selected Firebase app. The
 service worker remains app-owned because it runs outside the Dart isolate, but
 its identifiers are not hand-maintained.
@@ -244,19 +236,18 @@ See [Deep links & domain configuration](../ship-it/deep-links.md).
 
 ## Analytics & crash reporting
 
-Both are **infra-owned**: a game never imports a Firebase package or fires an
-event. Firebase itself is mandatory: `runEngineApp` initialises it before
-anything else, so every deployment runs it.
+Both are **adapter-owned**: game rules and widgets never import a Firebase
+package or fire provider-specific events. The standard app chooses
+`eigen_firebase`; an embedded app can omit it and receives no-op analytics.
 
 `AnalyticsService` is an abstract interface over primitives (`String`, `int`,
 `bool`) that never imports `features/` types; call sites convert enums to
-strings. The Firebase implementation sits behind a keepAlive provider. The point
-of the interface is not swappability (there will only ever be Firebase); it is
-that call sites don't depend on Firebase and the service is trivially faked in
-tests.
+strings. The Firebase implementation lives in `eigen_firebase` behind a
+keepAlive provider override. Call sites remain provider-neutral and the service
+is trivially faked in tests.
 
-**Crashlytics** is wired before `runApp`, both arms, so no crash window exists at
-startup:
+When enabled, **Crashlytics** is wired before `runApp`, both arms, so no crash
+window exists at startup:
 
 ```dart
 FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;

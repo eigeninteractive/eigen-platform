@@ -163,7 +163,7 @@ Required values are intentionally empty in a fresh scaffold. The app reports
 all missing or malformed declarations at startup instead of continuing with
 placeholder endpoints.
 
-The `eigen_flutter` Android plugin enables Firebase's current FID-based
+The `eigen_firebase` Android plugin enables Firebase's current FID-based
 messaging mode and supplies a Firebase SDK new enough to support it. The
 scaffolder leaves Flutter's generated manifest and `gradle.properties`
 untouched; it adds only the application-level core-library desugaring block
@@ -233,7 +233,7 @@ the engine's mark on your listing. Replace them before a first release:
 | `assets/icon/icon_foreground.png` | 1024×1024 Android adaptive foreground, transparent, artwork inside the centre 66% |
 | `assets/icon/splash.png` / `splash_dark.png` | Splash artwork for light and dark |
 
-The notification icon is the exception: `eigen_flutter` ships a default
+The notification icon is the exception: `eigen_firebase` ships a default
 `ic_notification` drawable, so nothing is missing and nothing breaks if you
 leave it. To use your own, add
 `android/app/src/main/res/drawable/ic_notification.xml`, a monochrome

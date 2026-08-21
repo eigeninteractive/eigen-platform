@@ -3,10 +3,17 @@ import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/retry_policy.dart';
 import 'package:eigen_flutter/core/config/app_config.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'engine_api_providers.g.dart';
+
+/// Supplies the current short-lived bearer token to engine transports.
+///
+/// Identity adapters override this provider. The null-token default keeps the
+/// transport usable with servers that install a local or public auth policy.
+@Riverpod(keepAlive: true)
+AccessTokenProvider engineAccessToken(Ref ref) =>
+    () async => null;
 
 /// The app-wide HTTP client for the engine: the data layer's single backend
 /// handle.
@@ -35,10 +42,7 @@ Dio engineDio(Ref ref) {
     ),
   );
   dio.interceptors.add(
-    BearerTokenInterceptor(() async {
-      final user = FirebaseAuth.instance.currentUser;
-      return user == null ? null : await user.getIdToken();
-    }),
+    BearerTokenInterceptor(ref.watch(engineAccessTokenProvider)),
   );
   dio.interceptors.add(ref.watch(serverClockProvider).interceptor);
   // Transport-level retry for requests that are safe to repeat. Retries a

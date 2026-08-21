@@ -74,13 +74,12 @@ const { root } = scaffoldGame({
     // carrying `allowBuilds`, and replacing it would silently drop that and
     // turn this into a test of a project no user has.
     if (args[0] === "install") appendFileSync(resolve(cwd, "pnpm-workspace.yaml"), overrides());
-    // eigen_codegen is a package from this same platform commit. Its first
-    // release cannot exist on pub.dev until this source has landed, and every
-    // later version has the same release-window problem as the npm packages
-    // above. Put the local override in place before `pub add` asks the solver
-    // for it; the emitted caret range is still asserted by scaffold unit tests.
-    if (command === "flutter" && args.includes(`dev:eigen_codegen@^0.1.0`)) {
-      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, ""].join("\n"));
+    // New platform packages cannot exist on pub.dev before the source that
+    // introduces them lands. Put local roots in place before the first pub add;
+    // the emitted hosted ranges remain asserted by the unit tests, while this
+    // integration build exercises the same-revision implementation.
+    if (command === "flutter" && args.includes(`eigen_firebase@^0.1.0`)) {
+      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, "  eigen_firebase:", `    path: ${JSON.stringify(resolve(platformRoot, "firebase"))}`, ""].join("\n"));
     }
     shell(command, args, cwd);
   },
@@ -202,6 +201,8 @@ writeFileSync(
     `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`,
     "  eigen_flutter:",
     `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`,
+    "  eigen_firebase:",
+    `    path: ${JSON.stringify(resolve(platformRoot, "firebase"))}`,
     "",
   ].join("\n"),
 );

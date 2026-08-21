@@ -11,7 +11,7 @@ part 'app_config.g.dart';
 /// responsibility:
 ///
 /// - [branding]: user-facing identity (name, theme seed).
-/// - [engine]: runtime backend/integration values the framework needs.
+/// - [engine]: Eigen server and app-host values the framework needs.
 ///
 /// Keeping each concern as its own value object is what stops this from
 /// decaying into a junk drawer of unrelated flags. A consuming app reads its
@@ -36,13 +36,7 @@ class AppConfig {
 /// composition root.
 @immutable
 class EngineConfig {
-  const EngineConfig({
-    required this.apiBaseUrl,
-    required this.googleWebClientId,
-    required this.firebaseVapidKey,
-    this.appHost,
-    this.authDomain,
-  });
+  const EngineConfig({required this.apiBaseUrl, this.appHost});
 
   /// Origin of the EigenInteractive server, with no trailing slash and no
   /// path, for example `https://api.example.com`.
@@ -51,17 +45,6 @@ class EngineConfig {
   /// prefix, and the game socket is built from this same origin with the scheme
   /// swapped to `ws`/`wss`.
   final String apiBaseUrl;
-
-  /// Google Sign-In web/server client id.
-  final String googleWebClientId;
-
-  /// VAPID public key for FCM Web Push.
-  ///
-  /// The standard app targets Android and web, so notification capability
-  /// is part of the deployment contract rather than an optional integration.
-  /// Android does not consume this value; web startup rejects an empty key.
-  /// The key is public and belongs to the same Firebase project as Auth.
-  final String firebaseVapidKey;
 
   /// The game's public host, e.g. `strategy.eigeninteractive.com` or a
   /// customer's own domain; null disables the features built on it.
@@ -73,34 +56,11 @@ class EngineConfig {
   /// rather than being intercepted.
   final String? appHost;
 
-  /// Firebase Auth's own domain, overriding the project default; null keeps it.
-  ///
-  /// Purely cosmetic, and only in a browser. Web sign-in runs through Firebase's
-  /// popup, which loads `https://<authDomain>/__/auth/handler`, and Google's
-  /// account chooser names that host: by default *"Sign in to continue to
-  /// my-project.firebaseapp.com"*. Setting this replaces the string a player
-  /// reads there. Android signs in through the native Google flow and never
-  /// shows it, so an Android-only game has no reason to set this.
-  ///
-  /// **Not [appHost].** This host serves Firebase's auth handler and must be a
-  /// **Firebase Hosting** domain, whereas [appHost] is the game's own Worker.
-  /// One cannot be the other; they are sibling names on the same domain, e.g.
-  /// `auth.mygame.com` beside `mygame.com`. Setting this to a host Firebase
-  /// Hosting does not answer for breaks web sign-in outright, which is why it
-  /// stays unset until the Hosting domain exists.
-  ///
-  /// The name is only half the branding. The logo and product name on that
-  /// screen come from the OAuth consent screen in Google Cloud, which is a
-  /// separate change and needs no code. See
-  /// <https://eigeninteractive.com/docs/ship-it/deploy-the-web-app>.
-  final String? authDomain;
-
   /// Validates the deployment values before any engine service starts.
   ///
-  /// [isWeb] controls the platform-specific Web Push requirement. Invalid
-  /// values throw one [StateError] listing every problem and the scaffold's
-  /// standard configuration command.
-  void validate({required bool isWeb}) {
+  /// Invalid values throw one [StateError] listing every problem and the
+  /// scaffold's standard configuration command.
+  void validate() {
     final errors = <String>[];
     final workerOrigin = Uri.tryParse(apiBaseUrl);
     if (_isUnset(apiBaseUrl)) {
@@ -119,27 +79,9 @@ class EngineConfig {
       );
     }
 
-    if (_isUnset(googleWebClientId)) {
-      errors.add('GOOGLE_WEB_CLIENT_ID is required');
-    }
-    if (isWeb && _isUnset(firebaseVapidKey)) {
-      errors.add('FIREBASE_VAPID_KEY is required for web');
-    }
-
     final host = appHost;
     if (host != null && !_isValidHost(host)) {
       errors.add('APP_HOST must be a hostname without a scheme, port, or path');
-    }
-
-    // Same shape as APP_HOST, and worth failing over rather than passing
-    // through: a malformed value reaches Firebase as the origin it builds the
-    // popup URL from, and the failure surfaces as a sign-in that never returns
-    // rather than as a configuration error.
-    final auth = authDomain;
-    if (auth != null && !_isValidHost(auth)) {
-      errors.add(
-        'AUTH_DOMAIN must be a hostname without a scheme, port, or path',
-      );
     }
 
     if (errors.isEmpty) return;
@@ -216,8 +158,6 @@ class Branding {
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-/// const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
-/// const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 ///
 /// appConfigProvider.overrideWithValue(
 ///   AppConfig(
@@ -227,8 +167,6 @@ class Branding {
 ///     ),
 ///     engine: EngineConfig(
 ///       apiBaseUrl: apiBaseUrl,
-///       googleWebClientId: googleWebClientId,
-///       firebaseVapidKey: firebaseVapidKey,
 ///     ),
 ///   ),
 /// )

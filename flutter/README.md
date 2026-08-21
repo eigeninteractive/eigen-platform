@@ -9,11 +9,10 @@ The Flutter half of [EigenInteractive](https://eigeninteractive.com): a
 server-authoritative engine for turn-based multiplayer games.
 
 `eigen_client` is the pure Dart protocol, domain, clock, and live-session
-runtime. `eigen_flutter` builds the Flutter presentation adapters on it and,
-for the moment, supplies the complete app shell: authentication, lobbies,
-reconnection, timing, ratings, history, replay, social features, notifications,
-deep links, and update UX. A game supplies a small `GameModule` containing its
-client-side rules and presentation.
+runtime. `eigen_flutter` builds provider-neutral Flutter presentation on it
+and, for the moment, supplies the complete app shell. Firebase is an optional
+adapter in the separate `eigen_firebase` package. A game supplies a small
+`GameModule` containing its client-side rules and presentation.
 
 ## Start a game
 
@@ -33,23 +32,25 @@ follow the [manual setup guide](https://eigeninteractive.com/docs/getting-starte
 
 ```yaml
 dependencies:
-  eigen_flutter: ^0.1.0
+  eigen_flutter: ^0.8.0
+  eigen_firebase: ^0.1.0 # only when the app chooses Firebase
   firebase_core: ^4.9.0
-  firebase_messaging: ^16.2.0
 ```
 
 Import the framework through its public barrel:
 
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_firebase/eigen_firebase.dart';
 ```
 
 Do not depend on `eigen_api` directly or deep-import `core/`, `features/`, or
 `shared/`. The barrel is the supported game-facing API.
 
-On Android, `flutter_local_notifications` requires core-library desugaring in
-the application module. `create-eigen-game` configures it automatically. For a
-hand-created app, add this to `android/app/build.gradle.kts`:
+On Android, the Firebase adapter's local-notification dependency requires
+core-library desugaring in the application module. `create-eigen-game`
+configures it automatically. For a hand-created app, add this to
+`android/app/build.gradle.kts`:
 
 ```kotlin
 android {
@@ -74,21 +75,29 @@ const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const appHost = String.fromEnvironment('APP_HOST');
 
-Future<void> main() => runEngineApp(
+Future<void> main() => runFirebaseEngineApp(
   module: const MyGameModule(),
   config: AppConfig(
     branding: const Branding(appName: 'My Game', seedColor: Colors.indigo),
     engine: EngineConfig(
       apiBaseUrl: apiBaseUrl,
-      googleWebClientId: googleWebClientId,
-      firebaseVapidKey: firebaseVapidKey,
       appHost: appHost.isEmpty ? null : appHost,
     ),
   ),
   firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+  firebase: FirebaseAdapterConfig(
+    googleWebClientId: googleWebClientId,
+    vapidKey: firebaseVapidKey,
+  ),
   onBackgroundMessage: onBackgroundMessage,
+  telemetry: FirebaseTelemetryPolicy.releaseOnly(),
 );
 ```
+
+Without Firebase, omit `eigen_firebase` and call `runEngineApp` directly. Its
+auth, notification, and analytics ports default to unavailable/no-op adapters;
+another integration can override those ports through
+`package:eigen_flutter/adapters.dart`.
 
 These are public build-time values. Scaffolded apps keep them in
 `app-config.json` and use the same command option for Android and web:
@@ -97,13 +106,14 @@ These are public build-time values. Scaffolded apps keep them in
 flutter run --dart-define-from-file=app-config.json
 ```
 
-Missing or malformed required values are reported together before Firebase or
-any engine service starts. Keep actual secrets on the Worker.
+Missing or malformed required values are reported together before their
+services start. Keep actual secrets on the Worker. Telemetry collection is off
+unless the app passes an explicit policy such as `releaseOnly()`.
 
 Connect a game app to Firebase with the package executable:
 
 ```bash
-dart run eigen_flutter:configure_firebase
+dart run eigen_firebase:configure_firebase
 ```
 
 It runs FlutterFire for Android and web, then derives

@@ -73,7 +73,7 @@ does not contain: a Firebase project and a deployed worker. Configure Firebase
 without copying its Web identifiers by hand:
 
 ```bash
-dart run eigen_flutter:configure_firebase
+dart run eigen_firebase:configure_firebase
 ```
 
 The command runs FlutterFire for Android and Web, then generates

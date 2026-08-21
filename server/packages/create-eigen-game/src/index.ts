@@ -247,7 +247,10 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * `scripts/scaffold-e2e.mjs` is what refuses to let it be forgotten: it resolves
  * both halves for real and compares the wire lines they land on.
  */
-const flutterClientVersion = "^0.7.0";
+const flutterClientVersion = "^0.8.0";
+
+/** Optional Firebase adapter installed by the standard app scaffold. */
+const firebaseAdapterVersion = "^0.1.0";
 
 /** Development-only contract compiler installed into the generated app. */
 const dartCodegenVersion = "^0.1.0";
@@ -787,11 +790,11 @@ function configureFirebase(appRoot: string, project: boolean | string, run: Runn
     // Doing it against `--help`, which returns immediately, moves that noise
     // into a step whose output can be captured; the real run cannot be, since
     // FlutterFire prompts through it.
-    reporter.step("Preparing the Firebase configurator", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--help"], appRoot));
+    reporter.step("Preparing the Firebase configurator", () => run("dart", ["run", "eigen_firebase:configure_firebase", "--help"], appRoot));
     // `--worker` is what makes this fill in `FIREBASE_PROJECT_ID` as well as
     // the app's own values. An app-only repository omits it and gets the app
     // half; a combined scaffold has the Worker one directory over.
-    reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_flutter:configure_firebase", "--worker", "../server", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
+    reporter.handOver("Configuring Firebase", () => run("dart", ["run", "eigen_firebase:configure_firebase", "--worker", "../server", ...(typeof project === "string" ? ["--project", project] : [])], appRoot));
     if (parking) rmSync(parked, { force: true });
     return "configured";
   } catch {
@@ -903,7 +906,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     if (bootstrap) {
       reporter.step("Adding the Flutter packages", () => {
         configureLauncherIconsAndSplash(appRoot);
-        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], appRoot);
+        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, `eigen_firebase@${firebaseAdapterVersion}`, "firebase_core@^4.9.0"], appRoot);
         run("flutter", ["pub", "add", `dev:eigen_codegen@${dartCodegenVersion}`, "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
       });
       // Actually apply the icons rather than only configuring them. Both tools

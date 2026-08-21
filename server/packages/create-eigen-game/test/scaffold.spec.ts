@@ -171,7 +171,7 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts.deploy).toContain("run build:web");
     // `--worker` is what lets a re-run fill in the Worker's FIREBASE_PROJECT_ID,
     // so the command a project keeps does exactly what scaffolding did.
-    expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_flutter:configure_firebase --worker ../server");
+    expect(rootManifest.scripts["firebase:configure"]).toBe("cd app && dart run eigen_firebase:configure_firebase --worker ../server");
   });
 
   it("uses ecosystem CLIs to bootstrap both halves", () => {
@@ -195,7 +195,7 @@ describe("scaffoldGame", () => {
     // release on that line, which is the part a scaffold-time pub.dev lookup
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.7.0", "firebase_core@^4.9.0", "firebase_messaging@^16.2.2"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.8.0", "eigen_firebase@^0.1.0", "firebase_core@^4.9.0"], expect.stringMatching(/\/app$/));
     // A separate `pub add` (rather than folded into the call above) so a
     // failure here is legible on its own, and because these are dev
     // dependencies (`dev:` prefix) while the engine/Firebase packages above
@@ -637,7 +637,7 @@ describe("repository initialisation", () => {
     // Not the `--help` warm-up ahead of it, which exists only to move `dart
     // run`'s "Building package executable" out of the interactive step.
     const configure = calls.findIndex(([command, args]) => command === "dart" && !args.includes("--help"));
-    expect(calls[configure]).toEqual(["dart", ["run", "eigen_flutter:configure_firebase", "--worker", "../server", "--project", "example-project"], resolve(root, "app")]);
+    expect(calls[configure]).toEqual(["dart", ["run", "eigen_firebase:configure_firebase", "--worker", "../server", "--project", "example-project"], resolve(root, "app")]);
     // The whole reason for doing this here: `firebase.json`,
     // `google-services.json`, the generated `firebase_options.dart` and
     // FlutterFire's two Gradle edits are in the scaffold commit rather than
@@ -730,7 +730,7 @@ describe("repository initialisation", () => {
 
     // Passing no `--project` is what makes FlutterFire prompt, which is also
     // the only route to creating a project from here.
-    expect(calls).toContainEqual(["run", "eigen_flutter:configure_firebase", "--worker", "../server"]);
+    expect(calls).toContainEqual(["run", "eigen_firebase:configure_firebase", "--worker", "../server"]);
   });
 
   it("keeps a scaffold that Firebase could not be configured for", () => {

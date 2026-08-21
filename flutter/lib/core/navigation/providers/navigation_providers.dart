@@ -1,4 +1,4 @@
-import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:eigen_flutter/core/navigation/router/app_router.dart';
@@ -7,6 +7,10 @@ import 'package:eigen_flutter/core/navigation/widgets/not_found_screen.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 
 part 'navigation_providers.g.dart';
+
+/// Route observers installed by optional navigation adapters.
+@Riverpod(keepAlive: true)
+List<NavigatorObserver> navigationObservers(Ref ref) => const [];
 
 /// Provider for the GoRouter instance with auth-based routing
 /// Keep alive ensures the router is never disposed during app lifetime
@@ -60,8 +64,6 @@ GoRouter goRouter(Ref ref) {
     errorBuilder: (context, state) =>
         NotFoundScreen(location: state.uri.toString()),
     routes: appRoutes,
-    observers: [
-      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-    ],
+    observers: ref.watch(navigationObserversProvider),
   );
 }

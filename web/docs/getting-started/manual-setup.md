@@ -116,16 +116,16 @@ Durable Object, cron, and migration configuration.
 
 ## Create the Flutter app
 
-Create a normal Flutter app, then add the package plus the two Firebase
-libraries imported by the app entry point:
+Create a normal Flutter app, then add the presentation package, optional
+Firebase adapter, and Firebase Core used by the generated options file:
 
 ```bash
 flutter create --empty --platforms android,web --org com.example my_game
 cd my_game
-flutter pub add eigen_flutter firebase_core firebase_messaging
+flutter pub add eigen_flutter eigen_firebase firebase_core
 ```
 
-`flutter_local_notifications`, used by the engine for foreground delivery,
+`flutter_local_notifications`, used by the Firebase adapter for foreground delivery,
 requires core-library desugaring in the Android application module. The
 scaffolder configures this automatically; for a hand-created app, append the
 following to `android/app/build.gradle.kts`:
@@ -142,14 +142,15 @@ dependencies {
 }
 ```
 
-The app imports the framework through its barrel only:
+The standard Firebase app imports the presentation and adapter barrels:
 
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_firebase/eigen_firebase.dart';
 ```
 
 Create `lib/game/module.dart`, register the same version keys as the TypeScript
-module, and call `runEngineApp` from `lib/main.dart`. The
+module, and call `runFirebaseEngineApp` from `lib/main.dart`. The
 [Creation UI](../build-a-game/creation-ui.md) and
 [Rendering](../build-a-game/rendering.md) pages contain the two handwritten
 Dart pieces.
@@ -157,7 +158,8 @@ Dart pieces.
 Create `app-config.json` beside `pubspec.yaml` with `API_BASE_URL`,
 `GOOGLE_WEB_CLIENT_ID`, the optional `APP_HOST` and `AUTH_DOMAIN`, and the
 public `FIREBASE_VAPID_KEY`. Read them once with `const String.fromEnvironment` in
-`main.dart`, pass them into `EngineConfig`, and use
+`main.dart`. Pass `API_BASE_URL` and `APP_HOST` into `EngineConfig`; pass the
+three Firebase values into `FirebaseAdapterConfig`. Use
 `--dart-define-from-file=app-config.json` for both Android and web commands.
 The complete shape and validation rules are in
 [Configuration](../ship-it/configure.md#the-app).
@@ -166,7 +168,7 @@ After installing and authenticating the Firebase and FlutterFire CLIs, run the
 engine's setup executable from the Flutter repository root:
 
 ```bash
-dart run eigen_flutter:configure_firebase
+dart run eigen_firebase:configure_firebase
 ```
 
 It generates FlutterFire's platform files and
@@ -178,8 +180,9 @@ For web, add the Firebase Messaging service worker and register it from a custom
 `web/flutter_bootstrap.js`; configure a fixed local origin in the Worker and
 Firebase. The scaffold supplies those files automatically. Manual projects can
 copy the small setup from [Deploy the web app](../ship-it/deploy-the-web-app.md).
-Pass the project's public VAPID key into `EngineConfig`; the web app treats a
-missing key as deployment misconfiguration rather than disabling notifications.
+Pass the project's public VAPID key into `FirebaseAdapterConfig`; the web app
+treats a missing key as deployment misconfiguration rather than disabling
+notifications.
 
 On the Worker, set `FIREBASE_PROJECT_ID` and store that project's
 `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY` as secrets. Those Admin

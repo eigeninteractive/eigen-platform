@@ -3,6 +3,7 @@
 .wrangler/
 build/
 coverage/
+doc/api/
 node_modules/
 pubspec.lock
 pubspec_overrides.yaml

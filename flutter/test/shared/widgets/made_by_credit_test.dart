@@ -11,11 +11,7 @@ import 'package:url_launcher/link.dart';
 /// The line as the app ships it, and as the game's own website renders it.
 AppConfig _config(String credit) => AppConfig(
   branding: Branding(appName: 'Test App', madeByCredit: credit),
-  engine: const EngineConfig(
-    apiBaseUrl: 'https://example.test',
-    googleWebClientId: 'client',
-    firebaseVapidKey: 'test-vapid-key',
-  ),
+  engine: const EngineConfig(apiBaseUrl: 'https://example.test'),
 );
 
 Future<void> _pump(WidgetTester tester, String credit) => tester.pumpWidget(

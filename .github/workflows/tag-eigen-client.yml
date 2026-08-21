@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   tag:
-    name: Tag an existing pub.dev release
+    name: Tag the release
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Tag if this version is published
+      - name: Tag if automated publishing is available
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
@@ -43,12 +43,8 @@ jobs:
             exit 0
           fi
 
-          if ! published=$(curl -sf --retry 3 https://pub.dev/api/packages/eigen_client); then
+          if ! curl -sf --retry 3 https://pub.dev/api/packages/eigen_client >/dev/null; then
             echo "::notice::eigen_client must be published manually once before pub.dev can trust GitHub OIDC; no tag was created."
-            exit 0
-          fi
-          if ! jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null <<<"$published"; then
-            echo "::notice::eigen_client $v is not published yet; no tag was created."
             exit 0
           fi
 

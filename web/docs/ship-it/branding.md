@@ -252,7 +252,7 @@ use the typed `site.legal` fragments above.
 - [ ] `flutter_launcher_icons:` adaptive background matches the brand →
       regenerate
 - [ ] `flutter_native_splash:` colours match the theme → regenerate
-- [ ] *(optional)* `ic_notification.xml` declared to override `eigen_flutter`'s
+- [ ] *(optional)* `ic_notification.xml` declared to override `eigen_firebase`'s
       default silhouette; notifications work without it
 - [ ] `web/index.html`: real title, description and OG/Twitter tags, absolute
       `og:image`; `web/og-image.png` at 1200 × 630

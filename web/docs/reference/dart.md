@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: Dart API
-description: The hosted, versioned API reference for eigen_flutter and its testing library.
+description: Hosted, versioned API references for the Eigen Dart and Flutter packages.
 ---
 
 # Dart API
 
-Game apps use one package and one import:
+Game modules use one package and one import:
 
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
@@ -14,12 +14,22 @@ import 'package:eigen_flutter/eigen_flutter.dart';
 
 **[Open the latest `eigen_flutter` API reference on pub.dev →](https://pub.dev/documentation/eigen_flutter/latest/)**
 
-The reference contains only the two supported library entry points:
+The standard app composition root also imports the optional Firebase adapter:
+
+```dart
+import 'package:eigen_firebase/eigen_firebase.dart';
+```
+
+**[Open the latest `eigen_firebase` API reference on pub.dev →](https://pub.dev/documentation/eigen_firebase/latest/)**
+
+The public package surfaces are:
 
 | Library | Use it for |
 |---|---|
 | `package:eigen_flutter/eigen_flutter.dart` | App startup, configuration, the Dart `GameModule` / `GameRules` contract, generated wire vocabulary, and game-facing widgets. |
 | `package:eigen_flutter/testing/twin_fixtures.dart` | Running the shared TypeScript/Dart contract fixtures from `flutter test`. |
+| `package:eigen_flutter/adapters.dart` | Supported provider ports used by integration packages, not ordinary game code. |
+| `package:eigen_firebase/eigen_firebase.dart` | Firebase composition, configuration, explicit telemetry policy, and background-message types. |
 
 Everything under the package's `core/`, `features/`, and `shared/` directories
 is implementation detail. Do not deep-import it. If a task guide asks you to

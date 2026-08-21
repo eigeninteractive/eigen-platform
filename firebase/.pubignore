@@ -1,0 +1,25 @@
+.dart_tool/
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+doc/api/
+pubspec.lock
+pubspec_overrides.yaml
+
+.idea/
+*.iml
+.DS_Store
+*.log
+
+# App-specific Firebase and signing material never belongs in this adapter.
+firebase.json
+android/app/google-services.json
+android/key.properties
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+*.jks
+*.keystore
+*.p8
+*.p12
+*.mobileprovision

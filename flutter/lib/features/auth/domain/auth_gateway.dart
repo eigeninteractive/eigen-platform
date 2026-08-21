@@ -19,3 +19,43 @@ abstract interface class AuthGateway {
   void cancelExistingAccountSwitch();
   Future<void> signOut();
 }
+
+/// Authentication boundary used when an app has not installed an adapter.
+///
+/// It exposes a stable signed-out state so an embedding app can render before
+/// choosing an identity provider. Operations that require identity fail with a
+/// direct configuration error rather than a provider-specific exception.
+final class UnavailableAuthGateway implements AuthGateway {
+  const UnavailableAuthGateway();
+
+  Never _missing() => throw UnsupportedError(
+    'No AuthGateway is installed. Override authServiceProvider with an '
+    'identity adapter.',
+  );
+
+  @override
+  AuthUser? get currentUser => null;
+
+  @override
+  Stream<AuthStateChange> get authStateChanges => Stream.value(
+    const AuthStateChange(event: AuthEvent.signedOut, user: null),
+  );
+
+  @override
+  Future<void> signInWithGoogle() async => _missing();
+
+  @override
+  Future<void> signInAnonymously() async => _missing();
+
+  @override
+  Future<AuthUpgradeResult> upgradeWithGoogle() async => _missing();
+
+  @override
+  Future<void> switchToExistingGoogleAccount() async => _missing();
+
+  @override
+  void cancelExistingAccountSwitch() {}
+
+  @override
+  Future<void> signOut() async {}
+}

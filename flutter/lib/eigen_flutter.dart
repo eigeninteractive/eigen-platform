@@ -12,8 +12,6 @@
 /// Future<void> main() => runEngineApp(
 ///   module: const MyGameModule(),
 ///   config: appConfig,
-///   firebaseOptions: firebaseOptions,
-///   onBackgroundMessage: onBackgroundMessage,
 /// );
 /// ```
 ///
@@ -35,7 +33,7 @@ library eigen_flutter;
 /// vocabulary without exposing raw HTTP capabilities.
 export 'package:eigen_client/eigen_client.dart';
 
-export 'app_runner.dart' show runEngineApp, MyApp;
+export 'app_runner.dart' show EngineAdapterInitializer, runEngineApp, MyApp;
 
 export 'core/config/app_config.dart'
     show AppConfig, Branding, EngineConfig, appConfigProvider;
