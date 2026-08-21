@@ -73,7 +73,11 @@ dev_dependencies:
   riverpod_generator: ^4.0.4
   riverpod_lint: ^3.1.4
   json_serializable: ^6.13.0
-  freezed: ">=3.2.5 <5.0.0"
+  # Generated sources are committed, so the generator itself is an exact build
+  # input. 3.2.6-dev.1 is the analyzer-12 release compatible with our minimum
+  # supported Flutter SDK (see .fvmrc); a range lets newer SDKs silently select
+  # the analyzer-13/Freezed-4 generator and produce different source.
+  freezed: 3.2.6-dev.1
   checks: ^0.3.1
   eigen_codegen: ^0.1.0
 

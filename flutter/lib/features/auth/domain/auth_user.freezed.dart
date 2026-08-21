@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
+// ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'auth_user.dart';
@@ -9,7 +9,6 @@ part of 'auth_user.dart';
 // FreezedGenerator
 // **************************************************************************
 
-// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -64,7 +63,7 @@ class _$AuthUserCopyWithImpl<$Res>
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? isAnonymous = null,}) {
-  return _then(AuthUser(
+  return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,isAnonymous: null == isAnonymous ? _self.isAnonymous : isAnonymous // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -324,7 +323,7 @@ class _$AuthStateChangeCopyWithImpl<$Res>
 /// Create a copy of AuthStateChange
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? event = null,Object? user = freezed,}) {
-  return _then(AuthStateChange(
+  return _then(_self.copyWith(
 event: null == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
 as AuthEvent,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as AuthUser?,
