@@ -1,5 +1,13 @@
 # create-eigen-game
 
+## 0.14.0
+
+### Minor Changes
+
+- [`46f8698`](https://github.com/eigeninteractive/eigen-platform/commit/46f8698fb3f972cf00eb26692dd695bcae0bb162) Thanks [@seenu-k](https://github.com/seenu-k)! - Scaffold the complete first-party app from `eigen_shell`, compose Firebase as
+  an optional initializer, and keep game rules and rendering on the embeddable
+  `eigen_flutter` contract.
+
 ## 0.13.1
 
 ### Patch Changes
