@@ -10,17 +10,20 @@ provider do not depend on this package.
 ```dart
 import 'package:eigen_firebase/eigen_firebase.dart';
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_shell/eigen_shell.dart';
 
-await runFirebaseEngineApp(
+await runEigenShell(
   module: gameModule,
   config: appConfig,
-  firebaseOptions: DefaultFirebaseOptions.currentPlatform,
-  firebase: const FirebaseAdapterConfig(
-    googleWebClientId: googleWebClientId,
-    vapidKey: firebaseVapidKey,
+  initializeAdapter: () => initializeEigenFirebase(
+    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+    firebase: const FirebaseAdapterConfig(
+      googleWebClientId: googleWebClientId,
+      vapidKey: firebaseVapidKey,
+    ),
+    onBackgroundMessage: backgroundMessageHandler,
+    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   ),
-  onBackgroundMessage: backgroundMessageHandler,
-  telemetry: FirebaseTelemetryPolicy.releaseOnly(),
 );
 ```
 

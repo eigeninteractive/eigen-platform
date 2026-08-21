@@ -15,6 +15,23 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
+### Added
+- `EigenFlutterScope`, an embeddable composition boundary that installs the
+  game module, app configuration, adapter overrides, and Riverpod retry policy
+  beneath an application-owned root.
+- A supported `shell_support.dart` integration surface for the separately
+  published first-party shell.
+
+### Changed
+- **Breaking.** App startup, `MaterialApp.router`, navigation, product screens,
+  update/review flows, and their platform plugins moved to `eigen_shell`.
+  `eigen_flutter` now contains only reusable contracts, integration state, and
+  presentation primitives and no longer exports `runEngineApp` or `MyApp`.
+- Google sign-in and Cropper.js assets moved with their owning screens to
+  `eigen_shell`, substantially reducing the lower package's dependency graph.
+- Account orchestration, profile, friend, and rating state moved with the
+  first-party product; `eigen_flutter` retains only provider-neutral auth state
+  and reusable game/player integration.
 
 ## [0.8.0] - 2026-08-21
 ### Added

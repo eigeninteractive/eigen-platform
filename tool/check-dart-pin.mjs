@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Assert that the Flutter shell can depend on the `eigen_api` client this
+ * Assert that every direct Dart consumer can depend on the `eigen_api` client this
  * repository generates.
  *
  *     node tool/check-dart-pin.mjs
  *
- * `flutter/pubspec.yaml` names a published `eigen_api` range; `pnpm dart-client`
+ * The consumer pubspecs name a published `eigen_api` range; `pnpm dart-client`
  * generates that package from the engine's OpenAPI document and stamps it with
  * the engine's version. Nothing connected the two, and nothing could notice they
  * had come apart, because `tool/check.sh` runs `tool/link-local-dart.sh` first:

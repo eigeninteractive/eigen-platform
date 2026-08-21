@@ -11,32 +11,41 @@ dart/eigen_client/lib/       # pure Dart HTTP, socket, domain, repositories
 flutter/lib/
 ├── eigen_flutter.dart       # game-facing public barrel
 ├── adapters.dart            # supported integration-provider boundary
-├── app_runner.dart          # provider-neutral runEngineApp(...)
-├── core/                    # Flutter config, game UI contracts, navigation
-├── features/                # current first-party presentation features
-├── shared/                  # shared presentation/data glue
+├── composition.dart         # embeddable EigenFlutterScope
+├── shell_support.dart       # supported boundary consumed by eigen_shell
+├── core/                    # Flutter config, ports, storage, game UI contracts
+├── features/                # reusable Riverpod/client integration
+├── shared/                  # reusable presentation/data glue
 └── testing/                 # Dart half of the twin-fixture runner
+shell/lib/
+├── eigen_shell.dart         # runEigenShell(...)
+├── src/app_runner.dart      # startup + MaterialApp.router
+├── core/                    # navigation, theme state, updates and review
+├── features/                # complete first-party product screens
+└── shared/                  # shell-only presentation
 firebase/lib/
-├── eigen_firebase.dart      # runFirebaseEngineApp(...)
+├── eigen_firebase.dart      # initializeEigenFirebase(...)
 └── src/                     # Auth, telemetry, push, and configuration CLI
 ```
 
 The layering rule is enforced by a test, not convention:
 `flutter/test/core/architecture/api_isolation_test.dart` keeps Dio and generated
 HTTP capabilities at the transport boundary and rejects every Firebase SDK
-import from `eigen_flutter`. `firebase/test/architecture_test.dart` separately
-proves the optional adapter composes only through supported public entry
-points. Generated *models* remain domain vocabulary; the capability to make a
-request stays inside `eigen_client` and the narrow Flutter transport setup.
+import and app-shell dependency from `eigen_flutter`.
+`shell/test/architecture_test.dart` proves the full product consumes only the
+supported lower-layer barrel and does not reach into `eigen_api` or Firebase.
+`firebase/test/architecture_test.dart` separately proves the optional adapter
+does not depend on the shell. Generated *models* remain domain vocabulary; the
+capability to make a request stays inside `eigen_client`.
 
 A consuming app is a standard Flutter app with the game under `lib/game/`:
 
 ```text
 my_app/
-├── pubspec.yaml             # eigen_flutter plus optional eigen_firebase
+├── pubspec.yaml             # eigen_flutter + eigen_shell + optional Firebase
 ├── app-config.json          # public Android + web build-time values
 ├── lib/
-│   ├── main.dart            # ~30-line entry: runFirebaseEngineApp(...)
+│   ├── main.dart            # ~30-line composition root
 │   ├── firebase_options.dart
 │   └── game/
 │       ├── game_module.dart # versions map + creation/about UI

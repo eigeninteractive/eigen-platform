@@ -10,7 +10,7 @@ part of 'app_config.dart';
 // ignore_for_file: type=lint, type=warning
 /// The active [AppConfig].
 ///
-/// [runEngineApp] registers the config for normal apps. Widget tests that
+/// `EigenFlutterScope` registers the config for normal apps. Widget tests that
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
@@ -34,7 +34,7 @@ final appConfigProvider = AppConfigProvider._();
 
 /// The active [AppConfig].
 ///
-/// [runEngineApp] registers the config for normal apps. Widget tests that
+/// `EigenFlutterScope` registers the config for normal apps. Widget tests that
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
@@ -58,7 +58,7 @@ final class AppConfigProvider
     with $Provider<AppConfig> {
   /// The active [AppConfig].
   ///
-  /// [runEngineApp] registers the config for normal apps. Widget tests that
+  /// `EigenFlutterScope` registers the config for normal apps. Widget tests that
   /// construct their own `ProviderScope` can override it directly:
   /// ```dart
   /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');

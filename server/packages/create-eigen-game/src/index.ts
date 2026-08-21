@@ -186,7 +186,7 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  *
  * This briefly resolved from pub.dev instead: "the newest `eigen_flutter` whose
  * own `eigen_api` constraint targets the engine line being scaffolded". That
- * predicate is wrong. The `eigen_api` constraint describes the WIRE the shell
+ * predicate is wrong. The `eigen_api` constraint describes the WIRE the integration
  * speaks, not the Dart API these templates call, and the two move
  * independently: a future `eigen_flutter` may legitimately keep `eigen_api:
  * ^0.2.0` while renaming everything the templates touch. It would have been
@@ -203,7 +203,7 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  *
  * Raised to 0.4.0 with the engine's session-snapshot wire. This is the one kind
  * of bump that is not merely an improvement: a scaffold writes both halves, and
- * the worker half is this repository's own line, so the shell it installs has to
+ * the worker half is this repository's own line, so the client integration has to
  * speak that line's socket. `eigen_flutter` 0.4.0 is the first that does, and
  * every 0.3.x pins `eigen_api: ^0.2.0`, which cannot read a 0.3.x engine at all.
  * A scaffold pinning 0.3.x would therefore resolve, compile, and then fail to
@@ -219,7 +219,7 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * same *required* kind of bump the 0.4.0 note describes rather than an
  * improvement. The 0.4.x engine line takes `cursor` as an opaque string and
  * returns `nextCursor` on every paged response; `eigen_flutter` 0.6.0 is the
- * first shell that pins `eigen_api: ^0.4.0` and can read it. Everything below
+ * first integration that pins `eigen_api: ^0.4.0` and can read it. Everything below
  * that pins `eigen_api: ^0.3.0` or older, so a scaffold left on `^0.4.1` would
  * install the engine's current line beside a shell that cannot read a single
  * paged list from it: it resolves, it compiles, and then the lobby and history
@@ -243,14 +243,17 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * end of the release chain, after the npm packages this scaffolder ships with --
  * so at the moment the engine crossed to 0.5.x there was no 0.7.0 to point at,
  * and `create-eigen-game@0.12.0` went out pairing a `^0.5.0` worker with a 0.6.0
- * shell. A Flutter line move therefore costs a follow-up scaffolder patch, and
+ * integration. A Flutter line move therefore costs a follow-up scaffolder patch, and
  * `scripts/scaffold-e2e.mjs` is what refuses to let it be forgotten: it resolves
  * both halves for real and compares the wire lines they land on.
  */
-const flutterClientVersion = "^0.8.0";
+const flutterClientVersion = "^0.9.0";
+
+/** Complete first-party app shell installed by the standard scaffold. */
+const flutterShellVersion = "^0.1.0";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
-const firebaseAdapterVersion = "^0.1.0";
+const firebaseAdapterVersion = "^0.2.0";
 
 /** Development-only contract compiler installed into the generated app. */
 const dartCodegenVersion = "^0.1.0";
@@ -906,7 +909,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     if (bootstrap) {
       reporter.step("Adding the Flutter packages", () => {
         configureLauncherIconsAndSplash(appRoot);
-        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, `eigen_firebase@${firebaseAdapterVersion}`, "firebase_core@^4.9.0"], appRoot);
+        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, `eigen_shell@${flutterShellVersion}`, `eigen_firebase@${firebaseAdapterVersion}`, "firebase_core@^4.9.0"], appRoot);
         run("flutter", ["pub", "add", `dev:eigen_codegen@${dartCodegenVersion}`, "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
       });
       // Actually apply the icons rather than only configuring them. Both tools

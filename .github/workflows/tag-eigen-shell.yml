@@ -1,0 +1,52 @@
+name: Tag eigen_shell
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [shell/pubspec.yaml]
+
+concurrency:
+  group: tag-eigen-shell
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  tag:
+    name: Tag the release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Tag if automated publishing is available
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' shell/pubspec.yaml)
+          tag="eigen_shell-v$v"
+          [ -n "$v" ] || { echo "::error::eigen_shell pubspec has no version"; exit 1; }
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::notice::$tag already exists."
+            exit 0
+          fi
+
+          if ! curl -sf --retry 3 https://pub.dev/api/packages/eigen_shell >/dev/null; then
+            echo "::notice::eigen_shell must be published manually once before pub.dev can trust GitHub OIDC; no tag was created."
+            exit 0
+          fi
+
+          git tag "$tag"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$tag"

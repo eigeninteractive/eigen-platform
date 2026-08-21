@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Keep the Flutter shell on the generated API's compatibility line when a
+// Keep direct Dart consumers on the generated API's compatibility line when a
 // Changesets version commit advances @eigeninteractive/server. This runs after
 // `changeset version` and before the generated Dart client is emitted. Local
 // checks use a path override, so without this explicit edit a version PR can

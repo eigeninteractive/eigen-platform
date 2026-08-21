@@ -17,7 +17,8 @@ being simplified before real applications or users depend on it.
 | --- | --- |
 | [`server/`](server/) | Rules SDK, authoritative kernel, Cloudflare Worker server, testkit, scaffolder, and generated Dart HTTP API |
 | [`dart/`](dart/) | Pure Dart client runtime and development-only contract generator |
-| [`flutter/`](flutter/) | Provider-neutral Flutter runtime, current UI shell, and example app |
+| [`flutter/`](flutter/) | Embeddable, provider-neutral Flutter integration and example game |
+| [`shell/`](shell/) | Complete first-party Flutter application shell and product flows |
 | [`firebase/`](firebase/) | Optional Firebase Auth, telemetry, crash reporting, push, and configuration adapter |
 | [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
 | [`docs/architecture/`](docs/architecture/) | Accepted vNext decisions and execution status |
@@ -40,8 +41,10 @@ component's dependencies from its own dependency root:
 (cd web && pnpm install --frozen-lockfile)
 (cd dart/eigen_client && dart pub get)
 (cd dart/eigen_codegen && dart pub get)
-(cd flutter && flutter pub get && flutter pub get --directory example)
+(cd flutter && flutter pub get)
+(cd shell && flutter pub get)
 (cd firebase && flutter pub get)
+(cd flutter/example && flutter pub get)
 ```
 
 Run the full cross-platform gate before handing off a change:

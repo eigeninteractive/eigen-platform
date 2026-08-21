@@ -1,0 +1,97 @@
+name: Publish eigen_shell
+
+on:
+  push:
+    tags: ["eigen_shell-v*"]
+
+concurrency:
+  group: publish-eigen-shell
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: shell
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          channel: stable
+          cache: true
+
+      - name: Verify tag and package version
+        run: |
+          tag="${GITHUB_REF_NAME#eigen_shell-v}"
+          package=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          [ "$tag" = "$package" ] || {
+            echo "::error::tag eigen_shell-v$tag does not match pubspec version $package"
+            exit 1
+          }
+
+      - name: Resolve registry dependencies
+        run: |
+          [ ! -e pubspec_overrides.yaml ] || {
+            echo "::error::pubspec_overrides.yaml must not exist in a release checkout"
+            exit 1
+          }
+          grep -q '^dependency_overrides:' pubspec.yaml && {
+            echo "::error::dependency_overrides must not appear in pubspec.yaml"
+            exit 1
+          }
+          flutter pub get
+
+      - name: Check shell
+        run: |
+          dart format --output=none --set-exit-if-changed lib test
+          dart run build_runner build
+          git diff --exit-code -- lib
+          flutter analyze
+          dart doc --dry-run .
+          flutter test
+
+      - name: Check whether the version is already published
+        id: published
+        run: |
+          v=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
+          if curl -sf --retry 3 https://pub.dev/api/packages/eigen_shell \
+               | jq -e --arg v "$v" '.versions[] | select(.version == $v)' >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::eigen_shell $v is already published."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to pub.dev
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          PUB_TOKEN=$(curl --retry 5 --retry-connrefused -sLS \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://pub.dev" \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
+          [ -n "$PUB_TOKEN" ] && [ "$PUB_TOKEN" != "null" ] || {
+            echo "::error::could not mint the pub.dev OIDC token"
+            exit 1
+          }
+          echo "::add-mask::$PUB_TOKEN"
+          echo "PUB_TOKEN=$PUB_TOKEN" >> "$GITHUB_ENV"
+          export PUB_TOKEN
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+
+      - name: Publish dry run
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --dry-run
+
+      - name: Publish
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish --force

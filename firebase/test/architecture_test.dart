@@ -28,4 +28,17 @@ void main() {
       deepImports,
     ).isEmpty();
   });
+
+  test('Firebase is an adapter and does not depend on the app shell', () {
+    final sources = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+
+    check(sources).not((value) => value.contains('package:eigen_shell/'));
+    check(pubspec).not((value) => value.contains('eigen_shell:'));
+  });
 }

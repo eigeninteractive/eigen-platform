@@ -9,7 +9,7 @@
  * own prose denies. Three of its four columns are one number: the engine
  * stamps its release version into the spec, and `eigen_api` is published from
  * that same release, so the only column carrying independent information is
- * the Flutter shell, and the authority for that is pub.dev.
+ * the Flutter integration, and the authority for that is pub.dev.
  *
  * A caret cannot express it either. `eigen_flutter` records which engines it
  * speaks through its OWN `eigen_api` constraint, so nothing stops 0.2.0 and
@@ -26,7 +26,7 @@
  *   pub.dev / eigen_api   which engine lines ever shipped a wire client. This
  *                         is what keeps historical rows in the table without
  *                         anyone preserving them by hand.
- *   pub.dev / eigen_flutter  every published shell and the `eigen_api`
+ *   pub.dev / eigen_flutter  every published integration and the `eigen_api`
  *                         constraint it declares, which is the pairing itself.
  *
  * No sibling checkout, no engine build: everything comes from one committed
@@ -177,7 +177,7 @@ const row = (line) => {
   return `| ${label} | \`^${line}.0\` | \`^${line}.0\` | ${shell} |`;
 };
 
-const table = [BEGIN, "", "| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter shell (`eigen_flutter`) |", "| --- | --- | --- | --- |", ...lines.map(row), "", END].join("\n");
+const table = [BEGIN, "", "| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter integration (`eigen_flutter`) |", "| --- | --- | --- | --- |", ...lines.map(row), "", END].join("\n");
 
 const page = readFileSync(pagePath, "utf8");
 const begin = page.indexOf(BEGIN);

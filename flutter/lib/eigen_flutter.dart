@@ -1,23 +1,25 @@
 // Dartdoc selects the two supported package entry points by library name.
 // ignore_for_file: unnecessary_library_name
 
-/// EigenInteractive: a whitelabel turn-based multiplayer game engine.
+/// Reusable Flutter integration for EigenInteractive game applications.
 ///
-/// A game app depends on this package, implements a [GameModule], and boots
-/// with [runEngineApp]:
+/// A game app depends on this package and implements a [GameModule]. It can
+/// install [EigenFlutterScope] beneath its own application root or use the
+/// opinionated `eigen_shell` package for the complete first-party product.
 ///
 /// ```dart
 /// import 'package:eigen_flutter/eigen_flutter.dart';
 ///
-/// Future<void> main() => runEngineApp(
+/// EigenFlutterScope(
 ///   module: const MyGameModule(),
 ///   config: appConfig,
+///   child: const MaterialApp(home: MyHome()),
 /// );
 /// ```
 ///
-/// This library is the supported app import. It exposes the entry point,
-/// composition-root configuration, game contract, wire vocabulary, and shared
-/// game UI without exposing the app shell's repositories or transport.
+/// This is the supported game-facing import. It exposes the embeddable scope,
+/// configuration, game contract, wire vocabulary, and shared game UI without
+/// taking ownership of routing or a root application widget.
 ///
 /// Start with the
 /// [EigenInteractive quickstart](https://eigeninteractive.com/docs/getting-started/quickstart)
@@ -33,7 +35,7 @@ library eigen_flutter;
 /// vocabulary without exposing raw HTTP capabilities.
 export 'package:eigen_client/eigen_client.dart';
 
-export 'app_runner.dart' show EngineAdapterInitializer, runEngineApp, MyApp;
+export 'composition.dart' show EigenFlutterScope;
 
 export 'core/config/app_config.dart'
     show AppConfig, Branding, EngineConfig, appConfigProvider;
@@ -44,6 +46,7 @@ export 'features/game/providers/game_providers.dart'
     show currentGameModuleProvider;
 export 'features/game/presentation/widgets/timer_builders.dart'
     show PlayerTimerBuilder, TurnTimerBuilder;
+export 'core/theme/app_theme.dart' show AppTheme;
 
 /// Shared UI a game composes with. Seat rendering in particular belongs here:
 /// avatar URLs may be relative to the API host, and routing every avatar

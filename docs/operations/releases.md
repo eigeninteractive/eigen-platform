@@ -17,12 +17,13 @@ directly; no npm or pub.dev publishing credential is stored in GitHub.
 | `eigen_client` | `dart/eigen_client` | pub.dev | independent |
 | `eigen_codegen` | `dart/eigen_codegen` | pub.dev | independent |
 | `eigen_flutter` | `flutter` | pub.dev | independent |
+| `eigen_shell` | `shell` | pub.dev | independent first-party app |
 | `eigen_firebase` | `firebase` | pub.dev | independent optional adapter |
 | Implementor documentation | `web` | Cloudflare | continuous from `main` |
 
 The four engine npm packages move together because their public types and
 runtime are tightly coupled. `eigen_api` carries the same version as the engine
-whose HTTP contract generated it. The scaffolder and the four hand-written Dart
+whose HTTP contract generated it. The scaffolder and the five hand-written Dart
 packages move only when their own user-visible contents change.
 
 ## Safety model
@@ -81,10 +82,11 @@ the organization or repository level:
 | Environment | `pub.dev` | pub.dev trusted-publishing identity boundary |
 
 The App needs **Contents: read and write** and **Pull requests: read and
-write** on `eigen-platform`. Use the client ID, not the numeric App ID.
-
-`main` must require the `check` job from **Platform checks** and disallow direct
-pushes. The automation pushes branches and opens ordinary pull requests.
+write** on `eigen-platform`. Use the client ID, not the numeric App ID. During
+the current pre-production iteration phase, `main` permits direct pushes and
+reports checks without making them a branch-protection requirement. Publishing
+still requires a successful `main` check run. Tighten branch protection when
+multiple contributors or production consumers make review enforcement useful.
 
 ## One-time registry cutover
 
@@ -165,13 +167,21 @@ Tag pattern: eigen_firebase-v{{version}}
 Environment: pub.dev (required)
 ```
 
+`eigen_shell` (after its first interactive publication):
+
+```text
+Repository:  eigeninteractive/eigen-platform
+Tag pattern: eigen_shell-v{{version}}
+Environment: pub.dev (required)
+```
+
 Pub.dev requires a tag-triggered GitHub Actions identity and the version in the
 tag must match `pubspec.yaml`. Separate patterns are mandatory for packages
 published from the same repository.
 
 Pub.dev cannot establish trusted publishing for a package that does not exist
-yet. Publish version `0.1.0` of each new package interactively once, transfer it
-to the EigenInteractive verified publisher if applicable, then configure the
+yet. Publish `eigen_shell` 0.1.0 interactively once, transfer it to the
+EigenInteractive verified publisher if applicable, then configure the
 automated-publishing form above. All later versions use GitHub OIDC.
 
 ### One-time Flutter comparison anchor
@@ -267,50 +277,65 @@ dated changelog, then merge it. **Tag eigen_flutter** creates
 resolves dependencies without the monorepo override, and publishes
 automatically.
 
-## eigen_client, eigen_codegen, and eigen_firebase release flow
+## eigen_client, eigen_codegen, eigen_shell, and eigen_firebase release flow
 
 These packages use independent versions and namespaced tags. After their first
 interactive publication, change the package version and changelog together and
-merge to `main`. The matching **Tag eigen_client**, **Tag eigen_codegen**, or
-**Tag eigen_firebase** workflow creates the namespaced tag automatically; the
-matching **Publish** workflow validates and uploads that tag through OIDC. A
+merge to `main`. The matching **Tag eigen_client**, **Tag eigen_codegen**,
+**Tag eigen_firebase**, or **Tag eigen_shell** workflow creates the namespaced
+tag automatically; the matching **Publish** workflow validates and uploads
+that tag through OIDC. A
 manual workflow dispatch safely repairs a missed tag. For a package that does
 not yet exist on pub.dev, the tag helper deliberately exits without creating a
 tag so its first version can be published interactively.
 
 `eigen_client` must be published before any `eigen_flutter` version that
-depends on its new line. `eigen_flutter` must be published before an
-`eigen_firebase` version that depends on that line. `eigen_codegen` is dev-only
-and does not affect runtime resolution.
+depends on its new line. `eigen_flutter` must be published before either
+`eigen_shell` or `eigen_firebase` versions that depend on that line. The shell
+and Firebase adapter are siblings and may then publish independently.
+`eigen_codegen` is dev-only and does not affect runtime resolution.
 
-After publication it dispatches **Sync compatibility table**, which reads the
-registry state, opens a generated PR if necessary, and enables auto-merge after
-the platform gate. A manual recovery run accepts an exact expected package:
+After an `eigen_flutter` publication, its workflow dispatches **Sync
+compatibility table**, which reads registry state and opens a generated PR if
+necessary. A manual recovery run accepts an exact expected package:
 
 ```bash
 gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.8.0
 ```
 
-### A Flutter line move costs a scaffolder patch
+### Publish Dart dependencies before updating the scaffold
 
-`create-eigen-game` writes both halves of a new project and pins a *published*
-`eigen_flutter` floor. That floor cannot be raised in the release that needs it,
-because `eigen_flutter` publishes at the end of the chain, after the npm packages
-the scaffolder ships beside — so when the engine crosses a line, the scaffolder is
-published first and necessarily still names the previous shell.
+`create-eigen-game` writes fixed, published ranges for the server,
+`eigen_flutter`, `eigen_shell`, and `eigen_firebase`. Those constants are one
+tested dependency set; the CLI does not query registries or choose versions at
+scaffold time.
 
-So after every `eigen_flutter` line move, raise `flutterClientVersion` in
-`packages/create-eigen-game/src/index.ts`, add a patch Changeset, and let the
-normal npm flow ship it. `scripts/scaffold-e2e.mjs` fails loudly until you do: it
-resolves both halves against the real registries and compares the wire lines they
-land on. This is a known one-patch trailer, not a defect to design away — the
-alternative is a scaffolder that resolves versions at scaffold time, which would
-make a generated project non-reproducible.
+After publishing the required Dart packages, raise `flutterClientVersion`,
+`flutterShellVersion`, and `firebaseAdapterVersion` in
+`packages/create-eigen-game/src/index.ts` as needed, add a Changeset, and let
+the normal npm flow ship the reproducible set. `scripts/scaffold-e2e.mjs`
+compiles the same-revision graph with local overrides and checks the published
+wire pairing separately.
 
-## First releases after cutover
+## Release sequence for the shell extraction
 
-The cutover Changeset intentionally queues compatible patches for all npm
-artifacts. Once registry trust points at this repository:
+The first split release must follow dependency order:
+
+1. Publish `eigen_flutter` 0.9.0.
+2. Publish `eigen_shell` 0.1.0 interactively, then configure its pub.dev trusted
+   publisher exactly as shown above.
+3. Publish `eigen_firebase` 0.2.0.
+4. Publish the `create-eigen-game` Changeset that starts generating all three
+   hosted constraints.
+
+Do not publish the scaffolder first: its generated `pubspec.yaml` intentionally
+contains registry dependencies and must resolve for a user without monorepo
+overrides.
+
+## Historical repository-cutover checklist
+
+This checklist records the original monorepo cutover. It is not the current
+shell-extraction release sequence:
 
 1. Merge **Release: version npm packages**.
 2. Verify the npm packages show the new source repository and provenance.

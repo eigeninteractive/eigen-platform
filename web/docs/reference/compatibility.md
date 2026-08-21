@@ -19,7 +19,7 @@ a version constraint; it is not where you expect.
 
 {/* generated:compatibility-table, rewritten by scripts/sync-compatibility.mjs; do not edit between these markers */}
 
-| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter shell (`eigen_flutter`) |
+| Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter integration (`eigen_flutter`) |
 | --- | --- | --- | --- |
 | **0.6.x** *(this version)* | `^0.6.0` | `^0.6.0` | `0.8.0` |
 | 0.5.x | `^0.5.0` | `^0.5.0` | `0.7.0` |
@@ -30,7 +30,7 @@ a version constraint; it is not where you expect.
 
 {/* /generated:compatibility-table */}
 
-The first three columns are one number. The shell column is not, and is listed
+The first three columns are one number. The Flutter column is not, and is listed
 as exact versions rather than a range for that reason: `eigen_flutter` declares
 which engine it speaks through its own `eigen_api` constraint, so the releases
 pairing with a given line need not be contiguous. Retracted releases are
@@ -50,20 +50,25 @@ Constrain on the version anyway: it is the number your package managers can
 actually enforce.
 
 `eigen_flutter` moves on its own clock. Its version describes its Dart API (the
-widgets, the providers, the `GameModule` contract) and it records which engines
+widgets, providers, and the `GameModule` contract) and it records which engines
 it works against through its own `eigen_api` constraint. So `eigen_flutter 0.4.0`
-depending on `eigen_api: ^0.2.0` means "this shell speaks the engine's 0.2.x
-wire". There is no lockstep release, and there deliberately isn't one: the engine
-breaks in ways that have no Dart-side consequence at all, and forcing a shell
+depending on `eigen_api: ^0.2.0` means "this Flutter integration speaks the
+engine's 0.2.x wire". There is no lockstep release, and there deliberately isn't one: the engine
+breaks in ways that have no Dart-side consequence at all, and forcing a Flutter
 release for each would make its version number meaningless.
+
+`eigen_shell` and `eigen_firebase` are application-layer packages above
+`eigen_flutter`. Each declares its own `eigen_flutter` constraint and moves on
+its own clock; neither is another wire-compatibility axis.
 
 ## What the scaffolder picks
 
 A new project does not choose from the table above. `create-eigen-game` has
 already chosen, and **the version of the scaffolder you run decides both
 halves**. It writes one engine range into `server/package.json` and one
-`eigen_flutter` range into `app/pubspec.yaml`, and it resolves nothing at run
-time. Use `@latest` rather than a cached copy:
+tested `eigen_flutter`, `eigen_shell`, and `eigen_firebase` ranges into
+`app/pubspec.yaml`, and it resolves nothing at run time. Use `@latest` rather
+than a cached copy:
 
 ```bash
 pnpm create eigen-game my-game
@@ -78,7 +83,7 @@ CI compiled the Worker template with. Nobody types that number, so the templates
 cannot ship paired with an engine no build ever saw.
 
 **The `eigen_flutter` range is a pin, deliberately.** It once resolved "the newest
-shell for this engine's wire line" from pub.dev, which was wrong: a shell
+client for this engine's wire line" from pub.dev, which was wrong: a client
 declares which *wire* it speaks, and says nothing about whether its *Dart API*
 still matches the templates. `eigen_flutter 0.4.0` constraining `eigen_api:
 ^0.2.0` is a legal match that would emit code against an API that moved. The pin
@@ -90,7 +95,9 @@ than an oversight. When the engine crosses a line, no shell can speak it yet:
 `eigen_flutter` records compatibility through its own `eigen_api` constraint, and
 `eigen_api` for the new line does not exist until the engine's release publishes
 it. The scaffolder keeps emitting the previous line, a pairing that works,
-until a shell for the new one ships and the pin is raised.
+until a Flutter integration for the new one ships and the pin is raised. The
+shell and Firebase pins are raised in the same tested scaffolder update whenever
+their public composition APIs move.
 
 If you need a combination the current scaffolder does not emit, take the manual
 path: [Set up without the scaffolder](../getting-started/manual-setup.md) uses
@@ -178,7 +185,7 @@ surface.
 Anything genuinely breaking needs a deprecation window: ship the additive half
 first, let installs turn over, and only then remove the old half.
 
-`eigen_flutter` checks for updates at cold start and on resume. Routine Android
+`eigen_shell` checks for updates at cold start and on resume. Routine Android
 checks use Play's native update flow without interrupting an active game. When
 an unknown value makes one surface unsafe, that surface instead shows an
 explicit update action: Play in-app update on Android, or a reload of the

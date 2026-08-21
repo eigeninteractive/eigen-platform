@@ -42,16 +42,13 @@ compatibility and command machinery from earlier phases.
 | Dart generation | `eigen_codegen` is a separate pure-Dart development package. Its portable schema compiler enforces supported constraints and rejects unknown semantics instead of silently dropping them. |
 | Dart client core | `eigen_client` is an independent publishable pure-Dart package. One configured `EigenClient` owns generated HTTP resources, repositories, socket tickets, player batching, and live-session gap recovery. Flutter supplies authentication and transport policy without importing generated API classes. |
 | Firebase adapter | `eigen_flutter` exposes provider-neutral auth, token, analytics, navigation-observer, and notification ports. `eigen_firebase` owns the Firebase SDKs, Android integration, Firebase configuration CLI, and explicit telemetry policy. |
+| Flutter package boundary | `eigen_flutter` is embeddable and owns no root app, routes, or product flows. `eigen_shell` owns the complete first-party application, while `eigen_firebase` is an optional sibling adapter that returns provider overrides. |
+| Split release wiring | The platform inventory, local overrides, checks, scaffolder templates, implementor docs, changelogs, and namespaced `eigen_shell` pub.dev workflows describe the same package graph and dependency order. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
 
 ## Work still to do
 
-1. Complete the remaining Flutter dependency split described by RFC 0009:
-   make `eigen_flutter` the embeddable presentation package and move the
-   complete product into `eigen_shell`.
-2. Finish generated API/docs synchronization, release notes, and publish-order
-   automation for the new package graph.
-3. Run every workspace shard and both scaffold targets from a clean checkout,
+1. Run every workspace shard and both scaffold targets from a clean checkout,
    then release the breaking pre-1.0 package lines in dependency order.
 
 ## Deliberately deferred

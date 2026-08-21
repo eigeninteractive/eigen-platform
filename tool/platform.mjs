@@ -24,8 +24,20 @@ async function docsLine() {
 }
 
 async function buildManifest() {
-  const [rules, kernel, server, testkit, scaffolder, dartApi, flutter, firebase, client, codegen, docs] =
-    await Promise.all([
+  const [
+    rules,
+    kernel,
+    server,
+    testkit,
+    scaffolder,
+    dartApi,
+    flutter,
+    shell,
+    firebase,
+    client,
+    codegen,
+    docs,
+  ] = await Promise.all([
       json("server/packages/rules/package.json"),
       json("server/packages/kernel/package.json"),
       json("server/packages/server/package.json"),
@@ -33,6 +45,7 @@ async function buildManifest() {
       json("server/packages/create-eigen-game/package.json"),
       yamlVersion("server/clients/dart/pubspec.yaml"),
       yamlVersion("flutter/pubspec.yaml"),
+      yamlVersion("shell/pubspec.yaml"),
       yamlVersion("firebase/pubspec.yaml"),
       yamlVersion("dart/eigen_client/pubspec.yaml"),
       yamlVersion("dart/eigen_codegen/pubspec.yaml"),
@@ -67,6 +80,16 @@ async function buildManifest() {
         importCommit: "461917323107f23a74f55ebb4f64fe1555990176",
         packages: {
           eigen_flutter: flutter,
+        },
+      },
+      shell: {
+        path: "shell",
+        sourceRepository:
+          "https://github.com/eigeninteractive/eigen-flutter.git",
+        baseCommit: "95fe8c196a192b635ad2cbc8ec58f97a17c47dca",
+        importCommit: "461917323107f23a74f55ebb4f64fe1555990176",
+        packages: {
+          eigen_shell: shell,
         },
       },
       firebase: {

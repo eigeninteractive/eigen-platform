@@ -26,6 +26,15 @@
         "eigen_flutter": "0.8.0"
       }
     },
+    "shell": {
+      "path": "shell",
+      "sourceRepository": "https://github.com/eigeninteractive/eigen-flutter.git",
+      "baseCommit": "95fe8c196a192b635ad2cbc8ec58f97a17c47dca",
+      "importCommit": "461917323107f23a74f55ebb4f64fe1555990176",
+      "packages": {
+        "eigen_shell": "0.1.0"
+      }
+    },
     "firebase": {
       "path": "firebase",
       "sourceRepository": "https://github.com/eigeninteractive/eigen-flutter.git",

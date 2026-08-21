@@ -78,8 +78,26 @@ const { root } = scaffoldGame({
     // introduces them lands. Put local roots in place before the first pub add;
     // the emitted hosted ranges remain asserted by the unit tests, while this
     // integration build exercises the same-revision implementation.
-    if (command === "flutter" && args.includes(`eigen_firebase@^0.1.0`)) {
-      writeFileSync(resolve(cwd, "pubspec_overrides.yaml"), ["dependency_overrides:", "  eigen_codegen:", `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`, "  eigen_firebase:", `    path: ${JSON.stringify(resolve(platformRoot, "firebase"))}`, ""].join("\n"));
+    if (command === "flutter" && args.includes(`eigen_shell@^0.1.0`)) {
+      writeFileSync(
+        resolve(cwd, "pubspec_overrides.yaml"),
+        [
+          "dependency_overrides:",
+          "  eigen_api:",
+          `    path: ${JSON.stringify(resolve(workspaceRoot, "clients/dart"))}`,
+          "  eigen_client:",
+          `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_client"))}`,
+          "  eigen_codegen:",
+          `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`,
+          "  eigen_flutter:",
+          `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`,
+          "  eigen_shell:",
+          `    path: ${JSON.stringify(resolve(platformRoot, "shell"))}`,
+          "  eigen_firebase:",
+          `    path: ${JSON.stringify(resolve(platformRoot, "firebase"))}`,
+          "",
+        ].join("\n"),
+      );
     }
     shell(command, args, cwd);
   },
@@ -125,7 +143,7 @@ const shellsSpeaking = async (engineLine) => {
 //
 // `flutter analyze` below proves the templates match the shell's DART API. It
 // says nothing about the wire: `eigen_flutter` records which engines it speaks
-// through its own `eigen_api` constraint, and a shell one line behind can
+// through its own `eigen_api` constraint, and an integration one line behind can
 // compile perfectly against templates that barely touch what changed. The
 // mismatch would surface as a decode failure against a running server, long
 // after the scaffold.
@@ -134,7 +152,7 @@ const shellsSpeaking = async (engineLine) => {
 //
 // ── Why "mismatched" is not automatically "wrong" ────────────────────────────
 //
-// The shell CANNOT match a brand-new engine line, and that is structural rather
+// The integration CANNOT match a brand-new engine line, and that is structural rather
 // than an oversight. `eigen_api` is published with the engine, and no
 // `eigen_flutter` of any version number can constrain `^0.3.0` until
 // `eigen_api 0.3.0` exists on pub.dev, which happens when the engine's own
@@ -148,7 +166,7 @@ const shellsSpeaking = async (engineLine) => {
 // Asking pub.dev what exists separates the two states the raw comparison
 // conflates:
 //
-//   no shell speaks this line yet   → mid-crossing, expected, say so and pass
+//   no integration speaks this line yet → mid-crossing, expected, say so and pass
 //   one does, and the pin misses it → the pin is stale, and that is a defect
 //
 // The second is also the signal to raise the pin: this job turns red the moment
@@ -156,9 +174,9 @@ const shellsSpeaking = async (engineLine) => {
 // released. Nothing has to notice on its own.
 //
 // This queries the registry the deleted resolver queried, for the opposite
-// purpose. Choosing a shell by its `eigen_api` constraint is wrong, because the
+// purpose. Choosing an integration by its `eigen_api` constraint is wrong, because the
 // constraint cannot see the Dart API the templates call. Checking whether a
-// shell for this line exists at all asks nothing about the Dart API, and the
+// integration for this line exists at all asks nothing about the Dart API, and the
 // build above already answered that question.
 const emittedEngine = JSON.parse(readFileSync(resolve(serverRoot, "package.json"), "utf8")).dependencies["@eigeninteractive/server"];
 const lock = readFileSync(resolve(appRoot, "pubspec.lock"), "utf8");
@@ -172,7 +190,8 @@ const speakers = await shellsSpeaking(engineLine);
 
 if (speakers.length === 0) {
   console.log(
-    `::notice::No published eigen_flutter constrains eigen_api ^${engineLine}.0 yet, so there is no wire pairing to check. ` + `This is the expected state between an engine line crossing and the shell release that follows it: the shell cannot be built for ${engineLine}.x until eigen_api ${engineLine}.0 is on pub.dev.`,
+    `::notice::No published eigen_flutter constrains eigen_api ^${engineLine}.0 yet, so there is no wire pairing to check. ` +
+      `This is the expected state between an engine line crossing and the integration release that follows it: eigen_flutter cannot be built for ${engineLine}.x until eigen_api ${engineLine}.0 is on pub.dev.`,
   );
 } else if (line(resolvedApi) !== engineLine) {
   throw new Error(
@@ -184,7 +203,7 @@ if (speakers.length === 0) {
 
 // The published resolution above checks what a newly scaffolded project gets
 // today. The rest of this gate must check what this monorepo is about to ship.
-// Root dependency overrides apply transitively, so the Flutter shell, pure
+// Root dependency overrides apply transitively, so the Flutter integration and shell, pure
 // client runtime, generator, and generated Dart transport are pinned to the
 // same checkout. Every unpublished workspace package must be named explicitly:
 // a path dependency does not make its own sibling path dependencies available
@@ -201,6 +220,8 @@ writeFileSync(
     `    path: ${JSON.stringify(resolve(platformRoot, "dart/eigen_codegen"))}`,
     "  eigen_flutter:",
     `    path: ${JSON.stringify(resolve(platformRoot, "flutter"))}`,
+    "  eigen_shell:",
+    `    path: ${JSON.stringify(resolve(platformRoot, "shell"))}`,
     "  eigen_firebase:",
     `    path: ${JSON.stringify(resolve(platformRoot, "firebase"))}`,
     "",

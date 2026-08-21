@@ -15,7 +15,10 @@ bundled JDK is suitable locally. Then install dependencies:
 (cd server && pnpm install --frozen-lockfile)
 (cd web && pnpm install --frozen-lockfile)
 ./tool/link-local-dart.sh
-(cd flutter && flutter pub get && flutter pub get --directory example)
+(cd flutter && flutter pub get)
+(cd shell && flutter pub get)
+(cd firebase && flutter pub get)
+(cd flutter/example && flutter pub get)
 ```
 
 `link-local-dart.sh` creates ignored `pubspec_overrides.yaml` files so Flutter
@@ -31,7 +34,7 @@ Run the complete baseline before handoff:
 ./tool/check.sh all
 ```
 
-During iteration, `contracts`, `server`, `flutter`, `web`, and `scaffold` may
+During iteration, `manifest`, `server`, `flutter`, `web`, and `scaffold` may
 be passed instead of `all`. CI runs those same five shards concurrently and
 requires their aggregate `check` result. The complete check additionally builds
 and tests a freshly scaffolded game. Generation checks compare both tracked
@@ -54,8 +57,8 @@ Changes to a published npm package under `server/` need a Changeset:
 ```
 
 Use `pnpm changeset --empty` when the package diff is intentionally not a
-release. User-visible changes under `flutter/` need an entry in the Unreleased
-section of `flutter/CHANGELOG.md`, normally added with `cider log`. Maintainers
-release through the root workflows described in
+release. User-visible changes under `flutter/`, `shell/`, or `firebase/` need
+an entry in that package's changelog. `eigen_flutter` and `eigen_shell` use
+`cider` for future releases. Maintainers release through the root workflows described in
 [`docs/operations/releases.md`](docs/operations/releases.md); contributors do
 not edit package versions or create release tags.

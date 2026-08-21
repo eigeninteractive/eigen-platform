@@ -9,10 +9,11 @@ The Flutter half of [EigenInteractive](https://eigeninteractive.com): a
 server-authoritative engine for turn-based multiplayer games.
 
 `eigen_client` is the pure Dart protocol, domain, clock, and live-session
-runtime. `eigen_flutter` builds provider-neutral Flutter presentation on it
-and, for the moment, supplies the complete app shell. Firebase is an optional
-adapter in the separate `eigen_firebase` package. A game supplies a small
-`GameModule` containing its client-side rules and presentation.
+runtime. `eigen_flutter` adds provider-neutral Flutter integration and reusable
+presentation without owning a root app. The complete first-party product lives
+in `eigen_shell`, and Firebase is an optional sibling adapter in
+`eigen_firebase`. A game supplies a small `GameModule` containing its
+client-side rules and presentation.
 
 ## Start a game
 
@@ -32,8 +33,9 @@ follow the [manual setup guide](https://eigeninteractive.com/docs/getting-starte
 
 ```yaml
 dependencies:
-  eigen_flutter: ^0.8.0
-  eigen_firebase: ^0.1.0 # only when the app chooses Firebase
+  eigen_flutter: ^0.9.0
+  eigen_shell: ^0.1.0 # omit when embedding beneath your own app root
+  eigen_firebase: ^0.2.0 # only when the app chooses Firebase
   firebase_core: ^4.9.0
 ```
 
@@ -42,6 +44,7 @@ Import the framework through its public barrel:
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:eigen_firebase/eigen_firebase.dart';
+import 'package:eigen_shell/eigen_shell.dart';
 ```
 
 Do not depend on `eigen_api` directly or deep-import `core/`, `features/`, or
@@ -75,7 +78,7 @@ const googleWebClientId = String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
 const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const appHost = String.fromEnvironment('APP_HOST');
 
-Future<void> main() => runFirebaseEngineApp(
+Future<void> main() => runEigenShell(
   module: const MyGameModule(),
   config: AppConfig(
     branding: const Branding(appName: 'My Game', seedColor: Colors.indigo),
@@ -84,19 +87,23 @@ Future<void> main() => runFirebaseEngineApp(
       appHost: appHost.isEmpty ? null : appHost,
     ),
   ),
-  firebaseOptions: DefaultFirebaseOptions.currentPlatform,
-  firebase: FirebaseAdapterConfig(
-    googleWebClientId: googleWebClientId,
-    vapidKey: firebaseVapidKey,
+  initializeAdapter: () => initializeEigenFirebase(
+    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+    firebase: FirebaseAdapterConfig(
+      googleWebClientId: googleWebClientId,
+      vapidKey: firebaseVapidKey,
+    ),
+    onBackgroundMessage: onBackgroundMessage,
+    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   ),
-  onBackgroundMessage: onBackgroundMessage,
-  telemetry: FirebaseTelemetryPolicy.releaseOnly(),
 );
 ```
 
-Without Firebase, omit `eigen_firebase` and call `runEngineApp` directly. Its
-auth, notification, and analytics ports default to unavailable/no-op adapters;
-another integration can override those ports through
+Without Firebase, omit `eigen_firebase` and call `runEigenShell` without an
+initializer. To embed Eigen into an existing application, omit `eigen_shell`
+too and install `EigenFlutterScope` beneath your own `MaterialApp` or
+`WidgetsApp`. Auth, notification, and analytics ports default to
+unavailable/no-op implementations; another adapter can override them through
 `package:eigen_flutter/adapters.dart`.
 
 These are public build-time values. Scaffolded apps keep them in

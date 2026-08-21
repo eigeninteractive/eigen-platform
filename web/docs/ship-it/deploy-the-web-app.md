@@ -96,7 +96,7 @@ this is the command for changing the configuration, not establishing it.
 Platforms are not configurable here: the app is Android and Web, and the
 service worker configuration is derived from the Web app. For anything outside
 that, run `flutterfire configure` yourself. Use the generated options in
-`runFirebaseEngineApp`:
+`initializeEigenFirebase`:
 
 ```dart
 firebaseOptions: DefaultFirebaseOptions.currentPlatform,

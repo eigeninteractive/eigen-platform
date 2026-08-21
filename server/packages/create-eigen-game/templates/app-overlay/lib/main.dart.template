@@ -1,5 +1,6 @@
 import 'package:eigen_firebase/eigen_firebase.dart';
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_shell/eigen_shell.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
@@ -16,7 +17,7 @@ const _appHost = String.fromEnvironment('APP_HOST');
 const _authDomain = String.fromEnvironment('AUTH_DOMAIN');
 
 Future<void> main() async {
-  await runFirebaseEngineApp(
+  await runEigenShell(
     module: const ExampleGameModule(),
     config: AppConfig(
       // `seedColor` is left at its default, the EigenInteractive teal that the
@@ -34,14 +35,16 @@ Future<void> main() async {
         appHost: _appHost.isEmpty ? null : _appHost,
       ),
     ),
-    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
-    firebase: FirebaseAdapterConfig(
-      googleWebClientId: _googleWebClientId,
-      vapidKey: _firebaseVapidKey,
-      authDomain: _authDomain.isEmpty ? null : _authDomain,
+    initializeAdapter: () => initializeEigenFirebase(
+      firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+      firebase: FirebaseAdapterConfig(
+        googleWebClientId: _googleWebClientId,
+        vapidKey: _firebaseVapidKey,
+        authDomain: _authDomain.isEmpty ? null : _authDomain,
+      ),
+      onBackgroundMessage: _onBackgroundMessage,
+      telemetry: FirebaseTelemetryPolicy.releaseOnly(),
     ),
-    onBackgroundMessage: _onBackgroundMessage,
-    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   );
 }
 

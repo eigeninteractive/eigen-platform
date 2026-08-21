@@ -122,7 +122,7 @@ Firebase adapter, and Firebase Core used by the generated options file:
 ```bash
 flutter create --empty --platforms android,web --org com.example my_game
 cd my_game
-flutter pub add eigen_flutter eigen_firebase firebase_core
+flutter pub add eigen_flutter eigen_shell eigen_firebase firebase_core
 ```
 
 `flutter_local_notifications`, used by the Firebase adapter for foreground delivery,
@@ -146,11 +146,13 @@ The standard Firebase app imports the presentation and adapter barrels:
 
 ```dart
 import 'package:eigen_flutter/eigen_flutter.dart';
+import 'package:eigen_shell/eigen_shell.dart';
 import 'package:eigen_firebase/eigen_firebase.dart';
 ```
 
 Create `lib/game/module.dart`, register the same version keys as the TypeScript
-module, and call `runFirebaseEngineApp` from `lib/main.dart`. The
+module, and call `runEigenShell` with an `initializeEigenFirebase` initializer
+from `lib/main.dart`. The
 [Creation UI](../build-a-game/creation-ui.md) and
 [Rendering](../build-a-game/rendering.md) pages contain the two handwritten
 Dart pieces.

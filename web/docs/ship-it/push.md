@@ -55,7 +55,7 @@ the device rows server-side.
 
 The **background handler** must be a top-level `@pragma('vm:entry-point')`
 function that re-initialises Firebase and does nothing else; the OS renders the
-notification from the payload. It is passed into `runFirebaseEngineApp` by the app,
+notification from the payload. It is passed into `initializeEigenFirebase` by the app,
 because it needs the app's own `DefaultFirebaseOptions`. Web background delivery
 instead runs in `web/firebase-messaging-sw.js`; the Dart handler is not
 registered in a browser.

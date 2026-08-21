@@ -32,6 +32,26 @@ final _serverAccess = <RegExp>[
 /// `eigen_client` package boundary. Pure HTTP repositories belong in that
 /// package; Flutter owns only UI, state, and platform adapters.
 void main() {
+  test('the reusable package does not own an app shell', () {
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final sources = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.dart'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+
+    check(pubspec).not((value) => value.contains('eigen_shell:'));
+    check(pubspec).not((value) => value.contains('go_router:'));
+    check(pubspec).not((value) => value.contains('flutter_native_splash:'));
+    check(sources).not((value) => value.contains('package:eigen_shell/'));
+    check(sources).not((value) => value.contains("import 'package:go_router/"));
+    check(File('lib/app_runner.dart').existsSync()).isFalse();
+    check(Directory('lib/features/profile').existsSync()).isFalse();
+    check(Directory('lib/features/rating').existsSync()).isFalse();
+    check(Directory('lib/features/social').existsSync()).isFalse();
+  });
+
   test('the Flutter barrel delegates its pure surface to eigen_client', () {
     final barrel = File('lib/eigen_flutter.dart').readAsStringSync();
 

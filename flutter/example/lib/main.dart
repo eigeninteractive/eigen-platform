@@ -15,6 +15,7 @@ library;
 
 import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:eigen_firebase/eigen_firebase.dart';
+import 'package:eigen_shell/eigen_shell.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +28,7 @@ const _firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const _appHost = String.fromEnvironment('APP_HOST');
 
 Future<void> main() async {
-  await runFirebaseEngineApp(
+  await runEigenShell(
     // The game. One value, one line: the seam the whole framework is
     // built around.
     module: const RpsModule(),
@@ -45,13 +46,15 @@ Future<void> main() async {
         appHost: _appHost.isEmpty ? null : _appHost,
       ),
     ),
-    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
-    firebase: FirebaseAdapterConfig(
-      googleWebClientId: _googleWebClientId,
-      vapidKey: _firebaseVapidKey,
+    initializeAdapter: () => initializeEigenFirebase(
+      firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+      firebase: FirebaseAdapterConfig(
+        googleWebClientId: _googleWebClientId,
+        vapidKey: _firebaseVapidKey,
+      ),
+      onBackgroundMessage: _onBackgroundMessage,
+      telemetry: FirebaseTelemetryPolicy.releaseOnly(),
     ),
-    onBackgroundMessage: _onBackgroundMessage,
-    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   );
 }
 

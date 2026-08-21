@@ -138,6 +138,18 @@ run_flutter() {
   dart doc --dry-run .
   flutter test
 
+  cd "$platform_root/shell"
+  flutter pub get
+  dart format --output=none --set-exit-if-changed \
+    $(git ls-files --cached --others --exclude-standard 'shell/**/*.dart' | sed 's#^shell/##')
+  dart run build_runner build
+  dart fix --dry-run
+  assert_no_drift "Shell code generation" shell
+  flutter analyze
+  dart doc --dry-run .
+  flutter test
+  dart pub publish --dry-run
+
   cd "$platform_root/firebase"
   flutter pub get
   dart format --output=none --set-exit-if-changed \
@@ -160,7 +172,7 @@ run_flutter() {
   flutter analyze
   flutter test
   flutter build web --release --dart-define-from-file=app-config.json
-  test -f build/web/assets/packages/eigen_flutter/assets/vendor/cropperjs/cropper.min.js
+  test -f build/web/assets/packages/eigen_shell/assets/vendor/cropperjs/cropper.min.js
 
   cd "$platform_root/flutter"
   dart pub publish --dry-run

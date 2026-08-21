@@ -22,7 +22,7 @@ GameRepository gameRepository(Ref ref) {
 
 /// The active [GameModule].
 ///
-/// [runEngineApp] registers the game module for normal apps. Widget tests that
+/// `EigenFlutterScope` registers the game module for normal apps. Widget tests that
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// currentGameModuleProvider.overrideWithValue(const TicTacToeModule())

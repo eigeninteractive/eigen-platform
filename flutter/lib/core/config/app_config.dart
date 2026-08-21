@@ -7,7 +7,7 @@ part 'app_config.g.dart';
 /// Whitelabel configuration for one game app built on the engine.
 ///
 /// The single composition-root config object, set once via [appConfigProvider]
-/// by [runEngineApp]. It groups the app's configurable concerns by
+/// by the application's composition root. It groups the app's configurable concerns by
 /// responsibility:
 ///
 /// - [branding]: user-facing identity (name, theme seed).
@@ -154,7 +154,7 @@ class Branding {
 
 /// The active [AppConfig].
 ///
-/// [runEngineApp] registers the config for normal apps. Widget tests that
+/// `EigenFlutterScope` registers the config for normal apps. Widget tests that
 /// construct their own `ProviderScope` can override it directly:
 /// ```dart
 /// const apiBaseUrl = String.fromEnvironment('API_BASE_URL');

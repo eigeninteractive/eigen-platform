@@ -8,7 +8,7 @@
     "importedAt": { "type": "string", "format": "date" },
     "components": {
       "type": "object",
-      "required": ["server", "dart", "flutter", "firebase", "web"],
+      "required": ["server", "dart", "flutter", "shell", "firebase", "web"],
       "additionalProperties": {
         "type": "object",
         "required": ["path", "sourceRepository", "baseCommit", "importCommit"],

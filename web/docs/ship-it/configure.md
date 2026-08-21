@@ -68,8 +68,8 @@ that schema, and its migrations will not know about them.
 ## The app
 
 One provider-neutral `AppConfig` contains `Branding` and the Eigen server
-values. The standard scaffold additionally passes `FirebaseAdapterConfig` to
-`runFirebaseEngineApp`. The app reads Dart compilation environment declarations
+values. The standard scaffold passes `FirebaseAdapterConfig` to
+`initializeEigenFirebase` and hands those overrides to `runEigenShell`. The app reads Dart compilation environment declarations
 once at this composition root; neither package reads hidden process or file
 state.
 
@@ -80,7 +80,7 @@ const firebaseVapidKey = String.fromEnvironment('FIREBASE_VAPID_KEY');
 const appHost = String.fromEnvironment('APP_HOST');
 const authDomain = String.fromEnvironment('AUTH_DOMAIN');
 
-await runFirebaseEngineApp(
+await runEigenShell(
   module: const RpsModule(),
   config: AppConfig(
     branding: const Branding(appName: 'Rock Paper Scissors', seedColor: Colors.teal),
@@ -89,14 +89,16 @@ await runFirebaseEngineApp(
       appHost: appHost.isEmpty ? null : appHost,
     ),
   ),
-  firebaseOptions: DefaultFirebaseOptions.currentPlatform,
-  firebase: FirebaseAdapterConfig(
-    googleWebClientId: googleWebClientId,
-    vapidKey: firebaseVapidKey,
-    authDomain: authDomain.isEmpty ? null : authDomain,
+  initializeAdapter: () => initializeEigenFirebase(
+    firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+    firebase: FirebaseAdapterConfig(
+      googleWebClientId: googleWebClientId,
+      vapidKey: firebaseVapidKey,
+      authDomain: authDomain.isEmpty ? null : authDomain,
+    ),
+    onBackgroundMessage: _onBackgroundMessage,
+    telemetry: FirebaseTelemetryPolicy.releaseOnly(),
   ),
-  onBackgroundMessage: _onBackgroundMessage,
-  telemetry: FirebaseTelemetryPolicy.releaseOnly(),
 );
 ```
 
@@ -119,7 +121,7 @@ flutter build appbundle --release \
 | `FIREBASE_VAPID_KEY` | **yes for web** | Public FCM Web Push key from the same Firebase project. An empty key is a web startup configuration error. Android does not consume it. |
 
 These values are embedded in the Android binary or downloaded web bundle and
-must never be treated as secrets. `runEngineApp` validates the server values;
+must never be treated as secrets. `EigenFlutterScope` validates the server values;
 the Firebase adapter validates its own values before initializing Firebase.
 Worker service-account keys, bot signing keys, and other real credentials stay
 in Worker secrets.
@@ -171,9 +173,9 @@ which you meant.
 Firebase is the standard scaffold's optional identity, push, analytics, and
 crash adapter. A fresh scaffold chooses it and contains a throwing
 `firebase_options.dart` seam, so that app will not start until FlutterFire
-replaces the placeholder. An embedded app can omit `eigen_firebase`, call
-`runEngineApp`, and install different adapters through
-`package:eigen_flutter/adapters.dart`.
+replaces the placeholder. An embedded app can omit both `eigen_shell` and
+`eigen_firebase`, install `EigenFlutterScope` beneath its own application root,
+and connect different adapters through `package:eigen_flutter/adapters.dart`.
 
 1. **Create the project**, either at console.firebase.google.com or by letting
    step 2 do it: the first run offers to. The two differ in one respect. Only

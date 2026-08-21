@@ -14,11 +14,15 @@ import 'package:eigen_flutter/eigen_flutter.dart';
 
 **[Open the latest `eigen_flutter` API reference on pub.dev →](https://pub.dev/documentation/eigen_flutter/latest/)**
 
-The standard app composition root also imports the optional Firebase adapter:
+The standard app composition root imports the complete shell and optional
+Firebase adapter:
 
 ```dart
+import 'package:eigen_shell/eigen_shell.dart';
 import 'package:eigen_firebase/eigen_firebase.dart';
 ```
+
+**[Open the latest `eigen_shell` API reference on pub.dev →](https://pub.dev/documentation/eigen_shell/latest/)**
 
 **[Open the latest `eigen_firebase` API reference on pub.dev →](https://pub.dev/documentation/eigen_firebase/latest/)**
 
@@ -26,10 +30,11 @@ The public package surfaces are:
 
 | Library | Use it for |
 |---|---|
-| `package:eigen_flutter/eigen_flutter.dart` | App startup, configuration, the Dart `GameModule` / `GameRules` contract, generated wire vocabulary, and game-facing widgets. |
+| `package:eigen_flutter/eigen_flutter.dart` | Embeddable scope, configuration, the Dart `GameModule` / `GameRules` contract, domain vocabulary, and game-facing widgets. |
 | `package:eigen_flutter/testing/twin_fixtures.dart` | Running the shared TypeScript/Dart contract fixtures from `flutter test`. |
 | `package:eigen_flutter/adapters.dart` | Supported provider ports used by integration packages, not ordinary game code. |
-| `package:eigen_firebase/eigen_firebase.dart` | Firebase composition, configuration, explicit telemetry policy, and background-message types. |
+| `package:eigen_shell/eigen_shell.dart` | The standard application startup, routing, and complete first-party product. |
+| `package:eigen_firebase/eigen_firebase.dart` | Firebase initialization, provider overrides, explicit telemetry policy, and background-message types. |
 
 Everything under the package's `core/`, `features/`, and `shared/` directories
 is implementation detail. Do not deep-import it. If a task guide asks you to
@@ -48,7 +53,7 @@ member, or type:
   the version-independent module UI.
 - [Testing](../build-a-game/testing.md) covers the dedicated testing library.
 
-`eigen_api` is the generated transport package used inside `eigen_flutter`.
+`eigen_api` is the generated transport package used inside `eigen_client`.
 Game apps do not depend on or import it directly. For wire-level lookup, use
 the [HTTP API reference](./http-api/eigeninteractive-engine-api.info.mdx) or
 [`openapi.json`](pathname:///openapi.json).

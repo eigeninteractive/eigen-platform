@@ -3,7 +3,6 @@ import 'package:eigen_firebase/src/auth/firebase_auth_gateway.dart';
 import 'package:eigen_firebase/src/notifications/firebase_messaging_registration_factory.dart';
 import 'package:eigen_firebase/src/notifications/firebase_notification_service.dart';
 import 'package:eigen_flutter/adapters.dart';
-import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +11,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Public Firebase deployment values for one app.
@@ -80,97 +80,81 @@ final class FirebaseTelemetryPolicy {
   final bool crashlyticsEnabled;
 }
 
-/// Boots the standard Eigen Flutter app with Firebase-backed adapters.
+/// Initializes Firebase and returns the Eigen provider overrides it supplies.
 ///
 /// [onBackgroundMessage] must be a top-level or static function annotated with
 /// `@pragma('vm:entry-point')`; Firebase invokes it in a background isolate on
 /// native platforms. Web background delivery remains service-worker owned.
-Future<void> runFirebaseEngineApp({
-  required GameModule module,
-  required AppConfig config,
+///
+/// Call this after [WidgetsFlutterBinding.ensureInitialized], normally through
+/// `runEigenShell(initializeAdapter: ...)`. Embedding applications install the
+/// returned overrides on `EigenFlutterScope` themselves.
+Future<List<Override>> initializeEigenFirebase({
   required FirebaseOptions firebaseOptions,
   required FirebaseAdapterConfig firebase,
   required Future<void> Function(RemoteMessage) onBackgroundMessage,
   FirebaseTelemetryPolicy telemetry = const FirebaseTelemetryPolicy(),
-}) {
-  // Fail before the generic runner preserves the native splash.
+}) async {
   firebase.validate(isWeb: kIsWeb);
-  return runEngineApp(
-    module: module,
-    config: config,
-    initializeAdapter: () async {
-      final authDomain = firebase.authDomain;
-      await Firebase.initializeApp(
-        options: authDomain == null
-            ? firebaseOptions
-            : firebaseOptions.copyWith(authDomain: authDomain),
-      );
-
-      await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(
-        telemetry.analyticsEnabled,
-      );
-      if (!kIsWeb) {
-        await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-          telemetry.crashlyticsEnabled,
-        );
-        if (telemetry.crashlyticsEnabled) {
-          FlutterError.onError =
-              FirebaseCrashlytics.instance.recordFlutterFatalError;
-          PlatformDispatcher.instance.onError = (error, stack) {
-            FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-            return true;
-          };
-        }
-        FirebaseMessaging.onBackgroundMessage(onBackgroundMessage);
-      }
-
-      final analytics = FirebaseAnalyticsService(FirebaseAnalytics.instance);
-      final auth = FirebaseAuthGateway(
-        FirebaseAuth.instance,
-        googleWebClientId: firebase.googleWebClientId,
-      );
-
-      return [
-        analyticsServiceProvider.overrideWithValue(analytics),
-        authServiceProvider.overrideWithValue(auth),
-        engineAccessTokenProvider.overrideWithValue(() async {
-          final user = FirebaseAuth.instance.currentUser;
-          return user == null ? null : await user.getIdToken();
-        }),
-        navigationObserversProvider.overrideWithValue([
-          FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
-        ]),
-        notificationServiceProvider.overrideWith((ref) {
-          return FirebaseNotificationService(
-            messaging: FirebaseMessaging.instance,
-            messagingRegistration: createFirebaseMessagingRegistration(
-              FirebaseMessaging.instance,
-              FirebaseInstallations.instance,
-            ),
-            installations: FirebaseInstallations.instance,
-            installationRepository: ref.watch(
-              deviceInstallationRepositoryProvider,
-            ),
-            localNotifications: FlutterLocalNotificationsPlugin(),
-            preferences: SharedPreferencesAsync(),
-            currentUserId: () => ref.read(authServiceProvider).currentUser?.id,
-            activeGameId: () {
-              final uri = ref
-                  .read(goRouterProvider)
-                  .routerDelegate
-                  .currentConfiguration
-                  .uri;
-              final segments = uri.pathSegments;
-              return segments.length == 2 && segments[0] == 'game'
-                  ? segments[1]
-                  : null;
-            },
-            vapidKey: firebase.vapidKey,
-          );
-        }),
-      ];
-    },
+  final authDomain = firebase.authDomain;
+  await Firebase.initializeApp(
+    options: authDomain == null
+        ? firebaseOptions
+        : firebaseOptions.copyWith(authDomain: authDomain),
   );
+
+  await FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(
+    telemetry.analyticsEnabled,
+  );
+  if (!kIsWeb) {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
+      telemetry.crashlyticsEnabled,
+    );
+    if (telemetry.crashlyticsEnabled) {
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
+      PlatformDispatcher.instance.onError = (error, stack) {
+        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+        return true;
+      };
+    }
+    FirebaseMessaging.onBackgroundMessage(onBackgroundMessage);
+  }
+
+  final analytics = FirebaseAnalyticsService(FirebaseAnalytics.instance);
+  final auth = FirebaseAuthGateway(
+    FirebaseAuth.instance,
+    googleWebClientId: firebase.googleWebClientId,
+  );
+
+  return [
+    analyticsServiceProvider.overrideWithValue(analytics),
+    authServiceProvider.overrideWithValue(auth),
+    engineAccessTokenProvider.overrideWithValue(() async {
+      final user = FirebaseAuth.instance.currentUser;
+      return user == null ? null : await user.getIdToken();
+    }),
+    navigationObserversProvider.overrideWithValue([
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ]),
+    notificationServiceProvider.overrideWith((ref) {
+      final activeGameId = ref.watch(activeGameIdResolverProvider);
+      return FirebaseNotificationService(
+        messaging: FirebaseMessaging.instance,
+        messagingRegistration: createFirebaseMessagingRegistration(
+          FirebaseMessaging.instance,
+          FirebaseInstallations.instance,
+        ),
+        installations: FirebaseInstallations.instance,
+        installationRepository: ref.watch(deviceInstallationRepositoryProvider),
+        localNotifications: FlutterLocalNotificationsPlugin(),
+        preferences: SharedPreferencesAsync(),
+        currentUserId: () => ref.read(authServiceProvider).currentUser?.id,
+        activeGameId: activeGameId,
+        vapidKey: firebase.vapidKey,
+      );
+    }),
+  ];
 }
 
 bool _isUnset(String value) =>
