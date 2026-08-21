@@ -57,11 +57,15 @@ jobs:
             echo "::error::dependency_overrides must not appear in pubspec.yaml"
             exit 1
           }
-          flutter pub get
+          # Flutter otherwise resolves example/ implicitly. The example is a
+          # separate app with local adapter paths and has its own platform
+          # check; this job validates the package against hosted dependencies.
+          flutter pub get --no-example
 
       - name: Check Flutter package
         run: |
-          flutter analyze
+          dart analyze lib
+          dart analyze test
           dart doc --dry-run .
           flutter test
 

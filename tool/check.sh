@@ -125,13 +125,16 @@ run_flutter() {
   dart pub publish --dry-run
 
   cd "$platform_root/flutter"
-  flutter pub get
+  # The example is an independent app checked below. Avoid Flutter's implicit
+  # example resolution so the core package check has one dependency graph.
+  flutter pub get --no-example
   dart format --output=none --set-exit-if-changed \
     $(git ls-files '*.dart' ':!:**/*.g.dart' ':!:**/*.freezed.dart' | sed 's#^flutter/##')
   dart run build_runner build
   dart fix --dry-run
   assert_no_drift "Flutter code generation" flutter
-  flutter analyze
+  dart analyze lib
+  dart analyze test
   dart doc --dry-run .
   flutter test
 
