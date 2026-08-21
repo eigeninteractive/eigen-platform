@@ -1,5 +1,13 @@
 # create-eigen-game
 
+## 0.13.1
+
+### Patch Changes
+
+- [`121392a`](https://github.com/eigeninteractive/eigen-platform/commit/121392a99c6195ee4d95c0c0b3e3d46a9e7ff6e5) Thanks [@seenu-k](https://github.com/seenu-k)! - Scaffold Firebase through the optional `eigen_firebase` adapter package. New
+  apps keep Eigen server configuration in `EngineConfig`, pass Firebase values to
+  `FirebaseAdapterConfig`, and opt into release-only telemetry explicitly.
+
 ## 0.13.0
 
 ### Minor Changes
