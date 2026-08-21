@@ -34,9 +34,10 @@ still runs, and its `check` job still aggregates every shard:
 - **direct pushes** to `main` run it as an advisory run, added because a
   direct push opens no pull request; documentation-only pushes use the same
   narrow fast lane as documentation pull requests;
-- **npm publishing** is a downstream job of that same `main` workflow. It cannot
-  proceed unless the aggregate `check` job is green, and it does not duplicate
-  the expensive shards;
+- **npm publishing** is a separate `release.yml` run triggered by the successful
+  completion of that `main` workflow. It checks out the triggering run's exact
+  commit, cannot proceed unless the aggregate `check` job is green, and does not
+  duplicate the expensive shards;
 - **pub.dev tag publishing** repeats the tagged package's resolution, analysis,
   tests, and dry run, but not unrelated platform shards.
 

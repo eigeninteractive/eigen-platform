@@ -29,17 +29,22 @@ packages move only when their own user-visible contents change.
 
 - Pull requests and direct pushes to `main` call `.github/workflows/checks.yml`.
   Its five validation shards run concurrently; the final `check` job succeeds
-  only when all five do. A green `main` run calls npm publication directly, so
-  the exact same commit is not checked twice before it ships.
+  only when all five do. A successful `main` run emits a `workflow_run` event
+  that starts `.github/workflows/release.yml` at the checked commit, so the exact
+  same commit is not checked twice before it ships.
 - Publishing is the one place that gate is still mandatory. `main` itself is in
   [iteration mode](branch-protection.md) and reports the check without gating a
-  merge or push, but its publish callback cannot start unless the aggregate
-  `check` job succeeded.
+  merge or push, but the publish job runs only after a successful `Platform
+  checks` push run for `main`.
 - npm and pub.dev use short-lived GitHub OIDC identities. There are no registry
   tokens to store or rotate.
 - The `npm` and `pub.dev` GitHub environments bind each registry identity to
   the intended publishing job. Publishing begins automatically after the
   whole-platform gate and exact-version checks pass.
+- npm validates the top-level workflow identity. Keeping publication in the
+  event-triggered `release.yml` workflow is therefore significant: invoking it
+  through `workflow_call` from `checks.yml` would make npm see the caller's
+  filename instead.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It holds no permission `main`'s protected posture would need to
   exempt it from.
@@ -216,7 +221,8 @@ platform gate itself. The version PR:
   version bump rather than needing a second commit transported onto the branch.
 
 Review and merge that PR to publish. After the next `main` platform run is
-green, its release callback compares every exact local version with npm and
+green, the resulting `workflow_run` starts **Release npm packages** at that
+exact checked commit. It compares every exact local version with npm and
 publishes the missing versions automatically. If the matching
 `eigen_api-vX.Y.Z` tag does not exist, the publish job creates it after verifying
 that exact server version is on npm. **Publish eigen_api** then analyzes and

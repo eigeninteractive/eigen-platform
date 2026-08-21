@@ -1,32 +1,39 @@
 name: Release npm packages
 
 # Changesets owns the five npm packages under server/. A push to main refreshes
-# the version PR or exits. Once the one Platform checks DAG succeeds, it calls
-# this workflow back in publish mode for that exact commit. Keeping publication
-# behind the existing DAG avoids running every expensive shard twice.
+# the version PR or exits. A successful Platform checks run on main starts this
+# workflow again through workflow_run and publishes from that run's exact commit.
+#
+# Publication deliberately is not a reusable-workflow call from checks.yml. npm
+# trusted publishing validates the calling workflow's filename in that case,
+# which would make the registry identity `checks.yml` instead of this dedicated
+# `release.yml` boundary.
 on:
   push:
     branches: [main]
-  workflow_call:
-    inputs:
-      after_checks:
-        description: Publish missing versions after the caller's platform gate.
-        type: boolean
-        default: false
+  workflow_run:
+    workflows: [Platform checks]
+    types: [completed]
+    branches: [main]
 
 concurrency:
-  group: release-npm-${{ inputs.after_checks == true && 'publish' || 'version' }}
+  group: release-npm-${{ github.event_name == 'workflow_run' && 'publish' || 'version' }}
   cancel-in-progress: false
 
 permissions: {}
 
 jobs:
-  # Decide whether this push has release work before spending ten minutes on
-  # the platform gate. Version and cleanup pull requests receive their own
-  # protected PR gate; only an irreversible registry upload gates this main
-  # commit again.
+  # On a push, decide whether Changesets needs to maintain a version or cleanup
+  # pull request while Platform checks runs independently. On workflow_run,
+  # repeat the cheap registry comparison at the exact commit that just passed
+  # that gate and publish only versions that are still missing.
   plan:
     name: Detect release work
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -38,6 +45,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -81,7 +89,7 @@ jobs:
   version:
     name: Open or update the version pull request
     needs: plan
-    if: inputs.after_checks != true && needs.plan.outputs.has_changesets == 'true'
+    if: github.event_name == 'push' && needs.plan.outputs.has_changesets == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -91,6 +99,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.sha }}
 
       - uses: pnpm/action-setup@v6
         with:
@@ -228,7 +237,7 @@ jobs:
   publish:
     name: Publish to npm
     needs: plan
-    if: inputs.after_checks == true && needs.plan.outputs.publish == 'true'
+    if: github.event_name == 'workflow_run' && needs.plan.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: npm
     timeout-minutes: 20
@@ -240,6 +249,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: pnpm/action-setup@v6
         with:

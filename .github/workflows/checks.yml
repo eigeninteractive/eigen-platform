@@ -302,18 +302,3 @@ jobs:
 
       - name: Platform checks passed
         run: echo "Every platform check shard succeeded."
-
-  # The exact green main commit is the npm release gate. release.yml also runs
-  # directly on pushes to maintain the Changesets version PR; this callback is
-  # its separate publish mode and does not open or update that PR again.
-  release:
-    name: npm release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: check
-    uses: ./.github/workflows/release.yml
-    with:
-      after_checks: true
-    secrets: inherit
-    permissions:
-      contents: write
-      id-token: write
