@@ -11,7 +11,8 @@ part of 'review_notifier.dart';
 /// Tracks total wins and gates in-app review prompts.
 ///
 /// State is the lifetime win count, persisted across sessions via
-/// [SharedPreferences]. A review prompt is requested every [_reviewEveryNWins]
+/// [SharedPreferences]. A review prompt is requested every
+/// `_reviewEveryNWins`
 /// wins, regardless of whether the game was rated. The OS enforces its own
 /// quota (3× per year on both platforms) and silently no-ops when it is hit.
 
@@ -21,7 +22,8 @@ final reviewProvider = ReviewNotifierProvider._();
 /// Tracks total wins and gates in-app review prompts.
 ///
 /// State is the lifetime win count, persisted across sessions via
-/// [SharedPreferences]. A review prompt is requested every [_reviewEveryNWins]
+/// [SharedPreferences]. A review prompt is requested every
+/// `_reviewEveryNWins`
 /// wins, regardless of whether the game was rated. The OS enforces its own
 /// quota (3× per year on both platforms) and silently no-ops when it is hit.
 final class ReviewNotifierProvider
@@ -29,7 +31,8 @@ final class ReviewNotifierProvider
   /// Tracks total wins and gates in-app review prompts.
   ///
   /// State is the lifetime win count, persisted across sessions via
-  /// [SharedPreferences]. A review prompt is requested every [_reviewEveryNWins]
+  /// [SharedPreferences]. A review prompt is requested every
+  /// `_reviewEveryNWins`
   /// wins, regardless of whether the game was rated. The OS enforces its own
   /// quota (3× per year on both platforms) and silently no-ops when it is hit.
   ReviewNotifierProvider._()
@@ -56,7 +59,8 @@ String _$reviewNotifierHash() => r'e0ee98e96c30b19655744ddcd875f38167187a7c';
 /// Tracks total wins and gates in-app review prompts.
 ///
 /// State is the lifetime win count, persisted across sessions via
-/// [SharedPreferences]. A review prompt is requested every [_reviewEveryNWins]
+/// [SharedPreferences]. A review prompt is requested every
+/// `_reviewEveryNWins`
 /// wins, regardless of whether the game was rated. The OS enforces its own
 /// quota (3× per year on both platforms) and silently no-ops when it is hit.
 

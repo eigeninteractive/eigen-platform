@@ -8,7 +8,7 @@ part 'rating_providers.g.dart';
 RatingRepository ratingRepository(Ref ref) =>
     ref.watch(engineClientProvider).ratings;
 
-/// All pool ratings for [id], ordered by highest display rating.
+/// All pool ratings for `id`, ordered by highest display rating.
 ///
 /// Works for both human user IDs and bot IDs.
 @riverpod

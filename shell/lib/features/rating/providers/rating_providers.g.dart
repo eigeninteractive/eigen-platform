@@ -55,14 +55,14 @@ final class RatingRepositoryProvider
 
 String _$ratingRepositoryHash() => r'b0e88ea45b61207b0b252143d3fae926730dcbf6';
 
-/// All pool ratings for [id], ordered by highest display rating.
+/// All pool ratings for `id`, ordered by highest display rating.
 ///
 /// Works for both human user IDs and bot IDs.
 
 @ProviderFor(playerRatings)
 final playerRatingsProvider = PlayerRatingsFamily._();
 
-/// All pool ratings for [id], ordered by highest display rating.
+/// All pool ratings for `id`, ordered by highest display rating.
 ///
 /// Works for both human user IDs and bot IDs.
 
@@ -74,7 +74,7 @@ final class PlayerRatingsProvider
           FutureOr<List<Rating>>
         >
     with $FutureModifier<List<Rating>>, $FutureProvider<List<Rating>> {
-  /// All pool ratings for [id], ordered by highest display rating.
+  /// All pool ratings for `id`, ordered by highest display rating.
   ///
   /// Works for both human user IDs and bot IDs.
   PlayerRatingsProvider._({
@@ -123,7 +123,7 @@ final class PlayerRatingsProvider
 
 String _$playerRatingsHash() => r'71c55d167dd0f7d2ff7220b1c26d53eb0ca964c4';
 
-/// All pool ratings for [id], ordered by highest display rating.
+/// All pool ratings for `id`, ordered by highest display rating.
 ///
 /// Works for both human user IDs and bot IDs.
 
@@ -138,7 +138,7 @@ final class PlayerRatingsFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// All pool ratings for [id], ordered by highest display rating.
+  /// All pool ratings for `id`, ordered by highest display rating.
   ///
   /// Works for both human user IDs and bot IDs.
 

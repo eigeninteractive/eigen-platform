@@ -10,7 +10,8 @@ part 'review_notifier.g.dart';
 /// Tracks total wins and gates in-app review prompts.
 ///
 /// State is the lifetime win count, persisted across sessions via
-/// [SharedPreferences]. A review prompt is requested every [_reviewEveryNWins]
+/// [SharedPreferences]. A review prompt is requested every
+/// `_reviewEveryNWins`
 /// wins, regardless of whether the game was rated. The OS enforces its own
 /// quota (3× per year on both platforms) and silently no-ops when it is hit.
 @Riverpod(keepAlive: true)
@@ -25,7 +26,7 @@ class ReviewNotifier extends _$ReviewNotifier {
   }
 
   /// Records a win. Requests a review when the total is a multiple of
-  /// [_reviewEveryNWins].
+  /// `_reviewEveryNWins`.
   Future<void> onWin() async {
     final prefs = await ref.read(sharedPreferencesProvider.future);
     final count = (state.value ?? 0) + 1;

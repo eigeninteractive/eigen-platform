@@ -23,7 +23,7 @@ Future<List<Frame>> replayFrames(Ref ref, {required String gameId}) {
 /// [replayFramesProvider].
 ///
 /// Starts at 0 (the initial frame) so the replay plays forward from the
-/// beginning. [frameCount] is passed by the screen once the frames have
+/// beginning. `frameCount` is passed by the screen once the frames have
 /// loaded, so stepping and scrubbing clamp to the valid range without the
 /// controller re-reading the async list. Stepping forward one frame keeps the
 /// underlying `version` consecutive, which is what lets the game animate the
@@ -78,7 +78,7 @@ GameFrame? replayFrameAt(
   );
 }
 
-/// The step into the frame at [index], or null on the first frame.
+/// The step into the frame at `index`, or null on the first frame.
 ///
 /// Replay animates the same way live play does: it is the transition that
 /// carries meaning, so stepping forward hands the game the pair it needs rather

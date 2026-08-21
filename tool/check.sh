@@ -141,7 +141,8 @@ run_flutter() {
   cd "$platform_root/shell"
   flutter pub get
   dart format --output=none --set-exit-if-changed \
-    $(git ls-files --cached --others --exclude-standard 'shell/**/*.dart' | sed 's#^shell/##')
+    $(git ls-files --cached --others --exclude-standard '*.dart' \
+      ':!:**/*.g.dart' ':!:**/*.freezed.dart')
   dart run build_runner build
   dart fix --dry-run
   assert_no_drift "Shell code generation" shell

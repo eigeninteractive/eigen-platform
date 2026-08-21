@@ -5,7 +5,7 @@ import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_shell/features/rating/presentation/extensions/rating_ui.dart';
 import 'package:eigen_shell/features/rating/providers/rating_providers.dart';
 
-/// How [Ratings] renders each pool.
+/// How [PlayerRatings] renders each pool.
 enum RatingsLayout {
   /// Elevated cards, two to a row, for the roomy profile screen.
   cards,

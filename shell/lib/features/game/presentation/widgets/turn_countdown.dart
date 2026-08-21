@@ -17,8 +17,9 @@ import 'package:eigen_flutter/shell_support.dart';
 /// when the countdown should be larger (e.g. inside the game screen).
 ///
 /// [deadline] is an absolute server timestamp in epoch milliseconds, converted
-/// here against [ServerClock]; a device with a skewed clock would otherwise
-/// show a countdown that disagrees with when the turn actually expires.
+/// here against the synchronized server clock; otherwise a device with a skewed
+/// clock would show a countdown that disagrees with when the turn actually
+/// expires.
 ///
 /// Provide [windowMillis] (how long the turn was when it began) to enable the
 /// soft-deadline margin: the countdown reaches zero slightly before the true

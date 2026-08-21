@@ -141,7 +141,7 @@ final class ReplayFramesFamily extends $Family
 /// [replayFramesProvider].
 ///
 /// Starts at 0 (the initial frame) so the replay plays forward from the
-/// beginning. [frameCount] is passed by the screen once the frames have
+/// beginning. `frameCount` is passed by the screen once the frames have
 /// loaded, so stepping and scrubbing clamp to the valid range without the
 /// controller re-reading the async list. Stepping forward one frame keeps the
 /// underlying `version` consecutive, which is what lets the game animate the
@@ -154,7 +154,7 @@ final replayCursorProvider = ReplayCursorFamily._();
 /// [replayFramesProvider].
 ///
 /// Starts at 0 (the initial frame) so the replay plays forward from the
-/// beginning. [frameCount] is passed by the screen once the frames have
+/// beginning. `frameCount` is passed by the screen once the frames have
 /// loaded, so stepping and scrubbing clamp to the valid range without the
 /// controller re-reading the async list. Stepping forward one frame keeps the
 /// underlying `version` consecutive, which is what lets the game animate the
@@ -164,7 +164,7 @@ final class ReplayCursorProvider extends $NotifierProvider<ReplayCursor, int> {
   /// [replayFramesProvider].
   ///
   /// Starts at 0 (the initial frame) so the replay plays forward from the
-  /// beginning. [frameCount] is passed by the screen once the frames have
+  /// beginning. `frameCount` is passed by the screen once the frames have
   /// loaded, so stepping and scrubbing clamp to the valid range without the
   /// controller re-reading the async list. Stepping forward one frame keeps the
   /// underlying `version` consecutive, which is what lets the game animate the
@@ -219,7 +219,7 @@ String _$replayCursorHash() => r'412dea05055bd4d31859fc511c4b094a61079609';
 /// [replayFramesProvider].
 ///
 /// Starts at 0 (the initial frame) so the replay plays forward from the
-/// beginning. [frameCount] is passed by the screen once the frames have
+/// beginning. `frameCount` is passed by the screen once the frames have
 /// loaded, so stepping and scrubbing clamp to the valid range without the
 /// controller re-reading the async list. Stepping forward one frame keeps the
 /// underlying `version` consecutive, which is what lets the game animate the
@@ -247,7 +247,7 @@ final class ReplayCursorFamily extends $Family
   /// [replayFramesProvider].
   ///
   /// Starts at 0 (the initial frame) so the replay plays forward from the
-  /// beginning. [frameCount] is passed by the screen once the frames have
+  /// beginning. `frameCount` is passed by the screen once the frames have
   /// loaded, so stepping and scrubbing clamp to the valid range without the
   /// controller re-reading the async list. Stepping forward one frame keeps the
   /// underlying `version` consecutive, which is what lets the game animate the
@@ -269,7 +269,7 @@ final class ReplayCursorFamily extends $Family
 /// [replayFramesProvider].
 ///
 /// Starts at 0 (the initial frame) so the replay plays forward from the
-/// beginning. [frameCount] is passed by the screen once the frames have
+/// beginning. `frameCount` is passed by the screen once the frames have
 /// loaded, so stepping and scrubbing clamp to the valid range without the
 /// controller re-reading the async list. Stepping forward one frame keeps the
 /// underlying `version` consecutive, which is what lets the game animate the
@@ -414,7 +414,7 @@ final class ReplayFrameAtFamily extends $Family
   String toString() => r'replayFrameAtProvider';
 }
 
-/// The step into the frame at [index], or null on the first frame.
+/// The step into the frame at `index`, or null on the first frame.
 ///
 /// Replay animates the same way live play does: it is the transition that
 /// carries meaning, so stepping forward hands the game the pair it needs rather
@@ -424,7 +424,7 @@ final class ReplayFrameAtFamily extends $Family
 @ProviderFor(replayTransitionAt)
 final replayTransitionAtProvider = ReplayTransitionAtFamily._();
 
-/// The step into the frame at [index], or null on the first frame.
+/// The step into the frame at `index`, or null on the first frame.
 ///
 /// Replay animates the same way live play does: it is the transition that
 /// carries meaning, so stepping forward hands the game the pair it needs rather
@@ -435,7 +435,7 @@ final class ReplayTransitionAtProvider
     extends
         $FunctionalProvider<GameTransition?, GameTransition?, GameTransition?>
     with $Provider<GameTransition?> {
-  /// The step into the frame at [index], or null on the first frame.
+  /// The step into the frame at `index`, or null on the first frame.
   ///
   /// Replay animates the same way live play does: it is the transition that
   /// carries meaning, so stepping forward hands the game the pair it needs rather
@@ -499,7 +499,7 @@ final class ReplayTransitionAtProvider
 String _$replayTransitionAtHash() =>
     r'b6478ee1ac4465a2ccd7a1789fc1bfffe840fa0f';
 
-/// The step into the frame at [index], or null on the first frame.
+/// The step into the frame at `index`, or null on the first frame.
 ///
 /// Replay animates the same way live play does: it is the transition that
 /// carries meaning, so stepping forward hands the game the pair it needs rather
@@ -521,7 +521,7 @@ final class ReplayTransitionAtFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The step into the frame at [index], or null on the first frame.
+  /// The step into the frame at `index`, or null on the first frame.
   ///
   /// Replay animates the same way live play does: it is the transition that
   /// carries meaning, so stepping forward hands the game the pair it needs rather

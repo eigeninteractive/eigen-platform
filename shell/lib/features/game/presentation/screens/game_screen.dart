@@ -23,7 +23,7 @@ part 'game_screen_states.dart';
 
 /// Screen for playing a game.
 ///
-/// Dispatches on [Game.status] before touching the observation stream:
+/// Dispatches on [GameSession.status] before touching the observation stream:
 /// - waiting/ready → [_PreGameContent] (no observation needed)
 /// - aborted → [_AbortedContent] (no observation needed)
 /// - active/finished → [_ActiveGameContent] (session required)

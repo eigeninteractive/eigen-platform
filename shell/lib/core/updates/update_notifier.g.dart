@@ -61,25 +61,25 @@ String _$appUpdateGatewayHash() => r'fe97aec49b8ffe84a76828402ddba99d9a4d9b5a';
 
 /// Drives background update checks and explicit compatibility updates.
 ///
-/// Call [checkForUpdate] on each app resume. When [state] transitions to
+/// Call `checkForUpdate` on each app resume. When `state` transitions to
 /// [UpdateInstallStatus.downloadComplete], show the user a prompt and call
-/// [completeUpdate] on confirmation.
+/// `completeUpdate` on confirmation.
 
 @ProviderFor(UpdateNotifier)
 final updateProvider = UpdateNotifierProvider._();
 
 /// Drives background update checks and explicit compatibility updates.
 ///
-/// Call [checkForUpdate] on each app resume. When [state] transitions to
+/// Call `checkForUpdate` on each app resume. When `state` transitions to
 /// [UpdateInstallStatus.downloadComplete], show the user a prompt and call
-/// [completeUpdate] on confirmation.
+/// `completeUpdate` on confirmation.
 final class UpdateNotifierProvider
     extends $NotifierProvider<UpdateNotifier, UpdateInstallStatus> {
   /// Drives background update checks and explicit compatibility updates.
   ///
-  /// Call [checkForUpdate] on each app resume. When [state] transitions to
+  /// Call `checkForUpdate` on each app resume. When `state` transitions to
   /// [UpdateInstallStatus.downloadComplete], show the user a prompt and call
-  /// [completeUpdate] on confirmation.
+  /// `completeUpdate` on confirmation.
   UpdateNotifierProvider._()
     : super(
         from: null,
@@ -111,9 +111,9 @@ String _$updateNotifierHash() => r'5f1991bbb36ba6789bda6697a074ab872e34d86b';
 
 /// Drives background update checks and explicit compatibility updates.
 ///
-/// Call [checkForUpdate] on each app resume. When [state] transitions to
+/// Call `checkForUpdate` on each app resume. When `state` transitions to
 /// [UpdateInstallStatus.downloadComplete], show the user a prompt and call
-/// [completeUpdate] on confirmation.
+/// `completeUpdate` on confirmation.
 
 abstract class _$UpdateNotifier extends $Notifier<UpdateInstallStatus> {
   UpdateInstallStatus build();

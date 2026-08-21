@@ -18,9 +18,9 @@ AppUpdateGateway appUpdateGateway(Ref ref) => const PluginAppUpdateGateway();
 
 /// Drives background update checks and explicit compatibility updates.
 ///
-/// Call [checkForUpdate] on each app resume. When [state] transitions to
+/// Call `checkForUpdate` on each app resume. When `state` transitions to
 /// [UpdateInstallStatus.downloadComplete], show the user a prompt and call
-/// [completeUpdate] on confirmation.
+/// `completeUpdate` on confirmation.
 @Riverpod(keepAlive: true)
 class UpdateNotifier extends _$UpdateNotifier {
   Future<void>? _backgroundCheck;
