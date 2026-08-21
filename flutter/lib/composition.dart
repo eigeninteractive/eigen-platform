@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 
 /// Installs Eigen's reusable Flutter state beneath an application-owned root.
 ///
-/// This widget deliberately does not create a [WidgetsApp] or [MaterialApp].
+/// This widget deliberately does not create a [WidgetsApp] or `MaterialApp`.
 /// Embedding applications retain ownership of routing, localization, theme,
 /// and lifecycle policy; the optional `eigen_shell` package supplies the
 /// first-party choices for applications that want them.

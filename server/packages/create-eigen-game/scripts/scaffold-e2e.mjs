@@ -24,11 +24,11 @@
 // the check the more useful one: it compiles the templates against the engine
 // about to ship rather than the engine that shipped last.
 //
-// The generated app first resolves `eigen_flutter` from pub.dev so the emitted
-// range and released compatibility line remain tested. After that assertion,
-// the build is switched to this platform checkout's Flutter and generated Dart
-// packages. That proves the server, client, templates, Android app, and web app
-// from one platform commit work together before any of them is published.
+// Future hosted Dart ranges cannot resolve before their packages are published.
+// The unit test asserts exactly which ranges the production scaffolder passes
+// to `flutter pub add`; this harness writes those same arguments into the
+// generated pubspec, then resolves every platform package from this checkout.
+// A separate registry query below still checks the engine/eigen_api wire line.
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
@@ -53,6 +53,22 @@ const shell = (command, args, cwd) => {
   execFileSync(command, args, { cwd, stdio: "inherit" });
 };
 
+/** Writes production `pub add` arguments without resolving unpublished versions. */
+const writeHostedDependencies = (args, cwd) => {
+  const dependencies = args.slice(2).map((spec) => {
+    const separator = spec.lastIndexOf("@");
+    if (separator < 1) throw new Error(`cannot parse Flutter dependency ${JSON.stringify(spec)}`);
+    return `  ${spec.slice(0, separator)}: ${spec.slice(separator + 1)}`;
+  });
+  const path = resolve(cwd, "pubspec.yaml");
+  const pubspec = readFileSync(path, "utf8");
+  const markers = [...pubspec.matchAll(/^dependencies:\s*$/gm)];
+  if (markers.length !== 1) throw new Error(`${path} must contain exactly one dependencies section`);
+  writeFileSync(path, pubspec.replace(/^dependencies:\s*$/m, `dependencies:\n${dependencies.join("\n")}`));
+  console.log(`\n$ flutter ${args.join(" ")}   (${cwd})`);
+  console.log("  wrote hosted constraints; same-revision overrides will resolve them for this pre-publication build");
+};
+
 /**
  * pnpm reads `overrides` from `pnpm-workspace.yaml` in a single-package project
  * too, and overrides apply transitively, which is what makes this work at all:
@@ -75,10 +91,10 @@ const { root } = scaffoldGame({
     // turn this into a test of a project no user has.
     if (args[0] === "install") appendFileSync(resolve(cwd, "pnpm-workspace.yaml"), overrides());
     // New platform packages cannot exist on pub.dev before the source that
-    // introduces them lands. Put local roots in place before the first pub add;
-    // the emitted hosted ranges remain asserted by the unit tests, while this
-    // integration build exercises the same-revision implementation.
-    if (command === "flutter" && args.includes(`eigen_shell@^0.1.0`)) {
+    // introduces them lands. Put local roots in place and persist the exact
+    // production arguments without asking pub to reject their old local
+    // package versions against the future hosted constraints.
+    if (command === "flutter" && args[0] === "pub" && args[1] === "add" && args.some((argument) => argument.startsWith("eigen_shell@"))) {
       writeFileSync(
         resolve(cwd, "pubspec_overrides.yaml"),
         [
@@ -98,6 +114,8 @@ const { root } = scaffoldGame({
           "",
         ].join("\n"),
       );
+      writeHostedDependencies(args, cwd);
+      return;
     }
     shell(command, args, cwd);
   },
