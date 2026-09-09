@@ -78,18 +78,13 @@ updates:
     directory: /flutter
     schedule:
       interval: monthly
-    # The exact prerelease is coupled to the minimum supported Flutter SDK and
-    # the committed Freezed output. Upgrade it deliberately with that baseline.
-    ignore:
-      - dependency-name: freezed
-      # This major currently makes Dependabot's Pub updater rewrite the exact
-      # Freezed pin above as part of the grouped manifest normalization.
-      - dependency-name: cached_network_image
-        update-types: ["version-update:semver-major"]
-    groups:
-      flutter-dependencies:
-        patterns: ["*"]
-        exclude-patterns: ["freezed", "cached_network_image"]
+    # Dependabot's Pub updater normalizes the whole manifest while updating an
+    # unrelated package. It currently rewrites our exact Freezed pin to a
+    # release requiring Dart 3.13 even though the supported Flutter baseline
+    # ships Dart 3.12, and widens other deliberately bounded constraints.
+    # Disable routine Pub version PRs until the baseline moves; Dependabot
+    # security updates are independent of this limit.
+    open-pull-requests-limit: 0
     commit-message:
       prefix: "deps(flutter)"
 
