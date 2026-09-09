@@ -202,14 +202,12 @@ jobs:
       # docs-line decision in particular -- a red `web` shard on a complete,
       # reviewable PR, rather than a half-built release branch.
 
-      # v1 declined to open a PR when every pending Changeset was empty, leaving
-      # markers that would block registry detection forever; this consumes them on
-      # the same protected release branch. Whether v2 still declines is not
-      # verified -- it cannot be, short of a release with only empty markers
-      # pending -- and it does not need to be: this condition and the one above
-      # are complements, so if v2 opens a PR instead, the completion step handles
-      # it and this one simply does not run.
-      - name: Open a cleanup pull request for empty Changesets
+      # Changesets declines to open a version PR when every pending marker is
+      # empty. Consume those markers directly: they carry no release, and a
+      # throwaway cleanup PR only recreates the dependency-PR backlog this path
+      # exists to prevent. The non-force push fails safely if main advanced; the
+      # newer push will enqueue this concurrency group again.
+      - name: Consume empty Changesets
         if: steps.version_pr.outputs.has_changesets == 'true' && steps.version_pr.outputs.number == ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -220,19 +218,12 @@ jobs:
             exit 1
           }
 
-          branch="changeset-release/main"
           git config user.name "eigen-release[bot]"
           git config user.email "eigen-release[bot]@users.noreply.github.com"
-          git switch -C "$branch"
           git add server/.changeset
           git commit -m "Consume empty Changesets"
-          git push --force origin "$branch"
-
-          if ! gh pr view "$branch" --json number >/dev/null 2>&1; then
-            gh pr create --base main --head "$branch" \
-              --title "Release: consume empty Changesets" \
-              --body "Removes internal-only Changeset markers without changing any package version. Merging lets registry publication detection resume."
-          fi
+          gh auth setup-git
+          git push origin HEAD:main
 
   publish:
     name: Publish to npm
