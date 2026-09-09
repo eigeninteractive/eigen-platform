@@ -82,10 +82,14 @@ updates:
     # the committed Freezed output. Upgrade it deliberately with that baseline.
     ignore:
       - dependency-name: freezed
+      # This major currently makes Dependabot's Pub updater rewrite the exact
+      # Freezed pin above as part of the grouped manifest normalization.
+      - dependency-name: cached_network_image
+        update-types: ["version-update:semver-major"]
     groups:
       flutter-dependencies:
         patterns: ["*"]
-        exclude-patterns: ["freezed"]
+        exclude-patterns: ["freezed", "cached_network_image"]
     commit-message:
       prefix: "deps(flutter)"
 
