@@ -39,29 +39,29 @@
     "@easyops-cn/docusaurus-search-local": "^0.55.3",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
-    "docusaurus-plugin-llms": "^0.5.1",
+    "docusaurus-plugin-llms": "^0.6.0",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
-    "docusaurus-plugin-sass": "^0.2.6",
+    "docusaurus-plugin-sass": "^0.2.7",
     "docusaurus-theme-openapi-docs": "^5.2.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sass": "^1.102.0"
+    "sass": "^1.104.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
-    "@cloudflare/workers-types": "^5.20260819.1",
+    "@biomejs/biome": "^2.5.12",
+    "@cloudflare/workers-types": "^5.20260906.1",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "opentype.js": "^2.0.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "~6.0.2",
-    "wrangler": "^4.123.0"
+    "wrangler": "^4.129.0"
   },
   "browserslist": {
     "production": [
