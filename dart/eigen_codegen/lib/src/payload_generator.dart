@@ -125,6 +125,15 @@ final class _GenerationContext {
   }
 
   void _emitNamed(String name, Map<String, dynamic> schema) {
+    if (schema[r'$ref'] case final String reference) {
+      final definition = reference.split('/').last;
+      final target = _definitions[definition];
+      if (target == null) {
+        throw FormatException('Reference $reference has no local definition');
+      }
+      _emitNamed(name, target);
+      return;
+    }
     final signature = jsonEncode(_canonical(schema));
     final prior = _emittedSchemas[name];
     if (prior != null) {
@@ -468,7 +477,14 @@ void _validateSchemaProfile(
     if (!reference.startsWith(r'#/$defs/')) {
       throw FormatException('$path uses unsupported reference "$reference"');
     }
-    const annotations = {
+    // Draft 2020-12 evaluates `$ref` alongside its siblings. These two core
+    // keywords do not add instance constraints: `$schema` selects the dialect
+    // and `$defs` only contains the local schemas that the generator registers
+    // and validates below. Constraint-bearing siblings must still fail rather
+    // than being silently ignored by the generated Dart validator.
+    const nonConstraintSiblings = {
+      r'$schema',
+      r'$defs',
       'title',
       'description',
       'default',
@@ -476,7 +492,7 @@ void _validateSchemaProfile(
       'deprecated',
     };
     final siblings = schema.keys.where(
-      (key) => key != r'$ref' && !annotations.contains(key),
+      (key) => key != r'$ref' && !nonConstraintSiblings.contains(key),
     );
     if (siblings.isNotEmpty) {
       throw FormatException(

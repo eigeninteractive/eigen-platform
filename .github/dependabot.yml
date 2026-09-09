@@ -41,6 +41,10 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # Zod's JSON Schema serializer is part of the checked-in TypeScript/Dart
+      # wire contract. Upgrade it deliberately with regenerated contracts and
+      # cross-language generator coverage, not inside a grouped maintenance PR.
+      - dependency-name: zod
     groups:
       server-dependencies:
         patterns: ["*"]
@@ -55,6 +59,9 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+      # This package renders the committed TypeScript API reference. Its
+      # upgrades must include and review the regenerated Markdown.
+      - dependency-name: typedoc-plugin-markdown
     groups:
       documentation-dependencies:
         patterns: ["*"]
@@ -65,6 +72,10 @@ updates:
     directory: /flutter
     schedule:
       interval: monthly
+    # The exact prerelease is coupled to the minimum supported Flutter SDK and
+    # the committed Freezed output. Upgrade it deliberately with that baseline.
+    ignore:
+      - dependency-name: freezed
     groups:
       flutter-dependencies:
         patterns: ["*"]

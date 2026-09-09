@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 - 2026-09-09
 
 - **Breaking.** Replace `runFirebaseEngineApp` with
   `initializeEigenFirebase`, which initializes Firebase and returns provider
@@ -9,6 +9,8 @@
   on the first-party application shell.
 - Resolve foreground-notification suppression through the provider-neutral
   active-game resolver supplied by the application layer.
+- Follow Firebase Messaging's native distinction between retryable and
+  permanent Android notification-permission denials.
 
 ## 0.1.0
 

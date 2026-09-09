@@ -81,7 +81,6 @@ NotificationPermissionState resolveNotificationPermissionState({
   required AuthorizationStatus authorizationStatus,
   required bool available,
   required bool isAndroid,
-  required bool hasRequestedPermission,
 }) {
   if (!available) return NotificationPermissionState.unavailable;
   return switch (authorizationStatus) {
@@ -89,9 +88,11 @@ NotificationPermissionState resolveNotificationPermissionState({
     AuthorizationStatus.provisional => NotificationPermissionState.enabled,
     AuthorizationStatus.notDetermined => NotificationPermissionState.promptable,
     AuthorizationStatus.denied =>
-      isAndroid && !hasRequestedPermission
+      isAndroid
           ? NotificationPermissionState.promptable
           : NotificationPermissionState.blocked,
+    AuthorizationStatus.deniedPermanently =>
+      NotificationPermissionState.blocked,
   };
 }
 
@@ -156,7 +157,6 @@ class FirebaseNotificationService implements NotificationService {
   /// SharedPreferences key holding the last-registered `userId:fid`, used to
   /// know whether permission revocation needs server cleanup.
   static const _registeredKey = 'notifications_registered_installation';
-  static const _permissionRequestedKey = 'notifications_permission_requested';
 
   @override
   Stream<String> get navigationStream => _nav.stream;
@@ -319,16 +319,10 @@ class FirebaseNotificationService implements NotificationService {
     final settings = await _messaging.getNotificationSettings();
     final isAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-    var hasRequestedPermission = false;
-    if (isAndroid) {
-      hasRequestedPermission =
-          await _preferences.getBool(_permissionRequestedKey) == true;
-    }
     return resolveNotificationPermissionState(
       authorizationStatus: settings.authorizationStatus,
       available: available,
       isAndroid: isAndroid,
-      hasRequestedPermission: hasRequestedPermission,
     );
   }
 
@@ -348,14 +342,10 @@ class FirebaseNotificationService implements NotificationService {
     );
     final isAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-    if (isAndroid) {
-      await _preferences.setBool(_permissionRequestedKey, true);
-    }
     final state = resolveNotificationPermissionState(
       authorizationStatus: result.authorizationStatus,
       available: true,
       isAndroid: isAndroid,
-      hasRequestedPermission: true,
     );
     if (state == NotificationPermissionState.enabled) {
       try {

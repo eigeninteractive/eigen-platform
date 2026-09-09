@@ -13,7 +13,6 @@ void main() {
             authorizationStatus: status,
             available: false,
             isAndroid: false,
-            hasRequestedPermission: false,
           ),
         ).equals(NotificationPermissionState.unavailable);
       }
@@ -29,7 +28,6 @@ void main() {
             authorizationStatus: status,
             available: true,
             isAndroid: false,
-            hasRequestedPermission: false,
           ),
         ).equals(NotificationPermissionState.enabled);
       }
@@ -41,37 +39,36 @@ void main() {
           authorizationStatus: AuthorizationStatus.notDetermined,
           available: true,
           isAndroid: false,
-          hasRequestedPermission: false,
         ),
       ).equals(NotificationPermissionState.promptable);
     });
 
-    test('treats denied as blocked outside Android', () {
+    test('treats a non-Android denial as blocked', () {
       check(
         resolveNotificationPermissionState(
           authorizationStatus: AuthorizationStatus.denied,
           available: true,
           isAndroid: false,
-          hasRequestedPermission: false,
         ),
       ).equals(NotificationPermissionState.blocked);
     });
 
-    test('disambiguates Android denied with the requested marker', () {
+    test('treats a retryable Android denial as promptable', () {
       check(
         resolveNotificationPermissionState(
           authorizationStatus: AuthorizationStatus.denied,
           available: true,
           isAndroid: true,
-          hasRequestedPermission: false,
         ),
       ).equals(NotificationPermissionState.promptable);
+    });
+
+    test('treats a permanent denial as blocked', () {
       check(
         resolveNotificationPermissionState(
-          authorizationStatus: AuthorizationStatus.denied,
+          authorizationStatus: AuthorizationStatus.deniedPermanently,
           available: true,
           isAndroid: true,
-          hasRequestedPermission: true,
         ),
       ).equals(NotificationPermissionState.blocked);
     });

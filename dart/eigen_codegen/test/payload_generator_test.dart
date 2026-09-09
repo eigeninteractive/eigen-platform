@@ -120,6 +120,32 @@ void main() {
     );
   });
 
+  test('accepts draft metadata and definitions beside a root reference', () {
+    final referencedSchema = <String, dynamic>{
+      r'$schema': 'https://json-schema.org/draft/2020-12/schema',
+      r'$ref': r'#/$defs/CounterV1Action',
+      r'$defs': <String, dynamic>{
+        'CounterV1Action': <String, dynamic>{
+          'type': 'object',
+          'properties': <String, dynamic>{
+            'value': <String, dynamic>{'type': 'integer'},
+          },
+          'required': <String>['value'],
+        },
+      },
+    };
+    final value = contract();
+    final schemas =
+        ((value['versions'] as Map<String, dynamic>)['1']
+                as Map<String, dynamic>)['schemas']
+            as Map<String, dynamic>;
+    schemas['action'] = referencedSchema;
+
+    final source = generatePayloadLibrary(value);
+
+    expect(source, contains('final class CounterV1Action'));
+  });
+
   test('rejects schema constraints it cannot enforce', () {
     final value = contract();
     final schemas =
