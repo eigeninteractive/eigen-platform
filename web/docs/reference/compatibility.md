@@ -21,7 +21,7 @@ a version constraint; it is not where you expect.
 
 | Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter integration (`eigen_flutter`) |
 | --- | --- | --- | --- |
-| **0.6.x** *(this version)* | `^0.6.0` | `^0.6.0` | `0.8.0` |
+| **0.6.x** *(this version)* | `^0.6.0` | `^0.6.0` | `0.9.0`, `0.8.0` |
 | 0.5.x | `^0.5.0` | `^0.5.0` | `0.7.0` |
 | 0.4.x | `^0.4.0` | `^0.4.0` | `0.6.0` |
 | 0.3.x | `^0.3.0` | `^0.3.0` | `0.5.0`, `0.4.1`, `0.4.0` |
