@@ -52,6 +52,7 @@ updates:
     groups:
       server-dependencies:
         patterns: ["*"]
+        exclude-patterns: ["zod", "vitest"]
     commit-message:
       prefix: "deps(server)"
 
@@ -69,6 +70,7 @@ updates:
     groups:
       documentation-dependencies:
         patterns: ["*"]
+        exclude-patterns: ["typedoc-plugin-markdown"]
     commit-message:
       prefix: "deps(web)"
 
@@ -83,6 +85,7 @@ updates:
     groups:
       flutter-dependencies:
         patterns: ["*"]
+        exclude-patterns: ["freezed"]
     commit-message:
       prefix: "deps(flutter)"
 
