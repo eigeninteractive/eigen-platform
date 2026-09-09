@@ -45,6 +45,10 @@ updates:
       # wire contract. Upgrade it deliberately with regenerated contracts and
       # cross-language generator coverage, not inside a grouped maintenance PR.
       - dependency-name: zod
+      # The Cloudflare Workers pool currently supports Vitest 4.1 and relies on
+      # Vitest internals. Vitest 5 prevents every Worker test from starting.
+      - dependency-name: vitest
+        update-types: ["version-update:semver-major"]
     groups:
       server-dependencies:
         patterns: ["*"]
