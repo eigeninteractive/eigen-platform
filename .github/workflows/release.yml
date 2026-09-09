@@ -121,7 +121,7 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - uses: actions/setup-java@v5.7.0
+      - uses: actions/setup-java@v6.0.0
         with:
           distribution: temurin
           java-version: "21"
@@ -146,7 +146,7 @@ jobs:
       # default behaviour while reporting success.
       - name: Create or update the version pull request
         id: changesets
-        uses: changesets/action@198f833dd7d863100ea6e28967bc9a9fdefadb0a # v2.1.0
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
@@ -279,7 +279,7 @@ jobs:
           permission-contents: write
 
       - name: Publish
-        uses: changesets/action@198f833dd7d863100ea6e28967bc9a9fdefadb0a # v2.1.0
+        uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
           cwd: server
           github-token: ${{ steps.app-token.outputs.token }}
