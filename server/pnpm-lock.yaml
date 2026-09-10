@@ -208,7 +208,7 @@ importers:
   .:
     devDependencies:
       '@biomejs/biome':
-        specifier: ^2.5.12
+        specifier: 2.5.12
         version: 2.5.12
       '@changesets/changelog-github':
         specifier: ^1.0.1
