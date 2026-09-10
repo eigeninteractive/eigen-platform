@@ -38,8 +38,17 @@ still runs, and its `check` job still aggregates every shard:
   completion of that `main` workflow. It checks out the triggering run's exact
   commit, cannot proceed unless the aggregate `check` job is green, and does not
   duplicate the expensive shards;
-- **pub.dev tag publishing** repeats the tagged package's resolution, analysis,
-  tests, and dry run, but not unrelated platform shards.
+- **Dart tagging** is one small coordinator triggered by the same successful
+  `main` workflow. It creates only missing, unpublished package tags at the exact
+  checked commit;
+- **pub.dev publishing** remains package-specific and repeats the tagged
+  package's resolution, analysis, tests, and dry run, but not unrelated platform
+  shards.
+
+Changesets' generated `changeset-release/main` pull request is also scoped to
+the manifest and documentation shards. Its source `main` commit has already
+passed the complete gate, and the merged `main` commit must pass it again before
+anything can publish.
 
 A direct push to `main` therefore reports failures but does not prevent them.
 Read the advisory run before building on top of a commit.

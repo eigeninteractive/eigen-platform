@@ -69,7 +69,7 @@ jobs:
           if [ "$state" != "OPEN" ]; then
             gh pr create --base main \
               --title "Release eigen_flutter v$VERSION" \
-              --body "Raises \`eigen_flutter\` to **v$VERSION** (\`$BUMP\`) and closes the accumulated changelog section. Merging creates the namespaced release tag; that tag reruns the platform gate and publishes through pub.dev trusted publishing."
+              --body "Raises \`eigen_flutter\` to **v$VERSION** (\`$BUMP\`) and closes the accumulated changelog section. After the merged \`main\` commit passes the platform gate, the namespaced tag publishes through pub.dev trusted publishing."
           else
             echo "Refreshed the existing release pull request."
           fi

@@ -1,0 +1,86 @@
+name: Tag Dart packages
+
+on:
+  workflow_run:
+    workflows: [Platform checks]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: tag-dart-packages
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  tag:
+    name: Tag unpublished versions
+    if: >-
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Find unpublished package versions
+        id: versions
+        run: |
+          packages=(
+            "eigen_client:dart/eigen_client/pubspec.yaml"
+            "eigen_codegen:dart/eigen_codegen/pubspec.yaml"
+            "eigen_flutter:flutter/pubspec.yaml"
+            "eigen_shell:shell/pubspec.yaml"
+            "eigen_firebase:firebase/pubspec.yaml"
+          )
+
+          pending=()
+          for entry in "${packages[@]}"; do
+            IFS=: read -r package pubspec <<<"$entry"
+            version=$(awk '/^version:/ { print $2; exit }' "$pubspec")
+            tag="$package-v$version"
+            [ -n "$version" ] || { echo "::error::$pubspec has no version"; exit 1; }
+
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "::notice::$tag already exists."
+              continue
+            fi
+
+            published=$(curl -sf --retry 3 "https://pub.dev/api/packages/$package") || {
+              echo "::error::Could not query pub.dev for $package; refusing to tag blind."
+              exit 1
+            }
+            if jq -e --arg version "$version" '.versions[] | select(.version == $version)' >/dev/null <<<"$published"; then
+              echo "::notice::$package $version is already published."
+              continue
+            fi
+
+            pending+=("$tag")
+          done
+
+          printf '%s\n' "${pending[@]}" > "$RUNNER_TEMP/pending-dart-tags"
+          echo "count=${#pending[@]}" >> "$GITHUB_OUTPUT"
+
+      - name: Tag checked main commit
+        if: steps.versions.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            git tag "$tag"
+            git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$tag"
+          done < "$RUNNER_TEMP/pending-dart-tags"

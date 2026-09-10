@@ -9,12 +9,10 @@ on:
   # platform check at all until a release gate happened to run.
   push:
     branches: [main]
-  workflow_call:
 
 concurrency:
-  # Superseding an in-flight advisory run is the point on a branch that moves
-  # quickly. Package tag workflows still call this gate under their own
-  # top-level workflow name and therefore have an independent concurrency key.
+  # Superseding an in-flight advisory run is useful on a branch that moves
+  # quickly. Release publication listens for the successful main run.
   group: platform-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
@@ -40,10 +38,17 @@ jobs:
         id: classify
         env:
           EVENT_NAME: ${{ github.event_name }}
+          HEAD_REF: ${{ github.head_ref }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           full=true
-          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]] \
+          # Changesets' version PR contains only the deterministic output of the
+          # already-checked source main commit. Its merged main commit receives
+          # the complete gate again before publication, so running every shard
+          # on this intermediate PR would provide no additional release safety.
+          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REF" = "changeset-release/main" ]; then
+            full=false
+          elif [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]] \
                && [ -n "$BASE_SHA" ] \
                && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
             mapfile -t changed < <(git diff --name-only "$BASE_SHA"...HEAD)
@@ -167,9 +172,9 @@ jobs:
             exit 1
           }
 
-      - name: Documentation-only change
+      - name: Scoped change
         if: needs.scope.outputs.full != 'true'
-        run: echo "Server checks are covered by the documentation build for this scoped change."
+        run: echo "Server checks are not needed for this scoped change."
 
   flutter:
     needs: scope
@@ -190,7 +195,7 @@ jobs:
         if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh flutter
 
-      - name: Documentation-only change
+      - name: Scoped change
         if: needs.scope.outputs.full != 'true'
         run: echo "Flutter sources are unchanged."
 
@@ -275,7 +280,7 @@ jobs:
         if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh scaffold "${{ matrix.target }}"
 
-      - name: Documentation-only change
+      - name: Scoped change
         if: needs.scope.outputs.full != 'true'
         run: echo "Scaffold sources are unchanged."
 

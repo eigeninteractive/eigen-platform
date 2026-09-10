@@ -74,17 +74,19 @@ cutover.
 
 ## CI and releases
 
-Pull requests, direct pushes to `main`, and package releases run the same
-whole-platform workflow in [`checks.yml`](.github/workflows/checks.yml). Its
+Pull requests and direct pushes to `main` run the platform workflow in
+[`checks.yml`](.github/workflows/checks.yml). Its
 contracts, server, Flutter, documentation, and scaffold checks run in parallel,
 then report one stable `check` result. During vNext development that result is
 advisory on `main`, which accepts direct pushes; it remains a hard gate on every
 release and publish. See
 [branch protection](docs/operations/branch-protection.md) for the current
 posture and how to restore the protected one. Documentation-only pull requests
-take a conservative fast lane through contracts and the documentation build;
-release runs and any code change always use the complete gate. npm packages use Changesets;
-The Dart packages use separate namespaced pub.dev tags. Publishing
+takes a conservative fast lane through contracts and the documentation build.
+Changesets' generated version PR uses the same lightweight checks because both
+the source and final merged `main` commits receive the complete gate. npm
+packages use Changesets; one post-gate coordinator creates namespaced Dart tags,
+and each Dart package retains its own pub.dev publishing workflow. Publishing
 uses registry trusted publishing with GitHub OIDC and environment-bound `npm` /
 `pub.dev` identities, so no registry token is stored in the repository and
 publishing starts automatically after the release checks pass.

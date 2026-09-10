@@ -30,9 +30,9 @@ packages move only when their own user-visible contents change.
 
 - Pull requests and direct pushes to `main` call `.github/workflows/checks.yml`.
   Its five validation shards run concurrently; the final `check` job succeeds
-  only when all five do. A successful `main` run emits a `workflow_run` event
-  that starts `.github/workflows/release.yml` at the checked commit, so the exact
-  same commit is not checked twice before it ships.
+  only when all five do. A successful `main` run emits `workflow_run` events
+  that start `.github/workflows/release.yml` and the Dart tag coordinator at the
+  checked commit, so the exact same commit is not checked twice before it ships.
 - Publishing is the one place that gate is still mandatory. `main` itself is in
   [iteration mode](branch-protection.md) and reports the check without gating a
   merge or push, but the publish job runs only after a successful `Platform
@@ -49,9 +49,10 @@ packages move only when their own user-visible contents change.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It holds no permission `main`'s protected posture would need to
   exempt it from.
-- Pub.dev tag jobs repeat the tagged package's own resolution, analysis, tests,
-  and publish dry run. They do not rerun unrelated server, documentation, or
-  scaffold shards after the tag's `main` commit has already passed them.
+- The Dart tag coordinator runs only after the complete `main` gate. Each
+  package-specific pub.dev job repeats its own resolution, analysis, tests, and
+  publish dry run. It does not rerun unrelated server, documentation, or
+  scaffold shards after the tagged commit has already passed them.
 - An unprivileged registry-comparison job proves that at least one exact local
   version is absent before the platform gate and OIDC-enabled npm job start.
   A no-op main push therefore finishes quickly. Changesets then resolves
@@ -159,7 +160,7 @@ Tag pattern: eigen_codegen-v{{version}}
 Environment: pub.dev (required)
 ```
 
-`eigen_firebase` (after its first interactive publication):
+`eigen_firebase`:
 
 ```text
 Repository:  eigeninteractive/eigen-platform
@@ -167,7 +168,7 @@ Tag pattern: eigen_firebase-v{{version}}
 Environment: pub.dev (required)
 ```
 
-`eigen_shell` (after its first interactive publication):
+`eigen_shell`:
 
 ```text
 Repository:  eigeninteractive/eigen-platform
@@ -180,9 +181,8 @@ tag must match `pubspec.yaml`. Separate patterns are mandatory for packages
 published from the same repository.
 
 Pub.dev cannot establish trusted publishing for a package that does not exist
-yet. Publish `eigen_shell` 0.1.0 interactively once, transfer it to the
-EigenInteractive verified publisher if applicable, then configure the
-automated-publishing form above. All later versions use GitHub OIDC.
+yet. All six packages now have their initial publication, so later versions use
+GitHub OIDC.
 
 ### One-time Flutter comparison anchor
 
@@ -219,8 +219,10 @@ later registry detection.
 
 After a Changeset reaches `main`, **Release npm packages** opens or refreshes
 **Release: version npm packages**. It does not duplicate the main-branch gate
-before creating a protected pull request; that version PR runs the complete
-platform gate itself. The version PR:
+before creating a protected pull request. That deterministic version PR runs
+only the manifest and documentation shards: its source `main` commit has already
+passed the complete gate, and its final merged `main` commit must pass the
+complete gate again before publication. The version PR:
 
 - consumes pending Changesets and updates package changelogs;
 - stamps and regenerates `eigen_api`;
@@ -272,22 +274,21 @@ Pre-1.0 choices mean:
 | `breaking` | advances the minor line for an incompatible change |
 
 The workflow opens **Release eigen_flutter vX.Y.Z**. Review the version and
-dated changelog, then merge it. **Tag eigen_flutter** creates
-`eigen_flutter-vX.Y.Z`; **Publish eigen_flutter** reruns the platform gate,
-resolves dependencies without the monorepo override, and publishes
-automatically.
+dated changelog, then merge it. After the merged `main` commit passes the
+platform gate, **Tag Dart packages** creates `eigen_flutter-vX.Y.Z`.
+**Publish eigen_flutter** resolves dependencies without the monorepo override,
+analyzes, tests, dry-runs, and publishes automatically.
 
 ## eigen_client, eigen_codegen, eigen_shell, and eigen_firebase release flow
 
 These packages use independent versions and namespaced tags. After their first
 interactive publication, change the package version and changelog together and
-merge to `main`. The matching **Tag eigen_client**, **Tag eigen_codegen**,
-**Tag eigen_firebase**, or **Tag eigen_shell** workflow creates the namespaced
-tag automatically; the matching **Publish** workflow validates and uploads
-that tag through OIDC. A
-manual workflow dispatch safely repairs a missed tag. For a package that does
-not yet exist on pub.dev, the tag helper deliberately exits without creating a
-tag so its first version can be published interactively.
+merge to `main`. Once that exact commit passes the complete platform gate,
+**Tag Dart packages** checks every Dart package and creates a namespaced tag only
+for a local version that is neither tagged nor published. The matching
+package-specific **Publish** workflow validates and uploads that tag through
+OIDC. If a transient failure prevents tagging, rerun the failed coordinator;
+existing tags and published versions are no-ops.
 
 `eigen_client` must be published before any `eigen_flutter` version that
 depends on its new line. `eigen_flutter` must be published before either
@@ -374,7 +375,7 @@ For pub.dev:
   detection is registry-aware; inspect the publish plan before rerunning and
   release a patch if source changed.
 - **Dart tag exists but publication did not happen:** fix `main`, delete the
-  unpublished tag, and recreate it at the corrected commit. Rerunning a tag
+  unpublished tag, and recreate it at the corrected commit. The package publish
   workflow uses the workflow definition stored at the tag.
 - **Dart version is already published:** never move its tag or overwrite the
   version. Publish a new patch. The workflows treat a retry as a clean no-op.
