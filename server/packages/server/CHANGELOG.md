@@ -1,5 +1,17 @@
 # @eigeninteractive/server
 
+## 0.6.1
+
+### Patch Changes
+
+- [`4c39d16`](https://github.com/eigeninteractive/eigen-platform/commit/4c39d16739638a12001fdcef9c64de3640a01b76) Thanks [@seenu-k](https://github.com/seenu-k)! - Commit an aborted game's terminal status, monotonic session sequence, and
+  live-data compaction in one Durable Object SQLite transaction. Repeated aborts
+  now return the exact retained terminal sequence instead of announcing an
+  unpersisted increment.
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.6.1
+  - @eigeninteractive/rules@0.6.1
+
 ## 0.6.0
 
 ### Minor Changes
