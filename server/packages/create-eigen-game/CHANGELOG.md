@@ -1,5 +1,12 @@
 # create-eigen-game
 
+## 0.14.1
+
+### Patch Changes
+
+- [`c9512f0`](https://github.com/eigeninteractive/eigen-platform/commit/c9512f06e61a30cd2f8e3413be6789e35a160872) Thanks [@seenu-k](https://github.com/seenu-k)! - Pin generated projects to the Biome version their configuration schema targets,
+  so a fresh install stays deterministic and does not report a schema mismatch.
+
 ## 0.14.0
 
 ### Minor Changes
