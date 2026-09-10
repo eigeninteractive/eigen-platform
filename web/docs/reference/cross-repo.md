@@ -22,12 +22,12 @@ TypeScript schemas + fixtures
 A game's Worker owns its authoritative TypeScript rules and emits one
 deterministic `game-contract.json`. The artifact contains the four payload
 schemas for every `schemaVersion` plus validated behavioral fixtures. The
-Flutter repository consumes the exact artifact to generate immutable Dart
+Flutter application consumes the exact artifact to generate immutable Dart
 payload types, the codec, and fixture copies.
 
 This works in a combined repository, separate Worker/app repositories, or a
-fully hand-created setup. The engine repositories remain ordinary npm/pub.dev
-dependencies in all three.
+fully hand-created setup. The engine packages remain ordinary npm/pub.dev
+dependencies in every layout.
 
 ## Dependency identity
 

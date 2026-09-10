@@ -16,6 +16,7 @@ the implementation is wrong or the record must be superseded explicitly.
 | [0007](0007-replay-retention-privacy.md) | Accepted | Replay fidelity, retention, and privacy |
 | [0008](0008-client-coordinator.md) | Accepted | Serialized client coordinator |
 | [0009](0009-vnext-simplifications.md) | Accepted | Contiguous versions and simplified correctness model |
+| [0010](0010-platform-cutover.md) | Accepted | Complete the monorepo cutover and archive predecessor repositories |
 
 The machine-readable contract is generated, not hand-written: the HTTP surface as OpenAPI 3.1 (`server/packages/server/openapi.json`) from the Zod schemas in `routes/wire.ts`, and each game's payload schemas as `game-contract.json` from its TypeScript rules.
 [`vnext-execution.md`](vnext-execution.md) records delivery status and gates.

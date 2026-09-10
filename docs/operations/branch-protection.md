@@ -5,8 +5,8 @@ merges without a required check. This is a temporary development posture, not
 the intended steady state. Restore the protected posture below before the first
 real deployment or publish to users.
 
-Changed on 2026-08-14 by owner decision, to remove review and check latency
-while vNext phases 4–10 land.
+Changed on 2026-08-14 by owner decision and retained after vNext completion
+while the platform has no production applications or multiple contributors.
 
 ## Current posture
 

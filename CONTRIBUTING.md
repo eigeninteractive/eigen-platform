@@ -44,7 +44,7 @@ rather than bypassing those checks.
 ## Scope and history
 
 Read the nested `AGENTS.md` and `CONTRIBUTING.md` before changing a component.
-Do not rewrite imported history or mutate the original repository remotes. The
+Do not rewrite imported history or mutate the archived predecessor remotes. The
 archive refs and import anchors are described in
 `docs/architecture/0000-monorepo-import.md`.
 

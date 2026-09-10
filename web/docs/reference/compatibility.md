@@ -1,13 +1,14 @@
 ---
 sidebar_position: 3
 title: Versions and compatibility
-description: Which engine, client and docs versions pair with each other, what the scaffolder picks for a new project, what a breaking bump actually means pre-1.0, and how old apps survive a server deploy.
+description: Which engine, client, Flutter and docs versions pair with each other, what the scaffolder picks for a new project, what a breaking bump actually means pre-1.0, and how old apps survive a server deploy.
 ---
 
 # Versions and compatibility
 
-Four artifacts ship from three repositories. This page says which ones pair,
-and what a version number is actually promising.
+Several independently versioned packages ship from one platform repository.
+This page says which compatibility axes pair and what each version number is
+actually promising.
 
 :::info[Everything here is pre-1.0]
 Every package is still on the `0.x` line and the API is moving. Read the

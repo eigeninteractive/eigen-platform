@@ -25,8 +25,7 @@ being simplified before real applications or users depend on it.
 | [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
 
 The three component histories were imported without squashing. Their original
-repositories remain readable until the first unified releases and deployment
-are verified, after which they can be archived with pointers here.
+repositories are archived as readable history; all active work belongs here.
 [`platform.json`](platform.json) records the exact imported commits and package
 versions.
 
@@ -66,23 +65,22 @@ A protocol or game-contract change is one platform change: server behavior,
 generated Dart types, Flutter runtime behavior, examples, and documentation must
 land together and pass the same commit gate.
 
-The currently published game-implementor documentation is available at
-[eigeninteractive.com](https://eigeninteractive.com). During vNext development,
-the repository's accepted architecture records are normative for new work; the
-published site continues to describe the currently released packages until
-cutover.
+The current game-implementor documentation is published from this repository at
+[eigeninteractive.com](https://eigeninteractive.com). The accepted architecture
+records are normative for new platform work. Maintainer-only upstream
+constraints are tracked in [`docs/blockers.md`](docs/blockers.md).
 
 ## CI and releases
 
 Pull requests and direct pushes to `main` run the platform workflow in
 [`checks.yml`](.github/workflows/checks.yml). Its
 contracts, server, Flutter, documentation, and scaffold checks run in parallel,
-then report one stable `check` result. During vNext development that result is
+then report one stable `check` result. During early development that result is
 advisory on `main`, which accepts direct pushes; it remains a hard gate on every
 release and publish. See
 [branch protection](docs/operations/branch-protection.md) for the current
 posture and how to restore the protected one. Documentation-only pull requests
-takes a conservative fast lane through contracts and the documentation build.
+take a conservative fast lane through contracts and the documentation build.
 Changesets' generated version PR uses the same lightweight checks because both
 the source and final merged `main` commits receive the complete gate. npm
 packages use Changesets; one post-gate coordinator creates namespaced Dart tags,

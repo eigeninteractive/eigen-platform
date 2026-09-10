@@ -11,7 +11,6 @@ that private thread.
 
 ## Supported versions
 
-EigenInteractive vNext is pre-release software. Until the first platform
-release, only the current `main` branch receives security fixes. Published
-packages from the three predecessor repositories retain the support policy of
-their respective release lines until the platform cutover is announced.
+EigenInteractive is pre-1.0 software. Only packages released from the current
+`eigen-platform` `main` branch receive security fixes. The archived predecessor
+repositories and their older release lines are unsupported.

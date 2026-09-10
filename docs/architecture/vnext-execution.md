@@ -1,6 +1,6 @@
 # vNext execution status
 
-Last updated: 2026-08-21.
+Last updated: 2026-09-10.
 
 This is a progress ledger, not a normative contract. The accepted RFCs are the
 authority; [RFC 0009](0009-vnext-simplifications.md) supersedes the speculative
@@ -46,10 +46,29 @@ compatibility and command machinery from earlier phases.
 | Split release wiring | The platform inventory, local overrides, checks, scaffolder templates, implementor docs, changelogs, and namespaced `eigen_shell` pub.dev workflows describe the same package graph and dependency order. |
 | Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
 
-## Work still to do
+## Completion
 
-1. Run every workspace shard and both scaffold targets from a clean checkout,
-   then release the breaking pre-1.0 package lines in dependency order.
+The accepted vNext scope is complete. A clean GitHub checkout passes the server,
+Flutter, documentation, manifest, and Android/web scaffold shards. The unified
+release process has published every package from `eigen-platform`, the live
+documentation deploys from this repository, and registry versions match
+`platform.json`.
+
+This does not mean the product is production-mature. It means the architectural
+rewrite is no longer the active project. New work should be framed as a normal
+feature, bug, dependency upgrade, or production-readiness requirement rather
+than another vNext phase.
+
+## Next product work
+
+1. Build the first real game on the published scaffolder and use that experience
+   to prioritize developer-experience fixes.
+2. Restore protected-mode branch settings before a production application or
+   multiple contributors rely on the repository.
+3. Revisit the two current [upstream blockers](../blockers.md) when their
+   dependencies move.
+4. Add deferred retention, resource, replay, or offline machinery only when a
+   measured product need justifies it.
 
 ## Deliberately deferred
 

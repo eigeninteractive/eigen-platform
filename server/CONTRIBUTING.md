@@ -1,16 +1,17 @@
-# Contributing to eigen-server
+# Contributing to the server workspace
 
 This repository contains the TypeScript half of the engine: four published
 packages, the generated `eigen_api` Dart client, and the RPS reference Worker.
 
 Game-implementor documentation lives at
 [eigeninteractive.com](https://eigeninteractive.com). This guide is for people
-changing engine code. Release credentials, registry setup, publishing, and
-production operations live in [MAINTAINERS.md](MAINTAINERS.md).
+changing engine code. Repository-wide setup starts in
+[`../CONTRIBUTING.md`](../CONTRIBUTING.md), and release operations live in
+[`../docs/operations/releases.md`](../docs/operations/releases.md).
 
 ## Getting set up
 
-Prerequisites are Node.js 24 (see `.nvmrc`), pnpm 11.13.0, and a JDK for Dart
+Prerequisites are Node.js 24 (see `.nvmrc`), pnpm 11.20.0, and a JDK for Dart
 client generation.
 
 ```bash
@@ -57,8 +58,9 @@ credentials remain disabled locally.
 
 ## Branching
 
-Work on a branch and open a pull request. `main` is protected and is the only
-branch that releases.
+`main` is the only branch that releases. Its current iteration posture and the
+future protected posture are recorded in
+[`../docs/operations/branch-protection.md`](../docs/operations/branch-protection.md).
 
 ## The CI gate
 
@@ -160,24 +162,24 @@ Adding a response-enum member is normally additive because the generated Dart
 client has an unknown-value sentinel. Removing or renaming a member remains
 breaking, as does requiring an existing client to send a newly added request
 value. The release-order implications are covered in
-[MAINTAINERS.md](MAINTAINERS.md#client-first-wire-changes).
+[`../docs/operations/releases.md`](../docs/operations/releases.md#publish-dart-dependencies-before-updating-the-scaffold).
 
-## Changes that cross repositories
+## Changes that cross workspaces
 
-`eigen-web` vendors the OpenAPI and TypeScript references. A release dispatches
-a regeneration pull request automatically, but authored prose does not update
-itself. Change the relevant guide in the same work.
+`../web` contains the OpenAPI and TypeScript references. Root validation checks
+their generated content, while authored prose still needs to change with the
+behavior it explains.
 
-The RPS twin fixture is maintained in both engine repositories:
+The RPS twin fixture crosses the server and Flutter workspaces:
 
 ```text
 examples/rps/src/module/fixtures/v1/rps.json
 flutter/example/fixtures/v1/rps.json
 ```
 
-A rules change that affects fixtures must update both copies. The `obs` field is
-the acting seat's observation; omitting it means the observation and state are
-identical.
+A rules change that affects fixtures must regenerate and validate the Dart copy
+in the same platform commit. The `obs` field is the acting seat's observation;
+omitting it means the observation and state are identical.
 
 ## Documentation changes
 

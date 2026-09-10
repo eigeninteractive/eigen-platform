@@ -89,10 +89,10 @@ reports checks without making them a branch-protection requirement. Publishing
 still requires a successful `main` check run. Tighten branch protection when
 multiple contributors or production consumers make review enforcement useful.
 
-## One-time registry cutover
+## Registry trusted-publisher configuration
 
-Do these steps only after the workflow files have merged to `main`. Registry
-forms do not validate every value when saved, so copy them exactly.
+These are the active registry bindings. Registry forms do not validate every
+value when saved, so preserve them exactly.
 
 ### npm
 
@@ -183,22 +183,6 @@ published from the same repository.
 Pub.dev cannot establish trusted publishing for a package that does not exist
 yet. All six packages now have their initial publication, so later versions use
 GitHub OIDC.
-
-### One-time Flutter comparison anchor
-
-The imported history contains the old generic `v0.6.0` tag. Cider now composes
-future comparisons from namespaced tags, so add one alias after this cutover
-merges and before opening the first Flutter release:
-
-```bash
-git fetch origin --tags
-git tag eigen_flutter-v0.6.0 v0.6.0
-git push origin eigen_flutter-v0.6.0
-```
-
-Both names point to the same historical commit. The old commit contains no
-root publish workflow, and 0.6.0 is already on pub.dev, so this is a changelog
-anchor, not a republication.
 
 ## npm and eigen_api release flow
 
@@ -317,36 +301,6 @@ After publishing the required Dart packages, raise `flutterClientVersion`,
 the normal npm flow ship the reproducible set. `scripts/scaffold-e2e.mjs`
 compiles the same-revision graph with local overrides and checks the published
 wire pairing separately.
-
-## Release sequence for the shell extraction
-
-The first split release must follow dependency order:
-
-1. Publish `eigen_flutter` 0.9.0.
-2. Publish `eigen_shell` 0.1.0 interactively, then configure its pub.dev trusted
-   publisher exactly as shown above.
-3. Publish `eigen_firebase` 0.2.0.
-4. Publish the `create-eigen-game` Changeset that starts generating all three
-   hosted constraints.
-
-Do not publish the scaffolder first: its generated `pubspec.yaml` intentionally
-contains registry dependencies and must resolve for a user without monorepo
-overrides.
-
-## Historical repository-cutover checklist
-
-This checklist records the original monorepo cutover. It is not the current
-shell-extraction release sequence:
-
-1. Merge **Release: version npm packages**.
-2. Verify the npm packages show the new source repository and provenance.
-3. Verify the generated `eigen_api` tag publishes on pub.dev.
-4. Add the Flutter comparison anchor described above.
-5. Run **Version eigen_flutter** with `patch`, review and merge the release PR.
-6. Verify pub.dev source links and the generated compatibility-table PR.
-7. Verify the Cloudflare project still deploys `web` from monorepo `main`.
-8. Only then archive the three old repositories and point their READMEs at
-    `eigen-platform`; keep their tags and history readable.
 
 ## Verification after publication
 

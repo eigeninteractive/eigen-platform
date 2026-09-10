@@ -43,8 +43,9 @@ for both approaches.
 | `@eigeninteractive/server` | Compose and deploy the Cloudflare Worker |
 | `@eigeninteractive/testkit` | Test rules, emit `game-contract.json`, and validate twin fixtures |
 
-`@eigeninteractive/kernel` is an engine-internal package. Games should use the
-rules, server, and testkit APIs instead of importing the kernel directly.
+`@eigeninteractive/kernel` is the public, platform-free decision core. Most
+games need only rules, server, and testkit; import the kernel directly when its
+lower-level transition API is the intended integration boundary.
 
 One game becomes one Worker by passing its module and bindings to
 `createEngine(...)`. The module's default export is the handoff:
@@ -84,8 +85,8 @@ published packages without cloning this workspace.
 ## Working on the engine
 
 - [CONTRIBUTING.md](CONTRIBUTING.md): local setup, tests, generated artifacts,
-  Changesets, cross-repository changes, and pull requests.
+  Changesets, cross-workspace changes, and pull requests.
 - [MAINTAINERS.md](MAINTAINERS.md): registry setup, release operations, secrets,
   deployment, and failure recovery.
-- [`docs/blockers.md`](docs/blockers.md): upstream limitations forcing a
-  temporary workaround, across every EigenInteractive repository.
+- [`../docs/blockers.md`](../docs/blockers.md): upstream limitations forcing a
+  temporary workaround across the platform.

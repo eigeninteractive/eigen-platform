@@ -1,7 +1,7 @@
 ---
 sidebar_position: 9
 title: Testing
-description: One fixture file, two runners, two repos, plus the widget and integration layers, the CI that runs them, and the coupling CI cannot see.
+description: One fixture file, two language runners, plus the widget and integration layers and the CI that keeps them aligned.
 ---
 
 # Testing
@@ -165,7 +165,7 @@ GitHub secrets.
 
 :::
 
-## The cross-repository gate
+## The artifact promotion gate
 
 Fixtures have one authored home: `server/src/module/fixtures`. The contract CLI
 validates and embeds them in `game-contract.json`; the Dart generator copies
