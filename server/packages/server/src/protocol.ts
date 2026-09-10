@@ -96,10 +96,9 @@ export interface SessionSnapshot {
   type: "session";
   /** Monotonic per game, incremented by every commit. Totally orders snapshots
    * across every path they arrive by, which `version` cannot do because a lobby
-   * change has none. Apply a snapshot when `seq` exceeds the held one, OR when
-   * it reports a terminal status the held state does not: `finished` and
-   * `aborted` are absorbing, so they need no ordering even if the final socket
-   * delivery is missed. */
+   * change has none. Apply a snapshot only when `seq` exceeds the held one.
+   * `finished` and `aborted` are absorbing, so a client also refuses a later
+   * non-terminal snapshot rather than resurrecting a completed game. */
   seq: number;
 
   /** Fixed at creation; carried so this is sufficient on its own. */

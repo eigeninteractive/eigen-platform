@@ -217,6 +217,23 @@ describe("cancel", () => {
       expect(sql.exec("SELECT COUNT(*) AS n FROM transitions").one().n).toBe(0);
     });
   });
+
+  it("retains one sequence when the cron abort is repeated", async () => {
+    const gameId = await seedGame();
+    const stub = stubFor(gameId);
+
+    // Initialize the DO so abort owns a durable terminal tombstone rather than
+    // handling a never-touched D1 lobby.
+    expect(await stub.session(gameId, "user-a")).toMatchObject({ seq: 0 });
+
+    await stub.abort(gameId);
+    const first = await stub.session(gameId, "user-a");
+    await stub.abort(gameId);
+    const repeated = await stub.session(gameId, "user-a");
+
+    expect(first).toMatchObject({ status: "aborted", seq: 1, players: [], frame: null });
+    expect(repeated).toEqual(first);
+  });
 });
 
 describe("deadline alarm", () => {

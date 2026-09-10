@@ -63,16 +63,14 @@ class GameSession {
 
   /// Whether [next] should replace this session.
   ///
-  /// Ordinarily that is simply a higher `seq`, which resolves a command response
-  /// racing its own socket push, a duplicate delivery, and a reconnect that
-  /// missed nothing. The terminal clause is not a special case bolted on: a
-  /// finished or aborted game is absorbing, so such a snapshot needs no
-  /// ordering, and the abort teardown drops the storage `seq` lived in, so a
-  /// re-initialised object legitimately reports a lower one.
+  /// A higher `seq` resolves a command response racing its own socket push, a
+  /// duplicate delivery, and a reconnect that missed nothing. A finished or
+  /// aborted game is also absorbing, so even a newer active snapshot cannot
+  /// resurrect it.
   bool supersededBy(Session next) {
     final nextIsTerminal =
         next.status == GameStatus.finished || next.status == GameStatus.aborted;
-    if (isTerminal) return nextIsTerminal && next.seq > seq;
-    return nextIsTerminal || next.seq > seq;
+    if (next.seq <= seq) return false;
+    return !isTerminal || nextIsTerminal;
   }
 }

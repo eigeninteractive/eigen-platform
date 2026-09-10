@@ -56,9 +56,9 @@ export const meta = sqliteTable("meta", {
    * command response racing its own socket push, a duplicate delivery, and a
    * reconnect that missed nothing all resolve by comparing one integer.
    *
-   * Reset to 0 by the abort teardown, which drops all storage. Sound because
-   * abort is terminal and terminal statuses are absorbing, so the client's rule
-   * accepts a terminal snapshot whatever its `seq`. */
+   * Retained with the terminal `meta` tombstone when an aborted game compacts
+   * its live-only rows, so ordering remains monotonic after eviction and a cold
+   * open. */
   seq: integer().notNull(),
 });
 

@@ -36,9 +36,9 @@ Tokens are held by the auth port and are never persisted in this record.
 | `synced` | stream session | next `streamSeq`, nondecreasing game version | `synced` | apply complete session |
 | `synced` | stream gap | sequence skipped | `recovering` | pause stream application; fetch canonical session |
 | `recovering` | recovery success | contract supported | `synced`/`terminal` | atomically rebase stream generation |
-| nonterminal | terminal session | authoritative | `terminal` | apply and close mutation controls |
+| nonterminal | terminal session | higher sequence | `terminal` | apply and close mutation controls |
 | `terminal` | active session | any version | `terminal` | ignore and record invariant metric |
-| `terminal` | newer terminal enrichment | same game/contract | `terminal` | replace atomically |
+| `terminal` | newer terminal enrichment | higher sequence, same game/contract | `terminal` | replace atomically |
 | any | unsupported contract/feature | exact check fails | `updateRequired` | stop decoding/mutating; preserve raw metadata only |
 | any online | auth permanently lost | principal/seat invalid | `accessLost` | resolve controls; keep permitted cached view |
 | any | unrecoverable protocol violation | validated | `fatal` | retain diagnostics and explicit retry/reset action |

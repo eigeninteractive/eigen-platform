@@ -258,17 +258,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
       return { ok: false, code: "notCreator", message: "Only the creator can cancel the game" };
     }
-    const seq = meta.status === "aborted" ? meta.seq : meta.seq + 1;
-    const session = { ...this.#header(meta, { status: "aborted", players: [], seq, version: null }), frame: null };
+    const session = this.#commitAbort(meta);
     const response: CommandResult = { ok: true, session };
-    // The terminal status and its canonical result are one authoritative
-    // commit. Anything interleaving with the awaits below sees both or neither.
-    this.#db.transaction((tx) => {
-      if (meta.status !== "aborted") {
-        tx.update(t.meta).set({ status: "aborted", seq }).where(eq(t.meta.id, 1)).run();
-      }
-    });
-    this.#tearDownAborted(meta.gameId, "Game cancelled", session);
+    this.#announceAbort(meta.gameId, "Game cancelled", session);
     return response;
   }
 
@@ -277,35 +269,38 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * never-touched lobby's DO has no `meta` row, so the caller passes the
    * gameId. Idempotent; `cancel` shares the teardown for its live path. */
   async abort(gameId: string): Promise<void> {
-    // If this DO is live, flip its status synchronously first (gate-held) so a
-    // command interleaving with the teardown's awaits sees an aborted game.
     const meta = this.#loadMeta();
-    if (meta !== undefined && meta.status !== "aborted") {
-      this.#db
-        .update(t.meta)
-        .set({ status: "aborted", seq: meta.seq + 1 })
-        .where(eq(t.meta.id, 1))
-        .run();
-    }
     // A never-touched lobby has no meta row, so there is no header to build and
     // no socket to tell: the aborted D1 row is the whole outcome.
-    const session = meta === undefined ? null : { ...this.#header(meta, { status: "aborted", players: [], seq: meta.seq + 1, version: null }), frame: null };
-    this.#tearDownAborted(gameId, "Game aborted", session);
+    const session = meta === undefined ? null : this.#commitAbort(meta);
+    this.#announceAbort(gameId, "Game aborted", session);
     await this.#reconcileAlarm();
   }
 
-  /** The shared abort teardown: compact the game's data while keeping `meta`,
-   * then tell and close any sockets and mirror the aborted
-   * status to D1 in the background. Fully synchronous through the storage write,
-   * so nothing interleaves between the status flip and the compaction. The
-   * caller reconciles the alarm, which an aborted game no longer wants. */
-  #tearDownAborted(gameId: string, closeReason: string, session: SessionSnapshot | null): void {
+  /** Commit the absorbing status and compact live-only data as one SQLite write.
+   *
+   * `meta` is the durable tombstone: retaining its sequence means a cold open
+   * never needs a terminal-state exception to the normal snapshot ordering
+   * rule. Repeating an abort returns the same committed session. */
+  #commitAbort(meta: MetaRow): SessionSnapshot {
+    const seq = meta.status === "aborted" ? meta.seq : meta.seq + 1;
+    const session = { ...this.#header(meta, { status: "aborted", players: [], seq, version: null }), frame: null };
     this.#db.transaction((tx) => {
+      if (meta.status !== "aborted") {
+        tx.update(t.meta).set({ status: "aborted", seq }).where(eq(t.meta.id, 1)).run();
+      }
       tx.delete(t.frames).run();
       tx.delete(t.roster).run();
       tx.delete(t.transitions).run();
       tx.delete(t.outbox).run();
     });
+    return session;
+  }
+
+  /** Tell connected clients after the terminal commit, close their sockets,
+   * and mirror the durable tombstone into the D1 read model. The caller
+   * reconciles the alarm, which an aborted game no longer wants. */
+  #announceAbort(gameId: string, closeReason: string, session: SessionSnapshot | null): void {
     // Told before the sockets close. A terminal status remains absorbing even
     // if a client misses this delivery and learns it on its next canonical read.
     if (session !== null) this.#sendToAll(session);

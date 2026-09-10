@@ -259,18 +259,16 @@ void main() {
     check(seen.map((s) => s.seq)).deepEquals([4, 5, 6]);
   });
 
-  test('accepts a terminal snapshot whatever its seq', () async {
-    // The abort teardown drops the storage `seq` lived in, so a re-initialised
-    // object legitimately reports a lower one. A terminal status is absorbing,
-    // so it needs no ordering.
+  test('rejects a terminal snapshot whose seq is not newer', () async {
     final t = _build();
 
     final seen = await _emitted(t.repo.sessions('g'), () async {
       t.socket.emit(_session(seq: 9, version: 3));
       t.socket.emit(_session(seq: 0, status: 'aborted', frame: false));
+      t.socket.emit(_session(seq: 9, status: 'finished', version: 4));
     });
 
-    check(seen.map((s) => s.status.name)).deepEquals(['active', 'aborted']);
+    check(seen.map((s) => s.status.name)).deepEquals(['active']);
   });
 
   test(
