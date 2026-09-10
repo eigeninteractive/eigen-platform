@@ -68,4 +68,7 @@ jobs:
         if: steps.published.outputs.skip == 'false'
         run: |
           dart pub token add https://pub.dev --env-var PUB_TOKEN
-          dart pub publish --force
+          # The immediately preceding anonymous dry run already performed
+          # validation and resolution. Avoid repeating those reads with the
+          # package-scoped upload credential attached.
+          dart pub publish --force --skip-validation
