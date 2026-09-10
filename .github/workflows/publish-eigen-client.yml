@@ -27,6 +27,12 @@ jobs:
 
       - uses: dart-lang/setup-dart@v1
 
+      # setup-dart eagerly configures the package-scoped OIDC token for the
+      # whole pub.dev host. Keep dependency resolution anonymous: pub.dev can
+      # legitimately reject that upload identity for unrelated dependencies.
+      - name: Defer pub.dev credentials until upload
+        run: dart pub token remove https://pub.dev
+
       - name: Verify tag and package version
         run: |
           tag="${GITHUB_REF_NAME#eigen_client-v}"
@@ -62,4 +68,6 @@ jobs:
 
       - name: Publish
         if: steps.published.outputs.skip == 'false'
-        run: dart pub publish --force
+        run: |
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+          dart pub publish --force
