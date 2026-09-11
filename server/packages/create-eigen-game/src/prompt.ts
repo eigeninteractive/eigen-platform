@@ -45,6 +45,18 @@ export const DEFAULT_ORG = "com.example";
 
 const bar = color.gray(S_BAR);
 
+/**
+ * Clack's public `confirm` type allows any symbol even though the prompt only
+ * returns its cancellation symbol. Keep that dependency detail at this
+ * boundary, and fail loudly if a future Clack version introduces another
+ * non-boolean result instead of silently treating it as "yes".
+ */
+function booleanAnswer(answer: boolean | symbol): boolean | null {
+  if (isCancel(answer)) return null;
+  if (typeof answer !== "boolean") throw new TypeError("A confirmation prompt returned neither a boolean nor Clack's cancellation symbol.");
+  return answer;
+}
+
 /** A `com.acme.chess` answer to a game called `chess`, which yields `com.acme.chess.chess`. */
 export function repeatsGameName(org: string, game: string): boolean {
   return org.split(".").at(-1) === game;
@@ -108,8 +120,9 @@ export async function askForOrg(game: string, registering: boolean, io: Io = {})
       input,
       output,
     });
-    if (isCancel(shorten)) return null;
-    if (shorten) return shorter;
+    const shouldShorten = booleanAnswer(shorten);
+    if (shouldShorten === null) return null;
+    if (shouldShorten) return shorter;
   }
 
   return org;
@@ -132,7 +145,7 @@ async function ask(message: string, initialValue: boolean, hint: string, io: Io)
   const output = io.output ?? process.stdout;
   output.write(`${bar}\n${bar}  ${color.dim(hint)}\n`);
   const answer = await confirm({ message, initialValue, input, output });
-  return isCancel(answer) ? null : answer;
+  return booleanAnswer(answer);
 }
 
 /**
