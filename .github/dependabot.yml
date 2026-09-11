@@ -19,9 +19,9 @@ version: 2
 # the repository while `/web` is pinned, which is a preference and can be dropped
 # whenever that stops being worth it.
 #
-# Either way the hold matters because each group's pattern is `*`: one unadopted
-# major fails the whole grouped PR, and a dozen ordinary updates stop landing with
-# it.
+# Routine minor and patch updates are grouped to keep maintenance cheap. Major
+# updates stay in focused pull requests so an incompatible upgrade cannot block
+# unrelated maintenance or obscure the cause of a failing check.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -43,8 +43,7 @@ updates:
         update-types: ["version-update:semver-major"]
       # Zod's JSON Schema serializer is part of the checked-in TypeScript/Dart
       # wire contract. Upgrade it deliberately with regenerated contracts and
-      # cross-language generator coverage, not inside a grouped maintenance PR.
-      - dependency-name: zod
+      # cross-language generator coverage, so keep it out of grouped PRs below.
       # The Cloudflare Workers pool currently supports Vitest 4.1 and relies on
       # Vitest internals. Vitest 5 prevents every Worker test from starting.
       - dependency-name: vitest
@@ -53,6 +52,7 @@ updates:
       server-dependencies:
         patterns: ["*"]
         exclude-patterns: ["zod", "vitest"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(server)"
 
@@ -64,13 +64,13 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
-      # This package renders the committed TypeScript API reference. Its
-      # upgrades must include and review the regenerated Markdown.
-      - dependency-name: typedoc-plugin-markdown
     groups:
       documentation-dependencies:
         patterns: ["*"]
+        # This package renders the committed TypeScript API reference. Keep its
+        # upgrades isolated so the regenerated Markdown can be reviewed.
         exclude-patterns: ["typedoc-plugin-markdown"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(web)"
 
@@ -95,6 +95,7 @@ updates:
     groups:
       generated-client-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(eigen_api)"
 
@@ -105,6 +106,7 @@ updates:
     groups:
       client-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(eigen_client)"
 
@@ -115,6 +117,7 @@ updates:
     groups:
       codegen-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(eigen_codegen)"
 
@@ -125,6 +128,7 @@ updates:
     groups:
       shell-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(eigen_shell)"
 
@@ -135,5 +139,17 @@ updates:
     groups:
       firebase-dependencies:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(eigen_firebase)"
+
+  - package-ecosystem: gradle
+    directory: /firebase/android
+    schedule:
+      interval: monthly
+    groups:
+      firebase-android-dependencies:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: "deps(eigen_firebase_android)"
