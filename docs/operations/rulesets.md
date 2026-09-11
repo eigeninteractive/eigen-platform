@@ -25,9 +25,8 @@ automation away from direct writes to `main`, without making the maintainer find
 a second account to approve routine work.
 
 There is no release-bot bypass. Changesets writes its version commit to
-`changeset-release/main`; empty Changesets produce a small cleanup pull request;
-and the Dart coordinators write package tags. None of these workflows needs to
-push directly to `main`.
+`changeset-release/main`, and the Dart coordinators write package tags. None of
+these workflows needs to push directly to `main`.
 
 ## What validates a commit
 
