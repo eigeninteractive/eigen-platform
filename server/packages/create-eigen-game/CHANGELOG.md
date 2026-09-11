@@ -1,5 +1,11 @@
 # create-eigen-game
 
+## 0.14.3
+
+### Patch Changes
+
+- [#52](https://github.com/eigeninteractive/eigen-platform/pull/52) [`2997ae1`](https://github.com/eigeninteractive/eigen-platform/commit/2997ae14d88f2131bda4b4a5b5e0f32077dad749) Thanks [@dependabot](https://github.com/apps/dependabot)! - Support the latest Clack prompts release while preserving explicit cancellation handling.
+
 ## 0.14.2
 
 ### Patch Changes
