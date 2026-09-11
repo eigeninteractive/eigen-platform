@@ -50,15 +50,17 @@ archive refs and import anchors are described in
 
 ## Release notes
 
-Changes to a published npm package under `server/` need a Changeset:
+Add a Changeset when a published npm package change under `server/` should
+produce a release and changelog entry:
 
 ```bash
 (cd server && pnpm changeset)
 ```
 
-Use `pnpm changeset --empty` when the package diff is intentionally not a
-release. User-visible changes under `flutter/`, `shell/`, or `firebase/` need
-an entry in that package's changelog. `eigen_flutter` and `eigen_shell` use
-`cider` for future releases. Maintainers release through the root workflows described in
+Do not add a Changeset for tests, comments, CI, documentation, or internal
+refactors that should not release a package. User-visible changes under
+`flutter/`, `shell/`, or `firebase/` need an entry in that package's changelog.
+`eigen_flutter` and `eigen_shell` use `cider` for future releases. Maintainers
+release through the root workflows described in
 [`docs/operations/releases.md`](docs/operations/releases.md); contributors do
 not edit package versions or create release tags.

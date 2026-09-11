@@ -41,12 +41,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           full=true
-          # Changesets' generated PRs contain only deterministic release
-          # metadata from an already-checked main commit. Their merged main
-          # commits receive the complete gate before publication, so running
-          # every shard on these intermediate PRs adds no release safety.
+          # Changesets' generated PR contains only deterministic release
+          # metadata from an already-checked main commit. Its merged main
+          # commit receives the complete gate before publication, so running
+          # every shard on this intermediate PR adds no release safety.
           if [ "$EVENT_NAME" = "pull_request" ] \
-             && [[ "$HEAD_REF" == "changeset-release/main" || "$HEAD_REF" == changeset-cleanup/* ]]; then
+             && [ "$HEAD_REF" = "changeset-release/main" ]; then
             full=false
           elif [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]] \
                && [ -n "$BASE_SHA" ] \
@@ -91,8 +91,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         if: needs.scope.outputs.full == 'true'
-        with:
-          fetch-depth: 0
 
       - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true'
@@ -125,49 +123,6 @@ jobs:
       - name: Check server packages and generated API
         if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh server
-
-      # A published npm package can otherwise change without ever entering the
-      # Changesets release queue. The version PR consumes its changesets, so it
-      # is the one intentional exception.
-      - name: Published npm changes have release notes
-        if: needs.scope.outputs.full == 'true' && github.event_name == 'pull_request' && github.head_ref != 'changeset-release/main'
-        working-directory: server
-        run: |
-          pnpm changeset status --since=origin/main || {
-            echo "::error::A published npm package changed without a changeset. Run 'pnpm changeset', or 'pnpm changeset --empty' for a non-release change."
-            exit 1
-          }
-
-      # Re-check the merged main range as release defense in depth. Pull requests
-      # are the only normal path to main, but this also protects publication if a
-      # repository administrator temporarily disables the ruleset for recovery.
-      - name: Published npm changes have release notes (main commit)
-        if: needs.scope.outputs.full == 'true' && github.event_name == 'push'
-        working-directory: server
-        env:
-          BEFORE: ${{ github.event.before }}
-        run: |
-          if [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
-            echo "::notice::This push has no reachable baseline commit, so there is no range to judge."
-            exit 0
-          fi
-
-          # The version commit is the one intentional exception, exactly as the
-          # `changeset-release/main` branch is for the step above: it consumes the
-          # entire queue and bumps the versions in the same commit, so an empty
-          # queue is the correct state rather than a missing changeset. Detected by
-          # the bump itself and not by a branch name or commit subject, because
-          # `changeset version` is the only thing in this repository that rewrites
-          # those version fields.
-          if git diff "$BEFORE..HEAD" -- 'packages/*/package.json' | grep -qE '^\+\s*"version":'; then
-            echo "::notice::This push bumped published package versions, so the release queue is expected to be empty."
-            exit 0
-          fi
-
-          pnpm changeset status --since="$BEFORE" || {
-            echo "::error::A published npm package changed without a changeset. Run 'pnpm changeset', or 'pnpm changeset --empty' for a non-release change."
-            exit 1
-          }
 
       - name: Scoped change
         if: needs.scope.outputs.full != 'true'

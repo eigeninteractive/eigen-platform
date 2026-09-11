@@ -23,8 +23,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  # On a push, decide whether Changesets needs to maintain a version or cleanup
-  # pull request while Platform checks runs independently. On workflow_run,
+  # On a push, decide whether Changesets needs to maintain a version pull
+  # request while Platform checks runs independently. On workflow_run,
   # repeat the cheap registry comparison at the exact commit that just passed
   # that gate and publish only versions that are still missing.
   plan:
@@ -60,7 +60,7 @@ jobs:
           if find server/.changeset -maxdepth 1 -type f -name '*.md' \
                ! -name README.md -print -quit | grep -q .; then
             has_changesets=true
-            echo "::notice::Pending Changesets will be handled by a protected version or cleanup pull request."
+            echo "::notice::Pending Changesets will be handled by a protected version pull request."
           else
             for manifest in \
               server/packages/rules/package.json \
@@ -145,7 +145,6 @@ jobs:
       # `publish:` would have been ignored and both jobs would have run their
       # default behaviour while reporting success.
       - name: Create or update the version pull request
-        id: changesets
         uses: changesets/action@8488615a623b1b9c987934bb89eae8af6a946ac1 # v2.1.1
         with:
           cwd: server
@@ -157,25 +156,6 @@ jobs:
           # and `push-with-git-cli: true` opts out of it. Left at the default
           # deliberately: API commits are signed with GitHub's key and attributed
           # to the release App that owns the token.
-
-      # The outputs were renamed to kebab-case too, and a hyphenated name cannot
-      # be dereferenced with dot syntax -- `outputs.pr-number` parses as
-      # subtraction rather than as a property. Read both once here through the
-      # index operator into names the steps below can use normally.
-      #
-      # The notice is not decoration. Reading these wrongly is the one mistake in
-      # this workflow that produces no error and no visible symptom, so the values
-      # the branches below turn on are printed where the next release will show
-      # them.
-      - name: Read the version pull request state
-        id: version_pr
-        env:
-          PR_NUMBER: ${{ steps.changesets.outputs['pr-number'] }}
-          HAS_CHANGESETS: ${{ steps.changesets.outputs['has-changesets'] }}
-        run: |
-          echo "::notice::changesets reported pr-number='$PR_NUMBER' has-changesets='$HAS_CHANGESETS'"
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-          echo "has_changesets=$HAS_CHANGESETS" >> "$GITHUB_OUTPUT"
 
       # There used to be a step here that carried `platform.json` and the `web`
       # references onto the release branch by hand -- capture `git diff`, switch
@@ -201,47 +181,6 @@ jobs:
       # gate, which is where both already live. That is the better place for the
       # docs-line decision in particular -- a red `web` shard on a complete,
       # reviewable PR, rather than a half-built release branch.
-
-      # Changesets declines to open a version PR when every pending marker is
-      # empty. Keep the same pull-request-only boundary as every other main
-      # change: one cleanup PR consumes the markers, and later runs wait for it
-      # instead of opening duplicates. If another marker lands meanwhile, the
-      # cleanup PR's merge triggers this job again for the remainder.
-      - name: Open an empty Changeset cleanup pull request
-        if: steps.version_pr.outputs.has_changesets == 'true' && steps.version_pr.outputs.number == ''
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          existing_pr=$(gh pr list \
-            --base main \
-            --state open \
-            --search '"Chore: consume empty Changesets" in:title' \
-            --json number \
-            --jq '.[0].number // empty')
-          if [ -n "$existing_pr" ]; then
-            echo "::notice::Cleanup pull request #$existing_pr is already open."
-            exit 0
-          fi
-
-          pnpm --dir server changeset version
-          git diff --quiet -- server/.changeset && {
-            echo "::error::Changesets reported pending files but produced no cleanup diff."
-            exit 1
-          }
-
-          branch="changeset-cleanup/${GITHUB_RUN_ID}"
-          git switch -c "$branch"
-          git config user.name "eigen-release[bot]"
-          git config user.email "eigen-release[bot]@users.noreply.github.com"
-          git add server/.changeset
-          git commit -m "Consume empty Changesets"
-          gh auth setup-git
-          git push origin "HEAD:$branch"
-          gh pr create \
-            --base main \
-            --head "$branch" \
-            --title "Chore: consume empty Changesets" \
-            --body "Automated cleanup of Changeset markers that intentionally carry no package release."
 
   publish:
     name: Publish to npm

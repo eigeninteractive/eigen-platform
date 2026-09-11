@@ -182,20 +182,20 @@ GitHub OIDC.
 
 ## npm and eigen_api release flow
 
-Contributors add a Changeset from `server/` for every published npm package
-change:
+Contributors add a Changeset from `server/` when a published npm package change
+should produce a release and changelog entry:
 
 ```bash
 cd server
 pnpm changeset
 ```
 
-For an internal-only change, use `pnpm changeset --empty`. CI rejects a
-published-package diff with neither kind on a pull request. The merged-main
-check repeats that assertion as release defense in depth; the version commit is
-the only exception, since it consumes the queue and bumps versions together. If
-only empty markers are pending, the release workflow opens a small cleanup pull
-request so they cannot block later registry detection.
+Not every repository change needs a release. Tests, comments, CI, documentation,
+and internal refactors can merge without a Changeset. Do not add an empty
+Changeset for them: the release queue should contain only changes that will
+actually version at least one package. Whether a package change is release-worthy
+is a contributor and reviewer decision rather than a mechanical path-based CI
+rule.
 
 After a Changeset reaches `main`, **Release npm packages** opens or refreshes
 **Release: version npm packages**. It does not duplicate the main-branch gate

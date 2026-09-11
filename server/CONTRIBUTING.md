@@ -140,11 +140,8 @@ the pull request that introduces a user-visible change:
 pnpm changeset
 ```
 
-Write the line package consumers should read. Purely internal work uses:
-
-```bash
-pnpm changeset --empty
-```
+Write the line package consumers should read. Do not add a Changeset for purely
+internal work that should not release a package.
 
 While packages are pre-1.0, choose:
 
@@ -152,7 +149,6 @@ While packages are pre-1.0, choose:
 |---|---|
 | Breaking | `minor` |
 | Additive or corrective | `patch` |
-| Internal only | empty changeset |
 
 Do not choose `major` before a deliberate 1.0 stability release. Changesets
 applies the requested bump literally; it does not translate SemVer rules for
