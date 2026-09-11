@@ -1,5 +1,14 @@
 # create-eigen-game
 
+## 0.14.2
+
+### Patch Changes
+
+- [`d82b0d0`](https://github.com/eigeninteractive/eigen-platform/commit/d82b0d08eb50b54d6f0a2aaa12efe9d25d5650e9) Thanks [@seenu-k](https://github.com/seenu-k)! - Approve the required esbuild and workerd install scripts and decline fsevents'
+  unnecessary fallback build in generated npm projects, keeping scaffolding
+  warning-free on npm 11 and compatible with npm 12's default-deny install
+  policy.
+
 ## 0.14.1
 
 ### Patch Changes

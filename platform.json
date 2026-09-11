@@ -13,7 +13,7 @@
         "@eigeninteractive/kernel": "0.6.1",
         "@eigeninteractive/server": "0.6.1",
         "@eigeninteractive/testkit": "0.6.1",
-        "create-eigen-game": "0.14.1"
+        "create-eigen-game": "0.14.2"
       },
       "dartApi": "0.6.1"
     },
