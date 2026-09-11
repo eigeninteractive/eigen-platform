@@ -6,6 +6,12 @@ repository: https://github.com/eigeninteractive/eigen-platform/tree/main/firebas
 documentation: https://eigeninteractive.com/docs/reference/dart
 issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 
+cider:
+  link_template:
+    tag: https://github.com/eigeninteractive/eigen-platform/tree/%tag%
+    diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
+    version: eigen_firebase-v%version%
+
 environment:
   sdk: ^3.12.0
   flutter: ">=3.44.0"

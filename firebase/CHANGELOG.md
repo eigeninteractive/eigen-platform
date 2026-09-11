@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.0 - 2026-09-09
+## [0.2.0] - 2026-09-09
 
 - **Breaking.** Replace `runFirebaseEngineApp` with
   `initializeEigenFirebase`, which initializes Firebase and returns provider
@@ -12,8 +12,11 @@
 - Follow Firebase Messaging's native distinction between retryable and
   permanent Android notification-permission denials.
 
-## 0.1.0
+## [0.1.0] - 2026-08-21
 
 - Initial optional Firebase adapter package.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
   Android notification resources compose above `eigen_flutter` ports.
+
+[0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.1.0...eigen_firebase-v0.2.0
+[0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_firebase-v0.1.0

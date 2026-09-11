@@ -58,9 +58,9 @@ produce a release and changelog entry:
 ```
 
 Do not add a Changeset for tests, comments, CI, documentation, or internal
-refactors that should not release a package. User-visible changes under
-`flutter/`, `shell/`, or `firebase/` need an entry in that package's changelog.
-`eigen_flutter` and `eigen_shell` use `cider` for future releases. Maintainers
-release through the root workflows described in
+refactors that should not release a package. User-visible changes to any of the
+five hand-written Dart packages need an entry in that package's changelog. Use
+`cider --project-root=<package-path> log <type> "<description>"`; do not edit
+package versions. Maintainers release through the root workflow described in
 [`docs/operations/releases.md`](docs/operations/releases.md); contributors do
 not edit package versions or create release tags.

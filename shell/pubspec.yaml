@@ -8,7 +8,7 @@ issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 
 cider:
   link_template:
-    tag: https://github.com/eigeninteractive/eigen-platform/releases/tag/%tag%
+    tag: https://github.com/eigeninteractive/eigen-platform/tree/%tag%
     diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
     version: eigen_shell-v%version%
 
