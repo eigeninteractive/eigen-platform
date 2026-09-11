@@ -42,12 +42,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: server/.nvmrc
 
@@ -95,17 +95,17 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.sha }}
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
@@ -121,12 +121,12 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - uses: actions/setup-java@v6.0.0
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token
@@ -203,27 +203,45 @@ jobs:
       # reviewable PR, rather than a half-built release branch.
 
       # Changesets declines to open a version PR when every pending marker is
-      # empty. Consume those markers directly: they carry no release, and a
-      # throwaway cleanup PR only recreates the dependency-PR backlog this path
-      # exists to prevent. The non-force push fails safely if main advanced; the
-      # newer push will enqueue this concurrency group again.
-      - name: Consume empty Changesets
+      # empty. Keep the same pull-request-only boundary as every other main
+      # change: one cleanup PR consumes the markers, and later runs wait for it
+      # instead of opening duplicates. If another marker lands meanwhile, the
+      # cleanup PR's merge triggers this job again for the remainder.
+      - name: Open an empty Changeset cleanup pull request
         if: steps.version_pr.outputs.has_changesets == 'true' && steps.version_pr.outputs.number == ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
+          existing_pr=$(gh pr list \
+            --base main \
+            --state open \
+            --search '"Chore: consume empty Changesets" in:title' \
+            --json number \
+            --jq '.[0].number // empty')
+          if [ -n "$existing_pr" ]; then
+            echo "::notice::Cleanup pull request #$existing_pr is already open."
+            exit 0
+          fi
+
           pnpm --dir server changeset version
           git diff --quiet -- server/.changeset && {
             echo "::error::Changesets reported pending files but produced no cleanup diff."
             exit 1
           }
 
+          branch="changeset-cleanup/${GITHUB_RUN_ID}"
+          git switch -c "$branch"
           git config user.name "eigen-release[bot]"
           git config user.email "eigen-release[bot]@users.noreply.github.com"
           git add server/.changeset
           git commit -m "Consume empty Changesets"
           gh auth setup-git
-          git push origin HEAD:main
+          git push origin "HEAD:$branch"
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "Chore: consume empty Changesets" \
+            --body "Automated cleanup of Changeset markers that intentionally carry no package release."
 
   publish:
     name: Publish to npm
@@ -236,19 +254,19 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.20.0
 
       # Do not set registry-url. npm trusted publishing exchanges this job's
       # OIDC identity; an npmrc token placeholder can mask that exchange.
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: server/.nvmrc
           cache: pnpm

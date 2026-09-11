@@ -4,15 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
-  # `main` currently accepts direct pushes, so it needs its own advisory run:
-  # without one, a commit that never opened a pull request would receive no
-  # platform check at all until a release gate happened to run.
+  # The pull request run gates merge. The main run verifies the exact merged
+  # commit and is the release coordinator's trusted publication boundary.
   push:
     branches: [main]
 
 concurrency:
-  # Superseding an in-flight advisory run is useful on a branch that moves
-  # quickly. Release publication listens for the successful main run.
+  # Superseding an in-flight run is useful on a branch that moves quickly.
+  # Release publication listens for the successful main run.
   group: platform-checks-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
@@ -26,14 +25,14 @@ jobs:
     outputs:
       full: ${{ steps.classify.outputs.full }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
       # A narrow documentation-only fast lane keeps ordinary docs iteration
-      # quick on pull requests and direct main pushes. Tags, reusable callers,
-      # missing baselines, and every unknown path fail closed to the complete
-      # platform gate.
+      # quick on pull requests and their merged main commits. Tags, reusable
+      # callers, missing baselines, and every unknown path fail closed to the
+      # complete platform gate.
       - name: Classify the change scope
         id: classify
         env:
@@ -75,9 +74,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: server/.nvmrc
 
@@ -89,30 +88,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.scope.outputs.full == 'true'
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
-      - uses: actions/setup-java@v6.0.0
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         if: needs.scope.outputs.full == 'true'
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
         if: needs.scope.outputs.full == 'true'
         with:
           sdk: stable
@@ -138,13 +137,10 @@ jobs:
             exit 1
           }
 
-      # The same rule for a direct push, which opens no pull request and therefore
-      # never reached the step above. That gap is not theoretical: while `main` has
-      # been accepting direct pushes, create-eigen-game accumulated four
-      # user-visible template changes with no changeset and came within one commit
-      # of sitting out the 0.5.0 release, which would have left npm serving
-      # templates typechecked against an engine line that no longer exists.
-      - name: Published npm changes have release notes (direct push)
+      # Re-check the merged main range as release defense in depth. Pull requests
+      # are the only normal path to main, but this also protects publication if a
+      # repository administrator temporarily disables the ruleset for recovery.
+      - name: Published npm changes have release notes (main commit)
         if: needs.scope.outputs.full == 'true' && github.event_name == 'push'
         working-directory: server
         env:
@@ -181,10 +177,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.scope.outputs.full == 'true'
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
@@ -204,13 +200,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
@@ -238,29 +234,29 @@ jobs:
       matrix:
         target: [android, web]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: needs.scope.outputs.full == 'true'
 
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
         if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
-      - uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
           channel: stable
           cache: true
 
-      - uses: actions/setup-java@v6.0.0
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         if: needs.scope.outputs.full == 'true' && matrix.target == 'android'
         with:
           distribution: temurin
@@ -284,9 +280,9 @@ jobs:
         if: needs.scope.outputs.full != 'true'
         run: echo "Scaffold sources are unchanged."
 
-  # Keep this stable job name. It is the single status a future `main` branch
-  # protection re-enables as its required check, while the expensive work above
-  # is free to run in parallel. See docs/operations/branch-protection.md.
+  # Keep this stable job name. It is the single status required by the `main`
+  # ruleset, while the expensive work above is free to run in parallel. See
+  # docs/operations/rulesets.md.
   check:
     name: check
     if: always()

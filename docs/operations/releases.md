@@ -28,15 +28,15 @@ packages move only when their own user-visible contents change.
 
 ## Safety model
 
-- Pull requests and direct pushes to `main` call `.github/workflows/checks.yml`.
-  Its five validation shards run concurrently; the final `check` job succeeds
-  only when all five do. A successful `main` run emits `workflow_run` events
-  that start `.github/workflows/release.yml` and the Dart tag coordinator at the
-  checked commit, so the exact same commit is not checked twice before it ships.
-- Publishing is the one place that gate is still mandatory. `main` itself is in
-  [iteration mode](branch-protection.md) and reports the check without gating a
-  merge or push, but the publish job runs only after a successful `Platform
-  checks` push run for `main`.
+- Pull requests to `main` call `.github/workflows/checks.yml`. Its five
+  validation shards run concurrently; the final `check` job succeeds only when
+  all five do. The [repository ruleset](rulesets.md) requires that result before
+  squash merge. A successful check of the resulting `main` commit emits
+  `workflow_run` events that start `.github/workflows/release.yml` and the Dart
+  tag coordinator at the checked commit.
+- Publishing runs only after a successful `Platform checks` push run for
+  `main`. The pull-request run protects the merge; the main run protects the
+  release and proves the exact commit that will ship.
 - npm and pub.dev use short-lived GitHub OIDC identities. There are no registry
   tokens to store or rotate.
 - The `npm` and `pub.dev` GitHub environments bind each registry identity to
@@ -47,8 +47,7 @@ packages move only when their own user-visible contents change.
   through `workflow_call` from `checks.yml` would make npm see the caller's
   filename instead.
 - The release GitHub App can push release branches and tags and can open pull
-  requests. It holds no permission `main`'s protected posture would need to
-  exempt it from.
+  requests. It has no ruleset bypass and never pushes directly to `main`.
 - The Dart tag coordinator runs only after the complete `main` gate. Each
   package-specific pub.dev job repeats its own resolution, analysis, tests, and
   publish dry run. It does not rerun unrelated server, documentation, or
@@ -83,11 +82,8 @@ the organization or repository level:
 | Environment | `pub.dev` | pub.dev trusted-publishing identity boundary |
 
 The App needs **Contents: read and write** and **Pull requests: read and
-write** on `eigen-platform`. Use the client ID, not the numeric App ID. During
-the current pre-production iteration phase, `main` permits direct pushes and
-reports checks without making them a branch-protection requirement. Publishing
-still requires a successful `main` check run. Tighten branch protection when
-multiple contributors or production consumers make review enforcement useful.
+write** on `eigen-platform`. Use the client ID, not the numeric App ID. It needs
+no administration permission or ruleset bypass.
 
 ## Registry trusted-publisher configuration
 
@@ -195,11 +191,11 @@ pnpm changeset
 ```
 
 For an internal-only change, use `pnpm changeset --empty`. CI rejects a
-published-package diff with neither kind, on a pull request and on a direct push
-to `main` alike; the version commit is the only exception, since it consumes the
-queue and bumps the versions together. If only empty markers are pending,
-the release workflow opens a small protected cleanup PR so they cannot block
-later registry detection.
+published-package diff with neither kind on a pull request. The merged-main
+check repeats that assertion as release defense in depth; the version commit is
+the only exception, since it consumes the queue and bumps versions together. If
+only empty markers are pending, the release workflow opens a small cleanup pull
+request so they cannot block later registry detection.
 
 After a Changeset reaches `main`, **Release npm packages** opens or refreshes
 **Release: version npm packages**. It does not duplicate the main-branch gate

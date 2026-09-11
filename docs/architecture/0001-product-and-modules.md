@@ -5,7 +5,7 @@
 
 ## Decision
 
-EigenInteractive vNext is a toolkit for independently owned, turn-based game
+EigenInteractive is a toolkit for independently owned, turn-based game
 applications. A game project owns its rules, branding, deployment, users, and
 data. The platform supplies deterministic arbitration, transport, generated
 contracts, client convergence, reference UI adapters, testing, and operations.
