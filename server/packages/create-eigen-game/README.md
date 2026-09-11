@@ -67,6 +67,10 @@ public values from `app/app-config.json` through Flutter's native
 it contains its own `package.json`, `wrangler.jsonc`, TypeScript entry point,
 generated Wrangler types, and game module. The combined CLI renders that same
 template under `server/`; it does not maintain a second Worker skeleton.
+The template approves only the `esbuild` and `workerd` install scripts that its
+toolchain requires, using npm's `allowScripts` in `package.json` and pnpm's
+`allowBuilds` in `pnpm-workspace.yaml`; npm explicitly declines the unnecessary
+optional `fsevents` fallback build.
 
 `templates/app-overlay` is applied after
 `flutter create --empty --platforms android,web`. It supplies the Firebase

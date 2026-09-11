@@ -4,6 +4,11 @@
   "private": true,
   "description": "The authoritative Example Game server on Cloudflare Workers.",
   "type": "module",
+  "allowScripts": {
+    "esbuild": true,
+    "fsevents": false,
+    "workerd": true
+  },
   "eigen": {
     "game": "Example Game"
   },

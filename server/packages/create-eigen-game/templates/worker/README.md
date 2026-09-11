@@ -62,8 +62,12 @@ formatter is free to move anything written there.
 refuses to run them unless the project asks, and fails the install outright
 when one is skipped (`ERR_PNPM_IGNORED_BUILDS`). Two need theirs: `esbuild`
 fetches its platform binary, and `workerd` is the runtime `vitest` and
-`wrangler dev` execute against. npm runs install scripts by default and ignores
-the file entirely, so the scaffold is correct under both.
+`wrangler dev` execute against. npm ignores this file, so `package.json`
+declares the same two names in npm's `allowScripts` policy. Keeping both
+policies beside the Worker dependencies makes installs work without granting
+every dependency permission to run code. npm's policy also explicitly declines
+the optional `fsevents` fallback build: its package already carries a universal
+macOS binary, so compiling another one is unnecessary.
 
 `minimumReleaseAgeExclude` appears on its own. pnpm 11 will not install a
 version published less than a day ago, a quarantine against a compromised

@@ -109,6 +109,12 @@ my-game/
 
 Both halves are installed as it goes, npm for the Worker and pub.dev for the
 app, so the run needs network access throughout rather than only at the start.
+The Worker approves only the `esbuild` and `workerd` install scripts its
+toolchain requires, through the selected package manager's project-level
+policy. npm also explicitly declines the optional `fsevents` fallback build,
+whose package already includes its macOS binary. Other dependencies do not
+receive blanket permission to run code while they install.
+
 An interrupted run leaves a partly installed project on disk; delete the
 directory and start again.
 

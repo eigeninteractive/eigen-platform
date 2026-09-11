@@ -52,6 +52,11 @@ describe("scaffoldGame", () => {
     expect(manifest.dependencies["@eigeninteractive/server"]).toBe(expectedEngineRange);
     expect(manifest.dependencies["@eigeninteractive/rules"]).toBe(expectedEngineRange);
     expect(manifest.devDependencies["@eigeninteractive/testkit"]).toBe(expectedEngineRange);
+    // npm 12 blocks unapproved dependency install scripts, and npm 11 warns
+    // about them. Permit the same two executables as pnpm's `allowBuilds`
+    // policy below, while explicitly declining fsevents' unnecessary native
+    // fallback build (its package includes a universal macOS binary).
+    expect(manifest.allowScripts).toEqual({ esbuild: true, fsevents: false, workerd: true });
     expect(manifest.eigen).toEqual({ game: "My Game" });
     expect(manifest.scripts.contract).toBe("eigen-contract");
     expect(manifest.scripts["contract:check"]).toBe("eigen-contract --check");
@@ -113,8 +118,7 @@ describe("scaffoldGame", () => {
     expect(rootGitignore).toContain("server/public/*");
     expect(rootGitignore).toContain("!server/public/.gitkeep");
     // pnpm fails the install outright when a dependency's build scripts are
-    // skipped, so a generated project that does not name these cannot be
-    // installed at all with pnpm.
+    // skipped, so its policy names the same packages as npm's policy above.
     const pnpmSettings = readFileSync(resolve(root, "server/pnpm-workspace.yaml"), "utf8");
     expect(pnpmSettings).toContain("allowBuilds:");
     expect(pnpmSettings).toContain("esbuild: true");
