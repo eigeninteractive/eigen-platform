@@ -11,4 +11,4 @@ the lower package reusable beneath an application-owned root.
 app startup, navigation, and all first-party screens and platform plugins.
 
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.0...eigen_shell-v0.1.1
-[0.1.0]: https://github.com/eigeninteractive/eigen-platform/releases/tag/eigen_shell-v0.1.0
+[0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_shell-v0.1.0

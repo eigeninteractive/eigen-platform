@@ -8,6 +8,7 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # be acted on, inside the contract emitter (`run_server`).
 run_manifest() {
   node "$platform_root/tool/platform.mjs" --check
+  node "$platform_root/tool/check-dart-releases.mjs"
   # Cross-component version wiring that no toolchain shard can see: every other
   # check resolves eigen_api through link-local-dart.sh's path override, so the
   # range flutter/pubspec.yaml actually declares is exercised nowhere but a
@@ -31,25 +32,6 @@ assert_no_drift() {
     echo "$status" >&2
     return 1
   fi
-}
-
-check_changelog_links() {
-  local changelog="$platform_root/flutter/CHANGELOG.md"
-  local missing=0
-
-  if grep -Fq '## \[' "$changelog"; then
-    echo "Flutter changelog contains an escaped section heading" >&2
-    return 1
-  fi
-
-  while read -r label; do
-    if ! grep -Fq "[$label]:" "$changelog"; then
-      echo "Flutter changelog section [$label] has no link definition" >&2
-      missing=1
-    fi
-  done < <(grep -o '^## \[[^]]*\]' "$changelog" | sed 's/^## \[//; s/\]$//')
-
-  [[ "$missing" -eq 0 ]]
 }
 
 build_server() {
@@ -106,7 +88,6 @@ run_server() {
 }
 
 run_flutter() {
-  check_changelog_links
   "$platform_root/tool/link-local-dart.sh"
 
   cd "$platform_root/dart/eigen_client"

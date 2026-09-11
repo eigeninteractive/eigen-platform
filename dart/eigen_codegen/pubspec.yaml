@@ -6,6 +6,12 @@ repository: https://github.com/eigeninteractive/eigen-platform/tree/main/dart/ei
 documentation: https://eigeninteractive.com/docs/build-a-game/schemas
 issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 
+cider:
+  link_template:
+    tag: https://github.com/eigeninteractive/eigen-platform/tree/%tag%
+    diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
+    version: eigen_codegen-v%version%
+
 environment:
   sdk: ^3.12.0
 

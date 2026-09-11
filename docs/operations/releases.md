@@ -67,7 +67,9 @@ packages move only when their own user-visible contents change.
 - The `manifest` shard asserts that every direct `eigen_api` consumer uses a
   caret on the generated client's line. Nothing else can: `tool/check.sh` links
   the local client first, so a publish is otherwise the first thing to resolve
-  the declared range. See `tool/check-dart-pin.mjs`.
+  the declared range. It also checks that each hand-written Dart package's
+  pubspec version is its latest linked changelog release. See
+  `tool/check-dart-pin.mjs` and `tool/check-dart-releases.mjs`.
 
 ## Required GitHub configuration
 
@@ -234,15 +236,26 @@ choose one:
 
 That decision is intentionally not automated.
 
-## eigen_flutter release flow
+## Hand-written Dart package release flow
 
-User-visible Flutter changes belong under `## [Unreleased]` in
-`flutter/CHANGELOG.md`, normally added with `cider log` while making the change.
-
-Open **Actions → Version eigen_flutter → Run workflow**, choose a bump, or run:
+`eigen_client`, `eigen_codegen`, `eigen_flutter`, `eigen_shell`, and
+`eigen_firebase` have independent versions and namespaced tags. User-visible
+changes belong under `## [Unreleased]` in the affected package's
+`CHANGELOG.md`, added with Cider while making the change. From the repository
+root, for example:
 
 ```bash
-gh workflow run version-eigen-flutter.yml -f bump=patch
+cider --project-root=dart/eigen_client log fixed "Ignore stale game snapshots."
+cider --project-root=flutter log added "Show spectators in the game screen."
+```
+
+Open **Actions → Version Dart package → Run workflow**, choose the package and
+bump, or run:
+
+```bash
+gh workflow run version-dart-package.yml \
+  -f package=eigen_flutter \
+  -f bump=patch
 ```
 
 Pre-1.0 choices mean:
@@ -253,22 +266,14 @@ Pre-1.0 choices mean:
 | `minor` | substantial compatible work |
 | `breaking` | advances the minor line for an incompatible change |
 
-The workflow opens **Release eigen_flutter vX.Y.Z**. Review the version and
-dated changelog, then merge it. After the merged `main` commit passes the
-platform gate, **Tag Dart packages** creates `eigen_flutter-vX.Y.Z`.
-**Publish eigen_flutter** resolves dependencies without the monorepo override,
-analyzes, tests, dry-runs, and publishes automatically.
-
-## eigen_client, eigen_codegen, eigen_shell, and eigen_firebase release flow
-
-These packages use independent versions and namespaced tags. After their first
-interactive publication, change the package version and changelog together and
-merge to `main`. Once that exact commit passes the complete platform gate,
-**Tag Dart packages** checks every Dart package and creates a namespaced tag only
-for a local version that is neither tagged nor published. The matching
-package-specific **Publish** workflow validates and uploads that tag through
-OIDC. If a transient failure prevents tagging, rerun the failed coordinator;
-existing tags and published versions are no-ops.
+The workflow refuses to bump again while the current local version is absent
+from pub.dev, or to release without an `Unreleased` entry. It opens **Release
+PACKAGE vX.Y.Z** with only the version, dated changelog, and `platform.json`
+update. Review and merge that PR. Once the exact merged commit passes the
+complete platform gate, **Tag Dart packages** creates the package's namespaced
+tag only when that version is neither tagged nor published. The matching
+package-specific **Publish** workflow validates and uploads the tag through
+OIDC. Existing tags and published versions are no-ops.
 
 `eigen_client` must be published before any `eigen_flutter` version that
 depends on its new line. `eigen_flutter` must be published before either

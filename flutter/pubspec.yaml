@@ -12,7 +12,7 @@ issue_tracker: https://github.com/eigeninteractive/eigen-platform/issues
 # into a dated, linked section and bumps the version here.
 cider:
   link_template:
-    tag: https://github.com/eigeninteractive/eigen-platform/releases/tag/%tag%
+    tag: https://github.com/eigeninteractive/eigen-platform/tree/%tag%
     diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
     version: eigen_flutter-v%version%
 

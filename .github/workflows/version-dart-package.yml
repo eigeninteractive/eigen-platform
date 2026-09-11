@@ -1,0 +1,125 @@
+name: Version Dart package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: Package to release
+        required: true
+        type: choice
+        options:
+          - eigen_client
+          - eigen_codegen
+          - eigen_flutter
+          - eigen_shell
+          - eigen_firebase
+      bump:
+        description: Which part of the version to raise
+        required: true
+        type: choice
+        options: [patch, minor, breaking]
+
+concurrency:
+  group: version-dart-package-${{ inputs.package }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  version:
+    name: Open the release pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - uses: dart-lang/setup-dart@v1
+
+      - name: Install cider
+        run: |
+          dart pub global activate cider
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve package
+        id: package
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          case "$PACKAGE" in
+            eigen_client) path=dart/eigen_client ;;
+            eigen_codegen) path=dart/eigen_codegen ;;
+            eigen_flutter) path=flutter ;;
+            eigen_shell) path=shell ;;
+            eigen_firebase) path=firebase ;;
+            *) echo "::error::unknown Dart package: $PACKAGE"; exit 64 ;;
+          esac
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify release starting point
+        env:
+          PACKAGE: ${{ inputs.package }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          current=$(cider --project-root="$PACKAGE_PATH" version)
+          published=$(curl -sf --retry 3 "https://pub.dev/api/packages/$PACKAGE") || {
+            echo "::error::could not query pub.dev for $PACKAGE"
+            exit 1
+          }
+          jq -e --arg version "$current" \
+            '.versions[] | select(.version == $version)' >/dev/null <<<"$published" || {
+            echo "::error::$PACKAGE $current is not published; recover that release before bumping again"
+            exit 1
+          }
+
+          changes=$(cider --project-root="$PACKAGE_PATH" describe --only-body)
+          [ -n "$(tr -d '[:space:]' <<<"$changes")" ] || {
+            echo "::error::$PACKAGE has no Unreleased changelog entries"
+            exit 1
+          }
+
+      - name: Bump version and close the changelog section
+        id: bump
+        env:
+          BUMP: ${{ inputs.bump }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          cider --project-root="$PACKAGE_PATH" bump "$BUMP"
+          cider --project-root="$PACKAGE_PATH" release
+          node tool/platform.mjs
+          node tool/check-dart-releases.mjs
+          echo "version=$(cider --project-root="$PACKAGE_PATH" version)" >> "$GITHUB_OUTPUT"
+
+      - name: Open or refresh the release pull request
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PACKAGE: ${{ inputs.package }}
+          BUMP: ${{ inputs.bump }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          branch="release/$PACKAGE-v$VERSION"
+          git config user.name "eigen-release[bot]"
+          git config user.email "eigen-release[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git commit -am "Release $PACKAGE v$VERSION"
+          git push --force-with-lease -u origin "$branch"
+
+          state=$(gh pr view "$branch" --json state --jq .state 2>/dev/null || echo NONE)
+          if [ "$state" != "OPEN" ]; then
+            gh pr create --base main \
+              --title "Release $PACKAGE v$VERSION" \
+              --body "Raises \`$PACKAGE\` to **v$VERSION** (\`$BUMP\`) and closes the accumulated changelog section. After the merged \`main\` commit passes the platform gate, the namespaced tag publishes through pub.dev trusted publishing."
+          else
+            echo "Refreshed the existing release pull request."
+          fi
