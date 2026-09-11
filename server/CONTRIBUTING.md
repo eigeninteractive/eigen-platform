@@ -58,9 +58,9 @@ credentials remain disabled locally.
 
 ## Branching
 
-`main` is the only branch that releases. Its current iteration posture and the
-future protected posture are recorded in
-[`../docs/operations/branch-protection.md`](../docs/operations/branch-protection.md).
+`main` is the only branch that releases. Its pull-request and check requirements
+are recorded in
+[`../docs/operations/rulesets.md`](../docs/operations/rulesets.md).
 
 ## The CI gate
 

@@ -36,7 +36,7 @@ is generated deliberately and never falls back to a participant frame.
 
 ## Retention model
 
-vNext launches with no time-based expiry for finished games:
+The platform starts with no time-based expiry for finished games:
 
 ```text
 finishedGameRetention = indefinite
@@ -70,7 +70,7 @@ consistent removal across every store before implementation begins.
   time-bounded, and never written to routine logs.
 - Account deletion is a retryable anonymization workflow for engine-owned
   identity/profile data; retained opaque game facts use principal IDs only.
-- Whole-game deletion is not a generic vNext launch API. When it is introduced,
+- Whole-game deletion is not a generic initial API. When it is introduced,
   it must be retryable, resumable, and visibly consistent across stores.
 
 ## Migration sketch

@@ -54,7 +54,6 @@ async function buildManifest() {
 
   return {
     $schema: "./tool/platform.schema.json",
-    platform: "vnext",
     importedAt: "2026-08-13",
     components: {
       server: {

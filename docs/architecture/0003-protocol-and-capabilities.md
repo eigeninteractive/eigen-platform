@@ -13,7 +13,7 @@ Package SemVer, protocol compatibility, game contracts, storage migrations, and
 platform releases are independent axes. A package bump does not imply a wire
 break. A game schema integer does not imply support for every lower integer.
 
-vNext begins at protocol major `1`. Within a major, optional behavior is named
+The protocol begins at major `1`. Within a major, optional behavior is named
 by registered feature tokens. A participant is compatible only when:
 
 1. protocol majors are equal;

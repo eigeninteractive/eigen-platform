@@ -227,7 +227,7 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * that still speaks the 0.3.x wire.
  *
  * Raised to 0.7.0 for the 0.5.x engine line and the `PlayerLimits` client API.
- * vNext later simplified the wire again: versions are a contiguous prefix and
+ * The platform later simplified the wire again: versions are a contiguous prefix and
  * generic mutation identities are gone. The next Flutter release must raise
  * this floor before the corresponding scaffolder is published.
  *

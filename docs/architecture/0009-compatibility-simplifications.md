@@ -1,4 +1,4 @@
-# 0009: vNext compatibility and correctness simplifications
+# 0009: compatibility and correctness simplifications
 
 - Status: accepted
 - Date: 2026-08-20

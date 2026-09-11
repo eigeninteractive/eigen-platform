@@ -97,3 +97,43 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "deps(eigen_api)"
+
+  - package-ecosystem: pub
+    directory: /dart/eigen_client
+    schedule:
+      interval: monthly
+    groups:
+      client-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(eigen_client)"
+
+  - package-ecosystem: pub
+    directory: /dart/eigen_codegen
+    schedule:
+      interval: monthly
+    groups:
+      codegen-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(eigen_codegen)"
+
+  - package-ecosystem: pub
+    directory: /shell
+    schedule:
+      interval: monthly
+    groups:
+      shell-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(eigen_shell)"
+
+  - package-ecosystem: pub
+    directory: /firebase
+    schedule:
+      interval: monthly
+    groups:
+      firebase-dependencies:
+        patterns: ["*"]
+    commit-message:
+      prefix: "deps(eigen_firebase)"

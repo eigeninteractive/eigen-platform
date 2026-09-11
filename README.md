@@ -7,9 +7,9 @@ game authors write deterministic TypeScript rules, the server owns sequencing
 and persistence, and generated Dart APIs plus the Flutter runtime deliver typed
 game sessions to Android and the web.
 
-This repository is the vNext implementation workspace. It is still early-stage
-software with no production compatibility promise. The design is intentionally
-being simplified before real applications or users depend on it.
+This is the canonical implementation repository. The packages and documentation
+are published, but the platform remains pre-1.0 and has no production game or
+backward-compatibility commitment yet.
 
 ## Repository layout
 
@@ -21,7 +21,7 @@ being simplified before real applications or users depend on it.
 | [`shell/`](shell/) | Complete first-party Flutter application shell and product flows |
 | [`firebase/`](firebase/) | Optional Firebase Auth, telemetry, crash reporting, push, and configuration adapter |
 | [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
-| [`docs/architecture/`](docs/architecture/) | Accepted vNext decisions and execution status |
+| [`docs/architecture/`](docs/architecture/) | Accepted architecture decisions and current status |
 | [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
 
 The three component histories were imported without squashing. Their original
@@ -60,7 +60,7 @@ scaffolded game with release Android and web builds.
 
 ## Architecture and documentation
 
-The accepted vNext design lives in [`docs/architecture/`](docs/architecture/).
+The accepted design lives in [`docs/architecture/`](docs/architecture/).
 A protocol or game-contract change is one platform change: server behavior,
 generated Dart types, Flutter runtime behavior, examples, and documentation must
 land together and pass the same commit gate.
@@ -72,15 +72,14 @@ constraints are tracked in [`docs/blockers.md`](docs/blockers.md).
 
 ## CI and releases
 
-Pull requests and direct pushes to `main` run the platform workflow in
-[`checks.yml`](.github/workflows/checks.yml). Its
-contracts, server, Flutter, documentation, and scaffold checks run in parallel,
-then report one stable `check` result. During early development that result is
-advisory on `main`, which accepts direct pushes; it remains a hard gate on every
-release and publish. See
-[branch protection](docs/operations/branch-protection.md) for the current
-posture and how to restore the protected one. Documentation-only pull requests
-take a conservative fast lane through contracts and the documentation build.
+Pull requests to `main` run the platform workflow in
+[`checks.yml`](.github/workflows/checks.yml). Its contracts, server, Flutter,
+documentation, and scaffold checks run in parallel, then report one stable
+`check` result. The repository ruleset requires that result before a pull
+request can be squash-merged. The resulting `main` commit is checked again as
+the hard release boundary. See [rulesets](docs/operations/rulesets.md) for the
+exact policy. Documentation-only pull requests take a conservative fast lane
+through contracts and the documentation build.
 Changesets' generated version PR uses the same lightweight checks because both
 the source and final merged `main` commits receive the complete gate. npm
 packages use Changesets; one post-gate coordinator creates namespaced Dart tags,

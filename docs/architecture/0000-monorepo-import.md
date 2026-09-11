@@ -5,7 +5,7 @@
 
 ## Decision
 
-Create `eigen-platform` as the vNext implementation repository. Import the
+Create `eigen-platform` as the canonical implementation repository. Import the
 complete `eigen-server`, `eigen-flutter`, and `eigen-web` histories with
 unsquashed subtree merges under `server/`, `flutter/`, and `web/`.
 
@@ -23,7 +23,7 @@ step.
 
 ## Import anchors
 
-| Component | Release baseline | vNext correctness head |
+| Component | Release baseline | Correctness head at import |
 | --- | --- | --- |
 | Server | `2cac83c27d3ecf85f553b998106c3626997f9310` | `1b77ba7341f387c95ccaaf7d7c1051e8b0bf1e07` |
 | Flutter | `95fe8c196a192b635ad2cbc8ec58f97a17c47dca` | `461917323107f23a74f55ebb4f64fe1555990176` |

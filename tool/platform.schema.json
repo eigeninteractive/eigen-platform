@@ -2,9 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eigeninteractive.com/schemas/platform-manifest.json",
   "type": "object",
-  "required": ["platform", "importedAt", "components"],
+  "required": ["importedAt", "components"],
   "properties": {
-    "platform": { "type": "string", "minLength": 1 },
     "importedAt": { "type": "string", "format": "date" },
     "components": {
       "type": "object",

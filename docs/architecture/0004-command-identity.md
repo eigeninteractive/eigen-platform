@@ -114,7 +114,7 @@ Sign-out or seat loss does not relabel an unknown outcome as failed.
 
 Command records are retained with their authoritative resource. In particular,
 a game's command records and canonical outcomes remain available for the life
-of the game, which RFC 0007 defines as indefinite at vNext launch. This is both
+of the game, which RFC 0007 defines as indefinite initially. This is both
 simpler and safer than guessing an expiry window after which an ancient retry
 could become a new mutation.
 

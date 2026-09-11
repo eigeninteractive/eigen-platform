@@ -74,7 +74,7 @@ until confirmed during the current auth/contract context.
 ## Offline behavior
 
 Previously fetched, unexpired sessions may render read-only with clear stale
-status. vNext does not queue new game mutations offline by default; a product
+status. The client does not queue new game mutations offline by default; a product
 that enables it uses the same durable command model and must define abandonment,
 expiry, and conflict UX. Reconnect never silently discards an unknown command.
 
