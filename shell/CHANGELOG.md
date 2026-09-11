@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Adopt `go_router` 18 and `shimmer` 4 for the Flutter 3.44 baseline.
+
 ## [0.1.0] - 2026-08-21
 
 - Extract the complete first-party application from `eigen_flutter`, leaving
