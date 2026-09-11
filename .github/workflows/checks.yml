@@ -25,7 +25,7 @@ jobs:
     outputs:
       full: ${{ steps.classify.outputs.full }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -41,11 +41,12 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           full=true
-          # Changesets' version PR contains only the deterministic output of the
-          # already-checked source main commit. Its merged main commit receives
-          # the complete gate again before publication, so running every shard
-          # on this intermediate PR would provide no additional release safety.
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$HEAD_REF" = "changeset-release/main" ]; then
+          # Changesets' generated PRs contain only deterministic release
+          # metadata from an already-checked main commit. Their merged main
+          # commits receive the complete gate before publication, so running
+          # every shard on these intermediate PRs adds no release safety.
+          if [ "$EVENT_NAME" = "pull_request" ] \
+             && [[ "$HEAD_REF" == "changeset-release/main" || "$HEAD_REF" == changeset-cleanup/* ]]; then
             full=false
           elif [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]] \
                && [ -n "$BASE_SHA" ] \
@@ -74,9 +75,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: server/.nvmrc
 
@@ -88,30 +89,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         if: needs.scope.outputs.full == 'true'
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@v7
         if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
-      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      - uses: actions/setup-java@v6.0.0
         if: needs.scope.outputs.full == 'true'
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1
+      - uses: dart-lang/setup-dart@v1
         if: needs.scope.outputs.full == 'true'
         with:
           sdk: stable
@@ -177,10 +178,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         if: needs.scope.outputs.full == 'true'
 
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+      - uses: subosito/flutter-action@v2
         if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
@@ -200,13 +201,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: pnpm/action-setup@v6
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
@@ -234,29 +235,29 @@ jobs:
       matrix:
         target: [android, web]
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         if: needs.scope.outputs.full == 'true'
 
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true'
         with:
           version: 11.20.0
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@v7
         if: needs.scope.outputs.full == 'true'
         with:
           node-version-file: server/.nvmrc
           cache: pnpm
           cache-dependency-path: server/pnpm-lock.yaml
 
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+      - uses: subosito/flutter-action@v2
         if: needs.scope.outputs.full == 'true'
         with:
           flutter-version-file: flutter/.fvmrc
           channel: stable
           cache: true
 
-      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+      - uses: actions/setup-java@v6.0.0
         if: needs.scope.outputs.full == 'true' && matrix.target == 'android'
         with:
           distribution: temurin

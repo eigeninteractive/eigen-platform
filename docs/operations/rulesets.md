@@ -46,9 +46,11 @@ Documentation-only changes and Changesets' deterministic version pull request
 use documented narrow paths through the gate. Unknown paths fail closed to the
 complete platform check.
 
-All third-party Actions are pinned to full commit SHAs, and the repository's
-Actions policy requires SHA pinning. Version comments beside the SHAs make
-Dependabot updates reviewable.
+Routine third-party Actions use maintained major or exact-version tags and are
+updated by Dependabot. The two release-sensitive actions remain pinned to full
+commit SHAs. Repository-wide SHA enforcement is deliberately off because it
+also rejects version-tagged actions used internally by standard composite
+actions such as `setup-java`.
 
 ## Verify the policy
 
@@ -64,6 +66,7 @@ gh api repos/eigeninteractive/eigen-platform/branches/main/protection
 
 gh api repos/eigeninteractive/eigen-platform/actions/permissions \
   --jq '{enabled, allowed_actions, sha_pinning_required}'
+# Expected: sha_pinning_required is false.
 ```
 
 ## Emergency recovery
