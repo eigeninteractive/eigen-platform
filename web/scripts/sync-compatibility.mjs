@@ -22,7 +22,7 @@
  *
  *   api/openapi.json      the line these docs describe. Committed here, kept
  *                         current by sync-api.yml, and already the authority
- *                         for `check-docs-version`.
+ *                         the site's own version label is derived from.
  *   pub.dev / eigen_api   which engine lines ever shipped a wire client. This
  *                         is what keeps historical rows in the table without
  *                         anyone preserving them by hand.
@@ -79,7 +79,7 @@ const USER_AGENT = "eigen-platform-sync-compatibility (+https://github.com/eigen
 /**
  * The compatibility line a caret protects: the minor while pre-1.0, the major
  * after. `^0.2.0` resolves to `>=0.2.0 <0.3.0`, so pre-1.0 the MINOR is the
- * breaking axis: the same rule `check-docs-version` and eigen-server's
+ * breaking axis: the same rule `docusaurus.config.ts` and eigen-server's
  * scaffold gate apply, and the one thing every version number here agrees on.
  */
 const lineOf = (version) => {

@@ -225,16 +225,15 @@ dry-runs the tagged Dart package before publishing it automatically.
 A scaffolder-only release does not create a new client version; it only verifies
 that the tag for the current engine already exists.
 
-When the engine crosses a documentation release line, the version PR is
-expected to fail `check-docs-version` on its `web` shard. That is the gate doing
-its job on a complete, reviewable pull request. Before merging, deliberately
-choose one:
+When the engine crosses a documentation release line, the version PR needs no
+documentation change. `web/docusaurus.config.ts` derives the site's version
+label from `info.version` in `api/openapi.json`, which that same PR regenerates,
+so the label moves with the release.
 
-1. Relabel current docs in `web/docusaurus.config.ts` when no supported user
-   needs the old line.
-2. Freeze the old Docusaurus line first when it must remain supported.
-
-That decision is intentionally not automated.
+Freezing the old line into `versioned_docs/` is a separate decision, triggered
+by an adopter who cannot follow the break rather than by the crossing itself,
+and it can be made at any time afterwards. `web/CONTRIBUTING.md` has the
+procedure, including how to cut a line the site has already moved past.
 
 ## Hand-written Dart package release flow
 

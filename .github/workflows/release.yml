@@ -176,11 +176,12 @@ jobs:
       # any pending Changeset died on `patch does not apply`. That is not a rare
       # case -- every push to `main` while a Changeset is pending re-runs this job.
       #
-      # The two assertions it also ran, `platform.mjs --check` and
-      # `check-docs-version`, are not lost: the version PR runs the full platform
-      # gate, which is where both already live. That is the better place for the
-      # docs-line decision in particular -- a red `web` shard on a complete,
-      # reviewable PR, rather than a half-built release branch.
+      # The assertion it also ran, `platform.mjs --check`, is not lost: the
+      # version PR runs the full platform gate, which is where it already lives.
+      # It also ran `check-docs-version`, which no longer exists at all: the
+      # site derives its version label from the spec this commit regenerates,
+      # so crossing a documentation release line is no longer an event anything
+      # has to notice.
 
   publish:
     name: Publish to npm
