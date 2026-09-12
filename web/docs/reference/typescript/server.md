@@ -501,7 +501,8 @@ new HttpError(
    status,
    message,
    code?,
-   retryAfterSeconds?): HttpError;
+   retryAfterSeconds?
+): HttpError;
 ```
 
 Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
@@ -1054,7 +1055,8 @@ Permanently delete one Firebase Authentication account.
 notifyUser(
    d1,
    userId,
-message): Promise<void>;
+   message
+): Promise<void>;
 ```
 
 Defined in: [server/packages/server/src/firebase/admin-effects.ts:17](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/firebase/admin-effects.ts#L17)
@@ -2291,7 +2293,8 @@ formula (the client mirrors it for optimistic display only).
 function ensureUser(
    d1,
    claims,
-   now): Promise<{
+   now
+): Promise<{
   avatarUrl: string | null;
   createdAt: number;
   displayName: string;

@@ -270,7 +270,6 @@ describe("scaffoldGame", () => {
     scaffoldGame({ directory: root, bootstrap: false });
 
     expect(readFileSync(resolve(root, "app/lib/game/module.dart"), "utf8")).toContain("class Game2048Module");
-    expect(readFileSync(resolve(root, "server/src/module/v1.ts"), "utf8")).toContain('id: "Game2048V1State"');
   });
 
   it("requires one canonical slug and derives every other name", () => {

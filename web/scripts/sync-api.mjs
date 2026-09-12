@@ -31,6 +31,7 @@ import { fileURLToPath } from "node:url";
 const siteDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const engineDir = join(siteDir, "..", "server");
 const tsDocsDir = join(siteDir, "docs", "reference", "typescript");
+const repositoryDir = join(siteDir, "..");
 
 const run = (cmd, args) => execFileSync(cmd, args, { cwd: siteDir, stdio: "inherit" });
 const step = (msg) => console.log(`\n\x1b[36m▸ ${msg}\x1b[0m`);
@@ -60,6 +61,8 @@ run("pnpm", ["exec", "typedoc"]);
 step("Normalising generated filenames");
 const generated = readdirSync(tsDocsDir).filter((f) => f.endsWith(".md"));
 const renames = new Map(generated.filter((f) => f !== "index.md").map((f) => [f, slugFor(f)]));
+const trackedFiles = new Set(execFileSync("git", ["ls-files", "-z"], { cwd: repositoryDir, encoding: "utf8" }).split("\0"));
+const sourceLink = /\[([^\]\n]+)\]\(https:\/\/github\.com\/eigeninteractive\/eigen-platform\/blob\/main\/([^\s)]+)#L\d+\)/g;
 
 for (const file of generated) {
   const path = join(tsDocsDir, file);
@@ -68,6 +71,11 @@ for (const file of generated) {
   for (const [from, to] of renames) {
     body = body.replaceAll(`](${from})`, `](${to})`).replaceAll(`](${from}#`, `](${to}#`);
   }
+  // `disableGit` makes source URLs deterministic in linked worktrees, but it
+  // also assumes generated declarations and dependency files are linkable.
+  // Match TypeDoc's normal Git-backed behaviour by keeping URLs only for files
+  // that actually exist in the repository.
+  body = body.replace(sourceLink, (link, label, path) => (trackedFiles.has(path) ? link : label));
   // TypeDoc occasionally leaves padding after multiline signature parameters.
   // Keep committed generated docs friendly to repository-wide whitespace checks.
   body = body

@@ -13,7 +13,12 @@ export default {
   plugin: ["typedoc-plugin-markdown"],
 
   // "Defined in:" links. Use the monorepo's stable main path: embedding HEAD
-  // would make every unrelated platform commit invalidate generated docs.
+  // would make every unrelated platform commit invalidate generated docs. Git
+  // discovery is deliberately disabled because linked worktrees otherwise lose
+  // these URLs; every source path is rooted at the monorepo instead. `sync-api`
+  // removes links for generated and dependency files that Git does not track.
+  displayBasePath: "..",
+  disableGit: true,
   sourceLinkTemplate: "https://github.com/eigeninteractive/eigen-platform/blob/main/{path}#L{line}",
 
   readme: "none",
