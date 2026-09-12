@@ -1,10 +1,10 @@
 import type { GameRules } from "@eigeninteractive/rules";
 import { z } from "zod";
 
-const stateSchema = z.object({ count: z.int().min(0) }).meta({ id: "ExampleGameV1State" });
-const observationSchema = z.object({ count: z.int().min(0) }).meta({ id: "ExampleGameV1Observation" });
-const actionSchema = z.object({ amount: z.int().min(1) }).meta({ id: "ExampleGameV1Action" });
-const configSchema = z.object({ target: z.int().min(1) }).meta({ id: "ExampleGameV1Config" });
+const stateSchema = z.object({ count: z.int().min(0) });
+const observationSchema = z.object({ count: z.int().min(0) });
+const actionSchema = z.object({ amount: z.int().min(1) });
+const configSchema = z.object({ target: z.int().min(1) });
 
 type State = z.infer<typeof stateSchema>;
 type Observation = z.infer<typeof observationSchema>;

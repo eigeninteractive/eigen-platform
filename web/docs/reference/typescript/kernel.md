@@ -1023,7 +1023,8 @@ enforces cannot describe different instants.
 function assertBudgetPending(
    budgetSeconds,
    envelope,
-   schemaVersion): void;
+   schemaVersion
+): void;
 ```
 
 Defined in: [server/packages/kernel/src/guards.ts:26](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/guards.ts#L26)
@@ -1055,7 +1056,8 @@ reached. No-op when the game has no budget clock.
 function assertForfeitPending(
    targetSeat,
    envelope,
-   schemaVersion): void;
+   schemaVersion
+): void;
 ```
 
 Defined in: [server/packages/kernel/src/guards.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/guards.ts#L36)
@@ -1085,7 +1087,8 @@ still holding a deadline the timeout alarm fires at forever.
 function assertHookPayload<T>(
    schema,
    value,
-   what): asserts value is T;
+   what
+): asserts value is T;
 ```
 
 Defined in: [server/packages/kernel/src/schema.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/schema.ts#L63)
@@ -1121,7 +1124,8 @@ value on the game's behalf.
 function assertHookState(
    schemas,
    envelope,
-   schemaVersion): void;
+   schemaVersion
+): void;
 ```
 
 Defined in: [server/packages/kernel/src/guards.ts:16](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/guards.ts#L16)
@@ -1151,7 +1155,8 @@ Validate-only: the original envelope object is what gets persisted.
 function assertPendingIdentified(
    roster,
    envelope,
-   schemaVersion): void;
+   schemaVersion
+): void;
 ```
 
 Defined in: [server/packages/kernel/src/guards.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/guards.ts#L48)
@@ -1330,7 +1335,8 @@ function deductBank(
    playerIndex,
    now,
    turnStartedAt,
-   incrementSeconds): number[];
+   incrementSeconds
+): number[];
 ```
 
 Defined in: [server/packages/kernel/src/timing.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/timing.ts#L49)
@@ -1481,7 +1487,8 @@ Type guard: did `commit()` refuse the intent?
 function parseClientPayload<T>(
    schema,
    value,
-what): ParseResult<T>;
+   what
+): ParseResult<T>;
 ```
 
 Defined in: [server/packages/kernel/src/schema.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/schema.ts#L40)
@@ -1519,7 +1526,8 @@ function parseStoredPayload<T>(
    schema,
    value,
    what,
-   schemaVersion): T;
+   schemaVersion
+): T;
 ```
 
 Defined in: [server/packages/kernel/src/schema.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/kernel/src/schema.ts#L51)
