@@ -1,5 +1,14 @@
 # create-eigen-game
 
+## 0.15.0
+
+### Minor Changes
+
+- [#67](https://github.com/eigeninteractive/eigen-platform/pull/67) [`d43e097`](https://github.com/eigeninteractive/eigen-platform/commit/d43e097e801366366c2c304b8e029686a0ac0337) Thanks [@seenu-k](https://github.com/seenu-k)! - Regenerate the scaffolded worker's `game-contract.json` and counter example
+  fixtures to cover the new `initialState`, `lifecycle`, and `transcript` twin-fixture
+  kinds, keeping a freshly scaffolded project's contract in sync with
+  `@eigeninteractive/testkit`.
+
 ## 0.14.3
 
 ### Patch Changes
