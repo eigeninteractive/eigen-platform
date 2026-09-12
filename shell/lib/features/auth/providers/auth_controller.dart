@@ -125,7 +125,12 @@ class AuthController extends _$AuthController {
     state = await AsyncValue.guard(() async {
       final userId = ref.read(currentUserProvider)?.id;
       await ref.read(profileRepositoryProvider).deleteAccount();
-      if (userId != null) await deleteUserData(ref, userId);
+      if (userId != null) {
+        await deleteUserData(ref, userId);
+        // Unlike a sign-out, this is the end of the account, so the games it
+        // played on this device go with it.
+        await deleteLocalGamesFor(ref, userId);
+      }
       try {
         await ref.read(authServiceProvider).signOut();
       } catch (error) {

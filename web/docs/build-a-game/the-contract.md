@@ -50,7 +50,8 @@ helpers, and you can read it top to bottom in ten minutes.
 | `previewAction` | ❌ `applyAction` is the truth | ✅ required; the game's own optimistic projection (null ⇒ server-driven) |
 | `buildContent` | ❌ | ✅ the screen |
 | `ratingPool`, `botSeatable` | ✅ enforced | ✅ display-only twin |
-| `botActions` (bot brains) | ✅ server-side | ❌ client-side local bots do not exist |
+| `botActions` (bot brains) | ✅ server-side, dispatched by the engine | ✅ optional twin, keyed by the same usernames, for [offline play](./offline-play.md) |
+| `local` (`initialState`/`applyAction`/`applyLifecycle`/`computeObservation`, again) | ✅ same four hooks, already authoritative | ✅ optional `LocalGameRules` unit transcribing them; absence means no on-device bots for this version. See [Offline play](./offline-play.md) |
 
 Every "keep in sync" above is enforceable rather than aspirational: shared JSON
 fixtures run against both units and fail a test on divergence. See

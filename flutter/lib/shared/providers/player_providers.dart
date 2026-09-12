@@ -46,7 +46,11 @@ class PlayerInfoCache extends _$PlayerInfoCache {
       persist(
         ref.watch(storageProvider.future),
         options: const StorageOptions(
-          cacheTime: StorageCacheTime(Duration(days: 30)),
+          // Never expires, for the same reason the bot catalog does not: a seat
+          // whose identity this device has forgotten cannot be drawn, and an
+          // offline game still has to render its players. The batch refresh on
+          // every build keeps an online device current.
+          cacheTime: StorageCacheTime.unsafe_forever,
           // Cache-schema version for the persisted Player. Bumped to 2 when the
           // hand-written PlayerInfo was replaced by the generated Player. This
           // cache is intentionally not cleared on sign-out because player

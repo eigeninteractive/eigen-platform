@@ -5,11 +5,28 @@
  * integrity (seat occupancy, status, versions) under its input gate.
  */
 
-import type { GameStatus, RatingDelta, RejectCode, Seat } from "@eigeninteractive/kernel";
+import type { GameStatus, RatingDelta, RejectCode, Seat, TransitionAction } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, LifecycleType, OutcomeEntry } from "@eigeninteractive/rules";
 
 /** Re-exported from the kernel, where rating math and its shapes live. */
 export type { RatingDelta };
+
+/**
+ * Where a game is played, fixed at creation and immutable.
+ *
+ * `online` is the ordinary game: every transition is decided by this server.
+ * `local` is a game the device played offline against on-device bot brains and
+ * imported afterwards, transition by transition, through the two import routes.
+ * The server still commits every one of them through the same rules, so an
+ * imported game is an ordinary game once it lands; `origin` says how it got
+ * here, which is what lets a client badge it, keep it unrated, and know that it
+ * may continue appending to it from the device.
+ *
+ * Lives here rather than beside the D1 column because it is protocol: it rides
+ * {@link SessionSnapshot} and the game summary, so a game screen needs no
+ * second source to know what it is looking at.
+ */
+export type GameOrigin = "online" | "local";
 
 /** Who a command acts as, resolved at the edge. Exactly one id is set. */
 export interface Principal {
@@ -22,7 +39,18 @@ export interface Principal {
 export type Command =
   | { kind: "join" | "leave"; gameId: string; actor: Principal }
   | { kind: "cancel"; gameId: string; actor: Principal }
-  | { kind: "start"; gameId: string; actor: Principal }
+  | {
+      kind: "start";
+      gameId: string;
+      actor: Principal;
+      /** The game's base RNG seed. Carried ONLY by the local-import create
+       * (`POST /games/local`): the device already played the game from this
+       * seed, so the server's replay has to draw the same values or every
+       * random hook would diverge on the first transition. Absent on every
+       * other path, where the DO generates one (`randomSeed()`) and the seed
+       * never leaves it. */
+      seed?: string;
+    }
   | { kind: "add-bot"; gameId: string; actor: Principal; botId: string }
   | {
       kind: "action";
@@ -49,7 +77,48 @@ export type Command =
        * against the actor, like an action); `autoForfeit` the purged seat;
        * `timeout` carries none (it resolves all pending). */
       seat?: number;
+    }
+  | {
+      /**
+       * Import a run of a local game's transitions into the authoritative
+       * object, in order, as one request.
+       *
+       * A batch rather than one command per transition because a finished local
+       * game is a whole transcript: sending it move by move would cost a Worker
+       * and a Durable Object request each, and would let a client stop halfway
+       * through with the server's copy in a state the device never saw.
+       */
+      kind: "local-transitions";
+      gameId: string;
+      /** The game's creator: the only principal a local game has. */
+      actor: Principal;
+      /** The version the device believes the server is at. The import is
+       * append-only, so a mismatch means another device already appended and
+       * this batch is refused whole (`stateUpdated`). */
+      fromVersion: number;
+      transitions: LocalTransition[];
     };
+
+/** Every command that is exactly one commit: what {@link GameStub.handle}
+ * takes. The import batch is the one command that is not, and it has its own
+ * entry point, because it answers with how far it got rather than with one
+ * commit's result. */
+export type SingleCommand = Exclude<Command, { kind: "local-transitions" }>;
+
+/**
+ * One transition of a local game's log, as the device recorded it.
+ *
+ * `data` is the game's own action payload for `game`, and a `LifecycleAction`
+ * for `lifecycle` — of which only `forfeit` is importable, because a local game
+ * is untimed (so it can never time out) and `autoForfeit` is engine-driven.
+ * The worker validates the lifecycle payload before minting the command, so the
+ * DO reads the seat and nothing else.
+ */
+export interface LocalTransition {
+  seat: number;
+  kind: "game" | "lifecycle";
+  data: unknown;
+}
 
 /** Why the DO refused a waiting-room command: the integrity column.
  * These are *expected* refusals (accepted lobby staleness: the lobby may show
@@ -105,6 +174,8 @@ export interface SessionSnapshot {
   gameId: string;
   shortCode: string;
   access: GameAccess;
+  /** Where this game is played; never changes. */
+  origin: GameOrigin;
   schemaVersion: number;
   config: JsonObject;
   turnSeconds: number | null;
@@ -150,6 +221,44 @@ export interface FrameMessage {
  * state on every attempt. */
 export type CommandResult = { ok: true; session: SessionSnapshot } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
 
+/** Which transition of an import batch the game refused, and why.
+ *
+ * Not a transport error: everything before `index` is committed and permanent,
+ * so the batch answers 200 carrying this. It means the device's Dart twin and
+ * the authoritative TypeScript rules disagreed, which the client surfaces as a
+ * diverged record rather than retrying. `abstain` cannot appear: only the
+ * alarm's system timeout abstains, and a local game is untimed. */
+export interface LocalRejection {
+  index: number;
+  code: Exclude<RejectCode, "abstain"> | LobbyRejectCode;
+  message: string;
+}
+
+/** What one import batch returns: how far it got, the creator's session after
+ * the last committed transition, and the rejection that stopped it (null when
+ * the whole batch landed). A refusal of the batch *as a whole* (an unknown
+ * game, a non-creator, a `fromVersion` another device moved past) is the same
+ * rejection value shape every command uses. */
+export type LocalBatchResult = { ok: true; applied: number; session: SessionSnapshot; rejection: LocalRejection | null } | { ok: false; code: RejectCode | LobbyRejectCode; message: string };
+
+/** One row of a local game's stored log: the raw state and the action that
+ * produced it, which is everything a device needs to rebuild its local engine.
+ * The ONLY place raw state leaves the Durable Object, and only to the game's
+ * single human (see {@link GameStub.localRecord}). */
+export interface LocalTransitionRow {
+  version: number;
+  state: JsonObject;
+  action: TransitionAction | null;
+  pending: number[];
+}
+
+/** What a device needs to continue a local game it holds no record for: the
+ * seed every transition's randomness derives from, plus the log itself. */
+export interface LocalRecord {
+  seed: string;
+  transitions: LocalTransitionRow[];
+}
+
 /** The DO surface the worker calls: structurally the RPC stub of any
  * `BaseGameDO` subclass. Lives here (not in `engine.ts`) so the lifecycle
  * paths (purge, cron reap) can depend on it without importing the app
@@ -180,7 +289,20 @@ export interface ReconcileReport {
 }
 
 export interface GameStub {
-  handle(cmd: Command): Promise<CommandResult>;
+  handle(cmd: SingleCommand): Promise<CommandResult>;
+  /** The import batch: one request, one entry through the input gate, every
+   * transition committed in sequence by the same kernel path a live move takes.
+   *
+   * Its own entry point rather than a `handle()` kind because it does not answer
+   * with one commit's result: it reports how far it got, which `CommandResult`
+   * has nowhere to put. Keeping `handle()` single-commit is what lets every
+   * existing call site stay `unwrap(await stub.handle(...))`. */
+  localTransitions(cmd: Extract<Command, { kind: "local-transitions" }>): Promise<LocalBatchResult>;
+  /** A local game's stored log, for a device continuing it (or picking it up
+   * for the first time). Null when no such game exists, and for any game whose
+   * origin is not `local`: raw state leaves the object only here, so the
+   * origin gate is restated at the object rather than trusted from the route. */
+  localRecord(gameId: string, from: number, to: number): Promise<LocalRecord | null>;
   /** The current snapshot for one principal, for the paths with no socket: a
    * cold HTTP read, a deep-link preview, a spectator. Null when no such game
    * exists. `userId` null means "no seat", which yields `frame: null`. */

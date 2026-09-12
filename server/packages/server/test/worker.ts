@@ -5,8 +5,9 @@
  */
 
 import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
+import type { FirebaseAdminEffects } from "../src/index.js";
 import { BaseGameDO, createEngine } from "../src/index.js";
-import { testFirebaseAdmin, testVerifier } from "../src/testing.js";
+import { testVerifier } from "../src/testing.js";
 
 /** The worker-side Env: the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
@@ -136,13 +137,33 @@ const hiddenRules: GameRules = {
 
 const testGame: GameModule = { versions: { 1: hiddenRules } };
 
+/**
+ * Every push the engine attempted, newest last.
+ *
+ * `testFirebaseAdmin` swallows them, which is right for the suites that only
+ * need pushes not to blow up. It cannot answer the opposite question — that a
+ * path delivered NOTHING — which is what local play claims: no turn push, no
+ * finish push, no bot wake, because the only human is the person holding the
+ * device. Recording is the same no-op with a ledger. The spec and the Durable
+ * Object share one workerd isolate, so a test reads this array directly.
+ */
+export const pushLog: { userId: string; category: unknown }[] = [];
+
+const recordingFirebaseAdmin: FirebaseAdminEffects = {
+  notifyUser: (_d1, userId, message) => {
+    pushLog.push({ userId, category: message.data?.category });
+    return Promise.resolve();
+  },
+  deleteAccount: () => Promise.resolve(),
+};
+
 export class GameDO extends BaseGameDO<TestEnv> {
   protected readonly gameModule = testGame;
   protected d1(env: TestEnv): D1Database {
     return env.DB;
   }
   protected firebaseAdmin(_env: TestEnv) {
-    return testFirebaseAdmin;
+    return recordingFirebaseAdmin;
   }
 }
 
@@ -155,7 +176,7 @@ export default createEngine({
   gameDO: (env: TestEnv) => env.GAME_DO,
   testing: {
     auth: testVerifier(),
-    firebaseAdmin: () => testFirebaseAdmin,
+    firebaseAdmin: () => recordingFirebaseAdmin,
   },
   clientOrigins: ["https://app.example", "http://localhost:7357"],
   // deep linking + avatars, exercised by web.spec.ts. Avatars use

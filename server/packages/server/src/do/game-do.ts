@@ -60,7 +60,7 @@ import { isTransientD1Error } from "../d1/errors.js";
 import { type Bot, readBot } from "../d1/reads.js";
 import { type FirebaseAdminEffects, firebaseAdminFromEnv } from "../firebase/admin-effects.js";
 import { finishPush, readyPush, turnPush } from "../notify/push.js";
-import type { Command, CommandResult, FrameMessage, GameStub, Principal, ReconcileReport, SessionSnapshot } from "../protocol.js";
+import type { Command, CommandResult, FrameMessage, GameStub, LocalBatchResult, LocalRecord, LocalRejection, Principal, ReconcileReport, SessionSnapshot, SingleCommand } from "../protocol.js";
 import { withRetry } from "../retry.js";
 import migrations from "./migrations/migrations.js";
 import * as t from "./schema.js";
@@ -73,6 +73,16 @@ const WAKE_TIMEOUT_MS = 10_000;
 
 type MetaRow = typeof t.meta.$inferSelect;
 type TransitionRow = typeof t.transitions.$inferSelect;
+
+/** How one commit's post-commit work is delivered.
+ *
+ * `live` is every ordinary command: the D1 summary row is mirrored right after
+ * the transition. `batch` is one transition of a local-game import, where the
+ * mirror is deferred and written once for the whole run, because the row is a
+ * display read model and nothing reads an intermediate value of it. Everything
+ * else — the transaction, the frames, the socket fan-out, the finish apply — is
+ * identical, which is what makes an imported game an ordinary game. */
+type CommitMode = "live" | "batch";
 
 /** What each hibernating socket remembers: the authenticated
  * principal only. Seats are resolved against the CURRENT roster at every
@@ -131,7 +141,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   // ── Commands (worker → DO) ──────────────────────────────────────────
 
-  async handle(cmd: Command): Promise<CommandResult> {
+  async handle(cmd: SingleCommand): Promise<CommandResult> {
     if (!(await this.#ensureInit(cmd.gameId))) {
       return { ok: false, code: "unknownGame", message: "No game with this id" };
     }
@@ -145,7 +155,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     return result;
   }
 
-  async #execute(cmd: Command): Promise<CommandResult> {
+  async #execute(cmd: SingleCommand): Promise<CommandResult> {
     switch (cmd.kind) {
       case "join":
       case "leave":
@@ -156,6 +166,119 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       default:
         return await this.#commitCommand(cmd);
     }
+  }
+
+  // ── Local games: the import batch and the device's record ──────────
+
+  /**
+   * Import a run of a local game's transitions, in order, under one gate entry.
+   *
+   * The device already played these against the Dart twin of these rules; this
+   * replays them through the authoritative ones, so the server's copy is
+   * produced by the TypeScript rules and a disagreement surfaces as a rejection
+   * rather than being taken on trust. Each transition commits through exactly
+   * the live `action`/`forfeit` path — same guards, same frames, same log — so
+   * an imported game is indistinguishable from a played one afterwards.
+   *
+   * Three things differ, and only three: the whole run is one request, the
+   * per-commit D1 summary mirror is collapsed into one write at the end (a
+   * hundred-move game would otherwise cost a hundred round trips for a row
+   * nothing reads until it settles), and the first rejection stops the batch
+   * and is REPORTED rather than thrown, because everything before it is
+   * already committed and permanent.
+   */
+  async localTransitions(cmd: Extract<Command, { kind: "local-transitions" }>): Promise<LocalBatchResult> {
+    if (!(await this.#ensureInit(cmd.gameId))) {
+      return { ok: false, code: "unknownGame", message: "No game with this id" };
+    }
+    const result = await this.#importBatch(cmd);
+    // Untimed, so the derived alarm is null; reconciled anyway, for the same
+    // reason `handle()` does it — one rule covers a commit and a refusal.
+    await this.#reconcileAlarm();
+    return result;
+  }
+
+  async #importBatch(cmd: Extract<Command, { kind: "local-transitions" }>): Promise<LocalBatchResult> {
+    const meta = this.#meta();
+    // The worker mints this only for a local game, so a non-local one here is a
+    // routing or authorization bug rather than a state a client can reach.
+    if (meta.origin !== "local") throw new GameBugError("local-transitions reached a game whose origin is not local");
+    if (meta.createdBy !== null && cmd.actor.userId !== meta.createdBy) {
+      return { ok: false, code: "notCreator", message: "Only the creator can append to a local game" };
+    }
+    if (meta.status !== "active") {
+      return { ok: false, code: "notActive", message: `Game is ${meta.status}` };
+    }
+    const latest = this.#latestTransition();
+    if (latest === null) throw new GameBugError("active local game has no transitions");
+    if (cmd.fromVersion !== latest.version) {
+      // Append-only against the authoritative version: another device got here
+      // first, so this batch's moves were computed against a board that no
+      // longer exists. Refused whole, never partially.
+      return { ok: false, code: "stateUpdated", message: `Expected version ${cmd.fromVersion} but the game is at ${latest.version}` };
+    }
+
+    let version = latest.version;
+    let applied = 0;
+    let rejection: LocalRejection | null = null;
+    for (const [index, transition] of cmd.transitions.entries()) {
+      const sub: Extract<Command, { kind: "action" | "lifecycle" }> =
+        transition.kind === "game"
+          ? { kind: "action", gameId: cmd.gameId, actor: cmd.actor, seat: transition.seat, expectedVersion: version, data: transition.data }
+          : // Only `forfeit` is importable, and the worker has already checked
+            // that the payload says so; the seat is what the kernel needs.
+            { kind: "lifecycle", gameId: cmd.gameId, actor: cmd.actor, type: "forfeit", seat: transition.seat };
+      const result = await this.#commitCommand(sub, "batch");
+      if (!result.ok) {
+        if (result.code === "abstain") throw new GameBugError("an imported transition abstained");
+        rejection = { index, code: result.code, message: result.message };
+        break;
+      }
+      applied += 1;
+      version = result.session.version ?? version;
+    }
+
+    // The collapsed mirror: one write for the whole batch. A batch that finished
+    // the game needs none, because `applyFinish` owns the terminal row and has
+    // already written it (or kept its outbox row to retry).
+    const settled = this.#meta();
+    if (applied > 0 && settled.status === "active") {
+      const gameId = cmd.gameId;
+      const state = this.#latestTransition();
+      if (state !== null) {
+        this.#mirrorD1(`local import summary for game ${gameId}`, () => updateSummary(this.d1(this.env), { gameId, pendingPlayers: state.pending, turnDeadline: state.deadline, now: Date.now() }));
+      }
+    }
+    // Read the caller's OWN session rather than reusing the last commit's
+    // response. A commit answers with the acting seat's view, and half the seats
+    // in this batch are the caller's bots, so the last one would hand a client a
+    // bot's observation to render its board from. This is the human's seat,
+    // whatever the batch ended on, and it is also the right answer when nothing
+    // committed at all.
+    return { ok: true, applied, session: this.#sessionFor(cmd.actor.userId), rejection };
+  }
+
+  /** A local game's stored log: raw state and the action that produced it, plus
+   * the seed they were all derived from.
+   *
+   * This is the one place raw state leaves the object, and it is safe for the
+   * same reason it is useful: a local game has exactly one human, the caller,
+   * who played every one of these transitions on their own device and still
+   * holds them there. There is no other participant for the disclosure to be
+   * against. The origin gate is restated here rather than trusted from the
+   * route, because "raw state never leaves the DO" is worth guarding at the
+   * object that owns it. */
+  async localRecord(gameId: string, from: number, to: number): Promise<LocalRecord | null> {
+    if (!(await this.#ensureInit(gameId))) return null;
+    const meta = this.#meta();
+    if (meta.origin !== "local" || meta.rngSeed === null) return null;
+    const rows = this.#db
+      .select({ version: t.transitions.version, state: t.transitions.state, action: t.transitions.action, pending: t.transitions.pending })
+      .from(t.transitions)
+      .where(and(gte(t.transitions.version, from), lte(t.transitions.version, to)))
+      .orderBy(t.transitions.version)
+      .all();
+    return { seed: meta.rngSeed, transitions: rows };
   }
 
   // ── Waiting room: integrity under the gate ─────────────────────────
@@ -314,7 +437,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     this.#mirrorD1(`aborted mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() }));
   }
 
-  async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>): Promise<CommandResult> {
+  async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, mode: CommitMode = "live"): Promise<CommandResult> {
     const meta = this.#meta();
     const roster = this.#roster();
     // Creator-only start: a clean rejection, not a throw. Any seated
@@ -326,13 +449,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (cmd.kind === "action" || (cmd.kind === "lifecycle" && cmd.type === "forfeit")) {
       if (cmd.actor === null) throw new GameBugError("action/forfeit reached the DO without an actor");
       if (cmd.seat === undefined) throw new GameBugError("action/forfeit reached the DO without a seat");
-      const resolved = this.#actingSeat(cmd.actor, cmd.seat, roster);
+      const resolved = this.#actingSeat(cmd.actor, cmd.seat, roster, meta);
       if (typeof resolved !== "number") return resolved;
       actingSeat = resolved;
     }
     const latest = this.#latestTransition();
     const state = latest === null ? null : this.#toStateRow(latest, meta);
-    const intent = this.#toIntent(cmd, actingSeat);
+    const intent = this.#toIntent(cmd, actingSeat, roster);
     const now = Date.now();
 
     const result = commit({
@@ -347,7 +470,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (isRejected(result)) {
       return { ok: false, code: result.code, message: result.message };
     }
-    return await this.#apply(cmd, meta, roster, result, now, actingSeat);
+    return await this.#apply(cmd, meta, roster, result, now, actingSeat, mode);
   }
 
   /** Verify the acting seat against the authoritative roster; the D1
@@ -356,20 +479,32 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * token, bot id from the HMAC claim). A seat the actor does not hold is
    * reachable without malice (a stale UI after leaving, a buggy client) and
    * from a misbehaving external bot alike, so the refusal is a clean value
-   * (→ 403), never a throw. */
-  #actingSeat(actor: Principal, seat: number, roster: Seat[]): number | CommandResult {
+   * (→ 403), never a throw.
+   *
+   * The one exception is the local-origin trust rule, and it is scoped three
+   * ways, all of which must hold: the game's origin is `local`, the seat is a
+   * bot's, and the actor is the game's creator. That is exactly the shape of a
+   * game its creator played alone on their own device against on-device brains,
+   * so the moves being imported for those seats are already theirs and there is
+   * no second participant for it to take a turn from. Any one of the three
+   * failing leaves the ordinary rule in force, which is why each is tested
+   * failing alone. */
+  #actingSeat(actor: Principal, seat: number, roster: Seat[], meta: MetaRow): number | CommandResult {
     const row = roster.find((s) => s.playerIndex === seat);
     const owns = row !== undefined && ((actor.userId !== null && row.userId === actor.userId) || (actor.botId !== null && row.botId === actor.botId));
-    if (!owns) {
+    const ownsAsLocalBot = row !== undefined && meta.origin === "local" && row.type === "bot" && actor.userId !== null && actor.userId === meta.createdBy;
+    if (!owns && !ownsAsLocalBot) {
       return { ok: false, code: "notParticipant", message: "That seat is not yours" };
     }
     return seat;
   }
 
-  #toIntent(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, actingSeat: number | null): Intent {
+  #toIntent(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, actingSeat: number | null, roster: Seat[]): Intent {
     switch (cmd.kind) {
       case "start":
-        return { kind: "start", seed: randomSeed() };
+        // A caller-supplied seed only ever reaches here from the local-import
+        // create, where the device already played the game from it.
+        return { kind: "start", seed: cmd.seed ?? randomSeed() };
       case "action": {
         if (actingSeat === null) throw new GameBugError("action reached #toIntent without a resolved seat");
         return {
@@ -377,7 +512,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           seat: actingSeat,
           expectedVersion: cmd.expectedVersion,
           data: cmd.data,
-          actor: cmd.actor.botId !== null ? "bot" : "user",
+          // The SEAT decides how the move is logged, not the principal that
+          // carried it. Identical to reading the principal for every online
+          // game, where a bot's seat is only reachable by its own bot id, and
+          // correct for an imported local one, where the creator's principal
+          // carries their on-device bots' moves: replay then classifies those
+          // exactly like a server bot's.
+          actor: roster.find((s) => s.playerIndex === actingSeat)?.type === "bot" ? "bot" : "user",
         };
       }
       case "lifecycle": {
@@ -401,7 +542,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** Apply the plan: ONE SQLite transaction, gate held. Everything
    * after the transaction is post-commit: interleaving is harmless. */
-  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null): Promise<CommandResult> {
+  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null, mode: CommitMode): Promise<CommandResult> {
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
@@ -458,7 +599,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // rejection. #finishEffects also self-catches; the outer .catch is a belt.
     if (finish !== null) {
       void this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next).catch((error) => console.error(`finish effects failed for game ${gameId}`, error));
-    } else {
+    } else if (mode === "live") {
+      // Skipped under `batch`: an import commits a whole run at once and writes
+      // this row once at the end, rather than once per transition for a value
+      // only the settled game is read for.
       this.#mirrorD1(`summary upsert for game ${gameId}`, () =>
         updateSummary(this.d1(this.env), {
           gameId,
@@ -469,8 +613,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         }),
       );
     }
-    // Named post-commit effects: bot turns and human turn/finish pushes.
-    if (plan.effects.length > 0) {
+    // Named post-commit effects: bot turns and human turn/finish pushes. A
+    // local game has neither: its bots run on the device (a wake would have
+    // nowhere to go and nothing to answer it), and its one human is the person
+    // holding the phone, who does not need telling it is their turn. Suppressed
+    // by ORIGIN, not by import mode, so a move made through the ordinary action
+    // route on a local game is just as quiet.
+    if (plan.effects.length > 0 && meta.origin !== "local") {
       void this.#dispatchEffects(meta, roster, plan, next).catch((error) => console.error(`effect dispatch failed for game ${gameId}`, error));
     }
     return response;
@@ -513,8 +662,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   /** One seated bot's turn. Routes on the registry row's `type`: an `engine`
    * bot runs its in-DO brain (`botActions[username]`) and the DO self-applies
    * the move; an `external` bot gets a signed HMAC wake carrying its
-   * observation; a `local` bot is client-driven and never dispatched here
-   * (it should not be seatable online, and a stray one just logs). The bot sees
+   * observation; a `local` bot's brain runs on the device and is never
+   * dispatched here. Effects are skipped wholesale for a local-origin game, so
+   * reaching this with a `local` bot means one was seated in an ONLINE game,
+   * which the seating gate refuses and a stray one just logs. The bot sees
    * only its seat's projection (`plan.frames`), so it can never read hidden
    * state: the same fog a human at the seat gets. */
   async #botTurn(meta: MetaRow, plan: CommitPlan, next: StateRow, seat: number, botId: string): Promise<void> {
@@ -861,6 +1012,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       gameId: meta.gameId,
       shortCode: meta.shortCode,
       access: meta.access,
+      origin: meta.origin,
       schemaVersion: meta.schemaVersion,
       config: meta.config,
       turnSeconds: meta.turnSeconds,
@@ -1098,6 +1250,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
             gameId: row.id,
             status: row.status,
             access: row.access,
+            origin: row.origin,
             schemaVersion: row.schemaVersion,
             config: row.config,
             turnSeconds: row.turnSeconds,
@@ -1185,6 +1338,15 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   #desiredAlarm(): number | null {
     const meta = this.#loadMeta();
     if (meta === undefined || meta.status !== "active") return null;
+    // A local-origin game never arms one. It is created untimed, but a version's
+    // `applyAction` may still return an envelope `turnSeconds`, and
+    // `computeNextDeadline` honours that override ahead of the untimed branch.
+    // The device's kernel has no such override to return — the Dart `Envelope`
+    // does not carry one — so an alarm here would fire a timeout the device
+    // never committed, and the next batch it appends would collide with it. The
+    // same reason effects are skipped wholesale for a local game: nothing runs
+    // on its behalf between the batches it sends.
+    if (meta.origin === "local") return null;
     return alarmForDeadline(this.#latestTransition()?.deadline ?? null);
   }
 

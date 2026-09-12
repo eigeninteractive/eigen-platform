@@ -10,8 +10,10 @@ All URIs are relative to *http://localhost*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**addBot**](GamesApi.md#addbot) | **POST** /api/engine/games/{gameId}/add-bot | 
+[**appendLocalTransitions**](GamesApi.md#appendlocaltransitions) | **POST** /api/engine/games/{gameId}/local/transitions | 
 [**cancelGame**](GamesApi.md#cancelgame) | **POST** /api/engine/games/{gameId}/cancel | 
 [**createGame**](GamesApi.md#creategame) | **POST** /api/engine/games | 
+[**createLocalGame**](GamesApi.md#createlocalgame) | **POST** /api/engine/games/local | 
 [**createSocketTicket**](GamesApi.md#createsocketticket) | **POST** /api/engine/games/{gameId}/socket-ticket | 
 [**createSoloGame**](GamesApi.md#createsologame) | **POST** /api/engine/games/solo | 
 [**forfeitGame**](GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
@@ -19,6 +21,7 @@ Method | HTTP request | Description
 [**getGame**](GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
 [**getGameSession**](GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [**getLobby**](GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
+[**getLocalRecord**](GamesApi.md#getlocalrecord) | **GET** /api/engine/games/{gameId}/local | 
 [**getMyGames**](GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [**joinGame**](GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
 [**joinGameByCode**](GamesApi.md#joingamebycode) | **POST** /api/engine/games/join-by-code | 
@@ -58,6 +61,49 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**CommandAccepted**](CommandAccepted.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **appendLocalTransitions**
+> LocalTransitionsApplied appendLocalTransitions(gameId, localTransitions)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
+final String gameId = gameId_example; // String | 
+final LocalTransitions localTransitions = ; // LocalTransitions | 
+
+try {
+    final response = api.appendLocalTransitions(gameId, localTransitions);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->appendLocalTransitions: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **gameId** | **String**|  | 
+ **localTransitions** | [**LocalTransitions**](LocalTransitions.md)|  | 
+
+### Return type
+
+[**LocalTransitionsApplied**](LocalTransitionsApplied.md)
 
 ### Authorization
 
@@ -140,6 +186,47 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Created**](Created.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createLocalGame**
+> LocalStarted createLocalGame(createLocalGame)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
+final CreateLocalGame createLocalGame = ; // CreateLocalGame | 
+
+try {
+    final response = api.createLocalGame(createLocalGame);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->createLocalGame: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **createLocalGame** | [**CreateLocalGame**](CreateLocalGame.md)|  | 
+
+### Return type
+
+[**LocalStarted**](LocalStarted.md)
 
 ### Authorization
 
@@ -435,6 +522,51 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**Lobby**](Lobby.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getLocalRecord**
+> LocalRecord getLocalRecord(gameId, from, to)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getGamesApi();
+final String gameId = gameId_example; // String | 
+final int from = 56; // int | 
+final int to = 56; // int | 
+
+try {
+    final response = api.getLocalRecord(gameId, from, to);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling GamesApi->getLocalRecord: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **gameId** | **String**|  | 
+ **from** | **int**|  | [optional] [default to 0]
+ **to** | **int**|  | [optional] 
+
+### Return type
+
+[**LocalRecord**](LocalRecord.md)
 
 ### Authorization
 

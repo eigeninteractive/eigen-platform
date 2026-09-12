@@ -15,7 +15,17 @@ part 'replay_controller.g.dart';
 /// The same range endpoint backs live gap recovery; replay is just the whole
 /// range rather than a missing slice of it.
 @riverpod
-Future<List<Frame>> replayFrames(Ref ref, {required String gameId}) {
+Future<List<Frame>> replayFrames(Ref ref, {required String gameId}) async {
+  // A game played on this device already holds every seat's projection per
+  // version, which is exactly what the server re-projects for its own replay.
+  // Reading them here is what lets a finished offline game be replayed offline.
+  final record = await ref.watch(
+    localGameRecordProvider(gameId: gameId).future,
+  );
+  if (record != null) {
+    final seat = record.humanSeat;
+    if (seat != null) return localReplayFrames(record, seat: seat);
+  }
   return ref.watch(gameRepositoryProvider).getFrames(gameId);
 }
 

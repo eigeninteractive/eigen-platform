@@ -8,6 +8,22 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../helpers/container.dart';
 import '../../../helpers/fakes.dart';
 
+/// A module whose game can be played on the device, in an untimed mode.
+class _LocalModule extends SampleModule {
+  const _LocalModule();
+
+  @override
+  Map<int, GameRules> get versions => const {1: LocalSampleRules()};
+
+  @override
+  GameCreationSpec get creationSpec => const GameCreationSpec(
+    timingConfigs: {
+      'Untimed': UntimedConfig(),
+      'Rapid': PerActionConfig(maxSeconds: 60),
+    },
+  );
+}
+
 class _SchemaTwoModule extends SampleModule {
   const _SchemaTwoModule();
 
@@ -32,12 +48,13 @@ class _StubAvailableBots extends AvailableBots {
   Future<List<Bot>> build() async => bots;
 }
 
-Bot _bot(String id, int schemaVersion) => Bot(
+Bot _bot(String id, int schemaVersion, {BotType type = BotType.engine}) => Bot(
   id: id,
   username: id,
   displayName: '$id bot',
   avatarUrl: null,
   schemaVersion: schemaVersion,
+  type: type,
   ratedEligible: true,
   config: const <String, dynamic>{},
 );
@@ -113,5 +130,94 @@ void main() {
       dropdown.dropdownMenuEntries.map((entry) => entry.value),
       orderedEquals(['equal', 'newer']),
     );
+  });
+
+  group('offline play', () {
+    test(
+      'is available when an untimed mode has a bot this build can run',
+      () async {
+        final container = makeContainer(
+          overrides: [
+            currentGameModuleProvider.overrideWithValue(const _LocalModule()),
+            availableBotsProvider.overrideWith(
+              () => _StubAvailableBots([_bot('sample-bot', 1)]),
+            ),
+          ],
+        );
+        await container.read(availableBotsProvider.future);
+
+        expect(container.read(localPlayAvailableProvider), isTrue);
+        // The solo entry opens for either arm, so this is enough on its own.
+        expect(container.read(soloPlayAvailableProvider), isTrue);
+      },
+    );
+
+    test('is unavailable when no bot has a brain in this build', () async {
+      final container = makeContainer(
+        overrides: [
+          currentGameModuleProvider.overrideWithValue(const _LocalModule()),
+          availableBotsProvider.overrideWith(
+            // A registry row this build ships no brain for.
+            () => _StubAvailableBots([_bot('server-only', 1)]),
+          ),
+        ],
+      );
+      await container.read(availableBotsProvider.future);
+
+      expect(container.read(localPlayAvailableProvider), isFalse);
+    });
+
+    test('is unavailable when the game ships no local unit', () async {
+      final container = makeContainer(
+        overrides: [
+          currentGameModuleProvider.overrideWithValue(const SampleModule()),
+          availableBotsProvider.overrideWith(
+            () => _StubAvailableBots([_bot('sample-bot', 1)]),
+          ),
+        ],
+      );
+      await container.read(availableBotsProvider.future);
+
+      expect(container.read(localPlayAvailableProvider), isFalse);
+    });
+
+    testWidgets('untimed offers only bots this build can run, timed only '
+        'bots the server can dispatch', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentGameModuleProvider.overrideWithValue(const _LocalModule()),
+            availableBotsProvider.overrideWith(
+              () => _StubAvailableBots([
+                _bot('sample-bot', 1),
+                _bot('server-only', 1),
+                _bot('device-only', 1, type: BotType.local),
+              ]),
+            ),
+          ],
+          child: const MaterialApp(home: Scaffold(body: PlayVsBotDialog())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The picker opens untimed, because that arm has an opponent: only the
+      // bot whose username this build ships a brain for.
+      DropdownMenu<String> dropdown() => tester.widget<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
+      expect(
+        dropdown().dropdownMenuEntries.map((entry) => entry.value),
+        orderedEquals(['sample-bot']),
+      );
+
+      // Switching to a timed mode moves the game to the server, where the
+      // device-only bot cannot be dispatched and the others can.
+      await tester.tap(find.text('Rapid'));
+      await tester.pumpAndSettle();
+      expect(
+        dropdown().dropdownMenuEntries.map((entry) => entry.value),
+        orderedEquals(['sample-bot', 'server-only']),
+      );
+    });
   });
 }

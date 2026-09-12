@@ -48,6 +48,10 @@ void main() {
         'rateLimited',
         // A pagination cursor that did not decode (400).
         'invalidCursor',
+        // Offline play: a route that only serves a game played on the device,
+        // and a bot that cannot be one of its opponents.
+        'localOnly',
+        'notLocalBot',
       });
     });
 
@@ -91,44 +95,49 @@ void main() {
   });
 
   group('Forward-compatible response enums', () {
-    test('maps unknown game, access, and seat values to their sentinels', () {
-      final parsed = GameSummary.fromJson({
-        'id': 'game-1',
-        'createdBy': null,
-        'status': 'pausedLater',
-        'access': 'tournamentLater',
-        'schemaVersion': 1,
-        'config': <String, dynamic>{},
-        'turnSeconds': null,
-        'budgetSeconds': null,
-        'incrementSeconds': null,
-        'rated': false,
-        'ratingPool': null,
-        'minPlayers': 2,
-        'maxPlayers': 4,
-        'shortCode': 'ABC123',
-        'pendingPlayers': null,
-        'turnDeadline': null,
-        'outcomes': null,
-        'finishedAt': null,
-        'createdAt': 1,
-        'updatedAt': 1,
-        'participants': [
-          {
-            'playerIndex': 0,
-            'userId': 'user-1',
-            'botId': null,
-            'type': 'spectatorLater',
-          },
-        ],
-      });
+    test(
+      'maps unknown game, access, origin, and seat values to their sentinels',
+      () {
+        final parsed = GameSummary.fromJson({
+          'id': 'game-1',
+          'createdBy': null,
+          'status': 'pausedLater',
+          'access': 'tournamentLater',
+          'origin': 'tournamentLater',
+          'schemaVersion': 1,
+          'config': <String, dynamic>{},
+          'turnSeconds': null,
+          'budgetSeconds': null,
+          'incrementSeconds': null,
+          'rated': false,
+          'ratingPool': null,
+          'minPlayers': 2,
+          'maxPlayers': 4,
+          'shortCode': 'ABC123',
+          'pendingPlayers': null,
+          'turnDeadline': null,
+          'outcomes': null,
+          'finishedAt': null,
+          'createdAt': 1,
+          'updatedAt': 1,
+          'participants': [
+            {
+              'playerIndex': 0,
+              'userId': 'user-1',
+              'botId': null,
+              'type': 'spectatorLater',
+            },
+          ],
+        });
 
-      check(parsed.status).equals(GameStatus.unknownDefaultOpenApi);
-      check(parsed.access).equals(GameAccess.unknownDefaultOpenApi);
-      check(
-        parsed.participants.single.type,
-      ).equals(SeatTypeEnum.unknownDefaultOpenApi);
-    });
+        check(parsed.status).equals(GameStatus.unknownDefaultOpenApi);
+        check(parsed.access).equals(GameAccess.unknownDefaultOpenApi);
+        check(parsed.origin).equals(GameOrigin.unknownDefaultOpenApi);
+        check(
+          parsed.participants.single.type,
+        ).equals(SeatTypeEnum.unknownDefaultOpenApi);
+      },
+    );
   });
 
   group('RatingDelta.identity', () {

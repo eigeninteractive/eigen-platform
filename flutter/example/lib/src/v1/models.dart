@@ -14,7 +14,8 @@ export 'payloads.dart'
         RpsV1Move,
         RpsV1Observation,
         RpsV1RulesBase,
-        RpsV1Round;
+        RpsV1Round,
+        RpsV1State;
 
 extension RpsV1MoveRules on RpsV1Move {
   /// Whether this throw beats [other]. Display-only: the server owns scoring.

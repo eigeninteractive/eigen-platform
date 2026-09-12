@@ -366,6 +366,430 @@
       },
       "kind": "botSeatable",
       "name": "rps seats every bot"
+    },
+    {
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "outcome": null,
+        "pending": [
+          0,
+          1
+        ],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": null,
+          "round": 1,
+          "wins": [
+            0,
+            0
+          ]
+        }
+      },
+      "kind": "initialState",
+      "name": "a best-of-one opens with both seats pending",
+      "playerCount": 2
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "outcome": null,
+        "pending": [
+          0,
+          1
+        ],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": null,
+          "round": 1,
+          "wins": [
+            0,
+            0
+          ]
+        }
+      },
+      "kind": "initialState",
+      "name": "the target does not change the opening position",
+      "playerCount": 2
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 0,
+            "result": "draw",
+            "teamIndex": 0
+          },
+          {
+            "placement": 1,
+            "playerIndex": 1,
+            "result": "draw",
+            "teamIndex": 1
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "paper"
+            ],
+            "winner": 1
+          },
+          "round": 2,
+          "wins": [
+            1,
+            1
+          ]
+        }
+      },
+      "kind": "lifecycle",
+      "name": "both seats idle out and the match is drawn",
+      "pending": [
+        0,
+        1
+      ],
+      "state": {
+        "commits": [
+          null,
+          null
+        ],
+        "lastRound": {
+          "moves": [
+            "rock",
+            "paper"
+          ],
+          "winner": 1
+        },
+        "round": 2,
+        "wins": [
+          1,
+          1
+        ]
+      },
+      "type": "timeout"
+    },
+    {
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 0,
+            "result": "win",
+            "teamIndex": 0
+          },
+          {
+            "placement": 2,
+            "playerIndex": 1,
+            "result": "loss",
+            "teamIndex": 1
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            "rock",
+            null
+          ],
+          "lastRound": null,
+          "round": 1,
+          "wins": [
+            0,
+            0
+          ]
+        }
+      },
+      "kind": "lifecycle",
+      "name": "the seat that did commit takes a one-sided timeout",
+      "pending": [
+        1
+      ],
+      "state": {
+        "commits": [
+          "rock",
+          null
+        ],
+        "lastRound": null,
+        "round": 1,
+        "wins": [
+          0,
+          0
+        ]
+      },
+      "type": "timeout"
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 1,
+            "result": "win",
+            "teamIndex": 1
+          },
+          {
+            "placement": 2,
+            "playerIndex": 0,
+            "result": "loss",
+            "teamIndex": 0
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "paper"
+            ],
+            "winner": 1
+          },
+          "round": 2,
+          "wins": [
+            0,
+            1
+          ]
+        }
+      },
+      "kind": "lifecycle",
+      "name": "a resign hands the match to the other seat",
+      "pending": [
+        0,
+        1
+      ],
+      "playerIndex": 0,
+      "state": {
+        "commits": [
+          null,
+          null
+        ],
+        "lastRound": {
+          "moves": [
+            "rock",
+            "paper"
+          ],
+          "winner": 1
+        },
+        "round": 2,
+        "wins": [
+          0,
+          1
+        ]
+      },
+      "type": "forfeit"
+    },
+    {
+      "config": {
+        "targetWins": 1
+      },
+      "expected": {
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 0,
+            "result": "win",
+            "teamIndex": 0
+          },
+          {
+            "placement": 2,
+            "playerIndex": 1,
+            "result": "loss",
+            "teamIndex": 1
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "scissors"
+            ],
+            "winner": 0
+          },
+          "round": 1,
+          "wins": [
+            1,
+            0
+          ]
+        },
+        "status": "finished",
+        "version": 2
+      },
+      "kind": "transcript",
+      "name": "a best-of-one played to its finish",
+      "playerCount": 2,
+      "seed": "rps-twin-transcript",
+      "transitions": [
+        {
+          "data": {
+            "move": "rock"
+          },
+          "kind": "game",
+          "playerIndex": 0
+        },
+        {
+          "data": {
+            "move": "scissors"
+          },
+          "kind": "game",
+          "playerIndex": 1
+        }
+      ]
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "outcome": [
+          {
+            "placement": 1,
+            "playerIndex": 1,
+            "result": "win",
+            "teamIndex": 1
+          },
+          {
+            "placement": 2,
+            "playerIndex": 0,
+            "result": "loss",
+            "teamIndex": 0
+          }
+        ],
+        "pending": [],
+        "state": {
+          "commits": [
+            null,
+            null
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "paper"
+            ],
+            "winner": 1
+          },
+          "round": 2,
+          "wins": [
+            0,
+            1
+          ]
+        },
+        "status": "finished",
+        "version": 3
+      },
+      "kind": "transcript",
+      "name": "a best-of-three abandoned by the human seat",
+      "playerCount": 2,
+      "seed": "rps-twin-transcript",
+      "transitions": [
+        {
+          "data": {
+            "move": "rock"
+          },
+          "kind": "game",
+          "playerIndex": 0
+        },
+        {
+          "data": {
+            "move": "paper"
+          },
+          "kind": "game",
+          "playerIndex": 1
+        },
+        {
+          "kind": "lifecycle",
+          "playerIndex": 0,
+          "type": "forfeit"
+        }
+      ]
+    },
+    {
+      "config": {
+        "targetWins": 3
+      },
+      "expected": {
+        "outcome": null,
+        "pending": [
+          0
+        ],
+        "state": {
+          "commits": [
+            null,
+            "paper"
+          ],
+          "lastRound": {
+            "moves": [
+              "rock",
+              "scissors"
+            ],
+            "winner": 0
+          },
+          "round": 2,
+          "wins": [
+            1,
+            0
+          ]
+        },
+        "status": "active",
+        "version": 3
+      },
+      "kind": "transcript",
+      "name": "a best-of-three mid-round, waiting on the human",
+      "playerCount": 2,
+      "seed": "rps-twin-transcript",
+      "transitions": [
+        {
+          "data": {
+            "move": "rock"
+          },
+          "kind": "game",
+          "playerIndex": 0
+        },
+        {
+          "data": {
+            "move": "scissors"
+          },
+          "kind": "game",
+          "playerIndex": 1
+        },
+        {
+          "data": {
+            "move": "paper"
+          },
+          "kind": "game",
+          "playerIndex": 1
+        }
+      ]
     }
   ],
   "schemaVersion": 1

@@ -31,9 +31,8 @@ dependencies:
   shared_preferences: ^2.5.4
   cached_network_image: ^3.4.1
   connectivity_plus: ^7.1.1
-  riverpod_sqflite: ^0.4.3
-  sqflite: ^2.4.2+1
-  path: ^1.9.1
+  drift: ^2.35.0
+  drift_flutter: ^0.3.1
   # The generated REST client. It is produced and published by the ENGINE repo
   # (eigen-server/clients/dart), because that is where the wire contract lives:
   # so its version is the engine's, and this constraint is the compatibility

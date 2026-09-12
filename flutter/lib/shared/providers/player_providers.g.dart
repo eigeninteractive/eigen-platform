@@ -197,7 +197,7 @@ final class PlayerInfoCacheProvider
   }
 }
 
-String _$playerInfoCacheHash() => r'780b668d15edf866ab1ca930436510fe003197c8';
+String _$playerInfoCacheHash() => r'd7ff0a693ba8c98392d3bf036475267d181d888b';
 
 /// Globally cached public player identity by ID.
 ///

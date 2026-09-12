@@ -61,4 +61,11 @@ export const rulesV1: GameRules<State, Observation, Action, Config> = {
 
   ratingPool: () => null,
   botSeatable: () => true,
+
+  // The in-engine bot brain, keyed by the bot registry's `username`. The Dart
+  // twin in `app/lib/game/v1/local_rules.dart` ships a brain under the same
+  // name, so one registered bot is playable on the server and on the device.
+  botActions: {
+    "example-bot": () => ({ amount: 1 }),
+  },
 };

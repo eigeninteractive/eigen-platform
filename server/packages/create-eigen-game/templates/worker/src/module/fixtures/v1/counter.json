@@ -37,6 +37,185 @@
         "minPlayers": 2,
         "maxPlayers": 2
       }
+    },
+    {
+      "kind": "initialState",
+      "name": "opens at zero with seat 0 to move",
+      "config": {
+        "target": 10
+      },
+      "playerCount": 2,
+      "expected": {
+        "state": {
+          "count": 0
+        },
+        "pending": [0],
+        "outcome": null
+      }
+    },
+    {
+      "kind": "lifecycle",
+      "name": "the seat that ran out of time loses",
+      "config": {
+        "target": 10
+      },
+      "state": {
+        "count": 4
+      },
+      "pending": [1],
+      "type": "timeout",
+      "expected": {
+        "state": {
+          "count": 4
+        },
+        "pending": [],
+        "outcome": [
+          {
+            "playerIndex": 0,
+            "result": "win",
+            "placement": 1,
+            "teamIndex": 0
+          },
+          {
+            "playerIndex": 1,
+            "result": "loss",
+            "placement": 2,
+            "teamIndex": 1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "lifecycle",
+      "name": "a resign hands the game to the other seat",
+      "config": {
+        "target": 10
+      },
+      "state": {
+        "count": 4
+      },
+      "pending": [0],
+      "type": "forfeit",
+      "playerIndex": 0,
+      "expected": {
+        "state": {
+          "count": 4
+        },
+        "pending": [],
+        "outcome": [
+          {
+            "playerIndex": 1,
+            "result": "win",
+            "placement": 1,
+            "teamIndex": 1
+          },
+          {
+            "playerIndex": 0,
+            "result": "loss",
+            "placement": 2,
+            "teamIndex": 0
+          }
+        ]
+      }
+    },
+    {
+      "kind": "transcript",
+      "name": "three turns reach the target and end the game",
+      "config": {
+        "target": 3
+      },
+      "playerCount": 2,
+      "seed": "counter-twin-transcript",
+      "transitions": [
+        {
+          "kind": "game",
+          "playerIndex": 0,
+          "data": {
+            "amount": 1
+          }
+        },
+        {
+          "kind": "game",
+          "playerIndex": 1,
+          "data": {
+            "amount": 1
+          }
+        },
+        {
+          "kind": "game",
+          "playerIndex": 0,
+          "data": {
+            "amount": 1
+          }
+        }
+      ],
+      "expected": {
+        "version": 3,
+        "status": "finished",
+        "state": {
+          "count": 3
+        },
+        "pending": [],
+        "outcome": [
+          {
+            "playerIndex": 0,
+            "result": "win",
+            "placement": 1,
+            "teamIndex": 0
+          },
+          {
+            "playerIndex": 1,
+            "result": "loss",
+            "placement": 2,
+            "teamIndex": 1
+          }
+        ]
+      }
+    },
+    {
+      "kind": "transcript",
+      "name": "a resign ends the game before the target",
+      "config": {
+        "target": 10
+      },
+      "playerCount": 2,
+      "seed": "counter-twin-transcript",
+      "transitions": [
+        {
+          "kind": "game",
+          "playerIndex": 0,
+          "data": {
+            "amount": 2
+          }
+        },
+        {
+          "kind": "lifecycle",
+          "type": "forfeit",
+          "playerIndex": 1
+        }
+      ],
+      "expected": {
+        "version": 2,
+        "status": "finished",
+        "state": {
+          "count": 2
+        },
+        "pending": [],
+        "outcome": [
+          {
+            "playerIndex": 0,
+            "result": "win",
+            "placement": 1,
+            "teamIndex": 0
+          },
+          {
+            "playerIndex": 1,
+            "result": "loss",
+            "placement": 2,
+            "teamIndex": 1
+          }
+        ]
+      }
     }
   ]
 }

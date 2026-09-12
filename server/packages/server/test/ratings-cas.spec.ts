@@ -41,6 +41,7 @@ async function seedRatedGame(a: string, b: string): Promise<string> {
     createdBy: a,
     status: "ready",
     access: "public",
+    origin: "online",
     schemaVersion: 1,
     config: {},
     turnSeconds: null,
@@ -55,6 +56,7 @@ async function seedRatedGame(a: string, b: string): Promise<string> {
       { playerIndex: 0, userId: a, botId: null, type: "human" },
       { playerIndex: 1, userId: b, botId: null, type: "human" },
     ],
+    createdAt: now,
     now,
   });
   return gameId;

@@ -20,6 +20,7 @@ import type { GameStatus, Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { sql } from "drizzle-orm";
 import { check, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { GameOrigin } from "../protocol.js";
 
 /** One row per identity, public and private fields together; authorization is
  * enforced in the routes, not by table separation. Provisioned on first sight
@@ -51,6 +52,12 @@ export const games = sqliteTable(
     createdBy: text(),
     status: text().$type<GameStatus>().notNull(),
     access: text().$type<GameAccess>().notNull(),
+    /** Where the game is played (see `GameOrigin`). Immutable, and defaulted so
+     * that the online create — every create but one — never mentions it.
+     * CHECKed unlike `status`/`access` because this column decides whether a
+     * request may act on a bot's seat: a row that drifted to a value nothing
+     * recognizes must fail the insert, not open a trust rule. */
+    origin: text().$type<GameOrigin>().notNull().default("online"),
     schemaVersion: integer().notNull(),
     config: text({ mode: "json" }).$type<JsonObject>().notNull(),
     /** Exactly one timing mode: turn XOR budget XOR untimed (worker policy
@@ -84,6 +91,7 @@ export const games = sqliteTable(
     index("idx_games_created_by").on(t.createdBy),
     // The lobby page: public joinable games, newest first (ported partial index).
     index("idx_games_lobby").on(t.createdAt).where(sql`access = 'public' AND status IN ('waiting', 'ready')`),
+    check("games_origin_valid", sql`${t.origin} IN ('online', 'local')`),
   ],
 );
 

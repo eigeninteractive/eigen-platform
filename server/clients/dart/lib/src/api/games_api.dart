@@ -13,6 +13,7 @@ import 'package:eigen_api/src/model/action.dart';
 import 'package:eigen_api/src/model/add_bot.dart';
 import 'package:eigen_api/src/model/command_accepted.dart';
 import 'package:eigen_api/src/model/create_game.dart';
+import 'package:eigen_api/src/model/create_local_game.dart';
 import 'package:eigen_api/src/model/create_solo.dart';
 import 'package:eigen_api/src/model/created.dart';
 import 'package:eigen_api/src/model/error_response.dart';
@@ -22,6 +23,10 @@ import 'package:eigen_api/src/model/game_summary.dart';
 import 'package:eigen_api/src/model/join.dart';
 import 'package:eigen_api/src/model/join_by_code.dart';
 import 'package:eigen_api/src/model/lobby.dart';
+import 'package:eigen_api/src/model/local_record.dart';
+import 'package:eigen_api/src/model/local_started.dart';
+import 'package:eigen_api/src/model/local_transitions.dart';
+import 'package:eigen_api/src/model/local_transitions_applied.dart';
 import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/session.dart';
 import 'package:eigen_api/src/model/socket_ticket.dart';
@@ -120,6 +125,105 @@ class GamesApi {
     }
 
     return Response<CommandAccepted>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// appendLocalTransitions
+  ///
+  ///
+  /// Parameters:
+  /// * [gameId]
+  /// * [localTransitions]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LocalTransitionsApplied] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LocalTransitionsApplied>> appendLocalTransitions({
+    required String gameId,
+    required LocalTransitions localTransitions,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/games/{gameId}/local/transitions'.replaceAll(
+      '{'
+      r'gameId'
+      '}',
+      gameId.toString(),
+    );
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(localTransitions);
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _options.compose(_dio.options, _path),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LocalTransitionsApplied? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LocalTransitionsApplied, LocalTransitionsApplied>(
+              rawData,
+              'LocalTransitionsApplied',
+              growable: true,
+            );
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LocalTransitionsApplied>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -290,6 +394,98 @@ class GamesApi {
     }
 
     return Response<Created>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// createLocalGame
+  ///
+  ///
+  /// Parameters:
+  /// * [createLocalGame]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LocalStarted] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LocalStarted>> createLocalGame({
+    required CreateLocalGame createLocalGame,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/games/local';
+    final _options = Options(
+      method: r'POST',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      contentType: 'application/json',
+      validateStatus: validateStatus,
+    );
+
+    dynamic _bodyData;
+
+    try {
+      _bodyData = jsonEncode(createLocalGame);
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _options.compose(_dio.options, _path),
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    final _response = await _dio.request<Object>(
+      _path,
+      data: _bodyData,
+      options: _options,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LocalStarted? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LocalStarted, LocalStarted>(
+              rawData,
+              'LocalStarted',
+              growable: true,
+            );
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LocalStarted>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -892,6 +1088,98 @@ class GamesApi {
     }
 
     return Response<Lobby>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
+  /// getLocalRecord
+  ///
+  ///
+  /// Parameters:
+  /// * [gameId]
+  /// * [from]
+  /// * [to]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [LocalRecord] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<LocalRecord>> getLocalRecord({
+    required String gameId,
+    int? from = 0,
+    int? to,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/games/{gameId}/local'.replaceAll(
+      '{'
+      r'gameId'
+      '}',
+      gameId.toString(),
+    );
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (from != null) r'from': from,
+      if (to != null) r'to': to,
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    LocalRecord? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<LocalRecord, LocalRecord>(
+              rawData,
+              'LocalRecord',
+              growable: true,
+            );
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<LocalRecord>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

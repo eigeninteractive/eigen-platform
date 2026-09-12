@@ -7,6 +7,7 @@ import 'package:eigen_api/src/model/seat.dart';
 import 'package:eigen_api/src/model/game_status.dart';
 import 'package:eigen_api/src/model/rating_delta.dart';
 import 'package:eigen_api/src/model/game_access.dart';
+import 'package:eigen_api/src/model/game_origin.dart';
 import 'package:eigen_api/src/model/outcome.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -28,6 +29,8 @@ class GameSummary {
     required this.status,
 
     required this.access,
+
+    required this.origin,
 
     required this.schemaVersion,
 
@@ -87,6 +90,14 @@ class GameSummary {
     unknownEnumValue: GameAccess.unknownDefaultOpenApi,
   )
   final GameAccess access;
+
+  @JsonKey(
+    name: r'origin',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameOrigin.unknownDefaultOpenApi,
+  )
+  final GameOrigin origin;
 
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
@@ -150,6 +161,7 @@ class GameSummary {
           other.createdBy == createdBy &&
           other.status == status &&
           other.access == access &&
+          other.origin == origin &&
           other.schemaVersion == schemaVersion &&
           other.config == config &&
           other.turnSeconds == turnSeconds &&
@@ -175,6 +187,7 @@ class GameSummary {
       (createdBy == null ? 0 : createdBy.hashCode) +
       status.hashCode +
       access.hashCode +
+      origin.hashCode +
       schemaVersion.hashCode +
       config.hashCode +
       (turnSeconds == null ? 0 : turnSeconds.hashCode) +

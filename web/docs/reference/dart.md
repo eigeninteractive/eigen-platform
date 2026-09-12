@@ -40,6 +40,25 @@ Everything under the package's `core/`, `features/`, and `shared/` directories
 is implementation detail. Do not deep-import it. If a task guide asks you to
 use a type that is missing from the barrel, that is an engine API bug.
 
+## Offline play
+
+The Dart local unit surfaces through the same package a game already imports;
+there is no new dependency to add.
+
+- **`GameRules.local`**, in `package:eigen_flutter/eigen_flutter.dart`, returns
+  a version's optional `LocalGameRules` unit, or `null` for a version that
+  ships no on-device bots.
+- **`eigen_codegen:generate_payloads`** additionally emits a `<Game>V<N>State`
+  payload type and a `<Game>V<N>LocalRulesBase` implementing the seven codecs
+  `LocalGameRules` needs, so a game supplies only its four hooks and
+  `botActions`.
+- **`package:eigen_client`** — the pure-Dart runtime `eigen_flutter` embeds —
+  carries the local kernel and engine directly: `LocalGameRules`, `EigenRng`,
+  `LocalGameRecord`, `LocalGameStore`, `BotRunner`, and `LocalGameEngine`. Game
+  code never imports this package; the Flutter adapter wires it up.
+
+See [Offline play](../build-a-game/offline-play.md) for how to implement one.
+
 ## Guide versus API reference
 
 Use this site to complete a task; use pub.dev to look up an exact constructor,

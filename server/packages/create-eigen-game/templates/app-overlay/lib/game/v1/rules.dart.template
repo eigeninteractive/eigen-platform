@@ -2,6 +2,7 @@ import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:flutter/material.dart';
 
 import '../generated/payloads.dart';
+import 'local_rules.dart';
 
 class ExampleGameRulesV1 extends ExampleGameV1RulesBase {
   const ExampleGameRulesV1();
@@ -40,6 +41,11 @@ class ExampleGameRulesV1 extends ExampleGameV1RulesBase {
 
   @override
   bool botSeatable(BotSeatableArgs args) => true;
+
+  /// Offline play, opt-in. Remove this override and `local_rules.dart` if the
+  /// game should only ever be played against the server.
+  @override
+  ExampleGameLocalRulesV1 get local => const ExampleGameLocalRulesV1();
 }
 
 class _CounterBoard extends StatelessWidget {

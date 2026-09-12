@@ -15,8 +15,8 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { games, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
-import { type Command, createGame } from "../src/index.js";
-import type { SessionSnapshot } from "../src/protocol.js";
+import { createGame } from "../src/index.js";
+import type { SessionSnapshot, SingleCommand } from "../src/protocol.js";
 import { userRow } from "./factories.js";
 import { LEAK_SENTINEL } from "./worker.js";
 
@@ -40,6 +40,7 @@ let gameCounter = 0;
  * (the waiting room is a later milestone). */
 async function seedGame(opts: SeedOptions = {}): Promise<string> {
   const gameId = `game-${++gameCounter}-${crypto.randomUUID()}`;
+  const now = Date.now();
   // Both seats have real `users` rows, as any authed player would, so the finish
   // apply's purge guard only rates identities that still exist.
   await db
@@ -52,6 +53,7 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     createdBy: "user-a",
     status: opts.status ?? "ready",
     access: "public",
+    origin: "online",
     schemaVersion: 1,
     config: { target: 3 },
     turnSeconds: opts.turnSeconds ?? null,
@@ -63,7 +65,8 @@ async function seedGame(opts: SeedOptions = {}): Promise<string> {
     maxPlayers: 2,
     shortCode: gameId.slice(0, 6) + gameCounter,
     seats: [{ playerIndex: 0, userId: "user-a", botId: null, type: "human" }, ...((opts.seats ?? 2) === 2 ? [{ playerIndex: 1, userId: "user-b", botId: null, type: "human" as const }] : [])],
-    now: Date.now(),
+    createdAt: now,
+    now,
   });
   return gameId;
 }
@@ -72,8 +75,8 @@ function stubFor(gameId: string) {
   return env.GAME_DO.get(env.GAME_DO.idFromName(gameId));
 }
 
-function cmd<K extends Command["kind"]>(kind: K, gameId: string, extra: Record<string, unknown> = {}): Command {
-  return { kind, gameId, actor: { userId: "user-a", botId: null }, ...extra } as Command;
+function cmd<K extends SingleCommand["kind"]>(kind: K, gameId: string, extra: Record<string, unknown> = {}): SingleCommand {
+  return { kind, gameId, actor: { userId: "user-a", botId: null }, ...extra } as SingleCommand;
 }
 
 async function startGame(opts: SeedOptions = {}) {
@@ -84,7 +87,7 @@ async function startGame(opts: SeedOptions = {}) {
   return { gameId, stub };
 }
 
-function action(gameId: string, seat: number, add: number, expectedVersion: number, userId: string): Extract<Command, { kind: "action" }> {
+function action(gameId: string, seat: number, add: number, expectedVersion: number, userId: string): Extract<SingleCommand, { kind: "action" }> {
   return {
     kind: "action",
     gameId,

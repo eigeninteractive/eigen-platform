@@ -11,6 +11,7 @@ CREATE TABLE `meta` (
 	`game_id` text NOT NULL,
 	`status` text NOT NULL,
 	`access` text NOT NULL,
+	`origin` text DEFAULT 'online' NOT NULL,
 	`schema_version` integer NOT NULL,
 	`config` text NOT NULL,
 	`turn_seconds` integer,
@@ -24,7 +25,8 @@ CREATE TABLE `meta` (
 	`rng_seed` text,
 	`short_code` text NOT NULL,
 	`outcomes` text,
-	`seq` integer NOT NULL
+	`seq` integer NOT NULL,
+	CONSTRAINT "meta_origin_valid" CHECK("meta"."origin" IN ('online', 'local'))
 );
 --> statement-breakpoint
 CREATE TABLE `outbox` (

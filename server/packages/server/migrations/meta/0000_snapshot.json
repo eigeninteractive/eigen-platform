@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "49cd7cd8-e098-4da1-8db3-6522f6725c73",
+  "id": "b76258a2-75d8-43d5-a4df-c78df9054a4a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -178,6 +178,14 @@
           "notNull": true,
           "autoincrement": false
         },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'online'"
+        },
         "schema_version": {
           "name": "schema_version",
           "type": "integer",
@@ -340,7 +348,12 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "games_origin_valid": {
+          "name": "games_origin_valid",
+          "value": "\"games\".\"origin\" IN ('online', 'local')"
+        }
+      }
     },
     "participants": {
       "name": "participants",

@@ -12,6 +12,7 @@ Name | Type | Description | Notes
 **createdBy** | **String** |  | 
 **status** | [**GameStatus**](GameStatus.md) |  | 
 **access** | [**GameAccess**](GameAccess.md) |  | 
+**origin** | [**GameOrigin**](GameOrigin.md) |  | 
 **schemaVersion** | **int** |  | 
 **config** | **Object** |  | 
 **turnSeconds** | **int** |  | 

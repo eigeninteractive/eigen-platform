@@ -70,6 +70,22 @@ final class _PayloadRulesBase extends _PayloadDeclaration {
   final String config;
 }
 
+final class _PayloadLocalRulesBase extends _PayloadDeclaration {
+  const _PayloadLocalRulesBase({
+    required this.name,
+    required this.state,
+    required this.observation,
+    required this.action,
+    required this.config,
+  });
+
+  final String name;
+  final String state;
+  final String observation;
+  final String action;
+  final String config;
+}
+
 final class _PayloadEmitter {
   const _PayloadEmitter();
 
@@ -109,6 +125,7 @@ final class _PayloadEmitter {
         _PayloadEnum() => _emitEnum(declaration),
         _PayloadClass() => _emitClass(declaration),
         _PayloadRulesBase() => _emitRulesBase(declaration),
+        _PayloadLocalRulesBase() => _emitLocalRulesBase(declaration),
       };
 
   Enum _emitEnum(_PayloadEnum declaration) {
@@ -373,6 +390,76 @@ final class _PayloadEmitter {
               )
               ..lambda = true
               ..body = const Code('action.toJson()'),
+          ),
+        ]),
+    );
+  }
+
+  Class _emitLocalRulesBase(_PayloadLocalRulesBase declaration) {
+    Method parser(String name, String type) => Method(
+      (builder) => builder
+        ..name = name
+        ..returns = refer(type)
+        ..annotations.add(refer('override'))
+        ..requiredParameters.add(
+          Parameter(
+            (builder) => builder
+              ..name = 'json'
+              ..type = refer('Map<String, dynamic>'),
+          ),
+        )
+        ..lambda = true
+        ..body = Code('$type.fromJson(json)'),
+    );
+
+    Method serializer(String name, String type, String parameter) => Method(
+      (builder) => builder
+        ..name = name
+        ..returns = refer('Map<String, dynamic>')
+        ..annotations.add(refer('override'))
+        ..requiredParameters.add(
+          Parameter(
+            (builder) => builder
+              ..name = parameter
+              ..type = refer(type),
+          ),
+        )
+        ..lambda = true
+        ..body = Code('$parameter.toJson()'),
+    );
+
+    return Class(
+      (builder) => builder
+        ..name = declaration.name
+        ..docs.addAll([
+          '/// The offline half of this version: implements the seven payload',
+          '/// codecs the local kernel needs, leaving the transcribed hooks',
+          '/// abstract. A version unit that ships local play extends this and',
+          '/// returns the subclass from its `GameRules.local` getter.',
+        ])
+        ..abstract = true
+        ..extend = TypeReference(
+          (builder) => builder
+            ..symbol = 'LocalGameRules'
+            ..types.addAll([
+              refer(declaration.state),
+              refer(declaration.observation),
+              refer(declaration.action),
+              refer(declaration.config),
+            ]),
+        )
+        ..constructors.add(Constructor((builder) => builder.constant = true))
+        ..methods.addAll([
+          parser('parseConfig', declaration.config),
+          parser('parseState', declaration.state),
+          serializer('serializeState', declaration.state, 'state'),
+          parser('parseAction', declaration.action),
+          serializer('serializeAction', declaration.action, 'action'),
+          parser('parseObservation', declaration.observation),
+          serializer(
+            'serializeObservation',
+            declaration.observation,
+            'observation',
           ),
         ]),
     );

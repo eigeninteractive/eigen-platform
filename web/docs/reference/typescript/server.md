@@ -76,7 +76,7 @@ Error.constructor
 
 ### `abstract` BaseGameDO
 
-Defined in: [server/packages/server/src/do/game-do.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L107)
+Defined in: [server/packages/server/src/do/game-do.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L117)
 
 Durable Object base class that owns one authoritative game session.
 
@@ -118,7 +118,7 @@ export class GameDO extends BaseGameDO<Env> {
 new BaseGameDO<TEnv>(ctx, env): BaseGameDO<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L121)
+Defined in: [server/packages/server/src/do/game-do.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L131)
 
 ###### Parameters
 
@@ -145,7 +145,7 @@ DurableObject<TEnv>.constructor
 abstract protected readonly gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L109)
+Defined in: [server/packages/server/src/do/game-do.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L119)
 
 The implementor's game: the `versions` map the engine dispatches on.
 
@@ -157,7 +157,7 @@ The implementor's game: the `versions` map the engine dispatches on.
 abort(gameId): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:271](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L271)
+Defined in: [server/packages/server/src/do/game-do.ts:394](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L394)
 
 Unconditional teardown (cron reap): mark the game aborted in D1 and
 compact its game data, with no creator gate or init requirement. A
@@ -186,7 +186,7 @@ GameStub.abort
 alarm(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:793](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L793)
+Defined in: [server/packages/server/src/do/game-do.ts:944](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L944)
 
 A timeout is derived from committed state, not submitted, so it carries no
 caller identity. It is idempotent because the kernel abstains once the state it was derived from
@@ -210,7 +210,7 @@ DurableObject.alarm
 abstract protected d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L112)
+Defined in: [server/packages/server/src/do/game-do.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L122)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 subclass picks the D1 database off its own Env.
@@ -231,7 +231,7 @@ subclass picks the D1 database off its own Env.
 fetch(request): Promise<Response>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:807](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L807)
+Defined in: [server/packages/server/src/do/game-do.ts:958](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L958)
 
 The worker routes the upgrade here after authenticating; the principal
 header is worker-set (never client-supplied; the worker strips inbound
@@ -268,7 +268,7 @@ DurableObject.fetch
 protected firebaseAdmin(env): FirebaseAdminEffects;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L115)
+Defined in: [server/packages/server/src/do/game-do.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L125)
 
 Required Firebase Admin effects. Tests override this with the explicit
 fake exported by `@eigeninteractive/server/testing`.
@@ -289,7 +289,7 @@ fake exported by `@eigeninteractive/server/testing`.
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:989](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L989)
+Defined in: [server/packages/server/src/do/game-do.ts:1141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1141)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -321,13 +321,13 @@ GameStub.frames
 handle(cmd): Promise<CommandResult>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:134](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L134)
+Defined in: [server/packages/server/src/do/game-do.ts:144](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L144)
 
 ###### Parameters
 
 | Parameter | Type |
 | ------ | ------ |
-| `cmd` | [`Command`](#command) |
+| `cmd` | [`SingleCommand`](#singlecommand) |
 
 ###### Returns
 
@@ -339,13 +339,99 @@ Defined in: [server/packages/server/src/do/game-do.ts:134](https://github.com/ei
 GameStub.handle
 ```
 
+##### localRecord()
+
+```ts
+localRecord(
+   gameId,
+   from,
+   to
+): Promise<LocalRecord | null>;
+```
+
+Defined in: [server/packages/server/src/do/game-do.ts:271](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L271)
+
+A local game's stored log: raw state and the action that produced it, plus
+the seed they were all derived from.
+
+This is the one place raw state leaves the object, and it is safe for the
+same reason it is useful: a local game has exactly one human, the caller,
+who played every one of these transitions on their own device and still
+holds them there. There is no other participant for the disclosure to be
+against. The origin gate is restated here rather than trusted from the
+route, because "raw state never leaves the DO" is worth guarding at the
+object that owns it.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `gameId` | `string` |
+| `from` | `number` |
+| `to` | `number` |
+
+###### Returns
+
+`Promise`\<[`LocalRecord`](#localrecord-1) \| `null`\>
+
+###### Implementation of
+
+```ts
+GameStub.localRecord
+```
+
+##### localTransitions()
+
+```ts
+localTransitions(cmd): Promise<LocalBatchResult>;
+```
+
+Defined in: [server/packages/server/src/do/game-do.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L190)
+
+Import a run of a local game's transitions, in order, under one gate entry.
+
+The device already played these against the Dart twin of these rules; this
+replays them through the authoritative ones, so the server's copy is
+produced by the TypeScript rules and a disagreement surfaces as a rejection
+rather than being taken on trust. Each transition commits through exactly
+the live `action`/`forfeit` path — same guards, same frames, same log — so
+an imported game is indistinguishable from a played one afterwards.
+
+Three things differ, and only three: the whole run is one request, the
+per-commit D1 summary mirror is collapsed into one write at the end (a
+hundred-move game would otherwise cost a hundred round trips for a row
+nothing reads until it settles), and the first rejection stops the batch
+and is REPORTED rather than thrown, because everything before it is
+already committed and permanent.
+
+###### Parameters
+
+| Parameter | Type | Description |
+| ------ | ------ | ------ |
+| `cmd` | \{ `actor`: [`Principal`](#principal); `fromVersion`: `number`; `gameId`: `string`; `kind`: `"local-transitions"`; `transitions`: [`LocalTransition`](#localtransition)[]; \} | - |
+| `cmd.actor` | [`Principal`](#principal) | The game's creator: the only principal a local game has. |
+| `cmd.fromVersion` | `number` | The version the device believes the server is at. The import is append-only, so a mismatch means another device already appended and this batch is refused whole (`stateUpdated`). |
+| `cmd.gameId` | `string` | - |
+| `cmd.kind` | `"local-transitions"` | Import a run of a local game's transitions into the authoritative object, in order, as one request. A batch rather than one command per transition because a finished local game is a whole transcript: sending it move by move would cost a Worker and a Durable Object request each, and would let a client stop halfway through with the server's copy in a state the device never saw. |
+| `cmd.transitions` | [`LocalTransition`](#localtransition)[] | - |
+
+###### Returns
+
+`Promise`\<[`LocalBatchResult`](#localbatchresult)\>
+
+###### Implementation of
+
+```ts
+GameStub.localTransitions
+```
+
 ##### reconcile()
 
 ```ts
 reconcile(gameId): Promise<ReconcileReport>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:757](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L757)
+Defined in: [server/packages/server/src/do/game-do.ts:908](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L908)
 
 Re-derive D1's read model from this object's committed state, and finish any
 post-commit work that never landed.
@@ -394,7 +480,7 @@ GameStub.reconcile
 session(gameId, userId): Promise<SessionSnapshot | null>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:830](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L830)
+Defined in: [server/packages/server/src/do/game-do.ts:981](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L981)
 
 The snapshot over RPC, for the HTTP paths that have no socket.
 
@@ -421,7 +507,7 @@ GameStub.session
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:843](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L843)
+Defined in: [server/packages/server/src/do/game-do.ts:994](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L994)
 
 ###### Returns
 
@@ -439,7 +525,7 @@ DurableObject.webSocketClose
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:849](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L849)
+Defined in: [server/packages/server/src/do/game-do.ts:1000](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1000)
 
 ###### Parameters
 
@@ -464,7 +550,7 @@ DurableObject.webSocketError
 webSocketMessage(ws): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:835](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L835)
+Defined in: [server/packages/server/src/do/game-do.ts:986](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L986)
 
 ###### Parameters
 
@@ -486,7 +572,7 @@ DurableObject.webSocketMessage
 
 ### HttpError
 
-Defined in: [server/packages/server/src/http.ts:42](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L42)
+Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
 
 #### Extends
 
@@ -505,7 +591,7 @@ new HttpError(
 ): HttpError;
 ```
 
-Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
+Defined in: [server/packages/server/src/http.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L58)
 
 ###### Parameters
 
@@ -534,7 +620,7 @@ Error.constructor
 readonly code: ErrorCode | undefined;
 ```
 
-Defined in: [server/packages/server/src/http.ts:44](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L44)
+Defined in: [server/packages/server/src/http.ts:52](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L52)
 
 ##### retryAfterSeconds
 
@@ -542,7 +628,7 @@ Defined in: [server/packages/server/src/http.ts:44](https://github.com/eigeninte
 readonly retryAfterSeconds: number | undefined;
 ```
 
-Defined in: [server/packages/server/src/http.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L48)
+Defined in: [server/packages/server/src/http.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L56)
 
 Seconds the caller should wait before retrying, rendered as the
 `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
@@ -554,7 +640,7 @@ Seconds the caller should wait before retrying, rendered as the
 readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
 ```
 
-Defined in: [server/packages/server/src/http.ts:43](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L43)
+Defined in: [server/packages/server/src/http.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L51)
 
 ## Interfaces
 
@@ -613,7 +699,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:19](https://github.com/
 
 ### CreateGameInput
 
-Defined in: [server/packages/server/src/d1/apply.ts:292](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L292)
+Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L293)
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -626,7 +712,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L296)
+Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L297)
 
 ##### budgetSeconds
 
@@ -634,7 +720,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
+Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
 
 ##### config
 
@@ -642,7 +728,20 @@ Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eige
 config: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L298)
+Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
+
+##### createdAt
+
+```ts
+createdAt: number;
+```
+
+Defined in: [server/packages/server/src/d1/apply.ts:314](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L314)
+
+When the game began. `now` for an online create, which begins here; a
+local game began on the device, possibly days earlier, so it carries its
+own instant (clamped to `now` by the route, since it is a client claim) and
+history sorts by when it was played rather than when it synchronized.
 
 ##### createdBy
 
@@ -650,7 +749,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eige
 createdBy: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L294)
+Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L295)
 
 ##### gameId
 
@@ -658,7 +757,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eige
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L293)
+Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L294)
 
 ##### incrementSeconds
 
@@ -666,7 +765,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eige
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
+Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
 
 ##### maxPlayers
 
@@ -674,7 +773,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eige
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
+Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
 
 ##### minPlayers
 
@@ -682,7 +781,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eige
 minPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
+Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
 
 ##### now
 
@@ -690,7 +789,15 @@ Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eige
 now: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
+Defined in: [server/packages/server/src/d1/apply.ts:315](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L315)
+
+##### origin
+
+```ts
+origin: GameOrigin;
+```
+
+Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L298)
 
 ##### rated
 
@@ -698,7 +805,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eige
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
+Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
 
 ##### ratingPool
 
@@ -706,7 +813,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eige
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
+Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
 
 ##### schemaVersion
 
@@ -714,7 +821,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eige
 schemaVersion: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L297)
+Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L299)
 
 ##### seats
 
@@ -722,7 +829,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eige
 seats: Seat[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
+Defined in: [server/packages/server/src/d1/apply.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L309)
 
 ##### shortCode
 
@@ -730,7 +837,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eige
 shortCode: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
+Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
 
 ##### status
 
@@ -738,7 +845,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eige
 status: "waiting" | "ready";
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L295)
+Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L296)
 
 ##### turnSeconds
 
@@ -746,7 +853,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eige
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L299)
+Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
 
 ***
 
@@ -956,7 +1063,7 @@ The GameDO namespace binding.
 
 ### FinishApplyInput
 
-Defined in: [server/packages/server/src/d1/apply.ts:30](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L30)
+Defined in: [server/packages/server/src/d1/apply.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L31)
 
 #### Properties
 
@@ -966,7 +1073,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:30](https://github.com/eigen
 finishId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:34](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L34)
+Defined in: [server/packages/server/src/d1/apply.ts:35](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L35)
 
 The DO-minted idempotency key. The apply is a no-op replay when
 the games row already carries it.
@@ -977,7 +1084,7 @@ the games row already carries it.
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L31)
+Defined in: [server/packages/server/src/d1/apply.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L32)
 
 ##### now
 
@@ -985,7 +1092,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:31](https://github.com/eigen
 now: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L39)
+Defined in: [server/packages/server/src/d1/apply.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L40)
 
 ##### outcomes
 
@@ -993,7 +1100,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigen
 outcomes: OutcomeEntry[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:35](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L35)
+Defined in: [server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L36)
 
 ##### rated
 
@@ -1001,7 +1108,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:35](https://github.com/eigen
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L37)
+Defined in: [server/packages/server/src/d1/apply.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L38)
 
 ##### ratingPool
 
@@ -1009,7 +1116,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigen
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L38)
+Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L39)
 
 ##### roster
 
@@ -1017,7 +1124,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:38](https://github.com/eigen
 roster: Seat[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L36)
+Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L37)
 
 ***
 
@@ -1079,7 +1186,7 @@ Send one notification through the engine's registered-device store.
 
 ### FrameMessage
 
-Defined in: [server/packages/server/src/protocol.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L133)
+Defined in: [server/packages/server/src/protocol.ts:204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L204)
 
 One seat's versioned frame on the wire: the socket fan-out payload, and
 (for the acting seat) the command-response ride-along. `ratings` appears
@@ -1093,7 +1200,7 @@ only on the post-finish ratings transition.
 data: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L136)
+Defined in: [server/packages/server/src/protocol.ts:207](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L207)
 
 ##### deadline
 
@@ -1101,7 +1208,7 @@ Defined in: [server/packages/server/src/protocol.ts:136](https://github.com/eige
 deadline: number | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:139](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L139)
+Defined in: [server/packages/server/src/protocol.ts:210](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L210)
 
 The true client-facing deadline (grace is display-only there).
 
@@ -1111,7 +1218,7 @@ The true client-facing deadline (grace is display-only there).
 optional outcomes?: OutcomeEntry[];
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L141)
+Defined in: [server/packages/server/src/protocol.ts:212](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L212)
 
 ##### pendingPlayers
 
@@ -1119,7 +1226,7 @@ Defined in: [server/packages/server/src/protocol.ts:141](https://github.com/eige
 pendingPlayers: number[];
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L137)
+Defined in: [server/packages/server/src/protocol.ts:208](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L208)
 
 ##### playerTimes
 
@@ -1127,7 +1234,7 @@ Defined in: [server/packages/server/src/protocol.ts:137](https://github.com/eige
 playerTimes: number[] | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:140](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L140)
+Defined in: [server/packages/server/src/protocol.ts:211](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L211)
 
 ##### ratings?
 
@@ -1135,7 +1242,7 @@ Defined in: [server/packages/server/src/protocol.ts:140](https://github.com/eige
 optional ratings?: RatingDelta[];
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L142)
+Defined in: [server/packages/server/src/protocol.ts:213](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L213)
 
 ##### type
 
@@ -1143,7 +1250,7 @@ Defined in: [server/packages/server/src/protocol.ts:142](https://github.com/eige
 type: "frame";
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:134](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L134)
+Defined in: [server/packages/server/src/protocol.ts:205](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L205)
 
 ##### version
 
@@ -1151,7 +1258,7 @@ Defined in: [server/packages/server/src/protocol.ts:134](https://github.com/eige
 version: number;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:135](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L135)
+Defined in: [server/packages/server/src/protocol.ts:206](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L206)
 
 ***
 
@@ -1193,6 +1300,166 @@ optional terms?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:30](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L30)
+
+***
+
+### LocalRecord
+
+Defined in: [server/packages/server/src/protocol.ts:257](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L257)
+
+What a device needs to continue a local game it holds no record for: the
+seed every transition's randomness derives from, plus the log itself.
+
+#### Properties
+
+##### seed
+
+```ts
+seed: string;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:258](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L258)
+
+##### transitions
+
+```ts
+transitions: LocalTransitionRow[];
+```
+
+Defined in: [server/packages/server/src/protocol.ts:259](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L259)
+
+***
+
+### LocalRejection
+
+Defined in: [server/packages/server/src/protocol.ts:231](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L231)
+
+Which transition of an import batch the game refused, and why.
+
+Not a transport error: everything before `index` is committed and permanent,
+so the batch answers 200 carrying this. It means the device's Dart twin and
+the authoritative TypeScript rules disagreed, which the client surfaces as a
+diverged record rather than retrying. `abstain` cannot appear: only the
+alarm's system timeout abstains, and a local game is untimed.
+
+#### Properties
+
+##### code
+
+```ts
+code:
+  | "notActive"
+  | "notReady"
+  | "expired"
+  | "notPending"
+  | "stateUpdated"
+  | "invalidPayload"
+  | "illegalMove"
+  | LobbyRejectCode;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:233](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L233)
+
+##### index
+
+```ts
+index: number;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:232](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L232)
+
+##### message
+
+```ts
+message: string;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:234](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L234)
+
+***
+
+### LocalTransition
+
+Defined in: [server/packages/server/src/protocol.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L117)
+
+One transition of a local game's log, as the device recorded it.
+
+`data` is the game's own action payload for `game`, and a `LifecycleAction`
+for `lifecycle` — of which only `forfeit` is importable, because a local game
+is untimed (so it can never time out) and `autoForfeit` is engine-driven.
+The worker validates the lifecycle payload before minting the command, so the
+DO reads the seat and nothing else.
+
+#### Properties
+
+##### data
+
+```ts
+data: unknown;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L120)
+
+##### kind
+
+```ts
+kind: "lifecycle" | "game";
+```
+
+Defined in: [server/packages/server/src/protocol.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L119)
+
+##### seat
+
+```ts
+seat: number;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L118)
+
+***
+
+### LocalTransitionRow
+
+Defined in: [server/packages/server/src/protocol.ts:248](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L248)
+
+One row of a local game's stored log: the raw state and the action that
+produced it, which is everything a device needs to rebuild its local engine.
+The ONLY place raw state leaves the Durable Object, and only to the game's
+single human (see GameStub.localRecord).
+
+#### Properties
+
+##### action
+
+```ts
+action: TransitionAction | null;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:251](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L251)
+
+##### pending
+
+```ts
+pending: number[];
+```
+
+Defined in: [server/packages/server/src/protocol.ts:252](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L252)
+
+##### state
+
+```ts
+state: JsonObject;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:250](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L250)
+
+##### version
+
+```ts
+version: number;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:249](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L249)
 
 ***
 
@@ -1250,7 +1517,7 @@ Legal entity name. Also the page footers' copyright holder.
 
 ### Principal
 
-Defined in: [server/packages/server/src/protocol.ts:15](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L15)
+Defined in: [server/packages/server/src/protocol.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L32)
 
 Who a command acts as, resolved at the edge. Exactly one id is set.
 
@@ -1262,7 +1529,7 @@ Who a command acts as, resolved at the edge. Exactly one id is set.
 botId: string | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:17](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L17)
+Defined in: [server/packages/server/src/protocol.ts:34](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L34)
 
 ##### userId
 
@@ -1270,7 +1537,7 @@ Defined in: [server/packages/server/src/protocol.ts:17](https://github.com/eigen
 userId: string | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:16](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L16)
+Defined in: [server/packages/server/src/protocol.ts:33](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L33)
 
 ***
 
@@ -1475,7 +1742,7 @@ Delay primitive, injectable so tests run without real timers.
 
 ### SessionSnapshot
 
-Defined in: [server/packages/server/src/protocol.ts:95](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L95)
+Defined in: [server/packages/server/src/protocol.ts:164](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L164)
 
 The complete live truth about one game, as ONE SEAT sees it: the only message
 the socket carries, and the body of every accepted command.
@@ -1503,7 +1770,7 @@ seat's view.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L107)
+Defined in: [server/packages/server/src/protocol.ts:176](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L176)
 
 ##### budgetSeconds
 
@@ -1511,7 +1778,7 @@ Defined in: [server/packages/server/src/protocol.ts:107](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:111](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L111)
+Defined in: [server/packages/server/src/protocol.ts:182](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L182)
 
 ##### config
 
@@ -1519,7 +1786,7 @@ Defined in: [server/packages/server/src/protocol.ts:111](https://github.com/eige
 config: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L109)
+Defined in: [server/packages/server/src/protocol.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L180)
 
 ##### createdBy
 
@@ -1527,7 +1794,7 @@ Defined in: [server/packages/server/src/protocol.ts:109](https://github.com/eige
 createdBy: string | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L117)
+Defined in: [server/packages/server/src/protocol.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L188)
 
 ##### frame
 
@@ -1535,7 +1802,7 @@ Defined in: [server/packages/server/src/protocol.ts:117](https://github.com/eige
 frame: FrameMessage | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L127)
+Defined in: [server/packages/server/src/protocol.ts:198](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L198)
 
 The receiving seat's observation at `version`. Null in the lobby, and null
 for a principal holding no seat, which is how an unseated client still
@@ -1547,7 +1814,7 @@ learns that the game started.
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:105](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L105)
+Defined in: [server/packages/server/src/protocol.ts:174](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L174)
 
 Fixed at creation; carried so this is sufficient on its own.
 
@@ -1557,7 +1824,7 @@ Fixed at creation; carried so this is sufficient on its own.
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L112)
+Defined in: [server/packages/server/src/protocol.ts:183](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L183)
 
 ##### maxPlayers
 
@@ -1565,7 +1832,7 @@ Defined in: [server/packages/server/src/protocol.ts:112](https://github.com/eige
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L116)
+Defined in: [server/packages/server/src/protocol.ts:187](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L187)
 
 ##### minPlayers
 
@@ -1573,7 +1840,17 @@ Defined in: [server/packages/server/src/protocol.ts:116](https://github.com/eige
 minPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L115)
+Defined in: [server/packages/server/src/protocol.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L186)
+
+##### origin
+
+```ts
+origin: GameOrigin;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L178)
+
+Where this game is played; never changes.
 
 ##### players
 
@@ -1581,7 +1858,7 @@ Defined in: [server/packages/server/src/protocol.ts:115](https://github.com/eige
 players: Seat[];
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L121)
+Defined in: [server/packages/server/src/protocol.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L192)
 
 ##### rated
 
@@ -1589,7 +1866,7 @@ Defined in: [server/packages/server/src/protocol.ts:121](https://github.com/eige
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L113)
+Defined in: [server/packages/server/src/protocol.ts:184](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L184)
 
 ##### ratingPool
 
@@ -1597,7 +1874,7 @@ Defined in: [server/packages/server/src/protocol.ts:113](https://github.com/eige
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L114)
+Defined in: [server/packages/server/src/protocol.ts:185](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L185)
 
 ##### schemaVersion
 
@@ -1605,7 +1882,7 @@ Defined in: [server/packages/server/src/protocol.ts:114](https://github.com/eige
 schemaVersion: number;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L108)
+Defined in: [server/packages/server/src/protocol.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L179)
 
 ##### seq
 
@@ -1613,7 +1890,7 @@ Defined in: [server/packages/server/src/protocol.ts:108](https://github.com/eige
 seq: number;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L102)
+Defined in: [server/packages/server/src/protocol.ts:171](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L171)
 
 Monotonic per game, incremented by every commit. Totally orders snapshots
 across every path they arrive by, which `version` cannot do because a lobby
@@ -1627,7 +1904,7 @@ non-terminal snapshot rather than resurrecting a completed game.
 shortCode: string;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L106)
+Defined in: [server/packages/server/src/protocol.ts:175](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L175)
 
 ##### status
 
@@ -1635,7 +1912,7 @@ Defined in: [server/packages/server/src/protocol.ts:106](https://github.com/eige
 status: GameStatus;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L120)
+Defined in: [server/packages/server/src/protocol.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L191)
 
 What moves.
 
@@ -1645,7 +1922,7 @@ What moves.
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L110)
+Defined in: [server/packages/server/src/protocol.ts:181](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L181)
 
 ##### type
 
@@ -1653,7 +1930,7 @@ Defined in: [server/packages/server/src/protocol.ts:110](https://github.com/eige
 type: "session";
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:96](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L96)
+Defined in: [server/packages/server/src/protocol.ts:165](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L165)
 
 ##### version
 
@@ -1661,7 +1938,7 @@ Defined in: [server/packages/server/src/protocol.ts:96](https://github.com/eigen
 version: number | null;
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L123)
+Defined in: [server/packages/server/src/protocol.ts:194](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L194)
 
 The newest committed version, or null while the game is in the lobby.
 
@@ -1822,6 +2099,7 @@ type Command =
   actor: Principal;
   gameId: string;
   kind: "start";
+  seed?: string;
 }
   | {
   actor: Principal;
@@ -1843,10 +2121,17 @@ type Command =
   kind: "lifecycle";
   seat?: number;
   type: LifecycleType;
+}
+  | {
+  actor: Principal;
+  fromVersion: number;
+  gameId: string;
+  kind: "local-transitions";
+  transitions: LocalTransition[];
 };
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:22](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L22)
+Defined in: [server/packages/server/src/protocol.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L39)
 
 Everything that crosses the worker → DO boundary after creation (
 create itself is a worker-direct D1 write; the DO does not exist yet).
@@ -1884,8 +2169,40 @@ create itself is a worker-direct D1 write; the DO does not exist yet).
   actor: Principal;
   gameId: string;
   kind: "start";
+  seed?: string;
 }
 ```
+
+###### actor
+
+```ts
+actor: Principal;
+```
+
+###### gameId
+
+```ts
+gameId: string;
+```
+
+###### kind
+
+```ts
+kind: "start";
+```
+
+###### seed?
+
+```ts
+optional seed?: string;
+```
+
+The game's base RNG seed. Carried ONLY by the local-import create
+(`POST /games/local`): the device already played the game from this
+seed, so the server's replay has to draw the same values or every
+random hook would diverge on the first transition. Absent on every
+other path, where the DO generates one (`randomSeed()`) and the seed
+never leaves it.
 
 ***
 
@@ -2012,6 +2329,64 @@ type: LifecycleType;
 
 ***
 
+##### Type Literal
+
+```ts
+{
+  actor: Principal;
+  fromVersion: number;
+  gameId: string;
+  kind: "local-transitions";
+  transitions: LocalTransition[];
+}
+```
+
+###### actor
+
+```ts
+actor: Principal;
+```
+
+The game's creator: the only principal a local game has.
+
+###### fromVersion
+
+```ts
+fromVersion: number;
+```
+
+The version the device believes the server is at. The import is
+append-only, so a mismatch means another device already appended and
+this batch is refused whole (`stateUpdated`).
+
+###### gameId
+
+```ts
+gameId: string;
+```
+
+###### kind
+
+```ts
+kind: "local-transitions";
+```
+
+Import a run of a local game's transitions into the authoritative
+object, in order, as one request.
+
+A batch rather than one command per transition because a finished local
+game is a whole transcript: sending it move by move would cost a Worker
+and a Durable Object request each, and would let a client stop halfway
+through with the server's copy in a state the device never saw.
+
+###### transitions
+
+```ts
+transitions: LocalTransition[];
+```
+
+***
+
 ### CommandResult
 
 ```ts
@@ -2028,7 +2403,7 @@ type CommandResult =
 };
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L151)
+Defined in: [server/packages/server/src/protocol.ts:222](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L222)
 
 What `GameDO.handle()` returns: one accepted shape for every command kind,
 the caller's own post-commit [SessionSnapshot](#sessionsnapshot), so a lobby command and a
@@ -2036,6 +2411,30 @@ move answer with the same value and the client feeds both into one path.
 
 Rejections are values and are recomputed against the authoritative current
 state on every attempt.
+
+***
+
+### GameOrigin
+
+```ts
+type GameOrigin = "online" | "local";
+```
+
+Defined in: [server/packages/server/src/protocol.ts:29](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L29)
+
+Where a game is played, fixed at creation and immutable.
+
+`online` is the ordinary game: every transition is decided by this server.
+`local` is a game the device played offline against on-device bot brains and
+imported afterwards, transition by transition, through the two import routes.
+The server still commits every one of them through the same rules, so an
+imported game is an ordinary game once it lands; `origin` says how it got
+here, which is what lets a client badge it, keep it unrated, and know that it
+may continue appending to it from the device.
+
+Lives here rather than beside the D1 column because it is protocol: it rides
+[SessionSnapshot](#sessionsnapshot) and the game summary, so a game screen needs no
+second source to know what it is looking at.
 
 ***
 
@@ -2052,13 +2451,58 @@ type LobbyRejectCode =
   | "creatorCannotLeave";
 ```
 
-Defined in: [server/packages/server/src/protocol.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L59)
+Defined in: [server/packages/server/src/protocol.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L128)
 
 Why the DO refused a waiting-room command: the integrity column.
 These are *expected* refusals (accepted lobby staleness: the lobby may show
 a game that just filled), returned as values exactly like kernel
 rejections; the worker maps them to HTTP. Genuine protocol violations
 (acting on a seat you don't own) still throw.
+
+***
+
+### LocalBatchResult
+
+```ts
+type LocalBatchResult =
+  | {
+  applied: number;
+  ok: true;
+  rejection: LocalRejection | null;
+  session: SessionSnapshot;
+}
+  | {
+  code:   | RejectCode
+     | LobbyRejectCode;
+  message: string;
+  ok: false;
+};
+```
+
+Defined in: [server/packages/server/src/protocol.ts:242](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L242)
+
+What one import batch returns: how far it got, the creator's session after
+the last committed transition, and the rejection that stopped it (null when
+the whole batch landed). A refusal of the batch *as a whole* (an unknown
+game, a non-creator, a `fromVersion` another device moved past) is the same
+rejection value shape every command uses.
+
+***
+
+### SingleCommand
+
+```ts
+type SingleCommand = Exclude<Command, {
+  kind: "local-transitions";
+}>;
+```
+
+Defined in: [server/packages/server/src/protocol.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L106)
+
+Every command that is exactly one commit: what GameStub.handle
+takes. The import batch is the one command that is not, and it has its own
+entry point, because it answers with how far it got rather than with one
+commit's result.
 
 ***
 
@@ -2110,7 +2554,7 @@ renders as plain text rather than pointing somewhere it never mentioned.
 function applyFinish(d1, input): Promise<RatingDelta[] | null>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L48)
+Defined in: [server/packages/server/src/d1/apply.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L49)
 
 Apply one finished game to D1. Returns the rated deltas (null for an
 unrated game) for the DO to deliver as the ratings transition. Throws on
@@ -2204,7 +2648,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:316](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L316)
+Defined in: [server/packages/server/src/d1/apply.ts:323](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L323)
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact.
@@ -2367,7 +2811,7 @@ Deliberately narrow; see RETRYABLE\_D1. Pass to `withRetry` as its
 function mirrorRoster(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:280](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L280)
+Defined in: [server/packages/server/src/d1/apply.ts:281](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L281)
 
 The roster mirror after a committed waiting-room command. The DO's
 roster is the integrity copy; this rewrites the D1 display copy wholesale
@@ -2380,10 +2824,10 @@ single attempt.
 | Parameter | Type |
 | ------ | ------ |
 | `d1` | `D1Database` |
-| `args` | \{ `gameId`: `string`; `now`: `number`; `seats`: [`Seat`](testkit.md#seat)[]; `status`: `GameStatus`; \} |
+| `args` | \{ `gameId`: `string`; `now`: `number`; `seats`: [`Seat`](testkit.md#seat-2)[]; `status`: `GameStatus`; \} |
 | `args.gameId` | `string` |
 | `args.now` | `number` |
-| `args.seats` | [`Seat`](testkit.md#seat)[] |
+| `args.seats` | [`Seat`](testkit.md#seat-2)[] |
 | `args.status` | `GameStatus` |
 
 #### Returns
@@ -2429,6 +2873,7 @@ function readGameRow(d1, gameId): Promise<
   incrementSeconds: number | null;
   maxPlayers: number;
   minPlayers: number;
+  origin: GameOrigin;
   outcomes: OutcomeEntry[] | null;
   participants: Seat[];
   pendingPlayers: number[] | null;
@@ -2444,7 +2889,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:343](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L343)
+Defined in: [server/packages/server/src/d1/apply.ts:351](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L351)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
@@ -2472,8 +2917,9 @@ its `meta`/`roster` on first contact, in one batched round trip.
   `incrementSeconds`: `number` \| `null`;
   `maxPlayers`: `number`;
   `minPlayers`: `number`;
+  `origin`: [`GameOrigin`](#gameorigin);
   `outcomes`: `OutcomeEntry`[] \| `null`;
-  `participants`: [`Seat`](testkit.md#seat)[];
+  `participants`: [`Seat`](testkit.md#seat-2)[];
   `pendingPlayers`: `number`[] \| `null`;
   `rated`: `boolean`;
   `ratingPool`: `string` \| `null`;
@@ -2494,7 +2940,7 @@ its `meta`/`roster` on first contact, in one batched round trip.
 function updateSummary(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:262](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L262)
+Defined in: [server/packages/server/src/d1/apply.ts:263](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L263)
 
 The display upsert after a non-finishing transition: fire-and-forget
 post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,

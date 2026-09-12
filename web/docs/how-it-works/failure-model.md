@@ -38,6 +38,13 @@ The remaining recovery paths are operation-specific:
   [Account lifecycle](./account-lifecycle.md)).
 - **D1 mirror staleness** is accepted by design: the DO is the truth, and a
   stale summary only ever costs a lobby a clean late rejection.
+- A **local game's import batch rejecting a transition** is not treated as a
+  transport failure to retry: everything before the rejection is already
+  committed and permanent, and the rejection itself means the device's Dart
+  rules and the server's TypeScript rules disagreed about the same move. That
+  is a twin bug, so the client marks the record `diverged` and shows the
+  server's copy rather than resolving the disagreement in either side's favor.
+  See [Offline play](../build-a-game/offline-play.md).
 
 Post-commit DO effects run as self-catching promises. A genuine server fault, a
 game-hook bug, or a storage failure surfaces as a 500 and is logged; it never

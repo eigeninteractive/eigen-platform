@@ -251,6 +251,122 @@ final class RpsV1Round {
       Object.hashAll([_payloadHash(moves), _payloadHash(winner)]);
 }
 
+final class RpsV1State {
+  RpsV1State({
+    required Iterable<RpsV1Move?> commits,
+    required this.lastRound,
+    required this.round,
+    required Iterable<int> wins,
+  }) : commits = List.unmodifiable(commits),
+       wins = List.unmodifiable(wins);
+
+  factory RpsV1State.fromJson(Map<String, dynamic> json) {
+    const path = "RpsV1State";
+    _payloadObjectBounds(
+      json,
+      path,
+      const <String>{"commits", "lastRound", "round", "wins"},
+      true,
+      null,
+      null,
+    );
+    return RpsV1State(
+      commits:
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "commits", "$path.commits"),
+              "$path.commits",
+            ),
+            "$path.commits",
+            2,
+            2,
+            false,
+          ).indexed.map((entry) {
+            final index = entry.$1;
+            final item = entry.$2;
+            return item == null
+                ? null
+                : RpsV1Move.fromJson(item, "$path.commits[$index]");
+          }).toList(),
+      lastRound: _payloadRequired(json, "lastRound", "$path.lastRound") == null
+          ? null
+          : RpsV1Round.fromJson(
+              _payloadMap(
+                _payloadRequired(json, "lastRound", "$path.lastRound"),
+                "$path.lastRound",
+              ),
+            ),
+      round: _payloadNumberBounds(
+        _payloadInt(
+          _payloadRequired(json, "round", "$path.round"),
+          "$path.round",
+        ),
+        "$path.round",
+        1,
+        9007199254740991,
+        null,
+        null,
+      ),
+      wins:
+          _payloadListBounds(
+            _payloadList(
+              _payloadRequired(json, "wins", "$path.wins"),
+              "$path.wins",
+            ),
+            "$path.wins",
+            2,
+            2,
+            false,
+          ).indexed.map((entry) {
+            final index = entry.$1;
+            final item = entry.$2;
+            return _payloadNumberBounds(
+              _payloadInt(item, "$path.wins[$index]"),
+              "$path.wins[$index]",
+              0,
+              9007199254740991,
+              null,
+              null,
+            );
+          }).toList(),
+    );
+  }
+
+  final List<RpsV1Move?> commits;
+
+  final RpsV1Round? lastRound;
+
+  final int round;
+
+  final List<int> wins;
+
+  Map<String, dynamic> toJson() => {
+    "commits": commits
+        .map((item) => item == null ? null : item!.toJson())
+        .toList(),
+    "lastRound": lastRound == null ? null : lastRound!.toJson(),
+    "round": round,
+    "wins": wins.map((item) => item).toList(),
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RpsV1State &&
+          _payloadEquals(commits, other.commits) &&
+          _payloadEquals(lastRound, other.lastRound) &&
+          _payloadEquals(round, other.round) &&
+          _payloadEquals(wins, other.wins);
+
+  @override
+  int get hashCode => Object.hashAll([
+    _payloadHash(commits),
+    _payloadHash(lastRound),
+    _payloadHash(round),
+    _payloadHash(wins),
+  ]);
+}
+
 final class RpsV1Observation {
   RpsV1Observation({
     Iterable<RpsV1Move?>? commits,
@@ -463,4 +579,39 @@ abstract class RpsV1RulesBase
 
   @override
   Map<String, dynamic> serializeAction(RpsV1Action action) => action.toJson();
+}
+
+/// The offline half of this version: implements the seven payload
+/// codecs the local kernel needs, leaving the transcribed hooks
+/// abstract. A version unit that ships local play extends this and
+/// returns the subclass from its `GameRules.local` getter.
+abstract class RpsV1LocalRulesBase
+    extends
+        LocalGameRules<RpsV1State, RpsV1Observation, RpsV1Action, RpsV1Config> {
+  const RpsV1LocalRulesBase();
+
+  @override
+  RpsV1Config parseConfig(Map<String, dynamic> json) =>
+      RpsV1Config.fromJson(json);
+
+  @override
+  RpsV1State parseState(Map<String, dynamic> json) => RpsV1State.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeState(RpsV1State state) => state.toJson();
+
+  @override
+  RpsV1Action parseAction(Map<String, dynamic> json) =>
+      RpsV1Action.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeAction(RpsV1Action action) => action.toJson();
+
+  @override
+  RpsV1Observation parseObservation(Map<String, dynamic> json) =>
+      RpsV1Observation.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeObservation(RpsV1Observation observation) =>
+      observation.toJson();
 }

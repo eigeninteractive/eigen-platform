@@ -37,7 +37,15 @@ export type ErrorCode =
   | "rateLimited"
   /** A pagination cursor that did not decode. Distinct because a client can
    * act on it: discard the cursor and re-request the first page. */
-  | "invalidCursor";
+  | "invalidCursor"
+  /** An import route was called for a game whose origin is not `local`. Coded
+   * because the client acts on it: stop trying to synchronize this game as a
+   * local one and treat the server's copy as the only one. */
+  | "localOnly"
+  /** A bot in a local create is hosted elsewhere (`external`) and so cannot
+   * play on the device. Coded because the picker can drop exactly that bot
+   * rather than failing the whole creation. */
+  | "notLocalBot";
 
 export class HttpError extends Error {
   readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;

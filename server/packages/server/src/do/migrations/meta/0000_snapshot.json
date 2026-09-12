@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "835d69d7-afdc-412b-b8e6-8e160e3f2359",
+  "id": "f441d976-50e6-44c3-aaf9-d7bdf05e3cf8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "frames": {
@@ -80,6 +80,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "origin": {
+          "name": "origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'online'"
         },
         "schema_version": {
           "name": "schema_version",
@@ -184,7 +192,12 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "checkConstraints": {
+        "meta_origin_valid": {
+          "name": "meta_origin_valid",
+          "value": "\"meta\".\"origin\" IN ('online', 'local')"
+        }
+      }
     },
     "outbox": {
       "name": "outbox",

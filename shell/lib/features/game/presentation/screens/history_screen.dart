@@ -74,11 +74,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     _pagingController = PagingController<String, _HistoryEntry>(
       getNextPageKey: (state) => _nextKey,
       fetchPage: (key) async {
+        final firstPage = key.isEmpty;
+        // Games played on this device sit at the top of the first page and are
+        // never paged: they live in the device's own store, so there are as
+        // many as there are and no cursor can describe them. A synced one also
+        // exists on the server, and the device's copy is the one kept, for the
+        // same reason the home list keeps it.
+        final local = firstPage
+            ? await ref.read(localFinishedGamesProvider.future)
+            : const <GameSummary>[];
+        final localIds = {for (final game in local) game.id};
         final page = await ref
             .read(gameRepositoryProvider)
             .getMyGames(
               bucket: finishedGamesBucket,
-              cursor: key.isEmpty ? null : key,
+              cursor: firstPage ? null : key,
             );
         // The server says where the next page starts, and says so with a token
         // this screen never opens. Nothing here knows that finished games sort
@@ -91,7 +101,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         // page - and silently wrong past its own page limit.
         final myUserId = ref.read(currentUserIdProvider);
         return [
-          for (final game in games)
+          for (final game in [
+            ...local,
+            for (final game in games)
+              if (!localIds.contains(game.id)) game,
+          ])
             (
               game: game,
               myResult: _myResult(game, myUserId),

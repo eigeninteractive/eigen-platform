@@ -1,5 +1,5 @@
 ---
-sidebar_position: 11
+sidebar_position: 12
 title: Changing a shipped game
 description: "What to do when rules change after players use them: publish an immutable new version and retain every earlier version while games exist."
 ---

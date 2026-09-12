@@ -57,6 +57,15 @@ seated with me + bots, and start it" into one call, returning the caller's
 opening v0 frame so the client can render immediately. Guests may play bots
 (unrated).
 
+**create-local** (`POST /api/engine/games/local`) is the other Worker-direct
+create: it registers a game a device already started and played entirely
+offline, forcing `access = private`, `rated = false`, untimed, and
+`origin = local`, and is idempotent on the device's own game id so a repeated
+sync is harmless. The device's transition log then lands one batch at a time
+via `POST /api/engine/games/{id}/local/transitions`, each transition replayed
+through the ordinary kernel at the version it claims. See
+[Offline play](../build-a-game/offline-play.md).
+
 ## Active play
 
 A move is `POST /api/engine/games/{id}/action` carrying the caller's own `seat`,

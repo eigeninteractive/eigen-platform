@@ -1,5 +1,5 @@
 ---
-sidebar_position: 10
+sidebar_position: 11
 title: Debugging a live game
 description: How to look inside a running game's two stores, the D1 index and its own Durable Object, with eigen-inspect, Wrangler's local explorer, raw SQLite and Drizzle Studio.
 ---

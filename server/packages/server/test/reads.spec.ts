@@ -35,6 +35,7 @@ async function seedTwoSeatGame(): Promise<{ gameId: string; shortCode: string; a
     createdBy: a,
     status: "ready",
     access: "public",
+    origin: "online",
     schemaVersion: 1,
     config: {},
     turnSeconds: null,
@@ -49,6 +50,7 @@ async function seedTwoSeatGame(): Promise<{ gameId: string; shortCode: string; a
       { playerIndex: 0, userId: a, botId: null, type: "human" },
       { playerIndex: 1, userId: b, botId: null, type: "human" },
     ],
+    createdAt: now,
     now,
   });
   return { gameId, shortCode, a, b };

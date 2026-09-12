@@ -56,7 +56,7 @@ library eigen_flutter.testing;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:eigen_api/eigen_api.dart' show GameAccess;
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 
 /// One fixture file's cases, all targeting one `schemaVersion` unit.
@@ -99,6 +99,12 @@ final class ActionCase extends TwinFixtureCase {
     required this.playerIndex,
     required this.expectedValid,
     required this.expectedObservation,
+    // Defaulted exactly as the fixture format defaults them: a case that
+    // records no envelope asserts nothing about one, and one that names
+    // neither seat count nor stream means two seats and the shared seed.
+    this.expected = const ExpectedEnvelope(),
+    this.participantCount = 2,
+    this.rngSeed = _defaultRngSeed,
   });
 
   final Map<String, dynamic> config;
@@ -118,6 +124,17 @@ final class ActionCase extends TwinFixtureCase {
 
   /// The actor's post-action view, or null when the fixture records none.
   final Map<String, dynamic>? expectedObservation;
+
+  /// What the resulting envelope must hold. Checked against the local unit's
+  /// own `applyAction`, which is the hook the device actually commits with.
+  final ExpectedEnvelope expected;
+
+  /// Seats in the game, for the observation fan-out. Two unless recorded.
+  final int participantCount;
+
+  /// The stream the hook draws from. These cases have no version to derive
+  /// from, so the fixture names it directly.
+  final String rngSeed;
 }
 
 /// A [GameRules.ratingPool] predicate case.
@@ -220,9 +237,14 @@ TwinFixtureCase _parseCase(String indexed, dynamic raw) {
     'playerLimits' => _parsePlayerLimitsCase(where, map),
     'ratingPool' => _parseRatingPoolCase(where, map),
     'botSeatable' => _parseBotSeatableCase(where, map),
+    'initialState' => _parseInitialStateCase(where, map),
+    'lifecycle' => _parseLifecycleCase(where, map),
+    'transcript' => _parseTranscriptCase(where, map),
+    'rng' => _parseRngCase(where, map),
     final kind => throw FormatException(
       '$where.kind: expected one of '
-      'action | playerLimits | ratingPool | botSeatable, '
+      'action | playerLimits | ratingPool | botSeatable | initialState | '
+      'lifecycle | transcript | rng, '
       'got ${jsonEncode(kind)}',
     ),
   };
@@ -231,15 +253,9 @@ TwinFixtureCase _parseCase(String indexed, dynamic raw) {
 ActionCase _parseActionCase(String where, Map<String, dynamic> map) {
   final expected = _object('$where.expected', map['expected']);
   final state = _object('$where.state', map['state']);
-  // Fields only the TS runner consumes. Validated, not stored: a game package
-  // may ship no TS twin at all, and then nothing else would catch a typo.
-  _optional('$where.expected.state', expected['state'], _object);
-  _optional('$where.expected.pending', expected['pending'], _intList);
-  _optional('$where.participantCount', map['participantCount'], _int);
-  _optional('$where.rngSeed', map['rngSeed'], _string);
-  if (expected.containsKey('outcome') && expected['outcome'] != null) {
-    _list('$where.expected.outcome', expected['outcome']);
-  }
+  final outcome = expected.containsKey('outcome') && expected['outcome'] != null
+      ? _list('$where.expected.outcome', expected['outcome'])
+      : null;
   return ActionCase(
     name: _string('$where.name', map['name']),
     config: _object('$where.config', map['config']),
@@ -254,6 +270,21 @@ ActionCase _parseActionCase(String where, Map<String, dynamic> map) {
       expected['observation'],
       _object,
     ),
+    expected: ExpectedEnvelope(
+      state: _optional('$where.expected.state', expected['state'], _object),
+      pending: _optional(
+        '$where.expected.pending',
+        expected['pending'],
+        _intList,
+      ),
+      outcome: outcome,
+      assertsOutcome: expected.containsKey('outcome'),
+    ),
+    participantCount:
+        _optional('$where.participantCount', map['participantCount'], _int) ??
+        2,
+    rngSeed:
+        _optional('$where.rngSeed', map['rngSeed'], _string) ?? _defaultRngSeed,
   );
 }
 
@@ -315,6 +346,285 @@ BotSeatableCase _parseBotSeatableCase(String where, Map<String, dynamic> map) {
   );
 }
 
+/// The envelope block an `initialState`, `lifecycle` or `transcript` case
+/// records: every field optional, because a case asserts only what it is about.
+final class ExpectedEnvelope {
+  const ExpectedEnvelope({
+    this.state,
+    this.pending,
+    this.outcome,
+    this.assertsOutcome = false,
+  });
+
+  final Map<String, dynamic>? state;
+  final List<int>? pending;
+
+  /// The recorded outcome. Null means either "unchecked" or "assert the game is
+  /// ongoing", which [assertsOutcome] distinguishes.
+  final List<dynamic>? outcome;
+
+  /// Whether the fixture wrote an `outcome` key at all. A written null asserts
+  /// the game did not end; an absent one asserts nothing.
+  final bool assertsOutcome;
+}
+
+/// Exercises [LocalGameRules.initialState] for one config and seat count.
+final class InitialStateCase extends TwinFixtureCase {
+  const InitialStateCase({
+    required super.name,
+    required this.config,
+    required this.playerCount,
+    required this.rngSeed,
+    required this.expected,
+  });
+
+  final Map<String, dynamic> config;
+  final int playerCount;
+  final String rngSeed;
+  final ExpectedEnvelope expected;
+}
+
+/// Exercises [LocalGameRules.applyLifecycle] for one trigger.
+final class LifecycleCase extends TwinFixtureCase {
+  const LifecycleCase({
+    required super.name,
+    required this.config,
+    required this.state,
+    required this.pending,
+    required this.action,
+    required this.rngSeed,
+    required this.expected,
+  });
+
+  final Map<String, dynamic> config;
+  final Map<String, dynamic> state;
+  final List<int> pending;
+
+  /// The engine-constructed payload, already typed.
+  final LifecycleAction action;
+
+  final String rngSeed;
+  final ExpectedEnvelope expected;
+}
+
+/// One move of a [TranscriptCase]: a game action, or a resign.
+final class TranscriptTransition {
+  const TranscriptTransition({
+    required this.isLifecycle,
+    required this.playerIndex,
+    this.data = const {},
+  });
+
+  final bool isLifecycle;
+  final int playerIndex;
+  final Map<String, dynamic> data;
+}
+
+/// A whole game, played move by move through the local kernel.
+///
+/// The one case kind that exercises the pieces together: the hooks, the guards,
+/// the seeded streams, and the version chain. The TypeScript runner drives the
+/// real `commit()` over the same file, so a transcript that ends somewhere else
+/// here is exactly the divergence an imported game would hit on the server.
+final class TranscriptCase extends TwinFixtureCase {
+  const TranscriptCase({
+    required super.name,
+    required this.config,
+    required this.playerCount,
+    required this.seed,
+    required this.transitions,
+    required this.expectedVersion,
+    required this.expectedStatus,
+    required this.expected,
+  });
+
+  final Map<String, dynamic> config;
+  final int playerCount;
+  final String seed;
+  final List<TranscriptTransition> transitions;
+  final int expectedVersion;
+
+  /// `active` or `finished`, as the fixture recorded it.
+  final String expectedStatus;
+
+  final ExpectedEnvelope expected;
+}
+
+/// A recorded slice of a deterministic stream.
+///
+/// The only kind that runs whether or not a version ships a local unit: the
+/// streams are engine-owned, and a Dart port that drifts from them by one bit
+/// produces a different game on import than the one the player watched.
+final class RngCase extends TwinFixtureCase {
+  const RngCase({
+    required super.name,
+    required this.seed,
+    required this.version,
+    required this.seat,
+    required this.draws,
+  });
+
+  final String seed;
+  final int version;
+
+  /// The bot seat whose stream this is, or null for the transition stream.
+  final int? seat;
+
+  final List<double> draws;
+}
+
+ExpectedEnvelope _parseExpectedEnvelope(
+  String where,
+  Map<String, dynamic> map,
+) {
+  final outcome = map.containsKey('outcome') && map['outcome'] != null
+      ? _list('$where.outcome', map['outcome'])
+      : null;
+  return ExpectedEnvelope(
+    state: _optional('$where.state', map['state'], _object),
+    pending: _optional('$where.pending', map['pending'], _intList),
+    outcome: outcome,
+    assertsOutcome: map.containsKey('outcome'),
+  );
+}
+
+InitialStateCase _parseInitialStateCase(
+  String where,
+  Map<String, dynamic> map,
+) {
+  return InitialStateCase(
+    name: _string('$where.name', map['name']),
+    config: _object('$where.config', map['config']),
+    playerCount: _int('$where.playerCount', map['playerCount']),
+    rngSeed:
+        _optional('$where.rngSeed', map['rngSeed'], _string) ?? _defaultRngSeed,
+    expected: _parseExpectedEnvelope(
+      '$where.expected',
+      _object('$where.expected', map['expected']),
+    ),
+  );
+}
+
+LifecycleCase _parseLifecycleCase(String where, Map<String, dynamic> map) {
+  final type = _string('$where.type', map['type']);
+  final seat = _optional('$where.playerIndex', map['playerIndex'], _int);
+  final LifecycleAction action;
+  switch (type) {
+    case 'timeout':
+      if (seat != null) {
+        throw FormatException(
+          '$where.playerIndex: a timeout resolves every pending seat and '
+          'carries none',
+        );
+      }
+      action = const LifecycleTimeout();
+    case 'forfeit':
+    case 'autoForfeit':
+      if (seat == null) {
+        throw FormatException('$where.playerIndex: a $type names its seat');
+      }
+      action = type == 'forfeit'
+          ? LifecycleForfeit(seat)
+          : LifecycleAutoForfeit(seat);
+    default:
+      throw FormatException(
+        '$where.type: expected one of timeout | forfeit | autoForfeit, '
+        'got ${jsonEncode(type)}',
+      );
+  }
+  _optional('$where.participantCount', map['participantCount'], _int);
+  return LifecycleCase(
+    name: _string('$where.name', map['name']),
+    config: _object('$where.config', map['config']),
+    state: _object('$where.state', map['state']),
+    pending: _intList('$where.pending', map['pending']),
+    action: action,
+    rngSeed:
+        _optional('$where.rngSeed', map['rngSeed'], _string) ?? _defaultRngSeed,
+    expected: _parseExpectedEnvelope(
+      '$where.expected',
+      _object('$where.expected', map['expected']),
+    ),
+  );
+}
+
+TranscriptCase _parseTranscriptCase(String where, Map<String, dynamic> map) {
+  final expected = _object('$where.expected', map['expected']);
+  final status = _string('$where.expected.status', expected['status']);
+  if (status != 'active' && status != 'finished') {
+    throw FormatException(
+      '$where.expected.status: expected active | finished, '
+      'got ${jsonEncode(status)}',
+    );
+  }
+  return TranscriptCase(
+    name: _string('$where.name', map['name']),
+    config: _object('$where.config', map['config']),
+    playerCount: _int('$where.playerCount', map['playerCount']),
+    seed: _string('$where.seed', map['seed']),
+    transitions: [
+      for (final (index, raw) in _list(
+        '$where.transitions',
+        map['transitions'],
+      ).indexed)
+        _parseTranscriptTransition('$where.transitions[$index]', raw),
+    ],
+    expectedVersion: _int('$where.expected.version', expected['version']),
+    expectedStatus: status,
+    expected: _parseExpectedEnvelope('$where.expected', expected),
+  );
+}
+
+TranscriptTransition _parseTranscriptTransition(String where, dynamic raw) {
+  final map = _object(where, raw);
+  final kind = _string('$where.kind', map['kind']);
+  return switch (kind) {
+    'game' => TranscriptTransition(
+      isLifecycle: false,
+      playerIndex: _int('$where.playerIndex', map['playerIndex']),
+      data: _object('$where.data', map['data']),
+    ),
+    'lifecycle' => () {
+      final type = _string('$where.type', map['type']);
+      if (type != 'forfeit') {
+        throw FormatException(
+          '$where.type: a transcript can only carry a forfeit, '
+          'got ${jsonEncode(type)}',
+        );
+      }
+      return TranscriptTransition(
+        isLifecycle: true,
+        playerIndex: _int('$where.playerIndex', map['playerIndex']),
+      );
+    }(),
+    _ => throw FormatException(
+      '$where.kind: expected game | lifecycle, got ${jsonEncode(kind)}',
+    ),
+  };
+}
+
+RngCase _parseRngCase(String where, Map<String, dynamic> map) {
+  final draws = _list('$where.draws', map['draws']);
+  if (draws.isEmpty) {
+    throw FormatException('$where.draws: expected at least one value');
+  }
+  return RngCase(
+    name: _string('$where.name', map['name']),
+    seed: _string('$where.seed', map['seed']),
+    version: _int('$where.version', map['version']),
+    seat: _optional('$where.seat', map['seat'], _int),
+    draws: [
+      for (final (index, draw) in draws.indexed)
+        _double('$where.draws[$index]', draw),
+    ],
+  );
+}
+
+/// The stream a case draws from when it names none: the TypeScript runner's
+/// own default, so a fixture that omits `rngSeed` means the same thing on both
+/// sides.
+const _defaultRngSeed = 'twin-fixtures';
+
 // ── Field readers ───────────────────────────────────────────────────────────
 
 Never _fail(String where, String expected, dynamic got) =>
@@ -342,6 +652,9 @@ bool _bool(String where, dynamic v) =>
 
 int _int(String where, dynamic v) => v is int ? v : _fail(where, 'an int', v);
 
+double _double(String where, dynamic v) =>
+    v is num ? v.toDouble() : _fail(where, 'a number', v);
+
 List<int> _intList(String where, dynamic v) => [
   for (final (index, n) in _list(where, v).indexed) _int('$where[$index]', n),
 ];
@@ -366,7 +679,247 @@ List<String> runTwinFixtureCase(
   PlayerLimitsCase() => _runPlayerLimitsCase(rules, fixtureCase),
   RatingPoolCase() => _runRatingPoolCase(rules, fixtureCase),
   BotSeatableCase() => _runBotSeatableCase(rules, fixtureCase),
+  RngCase() => _runRngCase(fixtureCase),
+  InitialStateCase() => _runInitialStateCase(rules, fixtureCase),
+  LifecycleCase() => _runLifecycleCase(rules, fixtureCase),
+  TranscriptCase() => _runTranscriptCase(rules, fixtureCase),
 };
+
+/// The engine's deterministic streams, compared draw for draw.
+///
+/// Exact equality, with no tolerance: a local game's moves are replayed by the
+/// authoritative TypeScript rules when it is imported, so a stream that differs
+/// in the last bit produces a different game on the server than the one the
+/// player watched. Runs whether or not the version ships a local unit, because
+/// the streams are the engine's rather than the game's.
+List<String> _runRngCase(RngCase c) {
+  final rng = c.seat == null
+      ? EigenRng.forTransition(c.seed, c.version)
+      : EigenRng.forBot(c.seed, c.seat!, c.version);
+  final failures = <String>[];
+  for (final (index, expected) in c.draws.indexed) {
+    final actual = rng.next();
+    if (actual != expected) {
+      failures.add(
+        'draw $index of the stream for "${c.seed}" at version ${c.version}'
+        '${c.seat == null ? '' : ' seat ${c.seat}'} is $actual, '
+        'fixture expects $expected',
+      );
+    }
+  }
+  return failures;
+}
+
+List<String> _runInitialStateCase(
+  GameRules<dynamic, dynamic, dynamic> rules,
+  InitialStateCase c,
+) {
+  final local = rules.local;
+  if (local == null) return const [];
+  final failures = <String>[];
+  final config = _parse('config', () => local.parseConfig(c.config), failures);
+  if (failures.isNotEmpty) return failures;
+  final Envelope<Object?> envelope;
+  try {
+    envelope = local.initialState(
+      config: config,
+      rng: EigenRng.forTransition(c.rngSeed, 0),
+      playerCount: c.playerCount,
+    );
+  } on Object catch (error) {
+    return ['initialState threw: $error'];
+  }
+  return _checkEnvelope(local, envelope, c.expected);
+}
+
+List<String> _runLifecycleCase(
+  GameRules<dynamic, dynamic, dynamic> rules,
+  LifecycleCase c,
+) {
+  final local = rules.local;
+  if (local == null) return const [];
+  final failures = <String>[];
+  final config = _parse('config', () => local.parseConfig(c.config), failures);
+  final state = _parse('state', () => local.parseState(c.state), failures);
+  if (failures.isNotEmpty) return failures;
+  final Envelope<Object?> envelope;
+  try {
+    envelope = local.applyLifecycle(
+      state: state,
+      pending: c.pending,
+      type: c.action.type,
+      data: c.action,
+      rng: EigenRng.forSeed(c.rngSeed),
+      config: config,
+    );
+  } on Object catch (error) {
+    return ['applyLifecycle threw: $error'];
+  }
+  final failuresOut = _checkEnvelope(local, envelope, c.expected);
+  final seat = c.action.playerIndex;
+  if (seat != null && envelope.pendingPlayers.contains(seat)) {
+    failuresOut.add(
+      'applyLifecycle left the forfeited seat $seat pending; a forfeit must '
+      'remove its target seat',
+    );
+  }
+  return failuresOut;
+}
+
+/// Replays a whole recorded game through the local kernel.
+///
+/// The roster convention is the TypeScript runner's, and must stay it: seat 0 is
+/// the human `user-0`, every later seat a bot `bot-<i>`. Each move commits at
+/// the current version, so a transcript that diverges reports which move did.
+List<String> _runTranscriptCase(
+  GameRules<dynamic, dynamic, dynamic> rules,
+  TranscriptCase c,
+) {
+  final local = rules.local;
+  if (local == null) return const [];
+  final roster = [
+    for (var seat = 0; seat < c.playerCount; seat++)
+      LocalSeat(
+        playerIndex: seat,
+        userId: seat == 0 ? 'user-0' : null,
+        botId: seat == 0 ? null : 'bot-$seat',
+        type: seat == 0 ? SeatTypeEnum.human : SeatTypeEnum.bot,
+      ),
+  ];
+  var meta = LocalGameMeta(
+    status: GameStatus.ready,
+    schemaVersion: 1,
+    config: c.config,
+    createdBy: 'user-0',
+  );
+  LocalStateRow? state;
+  List<Outcome>? outcomes;
+
+  LocalCommitResult step(LocalIntent intent) => localCommit(
+    game: meta,
+    state: state,
+    roster: roster,
+    intent: intent,
+    rules: local,
+  );
+
+  LocalCommitResult result;
+  try {
+    result = step(LocalStartIntent(c.seed));
+  } on Object catch (error) {
+    return ['the start transition threw: $error'];
+  }
+  if (result case LocalRejected(:final code, :final message)) {
+    return ['the start transition was rejected ($code): $message'];
+  }
+  var plan = result as LocalCommitPlan;
+  state = plan.nextState;
+  meta = LocalGameMeta(
+    status: GameStatus.active,
+    schemaVersion: meta.schemaVersion,
+    config: meta.config,
+    createdBy: meta.createdBy,
+  );
+
+  for (final (index, transition) in c.transitions.indexed) {
+    final intent = transition.isLifecycle
+        ? LocalForfeitIntent(transition.playerIndex)
+        : LocalActionIntent(
+            seat: transition.playerIndex,
+            expectedVersion: state!.version,
+            data: transition.data,
+            actor: transition.playerIndex == 0
+                ? LocalActor.user
+                : LocalActor.bot,
+          );
+    try {
+      result = step(intent);
+    } on Object catch (error) {
+      return ['transitions[$index] threw: $error'];
+    }
+    if (result case LocalRejected(:final code, :final message)) {
+      return ['transitions[$index] was rejected ($code): $message'];
+    }
+    plan = result as LocalCommitPlan;
+    state = plan.nextState;
+    outcomes = plan.outcomes;
+    if (outcomes != null) {
+      meta = LocalGameMeta(
+        status: GameStatus.finished,
+        schemaVersion: meta.schemaVersion,
+        config: meta.config,
+        createdBy: meta.createdBy,
+      );
+    }
+  }
+
+  final failures = <String>[];
+  if (state!.version != c.expectedVersion) {
+    failures.add(
+      'the game ended at version ${state.version}, fixture expects '
+      '${c.expectedVersion}',
+    );
+  }
+  final status = outcomes == null ? 'active' : 'finished';
+  if (status != c.expectedStatus) {
+    failures.add('the game ended $status, fixture expects ${c.expectedStatus}');
+  }
+  failures.addAll(
+    _checkEnvelope(
+      local,
+      Envelope<Object?>(
+        state: local.parseState(state.state),
+        pendingPlayers: state.pending,
+        outcome: outcomes,
+      ),
+      c.expected,
+    ),
+  );
+  return failures;
+}
+
+/// Compares one hook's envelope against what a fixture recorded.
+List<String> _checkEnvelope(
+  LocalGameRules<dynamic, dynamic, dynamic, dynamic> local,
+  Envelope<Object?> envelope,
+  ExpectedEnvelope expected,
+) {
+  final failures = <String>[];
+  final state = expected.state;
+  if (state != null) {
+    final actual = local.serializeState(envelope.state);
+    if (!jsonEquals(actual, state)) {
+      failures.add(
+        'state is ${jsonEncode(actual)}, fixture expects ${jsonEncode(state)}',
+      );
+    }
+  }
+  final pending = expected.pending;
+  if (pending != null && !_deepEquals(envelope.pendingPlayers, pending)) {
+    failures.add(
+      'pending is ${jsonEncode(envelope.pendingPlayers)}, fixture expects '
+      '${jsonEncode(pending)}',
+    );
+  }
+  if (expected.assertsOutcome) {
+    final actual = envelope.outcome;
+    final recorded = expected.outcome;
+    if (recorded == null && actual != null) {
+      failures.add('the game ended, fixture expects it to be ongoing');
+    } else if (recorded != null && actual == null) {
+      failures.add('the game is ongoing, fixture expects it to have ended');
+    } else if (recorded != null && actual != null) {
+      final encoded = [for (final outcome in actual) outcome.toJson()];
+      if (!jsonEquals(encoded, recorded)) {
+        failures.add(
+          'outcome is ${jsonEncode(encoded)}, fixture expects '
+          '${jsonEncode(recorded)}',
+        );
+      }
+    }
+  }
+  return failures;
+}
 
 List<String> _runActionCase(
   GameRules<dynamic, dynamic, dynamic> rules,
@@ -408,6 +961,86 @@ List<String> _runActionCase(
   }
   if (c.expectedValid && c.expectedObservation != null) {
     _checkPreview(rules, c, obs, action, config, failures);
+  }
+  failures.addAll(_checkLocalAction(rules, c));
+  return failures;
+}
+
+/// Runs the same case through the on-device unit, which is the half that
+/// actually commits when the game is played offline.
+///
+/// Everything above this exercises the optimism hooks on [GameRules]:
+/// `isValidAction` and `previewAction`, which decide what the screen may show
+/// before the server answers. They are not the rules. `applyAction` is, and on
+/// a device it is the Dart one — so without this the whole action corpus could
+/// pass against a local unit that computes a different board, or hands a seat
+/// its opponent's hidden commit, which is the failure that matters most for a
+/// hidden-information game and exactly what `expected.observation` pins.
+List<String> _checkLocalAction(
+  GameRules<dynamic, dynamic, dynamic> rules,
+  ActionCase c,
+) {
+  final local = rules.local;
+  if (local == null) return const [];
+  final failures = <String>[];
+  final config = _parse('config', () => local.parseConfig(c.config), failures);
+  final state = _parse('state', () => local.parseState(c.state), failures);
+  final action = _parse('action', () => local.parseAction(c.action), failures);
+  if (failures.isNotEmpty) return failures;
+
+  final Envelope<Object?> envelope;
+  try {
+    envelope = local.applyAction(
+      state: state,
+      pending: c.pending,
+      data: action,
+      playerIndex: c.playerIndex,
+      rng: EigenRng.forSeed(c.rngSeed),
+      config: config,
+    );
+  } on IllegalMoveException catch (error) {
+    // Refusing a move the fixture calls legal is drift; refusing one it calls
+    // illegal is the unit agreeing, and there is no envelope left to check.
+    return c.expectedValid
+        ? ['applyAction rejected a move the fixture expects to be valid: $error']
+        : const [];
+  } on Object catch (error) {
+    return ['applyAction threw a non-IllegalMoveException: $error'];
+  }
+  if (!c.expectedValid) {
+    return ['applyAction accepted a move the fixture expects to be illegal'];
+  }
+  failures.addAll(_checkEnvelope(local, envelope, c.expected));
+
+  final expectedObservation = c.expectedObservation;
+  if (expectedObservation == null) return failures;
+  final ObservationSlice<Object?> slice;
+  try {
+    slice = local.computeObservation(
+      state: envelope.state,
+      pending: envelope.pendingPlayers,
+      playerIndex: c.playerIndex,
+      participantCount: c.participantCount,
+      config: config,
+      cause: local.retypeCause(
+        GameCause<Object?>(data: action, playerIndex: c.playerIndex),
+      ),
+      isReplay: false,
+    );
+  } on Object catch (error) {
+    failures.add('computeObservation threw: $error');
+    return failures;
+  }
+  final actual = local.serializeObservation(slice.data);
+  // Value equality, not document equality: the fixture was written by the
+  // TypeScript codec and this by the Dart one, and a field the schema marks
+  // optional and nullable may be written as null by one and left out by the
+  // other. Both are the same observation; see [jsonEquals].
+  if (!jsonEquals(actual, expectedObservation)) {
+    failures.add(
+      "the actor's observation is ${jsonEncode(actual)}, fixture expects "
+      '${jsonEncode(expectedObservation)}',
+    );
   }
   return failures;
 }

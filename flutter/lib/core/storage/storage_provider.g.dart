@@ -8,16 +8,65 @@ part of 'storage_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Native storage backend for persisted Riverpod API snapshots.
+/// The device's own database: local games and persisted provider snapshots.
 ///
-/// Do not read this provider unless [persistentApiCacheEnabled] is true.
+/// One connection for the session. A test overrides this with a database on
+/// [NativeDatabase.memory].
+
+@ProviderFor(localDatabase)
+final localDatabaseProvider = LocalDatabaseProvider._();
+
+/// The device's own database: local games and persisted provider snapshots.
+///
+/// One connection for the session. A test overrides this with a database on
+/// [NativeDatabase.memory].
+
+final class LocalDatabaseProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<LocalDatabase>,
+          LocalDatabase,
+          FutureOr<LocalDatabase>
+        >
+    with $FutureModifier<LocalDatabase>, $FutureProvider<LocalDatabase> {
+  /// The device's own database: local games and persisted provider snapshots.
+  ///
+  /// One connection for the session. A test overrides this with a database on
+  /// [NativeDatabase.memory].
+  LocalDatabaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'localDatabaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$localDatabaseHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<LocalDatabase> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<LocalDatabase> create(Ref ref) {
+    return localDatabase(ref);
+  }
+}
+
+String _$localDatabaseHash() => r'15f3ccd26fb5587a89faf0432772a829e1f4946d';
+
+/// Storage backend for persisted Riverpod API snapshots.
 
 @ProviderFor(storage)
 final storageProvider = StorageProvider._();
 
-/// Native storage backend for persisted Riverpod API snapshots.
-///
-/// Do not read this provider unless [persistentApiCacheEnabled] is true.
+/// Storage backend for persisted Riverpod API snapshots.
 
 final class StorageProvider
     extends
@@ -29,9 +78,7 @@ final class StorageProvider
     with
         $FutureModifier<Storage<String, String>>,
         $FutureProvider<Storage<String, String>> {
-  /// Native storage backend for persisted Riverpod API snapshots.
-  ///
-  /// Do not read this provider unless [persistentApiCacheEnabled] is true.
+  /// Storage backend for persisted Riverpod API snapshots.
   StorageProvider._()
     : super(
         from: null,
@@ -58,4 +105,4 @@ final class StorageProvider
   }
 }
 
-String _$storageHash() => r'ddcf81be4a07ce53bf91fbb07e81b143dcea879a';
+String _$storageHash() => r'2503d934d8841abcb2e271e5a08f884d69a0cfd7';

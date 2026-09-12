@@ -1,0 +1,115 @@
+import 'package:eigen_flutter/eigen_flutter.dart';
+
+import '../generated/payloads.dart';
+
+/// The offline half of version 1: the same four hooks the Worker owns,
+/// transcribed so the game can be played on the device with no network.
+///
+/// Entirely optional. Delete this file and the `local` override in
+/// `rules.dart` and the game is unchanged, minus on-device play. What it buys
+/// is a match a player can start on a train: the device commits every move
+/// through these hooks, and the server replays the whole log through the
+/// TypeScript unit when the device is next online, which is why the two must
+/// agree move for move. The shared fixtures under `test/game/fixtures/` are
+/// what keeps them agreeing.
+///
+/// Read it beside `server/src/module/v1.ts`; the hook and parameter names are
+/// deliberately identical.
+class ExampleGameLocalRulesV1 extends ExampleGameV1LocalRulesBase {
+  const ExampleGameLocalRulesV1();
+
+  @override
+  Envelope<ExampleGameV1State> initialState({
+    required ExampleGameV1Config config,
+    required Rng rng,
+    required int playerCount,
+  }) => Envelope(
+    state: ExampleGameV1State(count: 0),
+    pendingPlayers: const [0],
+  );
+
+  @override
+  Envelope<ExampleGameV1State> applyAction({
+    required ExampleGameV1State state,
+    required List<int> pending,
+    required ExampleGameV1Action data,
+    required int playerIndex,
+    required Rng rng,
+    required ExampleGameV1Config config,
+  }) {
+    final count = state.count + data.amount;
+    final finished = count >= config.target;
+    return Envelope(
+      state: ExampleGameV1State(count: count),
+      pendingPlayers: finished ? const [] : [1 - playerIndex],
+      outcome: finished ? _outcome(playerIndex) : null,
+    );
+  }
+
+  @override
+  Envelope<ExampleGameV1State> applyLifecycle({
+    required ExampleGameV1State state,
+    required List<int> pending,
+    required LifecycleType type,
+    required LifecycleAction data,
+    required Rng rng,
+    required ExampleGameV1Config config,
+  }) {
+    final loser = type == LifecycleType.timeout
+        ? (pending.isEmpty ? 0 : pending.first)
+        : data.playerIndex!;
+    return Envelope(
+      state: state,
+      pendingPlayers: const [],
+      outcome: _outcome(1 - loser),
+    );
+  }
+
+  @override
+  ObservationSlice<ExampleGameV1Observation> computeObservation({
+    required ExampleGameV1State state,
+    required List<int> pending,
+    required int? playerIndex,
+    required int participantCount,
+    required TransitionCause<ExampleGameV1Action> cause,
+    required bool isReplay,
+    required ExampleGameV1Config config,
+  }) => ObservationSlice(
+    data: ExampleGameV1Observation(count: state.count),
+    pendingPlayers: pending,
+  );
+
+  /// The brains this build can run, keyed by the bot registry's `username`.
+  ///
+  /// An operator registers a row with this username and type `local`, and it
+  /// becomes an opponent in the solo picker's untimed mode. A username that
+  /// also has a TypeScript `botActions` entry is one bot playable both on the
+  /// device and on the server.
+  @override
+  Map<
+    String,
+    LocalBotAction<
+      ExampleGameV1Action,
+      ExampleGameV1Observation,
+      ExampleGameV1Config
+    >
+  >
+  get botActions => {
+    'example-bot': (args) => ExampleGameV1Action(amount: 1),
+  };
+}
+
+List<Outcome> _outcome(int winner) => [
+  Outcome(
+    playerIndex: winner,
+    result: OutcomeResultEnum.win,
+    placement: 1,
+    teamIndex: winner,
+  ),
+  Outcome(
+    playerIndex: 1 - winner,
+    result: OutcomeResultEnum.loss,
+    placement: 2,
+    teamIndex: 1 - winner,
+  ),
+];

@@ -95,7 +95,9 @@ run_flutter() {
   dart format --output=none --set-exit-if-changed .
   dart analyze
   dart test
-  dart test --platform chrome test/api/game_socket_test.dart
+  dart test --platform chrome \
+    test/api/game_socket_test.dart \
+    test/local/rng_test.dart
   dart pub publish --dry-run
 
   cd "$platform_root/dart/eigen_codegen"
@@ -155,6 +157,12 @@ run_flutter() {
   flutter test
   flutter build web --release --dart-define-from-file=app-config.json
   test -f build/web/assets/packages/eigen_shell/assets/vendor/cropperjs/cropper.min.js
+  # Drift's web runtime and the shell's own service worker. Without all three a
+  # browser has no persistence and no cold start offline, which is the whole of
+  # offline play on the web, and the build would still be green.
+  test -f build/web/sqlite3.wasm
+  test -f build/web/drift_worker.js
+  test -f build/web/eigen_offline_sw.js
 
   cd "$platform_root/flutter"
   dart pub publish --dry-run

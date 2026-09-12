@@ -5,6 +5,7 @@ import 'package:eigen_api/src/model/bot_action.dart';
 import 'package:eigen_api/src/model/bots.dart';
 import 'package:eigen_api/src/model/command_accepted.dart';
 import 'package:eigen_api/src/model/create_game.dart';
+import 'package:eigen_api/src/model/create_local_game.dart';
 import 'package:eigen_api/src/model/create_solo.dart';
 import 'package:eigen_api/src/model/created.dart';
 import 'package:eigen_api/src/model/device_registration.dart';
@@ -26,6 +27,13 @@ import 'package:eigen_api/src/model/health.dart';
 import 'package:eigen_api/src/model/join.dart';
 import 'package:eigen_api/src/model/join_by_code.dart';
 import 'package:eigen_api/src/model/lobby.dart';
+import 'package:eigen_api/src/model/local_record.dart';
+import 'package:eigen_api/src/model/local_rejection.dart';
+import 'package:eigen_api/src/model/local_started.dart';
+import 'package:eigen_api/src/model/local_transition.dart';
+import 'package:eigen_api/src/model/local_transition_row.dart';
+import 'package:eigen_api/src/model/local_transitions.dart';
+import 'package:eigen_api/src/model/local_transitions_applied.dart';
 import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/outcome.dart';
 import 'package:eigen_api/src/model/player.dart';
@@ -42,6 +50,7 @@ import 'package:eigen_api/src/model/seat.dart';
 import 'package:eigen_api/src/model/session.dart';
 import 'package:eigen_api/src/model/socket_ticket.dart';
 import 'package:eigen_api/src/model/solo_started.dart';
+import 'package:eigen_api/src/model/transition_action.dart';
 import 'package:eigen_api/src/model/user_search.dart';
 import 'package:eigen_api/src/model/username_update.dart';
 import 'package:eigen_api/src/model/username_updated.dart';
@@ -76,6 +85,7 @@ ReturnType deserialize<ReturnType, BaseType>(
       return Bot.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'BotAction':
       return BotAction.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'BotType':
     case 'Bots':
       return Bots.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'CommandAccepted':
@@ -83,6 +93,9 @@ ReturnType deserialize<ReturnType, BaseType>(
           as ReturnType;
     case 'CreateGame':
       return CreateGame.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'CreateLocalGame':
+      return CreateLocalGame.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'CreateSolo':
       return CreateSolo.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Created':
@@ -124,6 +137,7 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'FriendsGames':
       return FriendsGames.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'GameAccess':
+    case 'GameOrigin':
     case 'GameStatus':
     case 'GameSummary':
       return GameSummary.fromJson(value as Map<String, dynamic>) as ReturnType;
@@ -135,6 +149,25 @@ ReturnType deserialize<ReturnType, BaseType>(
       return JoinByCode.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Lobby':
       return Lobby.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'LocalRecord':
+      return LocalRecord.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'LocalRejection':
+      return LocalRejection.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'LocalStarted':
+      return LocalStarted.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'LocalTransition':
+      return LocalTransition.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'LocalTransitionRow':
+      return LocalTransitionRow.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'LocalTransitions':
+      return LocalTransitions.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'LocalTransitionsApplied':
+      return LocalTransitionsApplied.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'MyGames':
       return MyGames.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Outcome':
@@ -170,6 +203,9 @@ ReturnType deserialize<ReturnType, BaseType>(
       return SocketTicket.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'SoloStarted':
       return SoloStarted.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'TransitionAction':
+      return TransitionAction.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'UserSearch':
       return UserSearch.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'UsernameUpdate':

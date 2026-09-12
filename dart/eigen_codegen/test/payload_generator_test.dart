@@ -56,6 +56,59 @@ void main() {
     );
   });
 
+  test('generates the state type and the local rules base per version', () {
+    final source = generatePayloadLibrary(contract());
+
+    // Offline play runs the hooks on the device, so the state payload needs a
+    // type and a codec the local kernel can validate a hook's return with.
+    expect(source, contains('final class CounterV1State'));
+    expect(source, contains('final class CounterV2State'));
+    expect(source, contains('abstract class CounterV1LocalRulesBase'));
+    expect(source, contains('abstract class CounterV2LocalRulesBase'));
+    // Whitespace-insensitive: the declaration is long enough that the
+    // formatter's wrapping is not part of the contract.
+    expect(
+      source.replaceAll(RegExp(r'\s'), ''),
+      contains(
+        'extendsLocalGameRules<CounterV1State,CounterV1Observation,'
+        'CounterV1Action,CounterV1Config>',
+      ),
+    );
+    for (final member in const [
+      'CounterV1Config parseConfig(Map<String, dynamic> json)',
+      'CounterV1State parseState(Map<String, dynamic> json)',
+      'Map<String, dynamic> serializeState(CounterV1State state)',
+      'CounterV1Action parseAction(Map<String, dynamic> json)',
+      'Map<String, dynamic> serializeAction(CounterV1Action action)',
+      'CounterV1Observation parseObservation(Map<String, dynamic> json)',
+      'Map<String, dynamic> serializeObservation(',
+    ]) {
+      expect(source, contains(member));
+    }
+    // The hooks stay abstract: only the codecs are generated.
+    expect(source, isNot(contains('initialState')));
+  });
+
+  test('rejects a version that declares no state schema', () {
+    final value = contract();
+    final schemas =
+        ((value['versions'] as Map<String, dynamic>)['1']
+                as Map<String, dynamic>)['schemas']
+            as Map<String, dynamic>;
+    schemas.remove('state');
+
+    expect(
+      () => generatePayloadLibrary(value),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('no state schema'),
+        ),
+      ),
+    );
+  });
+
   test('derives Dart type names from the contract game name', () {
     final exampleSource = generatePayloadLibrary(
       contract()..['game'] = 'Example Game',

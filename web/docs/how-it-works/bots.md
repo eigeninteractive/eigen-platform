@@ -18,18 +18,33 @@ A bot is a registry row whose `type` selects how its moves are produced:
   signed **wake** carrying the bot's freshly-committed observation; the bot later
   POSTs its move to `/api/bot/action`. Fire-and-forget, single attempt, so a lost
   wake rides the turn deadline.
-- **`local`**: client-driven, reserved for the future offline-solo transcript
-  import. A registry row for identity only; never dispatched server-side.
+- **`local`**: client-driven. Its brain is Dart code in the game's
+  `LocalGameRules.botActions`, keyed by username, and runs on the device inside
+  a [local game](../build-a-game/offline-play.md). A registry row for identity
+  only as far as the server is concerned; it is never dispatched server-side,
+  and it can never be seated in a server (`online`) game.
 
 A bot only ever sees its own seat's projection, the same fog-of-war a human at
 that seat gets, so a bot can never read hidden state.
 
-**Seating gates** (shared by add-bot and create-solo, checked at the Worker
-before minting): the game must be timed (bots ⇒ timed, so a broken brain is
-backstopped by the deadline), the bot must support the schema version, a rated
-game needs a rated-eligible bot, an engine bot needs a `botActions` entry for its
-username, an external bot needs a webhook, and the game's `botSeatable` hook must
-accept the pairing.
+**Seating gates for a server game** (shared by add-bot and create-solo,
+checked at the Worker before minting): the game must be timed (bots ⇒ timed,
+so a broken brain is backstopped by the deadline), the bot must support the
+schema version, a rated game needs a rated-eligible bot, an engine bot needs a
+`botActions` entry for its username, an external bot needs a webhook, and the
+game's `botSeatable` hook must accept the pairing. A `local`-type bot fails
+this gate unconditionally: it has nothing to dispatch.
+
+**Seating gates for a local game** (checked at import, on `POST
+/games/local`): the bot must be type `local` or `engine` (never `external`,
+which has no way to run with the device offline) and must support the schema
+version. There is no timed requirement and no rated gate, because a local game
+is always untimed and never rated. See [Offline play](../build-a-game/offline-play.md).
+
+Bot wakes and turn/finish pushes are suppressed entirely for a local-origin
+game: its bots run on the device rather than being dispatched, and its one
+human is the person holding the phone, who does not need telling it is their
+turn.
 
 To write a bot brain for your own game, see
 [Bots in a game module](../build-a-game/bots.md).

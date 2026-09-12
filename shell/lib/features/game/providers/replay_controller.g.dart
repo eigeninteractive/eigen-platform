@@ -95,7 +95,7 @@ final class ReplayFramesProvider
   }
 }
 
-String _$replayFramesHash() => r'78a7fc0c0751437ef4af6f8e1d1f53b9adc0da2f';
+String _$replayFramesHash() => r'471f5b6599dc83663b543c9d52e524c26ca65864';
 
 /// The full ordered frame history of a finished game, fetched once.
 ///

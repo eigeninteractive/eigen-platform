@@ -24,7 +24,7 @@ lives only in the DO.
 | Table | Purpose |
 |---|---|
 | `users` | Identity, keyed by Firebase uid (stable across guest→permanent upgrade). Merged users + profile. `avatar_url` defaults to the provider photo. |
-| `games` | The summary/read-model row (timing, rated, pool, status, outcomes, short_code, `finish_id`, `finished_at`, a nullable `archived_at` cold-tier seam). |
+| `games` | The summary/read-model row (timing, rated, pool, status, outcomes, short_code, `origin` (`online` or `local`, immutable), `finish_id`, `finished_at`, a nullable `archived_at` cold-tier seam). |
 | `participants` | The roster join table: one row per seat, the indexed access path for "games of user X". A display mirror of the DO roster. |
 | `relationships` | Friend edges in canonical pair order. |
 | `bots` | The [bot registry](./bots.md): `type` ∈ engine/external/local, `webhook_url` for external, capabilities `config`. CHECK-enforced. |

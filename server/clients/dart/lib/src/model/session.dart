@@ -7,6 +7,7 @@ import 'package:eigen_api/src/model/frame.dart';
 import 'package:eigen_api/src/model/seat.dart';
 import 'package:eigen_api/src/model/game_status.dart';
 import 'package:eigen_api/src/model/game_access.dart';
+import 'package:eigen_api/src/model/game_origin.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'session.g.dart';
@@ -29,6 +30,8 @@ class Session {
     required this.shortCode,
 
     required this.access,
+
+    required this.origin,
 
     required this.schemaVersion,
 
@@ -83,6 +86,14 @@ class Session {
     unknownEnumValue: GameAccess.unknownDefaultOpenApi,
   )
   final GameAccess access;
+
+  @JsonKey(
+    name: r'origin',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: GameOrigin.unknownDefaultOpenApi,
+  )
+  final GameOrigin origin;
 
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
@@ -140,6 +151,7 @@ class Session {
           other.gameId == gameId &&
           other.shortCode == shortCode &&
           other.access == access &&
+          other.origin == origin &&
           other.schemaVersion == schemaVersion &&
           other.config == config &&
           other.turnSeconds == turnSeconds &&
@@ -162,6 +174,7 @@ class Session {
       gameId.hashCode +
       shortCode.hashCode +
       access.hashCode +
+      origin.hashCode +
       schemaVersion.hashCode +
       config.hashCode +
       (turnSeconds == null ? 0 : turnSeconds.hashCode) +

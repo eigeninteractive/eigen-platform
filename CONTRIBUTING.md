@@ -61,6 +61,16 @@ Do not add a Changeset for tests, comments, CI, documentation, or internal
 refactors that should not release a package. User-visible changes to any of the
 five hand-written Dart packages need an entry in that package's changelog. Use
 `cider --project-root=<package-path> log <type> "<description>"`; do not edit
-package versions. Maintainers release through the root workflow described in
+package versions.
+
+Write those entries with `cider` rather than by hand. Its parser recognises a
+section heading only as `## [Unreleased]` or `## [X.Y.Z] - YYYY-MM-DD` whose
+bracketed label resolves to a link definition at the foot of the file. A heading
+that misses either rule is not rejected: it is demoted to ordinary text, and the
+next rewrite folds every entry below it into the neighbouring release. The loss
+is silent and the file still reads correctly to a human, which is why
+`tool/check-dart-releases.mjs` checks for it.
+
+Maintainers release through the root workflow described in
 [`docs/operations/releases.md`](docs/operations/releases.md); contributors do
 not edit package versions or create release tags.

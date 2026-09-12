@@ -1,5 +1,5 @@
 ---
-sidebar_position: 8
+sidebar_position: 9
 title: The creation UI
 description: Declaring valid player counts, timing modes and game-specific options, and why the rated flag is an assertion the server checks rather than a preference it trusts.
 ---
@@ -75,13 +75,18 @@ board example) and to read `Theme.of`.
 
 ## Two constraints from elsewhere
 
-### Bots imply a timed game
+### Server-seated bots imply a timed game
 
-If a game can seat a bot, its creation UI must require a turn or budget clock.
-Bot dispatch is single-attempt, so the turn deadline firing the server's alarm is
-the only thing that resolves a bot which never moves. The engine enforces this at
-seating; declaring an untimed-only game that also allows bots just produces a
-rejection later.
+If a game can seat a **server**-dispatched bot, its creation UI must require a
+turn or budget clock. Bot dispatch is single-attempt, so the turn deadline
+firing the server's alarm is the only thing that resolves a bot which never
+moves. The engine enforces this at seating; declaring an untimed-only game
+that also allows server bots just produces a rejection later.
+
+This does not apply to a **local** game: "untimed" in the creation UI's solo
+picker is what routes a bot game to the device instead of the server. Nothing
+dispatches a local game's bots, so there is no deadline to need. See
+[Offline play](./offline-play.md).
 
 ### `rated` is a validated assertion, not a preference
 
