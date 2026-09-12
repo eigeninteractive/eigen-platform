@@ -1,5 +1,23 @@
 # @eigeninteractive/testkit
 
+## 0.7.0
+
+### Minor Changes
+
+- [#67](https://github.com/eigeninteractive/eigen-platform/pull/67) [`d43e097`](https://github.com/eigeninteractive/eigen-platform/commit/d43e097e801366366c2c304b8e029686a0ac0337) Thanks [@seenu-k](https://github.com/seenu-k)! - Add four twin-fixture kinds for offline play: `initialState`, `lifecycle`, and
+  `transcript` (a whole match replayed through the real kernel `commit()`) check
+  a version's rules the same way the Dart local unit has to reproduce them, and
+  `rng` records raw `deriveRng` draws for a Dart RNG port to match bit for bit.
+  `rngFixtureCase` and `writeRngFixture` generate `rng` fixtures directly from
+  the TypeScript kernel rather than by hand, since their values have to be the
+  kernel's own.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.7.0
+  - @eigeninteractive/rules@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes

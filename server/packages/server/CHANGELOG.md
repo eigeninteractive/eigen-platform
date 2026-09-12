@@ -1,5 +1,43 @@
 # @eigeninteractive/server
 
+## 0.7.0
+
+### Minor Changes
+
+- [#67](https://github.com/eigeninteractive/eigen-platform/pull/67) [`d43e097`](https://github.com/eigeninteractive/eigen-platform/commit/d43e097e801366366c2c304b8e029686a0ac0337) Thanks [@seenu-k](https://github.com/seenu-k)! - Close the two ways something other than the device could touch a local game.
+  `join` and `join-by-code` refuse origin `local` outright rather than relying on
+  its status: a local game carries a short code like every game and sits at
+  `ready` between the create and start writes, so a stranger holding the code
+  could otherwise be seated as a second human into a game played on somebody's
+  phone. A local game's recorded `minPlayers`/`maxPlayers` are now its roster,
+  which is what the device's own session reports for the same game, rather than
+  the rules' range the seating had to satisfy.
+  
+  The Durable Object also arms no alarm for a local-origin game. Such a game is
+  created untimed, but a version's `applyAction` may still return an envelope
+  `turnSeconds`, and `computeNextDeadline` honours that override ahead of the
+  untimed branch; the Dart `Envelope` has no such field, so the device could
+  never produce one and would know nothing about the timeout the alarm would
+  commit — and the next batch it appended would collide with it.
+
+- [#67](https://github.com/eigeninteractive/eigen-platform/pull/67) [`d43e097`](https://github.com/eigeninteractive/eigen-platform/commit/d43e097e801366366c2c304b8e029686a0ac0337) Thanks [@seenu-k](https://github.com/seenu-k)! - Add offline play against on-device bots: `origin` (`online` or `local`) on
+  `GameSummary` and `Session`, `type` on `Bot`, and three routes for a
+  local-origin game — `POST /games/local` (register and start a game already
+  played on the device), `POST /games/{gameId}/local/transitions` (append a
+  batch of the device's transition log against its current version), and
+  `GET /games/{gameId}/local` (the whole record — the seed, the raw transitions,
+  and the two instants the session does not carry — so a second device can pull
+  the game and resume it). The Durable Object trusts an action on a bot seat
+  from the game's creator only for a `local`-origin game, and suppresses bot
+  wakes and turn/finish pushes for one, since its bots run on the device and its
+  one human does not need telling it is their turn.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.7.0
+  - @eigeninteractive/rules@0.7.0
+
 ## 0.6.1
 
 ### Patch Changes
