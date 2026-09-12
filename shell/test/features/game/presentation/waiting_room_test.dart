@@ -28,6 +28,7 @@ Session _session({
   'gameId': _gameId,
   'shortCode': 'ABC123',
   'access': 'private',
+  'origin': 'online',
   'schemaVersion': 1,
   'config': <String, dynamic>{},
   'turnSeconds': null,

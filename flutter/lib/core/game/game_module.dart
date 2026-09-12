@@ -339,6 +339,21 @@ abstract class GameRules<TObs, TAction, TConfig> {
   /// pickers locally (no network call). **UX only**; the server enforces the
   /// same rule (the TS `GameRules.botSeatable` twin) before seating.
   bool botSeatable(BotSeatableArgs args);
+
+  /// This version's offline half, or null when the version cannot be played
+  /// locally.
+  ///
+  /// Null is the honest default: offline play needs the four authoritative TS
+  /// hooks transcribed into Dart, and a game that has not done that work simply
+  /// shows no local bots in the solo picker (architecture decision 0012). A
+  /// version unit that ships local play overrides this with its generated
+  /// `<Game>V<N>LocalRulesBase` subclass, which supplies the seven payload
+  /// codecs so the unit itself only states game behavior.
+  ///
+  /// The state type is erased here because [GameRules] never sees raw state:
+  /// the local kernel owns it, and every value crossing back into this unit is
+  /// re-typed by the unit itself.
+  LocalGameRules<Object?, TObs, TAction, TConfig>? get local => null;
 }
 
 /// Contract every game implementor provides.

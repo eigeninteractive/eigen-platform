@@ -14,12 +14,14 @@ import 'package:eigen_shell/features/game/presentation/widgets/timing_selector.d
 /// selector appears only when the game exposes a true range (`min < max`).
 ///
 /// Every seat defaults to the first available bot; the user overrides only the
-/// seats they care about. **Timing selects the bot class**: an *untimed* game
-/// offers **local** bots (driven by the present human's client, so no deadline
-/// backstop needed); a *timed* game offers **server** bots (their endpoint may be
-/// unreachable, so a deadline is required) and never to guests. The server
-/// enforces this partition; switching timing re-derives the usable list, and any
-/// seat whose bot is no longer usable falls back to the default, so no invalid
+/// seats they care about. **Timing selects where the game is played**: an
+/// *untimed* game runs on the device against bots this build ships brains for,
+/// needs no network at all, and is carried to the server afterwards; a *timed*
+/// game is created on the server and its bots are dispatched there, which is
+/// why it needs a deadline (dispatch is single-attempt, so the clock is the
+/// only thing that resolves a bot which never moves). The server enforces the
+/// same partition; switching timing re-derives the usable list, and any seat
+/// whose bot is no longer usable falls back to the default, so no invalid
 /// combination can be submitted.
 class PlayVsBotDialog extends ConsumerStatefulWidget {
   const PlayVsBotDialog({super.key});
@@ -78,8 +80,9 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
 
   /// The timing mode to open the picker in, chosen from the (warm) bot catalog so
   /// the picker never opens in a mode with no opponents: the first untimed mode
-  /// when a local bot is usable, else the first timed mode when a server bot is,
-  /// else `null` (TimingSelector falls back to the first declared mode).
+  /// when this build can run a bot itself, else the first timed mode when a
+  /// server bot is usable, else `null` (TimingSelector falls back to the first
+  /// declared mode).
   String? _bestTimingKey(GameModule module) {
     final configs = module.creationSpec.timingConfigs;
     String? untimedKey;
@@ -102,34 +105,42 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
 
   /// Bots this build can seat for the chosen timing.
   ///
-  /// Guests are not excluded: a guest may play a bot, the game just comes out
-  /// unrated. The rated/eligibility pairing is the server's call at seating.
+  /// The two arms ask different questions. A timed game is created on the
+  /// server, so a bot qualifies when the server can dispatch it: the schema
+  /// fits, the game's own `botSeatable` accepts it, and it is not a bot whose
+  /// brain only exists on the device. An untimed game is played here, so a bot
+  /// qualifies when *this build* can run it, which is what [usableLocalBots]
+  /// answers.
+  ///
+  /// Guests are not excluded from either: a guest may play a bot, the game just
+  /// comes out unrated.
   List<Bot> _usableBots(
     List<Bot> bots,
     GameModule module, {
     required bool timed,
-  }) => bots.where((b) {
-    // Solo creation always targets the latest rules unit.
-    final rules = module.latestRules;
-    if (!b.supportsGameSchema(module.latestSchemaVersion)) return false;
-    // Config gate: the game's own botSeatable rule decides which bots support the
-    // chosen config (the Dart twin of the server's GameRules.botSeatable, which
-    // enforces it at seating). Local UX only, with no network round-trip per config.
-    if (!rules.botSeatable(
-      BotSeatableArgs(
-        gameConfig: _config,
-        botConfig: b.config as Map<String, dynamic>,
-      ),
-    )) {
-      return false;
+  }) {
+    if (!timed) {
+      return usableLocalBots(bots, module, config: _config);
     }
-    // A server-seated bot requires a timed game: dispatch is single-attempt, so
-    // the turn deadline is the only thing that resolves a bot which never
-    // moves. The server enforces this, so offering an untimed option here would
-    // only produce a rejected create. (The untimed case returns when
-    // client-driven bots do, for offline play - those need no backstop.)
-    return timed;
-  }).toList();
+    final rules = module.latestRules;
+    return bots.where((b) {
+      // Solo creation always targets the latest rules unit.
+      if (!b.supportsGameSchema(module.latestSchemaVersion)) return false;
+      // A bot whose only brain ships in the client cannot be woken by the
+      // server, which refuses it at seating.
+      if (b.type == BotType.local) return false;
+      // Config gate: the game's own botSeatable rule decides which bots support
+      // the chosen config (the Dart twin of the server's GameRules.botSeatable,
+      // which enforces it at seating). Local UX only, with no network
+      // round-trip per config.
+      return rules.botSeatable(
+        BotSeatableArgs(
+          gameConfig: _config,
+          botConfig: b.config as Map<String, dynamic>,
+        ),
+      );
+    }).toList();
+  }
 
   /// The bot id for opponent [seat]: the user's override if it is still usable,
   /// otherwise the default (first available bot).
@@ -248,24 +259,31 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
 
     setState(() => _creating = true);
     try {
-      final started = await ref
-          .read(gameRepositoryProvider)
-          .createSoloGame(
-            botIds: botIds,
-            schemaVersion: module.latestSchemaVersion,
-            minPlayers: _totalPlayers,
-            maxPlayers: _totalPlayers,
-            turnSeconds: _timing.turnSeconds,
-            budgetSeconds: _timing.budgetSeconds,
-            incrementSeconds: _timing.incrementSeconds,
-            config: _config,
-          );
+      // Untimed means on the device: the id, the seed and the opening board are
+      // minted here and no request is made, which is what lets this succeed
+      // with no network. A timed game is the server's to create.
+      final gameId = _timing.mode == 'untimed'
+          ? await ref.read(createLocalGameProvider)(
+              config: _config,
+              botIds: botIds,
+            )
+          : (await ref
+                    .read(gameRepositoryProvider)
+                    .createSoloGame(
+                      botIds: botIds,
+                      schemaVersion: module.latestSchemaVersion,
+                      minPlayers: _totalPlayers,
+                      maxPlayers: _totalPlayers,
+                      turnSeconds: _timing.turnSeconds,
+                      budgetSeconds: _timing.budgetSeconds,
+                      incrementSeconds: _timing.incrementSeconds,
+                      config: _config,
+                    ))
+                .session
+                .gameId;
       if (!mounted) return;
       Navigator.pop(context);
-      context.pushNamed(
-        'game',
-        pathParameters: {'gameId': started.session.gameId},
-      );
+      context.pushNamed('game', pathParameters: {'gameId': gameId});
     } catch (e) {
       if (!mounted) return;
       setState(() => _creating = false);

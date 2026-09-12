@@ -16,7 +16,9 @@ import type { JsonObject } from "@eigeninteractive/rules";
 import { z } from "@hono/zod-openapi";
 import type { UserRow } from "../auth/provision.js";
 import type { BotRow, GameWithRoster } from "../d1/reads.js";
+import type { BotType } from "../d1/schema.js";
 import type { ErrorCode } from "../http.js";
+import type { GameOrigin } from "../protocol.js";
 
 /** A game-defined JSON object payload (an observation's `data`, a config).
  * Typed as the engine's `JsonObject` so the wire types line up with the
@@ -59,6 +61,8 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
   rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
   invalidCursor: "The pagination cursor did not decode; drop it and request the first page",
+  localOnly: "This route only serves games played on the device (origin `local`)",
+  notLocalBot: "A bot in this request is hosted elsewhere and cannot play on the device",
 };
 
 /** The closed set of stable error codes, published as an enum so a client can
@@ -93,6 +97,22 @@ export const gameStatusShape = z.enum(["waiting", "ready", "active", "finished",
  * the game summary generate against ONE client enum rather than two unrelated
  * ones for the same concept. */
 export const gameAccessShape = z.enum(["public", "private", "friends"]).openapi("GameAccess");
+
+/** Where a game is played: an ordinary server game, or one the device played
+ * offline against on-device bots and imported. Fixed at creation. Named for the
+ * same reason `GameAccess` is: the summary and the session must generate
+ * against one client enum. */
+export const gameOriginShape = z.enum(["online", "local"] satisfies [GameOrigin, ...GameOrigin[]]).openapi("GameOrigin", {
+  description: "Where a game is played. `online` is decided entirely by the server; `local` was played on the device against on-device bots and imported afterwards.",
+});
+
+/** How a bot's moves are produced. On the wire because a client picking an
+ * opponent has to know which mode a bot can play: only `local` and `engine`
+ * bots can be seated in an on-device game, and guessing from the name is not a
+ * contract. `webhookUrl` stays server-side. */
+export const botTypeShape = z.enum(["engine", "external", "local"] satisfies [BotType, ...BotType[]]).openapi("BotType", {
+  description: "How this bot's moves are produced: `engine` in the server's game rules, `external` by a hosted service, `local` by a brain shipped in the client.",
+});
 
 export const outcomeShape = z
   .object({
@@ -148,6 +168,7 @@ export const sessionShape = z
     gameId: z.string(),
     shortCode: z.string(),
     access: gameAccessShape,
+    origin: gameOriginShape,
     schemaVersion: z.number().int(),
     config: jsonObjectShape,
     turnSeconds: z.number().int().nullable(),
@@ -188,6 +209,7 @@ export const gameSummaryShape = z
     createdBy: z.string().nullable(),
     status: gameStatusShape,
     access: gameAccessShape,
+    origin: gameOriginShape,
     schemaVersion: z.number().int(),
     config: jsonObjectShape,
     turnSeconds: z.number().int().nullable(),
@@ -258,6 +280,7 @@ export const botShape = z
     displayName: z.string(),
     avatarUrl: z.string().nullable(),
     schemaVersion: z.number().int(),
+    type: botTypeShape,
     ratedEligible: z.boolean(),
     config: jsonObjectShape,
   })
@@ -355,6 +378,149 @@ export const createSoloBody = z
  * opening frame: the game is already running before any socket exists. */
 export const soloStartedShape = z.object({ session: sessionShape }).openapi("SoloStarted");
 
+// ── Local games (offline play, imported) ─────────────────────────────────────
+
+/** The base RNG seed the device already played the game from: 128 bits, hex,
+ * exactly what `randomSeed()` produces. Spelled as a pattern rather than a
+ * length because the server re-derives every transition's randomness from it,
+ * and a seed that differs by one character is a different game. */
+const seedField = z
+  .string()
+  .regex(/^[0-9a-f]{32}$/, "must be 32 lowercase hex characters")
+  .openapi({ example: "0f1e2d3c4b5a69788796a5b4c3d2e1f0" });
+
+/**
+ * Create-local: register a game the device has already started and played, so
+ * the rest of the import has somewhere to land.
+ *
+ * The same creation policy as create-solo, minus the timed rule (an on-device
+ * game has no server to keep a clock) and minus the caller's say over access
+ * and rating: a local game is always private, always unrated, and always
+ * untimed, so those are not fields. The id and the seed come from the device
+ * because the game already exists there; sending them is what makes this create
+ * idempotent and what makes the server's replay draw the same random values.
+ */
+export const createLocalBody = z
+  .object({
+    /** The device-generated game id, which becomes the server id. Opaque: a
+     * client UUID in practice, bounded only so it cannot be unreasonable. */
+    gameId: z.string().min(1).max(64),
+    /** The version the device played at. Unlike an online create this need only
+     * be *installed*, not the latest: the game was created on a device that was
+     * current when it was played, and refusing it later would strand a finished
+     * game the player can see on their phone. */
+    schemaVersion: z.number().int().positive().openapi({ description: "The schemaVersion the device played at. Any version this deployment ships is accepted; a newer one answers 409 serverUpdateRequired.", example: 1 }),
+    config: jsonObjectShape,
+    ...seatFields,
+    /** The bots the device seated, in seat order after seat 0. Each must be a
+     * registry row whose brain can run on a device (`local` or `engine`). */
+    botIds: z.array(z.string()).min(1),
+    seed: seedField,
+    /** When the device started the game. Clamped to the server's clock, so a
+     * device with a fast clock cannot post-date its history. */
+    createdAt: z.number().int().openapi({ description: "Epoch milliseconds, as the device recorded it. Stored as min(claimed, server now)." }),
+  })
+  .refine(seatsOrdered, "maxPlayers must be at least minPlayers")
+  .openapi("CreateLocalGame");
+
+/** A registered local game. Like `SoloStarted`, the session is the only
+ * delivery of the opening frame: the game is already running. */
+export const localStartedShape = z.object({ session: sessionShape }).openapi("LocalStarted");
+
+/** One transition of the device's log. `data` is the game's own action payload
+ * for `game`, and `{ type: "forfeit", playerIndex }` for `lifecycle` — the only
+ * importable lifecycle, since an untimed game cannot time out and auto-forfeit
+ * is the engine's own. */
+export const localTransitionShape = z
+  .object({
+    seat: z.number().int().min(0),
+    kind: z.enum(["game", "lifecycle"]),
+    data: z.unknown(),
+  })
+  .openapi("LocalTransition");
+
+/** An append of the device's log against the server's current version.
+ * Bounded per request so a long game syncs in batches inside the body limit,
+ * and so one request's work stays bounded at the object. */
+export const localTransitionsBody = z
+  .object({
+    fromVersion: z.number().int().min(0),
+    transitions: z.array(localTransitionShape).min(1).max(200),
+  })
+  .openapi("LocalTransitions");
+
+/** How far an append got.
+ *
+ * A rejection is not a transport failure: everything before `rejection.index`
+ * is committed and permanent, so this is a 200 carrying the truth. It means the
+ * device's Dart rules and the server's TypeScript rules disagreed about the
+ * game, which is a twin defect the client surfaces (`diverged`) rather than
+ * retrying. */
+export const localTransitionsAppliedShape = z
+  .object({
+    applied: z.number().int(),
+    session: sessionShape,
+    rejection: z.union([
+      z
+        .object({
+          index: z.number().int(),
+          code: errorCodeShape,
+          message: z.string(),
+        })
+        .openapi("LocalRejection"),
+      z.null(),
+    ]),
+  })
+  .openapi("LocalTransitionsApplied");
+
+/** One stored transition as the engine logged it. Not the wire vocabulary a
+ * game screen uses (that is `Frame`, projected per seat); this is the
+ * engine-owned log entry, and it appears on exactly one route. */
+export const transitionActionShape = z
+  .object({
+    type: z.enum(["user", "bot", "system"]),
+    kind: z.enum(["game", "lifecycle", "ratings"]),
+    /** Game-defined for `game`, the lifecycle payload for `lifecycle`, and the
+     * engine's rating deltas for `ratings`. */
+    data: jsonObjectShape,
+    /** The performer's seat; null for identity-less system transitions. */
+    playerIndex: z.number().int().nullable(),
+  })
+  .openapi("TransitionAction");
+
+/**
+ * Everything a device needs to continue a local game it holds no record for.
+ *
+ * This is the ONE route that carries raw state and the game's seed off the
+ * server, and it is deliberate: a local game has exactly one human, the caller,
+ * who played every transition on their own device and still holds both there.
+ * There is no second participant for the disclosure to be against, and the
+ * alternative — re-deriving the game from the log — is exactly what the device
+ * will do with it anyway.
+ */
+export const localRecordShape = z
+  .object({
+    session: sessionShape,
+    seed: seedField,
+    /** When the device that played it says the game began, and when it ended.
+     * The session carries neither, and a pulled record has to sort into the
+     * same lists as one this device played, so they ride along rather than
+     * costing a second read of the summary. */
+    createdAt: z.number().int(),
+    finishedAt: z.number().int().nullable(),
+    transitions: z.array(
+      z
+        .object({
+          version: z.number().int(),
+          state: jsonObjectShape,
+          action: z.union([transitionActionShape, z.null()]),
+          pending: z.array(z.number().int()),
+        })
+        .openapi("LocalTransitionRow"),
+    ),
+  })
+  .openapi("LocalRecord");
+
 export const joinBody = z
   .object({
     /** Newest game schema bundled by this client. Published versions are
@@ -390,6 +556,7 @@ export function gameSummaryOf(g: GameWithRoster): z.infer<typeof gameSummaryShap
     createdBy: g.createdBy,
     status: g.status,
     access: g.access,
+    origin: g.origin,
     schemaVersion: g.schemaVersion,
     config: g.config,
     turnSeconds: g.turnSeconds,
@@ -416,10 +583,10 @@ export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "a
 }
 
 /** The bot catalog projection. Unlike the ratings/history reads (whose SELECT
- * already names exactly the wire fields), `readBots` returns the whole row,
- * since `games.ts` needs `type` and the secret `webhookUrl` to seat bots, so the
- * public shape is carved out here, at the wire boundary, and `webhookUrl` never
- * leaves. */
+ * already names exactly the wire fields), `readBots` returns the whole row, so
+ * the public shape is carved out here, at the wire boundary. `type` is public
+ * (a client picking an on-device opponent needs it); the secret `webhookUrl`
+ * never leaves, which is why this stays an explicit field list. */
 export function botOf(b: BotRow): z.infer<typeof botShape> {
-  return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, ratedEligible: b.ratedEligible, config: b.config };
+  return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, type: b.type, ratedEligible: b.ratedEligible, config: b.config };
 }

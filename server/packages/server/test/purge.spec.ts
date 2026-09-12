@@ -136,6 +136,7 @@ describe("applyFinish purge guard", () => {
       createdBy: present,
       status: "ready",
       access: "public",
+      origin: "online",
       schemaVersion: 1,
       config: { target: 3 },
       turnSeconds: 30,
@@ -150,6 +151,7 @@ describe("applyFinish purge guard", () => {
         { playerIndex: 0, userId: present, botId: null, type: "human" },
         { playerIndex: 1, userId: gone, botId: null, type: "human" },
       ],
+      createdAt: now,
       now,
     });
 

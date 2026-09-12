@@ -15,7 +15,7 @@ The DO's own SQLite database is the game. Six tables:
 
 | Table | Lifetime | Purpose |
 |---|---|---|
-| `meta` | permanent | The single game row (id, short code, status, access, schema_version, config, timing, rated, pool, roster bounds, creator, rng seed, final outcomes, and `seq`). Copied once from D1 at lazy-init, then DO-owned. `seq` is the monotonic session counter every commit advances, which is what totally orders the snapshots the socket pushes; `outcomes` is retained rather than drained so a cold open of a finished game is answerable from the DO alone. |
+| `meta` | permanent | The single game row (id, short code, status, access, `origin`, schema_version, config, timing, rated, pool, roster bounds, creator, rng seed, final outcomes, and `seq`). Copied once from D1 at lazy-init, then DO-owned. `seq` is the monotonic session counter every commit advances, which is what totally orders the snapshots the socket pushes; `outcomes` is retained rather than drained so a cold open of a finished game is answerable from the DO alone. |
 | `roster` | permanent | One row per seat (`player_index`, `user_id`/`bot_id`, `type`). The **authoritative** roster; D1's copy is a display mirror. |
 | `transitions` | permanent | **Append-only, immutable.** One row per version: the opaque `state`, the `action` that produced it, the pending set, deadline, per-player clocks. This table *is* the game's history. |
 | `frames` | live-only | Per-seat projected observations, for socket gap-recovery and the same-view compare. Drained by the finish compaction (replay re-projects instead). |
@@ -68,3 +68,11 @@ Every accepted command commits as the next integer version, in arrival order, wi
 **no gaps, ever**. The same-view rule governs *acceptance* only; it never
 reorders or skips versions. This invariant is what lets the client recover any
 gap by a simple version-range fetch and lets replay walk the log linearly.
+
+## Local-origin games
+
+`meta.origin` is immutable from creation. For a `local`-origin game the DO's
+`transitions` table is populated by import rather than by live commits — the
+device's own log, appended in order through the same `commit()` the kernel
+runs for a live move — so a local game's history is structurally identical to
+an online one once it lands here. See [Offline play](../build-a-game/offline-play.md).

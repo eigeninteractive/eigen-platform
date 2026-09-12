@@ -10,6 +10,12 @@ part 'payload_emitter.dart';
 /// Generates standalone immutable Dart payload types from an EigenInteractive
 /// game contract. This is tooling code used by `bin/generate_payloads.dart`;
 /// game applications do not import it at runtime.
+///
+/// Per contract version it emits the four payload types (`State`,
+/// `Observation`, `Action`, `Config`), a `<Game>V<N>RulesBase` implementing the
+/// wire codecs of the Flutter `GameRules`, and a `<Game>V<N>LocalRulesBase`
+/// implementing all seven codecs the local kernel needs for offline play. Both
+/// bases leave game behavior abstract.
 String generatePayloadLibrary(Map<String, dynamic> contract) {
   if (contract['formatVersion'] != 1) {
     throw FormatException(
@@ -28,21 +34,36 @@ String generatePayloadLibrary(Map<String, dynamic> contract) {
     final schemas = versionNode['schemas'] as Map<String, dynamic>;
     final context = _GenerationContext(prefix, declarations);
 
-    for (final payload in const ['observation', 'action', 'config']) {
-      context.registerRoot(
-        _pascal(payload),
-        schemas[payload] as Map<String, dynamic>,
-      );
+    // `state` is generated alongside the three wire payloads because offline
+    // play runs the game's hooks on the device: the local kernel validates a
+    // hook's state by round-tripping it through this type, which is the Dart
+    // stand-in for the schema the server re-validates against.
+    for (final payload in const ['state', 'observation', 'action', 'config']) {
+      final schema = schemas[payload];
+      if (schema is! Map<String, dynamic>) {
+        throw FormatException('Version $version declares no $payload schema');
+      }
+      context.registerRoot(_pascal(payload), schema);
     }
 
     context
       ..emitDefinitions()
+      ..emitRoot('State')
       ..emitRoot('Observation')
       ..emitRoot('Action')
       ..emitRoot('Config');
     declarations.add(
       _PayloadRulesBase(
         name: '${prefix}RulesBase',
+        observation: '${prefix}Observation',
+        action: '${prefix}Action',
+        config: '${prefix}Config',
+      ),
+    );
+    declarations.add(
+      _PayloadLocalRulesBase(
+        name: '${prefix}LocalRulesBase',
+        state: '${prefix}State',
         observation: '${prefix}Observation',
         action: '${prefix}Action',
         config: '${prefix}Config',

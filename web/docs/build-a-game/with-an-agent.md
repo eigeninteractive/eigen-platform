@@ -1,5 +1,5 @@
 ---
-sidebar_position: 13
+sidebar_position: 14
 title: Working with an agent
 description: The Claude Code skill for writing EigenInteractive games, the retrieval surface behind these docs, and the mistakes an agent makes on this contract that a reviewer should look for.
 ---

@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **gameId** | **String** |  | 
 **shortCode** | **String** |  | 
 **access** | [**GameAccess**](GameAccess.md) |  | 
+**origin** | [**GameOrigin**](GameOrigin.md) |  | 
 **schemaVersion** | **int** |  | 
 **config** | **Object** |  | 
 **turnSeconds** | **int** |  | 

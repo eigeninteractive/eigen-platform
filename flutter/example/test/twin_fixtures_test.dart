@@ -1,6 +1,7 @@
 /// Runs the shared twin fixtures against the Dart RPS twin.
 ///
-/// The files under `fixtures/v1/` are byte-identical copies of
+/// The files under `test/fixtures/v1/` are written by
+/// `eigen_codegen:generate_payloads` from the contract, and are copies of
 /// `eigen-server/examples/rps/src/module/fixtures/v1/`, and the server runs the
 /// same files against the authoritative TypeScript unit via `@eigen/testkit`.
 /// One recorded behaviour, two languages, two CIs: when the twins disagree,
@@ -16,7 +17,7 @@ import 'package:rps_example/rps.dart';
 
 void main() {
   const module = RpsModule();
-  final suites = loadTwinFixtureSuites('fixtures');
+  final suites = loadTwinFixtureSuites('test/fixtures');
 
   test('the fixture suite is present', () {
     expect(

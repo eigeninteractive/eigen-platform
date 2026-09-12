@@ -54,5 +54,7 @@ const _$ErrorCodeEnumMap = {
   ErrorCode.unsupportedImageType: 'unsupportedImageType',
   ErrorCode.rateLimited: 'rateLimited',
   ErrorCode.invalidCursor: 'invalidCursor',
+  ErrorCode.localOnly: 'localOnly',
+  ErrorCode.notLocalBot: 'notLocalBot',
   ErrorCode.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

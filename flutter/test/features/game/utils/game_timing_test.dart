@@ -13,6 +13,7 @@ GameSummary _game({
   createdBy: null,
   status: GameStatus.active,
   access: GameAccess.public,
+  origin: GameOrigin.online,
   schemaVersion: 1,
   config: const <String, dynamic>{},
   turnSeconds: turnSeconds,

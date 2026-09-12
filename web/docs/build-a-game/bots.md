@@ -34,27 +34,41 @@ Notes:
   (difficulty, style). Distinct behaviour is a distinct entry.
 - **`rng` is deterministic** per (game, version, seat) for reproducible tests,
   but replay uses the *recorded* move, so the brain needn't be pure.
-- **External and local bots** are engine concepts, not things you code in the
-  game module: `external` bots are hosted elsewhere and woken over a signed
-  webhook; `local` bots are reserved for future offline play. You only write
-  `engine` brains here.
+- **External and local bots** are not written in the game module: `external`
+  bots are hosted elsewhere and woken over a signed webhook; `local` bots run
+  entirely on the device, from a Dart brain declared on the version's
+  `LocalGameRules.botActions`, keyed by the same `username` as this map. See
+  [Offline play](./offline-play.md).
 
 ## The client half
 
-There is almost none, and that is the point: **client-side bots do not exist**.
-Every bot is seated by the server, so a game screen renders a bot seat exactly
-like a human one: same `PlayersContext` entry, same avatar (with a bot badge),
-same frames arriving over the same socket. Do not branch on seat type to decide
-whether to show identity.
+For a **server** game there is almost none, and that is the point:
+**client-side bots do not decide anything**. Every bot is seated and dispatched
+by the server, so a game screen renders a bot seat exactly like a human one:
+same `PlayersContext` entry, same avatar (with a bot badge), same frames
+arriving over the same socket. Do not branch on seat type to decide whether to
+show identity.
 
-The one member that participates is the Dart `botSeatable` twin, which filters
-the bot picker locally with no network call. It is display-only; the server
-enforces the same rule before seating.
+For a **local** game the picture is different: the human's only opponents are
+on-device bots, and their brains are real Dart code you write, keyed by
+username exactly like the map above. See
+[Offline play](./offline-play.md#opt-in-the-local-unit).
 
-The one constraint that reaches the creation UI is that **a game seating a bot
-must be timed**, because bot dispatch is single-attempt, so the turn deadline is the
-only thing that resolves a bot which never moves. See
-[Creation UI](./creation-ui.md).
+| `type` | Brain runs | You write it |
+|---|---|---|
+| `engine` | In this module's `botActions`, dispatched by the server | ✅ here, TypeScript |
+| `local` | In the version's `LocalGameRules.botActions`, on the device | ✅ see [Offline play](./offline-play.md), Dart |
+| `external` | On a service you host, woken over a signed webhook | ❌ not in the game module |
+
+The Dart `botSeatable` twin filters the bot picker locally with no network
+call, for both server and local seating. It is display-only; the server
+enforces the same rule before seating either way.
+
+The one constraint that reaches the creation UI is that **a game seating a
+server-dispatched bot must be timed**, because bot dispatch is single-attempt,
+so the turn deadline is the only thing that resolves a bot which never moves.
+A local game is always untimed and needs no such backstop: nothing dispatches
+its bots, so there is nothing to wedge. See [Creation UI](./creation-ui.md).
 
 Registering the bot row is an operator task; see
 [Registering bots](../ship-it/configure.md#registering-bots). For the

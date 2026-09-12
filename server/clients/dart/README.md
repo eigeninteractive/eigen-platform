@@ -81,8 +81,10 @@ Class | Method | HTTP request | Description
 [*BotWebhookApi*](doc/BotWebhookApi.md) | [**botAction**](doc/BotWebhookApi.md#botaction) | **POST** /api/bot/action | 
 [*BotsApi*](doc/BotsApi.md) | [**getBots**](doc/BotsApi.md#getbots) | **GET** /api/engine/bots | 
 [*GamesApi*](doc/GamesApi.md) | [**addBot**](doc/GamesApi.md#addbot) | **POST** /api/engine/games/{gameId}/add-bot | 
+[*GamesApi*](doc/GamesApi.md) | [**appendLocalTransitions**](doc/GamesApi.md#appendlocaltransitions) | **POST** /api/engine/games/{gameId}/local/transitions | 
 [*GamesApi*](doc/GamesApi.md) | [**cancelGame**](doc/GamesApi.md#cancelgame) | **POST** /api/engine/games/{gameId}/cancel | 
 [*GamesApi*](doc/GamesApi.md) | [**createGame**](doc/GamesApi.md#creategame) | **POST** /api/engine/games | 
+[*GamesApi*](doc/GamesApi.md) | [**createLocalGame**](doc/GamesApi.md#createlocalgame) | **POST** /api/engine/games/local | 
 [*GamesApi*](doc/GamesApi.md) | [**createSocketTicket**](doc/GamesApi.md#createsocketticket) | **POST** /api/engine/games/{gameId}/socket-ticket | 
 [*GamesApi*](doc/GamesApi.md) | [**createSoloGame**](doc/GamesApi.md#createsologame) | **POST** /api/engine/games/solo | 
 [*GamesApi*](doc/GamesApi.md) | [**forfeitGame**](doc/GamesApi.md#forfeitgame) | **POST** /api/engine/games/{gameId}/forfeit | 
@@ -90,6 +92,7 @@ Class | Method | HTTP request | Description
 [*GamesApi*](doc/GamesApi.md) | [**getGame**](doc/GamesApi.md#getgame) | **GET** /api/engine/games/{gameId} | 
 [*GamesApi*](doc/GamesApi.md) | [**getGameSession**](doc/GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [*GamesApi*](doc/GamesApi.md) | [**getLobby**](doc/GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
+[*GamesApi*](doc/GamesApi.md) | [**getLocalRecord**](doc/GamesApi.md#getlocalrecord) | **GET** /api/engine/games/{gameId}/local | 
 [*GamesApi*](doc/GamesApi.md) | [**getMyGames**](doc/GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [*GamesApi*](doc/GamesApi.md) | [**joinGame**](doc/GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
 [*GamesApi*](doc/GamesApi.md) | [**joinGameByCode**](doc/GamesApi.md#joingamebycode) | **POST** /api/engine/games/join-by-code | 
@@ -125,9 +128,11 @@ Class | Method | HTTP request | Description
  - [AddBot](doc/AddBot.md)
  - [Bot](doc/Bot.md)
  - [BotAction](doc/BotAction.md)
+ - [BotType](doc/BotType.md)
  - [Bots](doc/Bots.md)
  - [CommandAccepted](doc/CommandAccepted.md)
  - [CreateGame](doc/CreateGame.md)
+ - [CreateLocalGame](doc/CreateLocalGame.md)
  - [CreateSolo](doc/CreateSolo.md)
  - [Created](doc/Created.md)
  - [DeviceRegistration](doc/DeviceRegistration.md)
@@ -146,12 +151,20 @@ Class | Method | HTTP request | Description
  - [Friends](doc/Friends.md)
  - [FriendsGames](doc/FriendsGames.md)
  - [GameAccess](doc/GameAccess.md)
+ - [GameOrigin](doc/GameOrigin.md)
  - [GameStatus](doc/GameStatus.md)
  - [GameSummary](doc/GameSummary.md)
  - [Health](doc/Health.md)
  - [Join](doc/Join.md)
  - [JoinByCode](doc/JoinByCode.md)
  - [Lobby](doc/Lobby.md)
+ - [LocalRecord](doc/LocalRecord.md)
+ - [LocalRejection](doc/LocalRejection.md)
+ - [LocalStarted](doc/LocalStarted.md)
+ - [LocalTransition](doc/LocalTransition.md)
+ - [LocalTransitionRow](doc/LocalTransitionRow.md)
+ - [LocalTransitions](doc/LocalTransitions.md)
+ - [LocalTransitionsApplied](doc/LocalTransitionsApplied.md)
  - [MyGames](doc/MyGames.md)
  - [Outcome](doc/Outcome.md)
  - [Player](doc/Player.md)
@@ -168,6 +181,7 @@ Class | Method | HTTP request | Description
  - [Session](doc/Session.md)
  - [SocketTicket](doc/SocketTicket.md)
  - [SoloStarted](doc/SoloStarted.md)
+ - [TransitionAction](doc/TransitionAction.md)
  - [UserSearch](doc/UserSearch.md)
  - [UsernameUpdate](doc/UsernameUpdate.md)
  - [UsernameUpdated](doc/UsernameUpdated.md)

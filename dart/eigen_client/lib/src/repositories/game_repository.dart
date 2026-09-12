@@ -285,6 +285,116 @@ class GameRepository {
     return body.session;
   }
 
+  // ── Importing a game played on the device ──────────────────────────────────
+
+  /// Creates and starts the server's copy of a game this device played offline.
+  ///
+  /// The server adopts [gameId] and [seed] verbatim, so its own `initialState`
+  /// draws exactly what the device drew and its version 0 is the same board.
+  /// Idempotent on [gameId]: a retry after an ambiguous failure answers with the
+  /// game it already made rather than a second one, which is what lets the
+  /// caller retry a lost response with no bookkeeping.
+  Future<SoloStarted> createLocalGame({
+    required String gameId,
+    required int schemaVersion,
+    required Object config,
+    required String seed,
+    required List<String> botIds,
+    required DateTime createdAt,
+    int? minPlayers,
+    int? maxPlayers,
+  }) async {
+    final body = await engineData(
+      () => _api.createLocalGame(
+        createLocalGame: CreateLocalGame(
+          gameId: gameId,
+          schemaVersion: schemaVersion,
+          config: config,
+          seed: seed,
+          botIds: botIds,
+          createdAt: createdAt.toUtc().millisecondsSinceEpoch,
+          minPlayers: minPlayers,
+          maxPlayers: maxPlayers,
+        ),
+      ),
+    );
+    return SoloStarted(session: body.session);
+  }
+
+  /// Appends the device's transitions after [fromVersion], replaying them
+  /// through the authoritative rules.
+  ///
+  /// The answer counts what actually committed, so a caller advances its own
+  /// synchronization point by [LocalTransitionsApplied.applied] rather than by
+  /// what it sent. A non-null [LocalTransitionsApplied.rejection] means the
+  /// server's rules refused a move this device accepted: the two halves have
+  /// diverged, which is a defect to surface, never something to retry.
+  Future<LocalTransitionsApplied> appendLocalTransitions({
+    required String gameId,
+    required int fromVersion,
+    required List<LocalTransition> transitions,
+  }) {
+    return engineData(
+      () => _api.appendLocalTransitions(
+        gameId: gameId,
+        localTransitions: LocalTransitions(
+          fromVersion: fromVersion,
+          transitions: transitions,
+        ),
+      ),
+    );
+  }
+
+  /// The server's whole copy of a local game: its session, its seed, and every
+  /// transition with the raw state it committed.
+  ///
+  /// The one route that returns raw state and the seed, and it is sound because
+  /// the caller is the game's only human and already held both on the device
+  /// that played it. This is what lets a second device continue a game the
+  /// first one started.
+  Future<LocalRecord> getLocalRecord(String gameId, {int from = 0, int? to}) {
+    return engineData(
+      () => _api.getLocalRecord(gameId: gameId, from: from, to: to),
+    );
+  }
+
+  /// The whole record, in as many pages as it takes.
+  ///
+  /// [getLocalRecord] answers a bounded page — the route caps one response at
+  /// 1000 transitions — so a long game needs several calls. Resuming on a
+  /// second device must have every version, because the engine replays the log
+  /// from 0, and a truncated pull that still carried the session's true version
+  /// would look complete while silently dropping the end of the game.
+  ///
+  /// The last page's session is the one returned: it is the freshest read of a
+  /// game that nothing else should be moving, and using the first page's would
+  /// describe the record as older than its own transitions.
+  Future<LocalRecord> getWholeLocalRecord(String gameId) async {
+    var page = await getLocalRecord(gameId);
+    if (page.transitions.isEmpty) return page;
+    final transitions = [...page.transitions];
+    while (transitions.last.version < (page.session.version ?? 0)) {
+      final next = await getLocalRecord(
+        gameId,
+        from: transitions.last.version + 1,
+      );
+      // A page that carries nothing new would loop forever. The server is the
+      // only thing that could produce one, and it means the log stops short of
+      // the version its own session reports, so stop and let the import's
+      // completeness check name it.
+      if (next.transitions.isEmpty) break;
+      transitions.addAll(next.transitions);
+      page = next;
+    }
+    return LocalRecord(
+      session: page.session,
+      seed: page.seed,
+      createdAt: page.createdAt,
+      finishedAt: page.finishedAt,
+      transitions: transitions,
+    );
+  }
+
   // ── Playing ────────────────────────────────────────────────────────────────
 
   /// Submits a move for [seat] against [expectedVersion].

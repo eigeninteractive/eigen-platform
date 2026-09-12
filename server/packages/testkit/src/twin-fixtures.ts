@@ -6,9 +6,9 @@
  *
  * One fixture file per concern lives beside the version units at
  * `<fixturesRoot>/v<N>/*.json` and is consumed by BOTH sides: this module
- * runs each case against the TS unit (schemas + `applyAction` +
- * `computeObservation` + the two predicates), while the Dart runner runs the
- * same file against the Dart twin (generated payload parsing,
+ * runs each case against the TS unit (schemas + the four hooks + the two
+ * predicates, and whole matches through the real kernel), while the Dart
+ * runner runs the same file against the Dart twin (generated payload parsing,
  * `isValidAction`, `previewAction`, predicate twins). A behavioral divergence
  * then fails one side's CI instead of degrading UX in production.
  *
@@ -47,7 +47,58 @@
  *     { "kind": "ratingPool",  "name": "...", "access": "public",
  *       "minPlayers": 2, "maxPlayers": 2, "config": {}, "expected": "blitz" },
  *     { "kind": "botSeatable", "name": "...", "gameConfig": {},
- *       "botConfig": {}, "expected": false }
+ *       "botConfig": {}, "expected": false },
+ *     {
+ *       "kind": "initialState",
+ *       "name": "a fresh board seats both players",
+ *       "config": { ... },
+ *       "playerCount": 2,
+ *       "rngSeed": "any string",     // optional, default "twin-fixtures"
+ *       "expected": {                // the envelope block the action case
+ *         "state": { ... },          //   records, minus `valid`
+ *         "pending": [0, 1],
+ *         "outcome": null
+ *       }
+ *     },
+ *     {
+ *       "kind": "lifecycle",
+ *       "name": "a forfeit hands the match to the other seat",
+ *       "config": { ... },
+ *       "state": { ... },            // applyLifecycle input
+ *       "pending": [0, 1],
+ *       "type": "forfeit",           // timeout | forfeit | autoForfeit
+ *       "playerIndex": 0,            // required for forfeit/autoForfeit,
+ *                                    //   forbidden for timeout
+ *       "participantCount": 2,       // optional, default 2
+ *       "rngSeed": "any string",     // optional, default "twin-fixtures"
+ *       "expected": { "state": { ... }, "pending": [], "outcome": [ ... ] }
+ *     },
+ *     {
+ *       "kind": "transcript",
+ *       "name": "a best-of-one match played to its finish",
+ *       "config": { ... },
+ *       "playerCount": 2,
+ *       "seed": "the game's base rng seed",
+ *       "transitions": [
+ *         { "kind": "game", "playerIndex": 0, "data": { ... } },
+ *         { "kind": "lifecycle", "type": "forfeit", "playerIndex": 1 }
+ *       ],
+ *       "expected": {
+ *         "version": 3,              // the final committed state version
+ *         "status": "finished",      // active | finished
+ *         "state": { ... },          // optional, as above
+ *         "pending": [],
+ *         "outcome": [ ... ]
+ *       }
+ *     },
+ *     {
+ *       "kind": "rng",
+ *       "name": "the stream initialState draws from",
+ *       "seed": "twin-fixtures",
+ *       "version": 0,
+ *       "seat": 1,                   // optional; present ⇒ the bot stream
+ *       "draws": [0.123, 0.456]      // 1..64 values, compared exactly
+ *     }
  *   ]
  * }
  * ```
@@ -57,6 +108,34 @@
  * the shared behavioral anchor: the TS side must project the post-action
  * state to it, and a Dart `previewAction` that returns non-null must predict
  * it, so the two sides are compared through one recorded value.
+ *
+ * ## What each kind records
+ *
+ * `action`, `playerLimits`, `ratingPool` and `botSeatable` pin one hook or
+ * predicate. The four kinds below exist for offline play (architecture
+ * decision 0012): a device runs the Dart twin through a Dart port of the
+ * kernel, so the pieces the online client never had to reproduce — the
+ * opening state, the lifecycle hooks, a whole match, and the random stream
+ * itself — each need a recorded behavior of their own.
+ *
+ * - `initialState` runs `initialState` with `deriveRng(rngSeed, 0)`, the
+ *   version-0 stream the engine's `start` commit derives, and checks the
+ *   returned envelope exactly as the action case does.
+ * - `lifecycle` runs `applyLifecycle` with the `data` payload the kernel
+ *   builds (`{type:"timeout"}`, or `{type, playerIndex}`), then applies the
+ *   kernel's forfeit guard: a forfeit must remove its own seat from pending.
+ *   Like the action case, and unlike `initialState`, it draws from the raw
+ *   `rngSeed` stream: a standalone hook case has no version to derive from.
+ * - `transcript` replays an ordered match through the REAL kernel `commit()`,
+ *   so every engine guard, the pending/version bookkeeping, and the
+ *   per-transition `deriveRng(seed, version)` streams all participate. It is
+ *   the case a Dart local kernel has to reproduce move for move, on the
+ *   untimed table and with the human/bot roster {@link evaluateTranscript}
+ *   documents.
+ * - `rng` records raw `deriveRng` draws. Generated from the TypeScript kernel
+ *   by {@link rngFixtureCase} / {@link writeRngFixture} and compared with
+ *   `===`, no tolerance: the Dart port is required to be bit-identical, and a
+ *   port that is merely close is a port that desynchronizes one draw later.
  *
  * Wire it up in a game-owned test file running under plain-Node vitest:
  *
@@ -68,15 +147,29 @@
  * ```
  */
 
-import { readdirSync, readFileSync } from "node:fs";
-import { type Envelope, type GameAccess, type GameModule, type GameRules, IllegalMoveError, type Json, type JsonObject, type ObservationSlice, type OutcomeEntry } from "@eigeninteractive/rules";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { assertForfeitPending, type CommitInput, type CommitPlan, commit, deriveRng, GameBugError, type GameRow, type Intent, isRejected, type Rejected, type Seat } from "@eigeninteractive/kernel";
+import { type Envelope, type GameAccess, type GameModule, type GameRules, IllegalMoveError, type Json, type JsonObject, type LifecycleAction, type LifecycleType, type ObservationSlice, type OutcomeEntry, type Rng } from "@eigeninteractive/rules";
 import Rand from "rand-seed";
 import { it } from "vitest";
+
+/** The stream a case draws from when it names no `rngSeed`. */
+const DEFAULT_RNG_SEED = "twin-fixtures";
 
 /** One fixture file: cases targeting one `schemaVersion` unit. */
 export interface TwinFixtureFile {
   schemaVersion: number;
   cases: TwinFixtureCase[];
+}
+
+/** What a case may assert about the envelope a hook (or a whole transcript)
+ * produced. Every field is optional: a fixture pins what it means to pin.
+ * `outcome` is three-valued — absent leaves the outcome unchecked, `null`
+ * asserts the game is ongoing, a list asserts it ended exactly so. */
+export interface ExpectedEnvelope {
+  state?: JsonObject;
+  pending?: number[];
+  outcome?: OutcomeEntry[] | null;
 }
 
 /** A game-action case: exercises schemas, `applyAction`, and (through
@@ -93,11 +186,8 @@ export interface ActionCase {
   participantCount?: number;
   rngSeed?: string;
   action: JsonObject;
-  expected: {
+  expected: ExpectedEnvelope & {
     valid: boolean;
-    state?: JsonObject;
-    pending?: number[];
-    outcome?: OutcomeEntry[] | null;
     observation?: JsonObject;
   };
 }
@@ -133,7 +223,73 @@ export interface BotSeatableCase {
   expected: boolean;
 }
 
-export type TwinFixtureCase = ActionCase | PlayerLimitsCase | RatingPoolCase | BotSeatableCase;
+/** The opening transition: what `initialState` returns for one config and
+ * seat count, drawing from the version-0 stream a `start` commit derives. */
+export interface InitialStateCase {
+  kind: "initialState";
+  name: string;
+  config: JsonObject;
+  playerCount: number;
+  rngSeed?: string;
+  expected: ExpectedEnvelope;
+}
+
+/** An `applyLifecycle` case: one engine-driven transition (a turn that ran
+ * out, a resign, a purged account) resolved against a stated position. */
+export interface LifecycleCase {
+  kind: "lifecycle";
+  name: string;
+  config: JsonObject;
+  state: JsonObject;
+  pending: number[];
+  type: LifecycleType;
+  /** The forfeiting seat. Required for `forfeit`/`autoForfeit`; a `timeout`
+   * carries no seat (its victims are `pending`), so it must be omitted. */
+  playerIndex?: number;
+  participantCount?: number;
+  rngSeed?: string;
+  expected: ExpectedEnvelope;
+}
+
+/** One transition of a {@link TranscriptCase}: a seat's move, or a resign. */
+export type TranscriptTransition = { kind: "game"; playerIndex: number; data: JsonObject } | { kind: "lifecycle"; type: "forfeit"; playerIndex: number };
+
+/** A whole match, replayed through the real kernel from a stated base seed.
+ * The one case that pins the *engine's* bookkeeping — versions, pending
+ * hand-off, the per-transition RNG streams — rather than a single hook. */
+export interface TranscriptCase {
+  kind: "transcript";
+  name: string;
+  config: JsonObject;
+  playerCount: number;
+  /** The game's base RNG seed: every transition's stream derives from it. */
+  seed: string;
+  transitions: TranscriptTransition[];
+  expected: ExpectedEnvelope & {
+    version: number;
+    status: "active" | "finished";
+  };
+}
+
+/** Recorded draws from one derived RNG stream. Generated by
+ * {@link rngFixtureCase}, never hand-written: the values ARE the TypeScript
+ * kernel's, and the Dart port has to reproduce them bit for bit. */
+export interface RngCase {
+  kind: "rng";
+  name: string;
+  seed: string;
+  /** The state version the stream belongs to (`deriveRng`'s second arg). */
+  version: number;
+  /** Present ⇒ the bot stream for that seat, keyed `"<seed>:bot<seat>"`. */
+  seat?: number;
+  draws: number[];
+}
+
+export type TwinFixtureCase = ActionCase | PlayerLimitsCase | RatingPoolCase | BotSeatableCase | InitialStateCase | LifecycleCase | TranscriptCase | RngCase;
+
+/** Every `kind` a fixture case may declare, in the order the error messages
+ * and the evaluator switch list them. */
+const CASE_KINDS = ["action", "playerLimits", "ratingPool", "botSeatable", "initialState", "lifecycle", "transcript", "rng"] as const;
 
 // ── Fixture validation ────────────────────────────────────────────────────────
 //
@@ -185,28 +341,46 @@ function asNumberArray(where: string, v: unknown): number[] {
   return v.map((n, i) => asNumber(`${where}[${i}]`, n));
 }
 
+/** A seat index, a seat count, or a state version: the fixture format has no
+ * fractional or negative counts anywhere. */
+function asIndex(where: string, v: unknown): number {
+  const n = asNumber(where, v);
+  if (!Number.isInteger(n) || n < 0) {
+    throw new Error(`${where}: expected a non-negative integer, got ${JSON.stringify(v)}`);
+  }
+  return n;
+}
+
 /** Applies `read` only when the key is present and non-null; absent and
  * explicit null both mean "not specified" for every optional fixture field. */
 function optional<T>(where: string, v: unknown, read: (where: string, v: unknown) => T): T | undefined {
   return v === undefined || v === null ? undefined : read(where, v);
 }
 
-function parseActionCase(where: string, raw: JsonObject): ActionCase {
-  const expectedRaw = asObject(`${where}.expected`, raw.expected);
-  const expected: ActionCase["expected"] = {
-    valid: asBoolean(`${where}.expected.valid`, expectedRaw.valid),
-    state: optional(`${where}.expected.state`, expectedRaw.state, asObject),
-    pending: optional(`${where}.expected.pending`, expectedRaw.pending, asNumberArray),
-    observation: optional(`${where}.expected.observation`, expectedRaw.observation, asObject),
+/** The `expected` block every hook-running case shares. */
+function parseExpectedEnvelope(where: string, raw: JsonObject): ExpectedEnvelope {
+  const expected: ExpectedEnvelope = {
+    state: optional(`${where}.state`, raw.state, asObject),
+    pending: optional(`${where}.pending`, raw.pending, asNumberArray),
   };
   // `outcome` is three-valued: absent (unchecked), null (asserts the game is
   // ongoing), or a list. `checkEnvelope` distinguishes absent from null with
   // an `in` test, so the key must only be set when the fixture set it.
-  if ("outcome" in expectedRaw) {
-    const outcome = expectedRaw.outcome;
-    if (outcome !== null && !Array.isArray(outcome)) fail(`${where}.expected.outcome`, "an array or null", outcome);
+  if ("outcome" in raw) {
+    const outcome = raw.outcome;
+    if (outcome !== null && !Array.isArray(outcome)) fail(`${where}.outcome`, "an array or null", outcome);
     expected.outcome = outcome as OutcomeEntry[] | null;
   }
+  return expected;
+}
+
+function parseActionCase(where: string, raw: JsonObject): ActionCase {
+  const expectedRaw = asObject(`${where}.expected`, raw.expected);
+  const expected: ActionCase["expected"] = {
+    ...parseExpectedEnvelope(`${where}.expected`, expectedRaw),
+    valid: asBoolean(`${where}.expected.valid`, expectedRaw.valid),
+    observation: optional(`${where}.expected.observation`, expectedRaw.observation, asObject),
+  };
   return {
     kind: "action",
     name: asString(`${where}.name`, raw.name),
@@ -264,6 +438,116 @@ function parseBotSeatableCase(where: string, raw: JsonObject): BotSeatableCase {
   };
 }
 
+function parseInitialStateCase(where: string, raw: JsonObject): InitialStateCase {
+  return {
+    kind: "initialState",
+    name: asString(`${where}.name`, raw.name),
+    config: asObject(`${where}.config`, raw.config),
+    playerCount: asIndex(`${where}.playerCount`, raw.playerCount),
+    rngSeed: optional(`${where}.rngSeed`, raw.rngSeed, asString),
+    expected: parseExpectedEnvelope(`${where}.expected`, asObject(`${where}.expected`, raw.expected)),
+  };
+}
+
+function parseLifecycleCase(where: string, raw: JsonObject): LifecycleCase {
+  const type = asString(`${where}.type`, raw.type);
+  if (type !== "timeout" && type !== "forfeit" && type !== "autoForfeit") {
+    throw new Error(`${where}.type: expected one of timeout | forfeit | autoForfeit, got ${JSON.stringify(raw.type)}`);
+  }
+  // A timeout resolves whoever is pending and carries no seat, so a
+  // `playerIndex` on one is not a harmless extra: it is a fixture author
+  // expecting a seat the hook will never be told about.
+  const playerIndex = optional(`${where}.playerIndex`, raw.playerIndex, asIndex);
+  if (type === "timeout" && playerIndex !== undefined) {
+    throw new Error(`${where}.playerIndex: a timeout carries no seat (its victims are "pending"); remove it`);
+  }
+  if (type !== "timeout" && playerIndex === undefined) {
+    throw new Error(`${where}.playerIndex: a ${type} must name the forfeiting seat`);
+  }
+  return {
+    kind: "lifecycle",
+    name: asString(`${where}.name`, raw.name),
+    config: asObject(`${where}.config`, raw.config),
+    state: asObject(`${where}.state`, raw.state),
+    pending: asNumberArray(`${where}.pending`, raw.pending),
+    type,
+    playerIndex,
+    participantCount: optional(`${where}.participantCount`, raw.participantCount, asNumber),
+    rngSeed: optional(`${where}.rngSeed`, raw.rngSeed, asString),
+    expected: parseExpectedEnvelope(`${where}.expected`, asObject(`${where}.expected`, raw.expected)),
+  };
+}
+
+function parseTranscriptTransition(where: string, raw: unknown): TranscriptTransition {
+  const obj = asObject(where, raw);
+  switch (obj.kind) {
+    case "game":
+      return {
+        kind: "game",
+        playerIndex: asIndex(`${where}.playerIndex`, obj.playerIndex),
+        data: asObject(`${where}.data`, obj.data),
+      };
+    case "lifecycle": {
+      // Only `forfeit` is transcriptable: a timeout needs an expired clock and
+      // a local game is untimed, and `autoForfeit` is an account purge, which
+      // no transcript of a played match can contain.
+      const type = asString(`${where}.type`, obj.type);
+      if (type !== "forfeit") {
+        throw new Error(`${where}.type: expected forfeit, got ${JSON.stringify(obj.type)}`);
+      }
+      return {
+        kind: "lifecycle",
+        type,
+        playerIndex: asIndex(`${where}.playerIndex`, obj.playerIndex),
+      };
+    }
+    default:
+      throw new Error(`${where}.kind: expected one of game | lifecycle, got ${JSON.stringify(obj.kind)}`);
+  }
+}
+
+function parseTranscriptCase(where: string, raw: JsonObject): TranscriptCase {
+  const expectedRaw = asObject(`${where}.expected`, raw.expected);
+  const status = asString(`${where}.expected.status`, expectedRaw.status);
+  if (status !== "active" && status !== "finished") {
+    throw new Error(`${where}.expected.status: expected one of active | finished, got ${JSON.stringify(expectedRaw.status)}`);
+  }
+  if (!Array.isArray(raw.transitions)) fail(`${where}.transitions`, "an array", raw.transitions);
+  return {
+    kind: "transcript",
+    name: asString(`${where}.name`, raw.name),
+    config: asObject(`${where}.config`, raw.config),
+    playerCount: asIndex(`${where}.playerCount`, raw.playerCount),
+    seed: asString(`${where}.seed`, raw.seed),
+    transitions: raw.transitions.map((transition, i) => parseTranscriptTransition(`${where}.transitions[${i}]`, transition)),
+    expected: {
+      ...parseExpectedEnvelope(`${where}.expected`, expectedRaw),
+      version: asIndex(`${where}.expected.version`, expectedRaw.version),
+      status,
+    },
+  };
+}
+
+/** The draw count one rng case may record. One is enough to catch a wrong
+ * seeding; the cap keeps a fixture file a document rather than a data dump,
+ * and a stream that agrees for 64 draws does not diverge at 65. */
+const RNG_DRAW_LIMIT = 64;
+
+function parseRngCase(where: string, raw: JsonObject): RngCase {
+  if (!Array.isArray(raw.draws)) fail(`${where}.draws`, "an array of numbers", raw.draws);
+  if (raw.draws.length === 0 || raw.draws.length > RNG_DRAW_LIMIT) {
+    throw new Error(`${where}.draws: expected between 1 and ${RNG_DRAW_LIMIT} draws, got ${raw.draws.length}`);
+  }
+  return {
+    kind: "rng",
+    name: asString(`${where}.name`, raw.name),
+    seed: asString(`${where}.seed`, raw.seed),
+    version: asIndex(`${where}.version`, raw.version),
+    seat: optional(`${where}.seat`, raw.seat, asIndex),
+    draws: asNumberArray(`${where}.draws`, raw.draws),
+  };
+}
+
 /** Validate one fixture file's parsed JSON, or throw naming the offending
  * file, case, and field. Exported so a repo can lint its fixtures without
  * running them. */
@@ -286,8 +570,16 @@ export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFi
         return parseRatingPoolCase(where, obj);
       case "botSeatable":
         return parseBotSeatableCase(where, obj);
+      case "initialState":
+        return parseInitialStateCase(where, obj);
+      case "lifecycle":
+        return parseLifecycleCase(where, obj);
+      case "transcript":
+        return parseTranscriptCase(where, obj);
+      case "rng":
+        return parseRngCase(where, obj);
       default:
-        throw new Error(`${where}.kind: expected one of action | playerLimits | ratingPool | botSeatable, got ${JSON.stringify(obj.kind)}`);
+        throw new Error(`${where}.kind: expected one of ${CASE_KINDS.join(" | ")}, got ${JSON.stringify(obj.kind)}`);
     }
   });
   return { schemaVersion, cases };
@@ -295,8 +587,13 @@ export function parseTwinFixtureFile(path: string, json: unknown): TwinFixtureFi
 
 /** Run one fixture case against a rules unit, returning failure descriptions
  * (empty ⇒ the case passes). Pure; the file-reading test registrar is
- * {@link twinFixtureTests}. */
-export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): string[] {
+ * {@link twinFixtureTests}.
+ *
+ * `schemaVersion` is the version the case targets. It never selects
+ * behavior — the caller already resolved `rules` from it — and only labels
+ * the engine guard messages a `lifecycle` or `transcript` case can provoke;
+ * {@link twinFixtureTests} passes the fixture file's. */
+export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase, schemaVersion = 1): string[] {
   switch (kase.kind) {
     case "action":
       return evaluateAction(rules, kase);
@@ -306,8 +603,16 @@ export function evaluateTwinCase(rules: GameRules, kase: TwinFixtureCase): strin
       return evaluateRatingPool(rules, kase);
     case "botSeatable":
       return evaluateBotSeatable(rules, kase);
+    case "initialState":
+      return evaluateInitialState(rules, kase);
+    case "lifecycle":
+      return evaluateLifecycle(rules, kase, schemaVersion);
+    case "transcript":
+      return evaluateTranscript(rules, kase, schemaVersion);
+    case "rng":
+      return evaluateRng(kase);
     default:
-      return [`unknown case kind "${(kase as { kind: string }).kind}", expected action | playerLimits | ratingPool | botSeatable`];
+      return [`unknown case kind "${(kase as { kind: string }).kind}", expected ${CASE_KINDS.join(" | ")}`];
   }
 }
 
@@ -323,7 +628,7 @@ export function twinFixtureTests(gameModule: GameModule, fixturesRoot: string | 
         if (!rules) {
           throw new Error(`gameModule ships no rules unit for schemaVersion ${fixture.schemaVersion} (fixture: ${filePath})`);
         }
-        const failures = evaluateTwinCase(rules, kase);
+        const failures = evaluateTwinCase(rules, kase, fixture.schemaVersion);
         if (failures.length) throw new Error(`\n${failures.join("\n")}`);
       });
     }
@@ -366,7 +671,7 @@ function evaluateAction(rules: GameRules, kase: ActionCase): string[] {
     if (envelope) failures.push(envelope);
     return failures;
   }
-  checkEnvelope(rules, kase, envelope, failures);
+  checkEnvelope(rules, "applyAction", kase.expected, envelope, failures);
   if (kase.expected.observation !== undefined) {
     checkObservation(rules, kase, envelope, config, action, failures);
   }
@@ -384,7 +689,7 @@ function applyFixtureAction(rules: GameRules, kase: ActionCase, config: JsonObje
       pending: kase.pending,
       data: action,
       playerIndex: kase.playerIndex,
-      rng: new Rand(kase.rngSeed ?? "twin-fixtures"),
+      rng: hookRng(kase.rngSeed),
       config,
     });
   } catch (error) {
@@ -396,11 +701,22 @@ function applyFixtureAction(rules: GameRules, kase: ActionCase, config: JsonObje
   return kase.expected.valid ? envelope : "applyAction accepted a move the fixture expects to be illegal";
 }
 
-function checkEnvelope(rules: GameRules, kase: ActionCase, envelope: Envelope, failures: string[]): void {
+/** The stream a standalone hook case draws from. Seeded with the fixture's
+ * `rngSeed` verbatim rather than through `deriveRng`, because a single hook
+ * case stands outside any game: it has no committed version to derive a
+ * stream from. The `initialState` case is the exception — a game's opening
+ * transition is always version 0 — and a `transcript` case, which runs the
+ * real kernel, gets the real per-version streams. */
+function hookRng(rngSeed: string | undefined): Rng {
+  return new Rand(rngSeed ?? DEFAULT_RNG_SEED);
+}
+
+/** Compare a hook's envelope with what a case recorded, and re-validate the
+ * state it returned exactly as the engine does before committing it. */
+function checkEnvelope(rules: GameRules, hook: string, expected: ExpectedEnvelope, envelope: Envelope, failures: string[]): void {
   if (validate(rules, "state", envelope.state) === undefined) {
-    failures.push("applyAction returned state that violates its own schema");
+    failures.push(`${hook} returned state that violates its own schema`);
   }
-  const expected = kase.expected;
   if (expected.state !== undefined && !deepEquals(envelope.state, expected.state)) {
     failures.push(`envelope.state mismatch, got ${JSON.stringify(envelope.state)}`);
   }
@@ -475,6 +791,251 @@ function evaluateBotSeatable(rules: GameRules, kase: BotSeatableCase): string[] 
     failures.push(`botSeatable returned ${seatable}, fixture expects ${kase.expected}`);
   }
   return failures;
+}
+
+function evaluateInitialState(rules: GameRules, kase: InitialStateCase): string[] {
+  const failures: string[] = [];
+  const config = parseWith(rules, "config", kase.config, failures);
+  if (config === undefined) return failures;
+  let envelope: Envelope;
+  try {
+    envelope = rules.initialState({
+      config,
+      // Exactly what a `start` commit passes: the opening transition commits
+      // as version 0, so its stream is the version-0 one.
+      rng: deriveRng(kase.rngSeed ?? DEFAULT_RNG_SEED, 0),
+      playerCount: kase.playerCount,
+    });
+  } catch (error) {
+    failures.push(`initialState threw: ${error}`);
+    return failures;
+  }
+  checkEnvelope(rules, "initialState", kase.expected, envelope, failures);
+  return failures;
+}
+
+function evaluateLifecycle(rules: GameRules, kase: LifecycleCase, schemaVersion: number): string[] {
+  const failures: string[] = [];
+  const config = parseWith(rules, "config", kase.config, failures);
+  const state = parseWith(rules, "state", kase.state, failures);
+  if (config === undefined || state === undefined) return failures;
+
+  // Built exactly as `commit()` builds it, because the payload is the hook's
+  // only word on which seat is leaving: a `timeout` names none and resolves
+  // the whole pending set, and the parser already refused any other pairing.
+  const data: LifecycleAction = kase.type === "timeout" ? { type: "timeout" } : { type: kase.type, playerIndex: kase.playerIndex as number };
+
+  let envelope: Envelope;
+  try {
+    envelope = rules.applyLifecycle({
+      state,
+      pending: kase.pending,
+      type: kase.type,
+      data,
+      rng: hookRng(kase.rngSeed),
+      config,
+    });
+  } catch (error) {
+    failures.push(`applyLifecycle threw: ${error}`);
+    return failures;
+  }
+  checkEnvelope(rules, "applyLifecycle", kase.expected, envelope, failures);
+  if (data.type !== "timeout") {
+    // The engine's own guard, run here rather than restated: a forfeit that
+    // leaves its seat pending is a game bug the kernel would refuse to commit,
+    // and a fixture recording one would record an unreachable behavior for the
+    // Dart twin to reproduce.
+    try {
+      assertForfeitPending(data.playerIndex, envelope, schemaVersion);
+    } catch (error) {
+      failures.push(`${error instanceof Error ? error.message : error}`);
+    }
+  }
+  return failures;
+}
+
+/**
+ * Replay an ordered match through the real kernel.
+ *
+ * The table is the one a local (offline) game plays on, and the conventions
+ * below are a contract with the Dart local kernel that replays the same file:
+ *
+ * - untimed and unrated (`turnSeconds`, `budgetSeconds`, `incrementSeconds`
+ *   all null), so no deadline is ever armed and the clock is never read;
+ * - a roster of `playerCount` identified seats: seat 0 is the human
+ *   `user-0`, every other seat is the bot `bot-<seat>`;
+ * - the match opens with a `start` intent carrying the case's `seed`, so
+ *   every transition draws from `deriveRng(seed, version)`;
+ * - each transition commits at `expectedVersion` = the current version (a
+ *   device is the only actor, so it is never stale), with `actor` `"user"`
+ *   for seat 0 and `"bot"` for the rest.
+ *
+ * A rejection or a broken invariant fails the case naming the transition that
+ * produced it: an engine that refuses the transcript is as much a divergence
+ * as a wrong final state.
+ */
+function evaluateTranscript(rules: GameRules, kase: TranscriptCase, schemaVersion: number): string[] {
+  const failures: string[] = [];
+  // `commit()` parses the config itself; parsing here too reports a bad
+  // fixture config as a fixture problem rather than as an engine throw.
+  if (parseWith(rules, "config", kase.config, failures) === undefined) return failures;
+
+  const game: GameRow = {
+    status: "ready",
+    schemaVersion,
+    config: kase.config,
+    turnSeconds: null,
+    budgetSeconds: null,
+    incrementSeconds: null,
+    rated: false,
+    ratingPool: null,
+  };
+  const roster: Seat[] = Array.from({ length: kase.playerCount }, (_, seat) => (seat === 0 ? { playerIndex: 0, userId: "user-0", botId: null, type: "human" } : { playerIndex: seat, userId: null, botId: `bot-${seat}`, type: "bot" }));
+
+  let plan = runCommit({ game, state: null, roster, intent: { kind: "start", seed: kase.seed }, now: TRANSCRIPT_NOW, rules });
+  if (typeof plan === "string") return [`start: ${plan}`];
+  game.status = "active";
+
+  for (const [index, transition] of kase.transitions.entries()) {
+    const intent: Intent =
+      transition.kind === "game"
+        ? {
+            kind: "action",
+            seat: transition.playerIndex,
+            expectedVersion: plan.nextState.version,
+            data: transition.data,
+            actor: transition.playerIndex === 0 ? "user" : "bot",
+          }
+        : { kind: "lifecycle", type: "forfeit", seat: transition.playerIndex };
+    const result = runCommit({ game, state: plan.nextState, roster, intent, now: TRANSCRIPT_NOW, rules });
+    if (typeof result === "string") return [`transitions[${index}] (${describeTransition(transition)}): ${result}`];
+    plan = result;
+    // A finished game refuses everything that follows, so a transcript with a
+    // move after its last one fails on that move rather than silently here.
+    if (plan.outcomes !== null) game.status = "finished";
+  }
+
+  const status = plan.outcomes === null ? "active" : "finished";
+  if (plan.nextState.version !== kase.expected.version) {
+    failures.push(`the match committed as version ${plan.nextState.version}, fixture expects ${kase.expected.version}`);
+  }
+  if (status !== kase.expected.status) {
+    failures.push(`the match is ${status}, fixture expects ${kase.expected.status}`);
+  }
+  checkEnvelope(rules, "the final transition", kase.expected, { state: plan.nextState.state, pendingPlayers: plan.nextState.pending, ...(plan.outcomes === null ? {} : { outcome: plan.outcomes }) }, failures);
+  return failures;
+}
+
+/** The commit instant every transcript transition carries. An untimed game
+ * never reads it, and a fixed value keeps the case a pure function of the
+ * transcript. */
+const TRANSCRIPT_NOW = 0;
+
+/** One kernel commit, with both failure species rendered as a string: a
+ * rejection (a value) and a broken invariant (a throw) are equally a
+ * transcript that does not replay. */
+function runCommit(input: CommitInput): CommitPlan | string {
+  let result: CommitPlan | Rejected;
+  try {
+    result = commit(input);
+  } catch (error) {
+    if (error instanceof GameBugError) return `the engine refused the hook result: ${error.message}`;
+    return `commit threw: ${error}`;
+  }
+  if (isRejected(result)) return `the engine rejected the intent (${result.code}): ${result.message}`;
+  return result;
+}
+
+function describeTransition(transition: TranscriptTransition): string {
+  return transition.kind === "game" ? `seat ${transition.playerIndex} plays ${JSON.stringify(transition.data)}` : `seat ${transition.playerIndex} forfeits`;
+}
+
+function evaluateRng(kase: RngCase): string[] {
+  const rng = rngStream(kase.seed, kase.version, kase.seat);
+  const failures: string[] = [];
+  for (const [index, expected] of kase.draws.entries()) {
+    const draw = rng.next();
+    // Exact equality, deliberately: a port that is merely close has already
+    // diverged, and the next draw off a shared stream proves it loudly.
+    if (draw !== expected) failures.push(`draw[${index}] is ${draw}, fixture records ${expected}`);
+  }
+  return failures;
+}
+
+/** The stream an {@link RngCase} describes: a transition's own stream, or,
+ * when the case names a seat, the bot stream the Durable Object derives for
+ * that seat before running its brain. */
+function rngStream(seed: string, version: number, seat: number | undefined): Rng {
+  return seat === undefined ? deriveRng(seed, version) : deriveRng(`${seed}:bot${seat}`, version);
+}
+
+// ── Generating rng fixtures ───────────────────────────────────────────────────
+//
+// An `rng` case is the one kind nobody writes by hand: its values are whatever
+// the TypeScript kernel's generator produces, and the point of recording them
+// is that the Dart port has to agree digit for digit. So the testkit generates
+// them, and a game re-runs the generator when it wants more coverage.
+
+/** What stream to record, and how much of it. */
+export interface RngFixtureCaseOptions {
+  /** The case name, used as the test name on both sides. */
+  name: string;
+  /** The game's base seed. */
+  seed: string;
+  /** The state version whose stream to record. */
+  version: number;
+  /** Record the bot stream for this seat instead of the transition's own. */
+  seat?: number;
+  /** How many draws to record (1 to 64). */
+  count: number;
+}
+
+/** Record one derived stream from the real kernel as a fixture case. */
+export function rngFixtureCase(options: RngFixtureCaseOptions): RngCase {
+  const { name, seed, version, seat, count } = options;
+  if (!Number.isInteger(count) || count < 1 || count > RNG_DRAW_LIMIT) {
+    throw new Error(`rngFixtureCase(${JSON.stringify(name)}): count must be an integer between 1 and ${RNG_DRAW_LIMIT}, got ${count}`);
+  }
+  const rng = rngStream(seed, version, seat);
+  return {
+    kind: "rng",
+    name,
+    seed,
+    version,
+    ...(seat === undefined ? {} : { seat }),
+    draws: Array.from({ length: count }, () => rng.next()),
+  };
+}
+
+/**
+ * Write a fixture file of generated `rng` cases.
+ *
+ * The `schemaVersion` is read from the `v<N>/` directory in `path`, the same
+ * rule `eigen-contract` enforces over every fixture file, so the two can
+ * never be written out of agreement. The document is validated before it is
+ * written: a generator that emits something the runners would refuse to load
+ * should fail at the generator.
+ *
+ * The output is plain two-space JSON. Only the values mean anything to either
+ * runner, so a repo that formats JSON should run its formatter afterwards.
+ *
+ * ```ts
+ * import { rngFixtureCase, writeRngFixture } from "@eigeninteractive/testkit";
+ *
+ * writeRngFixture("src/module/fixtures/v1/rng.json", [
+ *   rngFixtureCase({ name: "version 0", seed: "twin-fixtures", version: 0, count: 16 }),
+ *   rngFixtureCase({ name: "seat 1's bot stream", seed: "twin-fixtures", version: 3, seat: 1, count: 16 }),
+ * ]);
+ * ```
+ */
+export function writeRngFixture(path: string, cases: RngCase[]): void {
+  const match = /(?:^|\/)v([1-9]\d*)\/[^/]+$/.exec(path.split("\\").join("/"));
+  if (match === null) {
+    throw new Error(`${path}: an rng fixture must be written into a v<N>/ directory, which names the schemaVersion it targets`);
+  }
+  const document = { schemaVersion: Number(match[1]), cases };
+  parseTwinFixtureFile(path, document);
+  writeFileSync(path, `${JSON.stringify(document, null, 2)}\n`);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

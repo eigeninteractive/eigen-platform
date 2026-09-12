@@ -44,6 +44,8 @@ export 'features/auth/domain/auth_gateway.dart';
 export 'features/auth/domain/auth_user.dart';
 export 'features/game/providers/game_providers.dart'
     show currentGameModuleProvider;
+export 'features/game/providers/local_game_providers.dart'
+    show localPlayAvailableProvider, usableLocalBots;
 export 'features/game/presentation/widgets/timer_builders.dart'
     show PlayerTimerBuilder, TurnTimerBuilder;
 export 'core/theme/app_theme.dart' show AppTheme;

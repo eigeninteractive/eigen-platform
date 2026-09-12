@@ -22,6 +22,7 @@
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
+import type { GameOrigin } from "../protocol.js";
 import { isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
@@ -294,6 +295,7 @@ export interface CreateGameInput {
   createdBy: string | null;
   status: Extract<GameStatus, "waiting" | "ready">;
   access: GameAccess;
+  origin: GameOrigin;
   schemaVersion: number;
   config: JsonObject;
   turnSeconds: number | null;
@@ -305,6 +307,11 @@ export interface CreateGameInput {
   maxPlayers: number;
   shortCode: string;
   seats: Seat[];
+  /** When the game began. `now` for an online create, which begins here; a
+   * local game began on the device, possibly days earlier, so it carries its
+   * own instant (clamped to `now` by the route, since it is a client claim) and
+   * history sorts by when it was played rather than when it synchronized. */
+  createdAt: number;
   now: number;
 }
 
@@ -321,6 +328,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       createdBy: input.createdBy,
       status: input.status,
       access: input.access,
+      origin: input.origin,
       schemaVersion: input.schemaVersion,
       config: input.config,
       turnSeconds: input.turnSeconds,
@@ -331,7 +339,7 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       minPlayers: input.minPlayers,
       maxPlayers: input.maxPlayers,
       shortCode: input.shortCode,
-      createdAt: input.now,
+      createdAt: input.createdAt,
       updatedAt: input.now,
     }),
     db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: input.now }))),

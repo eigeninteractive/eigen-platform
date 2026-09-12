@@ -16,6 +16,7 @@ GameSummary _$GameSummaryFromJson(
       'createdBy',
       'status',
       'access',
+      'origin',
       'schemaVersion',
       'config',
       'turnSeconds',
@@ -52,6 +53,14 @@ GameSummary _$GameSummaryFromJson(
         _$GameAccessEnumMap,
         v,
         unknownValue: GameAccess.unknownDefaultOpenApi,
+      ),
+    ),
+    origin: $checkedConvert(
+      'origin',
+      (v) => $enumDecode(
+        _$GameOriginEnumMap,
+        v,
+        unknownValue: GameOrigin.unknownDefaultOpenApi,
       ),
     ),
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
@@ -106,6 +115,7 @@ Map<String, dynamic> _$GameSummaryToJson(GameSummary instance) =>
       'createdBy': instance.createdBy,
       'status': _$GameStatusEnumMap[instance.status]!,
       'access': _$GameAccessEnumMap[instance.access]!,
+      'origin': _$GameOriginEnumMap[instance.origin]!,
       'schemaVersion': instance.schemaVersion,
       'config': instance.config,
       'turnSeconds': instance.turnSeconds,
@@ -140,4 +150,10 @@ const _$GameAccessEnumMap = {
   GameAccess.private: 'private',
   GameAccess.friends: 'friends',
   GameAccess.unknownDefaultOpenApi: 'unknown_default_open_api',
+};
+
+const _$GameOriginEnumMap = {
+  GameOrigin.online: 'online',
+  GameOrigin.local: 'local',
+  GameOrigin.unknownDefaultOpenApi: 'unknown_default_open_api',
 };

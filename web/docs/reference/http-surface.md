@@ -42,6 +42,14 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | `GET /games/{id}/session` | The caller's current session snapshot, from the game's own Durable Object |
 | `GET /games/{id}/socket` | WebSocket upgrade (`?ticket=` auth); per-seat session snapshots |
 
+**[Offline play](../build-a-game/offline-play.md)** (creator-only, `local`-origin only):
+
+| Method + path | Purpose |
+|---|---|
+| `POST /games/local` | Register and start a game already played on the device |
+| `POST /games/{id}/local/transitions` | Append a batch of the device's transition log against its current version |
+| `GET /games/{id}/local` | The device's stored log (seed + raw state and actions), to resume on another device |
+
 **Profile / account / devices / social writes:**
 
 | Method + path | Purpose |
@@ -83,9 +91,9 @@ rejection converted to one) rendered by the app-level error handler.
 
 | Status | Meaning | Representative `code`s |
 |---|---|---|
-| 400 | Client mistake | `invalidPayload`, `illegalMove` |
+| 400 | Client mistake | `invalidPayload`, `illegalMove`, `notLocalBot` |
 | 401 | Missing/invalid token | none |
-| 403 | Ownership/permission refusal | `notCreator`, `notParticipant` |
+| 403 | Ownership/permission refusal | `notCreator`, `notParticipant`, `localOnly` |
 | 404 | No such game/user | `unknownGame` |
 | 409 | Stale view, lifecycle conflict, or version mismatch | `stateUpdated`, `notActive`, `notReady`, `gameFull`, `clientUpdateRequired`, `serverUpdateRequired` |
 | 413 | Game/bot JSON or avatar too big | none or `imageTooLarge` |

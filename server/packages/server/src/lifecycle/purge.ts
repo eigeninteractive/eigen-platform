@@ -23,7 +23,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { deviceInstallations, games, participants, playerRatings, ratingHistory, relationships, users } from "../d1/schema.js";
 import type { FirebaseAdminEffects } from "../firebase/admin-effects.js";
-import type { Command, GameStub } from "../protocol.js";
+import type { GameStub, SingleCommand } from "../protocol.js";
 
 /** The engine surface the lifecycle paths need, supplied by `createEngine`
  * (route handlers and the `scheduled` handler alike). */
@@ -63,7 +63,7 @@ async function readLiveSeats(d1: D1Database, userId: string): Promise<LiveSeat[]
  * timeout, never blocking the account deletion). */
 async function clearSeat(ops: EngineOps, userId: string, seat: LiveSeat): Promise<void> {
   const base = { gameId: seat.gameId, actor: { userId, botId: null } };
-  const cmd: Command = seat.status === "active" ? { kind: "lifecycle", type: "forfeit", seat: seat.seat, ...base } : seat.isCreator ? { kind: "cancel", ...base } : { kind: "leave", ...base };
+  const cmd: SingleCommand = seat.status === "active" ? { kind: "lifecycle", type: "forfeit", seat: seat.seat, ...base } : seat.isCreator ? { kind: "cancel", ...base } : { kind: "leave", ...base };
   try {
     const result = await ops.stub(seat.gameId).handle(cmd);
     if (!result.ok) console.warn(`purge: clearing ${userId} from game ${seat.gameId} (${cmd.kind}) refused: ${result.code} ${result.message}`);

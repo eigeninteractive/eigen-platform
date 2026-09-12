@@ -242,6 +242,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(gameSessionProvider(gameId: widget.gameId));
+    // Watched for its effect, not its value: a game played offline on another
+    // of this player's devices is brought here so it can be played here too.
+    // It resolves to null for every ordinary game and costs no request.
+    ref.watch(localGameCatchUpProvider(gameId: widget.gameId));
     final compatibility = ref.watch(
       gameWireCompatibilityProvider(gameId: widget.gameId),
     );
@@ -344,14 +348,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         if (mounted) setState(() => _pendingAction = null);
         return ActionSubmitResult.rejected;
       }
-      await ref
-          .read(gameRepositoryProvider)
-          .submitAction(
-            gameId: widget.gameId,
-            seat: seat,
-            data: actionJson,
-            expectedVersion: gameVersion,
-          );
+      // Through the command port, not the repository: a game played on this
+      // device is commanded by its own engine and one played on the server by
+      // an HTTP call, and this screen has no reason to know which.
+      final commands = await ref.read(
+        gameCommandsProvider(gameId: widget.gameId).future,
+      );
+      await commands.submitAction(
+        seat: seat,
+        data: actionJson,
+        expectedVersion: gameVersion,
+      );
       // Keep _pendingAction = submittingAction on success.
       // The observation listener resets it when the confirming update arrives.
       return ActionSubmitResult.committed;
@@ -424,9 +431,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         if (mounted) setState(() => _pendingAction = null);
         return;
       }
-      await ref
-          .read(gameRepositoryProvider)
-          .forfeitGame(gameId: widget.gameId, seat: seat);
+      final commands = await ref.read(
+        gameCommandsProvider(gameId: widget.gameId).future,
+      );
+      await commands.forfeit(seat: seat);
       if (mounted) {
         setState(() => _pendingAction = null);
         unawaited(ref.read(analyticsServiceProvider).forfeit());

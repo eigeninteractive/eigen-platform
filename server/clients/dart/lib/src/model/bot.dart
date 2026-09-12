@@ -3,6 +3,7 @@
 //
 
 // ignore_for_file: unused_element
+import 'package:eigen_api/src/model/bot_type.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'bot.g.dart';
@@ -26,6 +27,8 @@ class Bot {
 
     required this.schemaVersion,
 
+    required this.type,
+
     required this.ratedEligible,
 
     required this.config,
@@ -46,6 +49,14 @@ class Bot {
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
   final int schemaVersion;
 
+  @JsonKey(
+    name: r'type',
+    required: true,
+    includeIfNull: false,
+    unknownEnumValue: BotType.unknownDefaultOpenApi,
+  )
+  final BotType type;
+
   @JsonKey(name: r'ratedEligible', required: true, includeIfNull: false)
   final bool ratedEligible;
 
@@ -61,6 +72,7 @@ class Bot {
           other.displayName == displayName &&
           other.avatarUrl == avatarUrl &&
           other.schemaVersion == schemaVersion &&
+          other.type == type &&
           other.ratedEligible == ratedEligible &&
           other.config == config;
 
@@ -71,6 +83,7 @@ class Bot {
       displayName.hashCode +
       (avatarUrl == null ? 0 : avatarUrl.hashCode) +
       schemaVersion.hashCode +
+      type.hashCode +
       ratedEligible.hashCode +
       config.hashCode;
 

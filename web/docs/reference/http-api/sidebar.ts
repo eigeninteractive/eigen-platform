@@ -52,6 +52,24 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
+          id: "reference/http-api/create-local-game",
+          label: "createLocalGame",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/append-local-transitions",
+          label: "appendLocalTransitions",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/get-local-record",
+          label: "getLocalRecord",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
           id: "reference/http-api/join-game",
           label: "joinGame",
           className: "api-method post",

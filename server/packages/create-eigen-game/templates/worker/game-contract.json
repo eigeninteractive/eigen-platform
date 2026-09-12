@@ -112,6 +112,248 @@
             },
             "kind": "playerLimits",
             "name": "two seats, because applyAction passes the turn with 1 - playerIndex"
+          },
+          {
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "outcome": null,
+              "pending": [
+                0
+              ],
+              "state": {
+                "count": 0
+              }
+            },
+            "kind": "initialState",
+            "name": "opens at zero with seat 0 to move",
+            "playerCount": 2
+          },
+          {
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "outcome": [
+                {
+                  "placement": 1,
+                  "playerIndex": 0,
+                  "result": "win",
+                  "teamIndex": 0
+                },
+                {
+                  "placement": 2,
+                  "playerIndex": 1,
+                  "result": "loss",
+                  "teamIndex": 1
+                }
+              ],
+              "pending": [],
+              "state": {
+                "count": 4
+              }
+            },
+            "kind": "lifecycle",
+            "name": "the seat that ran out of time loses",
+            "pending": [
+              1
+            ],
+            "state": {
+              "count": 4
+            },
+            "type": "timeout"
+          },
+          {
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "outcome": [
+                {
+                  "placement": 1,
+                  "playerIndex": 1,
+                  "result": "win",
+                  "teamIndex": 1
+                },
+                {
+                  "placement": 2,
+                  "playerIndex": 0,
+                  "result": "loss",
+                  "teamIndex": 0
+                }
+              ],
+              "pending": [],
+              "state": {
+                "count": 4
+              }
+            },
+            "kind": "lifecycle",
+            "name": "a resign hands the game to the other seat",
+            "pending": [
+              0
+            ],
+            "playerIndex": 0,
+            "state": {
+              "count": 4
+            },
+            "type": "forfeit"
+          },
+          {
+            "config": {
+              "target": 3
+            },
+            "expected": {
+              "outcome": [
+                {
+                  "placement": 1,
+                  "playerIndex": 0,
+                  "result": "win",
+                  "teamIndex": 0
+                },
+                {
+                  "placement": 2,
+                  "playerIndex": 1,
+                  "result": "loss",
+                  "teamIndex": 1
+                }
+              ],
+              "pending": [],
+              "state": {
+                "count": 3
+              },
+              "status": "finished",
+              "version": 3
+            },
+            "kind": "transcript",
+            "name": "three turns reach the target and end the game",
+            "playerCount": 2,
+            "seed": "counter-twin-transcript",
+            "transitions": [
+              {
+                "data": {
+                  "amount": 1
+                },
+                "kind": "game",
+                "playerIndex": 0
+              },
+              {
+                "data": {
+                  "amount": 1
+                },
+                "kind": "game",
+                "playerIndex": 1
+              },
+              {
+                "data": {
+                  "amount": 1
+                },
+                "kind": "game",
+                "playerIndex": 0
+              }
+            ]
+          },
+          {
+            "config": {
+              "target": 10
+            },
+            "expected": {
+              "outcome": [
+                {
+                  "placement": 1,
+                  "playerIndex": 0,
+                  "result": "win",
+                  "teamIndex": 0
+                },
+                {
+                  "placement": 2,
+                  "playerIndex": 1,
+                  "result": "loss",
+                  "teamIndex": 1
+                }
+              ],
+              "pending": [],
+              "state": {
+                "count": 2
+              },
+              "status": "finished",
+              "version": 2
+            },
+            "kind": "transcript",
+            "name": "a resign ends the game before the target",
+            "playerCount": 2,
+            "seed": "counter-twin-transcript",
+            "transitions": [
+              {
+                "data": {
+                  "amount": 2
+                },
+                "kind": "game",
+                "playerIndex": 0
+              },
+              {
+                "kind": "lifecycle",
+                "playerIndex": 1,
+                "type": "forfeit"
+              }
+            ]
+          }
+        ],
+        "schemaVersion": 1
+      }
+    },
+    {
+      "path": "v1/rng.json",
+      "document": {
+        "cases": [
+          {
+            "draws": [
+              0.918312304187566,
+              0.4001447563059628,
+              0.7442655747290701,
+              0.2554785134270787,
+              0.5585219208151102,
+              0.07595188519917428,
+              0.24315627454780042,
+              0.9577318748924881,
+              0.9142457258421928,
+              0.6567775409203023,
+              0.6638973171357065,
+              0.18344326340593398,
+              0.20923550752922893,
+              0.3633683763910085,
+              0.48092103423550725,
+              0.5577720713336021
+            ],
+            "kind": "rng",
+            "name": "version 0: the stream initialState draws from",
+            "seed": "twin-fixtures",
+            "version": 0
+          },
+          {
+            "draws": [
+              0.9881007166113704,
+              0.19638481689617038,
+              0.36466718139126897,
+              0.012999370228499174,
+              0.07939737639389932,
+              0.6601194732356817,
+              0.4466901211999357,
+              0.44865574641153216,
+              0.9610719594638795,
+              0.2350573013536632,
+              0.1399781135842204,
+              0.2336114849895239,
+              0.8675420160870999,
+              0.8760754023678601,
+              0.3999718655832112,
+              0.5116847101598978
+            ],
+            "kind": "rng",
+            "name": "seat 1's bot stream at version 1",
+            "seat": 1,
+            "seed": "counter-twin-transcript",
+            "version": 1
           }
         ],
         "schemaVersion": 1

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 9
+sidebar_position: 10
 title: Testing
 description: One fixture file, two language runners, plus the widget and integration layers and the CI that keeps them aligned.
 ---
@@ -42,8 +42,9 @@ A fixture file is a list of cases, keyed to one `schemaVersion`:
 }
 ```
 
-`kind` is `action`, `playerLimits`, `ratingPool` or `botSeatable`. The two runners
-read the same file and check different things:
+`kind` is `action`, `playerLimits`, `ratingPool`, `botSeatable`, `initialState`,
+`lifecycle`, `transcript`, or `rng`. The two runners read the same file and
+check different things:
 
 | Field | TypeScript runner | Dart runner |
 |---|---|---|
@@ -68,6 +69,136 @@ Both sides are compared through one recorded value: the TypeScript side must
 it. A `previewAction` returning null skips the check; that is a correct answer,
 not a gap, so a game like RPS simply has no preview coverage here.
 
+## The four kinds for offline play
+
+`initialState`, `lifecycle`, `transcript`, and `rng` exist for
+[offline play](./offline-play.md): a device runs the Dart twin through a Dart
+port of the kernel, so the pieces an online-only client never had to
+reproduce — the opening state, the lifecycle hooks, a whole match, and the
+random stream itself — each need a recorded behavior of their own. The
+TypeScript runner always checks all four, the same as any other kind, because
+the TypeScript hooks are unconditionally authoritative. The **Dart** runner's
+behavior differs by kind:
+
+| kind | Dart runner |
+|---|---|
+| `initialState`, `lifecycle`, `transcript` | Run against the version's `LocalGameRules` **only when it ships one**; a version with no local unit has nothing to check and the case is skipped there |
+| `rng` | Runs **unconditionally**, against `EigenRng` directly — it has no rules unit to call, so it applies even to a version with no local play |
+
+```jsonc
+{
+  "kind": "initialState",
+  "name": "a best-of-one opens with both seats pending",
+  "config": { "targetWins": 1 },
+  "playerCount": 2,
+  "expected": {
+    "state": { "round": 1, "wins": [0,0], "commits": [null,null], "lastRound": null },
+    "pending": [0, 1],
+    "outcome": null
+  }
+}
+```
+
+`initialState` runs `initialState` with the version-0 stream (`deriveRng(seed,
+0)`, the same one the engine's `start` command derives) and checks the
+returned envelope exactly as an `action` case does. `lifecycle` is the same
+idea for `applyLifecycle`, given the engine-built payload (`{"type":
+"timeout"}`, or `{"type", "playerIndex"}`) and the kernel's own forfeit guard
+(a forfeit must remove its own seat from `pending`):
+
+```jsonc
+{
+  "kind": "lifecycle",
+  "name": "the seat that did commit takes a one-sided timeout",
+  "config": { "targetWins": 1 },
+  "state": { "round": 1, "wins": [0,0], "commits": ["rock",null], "lastRound": null },
+  "pending": [1],
+  "type": "timeout",
+  "expected": {
+    "state": { "round": 1, "wins": [0,0], "commits": ["rock",null], "lastRound": null },
+    "pending": [],
+    "outcome": [
+      { "playerIndex": 0, "result": "win", "placement": 1, "teamIndex": 0 },
+      { "playerIndex": 1, "result": "loss", "placement": 2, "teamIndex": 1 }
+    ]
+  }
+}
+```
+
+`transcript` replays a whole match through the real kernel `commit()`, so
+every engine guard, the pending/version bookkeeping, and the per-transition
+`deriveRng(seed, version)` streams all participate — the one case a Dart local
+kernel has to reproduce move for move. It plays out on a fixed table that is a
+contract with the Dart runner:
+
+- untimed and unrated (no deadline is ever armed, no clock is ever read);
+- a roster of `playerCount` identified seats: seat 0 is the human `user-0`,
+  every other seat is the bot `bot-<seat>`;
+- the match opens with a `start` intent carrying the case's `seed`, so every
+  transition draws from `deriveRng(seed, version)`;
+- each transition commits at `expectedVersion` = the current version (a device
+  is the only actor, so it is never stale), with `actor` `"user"` for seat 0
+  and `"bot"` for the rest.
+
+```jsonc
+{
+  "kind": "transcript",
+  "name": "a best-of-one played to its finish",
+  "config": { "targetWins": 1 },
+  "playerCount": 2,
+  "seed": "rps-twin-transcript",
+  "transitions": [
+    { "kind": "game", "playerIndex": 0, "data": { "move": "rock" } },
+    { "kind": "game", "playerIndex": 1, "data": { "move": "scissors" } }
+  ],
+  "expected": {
+    "version": 2,
+    "status": "finished",
+    "pending": [],
+    "outcome": [
+      { "playerIndex": 0, "result": "win", "placement": 1, "teamIndex": 0 },
+      { "playerIndex": 1, "result": "loss", "placement": 2, "teamIndex": 1 }
+    ]
+  }
+}
+```
+
+A rejection or a broken invariant fails the case, naming the transition that
+produced it: an engine that refuses the transcript is as much a divergence as
+a wrong final state.
+
+`rng` records raw `deriveRng` draws, compared with exact equality, no
+tolerance: the Dart port is required to be bit-identical, not merely close,
+because one drifted draw desynchronizes the next.
+
+```jsonc
+{
+  "kind": "rng",
+  "name": "seat 1's bot stream at version 2",
+  "seed": "rps-twin-transcript",
+  "version": 2,
+  "seat": 1,
+  "draws": [0.258..., 0.759..., 0.553..., /* … */]
+}
+```
+
+Generate `rng` cases rather than hand-writing them — the values are the
+TypeScript kernel's own, so they can only come from running it:
+
+```ts
+import { rngFixtureCase, writeRngFixture } from "@eigeninteractive/testkit";
+
+writeRngFixture("src/module/fixtures/v1/rng.json", [
+  rngFixtureCase({ name: "version 0", seed: "twin-fixtures", version: 0, count: 16 }),
+  rngFixtureCase({ name: "seat 1's bot stream", seed: "twin-fixtures", version: 3, seat: 1, count: 16 }),
+]);
+```
+
+`writeRngFixture` reads the `schemaVersion` from the `v<N>/` directory the
+path is written into, validates the document, and writes formatted JSON; run
+it as a one-off script whenever the RNG-consuming surface changes, not on
+every test run.
+
 ## Wiring the two runners
 
 **TypeScript**, one line from the testkit, under plain-Node vitest:
@@ -86,7 +217,7 @@ import 'package:eigen_flutter/testing/twin_fixtures.dart';
 
 void main() {
   const module = RpsModule();
-  for (final suite in loadTwinFixtureSuites('fixtures')) {
+  for (final suite in loadTwinFixtureSuites('test/fixtures')) {
     final rules = module.versions[suite.schemaVersion];
     group('twin fixtures v${suite.schemaVersion}', () {
       for (final fixtureCase in suite.cases) {

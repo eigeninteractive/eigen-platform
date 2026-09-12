@@ -27,6 +27,7 @@ CREATE TABLE `games` (
 	`created_by` text,
 	`status` text NOT NULL,
 	`access` text NOT NULL,
+	`origin` text DEFAULT 'online' NOT NULL,
 	`schema_version` integer NOT NULL,
 	`config` text NOT NULL,
 	`turn_seconds` integer,
@@ -44,7 +45,8 @@ CREATE TABLE `games` (
 	`finished_at` integer,
 	`archived_at` integer,
 	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
+	`updated_at` integer NOT NULL,
+	CONSTRAINT "games_origin_valid" CHECK("games"."origin" IN ('online', 'local'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `games_shortCode_unique` ON `games` (`short_code`);--> statement-breakpoint

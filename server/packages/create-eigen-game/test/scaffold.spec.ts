@@ -151,6 +151,13 @@ describe("scaffoldGame", () => {
       expect(readFileSync(resolve(root, `app/assets/icon/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/assets/icon/${asset}`)));
     }
 
+    // Drift's web runtime, for the same reason: the module is WebAssembly and
+    // the worker is JavaScript, and the browser gets no local storage - so no
+    // offline play - without both arriving intact from the app's own origin.
+    for (const asset of ["sqlite3.wasm", "drift_worker.js"]) {
+      expect(readFileSync(resolve(root, `app/web/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/web/${asset}`)));
+    }
+
     // The notification icon is deliberately NOT here: `eigen_flutter`'s
     // Android plugin ships `ic_notification` and the Firebase meta-data
     // pointing at it, so the scaffold neither writes the drawable nor edits
@@ -800,7 +807,7 @@ describe("template rendering", () => {
       .filter((file) => decodeUtf8(readFileSync(resolve(templates, file))) === undefined)
       .sort();
 
-    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png"]);
+    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png", "app-overlay/web/sqlite3.wasm"]);
   });
 
   it("keeps each packaged .gitignore identical to the one it stands in for", () => {

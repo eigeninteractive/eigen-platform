@@ -20,6 +20,7 @@ final _game = GameSummary(
   createdBy: null,
   status: GameStatus.finished,
   access: GameAccess.public,
+  origin: GameOrigin.online,
   schemaVersion: 1,
   config: const <String, dynamic>{},
   turnSeconds: null,

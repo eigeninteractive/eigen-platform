@@ -60,6 +60,12 @@ String messageForCode(ErrorCode code) => switch (code) {
   // fix this. It means a paged list needs restarting from the top, which is
   // what a refresh does, so the copy asks for exactly that.
   ErrorCode.invalidCursor => 'That list is out of date. Pull to refresh.',
+  // Offline play. Neither is reachable by anything a player did: both mean the
+  // app asked for something a local game cannot be, so the copy says what the
+  // player can act on rather than naming the route.
+  ErrorCode.localOnly => 'That only works for games played on this device.',
+  ErrorCode.notLocalBot =>
+    'That opponent cannot play on this device. Pick another one.',
   ErrorCode.unknownDefaultOpenApi => _unexpected,
 };
 

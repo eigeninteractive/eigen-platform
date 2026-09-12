@@ -11,16 +11,35 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { issueSocketTicket, verifySocketTicket } from "../auth/socket-ticket.js";
 import { type CreateGameInput, createGame } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
-import { isShortCodeCollision } from "../d1/errors.js";
+import { isShortCodeCollision, isUniqueViolation } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, gameExists, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
-import { HttpError, unwrap } from "../http.js";
+import { HttpError, rejectStatus, unwrap } from "../http.js";
 import { gameInvitePush } from "../notify/push.js";
-import type { Command, CommandResult } from "../protocol.js";
+import type { CommandResult, LocalTransition, SessionSnapshot, SingleCommand } from "../protocol.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { versionQuery } from "./query.js";
-import { actionBody, addBotBody, commandAcceptedShape, createdShape, createGameBody, createSoloBody, errorShape, forfeitBody, frameShape, joinBody, joinByCodeBody, socketTicketShape, soloStartedShape } from "./wire.js";
+import {
+  actionBody,
+  addBotBody,
+  commandAcceptedShape,
+  createdShape,
+  createGameBody,
+  createLocalBody,
+  createSoloBody,
+  errorShape,
+  forfeitBody,
+  frameShape,
+  joinBody,
+  joinByCodeBody,
+  localRecordShape,
+  localStartedShape,
+  localTransitionsAppliedShape,
+  localTransitionsBody,
+  socketTicketShape,
+  soloStartedShape,
+} from "./wire.js";
 
 // ── Route plumbing ────────────────────────────────────────────────────────────
 
@@ -212,13 +231,86 @@ function assertBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow)
       if (bot.webhookUrl === null) throw new HttpError(500, "external bot has no webhook_url");
       break;
     case "local":
-      throw new HttpError(400, "Local bots are client-driven and cannot be seated in an online game yet");
+      throw new HttpError(400, "Local bots run on the device and can only be seated in a local game");
   }
+  assertBotConfigured(ctx, game, bot);
+}
+
+/**
+ * The bot-seating gates for a game played on the device.
+ *
+ * Its own function rather than a flag on {@link assertBotSeatable}, because the
+ * two differ on the rule that matters most in each. A server-seated bot MUST be
+ * timed, since the turn deadline is the only backstop for a dispatch that never
+ * lands, and it may be `external`. A device-seated bot is the mirror image:
+ * nothing dispatches it, so there is nothing to wedge and no deadline to need,
+ * but its brain has to exist on the device, which an externally hosted one's
+ * never does. What they share (schema support, `botSeatable`) is short enough
+ * to name twice and clearer than one gate with a mode.
+ *
+ * There is no rated gate here: a local game is never rated.
+ */
+function assertLocalBotSeatable(ctx: RouteContext, game: BotSeatingGame, bot: BotRow): void {
+  if (game.schemaVersion > bot.schemaVersion) {
+    throw new HttpError(400, `Bot does not support schemaVersion ${game.schemaVersion}`);
+  }
+  // `engine` and `local` both ship a brain the client can run (an `engine` bot's
+  // username names the same brain in both languages); `external` never can.
+  if (bot.type === "external") {
+    throw new HttpError(400, `Bot ${bot.username} is hosted externally and cannot play on the device`, "notLocalBot");
+  }
+  assertBotConfigured(ctx, game, bot);
+}
+
+/** The gate both seating paths end on: this version's rules decide whether the
+ * bot's declared config can play this game's config. */
+function assertBotConfigured(ctx: RouteContext, game: BotSeatingGame, bot: BotRow): void {
+  const rules = rulesFor(ctx, game.schemaVersion);
   const parsed = parseClientPayload(rules.schemas.config, game.config, "config");
   if (!parsed.ok) throw new HttpError(500, "stored config failed its schema");
   if (!rules.botSeatable({ gameConfig: parsed.value as JsonObject, botConfig: bot.config })) {
     throw new HttpError(400, "Bot does not support this game configuration");
   }
+}
+
+/** The two gates every local-import route shares.
+ *
+ * Creator first, deliberately: a caller asking about a game that is not theirs
+ * learns only that, never whether it happens to be a local one. */
+function assertLocalCreator(game: GameWithRoster, userId: string): void {
+  if (game.createdBy !== userId) {
+    throw new HttpError(403, "Only the creator can synchronize a local game", "notCreator");
+  }
+  if (game.origin !== "local") {
+    throw new HttpError(403, "This game was not played on a device", "localOnly");
+  }
+}
+
+/** Read one principal's session straight from the authoritative object. Used by
+ * the routes whose answer IS the session and that have just written the game
+ * the session describes, so a null here is an engine bug, not a 404. */
+async function sessionOf(ctx: RouteContext, env: unknown, gameId: string, userId: string): Promise<SessionSnapshot> {
+  const session = await ctx.stub(env, gameId).session(gameId, userId);
+  if (session === null) throw new HttpError(500, "engine bug: created game has no session");
+  return session;
+}
+
+/**
+ * Validate one transition of the device's log into the value the object applies.
+ *
+ * `data` arrives unknown because a game action is game-defined and is parsed by
+ * the version unit deeper in, at the same place a live move is. What is checked
+ * here is the one thing the engine owns: a lifecycle. Only a forfeit of the
+ * acting seat is importable, because a local game is untimed so it can never
+ * time out, and `autoForfeit` belongs to the account purge.
+ */
+function toLocalTransition(transition: { seat: number; kind: "game" | "lifecycle"; data: unknown }, index: number): LocalTransition {
+  if (transition.kind === "game") return { seat: transition.seat, kind: "game", data: transition.data };
+  const data = transition.data as { type?: unknown; playerIndex?: unknown } | null;
+  if (typeof data !== "object" || data === null || data.type !== "forfeit" || data.playerIndex !== transition.seat) {
+    throw new HttpError(400, `transitions[${index}]: the only importable lifecycle is a forfeit of the acting seat`);
+  }
+  return { seat: transition.seat, kind: "lifecycle", data };
 }
 
 async function loadGame(ctx: RouteContext, env: unknown, gameId: string): Promise<GameWithRoster> {
@@ -325,11 +417,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const rated = canBeRated && (body.rated ?? true);
 
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
+      const now = Date.now();
       const created = await createOnce(ctx.d1(c.env), {
         gameId: crypto.randomUUID(),
         createdBy: auth.user.id,
         status: seats.length >= minPlayers ? "ready" : "waiting",
         access: body.access,
+        origin: "online",
         schemaVersion: body.schemaVersion,
         config,
         turnSeconds: body.turnSeconds,
@@ -340,7 +434,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         minPlayers,
         maxPlayers,
         seats,
-        now: Date.now(),
+        createdAt: now,
+        now,
       });
       // Friends-access game: fan out an invite push to the creator's
       // accepted friends. Best-effort and off the response path: a friend
@@ -411,11 +506,13 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
       if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
+      const now = Date.now();
       const created = await createOnce(ctx.d1(c.env), {
         gameId: crypto.randomUUID(),
         createdBy: auth.user.id,
         status: "ready",
         access: "private",
+        origin: "online",
         schemaVersion: body.schemaVersion,
         config,
         turnSeconds: body.turnSeconds,
@@ -426,7 +523,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         minPlayers,
         maxPlayers,
         seats,
-        now: Date.now(),
+        createdAt: now,
+        now,
       });
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
@@ -445,9 +543,222 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     },
   );
 
+  // create-local: register a game the device already started, and already
+  // played, so the rest of the import has somewhere to land. Everything a solo
+  // create validates is validated here too, minus the timed rule (nothing on the
+  // server holds a clock for a game played offline) and minus the caller's say
+  // over access and rating, which are forced.
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/games/local",
+      operationId: "createLocalGame",
+      tags: ["Games"],
+      request: mutation({ body: jsonBody(createLocalBody) }),
+      responses: createdResponses(localStartedShape, "The registered local game, at version 0"),
+    }),
+    async (c) => {
+      const auth = c.var.auth;
+      await enforceRateLimit(c.env, "game_create", auth.user.id);
+      const body = c.req.valid("json");
+      const gameId = body.gameId;
+
+      // Idempotence, and first: the device re-runs this whenever a response was
+      // lost, and the game it names may already be here. Answering from the
+      // existing row rather than re-validating is also what keeps a create
+      // replayable after the bot registry or the installed rules have moved on.
+      const existing = await readGame(ctx.d1(c.env), gameId);
+      if (existing !== undefined) {
+        // Never say anything else about a game that is not the caller's, not
+        // even that the id is taken: the id is the client's to choose, so
+        // "someone else has this one" would be a probe.
+        if (existing.createdBy !== auth.user.id || existing.origin !== "local") {
+          throw new HttpError(403, "Not the creator of this game", "notCreator");
+        }
+      } else {
+        // The creation gate differs from an online create, deliberately. A local
+        // game was created on the device at whatever version that device shipped
+        // when it was played, which may be several releases ago, and it has
+        // already been played to whatever point it reached. Demanding the
+        // server's latest here would strand a finished game the player can see
+        // on their phone. Any installed version is therefore accepted; only one
+        // this deployment has never heard of is refused.
+        if (body.schemaVersion > ctx.latestSchemaVersion) {
+          throw new HttpError(409, `This app played at game schema ${body.schemaVersion}, but this server only has schema ${ctx.latestSchemaVersion}`, "serverUpdateRequired");
+        }
+        const rules = rulesFor(ctx, body.schemaVersion);
+        const parsedConfig = parseClientPayload(rules.schemas.config, body.config, "config");
+        if (!parsedConfig.ok) throw new HttpError(400, parsedConfig.message);
+        const config = parsedConfig.value as JsonObject;
+        const { minPlayers, maxPlayers } = resolveSeats(rules, config, body);
+        // Untimed is not the caller's choice, it is what "played on the device"
+        // means: nothing runs a clock while the app is closed. The rules still
+        // get to refuse it, because a version whose every timing option is timed
+        // cannot be played locally at all.
+        const timing: TimingSelection = { turnSeconds: null, budgetSeconds: null, incrementSeconds: null };
+        assertTimingAllowed(rules, config, timing);
+
+        // The pool is still computed, so the row records which pool this game
+        // WOULD have belonged to, but `rated` is false unconditionally: a game
+        // whose moves were decided on the player's own device can never move a
+        // rating, and that is the whole anti-cheat story for local play.
+        const pool = rules.ratingPool({ access: "private", ...timing, minPlayers, maxPlayers, config });
+        const rated = false;
+
+        const bots = await readBots(ctx.d1(c.env), body.botIds);
+        const spec: BotSeatingGame = { schemaVersion: body.schemaVersion, ...timing, rated, config };
+        const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
+        for (const botId of body.botIds) {
+          const bot = bots.find((b) => b.id === botId);
+          if (bot === undefined) throw new HttpError(404, `Bot not found: ${botId}`);
+          assertLocalBotSeatable(ctx, spec, bot);
+          seats.push({ playerIndex: seats.length, userId: null, botId: bot.id, type: "bot" });
+        }
+        if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
+        if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
+        // The rules' range is what the seating above had to satisfy; what the
+        // row records is the game that was actually played. Nothing can join a
+        // local game, so its range is its roster, and this is also what the
+        // device's own `localSession` reports for the same game: a twin that
+        // disagreed here would describe one game two ways.
+        const seatCount = seats.length;
+
+        const now = Date.now();
+        try {
+          await createOnce(ctx.d1(c.env), {
+            gameId,
+            createdBy: auth.user.id,
+            status: "ready",
+            access: "private",
+            origin: "local",
+            schemaVersion: body.schemaVersion,
+            ...timing,
+            config,
+            rated,
+            ratingPool: pool,
+            minPlayers: seatCount,
+            maxPlayers: seatCount,
+            seats,
+            // A client claim, so it may not run ahead of this server's clock;
+            // behind it is exactly the point, since that is when the game was
+            // actually played and how history should sort it.
+            createdAt: Math.min(body.createdAt, now),
+            now,
+          });
+        } catch (error) {
+          // The device synchronizes from several triggers, so two attempts at
+          // the same game can genuinely overlap, and the id's PRIMARY KEY is
+          // what serializes them. The loser continues on the winner's row: the
+          // same idempotence as the read above, decided by D1 instead. A row
+          // belonging to somebody else is still refused, by the creator gate on
+          // the start below. A short-code collision is excluded explicitly:
+          // `createOnce` has already exhausted its retries on one, and treating
+          // it as a duplicate id would report a game that was never written.
+          if (!isUniqueViolation(error) || isShortCodeCollision(error)) throw error;
+        }
+      }
+
+      // Create and start are two writes, so this repairs a create whose start
+      // was lost, and leaves an already-played game exactly where it is. Start
+      // is an idempotent lifecycle: a concurrent attempt that got there first
+      // makes the kernel abstain, which is success here.
+      if (existing === undefined || existing.status === "waiting" || existing.status === "ready") {
+        // Started with the DEVICE's seed: the game was played from it, so every
+        // transition's randomness has to re-derive from the same value or the
+        // first random hook would disagree and the import would be refused.
+        const started = await ctx.stub(c.env, gameId).handle({ kind: "start", gameId, actor: { userId: auth.user.id, botId: null }, seed: body.seed });
+        if (!started.ok && started.code !== "abstain") {
+          throw new HttpError(rejectStatus(started.code), started.message, started.code);
+        }
+      }
+      return c.json({ session: await sessionOf(ctx, c.env, gameId, auth.user.id) }, 201);
+    },
+  );
+
+  // Append the device's log. One request, one Durable Object entry, every
+  // transition committed in sequence through the same rules a live move takes.
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/games/{gameId}/local/transitions",
+      operationId: "appendLocalTransitions",
+      tags: ["Games"],
+      request: mutation({ params: gameIdParam, body: jsonBody(localTransitionsBody) }),
+      responses: responses(localTransitionsAppliedShape, "How far the append got, and the rejection that stopped it"),
+    }),
+    async (c) => {
+      const auth = c.var.auth;
+      const body = c.req.valid("json");
+      const { gameId } = c.req.valid("param");
+      const game = await loadGame(ctx, c.env, gameId);
+      assertLocalCreator(game, auth.user.id);
+      const transitions = body.transitions.map(toLocalTransition);
+      const result = await ctx.stub(c.env, gameId).localTransitions({
+        kind: "local-transitions",
+        gameId,
+        actor: { userId: auth.user.id, botId: null },
+        fromVersion: body.fromVersion,
+        transitions,
+      });
+      // A refusal of the batch as a whole is an ordinary command rejection: a
+      // `fromVersion` another device moved past is the 409 every stale action
+      // gets, and the client re-reads the session. A rejection of one
+      // transition INSIDE the batch is not an error at all; it rides the 200
+      // below, because everything before it is committed and permanent.
+      if (!result.ok) {
+        if (result.code === "abstain") throw new HttpError(500, "engine bug: an import batch was abstained");
+        throw new HttpError(rejectStatus(result.code), result.message, result.code);
+      }
+      return c.json({ applied: result.applied, session: result.session, rejection: result.rejection }, 200);
+    },
+  );
+
+  // The device's own record, for continuing a local game on another device (or
+  // on this one after a reinstall). Raw state and the seed leave the object only
+  // here; see `localRecordShape` for why that is safe for exactly this game.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/games/{gameId}/local",
+      operationId: "getLocalRecord",
+      tags: ["Games"],
+      request: {
+        params: gameIdParam,
+        query: z.object({
+          from: versionQuery.default(0).openapi({ type: "integer", minimum: 0, default: 0 }),
+          to: versionQuery.optional(),
+        }),
+      },
+      responses: responses(localRecordShape, "The stored log: seed, raw state and actions, version-ascending"),
+    }),
+    async (c) => {
+      const auth = c.var.auth;
+      const { gameId } = c.req.valid("param");
+      const { from, to } = c.req.valid("query");
+      const game = await loadGame(ctx, c.env, gameId);
+      assertLocalCreator(game, auth.user.id);
+      // The same page cap the frame range uses: a long game is pulled in pages
+      // rather than in one unbounded response.
+      const page = 1000;
+      const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);
+      const stub = ctx.stub(c.env, gameId);
+      const [record, session] = await Promise.all([stub.localRecord(gameId, from, cappedTo), stub.session(gameId, auth.user.id)]);
+      if (record === null || session === null) throw new HttpError(404, "Unknown game", "unknownGame");
+      return c.json({ session, seed: record.seed, createdAt: game.createdAt, finishedAt: game.finishedAt, transitions: record.transitions }, 200);
+    },
+  );
+
   // join: worker policy is guest-vs-rated, friends access, schema gate.
   const join = async (c: { env: unknown; var: { auth: Authed } }, game: GameWithRoster, clientSchemaVersion: number) => {
     const auth = c.var.auth;
+    // A local game has one human by construction, and it still carries a short
+    // code and a `ready` status in the window between the create and start
+    // writes. Without this a stranger holding the code could be seated into a
+    // game played on somebody's device, which is the one thing local play
+    // promises cannot happen.
+    if (game.origin === "local") {
+      throw new HttpError(403, "This game was played on a device", "localOnly");
+    }
     if (game.rated && auth.claims.isAnonymous) {
       throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
     }
@@ -565,7 +876,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const bot = bots[0];
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
-      const cmd: Command = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
+      const cmd: SingleCommand = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
   );
@@ -604,7 +915,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const body = c.req.valid("json");
       const { gameId } = c.req.valid("param");
       await assertGameExists(ctx, c.env, gameId);
-      const cmd: Command = {
+      const cmd: SingleCommand = {
         kind: "action",
         gameId,
         actor: { userId: c.var.auth.user.id, botId: null },
@@ -629,7 +940,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const body = c.req.valid("json");
       const { gameId } = c.req.valid("param");
       await assertGameExists(ctx, c.env, gameId);
-      const cmd: Command = {
+      const cmd: SingleCommand = {
         kind: "lifecycle",
         gameId,
         actor: { userId: c.var.auth.user.id, botId: null },
@@ -732,7 +1043,7 @@ export function registerGameSocketRoute(app: EngineApp, ctx: RouteContext): void
   });
 }
 
-function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string): Command {
+function mint(auth: Authed, kind: "join" | "leave" | "cancel" | "start", gameId: string): SingleCommand {
   const base = { gameId, actor: { userId: auth.user.id, botId: null } };
   switch (kind) {
     case "start":

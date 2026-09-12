@@ -173,6 +173,28 @@ Drift for queryable data such as game history, these JSON snapshots should move
 behind repositories as typed tables rather than turning Drift into another
 generic Riverpod key-value backend.
 
+## Offline play
+
+A [local game](../build-a-game/offline-play.md) is a Drift-backed record, on
+both native and web (web uses IndexedDB rather than OPFS, because OPFS's
+cross-origin isolation requirement breaks the sign-in popup). Records are
+scoped by the owning user id: they survive sign-out, are listed for whoever is
+signed in, and are deleted with the account, the same discipline the rest of
+local persistence follows.
+
+A local game renders with no network because everything it needs is already
+on the device: its own record, plus the same player-info and bot-catalog
+caches described above, which is what turns a seat index into an avatar and a
+name offline. Sync itself needs no game code and no UI trigger — it runs
+automatically on app start, on connectivity regained, and when a local game
+finishes, appending the device's log to the server in the background without
+ever blocking local play.
+
+The scaffold's web build ships a service worker that precaches the
+application shell, registered at the root scope beside the messaging worker's
+own scope, because Flutter no longer generates one by default: without it, a
+web install has nothing cached to render from on a cold, offline reload.
+
 ## Connectivity & offline UX
 
 Connectivity is infra-owned; game code never watches it. Two banners, both built

@@ -6,6 +6,7 @@ import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/core/storage/storage_provider.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
+import 'package:eigen_flutter/features/game/providers/local_game_providers.dart';
 import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
 import 'package:flutter_riverpod/experimental/persist.dart';
@@ -53,10 +54,16 @@ class AvailableBots extends _$AvailableBots {
       persist(
         ref.watch(storageProvider.future),
         options: const StorageOptions(
-          cacheTime: StorageCacheTime(Duration(days: 7)),
-          // Bumped to '3': bots are now the generated Bot, which dropped the
-          // is_local flag along with client-driven bots.
-          destroyKey: '3',
+          // Never expires, deliberately. The refresh below still runs on every
+          // build, so an online device is always current; what an expiry would
+          // add is the ability to empty this cache while offline, and a device
+          // with no catalog cannot name the opponents of a game it is already
+          // playing. Stale bot metadata is a worse-looking name; no metadata is
+          // a game that will not open.
+          cacheTime: StorageCacheTime.unsafe_forever,
+          // Bumped to '4': the row now carries `type`, which the local picker
+          // filters on, so an entry written before it is not usable.
+          destroyKey: '4',
         ),
       );
     }
@@ -74,52 +81,64 @@ Future<Map<String, Bot>> botCatalogById(Ref ref) async {
 
 /// Whether the solo-play entry should be offered for this deployment.
 ///
-/// Two conditions, both enforced server-side too - this only avoids offering an
-/// entry that would fail:
+/// Solo play has two arms, and either one is enough to open the picker:
 ///
-/// 1. **A bot this build's rules can play.** Solo creation always targets the
-///    latest version, so usability is judged against the latest unit.
-/// 2. **A timed mode.** A *server-seated* bot requires one: dispatch is
-///    single-attempt, so if a bot's turn is never delivered the only thing that
-///    resolves the game is the turn deadline firing the server's alarm. Untimed
-///    means no deadline, no alarm, and a game wedged forever - the server
-///    refuses it on the seating path.
+/// 1. **Server-seated.** A bot this build's rules can play, in a *timed* mode.
+///    Dispatch is single-attempt, so if a bot's turn is never delivered the only
+///    thing that resolves the game is the turn deadline firing the server's
+///    alarm. Untimed would mean no deadline, no alarm, and a game wedged
+///    forever, which is why the server refuses it on the seating path.
+/// 2. **On the device.** An untimed mode whose bots this build runs itself. No
+///    dispatch can fail here, so no deadline is needed, which is exactly why the
+///    two arms partition by timing. See [localPlayAvailable].
+///
+/// Both conditions are enforced server-side as well; this only avoids offering
+/// an entry that would open a dead-end picker.
 ///
 /// Guests are deliberately *not* gated out: solo-vs-bot is a guest's first-run
 /// experience, and the server accepts it - the game simply comes out unrated,
 /// since rating requires a registered account.
-///
-/// Gating on both - rather than just "a bot exists" - keeps an untimed-only
-/// deployment from showing a solo entry that opens a dead-end picker.
-///
-/// The timing condition is deliberately tied to *server* seating rather than to
-/// bots in general, because the deferred offline-solo path will not share it: a
-/// client-driven bot has no dispatch to fail, so an on-device game can be
-/// untimed. When that lands, this becomes a choice between two solo modes
-/// (untimed on-device, timed server-seated) rather than a single gate, and the
-/// partition it needs is already the one expressed here.
 @riverpod
 bool soloPlayAvailable(Ref ref) {
   final module = ref.watch(currentGameModuleProvider);
   final bots = ref.watch(availableBotsProvider).value ?? const [];
 
   final hasTimedMode = module.creationSpec.timingConfigs.values.any(
-    (c) => c is! UntimedConfig,
+    (config) => config is! UntimedConfig,
   );
-  final hasUsableBot = bots.any(
+  final hasServerBot = bots.any(
     (bot) => bot.supportsGameSchema(module.latestSchemaVersion),
   );
-  return hasTimedMode && hasUsableBot;
+  return (hasTimedMode && hasServerBot) ||
+      ref.watch(localPlayAvailableProvider);
 }
 
 /// The caller's games, "your turn" first then most recently updated.
 ///
-/// One request: the summary already carries the roster, the pending set and
-/// the deadline, so nothing has to be derived from a second read.
+/// One request for the server's: the summary already carries the roster, the
+/// pending set and the deadline, so nothing has to be derived from a second
+/// read. Games this device played offline are read from its own store and
+/// merged in, which is what makes the home list correct with no network.
+///
+/// A local game that has already synchronized exists in both lists, and the
+/// device's own record wins: it is the copy that stays readable offline, and
+/// the two agree about everything a row shows.
 @riverpod
 Future<List<GameSummary>> activeGames(Ref ref) async {
-  final games = (await ref.watch(gameRepositoryProvider).getMyGames()).games;
+  final local = await ref.watch(localActiveGamesProvider.future);
+  List<GameSummary> server;
+  try {
+    server = (await ref.watch(gameRepositoryProvider).getMyGames()).games
+        .toList();
+  } on Object {
+    // Offline. A device holding playable local games must still list them, so
+    // the failure is only fatal when there is nothing else to show - which is
+    // also what keeps the error state reachable for an ordinary account.
+    if (local.isEmpty) rethrow;
+    server = const [];
+  }
   final myUserId = ref.watch(currentUserIdProvider);
+  final localIds = {for (final game in local) game.id};
 
   bool isMyTurn(GameSummary game) {
     final seat = game.participants
@@ -131,7 +150,11 @@ Future<List<GameSummary>> activeGames(Ref ref) async {
 
   // The secondary key is explicit because List.sort is not stable, so relying
   // on the server's order to survive the sort would be fragile.
-  return games.toList()..sort((a, b) {
+  return [
+    ...local,
+    for (final game in server)
+      if (!localIds.contains(game.id)) game,
+  ]..sort((a, b) {
     final aMine = isMyTurn(a);
     if (aMine != isMyTurn(b)) return aMine ? -1 : 1;
     return b.updatedAt.compareTo(a.updatedAt);
@@ -151,8 +174,19 @@ Future<List<GameSummary>> activeGames(Ref ref) async {
 /// reconnects and is answered with the current snapshot, so this stream is never
 /// torn down to resync.
 @riverpod
-Stream<GameSession> gameSession(Ref ref, {required String gameId}) {
-  return ref.watch(gameRepositoryProvider).sessions(gameId);
+Stream<GameSession> gameSession(Ref ref, {required String gameId}) async* {
+  // Where the game is played is a property of the game, resolved once. A local
+  // game's engine states the same complete snapshots the socket does, so
+  // everything downstream of here - the frame, the transition, the roster, the
+  // outcomes - is identical either way and no screen branches.
+  final engine = await ref.watch(
+    localGameEngineProvider(gameId: gameId).future,
+  );
+  if (engine != null) {
+    yield* localGameSessions(engine);
+    return;
+  }
+  yield* ref.watch(gameRepositoryProvider).sessions(gameId);
 }
 
 /// The game's status, live.

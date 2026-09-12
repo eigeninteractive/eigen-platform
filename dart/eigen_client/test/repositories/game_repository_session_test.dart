@@ -29,6 +29,7 @@ Map<String, dynamic> _sessionJson({
   'gameId': 'g',
   'shortCode': 'ABC123',
   'access': 'public',
+  'origin': 'online',
   'schemaVersion': 1,
   'config': <String, dynamic>{},
   'turnSeconds': null,

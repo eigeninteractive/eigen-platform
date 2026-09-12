@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **displayName** | **String** |  | 
 **avatarUrl** | **String** |  | 
 **schemaVersion** | **int** |  | 
+**type** | [**BotType**](BotType.md) |  | 
 **ratedEligible** | **bool** |  | 
 **config** | **Object** |  | 
 

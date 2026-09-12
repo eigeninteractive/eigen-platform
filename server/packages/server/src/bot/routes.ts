@@ -24,7 +24,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { gameExists } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError, unwrap } from "../http.js";
-import type { Command } from "../protocol.js";
+import type { SingleCommand } from "../protocol.js";
 import { errorShape } from "../routes/wire.js";
 import { verifyBotSignature } from "./bot-auth.js";
 
@@ -82,7 +82,7 @@ export function registerBotRoutes(app: EngineApp, ctx: RouteContext): void {
 
       // The DO resolves and enforces the named seat: it must belong to this bot
       // id or the command is a protocol violation (a 500 the operator sees).
-      const cmd: Command = {
+      const cmd: SingleCommand = {
         kind: "action",
         gameId: claim.gameId,
         actor: { userId: null, botId: claim.botId },

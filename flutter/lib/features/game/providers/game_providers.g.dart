@@ -178,7 +178,7 @@ final class AvailableBotsProvider
   AvailableBots create() => AvailableBots();
 }
 
-String _$availableBotsHash() => r'd4eaac975b707baaf0483ae7d9beb2cb7a00cab2';
+String _$availableBotsHash() => r'765699952e3490091dc46ecc62c9cc17d951f342';
 
 /// The bot catalog for this deployment - the pickers' source of truth.
 ///
@@ -256,90 +256,69 @@ String _$botCatalogByIdHash() => r'2b2144eb85fffe5224794b1078a7d6e8476cd860';
 
 /// Whether the solo-play entry should be offered for this deployment.
 ///
-/// Two conditions, both enforced server-side too - this only avoids offering an
-/// entry that would fail:
+/// Solo play has two arms, and either one is enough to open the picker:
 ///
-/// 1. **A bot this build's rules can play.** Solo creation always targets the
-///    latest version, so usability is judged against the latest unit.
-/// 2. **A timed mode.** A *server-seated* bot requires one: dispatch is
-///    single-attempt, so if a bot's turn is never delivered the only thing that
-///    resolves the game is the turn deadline firing the server's alarm. Untimed
-///    means no deadline, no alarm, and a game wedged forever - the server
-///    refuses it on the seating path.
+/// 1. **Server-seated.** A bot this build's rules can play, in a *timed* mode.
+///    Dispatch is single-attempt, so if a bot's turn is never delivered the only
+///    thing that resolves the game is the turn deadline firing the server's
+///    alarm. Untimed would mean no deadline, no alarm, and a game wedged
+///    forever, which is why the server refuses it on the seating path.
+/// 2. **On the device.** An untimed mode whose bots this build runs itself. No
+///    dispatch can fail here, so no deadline is needed, which is exactly why the
+///    two arms partition by timing. See [localPlayAvailable].
+///
+/// Both conditions are enforced server-side as well; this only avoids offering
+/// an entry that would open a dead-end picker.
 ///
 /// Guests are deliberately *not* gated out: solo-vs-bot is a guest's first-run
 /// experience, and the server accepts it - the game simply comes out unrated,
 /// since rating requires a registered account.
-///
-/// Gating on both - rather than just "a bot exists" - keeps an untimed-only
-/// deployment from showing a solo entry that opens a dead-end picker.
-///
-/// The timing condition is deliberately tied to *server* seating rather than to
-/// bots in general, because the deferred offline-solo path will not share it: a
-/// client-driven bot has no dispatch to fail, so an on-device game can be
-/// untimed. When that lands, this becomes a choice between two solo modes
-/// (untimed on-device, timed server-seated) rather than a single gate, and the
-/// partition it needs is already the one expressed here.
 
 @ProviderFor(soloPlayAvailable)
 final soloPlayAvailableProvider = SoloPlayAvailableProvider._();
 
 /// Whether the solo-play entry should be offered for this deployment.
 ///
-/// Two conditions, both enforced server-side too - this only avoids offering an
-/// entry that would fail:
+/// Solo play has two arms, and either one is enough to open the picker:
 ///
-/// 1. **A bot this build's rules can play.** Solo creation always targets the
-///    latest version, so usability is judged against the latest unit.
-/// 2. **A timed mode.** A *server-seated* bot requires one: dispatch is
-///    single-attempt, so if a bot's turn is never delivered the only thing that
-///    resolves the game is the turn deadline firing the server's alarm. Untimed
-///    means no deadline, no alarm, and a game wedged forever - the server
-///    refuses it on the seating path.
+/// 1. **Server-seated.** A bot this build's rules can play, in a *timed* mode.
+///    Dispatch is single-attempt, so if a bot's turn is never delivered the only
+///    thing that resolves the game is the turn deadline firing the server's
+///    alarm. Untimed would mean no deadline, no alarm, and a game wedged
+///    forever, which is why the server refuses it on the seating path.
+/// 2. **On the device.** An untimed mode whose bots this build runs itself. No
+///    dispatch can fail here, so no deadline is needed, which is exactly why the
+///    two arms partition by timing. See [localPlayAvailable].
+///
+/// Both conditions are enforced server-side as well; this only avoids offering
+/// an entry that would open a dead-end picker.
 ///
 /// Guests are deliberately *not* gated out: solo-vs-bot is a guest's first-run
 /// experience, and the server accepts it - the game simply comes out unrated,
 /// since rating requires a registered account.
-///
-/// Gating on both - rather than just "a bot exists" - keeps an untimed-only
-/// deployment from showing a solo entry that opens a dead-end picker.
-///
-/// The timing condition is deliberately tied to *server* seating rather than to
-/// bots in general, because the deferred offline-solo path will not share it: a
-/// client-driven bot has no dispatch to fail, so an on-device game can be
-/// untimed. When that lands, this becomes a choice between two solo modes
-/// (untimed on-device, timed server-seated) rather than a single gate, and the
-/// partition it needs is already the one expressed here.
 
 final class SoloPlayAvailableProvider
     extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   /// Whether the solo-play entry should be offered for this deployment.
   ///
-  /// Two conditions, both enforced server-side too - this only avoids offering an
-  /// entry that would fail:
+  /// Solo play has two arms, and either one is enough to open the picker:
   ///
-  /// 1. **A bot this build's rules can play.** Solo creation always targets the
-  ///    latest version, so usability is judged against the latest unit.
-  /// 2. **A timed mode.** A *server-seated* bot requires one: dispatch is
-  ///    single-attempt, so if a bot's turn is never delivered the only thing that
-  ///    resolves the game is the turn deadline firing the server's alarm. Untimed
-  ///    means no deadline, no alarm, and a game wedged forever - the server
-  ///    refuses it on the seating path.
+  /// 1. **Server-seated.** A bot this build's rules can play, in a *timed* mode.
+  ///    Dispatch is single-attempt, so if a bot's turn is never delivered the only
+  ///    thing that resolves the game is the turn deadline firing the server's
+  ///    alarm. Untimed would mean no deadline, no alarm, and a game wedged
+  ///    forever, which is why the server refuses it on the seating path.
+  /// 2. **On the device.** An untimed mode whose bots this build runs itself. No
+  ///    dispatch can fail here, so no deadline is needed, which is exactly why the
+  ///    two arms partition by timing. See [localPlayAvailable].
+  ///
+  /// Both conditions are enforced server-side as well; this only avoids offering
+  /// an entry that would open a dead-end picker.
   ///
   /// Guests are deliberately *not* gated out: solo-vs-bot is a guest's first-run
   /// experience, and the server accepts it - the game simply comes out unrated,
   /// since rating requires a registered account.
-  ///
-  /// Gating on both - rather than just "a bot exists" - keeps an untimed-only
-  /// deployment from showing a solo entry that opens a dead-end picker.
-  ///
-  /// The timing condition is deliberately tied to *server* seating rather than to
-  /// bots in general, because the deferred offline-solo path will not share it: a
-  /// client-driven bot has no dispatch to fail, so an on-device game can be
-  /// untimed. When that lands, this becomes a choice between two solo modes
-  /// (untimed on-device, timed server-seated) rather than a single gate, and the
-  /// partition it needs is already the one expressed here.
   SoloPlayAvailableProvider._()
     : super(
         from: null,
@@ -373,20 +352,32 @@ final class SoloPlayAvailableProvider
   }
 }
 
-String _$soloPlayAvailableHash() => r'76b252c989ed36711a66ec4b8127fe3f2f5ad69c';
+String _$soloPlayAvailableHash() => r'9270da426e6cbab532b8cc97e4e4a0e5c4acf964';
 
 /// The caller's games, "your turn" first then most recently updated.
 ///
-/// One request: the summary already carries the roster, the pending set and
-/// the deadline, so nothing has to be derived from a second read.
+/// One request for the server's: the summary already carries the roster, the
+/// pending set and the deadline, so nothing has to be derived from a second
+/// read. Games this device played offline are read from its own store and
+/// merged in, which is what makes the home list correct with no network.
+///
+/// A local game that has already synchronized exists in both lists, and the
+/// device's own record wins: it is the copy that stays readable offline, and
+/// the two agree about everything a row shows.
 
 @ProviderFor(activeGames)
 final activeGamesProvider = ActiveGamesProvider._();
 
 /// The caller's games, "your turn" first then most recently updated.
 ///
-/// One request: the summary already carries the roster, the pending set and
-/// the deadline, so nothing has to be derived from a second read.
+/// One request for the server's: the summary already carries the roster, the
+/// pending set and the deadline, so nothing has to be derived from a second
+/// read. Games this device played offline are read from its own store and
+/// merged in, which is what makes the home list correct with no network.
+///
+/// A local game that has already synchronized exists in both lists, and the
+/// device's own record wins: it is the copy that stays readable offline, and
+/// the two agree about everything a row shows.
 
 final class ActiveGamesProvider
     extends
@@ -400,8 +391,14 @@ final class ActiveGamesProvider
         $FutureProvider<List<GameSummary>> {
   /// The caller's games, "your turn" first then most recently updated.
   ///
-  /// One request: the summary already carries the roster, the pending set and
-  /// the deadline, so nothing has to be derived from a second read.
+  /// One request for the server's: the summary already carries the roster, the
+  /// pending set and the deadline, so nothing has to be derived from a second
+  /// read. Games this device played offline are read from its own store and
+  /// merged in, which is what makes the home list correct with no network.
+  ///
+  /// A local game that has already synchronized exists in both lists, and the
+  /// device's own record wins: it is the copy that stays readable offline, and
+  /// the two agree about everything a row shows.
   ActiveGamesProvider._()
     : super(
         from: null,
@@ -428,7 +425,7 @@ final class ActiveGamesProvider
   }
 }
 
-String _$activeGamesHash() => r'0937340c6c0063bdeb40a6a06ce7abc114af0e2d';
+String _$activeGamesHash() => r'852582d3919c3bfefd72c5690e56d78578250a5a';
 
 /// One game's live session: the single subscription a game screen needs.
 ///
@@ -523,7 +520,7 @@ final class GameSessionProvider
   }
 }
 
-String _$gameSessionHash() => r'75f5c201d1a27ba5ced60417ebcd2100662be89e';
+String _$gameSessionHash() => r'277f8ce68012464c1dc44b2c88b7ccbc5a56b668';
 
 /// One game's live session: the single subscription a game screen needs.
 ///

@@ -17,6 +17,7 @@ Session _$SessionFromJson(
       'gameId',
       'shortCode',
       'access',
+      'origin',
       'schemaVersion',
       'config',
       'turnSeconds',
@@ -51,6 +52,14 @@ Session _$SessionFromJson(
         _$GameAccessEnumMap,
         v,
         unknownValue: GameAccess.unknownDefaultOpenApi,
+      ),
+    ),
+    origin: $checkedConvert(
+      'origin',
+      (v) => $enumDecode(
+        _$GameOriginEnumMap,
+        v,
+        unknownValue: GameOrigin.unknownDefaultOpenApi,
       ),
     ),
     schemaVersion: $checkedConvert('schemaVersion', (v) => (v as num).toInt()),
@@ -98,6 +107,7 @@ Map<String, dynamic> _$SessionToJson(Session instance) => <String, dynamic>{
   'gameId': instance.gameId,
   'shortCode': instance.shortCode,
   'access': _$GameAccessEnumMap[instance.access]!,
+  'origin': _$GameOriginEnumMap[instance.origin]!,
   'schemaVersion': instance.schemaVersion,
   'config': instance.config,
   'turnSeconds': instance.turnSeconds,
@@ -124,6 +134,12 @@ const _$GameAccessEnumMap = {
   GameAccess.private: 'private',
   GameAccess.friends: 'friends',
   GameAccess.unknownDefaultOpenApi: 'unknown_default_open_api',
+};
+
+const _$GameOriginEnumMap = {
+  GameOrigin.online: 'online',
+  GameOrigin.local: 'local',
+  GameOrigin.unknownDefaultOpenApi: 'unknown_default_open_api',
 };
 
 const _$GameStatusEnumMap = {

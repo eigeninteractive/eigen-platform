@@ -408,7 +408,20 @@ VALUES (lower(hex(randomblob(16))), 'easy_ai', 'Easy AI', 'engine', 1, 0, '{}');
 INSERT INTO bots (id, username, display_name, type, schema_version, webhook_url, rated_eligible, config)
 VALUES (lower(hex(randomblob(16))), 'hard_ai', 'Hard AI', 'external', 1,
         'https://my-bot.example/wake', 1, '{}');
+
+-- a local bot: the brain ships only in the app, as the Dart local unit's
+-- botActions['practice_ai']. The server never dispatches it, so it can be
+-- seated in an on-device game and nowhere else.
+INSERT INTO bots (id, username, display_name, type, schema_version, rated_eligible, config)
+VALUES (lower(hex(randomblob(16))), 'practice_ai', 'Practice AI', 'local', 1, 0, '{}');
 ```
+
+**Without one of these rows there are no opponents.** A bot is an identity the
+server owns, so the offline picker lists registry rows whose username this build
+ships a brain for, and an app with none simply offers no on-device play. The row
+above is the narrow case; the useful one is an `engine` row whose username has a
+brain on *both* sides, which is then one bot playable on the server and on the
+device. See [Offline play](../build-a-game/offline-play.md).
 
 `type` is CHECK-enforced against the transport it implies: an `external` bot
 must carry a `webhook_url`, an `engine` bot must not. `schema_version` is the

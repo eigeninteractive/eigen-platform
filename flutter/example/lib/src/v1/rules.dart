@@ -8,7 +8,7 @@
 /// owns the codec, the legality check that greys out an illegal tap, the
 /// optimism contract, and the rendering. Where the two overlap (legality, the
 /// two predicates) they are transcriptions, and the shared fixtures under
-/// `example/fixtures/v1/` are what keeps them transcriptions.
+/// `example/test/fixtures/v1/` are what keeps them transcriptions.
 ///
 /// A version unit never branches on version. When the rules change
 /// incompatibly, copy this file to `v2/`, change it there, and add the entry to
@@ -20,6 +20,7 @@ import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:flutter/widgets.dart';
 
 import 'board.dart';
+import 'local_rules.dart';
 import 'models.dart';
 
 /// The v1 rules unit, registered under key `1` in [RpsModule.versions].
@@ -92,4 +93,10 @@ class RpsRulesV1 extends RpsV1RulesBase {
   /// RPS asks nothing of a bot, so every registered bot can take a seat.
   @override
   bool botSeatable(BotSeatableArgs args) => true;
+
+  /// The offline half: the same four hooks, on the device. Declaring it is what
+  /// makes this version playable with no network, and the shared fixtures keep
+  /// it honest against the TypeScript unit.
+  @override
+  RpsLocalRulesV1 get local => const RpsLocalRulesV1();
 }

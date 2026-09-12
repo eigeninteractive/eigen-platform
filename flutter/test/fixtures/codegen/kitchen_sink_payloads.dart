@@ -246,6 +246,37 @@ final class Game2048ArenaV1Profile {
       Object.hashAll([_payloadHash(displayName), _payloadHash(nickname)]);
 }
 
+final class Game2048ArenaV1State {
+  Game2048ArenaV1State({required this.turn});
+
+  factory Game2048ArenaV1State.fromJson(Map<String, dynamic> json) {
+    const path = "Game2048ArenaV1State";
+    _payloadObjectBounds(json, path, const <String>{"turn"}, false, null, null);
+    return Game2048ArenaV1State(
+      turn: _payloadNumberBounds(
+        _payloadInt(_payloadRequired(json, "turn", "$path.turn"), "$path.turn"),
+        "$path.turn",
+        null,
+        null,
+        null,
+        null,
+      ),
+    );
+  }
+
+  final int turn;
+
+  Map<String, dynamic> toJson() => {"turn": turn};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Game2048ArenaV1State && _payloadEquals(turn, other.turn);
+
+  @override
+  int get hashCode => Object.hashAll([_payloadHash(turn)]);
+}
+
 final class Game2048ArenaV1Observation {
   Game2048ArenaV1Observation({
     required this.profile,
@@ -650,6 +681,81 @@ abstract class Game2048ArenaV1RulesBase
       action.toJson();
 }
 
+/// The offline half of this version: implements the seven payload
+/// codecs the local kernel needs, leaving the transcribed hooks
+/// abstract. A version unit that ships local play extends this and
+/// returns the subclass from its `GameRules.local` getter.
+abstract class Game2048ArenaV1LocalRulesBase
+    extends
+        LocalGameRules<
+          Game2048ArenaV1State,
+          Game2048ArenaV1Observation,
+          Game2048ArenaV1Action,
+          Game2048ArenaV1Config
+        > {
+  const Game2048ArenaV1LocalRulesBase();
+
+  @override
+  Game2048ArenaV1Config parseConfig(Map<String, dynamic> json) =>
+      Game2048ArenaV1Config.fromJson(json);
+
+  @override
+  Game2048ArenaV1State parseState(Map<String, dynamic> json) =>
+      Game2048ArenaV1State.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeState(Game2048ArenaV1State state) =>
+      state.toJson();
+
+  @override
+  Game2048ArenaV1Action parseAction(Map<String, dynamic> json) =>
+      Game2048ArenaV1Action.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeAction(Game2048ArenaV1Action action) =>
+      action.toJson();
+
+  @override
+  Game2048ArenaV1Observation parseObservation(Map<String, dynamic> json) =>
+      Game2048ArenaV1Observation.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeObservation(
+    Game2048ArenaV1Observation observation,
+  ) => observation.toJson();
+}
+
+final class Game2048ArenaV2State {
+  Game2048ArenaV2State({required this.turn});
+
+  factory Game2048ArenaV2State.fromJson(Map<String, dynamic> json) {
+    const path = "Game2048ArenaV2State";
+    _payloadObjectBounds(json, path, const <String>{"turn"}, false, null, null);
+    return Game2048ArenaV2State(
+      turn: _payloadNumberBounds(
+        _payloadInt(_payloadRequired(json, "turn", "$path.turn"), "$path.turn"),
+        "$path.turn",
+        null,
+        null,
+        null,
+        null,
+      ),
+    );
+  }
+
+  final int turn;
+
+  Map<String, dynamic> toJson() => {"turn": turn};
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Game2048ArenaV2State && _payloadEquals(turn, other.turn);
+
+  @override
+  int get hashCode => Object.hashAll([_payloadHash(turn)]);
+}
+
 final class Game2048ArenaV2Observation {
   Game2048ArenaV2Observation({required this.turn});
 
@@ -774,4 +880,48 @@ abstract class Game2048ArenaV2RulesBase
   @override
   Map<String, dynamic> serializeAction(Game2048ArenaV2Action action) =>
       action.toJson();
+}
+
+/// The offline half of this version: implements the seven payload
+/// codecs the local kernel needs, leaving the transcribed hooks
+/// abstract. A version unit that ships local play extends this and
+/// returns the subclass from its `GameRules.local` getter.
+abstract class Game2048ArenaV2LocalRulesBase
+    extends
+        LocalGameRules<
+          Game2048ArenaV2State,
+          Game2048ArenaV2Observation,
+          Game2048ArenaV2Action,
+          Game2048ArenaV2Config
+        > {
+  const Game2048ArenaV2LocalRulesBase();
+
+  @override
+  Game2048ArenaV2Config parseConfig(Map<String, dynamic> json) =>
+      Game2048ArenaV2Config.fromJson(json);
+
+  @override
+  Game2048ArenaV2State parseState(Map<String, dynamic> json) =>
+      Game2048ArenaV2State.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeState(Game2048ArenaV2State state) =>
+      state.toJson();
+
+  @override
+  Game2048ArenaV2Action parseAction(Map<String, dynamic> json) =>
+      Game2048ArenaV2Action.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeAction(Game2048ArenaV2Action action) =>
+      action.toJson();
+
+  @override
+  Game2048ArenaV2Observation parseObservation(Map<String, dynamic> json) =>
+      Game2048ArenaV2Observation.fromJson(json);
+
+  @override
+  Map<String, dynamic> serializeObservation(
+    Game2048ArenaV2Observation observation,
+  ) => observation.toJson();
 }
