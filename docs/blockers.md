@@ -9,19 +9,24 @@ and update the **Last checked** date whenever planning dependency or platform
 upgrades.
 
 - [Flutter Android built-in Kotlin migration](#flutter-android-built-in-kotlin-migration)
+- [Flutter SDK dartdoc `@docImport` crash](#flutter-sdk-dartdoc-docimport-crash)
 - [FlutterFire Firebase Installation ID registration API](#flutterfire-firebase-installation-id-registration-api)
 
 ## Flutter Android built-in Kotlin migration
 
 **Status:** Blocked on a compatible `in_app_review` release. **Last checked:**
-2026-09-10.
+2026-09-13.
 
-Flutter 3.47.3 is now stable and can enable Gradle's built-in Kotlin support,
+Flutter 3.47.4 is now stable and can enable Gradle's built-in Kotlin support,
 but `in_app_review` remains at 2.0.12 and still applies `kotlin-android`
 unconditionally. The platform remains on its tested Flutter 3.44.8
 compatibility path with `android.builtInKotlin=false` and
 `android.newDsl=false`; enabling built-in Kotlin waits until the dependency
 graph can migrate together.
+
+This is not the only thing holding the Flutter pin at 3.44.8. The dartdoc
+crash below gates the same pin independently, and clearing one does not clear
+the other.
 
 The other resolved Android plugins checked during the initial investigation
 already conditionally avoid applying the legacy Kotlin plugin when built-in
@@ -46,6 +51,72 @@ References:
 - [Flutter app migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers)
 - [Flutter plugin migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors)
 - [`in_app_review` on pub.dev](https://pub.dev/packages/in_app_review)
+
+## Flutter SDK dartdoc `@docImport` crash
+
+**Status:** Blocked on a Dart SDK carrying dartdoc 9.0.8 or newer. **Last
+checked:** 2026-09-13.
+
+`./tool/check.sh flutter` runs `dart doc --dry-run .` in `flutter/`, `shell/`
+and `firebase/`. On Flutter 3.47.x all three abort before documenting anything:
+
+```
+DocumentationComment._stripDocImports (package:dartdoc/src/model/documentation_comment.dart:931)
+RangeError (end): Invalid value: Only valid value is 79: 80
+```
+
+The platform's own doc comments are not the cause. `_stripDocImports` returns
+immediately unless a comment carries `@docImport` source ranges, and the
+platform declares no `@docImport` anywhere. The ranges arrive on doc comments
+*inherited* from dependencies, which dartdoc 9.0.6 then slices against the
+wrong string. dartdoc 9.0.8 fixes exactly this: "Fix a `RangeError` caused by
+string offset drift when parsing `@docImport`". Running dartdoc 9.0.9
+standalone against the same Dart 3.13.1 documents all three packages with no
+errors, which is what identifies the bundled tool, rather than the SDK or the
+sources, as the cause.
+
+Upgrading Flutter does not currently help. Dart 3.13.1 and 3.13.3 pin the same
+`dartdoc_rev`, `1d56f263955f329b6701d8f84f069eb0aef353a4`, whose pubspec reads
+`9.0.6-wip`, so Flutter 3.47.1 through 3.47.4 all carry the crash. The Dart SDK
+`main` branch pins 9.0.9, so the fix arrives with a later SDK.
+
+The platform therefore stays on Flutter 3.44.8, pinned in `flutter/.fvmrc` and
+in the scaffold template's own `.fvmrc`, where dartdoc is unaffected and CI is
+green.
+
+Working on a newer Flutter locally is fine for everything except `dart doc`.
+Run that out of band instead:
+
+```bash
+dart pub global activate dartdoc 9.0.9
+dart pub global run dartdoc --no-generate-docs --input=flutter --output=/tmp/dartdoc
+```
+
+### Unblock and remove
+
+1. Watch for a Dart SDK whose pinned dartdoc is 9.0.8 or newer, and the Flutter
+   release carrying it:
+
+   ```bash
+   curl -s https://raw.githubusercontent.com/dart-lang/sdk/<version>/DEPS |
+     grep dartdoc_rev
+   ```
+
+   Resolve the revision through
+   `https://raw.githubusercontent.com/dart-lang/dartdoc/<rev>/pubspec.yaml`.
+
+2. Confirm `dart doc --dry-run .` succeeds in `flutter/`, `shell/` and
+   `firebase/` on that SDK.
+3. Raise `flutter/.fvmrc` and
+   `server/packages/create-eigen-game/templates/app-overlay/.fvmrc` together
+   with the built-in Kotlin migration above, not ahead of it.
+4. Remove this entry.
+
+References:
+
+- [dartdoc changelog](https://pub.dev/packages/dartdoc/changelog)
+- [Dart SDK `DEPS`](https://github.com/dart-lang/sdk/blob/main/DEPS)
+- [Flutter stable releases](https://docs.flutter.dev/release/archive)
 
 ## FlutterFire Firebase Installation ID registration API
 
