@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import type * as Preset from "@docusaurus/preset-classic";
 import type { Config } from "@docusaurus/types";
 import { themes as prismThemes } from "prism-react-renderer";
@@ -5,6 +7,43 @@ import { themes as prismThemes } from "prism-react-renderer";
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const GITHUB = "https://github.com/eigeninteractive/eigen-platform";
+
+/**
+ * The engine release line these pages describe, read from the spec the engine
+ * stamps itself.
+ *
+ * Pre-1.0 the breaking axis is the MINOR (`^0.2.0` resolves to `>=0.2.0
+ * <0.3.0`), so a 0.x line is `0.<minor>.x`; from 1.0.0 on it is the major.
+ *
+ * Derived rather than transcribed, and that is the whole point. This number
+ * used to be written out by hand below and asserted against the spec by a
+ * `check-docs-version` script, so every engine release that crossed a line
+ * landed a red `web` shard on the version pull request that a human cleared
+ * with a one-line commit. The hand-copying was the only thing that could ever
+ * drift from the spec, so removing it removes the drift, the assertion, and
+ * the dance together: a derived label cannot lie, and only a written-down one
+ * could. `api/openapi.json` is committed here and kept current by
+ * `sync-api.yml`, so this reads a file that is present in a clean clone with
+ * no engine build.
+ *
+ * What this deliberately no longer does is force the freeze decision. See
+ * CONTRIBUTING.md: freezing a line is triggered by an adopter who cannot
+ * follow a break, not by a version number, and it can be done retroactively
+ * from a release tag whenever that adopter appears.
+ */
+function releaseLine(): string {
+  // Docusaurus loads this config through jiti, which transpiles to CJS and
+  // supplies `__dirname`. Resolving from this file rather than `process.cwd()`
+  // keeps the path right however the site is invoked.
+  const specPath = join(__dirname, "api", "openapi.json");
+  const spec = JSON.parse(readFileSync(specPath, "utf8")) as { info: { version: string } };
+  const parsed = /^(\d+)\.(\d+)\.\d+/.exec(spec.info.version);
+  if (!parsed) {
+    throw new Error(`api/openapi.json carries a version this cannot read: "${spec.info.version}"`);
+  }
+  const [, major, minor] = parsed;
+  return major === "0" ? `0.${minor}.x` : `${major}.x`;
+}
 
 const config: Config = {
   title: "EigenInteractive",
@@ -185,12 +224,10 @@ const config: Config = {
           // `eigen_flutter` is NOT an axis here; it moves on its own clock and
           // declares its own pairing. See /docs/reference/compatibility.
           //
-          // `pnpm check-docs-version` asserts this label against `info.version`
-          // in the committed api/openapi.json, which is the engine's own stamp.
-          // So the sync pull request that lands a new engine line FAILS rather
-          // than silently relabelling the site. Crossing a line is a decision,
-          // cut the old one or relabel in place, and that check is what forces
-          // someone to make it.
+          // The label is DERIVED from `info.version` in the committed
+          // api/openapi.json, which is the engine's own stamp; see
+          // `releaseLine` at the top of this file. Nobody transcribes it, so it
+          // cannot fall behind the reference it sits above.
           //
           // No version is CUT yet, and that is deliberate twice over.
           // Docusaurus' own guidance is that versioning "will just increase
@@ -219,22 +256,30 @@ const config: Config = {
           // searchable description of a protocol whose lists are always empty,
           // next to the one that works. Nobody wants to read that page.
           //
+          // Every crossing so far has been relabelled, which is why the
+          // decision is no longer gated on one. A release line moving is not
+          // evidence anyone needs the old line frozen; an adopter who cannot
+          // follow the break is, and that is not something a version number
+          // can tell you.
+          //
           // Naming the current version costs no URLs: Docusaurus serves
           // `lastVersion` at the base path, so these pages stay at /docs/*.
-          // Once the engine has adopters who cannot follow a line break, run
+          // When an adopter does need a line kept, run
           //
-          //   pnpm docusaurus docs:version 0.6.x
+          //   pnpm docusaurus docs:version <line>
           //
-          // and 0.6.x freezes into `versioned_docs/version-0.6.x` at
-          // /docs/0.6.x/* while `docs/` becomes the new line at /docs/*. The
-          // generated reference freezes with it, which is exactly right:
+          // and that line freezes into `versioned_docs/version-<line>/` at
+          // /docs/<line>/* while `docs/` stays the current line at /docs/*.
+          // The generated reference freezes with it, which is exactly right:
           // `sync-api` keeps writing to `docs/`, so no part of that pipeline
-          // has to learn about versions. CONTRIBUTING.md has the procedure.
+          // has to learn about versions. Because the snapshot is taken from
+          // `docs/`, a line can still be cut after the fact by restoring
+          // `docs/` from that release's tag first; CONTRIBUTING.md has the
+          // procedure.
           lastVersion: "current",
           versions: {
             current: {
-              // Asserted against api/openapi.json; see check-docs-version.
-              label: "0.6.x",
+              label: releaseLine(),
             },
           },
         },

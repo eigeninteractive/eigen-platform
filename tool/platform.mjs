@@ -16,11 +16,24 @@ async function yamlVersion(path) {
   return match[1];
 }
 
+// The engine release line the documentation site describes.
+//
+// Read from the spec rather than scraped out of `docusaurus.config.ts`, because
+// the config no longer contains a number to scrape: it derives its own version
+// label from this same file, so there is exactly one place the line is stated.
+// Scraping the config used to work and then silently stopped meaning anything
+// -- the pattern matched the first quoted `label:` after `current: {`, so once
+// the label became an expression it ran on and matched a navbar item instead,
+// and the only symptom was `platform.json` going stale for no visible reason.
+//
+// Pre-1.0 the breaking axis is the MINOR (`^0.6.0` resolves to `>=0.6.0
+// <0.7.0`), so a 0.x line is `0.<minor>.x`; from 1.0.0 on it is the major.
 async function docsLine() {
-  const source = await readFile(join(root, "web/docusaurus.config.ts"), "utf8");
-  const match = source.match(/current:\s*\{[\s\S]*?label:\s*["']([^"']+)["']/);
-  if (!match) throw new Error("No current docs label in web/docusaurus.config.ts");
-  return match[1];
+  const { version } = (await json("web/api/openapi.json")).info;
+  const match = /^(\d+)\.(\d+)\.\d+/.exec(version);
+  if (!match) throw new Error(`Unreadable version in web/api/openapi.json: "${version}"`);
+  const [, major, minor] = match;
+  return major === "0" ? `0.${minor}.x` : `${major}.x`;
 }
 
 async function buildManifest() {

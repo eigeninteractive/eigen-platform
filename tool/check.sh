@@ -177,7 +177,6 @@ run_web() {
   fi
 
   cd "$platform_root/web"
-  pnpm check-docs-version
   pnpm check-admonitions
   pnpm sync-api
   assert_no_drift "Documentation generation" \
