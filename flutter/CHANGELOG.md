@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.10.0] - 2026-09-13
 ### Added
 - Offline play: a game module may declare a `LocalGameRules` unit per version through `GameRules.local`, and a game that does is playable on the device against bots this build ships brains for.
 - `localGameCatchUpProvider`, which brings a synchronized local game onto a second device by re-deriving its frames through this build's own rules.
@@ -301,7 +301,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.9.0...HEAD
+[0.10.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.9.0...eigen_flutter-v0.10.0
 [0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.8.0...eigen_flutter-v0.9.0
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.7.0...eigen_flutter-v0.8.0
 [0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.6.0...eigen_flutter-v0.7.0
