@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  eigen_flutter: ^0.9.0
+  eigen_flutter: ^0.10.0
   eigen_shell: ^0.1.0
   eigen_firebase: ^0.2.0
   # Generated Firebase options and the background isolate use Firebase Core

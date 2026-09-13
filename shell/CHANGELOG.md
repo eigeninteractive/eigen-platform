@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - The game screen issues moves through a command port, so a game played on the device and one played on the server take the same path.
 - Account deletion removes this device's local games; signing out keeps them, because they are games rather than a cache of something the server holds.
 - Require `eigen_client` 0.2.0, the release that carries the local-play API this package calls.
+- Require `eigen_flutter` 0.10.0, whose offline-play surface this package builds on.
 
 ### Fixed
 - A game whose local record diverged now reads from the server copy and refuses commands, rather than accepting moves the server will never take.

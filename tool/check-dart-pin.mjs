@@ -18,17 +18,28 @@
  * contract from `clientSchemaVersion`, so the package could not have compiled
  * against any client its pubspec allowed.
  *
- * Two pairings are checked, and they fail for the same reason in the same window:
+ * Every in-repository Dart package that another one depends on is checked, and
+ * they all fail for the same reason in the same window:
  *
- *   eigen_api     generated from the engine's OpenAPI document and stamped with
- *                 the engine's version, consumed by `eigen_flutter` and
- *                 `eigen_client`.
- *   eigen_client  hand-versioned here and consumed by `eigen_flutter` and
- *                 `eigen_shell`. Added after `eigen_client` 0.2.0: pre-1.0 a
- *                 feature release moves the MINOR, so the `^0.1.0` both
- *                 consumers carried stopped admitting the very package whose
- *                 new API their own offline-play code had started calling, and
- *                 the overrides meant every shard stayed green.
+ *   eigen_api      generated from the engine's OpenAPI document and stamped with
+ *                  the engine's version, consumed by `eigen_flutter` and
+ *                  `eigen_client`.
+ *   eigen_client   hand-versioned here and consumed by `eigen_flutter` and
+ *                  `eigen_shell`. Added after `eigen_client` 0.2.0: pre-1.0 a
+ *                  feature release moves the MINOR, so the `^0.1.0` both
+ *                  consumers carried stopped admitting the very package whose
+ *                  new API their own offline-play code had started calling, and
+ *                  the overrides meant every shard stayed green.
+ *   eigen_flutter  consumed by `eigen_shell`, `eigen_firebase` and the example.
+ *                  Added after `eigen_flutter` 0.10.0 did the same thing one
+ *                  release later, which is what settled the question of whether
+ *                  the `eigen_client` case was a one-off.
+ *   eigen_shell    consumed by the example.
+ *   eigen_firebase consumed by the example.
+ *
+ * The example is not published, so a stale pin there costs no release. It is
+ * listed anyway because `link-local-dart.sh` blinds it exactly like the others,
+ * and a reference app that names a version nobody can resolve is still wrong.
  *
  * The check is deliberately local: pubspecs only, no registry. A resolution check
  * against pub.dev would fail for a legitimate reason during every release, in the
@@ -59,6 +70,21 @@ const PAIRINGS = [
     package: "eigen_client",
     source: "dart/eigen_client/pubspec.yaml",
     consumers: ["flutter/pubspec.yaml", "shell/pubspec.yaml"],
+  },
+  {
+    package: "eigen_flutter",
+    source: "flutter/pubspec.yaml",
+    consumers: ["shell/pubspec.yaml", "firebase/pubspec.yaml", "flutter/example/pubspec.yaml"],
+  },
+  {
+    package: "eigen_shell",
+    source: "shell/pubspec.yaml",
+    consumers: ["flutter/example/pubspec.yaml"],
+  },
+  {
+    package: "eigen_firebase",
+    source: "firebase/pubspec.yaml",
+    consumers: ["flutter/example/pubspec.yaml"],
   },
 ];
 
