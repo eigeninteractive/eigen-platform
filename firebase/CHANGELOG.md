@@ -1,22 +1,24 @@
 # Changelog
+## [Unreleased]
+### Changed
+- Require `eigen_flutter` 0.10.0. The 0.2.0 release as published pins the 0.9.x line, which no longer resolves beside it.
 
 ## [0.2.0] - 2026-09-09
-
 - **Breaking.** Replace `runFirebaseEngineApp` with
-  `initializeEigenFirebase`, which initializes Firebase and returns provider
-  overrides. Applications compose those overrides through `eigen_shell` or
-  their own `EigenFlutterScope`; the Firebase adapter no longer owns or depends
-  on the first-party application shell.
+`initializeEigenFirebase`, which initializes Firebase and returns provider
+overrides. Applications compose those overrides through `eigen_shell` or
+their own `EigenFlutterScope`; the Firebase adapter no longer owns or depends
+on the first-party application shell.
 - Resolve foreground-notification suppression through the provider-neutral
-  active-game resolver supplied by the application layer.
+active-game resolver supplied by the application layer.
 - Follow Firebase Messaging's native distinction between retryable and
-  permanent Android notification-permission denials.
+permanent Android notification-permission denials.
 
 ## [0.1.0] - 2026-08-21
-
 - Initial optional Firebase adapter package.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
-  Android notification resources compose above `eigen_flutter` ports.
+Android notification resources compose above `eigen_flutter` ports.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.2.0...HEAD
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.1.0...eigen_firebase-v0.2.0
 [0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_firebase-v0.1.0
