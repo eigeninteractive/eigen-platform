@@ -24,6 +24,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 - Persisted provider snapshots moved from `riverpod_sqflite` to Drift, so the web has local persistence at all; the bot and player caches no longer expire, because a device with neither cannot name the seats of a game it is already playing.
 - The twin-fixture runner accepts the `rng`, `initialState`, `lifecycle` and `transcript` case kinds.
 - The twin-fixture runner now runs every action case through the on-device unit too, comparing applyAction and the actor computeObservation against the fixture, so a local unit that computes a different board or leaks hidden information fails the shared corpus.
+- Require `eigen_client` 0.2.0, the release that carries the local-play API this package calls.
 
 ### Fixed
 - A diverged local record stops local play and shows the server copy, and is pulled again on the next open rather than leaving a game that can never be reopened.
