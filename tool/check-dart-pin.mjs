@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 /**
- * Assert that every direct Dart consumer can depend on the `eigen_api` client this
- * repository generates.
+ * Assert that every direct Dart consumer can depend on the in-repository package
+ * it names.
  *
  *     node tool/check-dart-pin.mjs
  *
- * The consumer pubspecs name a published `eigen_api` range; `pnpm dart-client`
- * generates that package from the engine's OpenAPI document and stamps it with
- * the engine's version. Nothing connected the two, and nothing could notice they
+ * The consumer pubspecs name a published range; the package they name is built
+ * or versioned here. Nothing connected the two, and nothing could notice they
  * had come apart, because `tool/check.sh` runs `tool/link-local-dart.sh` first:
- * every check resolves the client from `server/clients/dart` through a
+ * every check resolves these packages from the working tree through a
  * `dependency_overrides`, so the declared range is never exercised. The publish
  * job is the only place that resolves without the override, which makes a failed
  * release the earliest possible symptom.
@@ -19,16 +18,28 @@
  * contract from `clientSchemaVersion`, so the package could not have compiled
  * against any client its pubspec allowed.
  *
- * The check is deliberately local: two files, no registry. A resolution check
+ * Two pairings are checked, and they fail for the same reason in the same window:
+ *
+ *   eigen_api     generated from the engine's OpenAPI document and stamped with
+ *                 the engine's version, consumed by `eigen_flutter` and
+ *                 `eigen_client`.
+ *   eigen_client  hand-versioned here and consumed by `eigen_flutter` and
+ *                 `eigen_shell`. Added after `eigen_client` 0.2.0: pre-1.0 a
+ *                 feature release moves the MINOR, so the `^0.1.0` both
+ *                 consumers carried stopped admitting the very package whose
+ *                 new API their own offline-play code had started calling, and
+ *                 the overrides meant every shard stayed green.
+ *
+ * The check is deliberately local: pubspecs only, no registry. A resolution check
  * against pub.dev would fail for a legitimate reason during every release, in the
- * window between the version commit landing and `eigen_api` publishing, and a
+ * window between the version commit landing and the package publishing, and a
  * release gate that is expected to be red is a gate nobody reads.
  *
- * The rule is that the range must be a caret on the generated client's own line.
+ * The rule is that the range must be a caret on the local package's own line.
  * A wider range is refused rather than accepted: `>=0.4.0 <0.6.0` admits 0.5.0
  * and would pass a naive "does it allow the current version" test while still
- * admitting the 0.4.x client that cannot compile. Supporting two engine lines
- * from one shell would be a deliberate change to the pairing this repository
+ * admitting the 0.4.x package that cannot compile. Supporting two lines from one
+ * consumer would be a deliberate change to the pairing this repository
  * documents, so it should fail here first and be relaxed on purpose.
  */
 
@@ -37,10 +48,18 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const CLIENT = "server/clients/dart/pubspec.yaml";
-const CONSUMERS = [
-  "flutter/pubspec.yaml",
-  "dart/eigen_client/pubspec.yaml",
+
+const PAIRINGS = [
+  {
+    package: "eigen_api",
+    source: "server/clients/dart/pubspec.yaml",
+    consumers: ["flutter/pubspec.yaml", "dart/eigen_client/pubspec.yaml"],
+  },
+  {
+    package: "eigen_client",
+    source: "dart/eigen_client/pubspec.yaml",
+    consumers: ["flutter/pubspec.yaml", "shell/pubspec.yaml"],
+  },
 ];
 
 async function read(path) {
@@ -59,47 +78,50 @@ function parseVersion(text, path) {
   return { major: Number(major), minor: Number(minor), patch: Number(patch) };
 }
 
-const clientText = /^version:\s*(\S+)/m.exec(await read(CLIENT));
-if (!clientText) fail(`${CLIENT} has no version.`);
-const client = parseVersion(clientText[1], CLIENT);
-
-// Captures the whole value, spaces included, so a range like `>=0.4.0 <0.6.0`
-// reaches the caret check below and is refused for the right reason rather than
-// looking like a missing dependency. An empty value means a nested block
-// (`hosted:`, `path:`), which this script genuinely cannot read.
 function fail(...lines) {
   for (const text of lines) console.error(text);
   process.exit(1);
 }
 
-for (const consumer of CONSUMERS) {
-  const declared = /^\s{2}eigen_api:\s*(\S.*?)\s*$/m.exec(await read(consumer));
-  if (!declared) {
-    fail(`${consumer} declares no \`eigen_api\` dependency, or declares it as a block this script cannot read.`);
-  }
-  const constraint = declared[1].replace(/^["']|["']$/g, "");
+for (const { package: name, source, consumers } of PAIRINGS) {
+  const sourceText = /^version:\s*(\S+)/m.exec(await read(source));
+  if (!sourceText) fail(`${source} has no version.`);
+  const local = parseVersion(sourceText[1], source);
+  const printed = `${local.major}.${local.minor}.${local.patch}`;
 
-  if (!constraint.startsWith("^")) {
-    fail(
-      `✗ ${consumer} pins eigen_api as "${constraint}".`,
-      "",
-      "  Expected a caret range on the generated client's compatibility line.",
-    );
-  }
+  for (const consumer of consumers) {
+    // Captures the whole value, spaces included, so a range like `>=0.4.0 <0.6.0`
+    // reaches the caret check below and is refused for the right reason rather
+    // than looking like a missing dependency. An empty value means a nested block
+    // (`hosted:`, `path:`), which this script genuinely cannot read.
+    const declared = new RegExp(`^\\s{2}${name}:\\s*(\\S.*?)\\s*$`, "m").exec(await read(consumer));
+    if (!declared) {
+      fail(`${consumer} declares no \`${name}\` dependency, or declares it as a block this script cannot read.`);
+    }
+    const constraint = declared[1].replace(/^["']|["']$/g, "");
 
-  const pinned = parseVersion(constraint.slice(1), consumer);
-  if (line(pinned) !== line(client)) {
-    fail(
-      `✗ ${consumer} pins eigen_api "${constraint}", but the generated client is ${client.major}.${client.minor}.${client.patch} (line ${line(client)}.x).`,
-      "",
-      `  Raise the pin to "^${client.major}.${client.minor}.0" once that client is published.`,
-    );
-  }
-  if (pinned.patch > client.patch) {
-    fail(
-      `✗ ${consumer} pins eigen_api "${constraint}", which is above the generated client ${client.major}.${client.minor}.${client.patch}.`,
-    );
-  }
+    if (!constraint.startsWith("^")) {
+      fail(
+        `✗ ${consumer} pins ${name} as "${constraint}".`,
+        "",
+        "  Expected a caret range on that package's compatibility line.",
+      );
+    }
 
-  console.log(`✓ ${consumer} eigen_api pin "${constraint}" admits ${client.major}.${client.minor}.${client.patch}.`);
+    const pinned = parseVersion(constraint.slice(1), consumer);
+    if (line(pinned) !== line(local)) {
+      fail(
+        `✗ ${consumer} pins ${name} "${constraint}", but this repository carries ${printed} (line ${line(local)}.x).`,
+        "",
+        `  Raise the pin to "^${local.major}.${local.minor}.0" once that version is published.`,
+      );
+    }
+    if (pinned.patch > local.patch) {
+      fail(
+        `✗ ${consumer} pins ${name} "${constraint}", which is above this repository's ${printed}.`,
+      );
+    }
+
+    console.log(`✓ ${consumer} ${name} pin "${constraint}" admits ${printed}.`);
+  }
 }
