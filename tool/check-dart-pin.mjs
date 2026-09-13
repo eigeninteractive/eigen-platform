@@ -18,8 +18,8 @@
  * contract from `clientSchemaVersion`, so the package could not have compiled
  * against any client its pubspec allowed.
  *
- * Every in-repository Dart package that another one depends on is checked, and
- * they all fail for the same reason in the same window:
+ * Every pairing where a PUBLISHED package names another one is checked, and they
+ * all fail for the same reason in the same window:
  *
  *   eigen_api      generated from the engine's OpenAPI document and stamped with
  *                  the engine's version, consumed by `eigen_flutter` and
@@ -30,16 +30,21 @@
  *                  consumers carried stopped admitting the very package whose
  *                  new API their own offline-play code had started calling, and
  *                  the overrides meant every shard stayed green.
- *   eigen_flutter  consumed by `eigen_shell`, `eigen_firebase` and the example.
- *                  Added after `eigen_flutter` 0.10.0 did the same thing one
- *                  release later, which is what settled the question of whether
- *                  the `eigen_client` case was a one-off.
- *   eigen_shell    consumed by the example.
- *   eigen_firebase consumed by the example.
+ *   eigen_flutter  consumed by `eigen_shell` and `eigen_firebase`. Added after
+ *                  `eigen_flutter` 0.10.0 did the same thing one release later,
+ *                  which is what settled the question of whether the
+ *                  `eigen_client` case was a one-off.
  *
- * The example is not published, so a stale pin there costs no release. It is
- * listed anyway because `link-local-dart.sh` blinds it exactly like the others,
- * and a reference app that names a version nobody can resolve is still wrong.
+ * `flutter/example` is deliberately NOT a consumer here, and it was, briefly.
+ * The example is `publish_to: none`, so no job ever resolves it without the
+ * override and a stale pin there cannot reach anybody. Checking it anyway cost
+ * something real: the release pull request for `eigen_shell` 0.2.0 is generated
+ * from the package's own changelog and pubspec, it cannot also carry an edit to
+ * a consumer, so the check turned a routine release red with no action its
+ * author could take on that branch. This script's own header argues against
+ * exactly that -- a gate expected to be red is a gate nobody reads -- and the
+ * argument applies whether the red is a publication window or an unpublishable
+ * app. The example's pins are raised by hand when someone touches it.
  *
  * The check is deliberately local: pubspecs only, no registry. A resolution check
  * against pub.dev would fail for a legitimate reason during every release, in the
@@ -74,17 +79,7 @@ const PAIRINGS = [
   {
     package: "eigen_flutter",
     source: "flutter/pubspec.yaml",
-    consumers: ["shell/pubspec.yaml", "firebase/pubspec.yaml", "flutter/example/pubspec.yaml"],
-  },
-  {
-    package: "eigen_shell",
-    source: "shell/pubspec.yaml",
-    consumers: ["flutter/example/pubspec.yaml"],
-  },
-  {
-    package: "eigen_firebase",
-    source: "firebase/pubspec.yaml",
-    consumers: ["flutter/example/pubspec.yaml"],
+    consumers: ["shell/pubspec.yaml", "firebase/pubspec.yaml"],
   },
 ];
 
