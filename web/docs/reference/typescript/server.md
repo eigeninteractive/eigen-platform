@@ -745,7 +745,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:35](https://github.com
 
 ### AccessSnapshot
 
-Defined in: [server/packages/server/src/commerce/types.ts:198](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L198)
+Defined in: [server/packages/server/src/commerce/types.ts:202](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L202)
 
 #### Properties
 
@@ -755,7 +755,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:198](https://github.co
 content: ContentGrant[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:201](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L201)
+Defined in: [server/packages/server/src/commerce/types.ts:205](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L205)
 
 ##### entitlements
 
@@ -763,7 +763,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:201](https://github.co
 entitlements: ActiveEntitlement[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:199](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L199)
+Defined in: [server/packages/server/src/commerce/types.ts:203](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L203)
 
 ##### limits
 
@@ -771,7 +771,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:199](https://github.co
 limits: LimitAccess[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:202](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L202)
+Defined in: [server/packages/server/src/commerce/types.ts:206](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L206)
 
 ##### permissions
 
@@ -779,7 +779,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:202](https://github.co
 permissions: EngineAccessCapability[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:200](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L200)
+Defined in: [server/packages/server/src/commerce/types.ts:204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L204)
 
 ***
 
@@ -974,6 +974,17 @@ Defined in: [server/packages/server/src/commerce/types.ts:167](https://github.co
 
 Maximum nonterminal transactions checked per provider and invocation.
 
+##### reconcileMaxFailures?
+
+```ts
+optional reconcileMaxFailures?: number;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:170](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L170)
+
+Consecutive failed sweeps after which a transaction stops being swept and
+is surfaced to the operator instead. Defaults to 10.
+
 ***
 
 ### CommerceManagement
@@ -1101,6 +1112,10 @@ Defined in: [server/packages/server/src/commerce/types.ts:96](https://github.com
 Defined in: [server/packages/server/src/commerce/types.ts:147](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L147)
 
 A provider boundary. Implementations perform all remote verification.
+
+#### Extended by
+
+- [`FakeCommerceProvider`](server-testing.md#fakecommerceprovider)
 
 #### Type Parameters
 
@@ -2556,7 +2571,7 @@ Delay primitive, injectable so tests run without real timers.
 
 ### SelectedContent
 
-Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
+Defined in: [server/packages/server/src/commerce/types.ts:182](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L182)
 
 One content choice snapshotted onto a game at creation.
 
@@ -2572,7 +2587,7 @@ One content choice snapshotted onto a game at creation.
 classification: ContentClassification;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
+Defined in: [server/packages/server/src/commerce/types.ts:184](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L184)
 
 ##### collection
 
@@ -2604,7 +2619,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:17](https://github.com
 ownership: ContentOwnershipScope;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
+Defined in: [server/packages/server/src/commerce/types.ts:183](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L183)
 
 ***
 

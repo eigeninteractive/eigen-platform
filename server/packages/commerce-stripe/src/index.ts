@@ -19,7 +19,7 @@
  *   adapter re-reads the Session, Subscription or PaymentIntent from the API
  *   before anything becomes an entitlement.
  *
- * @module
+ * @module @eigeninteractive/commerce-stripe
  */
 
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";

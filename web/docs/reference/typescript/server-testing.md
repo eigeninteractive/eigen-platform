@@ -67,6 +67,22 @@ optional purchasedAt?: number;
 
 Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L119)
 
+##### requiresAcknowledgement?
+
+```ts
+optional requiresAcknowledgement?: boolean;
+```
+
+Defined in: [server/packages/server/src/testing.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L123)
+
+##### sealedProviderState?
+
+```ts
+optional sealedProviderState?: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L124)
+
 ##### state?
 
 ```ts
@@ -98,6 +114,356 @@ optional validUntil?: number;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L121)
+
+***
+
+### FakeCommerceProvider
+
+Defined in: [server/packages/server/src/testing.ts:134](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L134)
+
+A fake provider with the controls a lifecycle test needs.
+
+Reconciliation and acknowledgement are the two places where the engine
+depends on a provider doing something later, so a fake that cannot fail,
+stall, or refuse to answer cannot prove either of them works.
+
+#### Extends
+
+- [`CommerceProvider`](server.md#commerceprovider)\<`unknown`\>
+
+#### Properties
+
+##### acknowledged
+
+```ts
+readonly acknowledged: string[];
+```
+
+Defined in: [server/packages/server/src/testing.ts:139](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L139)
+
+Every transaction this provider was asked to acknowledge, in order.
+
+##### checkouts
+
+```ts
+readonly checkouts: {
+  accountId: string;
+  operationId: string;
+  providerReference: string;
+  url: string;
+}[];
+```
+
+Defined in: [server/packages/server/src/testing.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L149)
+
+One entry per checkout session the provider actually opened. A replayed
+operation identity must not add one.
+
+###### accountId
+
+```ts
+accountId: string;
+```
+
+###### operationId
+
+```ts
+operationId: string;
+```
+
+###### providerReference
+
+```ts
+providerReference: string;
+```
+
+###### url
+
+```ts
+url: string;
+```
+
+##### key
+
+```ts
+readonly key: string;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:148](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L148)
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`key`](server.md#key-1)
+
+##### sweeps
+
+```ts
+readonly sweeps: string[][];
+```
+
+Defined in: [server/packages/server/src/testing.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L141)
+
+Each sweep's requested ids, in order. Proves queue rotation.
+
+##### transactions
+
+```ts
+readonly transactions: Map<string, Partial<VerifiedCommerceTransaction>>;
+```
+
+Defined in: [server/packages/server/src/testing.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L137)
+
+Current provider truth per transaction, returned by the next sweep.
+A transaction absent from here is one the provider will not answer for.
+
+#### Methods
+
+##### acknowledge()?
+
+```ts
+optional acknowledge(env, transaction): Promise<void>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:156](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L156)
+
+Runs only after the normalized transaction and grants commit.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `transaction` | [`CommerceTransactionReference`](server.md#commercetransactionreference) |
+
+###### Returns
+
+`Promise`\<`void`\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`acknowledge`](server.md#acknowledge)
+
+##### clearFailures()
+
+```ts
+clearFailures(): void;
+```
+
+Defined in: [server/packages/server/src/testing.ts:146](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L146)
+
+###### Returns
+
+`void`
+
+##### createCheckout()?
+
+```ts
+optional createCheckout(env, input): Promise<CommerceCheckout>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `input` | `CreateCheckoutInput` |
+
+###### Returns
+
+`Promise`\<[`CommerceCheckout`](server.md#commercecheckout)\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`createCheckout`](server.md#createcheckout)
+
+##### failAcknowledgement()
+
+```ts
+failAcknowledgement(message?): void;
+```
+
+Defined in: [server/packages/server/src/testing.ts:145](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L145)
+
+Make every `acknowledge` throw until cleared.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `message?` | `string` |
+
+###### Returns
+
+`void`
+
+##### failNextSweep()
+
+```ts
+failNextSweep(message?): void;
+```
+
+Defined in: [server/packages/server/src/testing.ts:143](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L143)
+
+Make the whole next `reconcile` call throw, as a provider outage does.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `message?` | `string` |
+
+###### Returns
+
+`void`
+
+##### management()?
+
+```ts
+optional management(
+   env,
+   accountId,
+   providerAccountId,
+   returnUrl
+): Promise<CommerceManagement>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `accountId` | `string` |
+| `providerAccountId` | `string` |
+| `returnUrl` | `string` |
+
+###### Returns
+
+`Promise`\<[`CommerceManagement`](server.md#commercemanagement)\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`management`](server.md#management)
+
+##### products()?
+
+```ts
+optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L149)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `providerReferences` | readonly `string`[] |
+
+###### Returns
+
+`Promise`\<readonly [`CommerceProduct`](server.md#commerceproduct)[]\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`products`](server.md#products)
+
+##### reconcile()?
+
+```ts
+optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:154](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L154)
+
+Fetches current state for locally active or pending transaction refs.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `transactions` | readonly [`CommerceTransactionReference`](server.md#commercetransactionreference)[] |
+
+###### Returns
+
+`Promise`\<readonly [`VerifiedCommerceTransaction`](server.md#verifiedcommercetransaction)[]\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`reconcile`](server.md#reconcile-1)
+
+##### reportProviderAccount()
+
+```ts
+reportProviderAccount(providerAccountId): void;
+```
+
+Defined in: [server/packages/server/src/testing.ts:152](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L152)
+
+Report this provider customer on the next checkout instead of the
+account's usual one, as a provider confusing two customers would.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `providerAccountId` | `string` |
+
+###### Returns
+
+`void`
+
+##### verifyClaim()
+
+```ts
+verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L150)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `input` | `VerifyClaimInput` |
+
+###### Returns
+
+`Promise`\<[`VerifiedCommerceTransaction`](server.md#verifiedcommercetransaction)\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`verifyClaim`](server.md#verifyclaim)
+
+##### verifyWebhook()?
+
+```ts
+optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent>;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:152](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L152)
+
+Verifies the raw request and fetches current provider state when needed.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `unknown` |
+| `request` | `Request` |
+
+###### Returns
+
+`Promise`\<[`VerifiedCommerceEvent`](server.md#verifiedcommerceevent)\>
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`verifyWebhook`](server.md#verifywebhook)
 
 ***
 
@@ -184,23 +550,28 @@ No-op Firebase Admin effects for test workers and test Durable Objects.
 ### fakeCommerceProvider()
 
 ```ts
-function fakeCommerceProvider(products, now?): CommerceProvider<unknown>;
+function fakeCommerceProvider(
+   products,
+   now?,
+   key?
+): FakeCommerceProvider;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L126)
+Defined in: [server/packages/server/src/testing.ts:156](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L156)
 
 Deterministic provider for commerce lifecycle and implementor conformance tests.
 
 #### Parameters
 
-| Parameter | Type | Default value |
-| ------ | ------ | ------ |
-| `products` | readonly [`CommerceProduct`](server.md#commerceproduct) & \{ `kind?`: `"oneTime"` \| `"subscription"`; \}[] | `undefined` |
-| `now` | () => `number` | `Date.now` |
+| Parameter | Type | Default value | Description |
+| ------ | ------ | ------ | ------ |
+| `products` | readonly [`CommerceProduct`](server.md#commerceproduct) & \{ `kind?`: `"oneTime"` \| `"subscription"`; \}[] | `undefined` | - |
+| `now` | () => `number` | `Date.now` | - |
+| `key` | `string` | `"fake"` | The provider key. Give a sweep test its own, so the reconciliation queue it reasons about holds only the rows that test seeded. |
 
 #### Returns
 
-[`CommerceProvider`](server.md#commerceprovider)\<`unknown`\>
+[`FakeCommerceProvider`](#fakecommerceprovider)
 
 ***
 
@@ -294,7 +665,7 @@ function withCreationId(
 ): unknown;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:199](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L199)
+Defined in: [server/packages/server/src/testing.ts:296](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L296)
 
 Adds a fresh `creationId` to a game-creation body that does not already
 carry one.

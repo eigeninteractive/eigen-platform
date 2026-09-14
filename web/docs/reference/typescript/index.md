@@ -10,6 +10,16 @@ package that owns the task you are doing:
 | [`@eigeninteractive/testkit`](testkit.md) | Run twin fixtures, emit/check `game-contract.json`, or drive rules through the kernel in tests. |
 | [`@eigeninteractive/server/testing`](server-testing.md) | Mint local Firebase-compatible tokens and supply explicit no-op Firebase Admin effects for Worker integration tests. Never use it in production code. |
 
+Selling something is optional, and so are the packages for it. Install only the
+storefront you actually use:
+
+| Package | Open it when you need to… |
+|---|---|
+| [`@eigeninteractive/commerce-google-play`](commerce-google-play.md) | Sell through Google Play Billing on Android: purchase verification, the acknowledgement Play refunds you for skipping, and developer notifications. |
+| [`@eigeninteractive/commerce-stripe`](commerce-stripe.md) | Sell on the web through Stripe: hosted Checkout, Billing subscriptions, the customer portal, and signed webhooks. |
+| [`@eigeninteractive/commerce-razorpay`](commerce-razorpay.md) | Sell in India through Razorpay: payment links, subscriptions, and signed webhooks. |
+| [`@eigeninteractive/server/commerce-kit`](server-commerce-kit.md) | Write your own provider adapter. The Workers-side primitives the three above share. |
+
 Game Workers depend directly on `rules` and `server`; `testkit` and
 `server/testing` are test-only. The [task guides](../../build-a-game/the-contract.md)
 show how the TypeScript and Dart halves fit together.

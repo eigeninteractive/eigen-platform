@@ -22,7 +22,7 @@
  * There is no `createCheckout`: Play checkout is launched by the Billing
  * library on the device, and the engine answers that plainly for this provider.
  *
- * @module
+ * @module @eigeninteractive/commerce-google-play
  */
 
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";

@@ -18,7 +18,7 @@
  *   portal, so `management` is deliberately absent and the engine's management
  *   route answers that this provider is managed elsewhere.
  *
- * @module
+ * @module @eigeninteractive/commerce-razorpay
  */
 
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";
