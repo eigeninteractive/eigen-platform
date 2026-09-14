@@ -17,7 +17,6 @@ check_docs() {
 }
 
 run_manifest() {
-  node "$platform_root/tool/platform.mjs" --check
   node "$platform_root/tool/check-dart-releases.mjs"
 }
 

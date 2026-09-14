@@ -173,7 +173,6 @@ jobs:
             exit 1
           }
 
-          node tool/platform.mjs
           node tool/check-dart-releases.mjs
           {
             echo "released<<EOF"

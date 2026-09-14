@@ -22,12 +22,13 @@ backward-compatibility commitment yet.
 | [`firebase/`](firebase/) | Optional Firebase Auth, telemetry, crash reporting, push, and configuration adapter |
 | [`web/`](web/) | Game-implementor documentation, generated API reference, and documentation Worker |
 | [`docs/architecture/`](docs/architecture/) | Accepted architecture decisions and current status |
-| [`tool/`](tool/) | Platform manifest and whole-repository validation tools |
+| [`tool/`](tool/) | Whole-repository validation tools |
 
 The three component histories were imported without squashing. Their original
 repositories are archived as readable history; all active work belongs here.
-[`platform.json`](platform.json) records the exact imported commits and package
-versions.
+The exact imported commits are recorded in
+[0000-monorepo-import](docs/architecture/0000-monorepo-import.md); package
+versions live in the pubspecs and `package.json` files that declare them.
 
 ## Getting started
 

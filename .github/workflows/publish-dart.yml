@@ -1,0 +1,134 @@
+name: Publish Dart package
+
+# One workflow publishes all five hand-written Dart packages. It replaced five
+# near-identical ones that differed only in a package name, a path, and which
+# checks they ran.
+#
+# It must be triggered by a tag, and that is not a stylistic choice:
+#
+#   Pub.dev only allows automated publishing from GitHub Actions when the
+#   workflow is triggered by pushing a git tag to GitHub. Pub.dev rejects
+#   publishing from GitHub Actions triggered without a tag.
+#
+# So the `workflow_run`-on-green-main shape that `release.yml` uses for npm is
+# not available here, however much the two look like they should match. What
+# pub.dev validates in the OIDC token is the repository, the tag against each
+# package's configured pattern, and the `pub.dev` environment -- not which file
+# published it. That is why five tag patterns can share one workflow, and why
+# the pub.dev settings need no change to adopt this.
+#
+# `eigen_api` stays in its own workflow. Its version is stamped from
+# `@eigeninteractive/server`, so it publishes on the npm release's clock.
+
+on:
+  push:
+    tags:
+      - "eigen_client-v*"
+      - "eigen_codegen-v*"
+      - "eigen_flutter-v*"
+      - "eigen_shell-v*"
+      - "eigen_firebase-v*"
+
+# Per package, not global: two packages tagged in the same release are
+# independent uploads and may run at once.
+concurrency:
+  group: publish-dart-${{ startsWith(github.ref_name, 'eigen_client-v') && 'client' || startsWith(github.ref_name, 'eigen_codegen-v') && 'codegen' || startsWith(github.ref_name, 'eigen_flutter-v') && 'flutter' || startsWith(github.ref_name, 'eigen_shell-v') && 'shell' || 'firebase' }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish to pub.dev
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # The Dart packages are members of the workspace at the repository root,
+      # and that workspace contains Flutter packages, so resolving any of them
+      # needs the Flutter SDK -- including the two that are pure Dart.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          cache: true
+
+      # setup-dart eagerly configures the package-scoped OIDC token for the
+      # whole pub.dev host. Keep dependency resolution anonymous: pub.dev can
+      # legitimately reject that upload identity for unrelated dependencies.
+      - name: Defer pub.dev credentials until upload
+        run: dart pub token remove https://pub.dev || true
+
+      - name: Resolve the package from the tag
+        id: package
+        run: |
+          case "$GITHUB_REF_NAME" in
+            eigen_client-v*) package=eigen_client; path=dart/eigen_client ;;
+            eigen_codegen-v*) package=eigen_codegen; path=dart/eigen_codegen ;;
+            eigen_flutter-v*) package=eigen_flutter; path=flutter ;;
+            eigen_shell-v*) package=eigen_shell; path=shell ;;
+            eigen_firebase-v*) package=eigen_firebase; path=firebase ;;
+            *) echo "::error::unrecognised tag: $GITHUB_REF_NAME"; exit 64 ;;
+          esac
+
+          # The tag and the pubspec must agree. pub.dev matches the tag against
+          # the package's configured pattern, so a tag naming a version the
+          # pubspec does not carry would publish the wrong thing under the right
+          # name.
+          tagged="${GITHUB_REF_NAME#${package}-v}"
+          declared=$(awk '/^version:/ { print $2; exit }' "$path/pubspec.yaml")
+          [ "$tagged" = "$declared" ] || {
+            echo "::error::$GITHUB_REF_NAME names $tagged but $path/pubspec.yaml carries $declared"
+            exit 1
+          }
+
+          {
+            echo "name=$package"
+            echo "path=$path"
+            echo "version=$declared"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check whether the version is already published
+        id: published
+        env:
+          PACKAGE: ${{ steps.package.outputs.name }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          if curl -sf --retry 3 "https://pub.dev/api/packages/$PACKAGE" \
+               | jq -e --arg v "$VERSION" '.versions[] | select(.version == $v)' >/dev/null; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$PACKAGE $VERSION is already published."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Resolve the workspace
+        if: steps.published.outputs.skip == 'false'
+        run: flutter pub get
+
+      - name: Authenticate to pub.dev
+        if: steps.published.outputs.skip == 'false'
+        run: |
+          PUB_TOKEN=$(curl --retry 5 --retry-connrefused -sLS \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://pub.dev" \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
+          [ -n "$PUB_TOKEN" ] && [ "$PUB_TOKEN" != "null" ] || {
+            echo "::error::could not mint the pub.dev OIDC token"
+            exit 1
+          }
+          echo "::add-mask::$PUB_TOKEN"
+          echo "PUB_TOKEN=$PUB_TOKEN" >> "$GITHUB_ENV"
+          export PUB_TOKEN
+          dart pub token add https://pub.dev --env-var PUB_TOKEN
+
+      - name: Publish dry run
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish -C "${{ steps.package.outputs.path }}" --dry-run
+
+      - name: Publish
+        if: steps.published.outputs.skip == 'false'
+        run: dart pub publish -C "${{ steps.package.outputs.path }}" --force
