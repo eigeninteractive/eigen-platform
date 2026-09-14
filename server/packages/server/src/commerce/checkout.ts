@@ -14,38 +14,18 @@ export async function assertPurchasable(d1: D1Database, provider: string, accoun
   const active = await orm(d1)
     .select({ id: commerceTransactions.id })
     .from(commerceTransactions)
-    .where(
-      and(
-        eq(commerceTransactions.provider, provider),
-        eq(commerceTransactions.userId, accountId),
-        eq(commerceTransactions.offerKey, offer.key),
-        inArray(commerceTransactions.state, ["pending", "active", "grace"]),
-      ),
-    )
+    .where(and(eq(commerceTransactions.provider, provider), eq(commerceTransactions.userId, accountId), eq(commerceTransactions.offerKey, offer.key), inArray(commerceTransactions.state, ["pending", "active", "grace"])))
     .get();
   if (active !== undefined) {
     throw new HttpError(409, "This account already has this non-repeatable purchase", "purchaseConflict");
   }
 }
 
-export async function readCheckout(
-  d1: D1Database,
-  provider: string,
-  accountId: string,
-  operationId: string,
-  offerKey: string,
-  returnUrl: string,
-): Promise<CommerceCheckout | null> {
+export async function readCheckout(d1: D1Database, provider: string, accountId: string, operationId: string, offerKey: string, returnUrl: string): Promise<CommerceCheckout | null> {
   const row = await orm(d1)
     .select()
     .from(commerceCheckoutOperations)
-    .where(
-      and(
-        eq(commerceCheckoutOperations.provider, provider),
-        eq(commerceCheckoutOperations.userId, accountId),
-        eq(commerceCheckoutOperations.operationId, operationId),
-      ),
-    )
+    .where(and(eq(commerceCheckoutOperations.provider, provider), eq(commerceCheckoutOperations.userId, accountId), eq(commerceCheckoutOperations.operationId, operationId)))
     .get();
   if (row === undefined) return null;
   if (row.fingerprint !== fingerprint(offerKey, returnUrl)) {
@@ -58,14 +38,7 @@ export async function readOpenCheckout(d1: D1Database, provider: string, account
   const row = await orm(d1)
     .select()
     .from(commerceCheckoutOperations)
-    .where(
-      and(
-        eq(commerceCheckoutOperations.provider, provider),
-        eq(commerceCheckoutOperations.userId, accountId),
-        eq(commerceCheckoutOperations.offerKey, offerKey),
-        gt(commerceCheckoutOperations.expiresAt, now),
-      ),
-    )
+    .where(and(eq(commerceCheckoutOperations.provider, provider), eq(commerceCheckoutOperations.userId, accountId), eq(commerceCheckoutOperations.offerKey, offerKey), gt(commerceCheckoutOperations.expiresAt, now)))
     .get();
   return row === undefined ? null : { url: row.checkoutUrl, expiresAt: row.expiresAt };
 }
@@ -87,17 +60,19 @@ export async function recordCheckout(
     throw new HttpError(502, "The provider returned an invalid checkout expiry");
   }
   try {
-    await orm(d1).insert(commerceCheckoutOperations).values({
-      id: crypto.randomUUID(),
-      provider: input.provider,
-      userId: input.accountId,
-      operationId: input.operationId,
-      offerKey: input.offerKey,
-      fingerprint: fingerprint(input.offerKey, input.returnUrl),
-      checkoutUrl: input.result.url,
-      expiresAt,
-      createdAt: input.now,
-    });
+    await orm(d1)
+      .insert(commerceCheckoutOperations)
+      .values({
+        id: crypto.randomUUID(),
+        provider: input.provider,
+        userId: input.accountId,
+        operationId: input.operationId,
+        offerKey: input.offerKey,
+        fingerprint: fingerprint(input.offerKey, input.returnUrl),
+        checkoutUrl: input.result.url,
+        expiresAt,
+        createdAt: input.now,
+      });
     return { url: input.result.url, expiresAt };
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;

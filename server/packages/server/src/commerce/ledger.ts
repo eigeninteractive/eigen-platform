@@ -115,12 +115,7 @@ export async function recordVerifiedTransaction(
 
   const transactionId = existing?.id ?? crypto.randomUUID();
   const active = input.transaction.state === "active" || input.transaction.state === "grace";
-  const acknowledgementState =
-    existing?.acknowledgementState === "acknowledged"
-      ? "acknowledged"
-      : active && input.transaction.requiresAcknowledgement === true
-        ? "pending"
-        : "notRequired";
+  const acknowledgementState = existing?.acknowledgementState === "acknowledged" ? "acknowledged" : active && input.transaction.requiresAcknowledgement === true ? "pending" : "notRequired";
   const sealedProviderState = input.transaction.sealedProviderState ?? existing?.sealedProviderState ?? null;
   const transactionWrite =
     existing === undefined

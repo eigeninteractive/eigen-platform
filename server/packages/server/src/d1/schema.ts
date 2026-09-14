@@ -329,10 +329,7 @@ export const commerceProviderAccounts = sqliteTable(
     createdAt: integer().notNull(),
     updatedAt: integer().notNull(),
   },
-  (t) => [
-    uniqueIndex("idx_commerce_provider_accounts_user").on(t.provider, t.userId),
-    uniqueIndex("idx_commerce_provider_accounts_provider_id").on(t.provider, t.providerAccountId),
-  ],
+  (t) => [uniqueIndex("idx_commerce_provider_accounts_user").on(t.provider, t.userId), uniqueIndex("idx_commerce_provider_accounts_provider_id").on(t.provider, t.providerAccountId)],
 );
 
 /** Recoverable hosted-checkout result keyed by a client operation identity.

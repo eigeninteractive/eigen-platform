@@ -7,7 +7,7 @@
 import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
 import type { FirebaseAdminEffects } from "../src/index.js";
 import { BaseGameDO, createEngine } from "../src/index.js";
-import { fakeCommerceProvider, testFirebaseAdmin, testVerifier } from "../src/testing.js";
+import { fakeCommerceProvider, testVerifier } from "../src/testing.js";
 
 /** The worker-side Env: the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;

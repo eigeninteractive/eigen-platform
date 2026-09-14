@@ -21,17 +21,7 @@ export async function reconcileCommerce(d1: D1Database, commerce: ResolvedCommer
         acknowledgementState: commerceTransactions.acknowledgementState,
       })
       .from(commerceTransactions)
-      .where(
-        and(
-          eq(commerceTransactions.provider, adapter.key),
-          isNotNull(commerceTransactions.userId),
-          or(
-            inArray(commerceTransactions.state, ["pending", "grace"]),
-            and(eq(commerceTransactions.kind, "subscription"), eq(commerceTransactions.state, "active")),
-            eq(commerceTransactions.acknowledgementState, "pending"),
-          ),
-        ),
-      )
+      .where(and(eq(commerceTransactions.provider, adapter.key), isNotNull(commerceTransactions.userId), or(inArray(commerceTransactions.state, ["pending", "grace"]), and(eq(commerceTransactions.kind, "subscription"), eq(commerceTransactions.state, "active")), eq(commerceTransactions.acknowledgementState, "pending"))))
       .orderBy(asc(sql`coalesce(${commerceTransactions.lastReconciledAt}, 0)`), asc(commerceTransactions.createdAt))
       .limit(commerce.reconcileBatch)
       .all();

@@ -85,9 +85,7 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
   const selectedOffer = offer(ctx, body.offerKey);
   const adapter = provider(ctx, body.provider);
   const expectedProviderReference = registeredProduct(selectedOffer, adapter.key);
-  const transaction = await providerCall(`The ${adapter.key} provider could not verify this purchase`, async () =>
-    await adapter.verifyClaim(env, { accountId, expectedProviderReference, evidence: body.evidence }),
-  );
+  const transaction = await providerCall(`The ${adapter.key} provider could not verify this purchase`, async () => await adapter.verifyClaim(env, { accountId, expectedProviderReference, evidence: body.evidence }));
   const reference = await recordVerifiedTransaction(ctx.d1(env), {
     catalog: resolved.catalog,
     provider: adapter.key,
@@ -97,9 +95,7 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
     now: resolved.now(),
   });
   if (transaction.state === "pending") throw new HttpError(409, "The purchase is still pending", "purchasePending");
-  await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () =>
-    await acknowledgeIfNeeded(ctx.d1(env), adapter, env, reference, resolved.now),
-  );
+  await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () => await acknowledgeIfNeeded(ctx.d1(env), adapter, env, reference, resolved.now));
 }
 
 export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void {
@@ -109,9 +105,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
     await Promise.all(
       [...resolved.providers.values()].map(async (adapter) => {
         if (adapter.products === undefined) return;
-        const ids = resolved.catalog.offers.flatMap((item) =>
-          item.providerReferences[adapter.key] === undefined ? [] : [item.providerReferences[adapter.key]],
-        );
+        const ids = resolved.catalog.offers.flatMap((item) => (item.providerReferences[adapter.key] === undefined ? [] : [item.providerReferences[adapter.key]]));
         const products = await providerCall(`The ${adapter.key} provider could not load its products`, async () => (await adapter.products?.(c.env, ids)) ?? []);
         for (const item of products) productDetails.set(`${adapter.key}:${item.providerReference}`, item);
       }),
@@ -243,12 +237,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       const returnUrl = trustedReturnUrl(ctx, c.env, c.req.url, body.returnUrl);
       const providerAccountId = await readProviderAccount(ctx.d1(c.env), adapter.key, c.var.auth.user.id);
       if (providerAccountId === undefined) throw new HttpError(409, `This account has no ${adapter.key} customer to manage`, "purchaseConflict");
-      return c.json(
-        await providerCall(`The ${adapter.key} provider could not create management`, async () =>
-          (await adapter.management?.(c.env, c.var.auth.user.id, providerAccountId, returnUrl)) as { url: string },
-        ),
-        200,
-      );
+      return c.json(await providerCall(`The ${adapter.key} provider could not create management`, async () => (await adapter.management?.(c.env, c.var.auth.user.id, providerAccountId, returnUrl)) as { url: string }), 200);
     },
   );
 }
@@ -269,9 +258,7 @@ export function registerCommerceWebhookRoutes(app: EngineApp, ctx: RouteContext)
       now: resolved.now(),
     });
     if (reference !== null) {
-      await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () =>
-        await acknowledgeIfNeeded(ctx.d1(c.env), adapter, c.env, reference, resolved.now),
-      );
+      await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () => await acknowledgeIfNeeded(ctx.d1(c.env), adapter, c.env, reference, resolved.now));
     }
     return c.body(null, 204);
   });

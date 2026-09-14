@@ -192,18 +192,9 @@ describe("purchase claims", () => {
       offerKey: "supporter",
       evidence: evidence(accountId, transactionId, "supporter_once"),
     };
-    const responses = await Promise.all([
-      api(accountId, "POST", "/commerce/claims", body),
-      api(accountId, "POST", "/commerce/claims", body),
-    ]);
+    const responses = await Promise.all([api(accountId, "POST", "/commerce/claims", body), api(accountId, "POST", "/commerce/claims", body)]);
     expect(responses.map((response) => response.status)).toEqual([200, 200]);
-    expect(
-      await db
-        .select()
-        .from(commerceTransactions)
-        .where(eq(commerceTransactions.providerTransactionId, transactionId))
-        .all(),
-    ).toHaveLength(1);
+    expect(await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).all()).toHaveLength(1);
   });
 
   it("keeps pending purchases inactive and later applies their verified update", async () => {
