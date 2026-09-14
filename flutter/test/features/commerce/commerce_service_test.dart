@@ -20,6 +20,7 @@ CommerceCatalog _catalog() => CommerceCatalog.fromJson({
       'description': 'Permanent cosmetics',
       'kind': 'oneTime',
       'entitlements': ['supporter'],
+      'repeatable': false,
       'products': [
         {
           'provider': 'google_play',
