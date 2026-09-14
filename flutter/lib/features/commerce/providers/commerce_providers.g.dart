@@ -153,4 +153,4 @@ final class CommerceServiceProvider
   }
 }
 
-String _$commerceServiceHash() => r'7107394e2615cd3b5b7f3eb151f0abf40e9cf508';
+String _$commerceServiceHash() => r'9009c49eec81440773f33994ad14b03bc281e430';
