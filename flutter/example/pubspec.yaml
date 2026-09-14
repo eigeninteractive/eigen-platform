@@ -11,8 +11,8 @@ dependencies:
   flutter:
     sdk: flutter
   eigen_flutter: ^0.10.0
-  eigen_shell: ^0.1.0
-  eigen_firebase: ^0.2.0
+  eigen_shell: ^0.2.0
+  eigen_firebase: ^0.3.0
   # Generated Firebase options and the background isolate use Firebase Core
   # directly, so the app declares it in addition to the adapter package.
   firebase_core: ^4.9.0

@@ -258,10 +258,10 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
 const flutterClientVersion = "^0.10.0";
 
 /** Complete first-party app shell installed by the standard scaffold. */
-const flutterShellVersion = "^0.1.0";
+const flutterShellVersion = "^0.2.0";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
-const firebaseAdapterVersion = "^0.2.0";
+const firebaseAdapterVersion = "^0.3.0";
 
 /** Development-only contract compiler installed into the generated app. */
 const dartCodegenVersion = "^0.1.0";
