@@ -3,6 +3,9 @@ description: "Rock-Paper-Scissors: the reference game implementation for the Eig
 publish_to: none
 version: 1.0.0
 
+# Resolved as part of the workspace at the repository root.
+resolution: workspace
+
 environment:
   sdk: ^3.12.0
   flutter: ">=3.44.0"

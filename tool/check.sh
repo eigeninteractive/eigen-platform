@@ -9,11 +9,6 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 run_manifest() {
   node "$platform_root/tool/platform.mjs" --check
   node "$platform_root/tool/check-dart-releases.mjs"
-  # Cross-component version wiring that no toolchain shard can see: every other
-  # check resolves eigen_api through link-local-dart.sh's path override, so the
-  # range flutter/pubspec.yaml actually declares is exercised nowhere but a
-  # publish.
-  node "$platform_root/tool/check-dart-pin.mjs"
 }
 
 assert_no_drift() {
@@ -88,7 +83,6 @@ run_server() {
 }
 
 run_flutter() {
-  "$platform_root/tool/link-local-dart.sh"
 
   cd "$platform_root/dart/eigen_client"
   dart pub get

@@ -1,0 +1,46 @@
+# The Dart workspace root.
+#
+# This file exists to make the platform's seven Dart packages resolve as one
+# unit, which is what `tool/link-local-dart.sh` used to approximate by writing
+# `dependency_overrides` into each package before every check.
+#
+# The difference is the whole reason this replaced it. A `dependency_overrides`
+# entry BYPASSES the declared constraint: `eigen_flutter` could say
+# `eigen_client: ^0.1.0` while resolving 0.2.0 from the working tree, and every
+# shard would pass. The declared range was exercised nowhere but a publish, so a
+# stale pin was invisible until the release job, and `tool/check-dart-pin.mjs`
+# existed to read the pubspecs by hand and say so earlier.
+#
+# Workspace resolution uses the local package AND still checks the constraint.
+# The same mistake now fails `pub get`:
+#
+#     Because eigen_flutter depends on eigen_client ^0.1.0 and eigen-platform
+#     depends on eigen_client, version solving failed.
+#
+# So the guard is gone, and so is the thing it was guarding.
+#
+# `resolution: workspace` stays in a published pubspec -- pub does not strip it,
+# and `melos`, `riverpod`, `flutter_riverpod` and `drift` all ship it today. It
+# only means anything when the package is the ROOT of a resolution, which a
+# hosted dependency never is.
+#
+# Members are listed explicitly rather than globbed. They do not share a parent
+# directory, and moving them would churn the imported histories that
+# `docs/architecture/0000-monorepo-import.md` and AGENTS.md require preserving.
+name: eigen_platform
+description: >-
+  Workspace root for the EigenInteractive Dart packages. Not a package; it
+  carries no code and is never published.
+publish_to: none
+
+environment:
+  sdk: ^3.8.0
+
+workspace:
+  - server/clients/dart
+  - dart/eigen_client
+  - dart/eigen_codegen
+  - flutter
+  - flutter/example
+  - shell
+  - firebase
