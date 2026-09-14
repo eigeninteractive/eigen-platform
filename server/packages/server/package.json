@@ -13,6 +13,10 @@
     "./testing": {
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
+    },
+    "./commerce-kit": {
+      "types": "./dist/commerce-kit.d.ts",
+      "import": "./dist/commerce-kit.js"
     }
   },
   "files": [

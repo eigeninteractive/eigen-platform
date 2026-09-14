@@ -5,6 +5,7 @@ export default defineConfig((options) => ({
     index: "src/index.ts",
     openapi: "src/openapi.ts",
     testing: "src/testing.ts",
+    "commerce-kit": "src/commerce/provider-kit.ts",
   },
   format: "esm",
   platform: "neutral",

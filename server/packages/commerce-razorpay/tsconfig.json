@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // An adapter runs in the Worker, so it sees the Workers globals -- fetch,
+    // Web Crypto, Request -- and nothing from Node.
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src"]
+}

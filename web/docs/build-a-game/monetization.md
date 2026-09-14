@@ -327,10 +327,36 @@ return URL must use the Worker origin or a configured trusted client origin.
 The provider webhook is still authoritative if the browser disappears after
 payment.
 
-Concrete Google Play or Stripe adapters belong beside the application or in an
-optional integration package because they require a chosen provider, merchant
-account, SDK, credentials, and product identifiers. The core engine deliberately
-does not silently initialize either.
+A concrete adapter lives in an optional package rather than the engine, because
+it needs a merchant account, credentials and product identifiers the engine has
+no business holding. Three ship today, and installing none of them is the
+normal case:
+
+| Package | Storefront | Reference is | Checkout |
+| --- | --- | --- | --- |
+| [`@eigeninteractive/commerce-google-play`](https://www.npmjs.com/package/@eigeninteractive/commerce-google-play) | Google Play Billing | the product id | launched on the device by the Billing library |
+| [`@eigeninteractive/commerce-stripe`](https://www.npmjs.com/package/@eigeninteractive/commerce-stripe) | Stripe | a Price id (`price_...`) | hosted Checkout Session |
+| [`@eigeninteractive/commerce-razorpay`](https://www.npmjs.com/package/@eigeninteractive/commerce-razorpay) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
+
+Each package's README carries its configuration and the details that are only
+true of that provider. Three are worth knowing before you choose:
+
+- **Play refunds an unacknowledged purchase after three days.** The engine
+  acknowledges only after the entitlement is durable and retries a lost
+  acknowledgement on the reconciliation sweep, so this is handled — but it is
+  why `sealedProviderState` exists, and why a Play deployment must let the
+  scheduled run happen.
+- **Play's notifications are not signed.** Google delivers them by Pub/Sub push,
+  so the deployment must authenticate that endpoint itself. Stripe and Razorpay
+  both sign, and their adapters verify before parsing.
+- **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
+  auto-charge failed and is being retried. The adapter maps it to `grace` so a
+  paying player is not cut off mid-retry.
+
+An adapter you write yourself implements the same `CommerceProvider` port, and
+`@eigeninteractive/server/commerce-kit` carries the Workers-side primitives the
+three shipped ones use: an HMAC, a constant-time comparison, and a JSON call
+that names a failing provider without quoting the credential it failed with.
 
 ## Production checklist
 

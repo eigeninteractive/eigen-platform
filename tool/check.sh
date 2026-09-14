@@ -82,11 +82,20 @@ run_server() {
   pnpm --filter @eigeninteractive/server pack --pack-destination "$pack_dir"
   pnpm --filter @eigeninteractive/testkit pack --pack-destination "$pack_dir"
   pnpm --filter create-eigen-game pack --pack-destination "$pack_dir"
+  # The optional commerce adapters. They are separate packages precisely so a
+  # game that sells nothing inherits neither their code nor their config, so
+  # they are packed and dry-run published like everything else.
+  pnpm --filter @eigeninteractive/commerce-google-play pack --pack-destination "$pack_dir"
+  pnpm --filter @eigeninteractive/commerce-stripe pack --pack-destination "$pack_dir"
+  pnpm --filter @eigeninteractive/commerce-razorpay pack --pack-destination "$pack_dir"
   pnpm --filter @eigeninteractive/rules publish --dry-run --no-git-checks
   pnpm --filter @eigeninteractive/kernel publish --dry-run --no-git-checks
   pnpm --filter @eigeninteractive/server publish --dry-run --no-git-checks
   pnpm --filter @eigeninteractive/testkit publish --dry-run --no-git-checks
   pnpm --filter create-eigen-game publish --dry-run --no-git-checks
+  pnpm --filter @eigeninteractive/commerce-google-play publish --dry-run --no-git-checks
+  pnpm --filter @eigeninteractive/commerce-stripe publish --dry-run --no-git-checks
+  pnpm --filter @eigeninteractive/commerce-razorpay publish --dry-run --no-git-checks
 }
 
 run_flutter() {

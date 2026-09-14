@@ -1,0 +1,53 @@
+{
+  "name": "@eigeninteractive/commerce-stripe",
+  "version": "0.0.0",
+  "license": "MIT",
+  "description": "Stripe adapter for the EigenInteractive commerce runtime: hosted Checkout, Billing subscriptions, the customer portal, and signed webhooks.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "eigen",
+    "commerce",
+    "billing",
+    "cloudflare-workers",
+    "stripe"
+  ],
+  "author": "EigenInteractive",
+  "type": "module",
+  "devDependencies": {
+    "@eigeninteractive/server": "workspace:*",
+    "vitest": "^4.1.11",
+    "@cloudflare/workers-types": "^5.20260908.1"
+  },
+  "peerDependencies": {
+    "@eigeninteractive/server": "workspace:^"
+  },
+  "homepage": "https://eigeninteractive.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eigeninteractive/eigen-platform.git",
+    "directory": "server/packages/commerce-stripe"
+  },
+  "bugs": {
+    "url": "https://github.com/eigeninteractive/eigen-platform/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
