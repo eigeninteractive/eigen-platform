@@ -53,27 +53,22 @@ void main() {
     });
 
     test('does not retry non-transport error types', () {
-      check(
-        retryTransient(_transport('GET', DioExceptionType.cancel), 1),
-      ).equals(false);
-      check(
-        retryTransient(_transport('GET', DioExceptionType.badResponse), 1),
-      ).equals(false);
-      check(
-        retryTransient(_transport('POST', DioExceptionType.cancel), 1),
-      ).equals(false);
+      check(retryTransient(_transport('GET', DioExceptionType.cancel), 1))
+          .equals(false);
+      check(retryTransient(_transport('GET', DioExceptionType.badResponse), 1))
+          .equals(false);
+      check(retryTransient(_transport('POST', DioExceptionType.cancel), 1))
+          .equals(false);
     });
   });
 
   group('engineProviderRetry (provider layer)', () {
     test('retries a transport failure with short exponential backoff', () {
       final err = _transport('GET', DioExceptionType.connectionError);
-      check(
-        engineProviderRetry(0, err),
-      ).equals(const Duration(milliseconds: 200));
-      check(
-        engineProviderRetry(1, err),
-      ).equals(const Duration(milliseconds: 400));
+      check(engineProviderRetry(0, err))
+          .equals(const Duration(milliseconds: 200));
+      check(engineProviderRetry(1, err))
+          .equals(const Duration(milliseconds: 400));
     });
 
     test('stops after two tries', () {
@@ -84,9 +79,8 @@ void main() {
 
     test('never retries a server-reported failure', () {
       // The whole point: Riverpod's default would re-run these up to ten times.
-      check(
-        engineProviderRetry(0, const EngineException('nope', code: null)),
-      ).isNull();
+      check(engineProviderRetry(0, const EngineException('nope', code: null)))
+          .isNull();
       check(engineProviderRetry(0, _withResponse('GET', 409))).isNull();
       check(engineProviderRetry(0, Exception('unexpected'))).isNull();
     });

@@ -72,8 +72,7 @@ void main() {
   test('the two faces are actually different faces', () {
     // Cheap guard against both families resolving to the same fallback, which
     // is how a font wiring mistake usually presents: everything still renders.
-    check(
-      widthAt(AppTheme.inter, FontWeight.w400),
-    ).not((w) => w.equals(widthAt(AppTheme.spaceGrotesk, FontWeight.w400)));
+    check(widthAt(AppTheme.inter, FontWeight.w400))
+        .not((w) => w.equals(widthAt(AppTheme.spaceGrotesk, FontWeight.w400)));
   });
 }

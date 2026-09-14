@@ -66,9 +66,8 @@ void main() {
     test('falls back to the generic message for an uncoded failure', () {
       // Validation details and unexpected 500s: the server's own wording is
       // diagnostic, sometimes internal, and never shown.
-      check(
-        humanize(const EngineException('engine bug: expected a roster')),
-      ).equals('Something went wrong. Please try again.');
+      check(humanize(const EngineException('engine bug: expected a roster')))
+          .equals('Something went wrong. Please try again.');
     });
 
     test('reports a transport failure as an offline message', () {
@@ -84,9 +83,8 @@ void main() {
     });
 
     test('falls back for unrecognised errors', () {
-      check(
-        humanize(Exception('totally unexpected')),
-      ).equals('Something went wrong. Please try again.');
+      check(humanize(Exception('totally unexpected')))
+          .equals('Something went wrong. Please try again.');
     });
   });
 }

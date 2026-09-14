@@ -27,9 +27,8 @@ class JoinGameScreen extends ConsumerWidget {
           );
         },
         error: (e, _) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(humanize(e))));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(humanize(e))));
           context.goNamed('home');
         },
       );

@@ -24,10 +24,8 @@ class _TagPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = Theme.of(context).textTheme.labelSmall?.copyWith(
-      color: foreground,
-      fontWeight: FontWeight.w600,
-    );
+    final style = Theme.of(context).textTheme.labelSmall
+        ?.copyWith(color: foreground, fontWeight: FontWeight.w600);
     // The icon tracks the label size so the pill scales as one unit if the
     // theme's labelSmall changes.
     final iconSize = (style?.fontSize ?? 11) + 1;

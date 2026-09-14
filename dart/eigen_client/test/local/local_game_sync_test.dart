@@ -419,9 +419,8 @@ void main() {
     check(identical(await first, await second)).isTrue();
 
     // One create, one append: the second call did no work of its own.
-    check(
-      server.seen.where((r) => r.path == '/api/engine/games/local').length,
-    ).equals(1);
+    check(server.seen.where((r) => r.path == '/api/engine/games/local').length)
+        .equals(1);
   });
 
   test('a move committed while the pass ran survives it', () async {

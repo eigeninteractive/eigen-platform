@@ -37,9 +37,8 @@ class _RequiredUpdateButtonState extends ConsumerState<RequiredUpdateButton> {
             : 'Could not start the update. Please try again.',
     };
     if (message != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

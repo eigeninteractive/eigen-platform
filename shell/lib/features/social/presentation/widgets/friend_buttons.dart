@@ -37,9 +37,8 @@ class SendRequestButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(Friends.send(playerId), (_, next) {
       if (next is MutationError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanize(next.error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanize(next.error))));
       }
     });
 
@@ -93,9 +92,8 @@ class AcceptRequestButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(Friends.accept(playerId), (_, next) {
       if (next is MutationError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanize(next.error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanize(next.error))));
       }
     });
 
@@ -164,9 +162,8 @@ class DeclineRequestButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.listen(Friends.remove(playerId), (_, next) {
       if (next is MutationError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanize(next.error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanize(next.error))));
       }
     });
 
@@ -272,9 +269,8 @@ class _RemoveFriendButtonState extends ConsumerState<RemoveFriendButton> {
   Widget build(BuildContext context) {
     ref.listen(Friends.remove(widget.playerId), (_, next) {
       if (next is MutationError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(humanize(next.error))));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(humanize(next.error))));
       }
     });
 

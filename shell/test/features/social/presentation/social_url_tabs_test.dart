@@ -60,9 +60,8 @@ void main() {
           incomingRequestsProvider.overrideWith((ref) async => const []),
           playerInfoCacheProvider(id: 'ada-id').overrideWith(_AdaPlayer.new),
           playerRatingsProvider('ada-id').overrideWith((ref) async => const []),
-          playerPublicFinishedGamesProvider(
-            playerId: 'ada-id',
-          ).overrideWith((ref) async => const []),
+          playerPublicFinishedGamesProvider(playerId: 'ada-id')
+              .overrideWith((ref) async => const []),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),

@@ -48,9 +48,8 @@ void main() {
 
     test('budget mode with and without increment', () {
       check(gameTimingLabel(_game(budgetSeconds: 600))).equals('10m');
-      check(
-        gameTimingLabel(_game(budgetSeconds: 180, incrementSeconds: 2)),
-      ).equals('3m+2s');
+      check(gameTimingLabel(_game(budgetSeconds: 180, incrementSeconds: 2)))
+          .equals('3m+2s');
     });
   });
 
@@ -69,12 +68,10 @@ void main() {
       // Epoch milliseconds, as every timestamp on the wire is.
       final now = DateTime.now().millisecondsSinceEpoch;
       check(formatWaitDuration(now)).equals('just now');
-      check(
-        formatWaitDuration(now - const Duration(minutes: 5).inMilliseconds),
-      ).equals('5m waiting');
-      check(
-        formatWaitDuration(now - const Duration(hours: 2).inMilliseconds),
-      ).equals('2h waiting');
+      check(formatWaitDuration(now - const Duration(minutes: 5).inMilliseconds))
+          .equals('5m waiting');
+      check(formatWaitDuration(now - const Duration(hours: 2).inMilliseconds))
+          .equals('2h waiting');
     });
   });
 }

@@ -53,20 +53,16 @@ void main() {
   });
 
   test('responsive grid stays single-column until its content threshold', () {
-    final compact =
-        responsiveCardGridDelegate(
-              availableWidth: 700,
-              maxCrossAxisExtent: 560,
-              mainAxisExtent: 112,
-            )
-            as SliverGridDelegateWithMaxCrossAxisExtent;
-    final expanded =
-        responsiveCardGridDelegate(
-              availableWidth: 1000,
-              maxCrossAxisExtent: 560,
-              mainAxisExtent: 112,
-            )
-            as SliverGridDelegateWithMaxCrossAxisExtent;
+    final compact = responsiveCardGridDelegate(
+      availableWidth: 700,
+      maxCrossAxisExtent: 560,
+      mainAxisExtent: 112,
+    ) as SliverGridDelegateWithMaxCrossAxisExtent;
+    final expanded = responsiveCardGridDelegate(
+      availableWidth: 1000,
+      maxCrossAxisExtent: 560,
+      mainAxisExtent: 112,
+    ) as SliverGridDelegateWithMaxCrossAxisExtent;
 
     expect(compact.maxCrossAxisExtent, 700);
     expect(expanded.maxCrossAxisExtent, 560);

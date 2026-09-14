@@ -336,9 +336,8 @@ class _CategoryRow extends StatelessWidget {
                 Text(label, style: Theme.of(context).textTheme.bodyMedium),
                 Text(
                   description,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

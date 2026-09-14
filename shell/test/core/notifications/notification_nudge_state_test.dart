@@ -9,9 +9,8 @@ void main() {
         NotificationPermissionState.enabled,
         NotificationPermissionState.unavailable,
       ]) {
-        check(
-          resolveNotificationNudgeState(permissionState: state),
-        ).equals(NotificationNudgeState.hidden);
+        check(resolveNotificationNudgeState(permissionState: state))
+            .equals(NotificationNudgeState.hidden);
       }
     });
 

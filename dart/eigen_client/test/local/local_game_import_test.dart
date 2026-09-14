@@ -186,9 +186,8 @@ void main() {
       ],
     );
 
-    check(
-      () => localRecordFromRemote(remote: remote, rules: rules),
-    ).throws<FormatException>();
+    check(() => localRecordFromRemote(remote: remote, rules: rules))
+        .throws<FormatException>();
   });
 
   test('refuses a log that stops short of the session\'s own version', () {
@@ -202,9 +201,8 @@ void main() {
       transitions: [_row(0), _row(1)],
     );
 
-    check(
-      () => localRecordFromRemote(remote: truncated, rules: rules),
-    ).throws<FormatException>();
+    check(() => localRecordFromRemote(remote: truncated, rules: rules))
+        .throws<FormatException>();
   });
 
   test('refuses a log with a hole in it', () {
@@ -216,9 +214,8 @@ void main() {
       transitions: [_row(0), _row(2), _row(2)],
     );
 
-    check(
-      () => localRecordFromRemote(remote: holed, rules: rules),
-    ).throws<FormatException>();
+    check(() => localRecordFromRemote(remote: holed, rules: rules))
+        .throws<FormatException>();
   });
 
   test('a rebuilt record round-trips through the store\'s JSON', () {

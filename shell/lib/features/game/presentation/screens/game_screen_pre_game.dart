@@ -344,9 +344,8 @@ class _AddBotDialogState extends ConsumerState<_AddBotDialog> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _adding = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 }

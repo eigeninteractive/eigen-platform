@@ -556,9 +556,8 @@ class _GameCardState extends ConsumerState<_GameCard> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 
@@ -572,9 +571,8 @@ class _GameCardState extends ConsumerState<_GameCard> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 }
