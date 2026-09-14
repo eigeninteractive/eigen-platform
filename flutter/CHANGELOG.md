@@ -16,10 +16,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
 ### Added
-- Provider-neutral `PurchaseGateway` and `CommerceService` integration
-  points that verify a completed purchase update with the Worker before
-  exposing any access it grants, and a Drift-backed delivery outbox so a
-  verified purchase still completes with the storefront after a restart.
+- Provider-neutral `PurchaseGateway` and `CommerceService` integration points that verify a completed purchase update with the Worker before exposing any access it grants, and a Drift-backed delivery outbox so a verified purchase still completes with the storefront after a restart.
 
 ## [0.10.0] - 2026-09-13
 ### Added
@@ -308,6 +305,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.10.0...HEAD
 [0.10.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.9.0...eigen_flutter-v0.10.0
 [0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.8.0...eigen_flutter-v0.9.0
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.7.0...eigen_flutter-v0.8.0

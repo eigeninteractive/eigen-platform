@@ -17,6 +17,7 @@ D1, alarms, or other Cloudflare platform work.
 - Keep generated API, Dart client, examples, and docs synchronized with their
   normative source.
 - Never discard unrelated worktree changes.
+- Do not hand edit dart or flutter changelog, always user cider.
 
 ## Architecture direction
 

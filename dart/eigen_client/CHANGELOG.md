@@ -1,12 +1,10 @@
 # Changelog
 ## [Unreleased]
 ### Added
-- `CommerceRepository` and the generated access and catalog types for verified
-  claims, restoration, hosted checkout, and subscription management.
+- `CommerceRepository` and the generated access and catalog types for verified claims, restoration, hosted checkout, and subscription management.
 
 ### Changed
-- Game creation requires a stable `creationId`; `newGameCreationId()` mints one
-  so a retried creation resolves to the original game.
+- Game creation requires a stable `creationId`; `newGameCreationId()` mints one so a retried creation resolves to the original game, and `newCheckoutOperationId()` does the same for hosted checkout.
 
 ## [0.2.0] - 2026-09-13
 ### Added
@@ -23,6 +21,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.2.0...HEAD
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.1...eigen_client-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.0...eigen_client-v0.1.1
 [0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_client-v0.1.0

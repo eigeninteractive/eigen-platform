@@ -281,3 +281,41 @@ The verifier a test worker passes under `createEngine({ testing })`.
 #### Returns
 
 [`TokenVerifier`](server.md#tokenverifier)
+
+***
+
+### withCreationId()
+
+```ts
+function withCreationId(
+   method,
+   path,
+   body
+): unknown;
+```
+
+Defined in: [server/packages/server/src/testing.ts:199](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L199)
+
+Adds a fresh `creationId` to a game-creation body that does not already
+carry one.
+
+Game creation is operation-specifically idempotent: `POST /games` and
+`POST /games/solo` bind the caller, this identity, and a fingerprint of the
+creation inputs, so a retry returns the original game instead of creating --
+or commercially counting -- a second one. A test that is not about that
+binding still has to send an identity, and wants a different one each time.
+
+`POST /games/local` is deliberately absent: an imported game carries the
+device's own `gameId` as its whole identity and takes no `creationId`.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `method` | `string` |
+| `path` | `string` |
+| `body` | `unknown` |
+
+#### Returns
+
+`unknown`

@@ -3,8 +3,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Changed
-- Preserve one game-creation identity across ambiguous transport retries,
-  so a retry cannot create or commercially count a second game.
+- Preserve one game-creation identity across ambiguous transport retries, so a retry cannot create or commercially count a second game.
 
 ## [0.2.0] - 2026-09-13
 ### Added
@@ -28,6 +27,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...HEAD
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.1...eigen_shell-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.0...eigen_shell-v0.1.1
 [0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_shell-v0.1.0
