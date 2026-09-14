@@ -82,20 +82,22 @@ melos:
 
   command:
     version:
-      # One version for the platform. These packages are released together and
-      # depend on each other; separate numbers bought nothing but the arithmetic
-      # of keeping five caret ranges in step, which is what cost three pull
-      # requests in the offline-play release. The npm half of this repository
-      # has run Changesets' `fixed` since the beginning.
+      # Independent versions -- Melos's default, and what FlutterFire's twenty-odd
+      # packages use.
       #
-      # The version is the highest among the group, raised by the bump -- so the
-      # first fixed release carries every package to eigen_flutter's line.
-      mode: fixed
-      # `eigen_api` is generated and carries @eigeninteractive/server's version,
-      # so it is versioned by the npm release, not here. `rps_example` is
-      # publish_to: none. Both are still workspace members; they are just not
-      # part of this release group.
-      packageFilters:
-        ignore:
-          - eigen_api
-          - rps_example
+      # `fixed` was tried first and does not fit this repository. It versions
+      # every workspace member in lockstep, and `eigen_api` is a member whose
+      # version is not ours to choose: it is generated from the engine's OpenAPI
+      # document and stamped with `@eigeninteractive/server`'s version, so the
+      # npm release owns it. Fixed mode raised it 0.7.0 -> 0.10.1, "lockstep
+      # with workspace", which would break the one coupling this repository most
+      # needs to hold. Nor can it simply leave the workspace: the Dart packages
+      # have to resolve it from this checkout, which is the whole point.
+      #
+      # What removes the release-day arithmetic is not a shared number anyway.
+      # It is `--dependent-constraints`, on by default, which rewrites the caret
+      # ranges these packages name each other by in the same commit that
+      # versions them -- and that works the same in either mode. The release
+      # workflow names every package it releases explicitly, so nothing is
+      # versioned by accident.
+      mode: independent
