@@ -2,9 +2,11 @@
 
 // Keep direct Dart consumers on the generated API's compatibility line when a
 // Changesets version commit advances @eigeninteractive/server. This runs after
-// `changeset version` and before the generated Dart client is emitted. Local
-// checks use a path override, so without this explicit edit a version PR can
-// compile yet publish a shell constraint that excludes its own generated API.
+// `changeset version` and before the generated Dart client is emitted. The
+// client is a workspace member stamped with that same version, so without this
+// explicit edit a version PR would leave these consumers naming a range that
+// excludes the client it just stamped, and `pub get` would fail for the whole
+// workspace rather than only at publish time.
 
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";

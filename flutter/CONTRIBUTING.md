@@ -79,28 +79,18 @@ included on pub.dev, so treat its code as executable API documentation.
 ## Working with `eigen_api`
 
 The generated REST client is owned by `server/clients/dart` in this monorepo and
-published separately as `eigen_api`. The declared dependency remains the normal
-versioned registry package, while `../tool/link-local-dart.sh` creates ignored
-monorepo overrides so local development and CI consume the client from the same
-revision:
+published separately as `eigen_api`. It is a member of the pub workspace rooted
+at the repository's own `pubspec.yaml`, so local development and CI resolve it
+from this checkout with no wiring step: run `flutter pub get` from anywhere in
+the tree and pub walks up to the workspace root.
 
-```yaml
-dependency_overrides:
-  eigen_api:
-    path: ../server/clients/dart
-```
-
-The example needs its own override with the corresponding relative path because
-it is a separate package root. The override files are generated local wiring,
-not repository source. Never place either override in `pubspec.yaml`.
-
-Because the override wins everywhere, no ordinary check exercises the declared
-constraint at all: `tool/check.sh` links the local client before running, so the
-range in `pubspec.yaml` is read only by a publish, which resolves without the
-override. `tool/check-dart-pin.mjs` closes that gap in the `manifest` shard by
-asserting the declared range is a caret on the generated client's own line. Raise
-the pin in the same change that moves the engine to a new line, and it will fail
-loudly if you forget.
+Never add `dependency_overrides` to a workspace member. An override BYPASSES the
+declared constraint, which is the failure mode the workspace exists to remove:
+`eigen_flutter` could name `eigen_api: ^0.6.0` while resolving 0.7.0 from the
+working tree, and every shard would pass on a range only a publish would ever
+read. Workspace resolution uses the local package AND still checks the declared
+constraint, so a stale pin now fails `pub get` for everyone, immediately. Raise
+the pin in the same change that moves the engine to a new line.
 
 Generated response enums include `unknownDefaultOpenApi`. Exhaustive switches
 must handle it, normally by presenting an update-required state. It is a

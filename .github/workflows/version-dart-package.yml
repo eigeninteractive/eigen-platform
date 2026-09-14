@@ -17,8 +17,10 @@ name: Version Dart packages
 #
 # Melos owns versions and constraints only. Changelogs stay with cider, because
 # they are curated prose rather than generated commit subjects. Tags and
-# publication stay with the release workflows, because pub.dev trusted
-# publishing validates the calling workflow's filename.
+# publication stay with `tag-dart-packages.yml` and `publish-dart.yml`, because
+# pub.dev only accepts an automated publish from a tag-triggered run -- it
+# validates the repository, the tag against each package's configured pattern,
+# and the `pub.dev` environment, not which file published.
 
 on:
   workflow_dispatch:
