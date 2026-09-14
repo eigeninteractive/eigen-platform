@@ -16,7 +16,7 @@ cider:
 resolution: workspace
 
 environment:
-  sdk: ^3.12.0
+  sdk: ^3.13.0
 
 dependencies:
   dio: ^5.10.0

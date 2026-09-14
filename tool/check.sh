@@ -6,6 +6,16 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The platform manifest: versions, package inventory, and cross-repo wiring. The
 # portable schema profile is no longer checked here — it is enforced where it can
 # be acted on, inside the contract emitter (`run_server`).
+# The SDK's bundled `dart doc` crashes on any package whose dependencies carry
+# `@docImport` doc comments (dartdoc's `_stripDocImports`, fixed upstream in
+# 9.0.8, still unfixed in every current stable SDK). The workspace pins a fixed
+# dartdoc instead; see the root pubspec.yaml. Run from the repository root with
+# `--input` rather than from inside the package, because the pin is a dependency
+# of the workspace root.
+check_docs() {
+  ( cd "$platform_root" && dart run dartdoc --no-generate-docs --input="$1" --output="$(mktemp -d)" )
+}
+
 run_manifest() {
   node "$platform_root/tool/platform.mjs" --check
   node "$platform_root/tool/check-dart-releases.mjs"
@@ -118,7 +128,7 @@ run_flutter() {
   assert_no_drift "Flutter code generation" flutter
   dart analyze lib
   dart analyze test
-  dart doc --dry-run .
+  check_docs flutter
   flutter test
 
   cd "$platform_root/shell"
@@ -130,7 +140,7 @@ run_flutter() {
   dart fix --dry-run
   assert_no_drift "Shell code generation" shell
   flutter analyze
-  dart doc --dry-run .
+  check_docs shell
   flutter test
   dart pub publish --dry-run
 
@@ -139,7 +149,7 @@ run_flutter() {
   dart format --output=none --set-exit-if-changed \
     $(git ls-files '*.dart' | sed 's#^firebase/##')
   flutter analyze
-  dart doc --dry-run .
+  check_docs firebase
   flutter test
   dart pub publish --dry-run
 

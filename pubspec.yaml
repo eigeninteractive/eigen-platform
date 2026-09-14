@@ -34,7 +34,33 @@ description: >-
 publish_to: none
 
 environment:
-  sdk: ^3.8.0
+  # The Dart line of the pinned Flutter SDK in `flutter/.fvmrc`: Flutter 3.47.4
+  # bundles Dart 3.13.3. Every member declares the same floor, because they
+  # share one resolution and are released as one version -- a lower floor on a
+  # pure-Dart member would be a promise nothing here ever tests. This moves with
+  # the Flutter pin, not on its own.
+  sdk: ^3.13.0
+
+# Melos is a dev dependency of the root because that is how it recognises a
+# workspace; it carries no analyzer dependency, so it cannot disturb the
+# analyzer-12 resolution the committed generated sources depend on.
+dev_dependencies:
+  melos: ^8.7.0
+  # `dart doc` is not used anywhere in this repository, and this is why. The
+  # dartdoc bundled with the Dart SDK crashes on any package whose dependencies
+  # carry `@docImport` doc comments -- a string-offset bug in `_stripDocImports`
+  # fixed upstream in 9.0.8, but Dart 3.13.1 and 3.13.3 pin the same
+  # `dartdoc_rev` (1d56f263, "9.0.6-wip"), so every current stable SDK ships it.
+  #
+  # Pinning the tool here rather than waiting for an SDK decouples the two:
+  # `tool/check.sh` runs this dartdoc, and the crash stops gating the Flutter
+  # version. Remove once a bundled `dart doc` works and the checks go back to it.
+  #
+  # 9.0.8 rather than 9.0.9, which is the newer release: 9.0.9 wants analyzer
+  # ^14.1.0, and `flutter_test` from the SDK pins `matcher`, which pins `test`,
+  # which caps analyzer below 14. 9.0.8 is the release that carries the fix and
+  # asks only for ^13.0.2.
+  dartdoc: 9.0.8
 
 workspace:
   - server/clients/dart
@@ -44,3 +70,32 @@ workspace:
   - flutter/example
   - shell
   - firebase
+
+# Melos versions these packages and rewrites the constraints between them.
+#
+# It owns versions ONLY. Changelogs stay with cider, because these are curated
+# prose rather than a list of commit subjects, and `--no-changelog` keeps melos
+# out of them. Tags and publication stay with the release workflows, because
+# pub.dev trusted publishing validates the calling workflow's filename.
+melos:
+  name: eigen_platform
+
+  command:
+    version:
+      # One version for the platform. These packages are released together and
+      # depend on each other; separate numbers bought nothing but the arithmetic
+      # of keeping five caret ranges in step, which is what cost three pull
+      # requests in the offline-play release. The npm half of this repository
+      # has run Changesets' `fixed` since the beginning.
+      #
+      # The version is the highest among the group, raised by the bump -- so the
+      # first fixed release carries every package to eigen_flutter's line.
+      mode: fixed
+      # `eigen_api` is generated and carries @eigeninteractive/server's version,
+      # so it is versioned by the npm release, not here. `rps_example` is
+      # publish_to: none. Both are still workspace members; they are just not
+      # part of this release group.
+      packageFilters:
+        ignore:
+          - eigen_api
+          - rps_example

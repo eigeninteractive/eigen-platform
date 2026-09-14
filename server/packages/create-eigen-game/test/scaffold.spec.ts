@@ -136,7 +136,7 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).toContain("upload_to_play_store");
     expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
     expect(readFileSync(resolve(root, "app/.ruby-version"), "utf8").trim()).not.toBe("");
-    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.44.8");
+    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.47.4");
     expect(readFileSync(resolve(root, "app/android/app/proguard-rules.pro"), "utf8")).toContain("image_cropper");
     expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
     expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");

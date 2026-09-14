@@ -29,7 +29,7 @@ topics:
 resolution: workspace
 
 environment:
-  sdk: ^3.8.0
+  sdk: ^3.13.0
 dependencies:
   dio: ^5.10.0
   json_annotation: ^4.12.0
