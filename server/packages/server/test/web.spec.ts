@@ -7,22 +7,17 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { renderFlutterShell } from "../src/site/flutter-shell.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
-  const requestBody = creationRequestBody(method, path, body);
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid: id })), "content-type": "application/json" } : await mutationHeaders({ uid: id }),
     ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
-}
-
-function creationRequestBody(method: string, path: string, body: unknown): unknown {
-  if (method !== "POST" || path !== "/games" || body === null || typeof body !== "object" || "creationId" in body) return body;
-  return { creationId: crypto.randomUUID(), ...body };
 }
 
 const createBody = { access: "public" as const, schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false };

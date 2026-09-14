@@ -14,24 +14,19 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
 import { commerceTransactions, entitlementGrants, games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 import { userRow } from "./factories.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
-  const requestBody = creationRequestBody(method, path, body);
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid, anonymous })), "content-type": "application/json" } : await mutationHeaders({ uid, anonymous }),
     ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
-}
-
-function creationRequestBody(method: string, path: string, body: unknown): unknown {
-  if (method !== "POST" || path !== "/games" || body === null || typeof body !== "object" || "creationId" in body) return body;
-  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {

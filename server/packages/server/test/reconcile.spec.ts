@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { games, participants } from "../src/d1/schema.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
@@ -25,17 +25,12 @@ const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
-  const requestBody = creationRequestBody(method, path, body);
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid: id })), "content-type": "application/json" } : await mutationHeaders({ uid: id }),
     ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
-}
-
-function creationRequestBody(method: string, path: string, body: unknown): unknown {
-  if (method !== "POST" || path !== "/games" || body === null || typeof body !== "object" || "creationId" in body) return body;
-  return { creationId: crypto.randomUUID(), ...body };
 }
 
 /** The operator surface authenticates with its own secret, never a player token. */

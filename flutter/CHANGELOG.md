@@ -14,6 +14,13 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- Provider-neutral `PurchaseGateway` and `CommerceService` integration
+  points that verify a completed purchase update with the Worker before
+  exposing any access it grants, and a Drift-backed delivery outbox so a
+  verified purchase still completes with the storefront after a restart.
+
 ## [0.10.0] - 2026-09-13
 ### Added
 - Offline play: a game module may declare a `LocalGameRules` unit per version through `GameRules.local`, and a game that does is playable on the device against bots this build ships brains for.

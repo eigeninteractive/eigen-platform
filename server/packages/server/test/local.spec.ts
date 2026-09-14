@@ -20,7 +20,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { bots, games, playerRatings, ratingHistory } from "../src/d1/schema.js";
 import { createGame } from "../src/index.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 import { LEAK_SENTINEL, pushLog } from "./worker.js";
 
 const db = orm(env.DB);
@@ -44,20 +44,12 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
-  const requestBody = creationRequestBody(method, path, body);
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid }) : await mutationHeaders({ uid }),
     ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
-}
-
-/** An imported game carries the device's own `gameId` as its whole identity, so
- * `/games/local` takes no `creationId`. The online games this file creates as
- * controls are ordinary server creations, and those do. */
-function creationRequestBody(method: string, path: string, body: unknown): unknown {
-  if (method !== "POST" || (path !== "/games" && path !== "/games/solo") || body === null || typeof body !== "object" || "creationId" in body) return body;
-  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {

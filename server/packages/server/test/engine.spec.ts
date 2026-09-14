@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { deriveBotKey, signForBot } from "../src/bot/bot-auth.js";
 import { orm } from "../src/d1/orm.js";
 import { bots, participants } from "../src/d1/schema.js";
-import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 
 const BOT_SECRET = "test-bot-signing-secret";
 
@@ -27,17 +27,12 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
-  const requestBody = creationRequestBody(method, path, body);
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid, anonymous }) : await mutationHeaders({ uid, anonymous }),
     ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
-}
-
-function creationRequestBody(method: string, path: string, body: unknown): unknown {
-  if (method !== "POST" || (path !== "/games" && path !== "/games/solo") || body === null || typeof body !== "object" || "creationId" in body) return body;
-  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {

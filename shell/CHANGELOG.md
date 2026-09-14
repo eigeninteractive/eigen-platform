@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Changed
+- Preserve one game-creation identity across ambiguous transport retries,
+  so a retry cannot create or commercially count a second game.
+
 ## [0.2.0] - 2026-09-13
 ### Added
 - Offline play in the product: the solo picker's untimed mode starts a game on the device, home and history list on-device games alongside server ones, and replay reads a finished local game from its own record.
