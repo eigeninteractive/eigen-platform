@@ -70,7 +70,7 @@ const row = async (providerTransactionId: string) => await db.select().from(comm
 
 beforeEach(() => {
   providerKey = `fake-${crypto.randomUUID().slice(0, 8)}`;
-  provider = fakeCommerceProvider([{ provider: providerKey, providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" }], Date.now, providerKey);
+  provider = fakeCommerceProvider([{ providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" }], Date.now, providerKey);
 });
 
 describe("reconciliation liveness", () => {
