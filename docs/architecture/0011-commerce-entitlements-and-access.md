@@ -219,6 +219,52 @@ Requirements may compose with `allOf` and `anyOf`. The engine evaluates them
 and returns one normalized access decision; game code never loads entitlement
 rows or decides whether an account satisfies a requirement.
 
+A `bot.use` tier is meaningful only for a bot this engine runs or calls: a
+server brain, or an externally hosted one. A brain that ships inside the
+application binary is not gateable, for the reason given under _Offline play_.
+
+## Offline play
+
+[0012](0012-offline-play.md) lets a device play a whole game against brains the
+application binary ships, with no server involved, and register it afterwards
+through `POST /games/local`. That operation is deliberately outside the
+commercial layer: it acquires no capability, checks no content ownership, and
+consumes no metered allowance. `app.access` and the abuse limits still apply,
+because they are not products.
+
+This is a consequence of where the code runs, not a concession:
+
+- **The play cannot be gated.** The game was created and finished on the device
+  while the server knew nothing about it. By the time a request arrives the
+  history already exists, so a check here could only refuse to accept it, and
+  the player would keep a game on their phone that the server denies. This
+  record already holds the principle: expiry affects new protected operations,
+  never committed game history.
+- **What ships in the binary cannot be withheld.** Only bots whose brains are in
+  the application can play offline — an externally hosted bot is refused outright
+  — so a paid bot tier is available offline to everyone who has the build,
+  permanently. A `sharedRuleset` variant compiled into the client is the same.
+  Selling either as offline capability would be selling something no server can
+  withhold.
+- **A denied import would charge twice.** Counting an imported game against
+  `game.create.success` or `games.openCreated` would spend allowance on a game
+  this engine never hosted, for a player who may never create a server game at
+  all.
+
+The engine still records the content a local game selected, through the same
+`contentForCreate` hook, so replay and a later device read the same immutable
+snapshot an online game would. Snapshotting is for replay integrity; it is not
+an ownership assertion, and it is not re-checked as though the creator had
+bought it.
+
+What remains sellable around offline play is the part a server actually
+performs: hosting the imported game, serving its replay, and carrying it to a
+second device. `replay.read` already governs the first of those. Metering
+retention or sync would be a new engine capability with a real enforcement
+point, and needs its own accepted decision rather than an extension of
+`game.create` — whose access modes are exactly `GameAccess`, and which would
+misdescribe an operation whose creation happened elsewhere.
+
 ## Game-owned content resources
 
 The game declares content collections and their items. For chess, the resource
@@ -373,7 +419,8 @@ invitation from unexpectedly consuming the recipient's creator capacity.
 
 `game.create.success` counts successful creation across public, friends, and
 private access modes unless a future engine metric deliberately distinguishes
-them.
+them. Both metrics count games this engine created. A game played offline and
+later imported is not one of them; see _Offline play_ below.
 
 ### Grant composition
 
@@ -417,6 +464,7 @@ selection metadata; it does not scatter entitlement reads through routes.
 | Open protected replay | `replay.read` plus snapshotted viewer requirements |
 | Run analysis | `analysis.use` plus its configured allowance |
 | Equip cosmetic | `content.use(collection, id)` before persisting selection |
+| Import a local game | `app.access` and abuse limits only; no capability, content, or limit check |
 
 Ordinary game actions, reconnect, finish, forfeit, leave, purchase restoration,
 and reading one's own commerce state do not acquire a fresh paid capability.
@@ -742,7 +790,10 @@ Before commerce is called production-ready, automated tests must cover:
 - account deletion and pseudonymized retained transaction policy;
 - every concrete Android or web adapter's parity at the normalized API boundary;
   and
-- commerce-disabled local creation with no provider dependency or credential.
+- commerce-disabled local creation with no provider dependency or credential;
+  and
+- importing a game played offline while the account's creation allowance is
+  already exhausted, consuming no allowance and acquiring no capability.
 
 The testkit supplies provider fakes and reusable lifecycle fixtures. Generated
 scaffolds that enable commerce run the same conformance suite.

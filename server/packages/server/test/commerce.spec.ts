@@ -4,7 +4,7 @@ import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
-import { commerceEvents, commerceTransactions, entitlementGrants } from "../src/d1/schema.js";
+import { bots, commerceEvents, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
 import { testBearer as bearer, fakeCommerceProvider, testMutationHeaders as mutationHeaders, testFirebaseAdmin, testVerifier } from "../src/testing.js";
 import { testGame } from "./worker.js";
@@ -479,5 +479,77 @@ describe("snapshotted content ownership", () => {
 
     await becomeSupporter(viewer);
     expect((await api(viewer, "GET", `/games/${created.gameId}/frames?from=0&to=10`)).status).toBe(200);
+  });
+});
+
+describe("offline play", () => {
+  /** A deployment that meters server creation tightly, so an exemption is
+   * visible as an exemption rather than as an absent limit. */
+  function meteredEngine() {
+    return createEngine({
+      gameModule: testGame,
+      appName: "Metered Test",
+      d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+      gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+      testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+      commerce: {
+        catalog: {
+          free: {
+            permissions: [{ kind: "game.create", access: "private" }, { kind: "bot.use" }],
+            limits: [{ metric: "game.create.success", maximum: 1, period: { kind: "calendarMonth", timezone: "UTC" } }],
+          },
+          entitlements: [],
+          offers: [],
+        },
+        providers: [fakeCommerceProvider([])],
+      },
+    });
+  }
+
+  const LOCAL_BOT = "offline-exempt-bot";
+
+  it("imports a device's finished game with the creation allowance already spent", async () => {
+    await db.insert(bots).values({ id: LOCAL_BOT, username: LOCAL_BOT, displayName: "Local Brain", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() }).onConflictDoNothing();
+
+    const engine = meteredEngine();
+    const accountId = uid("offline-exempt");
+    const fetch = async (method: string, path: string, body?: unknown) =>
+      await engine.fetch?.(
+        new Request(`https://metered.test/api/engine${path}`, {
+          method,
+          headers: method === "GET" ? await bearer({ uid: accountId }) : await mutationHeaders({ uid: accountId }),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+        env,
+        {} as ExecutionContext,
+      );
+
+    const onlineBody = { access: "private", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false };
+    expect((await fetch("POST", "/games", { creationId: crypto.randomUUID(), ...onlineBody }))?.status).toBe(201);
+
+    // The month's one server creation is now spent.
+    const exhausted = await fetch("POST", "/games", { creationId: crypto.randomUUID(), ...onlineBody });
+    expect(exhausted?.status).toBe(403);
+    expect(await exhausted?.json()).toMatchObject({ code: "commercialLimitReached" });
+
+    // The device played this one offline; the allowance it never used cannot
+    // retroactively refuse the history. It also takes no creationId: the
+    // device's own gameId is the whole identity.
+    const imported = await fetch("POST", "/games/local", {
+      gameId: crypto.randomUUID(),
+      schemaVersion: 1,
+      config: { target: 3 },
+      minPlayers: 2,
+      maxPlayers: 2,
+      botIds: [LOCAL_BOT],
+      seed: "00112233445566778899aabbccddeeff",
+      createdAt: Date.now() - 3_600_000,
+    });
+    expect(imported?.status).toBe(201);
+
+    // And it consumed nothing: the single row is the online create's.
+    const uses = await db.select().from(commerceUsage).where(eq(commerceUsage.userId, accountId)).all();
+    expect(uses).toHaveLength(1);
+    expect(uses[0]?.metric).toBe("game.create.success");
   });
 });
