@@ -40,7 +40,19 @@ jobs:
             exit 1
           }
 
-      - name: Resolve registry dependencies
+      # The workspace root is present in this checkout, so this resolves the
+      # local siblings rather than the published ones. That is a deliberate
+      # narrowing of what this step used to prove: before the workspace it
+      # resolved every declared range from pub.dev, which also happened to
+      # assert that a dependency of this package was already published.
+      #
+      # Nothing replaces that assertion until the consolidated publisher lands,
+      # which guarantees it structurally by publishing in dependency order
+      # within one job. Until then a package can publish minutes before a
+      # sibling it names. The override assertions below still stand: a stray
+      # override file would still be wrong, it is just no longer how the
+      # siblings are found.
+      - name: Resolve dependencies
         run: |
           [ ! -e pubspec_overrides.yaml ] || {
             echo "::error::pubspec_overrides.yaml must not exist in a release checkout"

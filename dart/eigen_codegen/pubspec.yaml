@@ -12,6 +12,9 @@ cider:
     diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
     version: eigen_codegen-v%version%
 
+# Resolved as part of the workspace at the repository root.
+resolution: workspace
+
 environment:
   sdk: ^3.12.0
 

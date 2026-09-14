@@ -64,12 +64,15 @@ packages move only when their own user-visible contents change.
   eventually consistent, so both the 0.5.0 and 0.5.1 releases failed there with a
   404 for a version that was already live. It still refuses to tag a version npm
   never accepted; it waits up to two minutes first.
-- The `manifest` shard asserts that every direct `eigen_api` consumer uses a
-  caret on the generated client's line. Nothing else can: `tool/check.sh` links
-  the local client first, so a publish is otherwise the first thing to resolve
-  the declared range. It also checks that each hand-written Dart package's
+- Constraints between the Dart packages are checked by resolution itself. They
+  are one pub workspace, so `pub get` uses the local sibling and still enforces
+  the declared range; a consumer naming a line its sibling has outgrown fails
+  every shard rather than reaching a publish. This replaced
+  `tool/check-dart-pin.mjs`, which read the pubspecs by hand because
+  `dependency_overrides` meant nothing else resolved them.
+- The `manifest` shard still checks that each hand-written Dart package's
   pubspec version is its latest linked changelog release. See
-  `tool/check-dart-pin.mjs` and `tool/check-dart-releases.mjs`.
+  `tool/check-dart-releases.mjs`.
 
 ## Required GitHub configuration
 
