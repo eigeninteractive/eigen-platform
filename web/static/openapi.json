@@ -1672,6 +1672,9 @@
               "type": "string"
             }
           },
+          "repeatable": {
+            "type": "boolean"
+          },
           "products": {
             "type": "array",
             "items": {
@@ -1685,6 +1688,7 @@
           "description",
           "kind",
           "entitlements",
+          "repeatable",
           "products"
         ]
       },
@@ -1694,7 +1698,7 @@
           "provider": {
             "type": "string"
           },
-          "productId": {
+          "providerReference": {
             "type": "string"
           },
           "displayPrice": {
@@ -1712,7 +1716,7 @@
         },
         "required": [
           "provider",
-          "productId",
+          "providerReference",
           "displayPrice",
           "currencyCode"
         ]
@@ -1957,12 +1961,18 @@
           "returnUrl": {
             "type": "string",
             "format": "uri"
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
           }
         },
         "required": [
           "provider",
           "offerKey",
-          "returnUrl"
+          "returnUrl",
+          "operationId"
         ]
       },
       "CommerceManagementRequest": {

@@ -12,14 +12,17 @@ CommerceProduct _$CommerceProductFromJson(Map<String, dynamic> json) =>
         json,
         requiredKeys: const [
           'provider',
-          'productId',
+          'providerReference',
           'displayPrice',
           'currencyCode',
         ],
       );
       final val = CommerceProduct(
         provider: $checkedConvert('provider', (v) => v as String),
-        productId: $checkedConvert('productId', (v) => v as String),
+        providerReference: $checkedConvert(
+          'providerReference',
+          (v) => v as String,
+        ),
         displayPrice: $checkedConvert('displayPrice', (v) => v as String?),
         currencyCode: $checkedConvert('currencyCode', (v) => v as String?),
       );
@@ -29,7 +32,7 @@ CommerceProduct _$CommerceProductFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$CommerceProductToJson(CommerceProduct instance) =>
     <String, dynamic>{
       'provider': instance.provider,
-      'productId': instance.productId,
+      'providerReference': instance.providerReference,
       'displayPrice': instance.displayPrice,
       'currencyCode': instance.currencyCode,
     };

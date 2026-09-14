@@ -21,6 +21,8 @@ class CommerceCheckoutRequest {
     required this.offerKey,
 
     required this.returnUrl,
+
+    required this.operationId,
   });
 
   @JsonKey(name: r'provider', required: true, includeIfNull: false)
@@ -32,17 +34,24 @@ class CommerceCheckoutRequest {
   @JsonKey(name: r'returnUrl', required: true, includeIfNull: false)
   final String returnUrl;
 
+  @JsonKey(name: r'operationId', required: true, includeIfNull: false)
+  final String operationId;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CommerceCheckoutRequest &&
           other.provider == provider &&
           other.offerKey == offerKey &&
-          other.returnUrl == returnUrl;
+          other.returnUrl == returnUrl &&
+          other.operationId == operationId;
 
   @override
   int get hashCode =>
-      provider.hashCode + offerKey.hashCode + returnUrl.hashCode;
+      provider.hashCode +
+      offerKey.hashCode +
+      returnUrl.hashCode +
+      operationId.hashCode;
 
   factory CommerceCheckoutRequest.fromJson(Map<String, dynamic> json) =>
       _$CommerceCheckoutRequestFromJson(json);

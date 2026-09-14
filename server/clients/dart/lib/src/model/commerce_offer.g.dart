@@ -16,6 +16,7 @@ CommerceOffer _$CommerceOfferFromJson(Map<String, dynamic> json) =>
           'description',
           'kind',
           'entitlements',
+          'repeatable',
           'products',
         ],
       );
@@ -35,6 +36,7 @@ CommerceOffer _$CommerceOfferFromJson(Map<String, dynamic> json) =>
           'entitlements',
           (v) => (v as List<dynamic>).map((e) => e as String).toList(),
         ),
+        repeatable: $checkedConvert('repeatable', (v) => v as bool),
         products: $checkedConvert(
           'products',
           (v) => (v as List<dynamic>)
@@ -52,6 +54,7 @@ Map<String, dynamic> _$CommerceOfferToJson(CommerceOffer instance) =>
       'description': instance.description,
       'kind': _$CommerceOfferKindEnumEnumMap[instance.kind]!,
       'entitlements': instance.entitlements,
+      'repeatable': instance.repeatable,
       'products': instance.products.map((e) => e.toJson()).toList(),
     };
 

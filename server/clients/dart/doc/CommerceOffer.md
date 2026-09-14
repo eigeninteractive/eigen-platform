@@ -13,6 +13,7 @@ Name | Type | Description | Notes
 **description** | **String** |  | 
 **kind** | **String** |  | 
 **entitlements** | **List&lt;String&gt;** |  | 
+**repeatable** | **bool** |  | 
 **products** | [**List&lt;CommerceProduct&gt;**](CommerceProduct.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

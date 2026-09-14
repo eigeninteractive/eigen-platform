@@ -44,11 +44,20 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
+  const requestBody = creationRequestBody(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid }) : await mutationHeaders({ uid }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
+}
+
+/** An imported game carries the device's own `gameId` as its whole identity, so
+ * `/games/local` takes no `creationId`. The online games this file creates as
+ * controls are ordinary server creations, and those do. */
+function creationRequestBody(method: string, path: string, body: unknown): unknown {
+  if (method !== "POST" || (path !== "/games" && path !== "/games/solo") || body === null || typeof body !== "object" || "creationId" in body) return body;
+  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {

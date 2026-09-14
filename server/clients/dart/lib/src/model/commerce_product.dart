@@ -18,7 +18,7 @@ class CommerceProduct {
   CommerceProduct({
     required this.provider,
 
-    required this.productId,
+    required this.providerReference,
 
     required this.displayPrice,
 
@@ -28,8 +28,8 @@ class CommerceProduct {
   @JsonKey(name: r'provider', required: true, includeIfNull: false)
   final String provider;
 
-  @JsonKey(name: r'productId', required: true, includeIfNull: false)
-  final String productId;
+  @JsonKey(name: r'providerReference', required: true, includeIfNull: false)
+  final String providerReference;
 
   @JsonKey(name: r'displayPrice', required: true, includeIfNull: true)
   final String? displayPrice;
@@ -42,14 +42,14 @@ class CommerceProduct {
       identical(this, other) ||
       other is CommerceProduct &&
           other.provider == provider &&
-          other.productId == productId &&
+          other.providerReference == providerReference &&
           other.displayPrice == displayPrice &&
           other.currencyCode == currencyCode;
 
   @override
   int get hashCode =>
       provider.hashCode +
-      productId.hashCode +
+      providerReference.hashCode +
       (displayPrice == null ? 0 : displayPrice.hashCode) +
       (currencyCode == null ? 0 : currencyCode.hashCode);
 

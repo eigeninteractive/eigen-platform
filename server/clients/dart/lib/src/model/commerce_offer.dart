@@ -27,6 +27,8 @@ class CommerceOffer {
 
     required this.entitlements,
 
+    required this.repeatable,
+
     required this.products,
   });
 
@@ -50,6 +52,9 @@ class CommerceOffer {
   @JsonKey(name: r'entitlements', required: true, includeIfNull: false)
   final List<String> entitlements;
 
+  @JsonKey(name: r'repeatable', required: true, includeIfNull: false)
+  final bool repeatable;
+
   @JsonKey(name: r'products', required: true, includeIfNull: false)
   final List<CommerceProduct> products;
 
@@ -62,6 +67,7 @@ class CommerceOffer {
           other.description == description &&
           other.kind == kind &&
           other.entitlements == entitlements &&
+          other.repeatable == repeatable &&
           other.products == products;
 
   @override
@@ -71,6 +77,7 @@ class CommerceOffer {
       description.hashCode +
       kind.hashCode +
       entitlements.hashCode +
+      repeatable.hashCode +
       products.hashCode;
 
   factory CommerceOffer.fromJson(Map<String, dynamic> json) =>

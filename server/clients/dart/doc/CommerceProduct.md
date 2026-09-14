@@ -9,7 +9,7 @@ import 'package:eigen_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **provider** | **String** |  | 
-**productId** | **String** |  | 
+**providerReference** | **String** |  | 
 **displayPrice** | **String** |  | 
 **currencyCode** | **String** |  | 
 

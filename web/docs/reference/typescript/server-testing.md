@@ -43,10 +43,18 @@ accountId: string;
 
 Defined in: [server/packages/server/src/testing.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L117)
 
-##### productId
+##### kind?
 
 ```ts
-productId: string;
+optional kind?: "oneTime" | "subscription";
+```
+
+Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L122)
+
+##### providerReference
+
+```ts
+providerReference: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L116)
@@ -179,7 +187,7 @@ No-op Firebase Admin effects for test workers and test Durable Objects.
 function fakeCommerceProvider(products, now?): CommerceProvider<unknown>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L125)
+Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L126)
 
 Deterministic provider for commerce lifecycle and implementor conformance tests.
 
@@ -187,7 +195,7 @@ Deterministic provider for commerce lifecycle and implementor conformance tests.
 
 | Parameter | Type | Default value |
 | ------ | ------ | ------ |
-| `products` | readonly [`CommerceProduct`](server.md#commerceproduct)[] | `undefined` |
+| `products` | readonly [`CommerceProduct`](server.md#commerceproduct) & \{ `kind?`: `"oneTime"` \| `"subscription"`; \}[] | `undefined` |
 | `now` | () => `number` | `Date.now` |
 
 #### Returns
