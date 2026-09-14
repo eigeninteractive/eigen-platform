@@ -63,7 +63,7 @@ export 'src/api/game_socket.dart';
 export 'src/api/games_page.dart';
 export 'src/api/server_clock.dart';
 export 'src/domain/game_creation_spec.dart';
-export 'src/domain/game_creation_identity.dart';
+export 'src/domain/operation_identity.dart';
 export 'src/domain/game_frame.dart';
 export 'src/domain/game_player.dart';
 export 'src/domain/game_session.dart';

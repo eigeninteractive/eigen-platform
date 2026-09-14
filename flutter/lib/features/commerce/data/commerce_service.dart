@@ -39,7 +39,9 @@ class CommerceService {
     }
     final product = products[mapping.providerReference];
     if (product == null) {
-      throw StateError('Storefront did not return ${mapping.providerReference}.');
+      throw StateError(
+        'Storefront did not return ${mapping.providerReference}.',
+      );
     }
     await _gateway.purchase(offerKey: offer.key, product: product);
   }

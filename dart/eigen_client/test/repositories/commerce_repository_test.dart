@@ -48,6 +48,7 @@ class _CommerceAdapter implements HttpClientAdapter {
             'description': 'Permanent cosmetics',
             'kind': 'oneTime',
             'entitlements': ['supporter'],
+            'repeatable': false,
             'products': [
               {
                 'provider': 'google_play',
@@ -103,17 +104,14 @@ void main() {
     final access = await repository.getAccess();
 
     check(access.entitlements.single.key).equals('supporter');
-    check(
-      access.permissions.single.kind,
-    ).equals(AccessCapabilityKindEnum.gamePeriodCreate);
-    check(
-      access.permissions.single.access,
-    ).equals(AccessCapabilityAccessEnum.public);
+    check(access.permissions.single.kind)
+        .equals(AccessCapabilityKindEnum.gamePeriodCreate);
+    check(access.permissions.single.access)
+        .equals(AccessCapabilityAccessEnum.public);
     check(access.content.single.id).equals('supporter_gold');
     check(access.limits.single.remaining).equals(3);
-    check(
-      access.limits.single.period,
-    ).equals(CommercialPeriodKind.calendarMonth);
+    check(access.limits.single.period)
+        .equals(CommercialPeriodKind.calendarMonth);
   });
 
   test(
@@ -130,9 +128,8 @@ void main() {
       check(access.entitlements.single.key).equals('supporter');
       final request = jsonDecode(adapter.lastRequest?.data as String) as Map;
       check(request['provider']).equals('google_play');
-      check(
-        (request['evidence'] as Map)['purchaseToken'],
-      ).equals('secret-token');
+      check((request['evidence'] as Map)['purchaseToken'])
+          .equals('secret-token');
     },
   );
 
@@ -145,6 +142,7 @@ void main() {
       provider: 'stripe',
       offerKey: 'pro_monthly',
       returnUrl: Uri.parse('https://game.example/store'),
+      operationId: 'checkout-1',
     );
     check(checkout).equals(Uri.parse('https://checkout.example/session'));
     final checkoutRequest =
@@ -152,6 +150,7 @@ void main() {
     check(checkoutRequest['provider']).equals('stripe');
     check(checkoutRequest['offerKey']).equals('pro_monthly');
     check(checkoutRequest['returnUrl']).equals('https://game.example/store');
+    check(checkoutRequest['operationId']).equals('checkout-1');
 
     final management = await repository.createManagement(
       provider: 'stripe',
@@ -161,8 +160,7 @@ void main() {
     final managementRequest =
         jsonDecode(adapter.lastRequest?.data as String) as Map;
     check(managementRequest['provider']).equals('stripe');
-    check(
-      managementRequest['returnUrl'],
-    ).equals('https://game.example/account');
+    check(managementRequest['returnUrl'])
+        .equals('https://game.example/account');
   });
 }

@@ -84,7 +84,8 @@ class UnavailablePurchaseGateway implements PurchaseGateway {
   Stream<PurchaseUpdate> get updates => const Stream.empty();
 
   @override
-  Future<List<StoreProduct>> products(Set<String> providerReferences) async => const [];
+  Future<List<StoreProduct>> products(Set<String> providerReferences) async =>
+      const [];
 
   @override
   Future<void> purchase({

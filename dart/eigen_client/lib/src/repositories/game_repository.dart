@@ -6,7 +6,7 @@ import 'package:eigen_api/eigen_api.dart';
 import '../api/engine_call.dart';
 import '../api/game_socket.dart';
 import '../api/games_page.dart';
-import '../domain/game_creation_identity.dart';
+import '../domain/operation_identity.dart';
 import '../domain/game_session.dart';
 
 /// Number of games fetched per lobby page.

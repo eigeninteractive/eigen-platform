@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
 
 import '../api/engine_call.dart';
+import '../domain/operation_identity.dart';
 
 /// Provider evidence for one registered logical offer.
 ///
@@ -61,10 +62,17 @@ class CommerceRepository {
   }
 
   /// Creates a hosted checkout URL for providers such as Stripe.
+  ///
+  /// [operationId] identifies this checkout attempt. Mint it with
+  /// [newCheckoutOperationId] and reuse it after an ambiguous transport
+  /// failure: the same identity returns the checkout the server already
+  /// opened, so a retry cannot leave a second session open. Reusing it for a
+  /// different [offerKey] or [returnUrl] is refused.
   Future<Uri> createCheckout({
     required String provider,
     required String offerKey,
     required Uri returnUrl,
+    required String operationId,
   }) async {
     final result = await engineData(
       () => _api.createCommerceCheckout(
@@ -72,6 +80,7 @@ class CommerceRepository {
           provider: provider,
           offerKey: offerKey,
           returnUrl: returnUrl.toString(),
+          operationId: operationId,
         ),
       ),
     );
