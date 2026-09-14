@@ -309,11 +309,23 @@ export const commerceTransactions = sqliteTable(
     validUntil: integer(),
     sealedProviderState: text(),
     acknowledgementState: text().$type<"notRequired" | "pending" | "acknowledged">().notNull(),
+    /** When the provider last ANSWERED for this transaction. Staleness. */
     lastReconciledAt: integer(),
+    /** When reconciliation last LOOKED at it, answered or not. This is what
+     * orders the sweep, so a transaction the provider will not answer for
+     * rotates to the back of the queue instead of holding the front of it. */
+    reconcileAttemptedAt: integer(),
+    /** Consecutive failed attempts. Reset by any successful record, from a
+     * sweep, a webhook or a claim. At the configured ceiling the row stops
+     * being swept and becomes an operator problem rather than a hot loop. */
+    reconcileFailures: integer().notNull().default(0),
+    /** Why the last attempt failed, truncated, for the operator surface.
+     * Adapters must keep provider tokens out of their error messages. */
+    reconcileError: text(),
     createdAt: integer().notNull(),
     updatedAt: integer().notNull(),
   },
-  (t) => [uniqueIndex("idx_commerce_transactions_provider_id").on(t.provider, t.providerTransactionId), index("idx_commerce_transactions_user").on(t.userId)],
+  (t) => [uniqueIndex("idx_commerce_transactions_provider_id").on(t.provider, t.providerTransactionId), index("idx_commerce_transactions_user").on(t.userId), index("idx_commerce_transactions_sweep").on(t.provider, t.reconcileFailures, t.reconcileAttemptedAt)],
 );
 
 /** Stable account binding used by hosted checkout, customer portals, and

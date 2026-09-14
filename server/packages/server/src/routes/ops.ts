@@ -21,6 +21,7 @@
  */
 
 import { Hono } from "hono";
+import { stalledTransactions } from "../commerce/reconcile.js";
 import { readGame } from "../d1/reads.js";
 import type { RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
@@ -109,6 +110,16 @@ export function buildOpsApp(ctx: RouteContext) {
       return c.json({ ...report, note: "This game has no committed Durable Object state; D1's row is authoritative for it." });
     }
     return c.json(report);
+  });
+
+  // Commerce reconciliation gives up on a transaction rather than sweeping it
+  // forever, which keeps the queue live but means something must say so out
+  // loud. This is that. Provider transaction identifiers are operator data and
+  // never leave this token-gated surface.
+  ops.get("/commerce/stalled", async (c) => {
+    if (ctx.commerce === null) throw new HttpError(404, "Commerce is not configured");
+    const stalled = await stalledTransactions(ctx.d1(c.env), ctx.commerce);
+    return c.json({ ceiling: ctx.commerce.reconcileMaxFailures, count: stalled.length, transactions: stalled });
   });
 
   return ops;

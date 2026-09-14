@@ -147,6 +147,10 @@ export async function recordVerifiedTransaction(
             sealedProviderState,
             acknowledgementState,
             ...(input.reconciled === true ? { lastReconciledAt: input.now } : {}),
+            // A webhook or a claim that lands on a row the sweep had given up
+            // on is current provider truth, so the row rejoins the sweep.
+            reconcileFailures: 0,
+            reconcileError: null,
             updatedAt: input.now,
           })
           .where(eq(commerceTransactions.id, transactionId));

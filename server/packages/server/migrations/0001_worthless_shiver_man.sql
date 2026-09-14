@@ -59,12 +59,16 @@ CREATE TABLE `commerce_transactions` (
 	`sealed_provider_state` text,
 	`acknowledgement_state` text NOT NULL,
 	`last_reconciled_at` integer,
+	`reconcile_attempted_at` integer,
+	`reconcile_failures` integer DEFAULT 0 NOT NULL,
+	`reconcile_error` text,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `idx_commerce_transactions_provider_id` ON `commerce_transactions` (`provider`,`provider_transaction_id`);--> statement-breakpoint
 CREATE INDEX `idx_commerce_transactions_user` ON `commerce_transactions` (`user_id`);--> statement-breakpoint
+CREATE INDEX `idx_commerce_transactions_sweep` ON `commerce_transactions` (`provider`,`reconcile_failures`,`reconcile_attempted_at`);--> statement-breakpoint
 CREATE TABLE `commerce_usage` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

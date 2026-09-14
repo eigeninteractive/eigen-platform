@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "19c3bd3d-b0e7-4c9c-9814-5ca2599b8a89",
+  "id": "b89e1553-ef2e-4080-8cc8-98690a91a145",
   "prevId": "b76258a2-75d8-43d5-a4df-c78df9054a4a",
   "tables": {
     "bots": {
@@ -492,6 +492,28 @@
           "notNull": false,
           "autoincrement": false
         },
+        "reconcile_attempted_at": {
+          "name": "reconcile_attempted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reconcile_failures": {
+          "name": "reconcile_failures",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "reconcile_error": {
+          "name": "reconcile_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -520,6 +542,15 @@
           "name": "idx_commerce_transactions_user",
           "columns": [
             "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_commerce_transactions_sweep": {
+          "name": "idx_commerce_transactions_sweep",
+          "columns": [
+            "provider",
+            "reconcile_failures",
+            "reconcile_attempted_at"
           ],
           "isUnique": false
         }

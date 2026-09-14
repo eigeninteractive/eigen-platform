@@ -165,6 +165,9 @@ export interface CommerceConfig<TEnv> {
   now?: () => number;
   /** Maximum nonterminal transactions checked per provider and invocation. */
   reconcileBatch?: number;
+  /** Consecutive failed sweeps after which a transaction stops being swept and
+   * is surfaced to the operator instead. Defaults to 10. */
+  reconcileMaxFailures?: number;
 }
 
 export interface ResolvedCommerce {
@@ -172,6 +175,7 @@ export interface ResolvedCommerce {
   providers: ReadonlyMap<string, CommerceProvider<unknown>>;
   now(): number;
   reconcileBatch: number;
+  reconcileMaxFailures: number;
 }
 
 /** One content choice snapshotted onto a game at creation. */

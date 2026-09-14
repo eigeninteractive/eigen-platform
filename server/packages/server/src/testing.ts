@@ -120,13 +120,103 @@ export interface FakeCommerceEvidence {
   validFrom?: number;
   validUntil?: number;
   kind?: "oneTime" | "subscription";
+  requiresAcknowledgement?: boolean;
+  sealedProviderState?: string;
+}
+
+/**
+ * A fake provider with the controls a lifecycle test needs.
+ *
+ * Reconciliation and acknowledgement are the two places where the engine
+ * depends on a provider doing something later, so a fake that cannot fail,
+ * stall, or refuse to answer cannot prove either of them works.
+ */
+export interface FakeCommerceProvider extends CommerceProvider<unknown> {
+  /** Current provider truth per transaction, returned by the next sweep.
+   * A transaction absent from here is one the provider will not answer for. */
+  readonly transactions: Map<string, Partial<VerifiedCommerceTransaction>>;
+  /** Every transaction this provider was asked to acknowledge, in order. */
+  readonly acknowledged: string[];
+  /** Each sweep's requested ids, in order. Proves queue rotation. */
+  readonly sweeps: string[][];
+  /** Make the whole next `reconcile` call throw, as a provider outage does. */
+  failNextSweep(message?: string): void;
+  /** Make every `acknowledge` throw until cleared. */
+  failAcknowledgement(message?: string): void;
+  clearFailures(): void;
+  /** One entry per checkout session the provider actually opened. A replayed
+   * operation identity must not add one. */
+  readonly checkouts: { accountId: string; providerReference: string; operationId: string; url: string }[];
+  /** Report this provider customer on the next checkout instead of the
+   * account's usual one, as a provider confusing two customers would. */
+  reportProviderAccount(providerAccountId: string): void;
 }
 
 /** Deterministic provider for commerce lifecycle and implementor conformance tests. */
-export function fakeCommerceProvider(products: readonly (CommerceProduct & { kind?: "oneTime" | "subscription" })[], now: () => number = Date.now): CommerceProvider<unknown> {
+export function fakeCommerceProvider(
+  products: readonly (CommerceProduct & { kind?: "oneTime" | "subscription" })[],
+  now: () => number = Date.now,
+  /** The provider key. Give a sweep test its own, so the reconciliation queue
+   * it reasons about holds only the rows that test seeded. */
+  key = "fake",
+): FakeCommerceProvider {
   const registered = new Map(products.map((product) => [product.providerReference, product] as const));
+  const transactions = new Map<string, Partial<VerifiedCommerceTransaction>>();
+  const acknowledged: string[] = [];
+  const sweeps: string[][] = [];
+  const checkouts: { accountId: string; providerReference: string; operationId: string; url: string }[] = [];
+  let sweepFailure: string | null = null;
+  let acknowledgementFailure: string | null = null;
+  let providerAccountOverride: string | null = null;
   return {
-    key: "fake",
+    key,
+    transactions,
+    acknowledged,
+    sweeps,
+    failNextSweep(message = "fake provider is unavailable") {
+      sweepFailure = message;
+    },
+    failAcknowledgement(message = "fake provider refused the acknowledgement") {
+      acknowledgementFailure = message;
+    },
+    clearFailures() {
+      sweepFailure = null;
+      acknowledgementFailure = null;
+    },
+    checkouts,
+    reportProviderAccount(providerAccountId: string) {
+      providerAccountOverride = providerAccountId;
+    },
+    reconcile: async (_env, requested): Promise<readonly VerifiedCommerceTransaction[]> => {
+      sweeps.push(requested.map((reference) => reference.providerTransactionId));
+      if (sweepFailure !== null) {
+        const message = sweepFailure;
+        sweepFailure = null;
+        throw new Error(message);
+      }
+      return requested.flatMap((reference) => {
+        const current = transactions.get(reference.providerTransactionId);
+        if (current === undefined) return [];
+        const instant = now();
+        return [
+          {
+            providerTransactionId: reference.providerTransactionId,
+            providerReference: current.providerReference ?? reference.providerReference,
+            kind: current.kind ?? reference.kind,
+            state: current.state ?? "active",
+            purchasedAt: current.purchasedAt ?? instant,
+            validFrom: current.validFrom ?? instant,
+            ...(current.validUntil === undefined ? {} : { validUntil: current.validUntil }),
+            ...(current.requiresAcknowledgement === undefined ? {} : { requiresAcknowledgement: current.requiresAcknowledgement }),
+            ...(current.sealedProviderState === undefined ? {} : { sealedProviderState: current.sealedProviderState }),
+          } satisfies VerifiedCommerceTransaction,
+        ];
+      });
+    },
+    acknowledge: async (_env, transaction): Promise<void> => {
+      if (acknowledgementFailure !== null) throw new Error(acknowledgementFailure);
+      acknowledged.push(transaction.providerTransactionId);
+    },
     products: async (_env, providerReferences) => providerReferences.flatMap((id) => (registered.get(id) === undefined ? [] : [registered.get(id) as CommerceProduct])),
     verifyClaim: async (_env, input): Promise<VerifiedCommerceTransaction> => {
       const evidence = input.evidence as Partial<FakeCommerceEvidence> | null;
@@ -143,6 +233,8 @@ export function fakeCommerceProvider(products: readonly (CommerceProduct & { kin
         purchasedAt: evidence.purchasedAt ?? instant,
         validFrom: evidence.validFrom ?? instant,
         ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+        ...(evidence.requiresAcknowledgement === undefined ? {} : { requiresAcknowledgement: evidence.requiresAcknowledgement }),
+        ...(evidence.sealedProviderState === undefined ? {} : { sealedProviderState: evidence.sealedProviderState }),
       };
     },
     verifyWebhook: async (_env, request): Promise<VerifiedCommerceEvent> => {
@@ -172,11 +264,16 @@ export function fakeCommerceProvider(products: readonly (CommerceProduct & { kin
       })();
       return { providerEventId: body.eventId, accountId: body.accountId, transaction };
     },
-    createCheckout: async (_env, input) => ({
-      url: `https://checkout.example/session?account=${encodeURIComponent(input.accountId)}&product=${encodeURIComponent(input.providerReference)}&return=${encodeURIComponent(input.returnUrl)}`,
-      providerAccountId: input.providerAccountId ?? `fake:${input.accountId}`,
-      expiresAt: now() + 30 * 60 * 1000,
-    }),
+    createCheckout: async (_env, input) => {
+      // A real storefront opens a NEW session per call. Keeping that true here
+      // is what lets a test tell a replayed operation identity from a second
+      // session that merely happens to address the same offer.
+      const url = `https://checkout.example/session/${crypto.randomUUID()}?account=${encodeURIComponent(input.accountId)}&product=${encodeURIComponent(input.providerReference)}&return=${encodeURIComponent(input.returnUrl)}`;
+      checkouts.push({ accountId: input.accountId, providerReference: input.providerReference, operationId: input.operationId, url });
+      const providerAccountId = providerAccountOverride ?? input.providerAccountId ?? `fake:${input.accountId}`;
+      providerAccountOverride = null;
+      return { url, providerAccountId, expiresAt: now() + 30 * 60 * 1000 };
+    },
     management: async (_env, accountId, providerAccountId, returnUrl) => ({
       url: `https://checkout.example/manage?account=${encodeURIComponent(accountId)}&customer=${encodeURIComponent(providerAccountId)}&return=${encodeURIComponent(returnUrl)}`,
     }),

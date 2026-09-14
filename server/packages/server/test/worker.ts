@@ -205,6 +205,14 @@ export class GameDO extends BaseGameDO<TestEnv> {
 
 /** The deployed shape, with the test auth seam: the same verifier
  * code path production uses, against the checked-in local JWKS. */
+/** The suite's commerce provider, exported so a spec can drive its controls --
+ * make a sweep fail, refuse an acknowledgement, or report a different provider
+ * customer -- without rebuilding the whole worker. */
+export const commerceProvider = fakeCommerceProvider([
+  { providerReference: "supporter_once", displayPrice: "$4.99", currencyCode: "USD" },
+  { providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" },
+]);
+
 export default createEngine({
   gameModule: testGame,
   appName: "Eigen Test",
@@ -263,12 +271,7 @@ export default createEngine({
         },
       },
     },
-    providers: [
-      fakeCommerceProvider([
-        { providerReference: "supporter_once", displayPrice: "$4.99", currencyCode: "USD" },
-        { providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" },
-      ]),
-    ],
+    providers: [commerceProvider],
   },
   // The public web surface, exercised by site.spec.ts. Legal documents are
   // left at the engine defaults so the tests assert the shipped prose and its

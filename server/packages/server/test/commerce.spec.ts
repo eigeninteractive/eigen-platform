@@ -4,10 +4,10 @@ import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
-import { bots, commerceEvents, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
+import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
 import { testBearer as bearer, fakeCommerceProvider, testMutationHeaders as mutationHeaders, testFirebaseAdmin, testVerifier } from "../src/testing.js";
-import { testGame } from "./worker.js";
+import { commerceProvider, testGame } from "./worker.js";
 
 const db = orm(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
@@ -331,6 +331,84 @@ describe("purchase claims", () => {
       operationId: crypto.randomUUID(),
     });
     expect(denied.status).toBe(400);
+  });
+
+  it("replays one operation identity instead of opening a second session", async () => {
+    const accountId = uid("checkout-replay");
+    const operationId = crypto.randomUUID();
+    const body = { provider: "fake", offerKey: "supporter", returnUrl: "https://app.example/store/complete", operationId };
+
+    const first = await json<{ url: string }>(await api(accountId, "POST", "/commerce/checkout", body));
+    const again = await json<{ url: string }>(await api(accountId, "POST", "/commerce/checkout", body));
+    expect(again.url).toBe(first.url);
+
+    // Same identity, different intent: refused, rather than quietly charging
+    // for something other than what the first attempt opened.
+    const changed = await api(accountId, "POST", "/commerce/checkout", { ...body, returnUrl: "https://app.example/store/other" });
+    expect(changed.status).toBe(409);
+    expect(await changed.json()).toMatchObject({ code: "purchaseConflict" });
+  });
+
+  it("reuses an open session for a non-repeatable offer under a new identity", async () => {
+    const accountId = uid("checkout-open");
+    const body = { provider: "fake", offerKey: "supporter", returnUrl: "https://app.example/store/complete" };
+
+    const first = await json<{ url: string }>(await api(accountId, "POST", "/commerce/checkout", { ...body, operationId: crypto.randomUUID() }));
+    // A player who taps buy twice gets the session already waiting for them,
+    // not a second one they could pay twice.
+    const second = await json<{ url: string }>(await api(accountId, "POST", "/commerce/checkout", { ...body, operationId: crypto.randomUUID() }));
+    expect(second.url).toBe(first.url);
+  });
+
+  it("refuses checkout for a non-repeatable offer this account already owns", async () => {
+    const accountId = uid("checkout-owned");
+    await json(
+      await api(accountId, "POST", "/commerce/claims", {
+        provider: "fake",
+        offerKey: "supporter",
+        evidence: evidence(accountId, crypto.randomUUID(), "supporter_once"),
+      }),
+    );
+
+    const denied = await api(accountId, "POST", "/commerce/checkout", {
+      provider: "fake",
+      offerKey: "supporter",
+      returnUrl: "https://app.example/store/complete",
+      operationId: crypto.randomUUID(),
+    });
+    expect(denied.status).toBe(409);
+    expect(await denied.json()).toMatchObject({ code: "purchaseConflict" });
+  });
+
+  it("binds one provider customer per account and refuses a second", async () => {
+    const accountId = uid("checkout-customer");
+    await json(
+      await api(accountId, "POST", "/commerce/checkout", {
+        provider: "fake",
+        offerKey: "supporter",
+        returnUrl: "https://app.example/store/complete",
+        operationId: crypto.randomUUID(),
+      }),
+    );
+
+    const bound = await db.select().from(commerceProviderAccounts).where(eq(commerceProviderAccounts.userId, accountId)).get();
+    expect(bound?.providerAccountId).toBe(`fake:${accountId}`);
+
+    // Management resolves through that binding rather than asking the client.
+    const management = await json<{ url: string }>(await api(accountId, "POST", "/commerce/management", { provider: "fake", returnUrl: "https://x/settings/billing" }));
+    expect(new URL(management.url).searchParams.get("customer")).toBe(`fake:${accountId}`);
+
+    // A provider that reports a different customer for the same account is a
+    // confusion that must not silently rebind a paying user's purchases.
+    commerceProvider.reportProviderAccount("fake:someone-else");
+    const rebind = await api(accountId, "POST", "/commerce/checkout", {
+      provider: "fake",
+      offerKey: "pro_monthly",
+      returnUrl: "https://app.example/store/complete",
+      operationId: crypto.randomUUID(),
+    });
+    expect(rebind.status).toBe(409);
+    expect(await rebind.json()).toMatchObject({ code: "purchaseConflict" });
   });
 });
 
