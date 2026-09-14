@@ -30,9 +30,8 @@ BotRunner botRunner(Ref ref) => const IsolateBotRunner();
 Future<List<LocalGameRecord>> localGames(Ref ref) async {
   final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return const [];
-  final records = await (await ref.watch(
-    localGameStoreProvider.future,
-  )).list(userId);
+  final records = await (await ref.watch(localGameStoreProvider.future))
+      .list(userId);
   return records..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 }
 

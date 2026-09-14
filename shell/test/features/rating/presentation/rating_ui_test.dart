@@ -10,15 +10,12 @@ void main() {
   final semanticColors = AppSemanticColors.forBrightness(Brightness.light);
 
   test('rating gains use success while losses and no-change stay standard', () {
-    check(
-      _delta(12).color(colorScheme, semanticColors: semanticColors),
-    ).equals(semanticColors.success);
-    check(
-      _delta(-12).color(colorScheme, semanticColors: semanticColors),
-    ).equals(colorScheme.error);
-    check(
-      _delta(0).color(colorScheme, semanticColors: semanticColors),
-    ).equals(colorScheme.onSurfaceVariant);
+    check(_delta(12).color(colorScheme, semanticColors: semanticColors))
+        .equals(semanticColors.success);
+    check(_delta(-12).color(colorScheme, semanticColors: semanticColors))
+        .equals(colorScheme.error);
+    check(_delta(0).color(colorScheme, semanticColors: semanticColors))
+        .equals(colorScheme.onSurfaceVariant);
   });
 }
 

@@ -1,0 +1,28 @@
+# Workspace-root analyser options.
+#
+# This file exists for one reason: the analyser's plugin system requires plugins
+# to be declared at the root of a pub workspace. Declaring them per package,
+# which is where they lived before the workspace, is now an error:
+#
+#   Plugins can only be specified in the root of a pub workspace or the root of
+#   a package that isn't in a workspace.
+#
+# The legacy `analyzer: plugins:` form those packages used still works, but Dart
+# 3.13's analyser reports it as a deprecation warning, and `flutter analyze`
+# counts a warning as a finding -- so it failed the shard outright.
+#
+# riverpod_lint moved to this system itself in 3.1.0, which stopped being
+# implemented on `custom_lint` and moved to `analysis_server_plugin`. That also
+# made `flutter/analysis_options.yaml`'s `custom_lint` entry dead: nothing in
+# this repository depends on custom_lint at all.
+#
+# Worth knowing before relying on it: riverpod_lint contributes no findings to
+# `dart analyze` or `flutter analyze` here, and did not under the legacy form
+# either -- a deliberate `avoid_public_notifier_properties` violation went
+# unreported by both. So this change preserves CLI behaviour exactly; what it
+# affects is the editor, which is where these lints have always actually run.
+#
+# Each package keeps its own analysis_options.yaml for its lints and excludes.
+# Only `plugins` has to live up here.
+plugins:
+  riverpod_lint: ^3.1.4

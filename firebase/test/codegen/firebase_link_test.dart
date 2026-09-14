@@ -179,12 +179,10 @@ void main() {
     setUp(() {
       root = Directory.systemTemp.createTempSync('eigen-link-');
       Directory(path.join(root.path, 'server')).createSync(recursive: true);
-      Directory(
-        path.join(root.path, 'app', 'android', 'app'),
-      ).createSync(recursive: true);
-      File(
-        path.join(root.path, 'server', 'wrangler.jsonc'),
-      ).writeAsStringSync(_wrangler);
+      Directory(path.join(root.path, 'app', 'android', 'app'))
+          .createSync(recursive: true);
+      File(path.join(root.path, 'server', 'wrangler.jsonc'))
+          .writeAsStringSync(_wrangler);
       File(path.join(root.path, 'app', 'app-config.json')).writeAsStringSync(
         '${const JsonEncoder.withIndent('  ').convert({'API_BASE_URL': 'http://localhost:8787', 'APP_HOST': '', 'GOOGLE_WEB_CLIENT_ID': '', 'FIREBASE_VAPID_KEY': ''})}\n',
       );
@@ -194,22 +192,17 @@ void main() {
 
     Directory app() => Directory(path.join(root.path, 'app'));
     Directory server() => Directory(path.join(root.path, 'server'));
-    String wrangler() => File(
-      path.join(root.path, 'server', 'wrangler.jsonc'),
-    ).readAsStringSync();
-    Map<String, dynamic> appConfig() =>
-        jsonDecode(
-              File(
-                path.join(root.path, 'app', 'app-config.json'),
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>;
+    String wrangler() =>
+        File(path.join(root.path, 'server', 'wrangler.jsonc'))
+            .readAsStringSync();
+    Map<String, dynamic> appConfig() => jsonDecode(
+      File(path.join(root.path, 'app', 'app-config.json')).readAsStringSync(),
+    ) as Map<String, dynamic>;
 
     void configure({String? projectId, List<Map<String, dynamic>>? oauth}) {
       if (projectId != null) {
-        File(
-          path.join(root.path, 'app', 'firebase.json'),
-        ).writeAsStringSync(jsonEncode(_firebaseJson(projectId)));
+        File(path.join(root.path, 'app', 'firebase.json'))
+            .writeAsStringSync(jsonEncode(_firebaseJson(projectId)));
       }
       if (oauth != null) {
         File(

@@ -9,8 +9,6 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
-  plugins:
-    - riverpod_lint
 
 linter:
   rules:

@@ -35,9 +35,8 @@ class StatusBanner extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: foregroundColor),
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: foregroundColor),
             ),
           ],
         ),

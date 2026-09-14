@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'auth_user.dart';
@@ -9,6 +9,7 @@ part of 'auth_user.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -25,16 +26,21 @@ $AuthUserCopyWith<AuthUser> get copyWith => _$AuthUserCopyWithImpl<AuthUser>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous));
+  final _this = this as AuthUser;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthUser&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.isAnonymous, _this.isAnonymous) || other.isAnonymous == _this.isAnonymous));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,isAnonymous);
+int get hashCode {
+  final _this = this as AuthUser;
+  return Object.hash(runtimeType,_this.id,_this.isAnonymous);
+}
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, isAnonymous: $isAnonymous)';
+  final _this = this as AuthUser;
+  return 'AuthUser(id: ${_this.id}, isAnonymous: ${_this.isAnonymous})';
 }
 
 
@@ -63,7 +69,7 @@ class _$AuthUserCopyWithImpl<$Res>
 /// Create a copy of AuthUser
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? isAnonymous = null,}) {
-  return _then(_self.copyWith(
+  return _then(AuthUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,isAnonymous: null == isAnonymous ? _self.isAnonymous : isAnonymous // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -223,16 +229,18 @@ _$AuthUserCopyWith<_AuthUser> get copyWith => __$AuthUserCopyWithImpl<_AuthUser>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthUser&&(identical(other.id, id) || other.id == id)&&(identical(other.isAnonymous, isAnonymous) || other.isAnonymous == isAnonymous));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,isAnonymous);
+int get hashCode {
+    return Object.hash(runtimeType,id,isAnonymous);
+}
 
 @override
 String toString() {
-  return 'AuthUser(id: $id, isAnonymous: $isAnonymous)';
+    return 'AuthUser(id: $id, isAnonymous: $isAnonymous)';
 }
 
 
@@ -285,16 +293,21 @@ $AuthStateChangeCopyWith<AuthStateChange> get copyWith => _$AuthStateChangeCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthStateChange&&(identical(other.event, event) || other.event == event)&&(identical(other.user, user) || other.user == user));
+  final _this = this as AuthStateChange;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AuthStateChange&&(identical(other.event, _this.event) || other.event == _this.event)&&(identical(other.user, _this.user) || other.user == _this.user));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,event,user);
+int get hashCode {
+  final _this = this as AuthStateChange;
+  return Object.hash(runtimeType,_this.event,_this.user);
+}
 
 @override
 String toString() {
-  return 'AuthStateChange(event: $event, user: $user)';
+  final _this = this as AuthStateChange;
+  return 'AuthStateChange(event: ${_this.event}, user: ${_this.user})';
 }
 
 
@@ -323,7 +336,7 @@ class _$AuthStateChangeCopyWithImpl<$Res>
 /// Create a copy of AuthStateChange
 /// with the given fields replaced by the non-null parameter values.
 @pragma('vm:prefer-inline') @override $Res call({Object? event = null,Object? user = freezed,}) {
-  return _then(_self.copyWith(
+  return _then(AuthStateChange(
 event: null == event ? _self.event : event // ignore: cast_nullable_to_non_nullable
 as AuthEvent,user: freezed == user ? _self.user : user // ignore: cast_nullable_to_non_nullable
 as AuthUser?,
@@ -495,16 +508,18 @@ _$AuthStateChangeCopyWith<_AuthStateChange> get copyWith => __$AuthStateChangeCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthStateChange&&(identical(other.event, event) || other.event == event)&&(identical(other.user, user) || other.user == user));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _AuthStateChange&&(identical(other.event, event) || other.event == event)&&(identical(other.user, user) || other.user == user));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,event,user);
+int get hashCode {
+    return Object.hash(runtimeType,event,user);
+}
 
 @override
 String toString() {
-  return 'AuthStateChange(event: $event, user: $user)';
+    return 'AuthStateChange(event: $event, user: $user)';
 }
 
 

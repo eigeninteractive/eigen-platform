@@ -116,8 +116,14 @@ final class _PayloadEmitter {
     // Generated source targets this package's minimum SDK language version,
     // not whichever newer style happens to ship with dart_style. Otherwise a
     // formatter release can make generation disagree with `dart format` in a
-    // consuming Dart 3.12 package even when the contract did not change.
-    return DartFormatter(languageVersion: Version(3, 12, 0)).format('$source');
+    // consuming package at that floor even when the contract did not change.
+    //
+    // So this tracks the `environment: sdk:` floor the platform declares, and
+    // moves when that moves. Forgetting is loud rather than silent: the
+    // generated fixtures are committed and `dart format --set-exit-if-changed`
+    // runs over them, so a stale value here fails the flutter shard -- which is
+    // how the 3.12 it held before the Flutter 3.47 move was found.
+    return DartFormatter(languageVersion: Version(3, 13, 0)).format('$source');
   }
 
   Spec _emitDeclaration(_PayloadDeclaration declaration) =>

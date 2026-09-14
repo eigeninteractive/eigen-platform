@@ -53,7 +53,7 @@ The architectural rewrite is complete. A clean GitHub checkout passes the server
 Flutter, documentation, manifest, and Android/web scaffold shards. The unified
 release process has published every package from `eigen-platform`, the live
 documentation deploys from this repository, and registry versions match
-`platform.json`.
+the manifests in this repository.
 
 This does not mean the product is production-mature. It means this repository is
 the current platform rather than a future replacement. New work should be framed

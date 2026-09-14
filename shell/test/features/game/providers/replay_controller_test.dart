@@ -72,12 +72,10 @@ void main() {
       final frames = [_frame(0, 0), _frame(1, 1), _frame(2, 2)];
       final container = makeContainer(
         overrides: [
-          replayFramesProvider(
-            gameId: 'g1',
-          ).overrideWith((ref) async => frames),
-          gameRulesProvider(
-            gameId: 'g1',
-          ).overrideWith((ref) async => const ExampleRules()),
+          replayFramesProvider(gameId: 'g1')
+              .overrideWith((ref) async => frames),
+          gameRulesProvider(gameId: 'g1')
+              .overrideWith((ref) async => const ExampleRules()),
         ],
       );
 
@@ -100,12 +98,10 @@ void main() {
       final frames = [_frame(0, 0)];
       final container = makeContainer(
         overrides: [
-          replayFramesProvider(
-            gameId: 'g1',
-          ).overrideWith((ref) async => frames),
-          gameRulesProvider(
-            gameId: 'g1',
-          ).overrideWith((ref) async => const ExampleRules()),
+          replayFramesProvider(gameId: 'g1')
+              .overrideWith((ref) async => frames),
+          gameRulesProvider(gameId: 'g1')
+              .overrideWith((ref) async => const ExampleRules()),
         ],
       );
 

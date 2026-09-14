@@ -132,9 +132,8 @@ class GoogleSignInButton extends ConsumerWidget {
     ref.listen(authControllerProvider, (_, next) {
       next.whenOrNull(
         error: (error, _) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(humanize(error))));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(humanize(error))));
         },
       );
     });

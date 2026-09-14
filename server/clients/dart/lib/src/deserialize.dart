@@ -246,16 +246,15 @@ ReturnType deserialize<ReturnType, BaseType>(
       if (value is Map && (match = _regMap.firstMatch(targetType)) != null) {
         targetType = match![1]!.trim(); // ignore: parameter_assignments
         return Map<String, BaseType>.fromIterables(
-              value.keys as Iterable<String>,
-              value.values.map(
-                (dynamic v) => deserialize<BaseType, BaseType>(
-                  v,
-                  targetType,
-                  growable: growable,
-                ),
-              ),
-            )
-            as ReturnType;
+          value.keys as Iterable<String>,
+          value.values.map(
+            (dynamic v) => deserialize<BaseType, BaseType>(
+              v,
+              targetType,
+              growable: growable,
+            ),
+          ),
+        ) as ReturnType;
       }
       break;
   }

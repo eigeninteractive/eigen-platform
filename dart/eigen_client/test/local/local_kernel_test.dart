@@ -256,20 +256,18 @@ void main() {
         pending: const [0],
         rngSeed: _seed,
       );
-      final plan =
-          localCommit(
-                game: _meta(status: GameStatus.active),
-                state: reached,
-                roster: counterRoster(),
-                intent: const LocalActionIntent(
-                  seat: 0,
-                  expectedVersion: 3,
-                  data: {'step': 1},
-                  actor: LocalActor.user,
-                ),
-                rules: const CounterRules(),
-              )
-              as LocalCommitPlan;
+      final plan = localCommit(
+        game: _meta(status: GameStatus.active),
+        state: reached,
+        roster: counterRoster(),
+        intent: const LocalActionIntent(
+          seat: 0,
+          expectedVersion: 3,
+          data: {'step': 1},
+          actor: LocalActor.user,
+        ),
+        rules: const CounterRules(),
+      ) as LocalCommitPlan;
 
       expect(plan.nextState.version, 4);
       expect(plan.nextState.pending, isEmpty);
@@ -307,15 +305,13 @@ void main() {
   group('forfeit', () {
     test('resolves the game and logs a lifecycle action', () {
       final opening = _start(rules: const SeatZeroRules()).nextState;
-      final plan =
-          localCommit(
-                game: _meta(status: GameStatus.active),
-                state: opening,
-                roster: counterRoster(),
-                intent: const LocalForfeitIntent(0),
-                rules: const CounterRules(),
-              )
-              as LocalCommitPlan;
+      final plan = localCommit(
+        game: _meta(status: GameStatus.active),
+        state: opening,
+        roster: counterRoster(),
+        intent: const LocalForfeitIntent(0),
+        rules: const CounterRules(),
+      ) as LocalCommitPlan;
 
       expect(plan.nextState.pending, isEmpty);
       expect(plan.action!.kind, LocalActionKind.lifecycle);

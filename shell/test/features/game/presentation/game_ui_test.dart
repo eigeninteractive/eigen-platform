@@ -10,18 +10,14 @@ void main() {
   final semanticColors = AppSemanticColors.forBrightness(Brightness.light);
 
   test('game statuses use semantic roles instead of brand roles', () {
-    check(
-      GameStatus.waiting.color(colorScheme, semanticColors: semanticColors),
-    ).equals(semanticColors.warning);
-    check(
-      GameStatus.ready.color(colorScheme, semanticColors: semanticColors),
-    ).equals(semanticColors.info);
-    check(
-      GameStatus.active.color(colorScheme, semanticColors: semanticColors),
-    ).equals(semanticColors.success);
-    check(
-      GameStatus.aborted.color(colorScheme, semanticColors: semanticColors),
-    ).equals(colorScheme.error);
+    check(GameStatus.waiting.color(colorScheme, semanticColors: semanticColors))
+        .equals(semanticColors.warning);
+    check(GameStatus.ready.color(colorScheme, semanticColors: semanticColors))
+        .equals(semanticColors.info);
+    check(GameStatus.active.color(colorScheme, semanticColors: semanticColors))
+        .equals(semanticColors.success);
+    check(GameStatus.aborted.color(colorScheme, semanticColors: semanticColors))
+        .equals(colorScheme.error);
     check(
       GameStatus.finished.color(colorScheme, semanticColors: semanticColors),
     ).equals(colorScheme.onSurfaceVariant);
@@ -66,11 +62,9 @@ void main() {
     ).equals(colorScheme.error);
 
     final OutcomeResultEnum? aborted = null;
-    check(
-      aborted.color(colorScheme, semanticColors: semanticColors),
-    ).equals(colorScheme.onSurfaceVariant);
-    check(
-      aborted.containerColor(colorScheme, semanticColors: semanticColors),
-    ).equals(colorScheme.surfaceContainerHighest);
+    check(aborted.color(colorScheme, semanticColors: semanticColors))
+        .equals(colorScheme.onSurfaceVariant);
+    check(aborted.containerColor(colorScheme, semanticColors: semanticColors))
+        .equals(colorScheme.surfaceContainerHighest);
   });
 }

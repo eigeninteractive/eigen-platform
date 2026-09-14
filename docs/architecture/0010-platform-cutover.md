@@ -17,16 +17,14 @@ commits remain readable in GitHub's archive. Do not delete or rewrite them.
 ## Evidence
 
 - Complete server, Flutter, and web histories were imported without squashing;
-  the import anchors are recorded in [0000](0000-monorepo-import.md) and
-  `platform.json`.
+  the import anchors are recorded in [0000](0000-monorepo-import.md).
 - No predecessor branch contains unmerged product work. The one post-import
   `eigen-web` commit is a scheduled regeneration of obsolete API reference from
   the old server and is superseded by the monorepo's same-revision generation.
 - The old repositories have no open issues. The only open pull request is an
   obsolete Dependabot update in `eigen-server`; equivalent or newer actions are
   already used here.
-- All npm and pub.dev package versions in `platform.json` are published from
-  this repository.
+- Every npm and pub.dev package is published from this repository.
 - The live OpenAPI document matches this repository byte for byte, and
   Cloudflare Workers Builds reports a successful documentation deployment from
   this repository.

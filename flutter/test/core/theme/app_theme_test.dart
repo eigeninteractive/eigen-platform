@@ -34,12 +34,10 @@ void main() {
     // as the framework defines them, which is what carries this through to
     // Material Expressive.
     check(themed.displayLarge!.fontSize).equals(base.displayLarge!.fontSize);
-    check(
-      themed.displayLarge!.fontWeight,
-    ).equals(base.displayLarge!.fontWeight);
-    check(
-      themed.displayLarge!.letterSpacing,
-    ).equals(base.displayLarge!.letterSpacing);
+    check(themed.displayLarge!.fontWeight)
+        .equals(base.displayLarge!.fontWeight);
+    check(themed.displayLarge!.letterSpacing)
+        .equals(base.displayLarge!.letterSpacing);
     check(themed.headlineSmall!.height).equals(base.headlineSmall!.height);
   });
 
@@ -62,12 +60,10 @@ void main() {
   });
 
   test('derives both brightnesses from the seed', () {
-    check(
-      AppTheme.light(Colors.teal).colorScheme.brightness,
-    ).equals(Brightness.light);
-    check(
-      AppTheme.dark(Colors.teal).colorScheme.brightness,
-    ).equals(Brightness.dark);
+    check(AppTheme.light(Colors.teal).colorScheme.brightness)
+        .equals(Brightness.light);
+    check(AppTheme.dark(Colors.teal).colorScheme.brightness)
+        .equals(Brightness.dark);
   });
 
   test('builds and caches distinct high-contrast themes', () {
@@ -75,13 +71,11 @@ void main() {
     final highContrast = AppTheme.highContrastLight(Colors.teal);
 
     check(identical(regular, highContrast)).isFalse();
-    check(
-      identical(highContrast, AppTheme.highContrastLight(Colors.teal)),
-    ).isTrue();
+    check(identical(highContrast, AppTheme.highContrastLight(Colors.teal)))
+        .isTrue();
     check(highContrast.colorScheme.brightness).equals(Brightness.light);
-    check(
-      highContrast.colorScheme.primary,
-    ).not((color) => color.equals(regular.colorScheme.primary));
+    check(highContrast.colorScheme.primary)
+        .not((color) => color.equals(regular.colorScheme.primary));
   });
 
   test('installs the matching semantic extension on every theme', () {
@@ -90,18 +84,14 @@ void main() {
     final highContrastLight = AppTheme.highContrastLight(Colors.teal);
     final highContrastDark = AppTheme.highContrastDark(Colors.teal);
 
-    check(
-      light.extension<AppSemanticColors>()!.success,
-    ).equals(Colors.green.shade800);
-    check(
-      dark.extension<AppSemanticColors>()!.success,
-    ).equals(Colors.green.shade300);
-    check(
-      highContrastLight.extension<AppSemanticColors>()!.success,
-    ).equals(Colors.green.shade900);
-    check(
-      highContrastDark.extension<AppSemanticColors>()!.success,
-    ).equals(Colors.green.shade100);
+    check(light.extension<AppSemanticColors>()!.success)
+        .equals(Colors.green.shade800);
+    check(dark.extension<AppSemanticColors>()!.success)
+        .equals(Colors.green.shade300);
+    check(highContrastLight.extension<AppSemanticColors>()!.success)
+        .equals(Colors.green.shade900);
+    check(highContrastDark.extension<AppSemanticColors>()!.success)
+        .equals(Colors.green.shade100);
   });
 
   test('semantic meanings do not change with the brand seed', () {
