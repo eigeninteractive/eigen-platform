@@ -25,6 +25,12 @@ code. Optional blocks (`deepLink`, `avatars`, `site`, `lifecycle`) are simply
 absent when a feature is not wanted; the corresponding routes are then not
 mounted.
 
+`commerce` is optional in the same way. When present it declares the free
+profile, offers, entitlements, content, limits, and provider adapters. Provider
+product IDs are public configuration; verification credentials and webhook
+secrets remain Worker secrets. See [Monetization](../build-a-game/monetization.md)
+for the complete setup.
+
 | Kind | Name | Required | What it enables |
 |---|---|---|---|
 | Durable Object | `GameDO` (SQLite storage, via the `exports` field) | **yes** | The per-game session + history |

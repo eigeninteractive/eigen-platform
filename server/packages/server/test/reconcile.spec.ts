@@ -25,11 +25,17 @@ const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
+  const requestBody = creationRequestBody(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid: id })), "content-type": "application/json" } : await mutationHeaders({ uid: id }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
+}
+
+function creationRequestBody(method: string, path: string, body: unknown): unknown {
+  if (method !== "POST" || path !== "/games" || body === null || typeof body !== "object" || "creationId" in body) return body;
+  return { creationId: crypto.randomUUID(), ...body };
 }
 
 /** The operator surface authenticates with its own secret, never a player token. */

@@ -9,6 +9,7 @@ import 'package:eigen_api/src/auth/bearer_auth.dart';
 import 'package:eigen_api/src/auth/oauth.dart';
 import 'package:eigen_api/src/api/bot_webhook_api.dart';
 import 'package:eigen_api/src/api/bots_api.dart';
+import 'package:eigen_api/src/api/commerce_api.dart';
 import 'package:eigen_api/src/api/games_api.dart';
 import 'package:eigen_api/src/api/health_api.dart';
 import 'package:eigen_api/src/api/me_api.dart';
@@ -94,6 +95,12 @@ class EigenApi {
   /// by doing that all interceptors will not be executed
   BotsApi getBotsApi() {
     return BotsApi(dio);
+  }
+
+  /// Get CommerceApi instance, base route and serializer can be overridden by a given but be careful,
+  /// by doing that all interceptors will not be executed
+  CommerceApi getCommerceApi() {
+    return CommerceApi(dio);
   }
 
   /// Get GamesApi instance, base route and serializer can be overridden by a given but be careful,

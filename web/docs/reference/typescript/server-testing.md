@@ -29,9 +29,73 @@ production config: pass `testing` ONLY in test workers.
 
 ## Interfaces
 
+### FakeCommerceEvidence
+
+Defined in: [server/packages/server/src/testing.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L114)
+
+#### Properties
+
+##### accountId
+
+```ts
+accountId: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L117)
+
+##### productId
+
+```ts
+productId: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L116)
+
+##### purchasedAt?
+
+```ts
+optional purchasedAt?: number;
+```
+
+Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L119)
+
+##### state?
+
+```ts
+optional state?: CommerceTransactionState;
+```
+
+Defined in: [server/packages/server/src/testing.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L118)
+
+##### transactionId
+
+```ts
+transactionId: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L115)
+
+##### validFrom?
+
+```ts
+optional validFrom?: number;
+```
+
+Defined in: [server/packages/server/src/testing.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L120)
+
+##### validUntil?
+
+```ts
+optional validUntil?: number;
+```
+
+Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L121)
+
+***
+
 ### TestTokenOptions
 
-Defined in: [server/packages/server/src/testing.ts:70](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L70)
+Defined in: [server/packages/server/src/testing.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L71)
 
 #### Properties
 
@@ -41,7 +105,7 @@ Defined in: [server/packages/server/src/testing.ts:70](https://github.com/eigeni
 optional anonymous?: boolean;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:72](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L72)
+Defined in: [server/packages/server/src/testing.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L73)
 
 ##### claims?
 
@@ -49,7 +113,7 @@ Defined in: [server/packages/server/src/testing.ts:72](https://github.com/eigeni
 optional claims?: Record<string, unknown>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L77)
+Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L78)
 
 Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 
@@ -59,7 +123,7 @@ Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 optional email?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L73)
+Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L74)
 
 ##### name?
 
@@ -67,7 +131,7 @@ Defined in: [server/packages/server/src/testing.ts:73](https://github.com/eigeni
 optional name?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L74)
+Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L75)
 
 ##### picture?
 
@@ -75,7 +139,7 @@ Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeni
 optional picture?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L75)
+Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L76)
 
 ##### uid
 
@@ -83,7 +147,7 @@ Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeni
 uid: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L71)
+Defined in: [server/packages/server/src/testing.ts:72](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L72)
 
 ## Variables
 
@@ -93,7 +157,7 @@ Defined in: [server/packages/server/src/testing.ts:71](https://github.com/eigeni
 const TEST_PROJECT_ID: "eigen-test" = "eigen-test";
 ```
 
-Defined in: [server/packages/server/src/testing.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L36)
+Defined in: [server/packages/server/src/testing.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L37)
 
 ***
 
@@ -103,11 +167,34 @@ Defined in: [server/packages/server/src/testing.ts:36](https://github.com/eigeni
 const testFirebaseAdmin: FirebaseAdminEffects;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:60](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L60)
+Defined in: [server/packages/server/src/testing.ts:61](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L61)
 
 No-op Firebase Admin effects for test workers and test Durable Objects.
 
 ## Functions
+
+### fakeCommerceProvider()
+
+```ts
+function fakeCommerceProvider(products, now?): CommerceProvider<unknown>;
+```
+
+Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L125)
+
+Deterministic provider for commerce lifecycle and implementor conformance tests.
+
+#### Parameters
+
+| Parameter | Type | Default value |
+| ------ | ------ | ------ |
+| `products` | readonly [`CommerceProduct`](server.md#commerceproduct)[] | `undefined` |
+| `now` | () => `number` | `Date.now` |
+
+#### Returns
+
+[`CommerceProvider`](server.md#commerceprovider)\<`unknown`\>
+
+***
 
 ### mintTestToken()
 
@@ -115,7 +202,7 @@ No-op Firebase Admin effects for test workers and test Durable Objects.
 function mintTestToken(opts): Promise<string>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:80](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L80)
+Defined in: [server/packages/server/src/testing.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L81)
 
 #### Parameters
 
@@ -135,7 +222,7 @@ Defined in: [server/packages/server/src/testing.ts:80](https://github.com/eigeni
 function testBearer(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:99](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L99)
+Defined in: [server/packages/server/src/testing.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L100)
 
 Authorization header for a minted token.
 
@@ -157,7 +244,7 @@ Authorization header for a minted token.
 function testMutationHeaders(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L106)
+Defined in: [server/packages/server/src/testing.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L107)
 
 Headers for an authenticated JSON mutation.
 
@@ -179,7 +266,7 @@ Headers for an authenticated JSON mutation.
 function testVerifier(): TokenVerifier;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:66](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L66)
+Defined in: [server/packages/server/src/testing.ts:67](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L67)
 
 The verifier a test worker passes under `createEngine({ testing })`.
 

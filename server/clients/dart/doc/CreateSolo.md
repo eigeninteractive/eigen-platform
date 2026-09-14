@@ -8,6 +8,7 @@ import 'package:eigen_api/api.dart';
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
+**creationId** | **String** |  | 
 **schemaVersion** | **int** | The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version. | 
 **config** | **Object** |  | 
 **minPlayers** | **int** |  | [optional] 

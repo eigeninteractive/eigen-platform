@@ -33,6 +33,7 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
   late int _maxPlayers;
   Widget? _creationConfigWidget;
   bool _isLoading = false;
+  String? _creationId;
 
   // Rated toggle: on by default. Only meaningful when the config is rating-
   // eligible (see [GameRules.ratingPool]); the server is the final authority.
@@ -210,6 +211,7 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
 
   Future<void> _createGame() async {
     setState(() => _isLoading = true);
+    final creationId = _creationId ??= newGameCreationId();
     try {
       // `rated` is a concrete assertion validated by the server (rejected on
       // mismatch, not coerced), so compute the eligibility-gated value here,
@@ -231,6 +233,7 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
       final gameId = await ref
           .read(gameRepositoryProvider)
           .createGame(
+            creationId: creationId,
             access: _access,
             turnSeconds: _timing.turnSeconds,
             budgetSeconds: _timing.budgetSeconds,
@@ -241,6 +244,7 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
             rated: rated,
             schemaVersion: _module.latestSchemaVersion,
           );
+      _creationId = null;
       ref
           .read(analyticsServiceProvider)
           .gameCreated(
@@ -253,6 +257,9 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
       Navigator.pop(context);
       context.pushNamed('game', pathParameters: {'gameId': gameId.gameId});
     } catch (e) {
+      // A server rejection is definitive. A transport failure may have lost a
+      // successful response, so retain the identity and converge on retry.
+      if (e is EngineException) _creationId = null;
       if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(

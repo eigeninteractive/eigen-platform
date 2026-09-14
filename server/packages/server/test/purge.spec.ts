@@ -13,7 +13,7 @@ import { and, eq } from "drizzle-orm";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFinish, createGame } from "../src/d1/apply.js";
 import { orm } from "../src/d1/orm.js";
-import { games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
+import { commerceTransactions, entitlementGrants, games, participants, playerRatings, ratingHistory, users } from "../src/d1/schema.js";
 import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
 import { userRow } from "./factories.js";
 import worker from "./worker.js";
@@ -21,11 +21,17 @@ import worker from "./worker.js";
 const db = orm(env.DB);
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
+  const requestBody = creationRequestBody(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid, anonymous })), "content-type": "application/json" } : await mutationHeaders({ uid, anonymous }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
+}
+
+function creationRequestBody(method: string, path: string, body: unknown): unknown {
+  if (method !== "POST" || path !== "/games" || body === null || typeof body !== "object" || "creationId" in body) return body;
+  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {
@@ -77,6 +83,29 @@ describe("delete-account", () => {
     const seats = await db.select().from(participants).where(eq(participants.gameId, gameId)).all();
     expect(seats.find((s) => s.playerIndex === 0)?.userId).toBeNull(); // A, anonymized
     expect(seats.find((s) => s.playerIndex === 1)?.userId).toBe(b); // B, intact
+  });
+
+  it("removes access grants and pseudonymizes retained transaction facts", async () => {
+    const accountId = uid("commerce-delete");
+    const transactionId = crypto.randomUUID();
+    expect(
+      (
+        await api(accountId, "POST", "/commerce/claims", {
+          provider: "fake",
+          offerKey: "supporter",
+          evidence: {
+            accountId,
+            transactionId,
+            providerReference: "supporter_once",
+          },
+        })
+      ).status,
+    ).toBe(200);
+
+    expect((await api(accountId, "DELETE", "/me")).status).toBe(204);
+    expect(await db.select().from(entitlementGrants).where(eq(entitlementGrants.userId, accountId)).all()).toEqual([]);
+    const retained = await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).get();
+    expect(retained).toMatchObject({ userId: null, providerReference: "supporter_once" });
   });
 });
 

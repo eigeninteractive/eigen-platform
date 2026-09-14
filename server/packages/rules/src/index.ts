@@ -17,6 +17,8 @@ export type {
   BotActionArgs,
   BotSeatableArgs,
   ComputeObservationArgs,
+  ContentForCreateArgs,
+  ContentForCreateResult,
   Envelope,
   GameAccess,
   GameModule,

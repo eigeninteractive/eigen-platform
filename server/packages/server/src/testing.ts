@@ -31,6 +31,7 @@
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";
 import { createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
+import type { CommerceProduct, CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "./commerce/types.js";
 import type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 
 export const TEST_PROJECT_ID = "eigen-test";
@@ -107,5 +108,77 @@ export async function testMutationHeaders(opts: TestTokenOptions): Promise<Recor
   return {
     ...(await testBearer(opts)),
     "content-type": "application/json",
+  };
+}
+
+export interface FakeCommerceEvidence {
+  transactionId: string;
+  providerReference: string;
+  accountId: string;
+  state?: CommerceTransactionState;
+  purchasedAt?: number;
+  validFrom?: number;
+  validUntil?: number;
+  kind?: "oneTime" | "subscription";
+}
+
+/** Deterministic provider for commerce lifecycle and implementor conformance tests. */
+export function fakeCommerceProvider(products: readonly (CommerceProduct & { kind?: "oneTime" | "subscription" })[], now: () => number = Date.now): CommerceProvider<unknown> {
+  const registered = new Map(products.map((product) => [product.providerReference, product] as const));
+  return {
+    key: "fake",
+    products: async (_env, providerReferences) => providerReferences.flatMap((id) => (registered.get(id) === undefined ? [] : [registered.get(id) as CommerceProduct])),
+    verifyClaim: async (_env, input): Promise<VerifiedCommerceTransaction> => {
+      const evidence = input.evidence as Partial<FakeCommerceEvidence> | null;
+      if (evidence === null || typeof evidence !== "object") throw new Error("fake commerce evidence must be an object");
+      if (evidence.accountId !== input.accountId) throw new Error("fake commerce evidence belongs to another account");
+      if (evidence.providerReference !== input.expectedProviderReference || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+      if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
+      const instant = now();
+      return {
+        providerTransactionId: evidence.transactionId,
+        providerReference: evidence.providerReference,
+        kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
+        state: evidence.state ?? "active",
+        purchasedAt: evidence.purchasedAt ?? instant,
+        validFrom: evidence.validFrom ?? instant,
+        ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+      };
+    },
+    verifyWebhook: async (_env, request): Promise<VerifiedCommerceEvent> => {
+      const body = (await request.json()) as Partial<FakeCommerceEvidence> & {
+        eventId?: string;
+      };
+      if (typeof body.eventId !== "string" || body.eventId.length === 0) {
+        throw new Error("fake commerce webhook needs an eventId");
+      }
+      if (typeof body.accountId !== "string") {
+        throw new Error("fake commerce webhook needs an accountId");
+      }
+      const transaction = await (async (): Promise<VerifiedCommerceTransaction> => {
+        const evidence = body;
+        if (typeof evidence.providerReference !== "string" || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+        if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
+        const instant = now();
+        return {
+          providerTransactionId: evidence.transactionId,
+          providerReference: evidence.providerReference,
+          kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
+          state: evidence.state ?? "active",
+          purchasedAt: evidence.purchasedAt ?? instant,
+          validFrom: evidence.validFrom ?? instant,
+          ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+        };
+      })();
+      return { providerEventId: body.eventId, accountId: body.accountId, transaction };
+    },
+    createCheckout: async (_env, input) => ({
+      url: `https://checkout.example/session?account=${encodeURIComponent(input.accountId)}&product=${encodeURIComponent(input.providerReference)}&return=${encodeURIComponent(input.returnUrl)}`,
+      providerAccountId: input.providerAccountId ?? `fake:${input.accountId}`,
+      expiresAt: now() + 30 * 60 * 1000,
+    }),
+    management: async (_env, accountId, providerAccountId, returnUrl) => ({
+      url: `https://checkout.example/manage?account=${encodeURIComponent(accountId)}&customer=${encodeURIComponent(providerAccountId)}&return=${encodeURIComponent(returnUrl)}`,
+    }),
   };
 }

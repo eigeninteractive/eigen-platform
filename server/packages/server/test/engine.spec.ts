@@ -27,11 +27,17 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
+  const requestBody = creationRequestBody(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid, anonymous }) : await mutationHeaders({ uid, anonymous }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
+}
+
+function creationRequestBody(method: string, path: string, body: unknown): unknown {
+  if (method !== "POST" || (path !== "/games" && path !== "/games/solo") || body === null || typeof body !== "object" || "creationId" in body) return body;
+  return { creationId: crypto.randomUUID(), ...body };
 }
 
 async function json<T>(res: Response, status = 200): Promise<T> {
@@ -322,6 +328,53 @@ describe("active play & frames", () => {
     expect(second.gameId).not.toBe(first.gameId);
     const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
     expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.gameId, second.gameId]));
+  });
+
+  it("replays the same creation identity and rejects changed inputs", async () => {
+    const u = makeUsers();
+    const creationId = crypto.randomUUID();
+    const body = { creationId, ...createBody, rated: false };
+
+    const first = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    const replay = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    expect(replay).toEqual(first);
+
+    const conflict = await api(u.a, "POST", "/games", {
+      ...body,
+      access: "private",
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ code: "creationConflict" });
+
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.filter((game) => game.id === first.gameId)).toHaveLength(1);
+  });
+
+  it("requires a creation identity on both create routes", async () => {
+    const u = makeUsers();
+    const headers = await mutationHeaders({ uid: u.a });
+    for (const [path, body] of [
+      ["/games", { ...createBody, rated: false }],
+      [
+        "/games/solo",
+        {
+          schemaVersion: 1,
+          config: { target: 3 },
+          minPlayers: 2,
+          maxPlayers: 2,
+          turnSeconds: 60,
+          rated: false,
+          botIds: ["test-engine-bot"],
+        },
+      ],
+    ] as const) {
+      const response = await exports.default.fetch(`https://x/api/engine${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+    }
   });
 
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {

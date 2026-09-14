@@ -6,6 +6,7 @@ import 'package:eigen_api/eigen_api.dart';
 import '../api/engine_call.dart';
 import '../api/game_socket.dart';
 import '../api/games_page.dart';
+import '../domain/game_creation_identity.dart';
 import '../domain/game_session.dart';
 
 /// Number of games fetched per lobby page.
@@ -148,10 +149,15 @@ class GameRepository {
 
   /// Creates a game and returns its id and shareable short code.
   ///
+  /// [creationId] identifies this one creation attempt. Generate it with
+  /// [newGameCreationId] and reuse it after an ambiguous transport failure;
+  /// use a new value for a deliberate second game.
+  ///
   /// [rated] is a concrete assertion, not a preference: the caller computes it
   /// from the rules twin and the server validates it rather than coercing, so a
   /// disagreement is a loud 422 instead of a silently unrated game.
   Future<Created> createGame({
+    required String creationId,
     required GameAccess access,
     required int schemaVersion,
     required Object config,
@@ -165,6 +171,7 @@ class GameRepository {
     return engineData(
       () => _api.createGame(
         createGame: CreateGame(
+          creationId: creationId,
           access: access,
           schemaVersion: schemaVersion,
           config: config,
@@ -182,10 +189,13 @@ class GameRepository {
   /// Creates a private game seated with the caller plus [botIds] and starts it,
   /// in one call.
   ///
+  /// [creationId] follows the same retry contract as [createGame].
+  ///
   /// Answers with the caller's session at version 0: the game is already running
   /// before any socket exists, so this response is the only place its opening
   /// frame can come from.
   Future<SoloStarted> createSoloGame({
+    required String creationId,
     required int schemaVersion,
     required Object config,
     required int minPlayers,
@@ -199,6 +209,7 @@ class GameRepository {
     return engineData(
       () => _api.createSoloGame(
         createSolo: CreateSolo(
+          creationId: creationId,
           schemaVersion: schemaVersion,
           config: config,
           minPlayers: minPlayers,

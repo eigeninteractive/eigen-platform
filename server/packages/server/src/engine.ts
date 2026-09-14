@@ -36,6 +36,11 @@ import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
+import { allowsCapability, readEffectiveAccess } from "./commerce/access.js";
+import { resolveCommerce } from "./commerce/catalog.js";
+import { reconcileCommerce } from "./commerce/reconcile.js";
+import { registerCommerceRoutes, registerCommerceWebhookRoutes } from "./commerce/routes.js";
+import type { CommerceConfig, ResolvedCommerce } from "./commerce/types.js";
 import type { BaseGameDO } from "./do/game-do.js";
 import { FirebaseAdminConfigurationError, type FirebaseAdminEffects, firebaseAdminFromEnv } from "./firebase/admin-effects.js";
 import { doHistoryStore, type HistoryStore } from "./history/store.js";
@@ -128,6 +133,9 @@ export interface EngineConfig<TEnv, TDO extends BaseGameDO<TEnv>> {
   deepLink?: DeepLinkConfig;
   /** Opt-in avatar uploads. Omit → not mounted. */
   avatars?: AvatarsConfig<TEnv>;
+  /** Opt-in commerce, entitlements, fixed capabilities, and commercial limits.
+   * Omit to mount no commerce routes and enforce no commercial policy. */
+  commerce?: CommerceConfig<TEnv>;
   /** The public web surface: download page, legal documents, crawler files.
    * Omit → not mounted (the worker is API-only). */
   site?: SiteConfig;
@@ -194,6 +202,8 @@ export interface RouteContext {
   /** Avatar config, or null when uploads are not enabled, in which case the
    * upload/serve routes are then not mounted. */
   avatars: ResolvedAvatars | null;
+  /** Resolved and startup-validated commerce policy, or null when disabled. */
+  commerce: ResolvedCommerce | null;
   /** Site config, or null when the public web surface is not configured, in which case the
    * landing/legal/crawler routes are then not mounted. */
   site: ResolvedSite | null;
@@ -239,6 +249,12 @@ const gameBodyLimit = bodyLimit({
   onError: (c) => c.json({ error: "Game request body exceeds 64 KiB" }, 413),
 });
 
+const COMMERCE_REQUEST_MAX_BYTES = 256 * 1024;
+const commerceBodyLimit = bodyLimit({
+  maxSize: COMMERCE_REQUEST_MAX_BYTES,
+  onError: (c) => c.json({ error: "Commerce request body exceeds 256 KiB" }, 413),
+});
+
 const errorHandler: ErrorHandler<AppEnv> = (error, c) => {
   if (error instanceof HttpError) {
     const headers = error.retryAfterSeconds !== undefined ? { "Retry-After": String(error.retryAfterSeconds) } : undefined;
@@ -270,6 +286,19 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
     }
     const claims = await ctx.verify(c.env, token);
     const user = await ensureUser(ctx.d1(c.env), claims, Date.now());
+    // Commerce remains reachable in a paid-app deployment; otherwise a user
+    // without app.access could never buy, restore, or inspect the entitlement
+    // that grants it.
+    const commerceSelfService = c.req.path === "/api/engine/commerce" || c.req.path.startsWith("/api/engine/commerce/");
+    // Account deletion is a privacy/lifecycle right, never a paid capability.
+    const accountDeletion = c.req.method === "DELETE" && c.req.path === "/api/engine/me";
+    if (ctx.commerce !== null && !commerceSelfService && !accountDeletion) {
+      const appGated = [ctx.commerce.catalog.free, ...ctx.commerce.catalog.entitlements].some((grant) => grant.permissions?.some((permission) => permission.kind === "app.access") === true);
+      if (appGated) {
+        const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, user.id, ctx.commerce.now());
+        if (!allowsCapability(access, { kind: "app.access" })) throw new HttpError(403, "Application access requires an entitlement", "capabilityRequired");
+      }
+    }
     c.set("auth", { claims, user });
     await next();
   };
@@ -305,18 +334,26 @@ export function buildApp(ctx: RouteContext) {
   engine.onError(errorHandler);
   engine.use("/games", gameBodyLimit);
   engine.use("/games/*", gameBodyLimit);
+  engine.use("/commerce", commerceBodyLimit);
+  engine.use("/commerce/*", commerceBodyLimit);
   engine.use("*", authMiddleware(ctx));
   registerReadRoutes(engine, ctx);
   registerGameRoutes(engine, ctx);
   registerAccountRoutes(engine, ctx);
   registerDeviceRoutes(engine, ctx);
   registerSocialRoutes(engine, ctx);
+  if (ctx.commerce !== null) registerCommerceRoutes(engine, ctx);
   if (ctx.avatars !== null) registerAvatarUpload(engine, ctx);
 
   const bot = newOpenApiApp();
   bot.onError(errorHandler);
   bot.use("/action", gameBodyLimit);
   registerBotRoutes(bot, ctx);
+
+  const commerceWebhook = newOpenApiApp();
+  commerceWebhook.onError(errorHandler);
+  commerceWebhook.use("*", commerceBodyLimit);
+  if (ctx.commerce !== null) registerCommerceWebhookRoutes(commerceWebhook, ctx);
 
   const app = newOpenApiApp();
   app.onError(errorHandler);
@@ -394,6 +431,7 @@ export function buildApp(ctx: RouteContext) {
   registerGameSocketRoute(app, ctx);
   app.route("/api/engine", engine);
   app.route("/api/bot", bot);
+  app.route("/api/commerce", commerceWebhook);
   // The operator surface, gated by its own secret rather than by Firebase: an
   // operator is not a player and holds no user row. Mounted unconditionally
   // because the secret is per-request env, not build-time config; it answers 404
@@ -502,6 +540,7 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
             maxBytes: cfg.avatars.maxBytes ?? 2 * 1024 * 1024,
             publicBaseUrl: (env) => (cfg.avatars as AvatarsConfig<TEnv>).publicBaseUrl?.(env as TEnv),
           },
+    commerce: cfg.commerce === undefined ? null : resolveCommerce(cfg.commerce),
     site: cfg.site === undefined ? null : resolveSite(cfg.site, cfg.appName),
   };
   const app = buildApp(ctx);
@@ -517,7 +556,12 @@ export function createEngine<TEnv extends object, TDO extends BaseGameDO<TEnv>>(
     // timeout sweep, since the DO deadline alarm owns every turn deadline. Runs
     // in-band; the platform keeps the invocation alive while the promise
     // pends, so no waitUntil is needed.
-    scheduled: (_controller, env) => runScheduled(ops(env), cfg.lifecycle),
+    scheduled: async (_controller, env) => {
+      await runScheduled(ops(env), cfg.lifecycle);
+      if (ctx.commerce !== null) {
+        await reconcileCommerce(ctx.d1(env), ctx.commerce, env).catch((error) => console.error("cron: commerce reconciliation failed", error));
+      }
+    },
   };
 }
 
@@ -576,6 +620,7 @@ export function openApiDocument(version: string): OpenAPIObject {
     history: inert,
     deepLink: null,
     avatars: null,
+    commerce: resolveCommerce({ catalog: { free: {}, entitlements: [], offers: [] }, providers: [] }),
     site: null,
   });
   return app.getOpenAPI31Document({
@@ -594,6 +639,7 @@ export function openApiDocument(version: string): OpenAPIObject {
       { name: "Players", description: "Other players: their public profile, their finished games and their ratings." },
       { name: "Social", description: "Friends, friend requests, blocking and user search." },
       { name: "Bots", description: "The bots this deployment offers as opponents." },
+      { name: "Commerce", description: "Optional offers, verified purchases, entitlements, access capabilities, and commercial limits." },
       { name: "BotWebhook", description: "The HMAC-authenticated callback an external bot answers on. Not for clients." },
       { name: "Health", description: "Liveness probe." },
     ],

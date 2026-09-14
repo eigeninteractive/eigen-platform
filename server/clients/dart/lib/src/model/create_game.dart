@@ -17,6 +17,8 @@ part 'create_game.g.dart';
 class CreateGame {
   /// Returns a new [CreateGame] instance.
   CreateGame({
+    required this.creationId,
+
     required this.access,
 
     required this.schemaVersion,
@@ -35,6 +37,9 @@ class CreateGame {
 
     this.incrementSeconds,
   });
+
+  @JsonKey(name: r'creationId', required: true, includeIfNull: false)
+  final String creationId;
 
   @JsonKey(
     name: r'access',
@@ -76,6 +81,7 @@ class CreateGame {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CreateGame &&
+          other.creationId == creationId &&
           other.access == access &&
           other.schemaVersion == schemaVersion &&
           other.config == config &&
@@ -88,6 +94,7 @@ class CreateGame {
 
   @override
   int get hashCode =>
+      creationId.hashCode +
       access.hashCode +
       schemaVersion.hashCode +
       config.hashCode +

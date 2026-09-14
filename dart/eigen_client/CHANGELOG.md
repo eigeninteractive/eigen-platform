@@ -6,6 +6,13 @@
 - GameRepository methods for the three local-game routes, and getWholeLocalRecord, which follows the record route pages so a resumed game is never rebuilt from a truncated log.
 - jsonEquals, value equality for two codecs of one JSON schema, where an absent key and a written null are the same value.
 
+## Unreleased
+
+- Add `CommerceRepository` and generated access/catalog types for verified
+  claims, restoration, hosted checkout, and subscription management.
+- Require a stable `creationId` for game creation and provide
+  `newGameCreationId()` for retry-safe creation intents.
+
 ## [0.1.1] - 2026-09-11
 - Require every replacement game session to have a higher authoritative
 sequence while continuing to prevent a terminal game from being resurrected

@@ -1,6 +1,6 @@
 # Platform status
 
-Last updated: 2026-09-11.
+Last updated: 2026-09-12.
 
 This is a progress ledger, not a normative contract. The accepted RFCs are the
 authority; [RFC 0009](0009-compatibility-simplifications.md) supersedes the speculative
@@ -19,9 +19,12 @@ compatibility and command machinery from earlier phases.
   client.
 - New games always use the server's latest version. An older client must update;
   a client ahead of the deployment reports a server-update mismatch.
-- There is no generic public command identity, permanent command receipt,
-  capability endpoint, runtime contract digest, or durable client command
-  journal.
+- There is no generic public command identity, capability endpoint, runtime
+  contract digest, or durable client command journal. Creation alone has an
+  operation-specific identity because a duplicate game can consume a commercial
+  allowance or concurrent slot twice.
+- Commerce is optional and deployment-local. Its access capabilities are
+  authenticated product permissions, not protocol capability negotiation.
 - WebSockets authenticate with short-lived, game-scoped tickets obtained over
   authenticated HTTPS. Firebase ID tokens never appear in socket URLs.
 
@@ -34,6 +37,9 @@ compatibility and command machinery from earlier phases.
 | Timing correctness | The prior turn's timing source determines budget charging; deadline alarms reconcile from durable state. |
 | Version compatibility | Registries reject gaps, create requires exact latest, and join/read use `gameVersion <= clientLatestSchemaVersion`. `/capabilities` is removed. |
 | Mutation model | Generic receipts and public `Idempotency-Key` requirements are removed. Lifecycle and membership operations rely on their operation-specific idempotence. |
+| Creation identity | Both create routes require a client-minted `creationId`; D1 binds it to the creator and canonical input fingerprint in the same transaction as the game, usage, and capacity. |
+| Commerce core | Optional catalogs, fixed capabilities, content ownership, limits, a normalized transaction/grant ledger, access projection, claims, restoration, hosted checkout/management seams, provider-authenticated webhooks, and scheduled reconciliation are implemented. |
+| Commerce clients | Generated OpenAPI/Dart models, the pure-Dart `CommerceRepository`, Flutter `PurchaseGateway`/`CommerceService`, and shell-safe creation retries are implemented. Concrete merchant SDK adapters and storefront presentation remain deployment or integration-package work. |
 | Creation policy | Versioned server rules validate player limits and timing options after parsing config. Flutter may mirror these rules for responsive UX. |
 | Socket authentication | Authenticated HTTP mints a signed 60-second game ticket; upgrade verification happens before Durable Object routing. |
 | Unknown game routing | Public commands and session reads prove the retained D1 row exists before deriving or waking a Durable Object. |
@@ -67,6 +73,12 @@ as a normal feature, bug, dependency upgrade, or production-readiness requiremen
    dependencies move.
 3. Add deferred retention, resource, replay, or offline machinery only when a
    measured product need justifies it.
+4. Build optional Google Play and Stripe integration packages once their first
+   consuming game chooses merchant accounts, product identifiers, and SDK
+   policy; then add the optional shell storefront on those real adapters.
+5. Define the engine-owned analysis execution boundary before enabling
+   `analysis.use` or `analysis.run.success` in a production catalog, including
+   atomic success metering and failure semantics.
 
 ## Deliberately deferred
 
@@ -74,9 +86,12 @@ as a normal feature, bug, dependency upgrade, or production-readiness requiremen
 - sparse schema-version retirement;
 - exact historical response-byte replay;
 - contract digests;
-- generic resource-budget abstractions;
+- generic resource-budget abstractions outside RFC 0011's closed commercial
+  metrics and limit policies;
 - durable offline command queues; and
-- automatic retries for ambiguous game creation.
+- generic automatic retries for ambiguous mutations. RFC 0011 requires a
+  stable, operation-specific identity for the two game-creation routes before
+  commercial limits ship.
 
 Each deferred item needs a measured product requirement or incident before it
 adds runtime state or protocol surface.

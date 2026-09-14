@@ -18,6 +18,9 @@ export 'core/notifications/notification_service.dart';
 export 'features/auth/domain/auth_gateway.dart';
 export 'features/auth/domain/auth_user.dart';
 export 'features/auth/providers/auth_providers.dart' show authServiceProvider;
+export 'features/commerce/domain/purchase_gateway.dart';
+export 'features/commerce/providers/commerce_providers.dart'
+    show purchaseGatewayProvider;
 export 'shared/data/device_installation_repository.dart'
     show DeviceInstallationRepository;
 export 'shared/providers/device_installation_providers.dart'

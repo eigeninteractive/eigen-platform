@@ -298,6 +298,52 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: "category",
+      label: "Commerce",
+      link: {
+        type: "doc",
+        id: "reference/http-api/commerce",
+      },
+      items: [
+        {
+          type: "doc",
+          id: "reference/http-api/get-commerce-catalog",
+          label: "getCommerceCatalog",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/get-commerce-access",
+          label: "getCommerceAccess",
+          className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/claim-commerce-purchase",
+          label: "claimCommercePurchase",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/restore-commerce-purchases",
+          label: "restoreCommercePurchases",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/create-commerce-checkout",
+          label: "createCommerceCheckout",
+          className: "api-method post",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/create-commerce-management",
+          label: "createCommerceManagement",
+          className: "api-method post",
+        },
+      ],
+    },
+    {
+      type: "category",
       label: "BotWebhook",
       link: {
         type: "doc",

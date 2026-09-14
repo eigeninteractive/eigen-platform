@@ -1,0 +1,67 @@
+---
+id: create-commerce-checkout
+title: "createCommerceCheckout"
+description: "createCommerceCheckout"
+sidebar_label: "createCommerceCheckout"
+hide_title: true
+hide_table_of_contents: true
+api: {"operationId":"createCommerceCheckout","tags":["Commerce"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"provider":{"type":"string"},"offerKey":{"type":"string"},"returnUrl":{"type":"string","format":"uri"}},"required":["provider","offerKey","returnUrl"],"title":"CommerceCheckoutRequest"}}}},"responses":{"200":{"description":"Provider-hosted checkout URL","content":{"application/json":{"schema":{"type":"object","properties":{"url":{"type":"string","format":"uri"}},"required":["url"],"title":"CommerceUrl"}}}},"400":{"description":"Invalid commerce request","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"401":{"description":"Missing or invalid token","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"A recoverable account or entitlement is required","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"404":{"description":"Unknown offer or provider","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"409":{"description":"Purchase is pending or conflicts with another account","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"502":{"description":"The commerce provider could not verify the operation","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}}},"description":"createCommerceCheckout","method":"post","path":"/api/engine/commerce/checkout","security":[{"firebase":[]}],"securitySchemes":{"firebase":{"type":"http","scheme":"bearer","bearerFormat":"JWT","description":"A Firebase ID token, sent as `Authorization: Bearer <token>`."},"botHmac":{"type":"apiKey","in":"header","name":"Eigen-Signature","description":"An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, botId)`. The engine signs wakes with the same header in the other direction."}},"jsonRequestBodyExample":{"provider":"string","offerKey":"string","returnUrl":"string"},"info":{"title":"EigenInteractive Engine API","version":"0.6.1","description":"The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."},"postman":{"name":"create Commerce Checkout","description":{"type":"text/plain"},"url":{"path":["api","engine","commerce","checkout"],"host":["{{baseUrl}}"],"query":[],"variable":[]},"header":[{"key":"Content-Type","value":"application/json"},{"key":"Accept","value":"application/json"}],"method":"POST","body":{"mode":"raw","raw":"","options":{"raw":{"language":"json"}}}}}
+sidebar_class_name: "post api-method"
+info_path: docs/reference/http-api/eigeninteractive-engine-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"createCommerceCheckout"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/engine/commerce/checkout"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+createCommerceCheckout
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails>
+  
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./create-commerce-checkout.RequestSchema.json")}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  {...require("./create-commerce-checkout.StatusCodes.json")}
+>
+  
+</StatusCodes>
+
+
+      

@@ -42,6 +42,12 @@ void main() {
         'usernameTaken',
         'friendsOnly',
         'registrationRequired',
+        'capabilityRequired',
+        'contentRequired',
+        'commercialLimitReached',
+        'creationConflict',
+        'purchasePending',
+        'purchaseConflict',
         'imageTooLarge',
         'unsupportedImageType',
         // Per-user write rate limiting (429).

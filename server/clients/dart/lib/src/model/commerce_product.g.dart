@@ -1,0 +1,35 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'commerce_product.dart';
+
+// **************************************************************************
+// JsonSerializableGenerator
+// **************************************************************************
+
+CommerceProduct _$CommerceProductFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('CommerceProduct', json, ($checkedConvert) {
+      $checkKeys(
+        json,
+        requiredKeys: const [
+          'provider',
+          'productId',
+          'displayPrice',
+          'currencyCode',
+        ],
+      );
+      final val = CommerceProduct(
+        provider: $checkedConvert('provider', (v) => v as String),
+        productId: $checkedConvert('productId', (v) => v as String),
+        displayPrice: $checkedConvert('displayPrice', (v) => v as String?),
+        currencyCode: $checkedConvert('currencyCode', (v) => v as String?),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$CommerceProductToJson(CommerceProduct instance) =>
+    <String, dynamic>{
+      'provider': instance.provider,
+      'productId': instance.productId,
+      'displayPrice': instance.displayPrice,
+      'currencyCode': instance.currencyCode,
+    };

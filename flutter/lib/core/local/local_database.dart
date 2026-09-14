@@ -37,7 +37,7 @@ class LocalDatabase extends GeneratedDatabase {
   Iterable<TableInfo<Table, dynamic>> get allTables => const [];
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -68,6 +68,24 @@ class LocalDatabase extends GeneratedDatabase {
           expire_at INTEGER
         )
       ''');
+      await _createCommerceDeliveryTable();
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) await _createCommerceDeliveryTable();
     },
   );
+
+  Future<void> _createCommerceDeliveryTable() async {
+    await customStatement('''
+      CREATE TABLE commerce_deliveries (
+        provider TEXT NOT NULL,
+        delivery_id TEXT NOT NULL,
+        offer_key TEXT NOT NULL,
+        provider_reference TEXT NOT NULL,
+        evidence TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (provider, delivery_id)
+      )
+    ''');
+  }
 }

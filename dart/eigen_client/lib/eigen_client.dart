@@ -5,7 +5,20 @@ export 'package:eigen_api/eigen_api.dart'
     show
         Bot,
         BotType,
+        AccessCapability,
+        AccessCapabilityAccessEnum,
+        AccessCapabilityKindEnum,
+        AccessSnapshot,
+        ActiveEntitlement,
         CommandAccepted,
+        CommerceCatalog,
+        CommerceOffer,
+        CommerceOfferKindEnum,
+        CommerceProduct,
+        CommercialLimitAccess,
+        CommercialLimitAccessMetricEnum,
+        CommercialPeriodKind,
+        ContentGrant,
         Created,
         ErrorCode,
         Frame,
@@ -50,6 +63,7 @@ export 'src/api/game_socket.dart';
 export 'src/api/games_page.dart';
 export 'src/api/server_clock.dart';
 export 'src/domain/game_creation_spec.dart';
+export 'src/domain/game_creation_identity.dart';
 export 'src/domain/game_frame.dart';
 export 'src/domain/game_player.dart';
 export 'src/domain/game_session.dart';
@@ -77,6 +91,7 @@ export 'src/local/local_rules.dart';
 export 'src/local/local_session.dart';
 export 'src/local/rng.dart';
 export 'src/repositories/avatar_storage_service.dart';
+export 'src/repositories/commerce_repository.dart';
 export 'src/repositories/device_repository.dart';
 export 'src/repositories/game_repository.dart';
 export 'src/repositories/player_batch_loader.dart';

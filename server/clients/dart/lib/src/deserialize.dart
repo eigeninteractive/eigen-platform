@@ -1,9 +1,22 @@
+import 'package:eigen_api/src/model/access_capability.dart';
+import 'package:eigen_api/src/model/access_snapshot.dart';
 import 'package:eigen_api/src/model/action.dart';
+import 'package:eigen_api/src/model/active_entitlement.dart';
 import 'package:eigen_api/src/model/add_bot.dart';
 import 'package:eigen_api/src/model/bot.dart';
 import 'package:eigen_api/src/model/bot_action.dart';
 import 'package:eigen_api/src/model/bots.dart';
 import 'package:eigen_api/src/model/command_accepted.dart';
+import 'package:eigen_api/src/model/commerce_catalog.dart';
+import 'package:eigen_api/src/model/commerce_checkout_request.dart';
+import 'package:eigen_api/src/model/commerce_claim.dart';
+import 'package:eigen_api/src/model/commerce_management_request.dart';
+import 'package:eigen_api/src/model/commerce_offer.dart';
+import 'package:eigen_api/src/model/commerce_product.dart';
+import 'package:eigen_api/src/model/commerce_restore.dart';
+import 'package:eigen_api/src/model/commerce_url.dart';
+import 'package:eigen_api/src/model/commercial_limit_access.dart';
+import 'package:eigen_api/src/model/content_grant.dart';
 import 'package:eigen_api/src/model/create_game.dart';
 import 'package:eigen_api/src/model/create_local_game.dart';
 import 'package:eigen_api/src/model/create_solo.dart';
@@ -77,8 +90,17 @@ ReturnType deserialize<ReturnType, BaseType>(
       return (valueString == 'true' || valueString == '1') as ReturnType;
     case 'double':
       return (value is double ? value : double.parse('$value')) as ReturnType;
+    case 'AccessCapability':
+      return AccessCapability.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'AccessSnapshot':
+      return AccessSnapshot.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'Action':
       return Action.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'ActiveEntitlement':
+      return ActiveEntitlement.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'AddBot':
       return AddBot.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Bot':
@@ -91,6 +113,35 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'CommandAccepted':
       return CommandAccepted.fromJson(value as Map<String, dynamic>)
           as ReturnType;
+    case 'CommerceCatalog':
+      return CommerceCatalog.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceCheckoutRequest':
+      return CommerceCheckoutRequest.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceClaim':
+      return CommerceClaim.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceManagementRequest':
+      return CommerceManagementRequest.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceOffer':
+      return CommerceOffer.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceProduct':
+      return CommerceProduct.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceRestore':
+      return CommerceRestore.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommerceUrl':
+      return CommerceUrl.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'CommercialLimitAccess':
+      return CommercialLimitAccess.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
+    case 'CommercialPeriodKind':
+    case 'ContentGrant':
+      return ContentGrant.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'CreateGame':
       return CreateGame.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'CreateLocalGame':

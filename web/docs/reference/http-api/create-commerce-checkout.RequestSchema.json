@@ -1,0 +1,1 @@
+{"title":"Body","body":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"provider":{"type":"string"},"offerKey":{"type":"string"},"returnUrl":{"type":"string","format":"uri"}},"required":["provider","offerKey","returnUrl"],"title":"CommerceCheckoutRequest"}}}}}

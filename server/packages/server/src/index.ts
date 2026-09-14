@@ -17,7 +17,34 @@ export { ensureUser, type UserRow } from "./auth/provision.js";
 // The operator utility for onboarding an external bot: derive the key you hand
 // its owner. The signing/verifying halves stay internal; the engine does that.
 export { deriveBotKey } from "./bot/bot-auth.js";
-export { applyFinish, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readGameRow, updateSummary } from "./d1/apply.js";
+export { capabilityAllows, capabilityKey } from "./commerce/capability.js";
+export { resolveCommerce } from "./commerce/catalog.js";
+export type {
+  AccessGrant,
+  AccessSnapshot,
+  CommerceCatalog,
+  CommerceCheckout,
+  CommerceConfig,
+  CommerceManagement,
+  CommerceOffer,
+  CommerceProduct,
+  CommerceProvider,
+  CommerceTransactionReference,
+  CommerceTransactionState,
+  CommercialLimit,
+  CommercialMetric,
+  CommercialPeriod,
+  ContentClassification,
+  ContentDefinition,
+  ContentGrant,
+  ContentOwnershipScope,
+  EngineAccessCapability,
+  EntitlementDefinition,
+  SelectedContent,
+  VerifiedCommerceEvent,
+  VerifiedCommerceTransaction,
+} from "./commerce/types.js";
+export { applyFinish, CommercialLimitWriteError, type CreateGameInput, createGame, type FinishApplyInput, mirrorRoster, readCreationOperation, readGameRow, updateSummary } from "./d1/apply.js";
 export { isTransientD1Error } from "./d1/errors.js";
 export { BaseGameDO, DEADLINE_GRACE_MS } from "./do/game-do.js";
 export { createEngine, DEFAULT_CREDIT, type EngineConfig, type LegalConfig, type OperatorConfig, openApiDocument, type SiteConfig } from "./engine.js";

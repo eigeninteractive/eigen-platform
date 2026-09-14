@@ -246,6 +246,18 @@ export interface BotSeatableArgs<TConfig extends JsonObject = JsonObject> {
   botConfig: JsonObject;
 }
 
+/** A game-owned content resource selected by validated creation config. */
+export interface ContentForCreateResult {
+  collection: string;
+  id: string;
+  ownership: "creator" | "eachParticipant" | "viewer";
+}
+
+/** Input to the pure commercial-content extraction hook. */
+export interface ContentForCreateArgs<TConfig extends JsonObject = JsonObject> {
+  config: TConfig;
+}
+
 /** A seated engine bot's turn to move, passed to the matching entry in
  * {@link GameRules.botActions}. The brain runs inside the game's Durable
  * Object post-commit and sees exactly what a human at this seat would
@@ -361,6 +373,11 @@ export interface GameRules<TState extends JsonObject = JsonObject, TObservation 
    * committing; the Dart `GameRules` twin filters the bot pickers locally.
    * Return `true` to allow. */
   botSeatable(args: BotSeatableArgs<TConfig>): boolean;
+
+  /** Optional commercial content selected by this version's validated config.
+   * The engine resolves ownership; this hook never sees accounts, purchases,
+   * provider state, or storage. */
+  contentForCreate?(args: ContentForCreateArgs<TConfig>): readonly ContentForCreateResult[];
 
   /** Optional: the in-DO bot brains, **keyed by bot username**. When a
    * seated `engine`-type bot's turn starts, the engine resolves its registry

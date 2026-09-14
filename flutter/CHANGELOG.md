@@ -15,17 +15,23 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
+
 ### Added
+
 - Offline play: a game module may declare a `LocalGameRules` unit per version through `GameRules.local`, and a game that does is playable on the device against bots this build ships brains for.
 - `localGameCatchUpProvider`, which brings a synchronized local game onto a second device by re-deriving its frames through this build's own rules.
 - A Drift-backed `LocalGameStore`, an isolate bot runner on native, and providers for creating, listing, playing, replaying and synchronizing on-device games.
+- Provider-neutral `PurchaseGateway` and `CommerceService` integration points
+  that verify completed purchase updates with the Worker before exposing access.
 
 ### Changed
+
 - Persisted provider snapshots moved from `riverpod_sqflite` to Drift, so the web has local persistence at all; the bot and player caches no longer expire, because a device with neither cannot name the seats of a game it is already playing.
 - The twin-fixture runner accepts the `rng`, `initialState`, `lifecycle` and `transcript` case kinds.
 - The twin-fixture runner now runs every action case through the on-device unit too, comparing applyAction and the actor computeObservation against the fixture, so a local unit that computes a different board or leaks hidden information fails the shared corpus.
 
 ### Fixed
+
 - A diverged local record stops local play and shows the server copy, and is pulled again on the next open rather than leaving a game that can never be reopened.
 - Resuming a local game follows the record route pages, so a game longer than one page is no longer rebuilt from a truncated log.
 

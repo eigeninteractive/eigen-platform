@@ -80,6 +80,12 @@ Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------
 [*BotWebhookApi*](doc/BotWebhookApi.md) | [**botAction**](doc/BotWebhookApi.md#botaction) | **POST** /api/bot/action | 
 [*BotsApi*](doc/BotsApi.md) | [**getBots**](doc/BotsApi.md#getbots) | **GET** /api/engine/bots | 
+[*CommerceApi*](doc/CommerceApi.md) | [**claimCommercePurchase**](doc/CommerceApi.md#claimcommercepurchase) | **POST** /api/engine/commerce/claims | 
+[*CommerceApi*](doc/CommerceApi.md) | [**createCommerceCheckout**](doc/CommerceApi.md#createcommercecheckout) | **POST** /api/engine/commerce/checkout | 
+[*CommerceApi*](doc/CommerceApi.md) | [**createCommerceManagement**](doc/CommerceApi.md#createcommercemanagement) | **POST** /api/engine/commerce/management | 
+[*CommerceApi*](doc/CommerceApi.md) | [**getCommerceAccess**](doc/CommerceApi.md#getcommerceaccess) | **GET** /api/engine/commerce/access | 
+[*CommerceApi*](doc/CommerceApi.md) | [**getCommerceCatalog**](doc/CommerceApi.md#getcommercecatalog) | **GET** /api/engine/commerce/catalog | 
+[*CommerceApi*](doc/CommerceApi.md) | [**restoreCommercePurchases**](doc/CommerceApi.md#restorecommercepurchases) | **POST** /api/engine/commerce/restore | 
 [*GamesApi*](doc/GamesApi.md) | [**addBot**](doc/GamesApi.md#addbot) | **POST** /api/engine/games/{gameId}/add-bot | 
 [*GamesApi*](doc/GamesApi.md) | [**appendLocalTransitions**](doc/GamesApi.md#appendlocaltransitions) | **POST** /api/engine/games/{gameId}/local/transitions | 
 [*GamesApi*](doc/GamesApi.md) | [**cancelGame**](doc/GamesApi.md#cancelgame) | **POST** /api/engine/games/{gameId}/cancel | 
@@ -124,13 +130,27 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [AccessCapability](doc/AccessCapability.md)
+ - [AccessSnapshot](doc/AccessSnapshot.md)
  - [Action](doc/Action.md)
+ - [ActiveEntitlement](doc/ActiveEntitlement.md)
  - [AddBot](doc/AddBot.md)
  - [Bot](doc/Bot.md)
  - [BotAction](doc/BotAction.md)
  - [BotType](doc/BotType.md)
  - [Bots](doc/Bots.md)
  - [CommandAccepted](doc/CommandAccepted.md)
+ - [CommerceCatalog](doc/CommerceCatalog.md)
+ - [CommerceCheckoutRequest](doc/CommerceCheckoutRequest.md)
+ - [CommerceClaim](doc/CommerceClaim.md)
+ - [CommerceManagementRequest](doc/CommerceManagementRequest.md)
+ - [CommerceOffer](doc/CommerceOffer.md)
+ - [CommerceProduct](doc/CommerceProduct.md)
+ - [CommerceRestore](doc/CommerceRestore.md)
+ - [CommerceUrl](doc/CommerceUrl.md)
+ - [CommercialLimitAccess](doc/CommercialLimitAccess.md)
+ - [CommercialPeriodKind](doc/CommercialPeriodKind.md)
+ - [ContentGrant](doc/ContentGrant.md)
  - [CreateGame](doc/CreateGame.md)
  - [CreateLocalGame](doc/CreateLocalGame.md)
  - [CreateSolo](doc/CreateSolo.md)

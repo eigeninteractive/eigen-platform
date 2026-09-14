@@ -6,10 +6,14 @@
  */
 
 import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
-import type { GameRules, JsonObject, PlayerLimits, TimingOption } from "@eigeninteractive/rules";
+import type { GameRules, Json, JsonObject, PlayerLimits, TimingOption } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
 import { issueSocketTicket, verifySocketTicket } from "../auth/socket-ticket.js";
-import { type CreateGameInput, createGame } from "../d1/apply.js";
+import { allowsCapability, type EffectiveAccess, metricPolicy, ownsContent, readEffectiveAccess, readSelectedGameContent } from "../commerce/access.js";
+import { capabilityKey } from "../commerce/capability.js";
+import { creationFingerprint } from "../commerce/creation.js";
+import type { EngineAccessCapability, SelectedContent } from "../commerce/types.js";
+import { CommercialLimitWriteError, type CreateGameInput, createGame, readCreationOperation } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
 import { isShortCodeCollision, isUniqueViolation } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, gameExists, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
@@ -346,21 +350,102 @@ function generateShortCode(): string {
 interface CreatedGame {
   gameId: string;
   shortCode: string;
+  replayed: boolean;
+}
+
+async function existingCreation(d1: D1Database, creatorId: string, creationId: string, fingerprint: string): Promise<CreatedGame | null> {
+  const prior = await readCreationOperation(d1, creatorId, creationId);
+  if (prior === undefined) return null;
+  if (prior.fingerprint !== fingerprint) throw new HttpError(409, "creationId was already used for a different game", "creationConflict");
+  return { gameId: prior.gameId, shortCode: prior.shortCode, replayed: true };
 }
 
 /**
- * Both create routes share one bounded short-code collision loop. Creation is
- * intentionally not transport-idempotent at this stage: after an ambiguous
- * network failure the client resynchronizes and the player may create again.
+ * Both create routes share one bounded short-code collision loop. The caller's
+ * stable creation identity makes an ambiguous transport retry idempotent while
+ * the fingerprint refuses accidental reuse for different inputs.
  */
 async function createOnce(d1: D1Database, input: Omit<CreateGameInput, "shortCode">): Promise<CreatedGame> {
+  const creation = input.creation;
+  if (creation !== undefined) {
+    const prior = await existingCreation(d1, creation.creatorId, creation.creationId, creation.fingerprint);
+    if (prior !== null) return prior;
+  }
   for (let attempt = 1; ; attempt++) {
     const shortCode = generateShortCode();
     try {
       await createGame(d1, { ...input, shortCode });
-      return { gameId: input.gameId, shortCode };
+      return { gameId: input.gameId, shortCode, replayed: false };
     } catch (error) {
+      if (error instanceof CommercialLimitWriteError) throw new HttpError(403, "Commercial limit reached", "commercialLimitReached");
+      if (creation !== undefined) {
+        const raced = await existingCreation(d1, creation.creatorId, creation.creationId, creation.fingerprint);
+        if (raced !== null) return raced;
+      }
       if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
+    }
+  }
+}
+
+function requireCapability(access: EffectiveAccess, required: EngineAccessCapability): void {
+  if (!allowsCapability(access, required)) throw new HttpError(403, `Capability required: ${capabilityKey(required)}`, "capabilityRequired");
+}
+
+function selectedContent(ctx: RouteContext, rules: GameRules, config: JsonObject): SelectedContent[] {
+  const selected = rules.contentForCreate?.({ config }) ?? [];
+  if (selected.length === 0) return [];
+  if (ctx.commerce === null) throw new HttpError(500, "game bug: contentForCreate requires commerce configuration");
+  const seen = new Set<string>();
+  return selected.map((item) => {
+    const definition = ctx.commerce?.catalog.content?.[item.collection]?.[item.id];
+    if (definition === undefined) throw new HttpError(500, `game bug: contentForCreate returned unknown content ${item.collection}/${item.id}`);
+    const key = `${item.collection}/${item.id}/${item.ownership}`;
+    if (seen.has(key)) throw new HttpError(500, `game bug: contentForCreate returned duplicate content ${key}`);
+    seen.add(key);
+    return { ...item, classification: definition.classification };
+  });
+}
+
+async function authorizeCreate(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", rated: boolean, content: readonly SelectedContent[], botTiers: readonly (string | undefined)[], creationId: string): Promise<Pick<CreateGameInput, "usage" | "capacity">> {
+  if (ctx.commerce === null) return {};
+  const now = ctx.commerce.now();
+  const access = await readEffectiveAccess(ctx.d1(env), ctx.commerce.catalog, userId, now);
+  requireCapability(access, { kind: "game.create", access: accessMode });
+  if (rated) requireCapability(access, { kind: "game.create.rated" });
+  for (const tier of botTiers) requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+  for (const item of content) {
+    if (item.ownership === "viewer") continue;
+    if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {
+      throw new HttpError(403, `Content required: ${item.collection}/${item.id}`, "contentRequired");
+    }
+  }
+
+  const usage: NonNullable<CreateGameInput["usage"]>[number][] = [];
+  for (const metric of ["game.create.success", ...(botTiers.length > 0 ? (["bot.game.success"] as const) : [])] as const) {
+    const policy = metricPolicy(access, ctx.commerce.catalog, metric, now);
+    if (policy === null || !policy.recordsUsage || policy.periodKey === null) continue;
+    const visible = access.snapshot.limits.find((limit) => limit.metric === metric);
+    if (policy.maximum !== "noCommercialLimit" && visible?.remaining === 0) throw new HttpError(403, `Commercial limit reached: ${metric}`, "commercialLimitReached");
+    usage.push({ metric, periodKey: policy.periodKey, maximum: policy.maximum === "noCommercialLimit" ? null : policy.maximum, operationId: creationId });
+  }
+
+  const capacityPolicy = metricPolicy(access, ctx.commerce.catalog, "games.openCreated", now);
+  if (capacityPolicy?.maximum !== undefined && capacityPolicy.maximum !== "noCommercialLimit") {
+    const visible = access.snapshot.limits.find((limit) => limit.metric === "games.openCreated");
+    if (visible?.remaining === 0) throw new HttpError(403, "Commercial limit reached: games.openCreated", "commercialLimitReached");
+    return { usage, capacity: { maximum: capacityPolicy.maximum } };
+  }
+  return { usage };
+}
+
+async function authorizeJoin(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", gameId: string): Promise<void> {
+  if (ctx.commerce === null) return;
+  const access = await readEffectiveAccess(ctx.d1(env), ctx.commerce.catalog, userId, ctx.commerce.now());
+  requireCapability(access, { kind: "game.join", access: accessMode });
+  for (const item of await readSelectedGameContent(ctx.d1(env), gameId)) {
+    if (item.ownership !== "eachParticipant") continue;
+    if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {
+      throw new HttpError(403, `Content required: ${item.collection}/${item.id}`, "contentRequired");
     }
   }
 }
@@ -417,7 +502,23 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const rated = canBeRated && (body.rated ?? true);
 
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
-      const now = Date.now();
+      const content = selectedContent(ctx, rules, config);
+      const fingerprint = await creationFingerprint({
+        kind: "game",
+        access: body.access,
+        schemaVersion: body.schemaVersion,
+        config,
+        minPlayers,
+        maxPlayers,
+        rated,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+      } as Json);
+      const replay = await existingCreation(ctx.d1(c.env), auth.user.id, body.creationId, fingerprint);
+      if (replay !== null) return c.json({ gameId: replay.gameId, shortCode: replay.shortCode }, 201);
+      const commercial = await authorizeCreate(ctx, c.env, auth.user.id, body.access, rated, content, [], body.creationId);
+      const now = ctx.commerce?.now() ?? Date.now();
       const created = await createOnce(ctx.d1(c.env), {
         gameId: crypto.randomUUID(),
         createdBy: auth.user.id,
@@ -436,6 +537,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         seats,
         createdAt: now,
         now,
+        creation: { creatorId: auth.user.id, creationId: body.creationId, fingerprint },
+        content,
+        ...commercial,
       });
       // Friends-access game: fan out an invite push to the creator's
       // accepted friends. Best-effort and off the response path: a friend
@@ -443,7 +547,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // failure never affects the create. Skipped on a replay: the first
       // attempt already invited everyone, and a caller retrying a lost
       // response must not re-notify their whole friend list.
-      if (body.access === "friends") {
+      if (body.access === "friends" && !created.replayed) {
         const d1 = ctx.d1(c.env);
         const admin = ctx.firebaseAdmin(c.env);
         c.executionCtx.waitUntil(acceptedFriendIds(d1, auth.user.id).then((ids) => Promise.all(ids.map((id) => admin.notifyUser(d1, id, gameInvitePush(auth.user.displayName, created.gameId))))));
@@ -506,7 +610,23 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
       if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
-      const now = Date.now();
+      const content = selectedContent(ctx, rules, config);
+      const botTiers = body.botIds.map((botId) => ctx.commerce?.catalog.botTiers?.[botId]);
+      const fingerprint = await creationFingerprint({
+        kind: "solo",
+        schemaVersion: body.schemaVersion,
+        config,
+        minPlayers,
+        maxPlayers,
+        rated,
+        botIds: body.botIds,
+        turnSeconds: body.turnSeconds,
+        budgetSeconds: body.budgetSeconds,
+        incrementSeconds: body.incrementSeconds,
+      } as Json);
+      const replay = await existingCreation(ctx.d1(c.env), auth.user.id, body.creationId, fingerprint);
+      const commercial = replay === null ? await authorizeCreate(ctx, c.env, auth.user.id, "private", rated, content, botTiers, body.creationId) : {};
+      const now = ctx.commerce?.now() ?? Date.now();
       const created = await createOnce(ctx.d1(c.env), {
         gameId: crypto.randomUUID(),
         createdBy: auth.user.id,
@@ -525,6 +645,9 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         seats,
         createdAt: now,
         now,
+        creation: { creatorId: auth.user.id, creationId: body.creationId, fingerprint },
+        content,
+        ...commercial,
       });
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
@@ -623,6 +746,11 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         // disagreed here would describe one game two ways.
         const seatCount = seats.length;
 
+        // Snapshot known content for replay integrity, but do not perform a
+        // commercial gate here. This game already ran offline; local play and
+        // its later import consume neither creation nor server-bot quota.
+        const content = selectedContent(ctx, rules, config);
+
         const now = Date.now();
         try {
           await createOnce(ctx.d1(c.env), {
@@ -644,6 +772,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
             // actually played and how history should sort it.
             createdAt: Math.min(body.createdAt, now),
             now,
+            content,
           });
         } catch (error) {
           // The device synchronizes from several triggers, so two attempts at
@@ -783,6 +912,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     if (await isBlockedAmong(ctx.d1(c.env), auth.user.id, seatedUserIds)) {
       throw new HttpError(404, "Unknown game", "unknownGame");
     }
+    await authorizeJoin(ctx, c.env, auth.user.id, game.access, game.id);
     return commandResult(await ctx.stub(c.env, game.id).handle(mint(c.var.auth, "join", game.id)));
   };
 
@@ -876,6 +1006,11 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const bot = bots[0];
       if (bot === undefined) throw new HttpError(404, "Bot not found");
       assertBotSeatable(ctx, game, bot);
+      if (ctx.commerce !== null) {
+        const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, auth.user.id, ctx.commerce.now());
+        const tier = ctx.commerce.catalog.botTiers?.[bot.id];
+        requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+      }
       const cmd: SingleCommand = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
     },
@@ -978,6 +1113,17 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const finished = game.status === "finished";
       if (mySeat === null && !(finished && game.access === "public")) {
         throw new HttpError(403, "Not a participant in this game", "notParticipant");
+      }
+      if (finished && ctx.commerce !== null) {
+        const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, auth.user.id, ctx.commerce.now());
+        const replayGated = [ctx.commerce.catalog.free, ...ctx.commerce.catalog.entitlements].some((grant) => grant.permissions?.some((permission) => permission.kind === "replay.read") === true);
+        if (replayGated) requireCapability(access, { kind: "replay.read" });
+        for (const item of await readSelectedGameContent(ctx.d1(c.env), gameId)) {
+          if (item.ownership !== "viewer") continue;
+          if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {
+            throw new HttpError(403, `Content required: ${item.collection}/${item.id}`, "contentRequired");
+          }
+        }
       }
       const page = 1000;
       const cappedTo = Math.min(to ?? from + page - 1, from + page - 1);

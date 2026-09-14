@@ -22,11 +22,13 @@
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
+import type { SelectedContent } from "../commerce/types.js";
 import type { GameOrigin } from "../protocol.js";
 import { isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
-import { games, participants, playerRatings, ratingHistory, users } from "./schema.js";
+import { commerceCapacity, commerceUsage, creationOperations, gameContent, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -71,9 +73,10 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         updatedAt: input.now,
       })
       .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`));
+    const capacityRelease = db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, input.gameId));
 
     if (pool === null) {
-      await summaryUpdate;
+      await db.batch([summaryUpdate, capacityRelease]);
       return null;
     }
 
@@ -123,7 +126,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     const existingUsers = await readExistingUsers(d1, deltaUserIds);
     const deltas = allDeltas.filter((d) => d.identity.userId === null || existingUsers.has(d.identity.userId));
 
-    const statements = [summaryUpdate, ...ratingStatements(db, input, pool, deltas, priors)];
+    const statements = [summaryUpdate, capacityRelease, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
       await db.batch(statements as [typeof summaryUpdate, ...typeof statements]);
       return deltas;
@@ -280,12 +283,17 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
  * single attempt. */
 export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
   const db = orm(d1);
-  const statements = [db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)), db.delete(participants).where(eq(participants.gameId, args.gameId))] as const;
+  const statements: BatchItem<"sqlite">[] = [
+    db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)),
+    db.delete(participants).where(eq(participants.gameId, args.gameId)),
+    ...(args.status === "aborted" ? [db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, args.gameId))] : []),
+  ];
   if (args.seats.length === 0) {
-    await db.batch([...statements]);
+    await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
     return;
   }
-  await db.batch([...statements, db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now })))]);
+  statements.push(db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now }))));
+  await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 }
 
 /** The worker-direct create, engine-owned so implementors never touch
@@ -313,6 +321,31 @@ export interface CreateGameInput {
    * history sorts by when it was played rather than when it synchronized. */
   createdAt: number;
   now: number;
+  /** Present on client-facing creates; omitted only by low-level test/repair
+   * utilities that seed a game directly. */
+  creation?: {
+    creatorId: string;
+    creationId: string;
+    fingerprint: string;
+  };
+  content?: readonly SelectedContent[];
+  usage?: readonly {
+    metric: "game.create.success" | "bot.game.success";
+    periodKey: string;
+    /** Null records usage without a commercial maximum. */
+    maximum: number | null;
+    operationId: string;
+  }[];
+  capacity?: {
+    maximum: number;
+  };
+}
+
+export class CommercialLimitWriteError extends Error {}
+
+function isLimitConstraint(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("commerce_usage.slot") || message.includes("commerce_capacity.slot");
 }
 
 /** Write the games row + one participants row per seat, atomically. The DO
@@ -322,7 +355,7 @@ export interface CreateGameInput {
  * it with a newly generated code. */
 export async function createGame(d1: D1Database, input: CreateGameInput): Promise<void> {
   const db = orm(d1);
-  await db.batch([
+  const statements: BatchItem<"sqlite">[] = [
     db.insert(games).values({
       id: input.gameId,
       createdBy: input.createdBy,
@@ -343,7 +376,75 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
       updatedAt: input.now,
     }),
     db.insert(participants).values(input.seats.map((s) => ({ id: crypto.randomUUID(), gameId: input.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: input.now }))),
-  ]);
+  ];
+  if (input.creation !== undefined) {
+    statements.push(
+      db.insert(creationOperations).values({
+        id: crypto.randomUUID(),
+        creatorId: input.creation.creatorId,
+        creationId: input.creation.creationId,
+        fingerprint: input.creation.fingerprint,
+        gameId: input.gameId,
+        shortCode: input.shortCode,
+        createdAt: input.now,
+      }),
+    );
+  }
+  if (input.content !== undefined && input.content.length > 0) {
+    statements.push(
+      db.insert(gameContent).values(
+        input.content.map((item) => ({
+          id: crypto.randomUUID(),
+          gameId: input.gameId,
+          collection: item.collection,
+          itemId: item.id,
+          classification: item.classification,
+          ownership: item.ownership,
+        })),
+      ),
+    );
+  }
+  for (const usage of input.usage ?? []) {
+    const nextSlot = sql<number>`CASE WHEN ${usage.maximum} IS NULL OR (SELECT count(*) FROM commerce_usage WHERE user_id = ${input.createdBy} AND metric = ${usage.metric} AND period_key = ${usage.periodKey}) < ${usage.maximum} THEN COALESCE((SELECT max(slot) + 1 FROM commerce_usage WHERE user_id = ${input.createdBy} AND metric = ${usage.metric} AND period_key = ${usage.periodKey}), 1) ELSE NULL END`;
+    statements.push(
+      db.insert(commerceUsage).values({
+        id: crypto.randomUUID(),
+        userId: input.createdBy as string,
+        metric: usage.metric,
+        periodKey: usage.periodKey,
+        slot: nextSlot,
+        operationId: usage.operationId,
+        createdAt: input.now,
+      }),
+    );
+  }
+  if (input.capacity !== undefined) {
+    const nextSlot = sql<number>`CASE WHEN (SELECT count(*) FROM commerce_capacity WHERE user_id = ${input.createdBy} AND metric = 'games.openCreated') < ${input.capacity.maximum} THEN COALESCE((SELECT max(slot) + 1 FROM commerce_capacity WHERE user_id = ${input.createdBy} AND metric = 'games.openCreated'), 1) ELSE NULL END`;
+    statements.push(
+      db.insert(commerceCapacity).values({
+        id: crypto.randomUUID(),
+        userId: input.createdBy as string,
+        metric: "games.openCreated",
+        slot: nextSlot,
+        gameId: input.gameId,
+        createdAt: input.now,
+      }),
+    );
+  }
+  try {
+    await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
+  } catch (error) {
+    if (isLimitConstraint(error)) throw new CommercialLimitWriteError("Commercial limit reached");
+    throw error;
+  }
+}
+
+export async function readCreationOperation(d1: D1Database, creatorId: string, creationId: string) {
+  return await orm(d1)
+    .select()
+    .from(creationOperations)
+    .where(and(eq(creationOperations.creatorId, creatorId), eq(creationOperations.creationId, creationId)))
+    .get();
 }
 
 /** Lazy-init read: the D1 game + participants rows the DO copies into
