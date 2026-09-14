@@ -145,23 +145,20 @@ void main() {
     check(engine).isNotNull();
   });
 
-  test(
-    'a diverged record gets no engine, which is what stops local play',
-    () async {
-      final record = await seed();
-      // The server refused a move these rules accepted, or another device moved
-      // the game on. Either way the two copies are of different games from here.
-      await store.save(record.copyWith(diverged: true));
-      final container = containerFor();
+  test('a diverged record gets no engine, which is what stops local play', () async {
+    final record = await seed();
+    // The server refused a move these rules accepted, or another device moved
+    // the game on. Either way the two copies are of different games from here.
+    await store.save(record.copyWith(diverged: true));
+    final container = containerFor();
 
-      final engine = await container.read(
-        localGameEngineProvider(gameId: record.id).future,
-      );
+    final engine = await container.read(
+      localGameEngineProvider(gameId: record.id).future,
+    );
 
-      // No engine is what makes the session fall through to the server's copy and
-      // the command port refuse with `localOnly`, rather than committing further
-      // moves onto a log the server will never accept.
-      check(engine).isNull();
-    },
-  );
+    // No engine is what makes the session fall through to the server's copy and
+    // the command port refuse with `localOnly`, rather than committing further
+    // moves onto a log the server will never accept.
+    check(engine).isNull();
+  });
 }

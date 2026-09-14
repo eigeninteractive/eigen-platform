@@ -94,9 +94,8 @@ void main() {
       DioExceptionType.cancel,
     ]) {
       test('propagates untouched ($type)', () async {
-        await check(
-          engineCall<void>(() => throw _noAnswer(type)),
-        ).throws<DioException>();
+        await check(engineCall<void>(() => throw _noAnswer(type)))
+            .throws<DioException>();
       });
     }
   });
@@ -107,9 +106,8 @@ void main() {
 
   group('engineData', () {
     test('unwraps the response body', () async {
-      await check(
-        engineData(() async => _ok('hello')),
-      ).completes((v) => v.equals('hello'));
+      await check(engineData(() async => _ok('hello')))
+          .completes((v) => v.equals('hello'));
     });
 
     test('throws EngineException when a success carries no body', () async {

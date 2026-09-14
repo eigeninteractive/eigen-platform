@@ -18,9 +18,8 @@ void _deliver(Interceptor interceptor, Response<dynamic> response) {
 
 void main() {
   test('parses an RFC 1123 date', () {
-    check(
-      HttpDate.tryParse('Sun, 06 Nov 1994 08:49:37 GMT'),
-    ).equals(DateTime.utc(1994, 11, 6, 8, 49, 37));
+    check(HttpDate.tryParse('Sun, 06 Nov 1994 08:49:37 GMT'))
+        .equals(DateTime.utc(1994, 11, 6, 8, 49, 37));
   });
 
   test('rejects anything else rather than guessing', () {
@@ -71,9 +70,8 @@ void main() {
   test('an elapsed deadline reads as zero, never negative', () {
     final clock = ServerClock();
     final past = DateTime.now().toUtc().subtract(const Duration(minutes: 1));
-    check(
-      clock.remainingUntil(past.millisecondsSinceEpoch),
-    ).equals(Duration.zero);
+    check(clock.remainingUntil(past.millisecondsSinceEpoch))
+        .equals(Duration.zero);
   });
 
   test('ignores a response with no date header', () {

@@ -75,6 +75,13 @@ fi
 # The hand-owned package files must exist in the staged tree before generation:
 # the checked-in ignore file protects them from the dart-dio template.
 cp "$OUT/pubspec.yaml" "$STAGE/pubspec.yaml"
+# The staged tree is not a workspace member -- it is a scratch directory that no
+# root lists -- and `resolution: workspace` is an error wherever no root claims
+# the package. Strip it here so the staged build resolves standalone, against
+# published dependencies, which is what generating this client should do anyway.
+# `$OUT/pubspec.yaml` keeps the key; the version stamp below is applied to it
+# directly rather than copied back from the stage.
+perl -ni -e 'print unless /^resolution:\s*workspace\s*$/' "$STAGE/pubspec.yaml"
 cp "$OUT/analysis_options.yaml" "$STAGE/analysis_options.yaml"
 cp "$OUT/.openapi-generator-ignore" "$STAGE/.openapi-generator-ignore"
 
@@ -108,6 +115,7 @@ echo "==> generating (dart-dio + json_serializable)"
 # and this script cannot disagree about what is being published.
 echo "==> stamping version"
 perl -pi -e "s/^version: .*/version: $VERSION/" "$STAGE/pubspec.yaml"
+perl -pi -e "s/^version: .*/version: $VERSION/" "$OUT/pubspec.yaml"
 
 # Build the serializers. These are committed too: a consumer never runs
 # build_runner on a dependency, so a package whose `part 'x.g.dart';`
@@ -173,7 +181,9 @@ echo "==> installing staged client"
 rm -rf "$OUT/lib" "$OUT/doc"
 mv "$STAGE/lib" "$OUT/lib"
 mv "$STAGE/doc" "$OUT/doc"
-for file in README.md CHANGELOG.md LICENSE build.yaml pubspec.yaml; do
+# `pubspec.yaml` is deliberately absent: the stage's copy has had
+# `resolution: workspace` stripped, and $OUT's was stamped in place above.
+for file in README.md CHANGELOG.md LICENSE build.yaml; do
   cp "$STAGE/$file" "$OUT/$file"
 done
 

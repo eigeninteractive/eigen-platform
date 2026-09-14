@@ -14,9 +14,8 @@ void main() {
 
   test('defaults to ThemeMode.system when nothing is persisted', () async {
     final container = makeContainer();
-    check(
-      await container.read(themeControllerProvider.future),
-    ).equals(ThemeMode.system);
+    check(await container.read(themeControllerProvider.future))
+        .equals(ThemeMode.system);
   });
 
   test('setTheme updates state and persists across containers', () async {
@@ -30,8 +29,7 @@ void main() {
 
     // A fresh container rebuilds from SharedPreferences and sees the value.
     final reopened = makeContainer();
-    check(
-      await reopened.read(themeControllerProvider.future),
-    ).equals(ThemeMode.dark);
+    check(await reopened.read(themeControllerProvider.future))
+        .equals(ThemeMode.dark);
   });
 }

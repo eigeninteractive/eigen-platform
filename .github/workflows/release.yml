@@ -157,30 +157,29 @@ jobs:
           # deliberately: API commits are signed with GitHub's key and attributed
           # to the release App that owns the token.
 
-      # There used to be a step here that carried `platform.json` and the `web`
-      # references onto the release branch by hand -- capture `git diff`, switch
-      # branches, `git apply`, commit, push -- because Changesets was believed to
-      # commit only files under its `cwd`.
+      # There used to be a step here that carried the generated `web` references
+      # onto the release branch by hand -- capture `git diff`, switch branches,
+      # `git apply`, commit, push -- because Changesets was believed to commit
+      # only files under its `cwd`.
       #
       # It is deleted, and reading the action's source is what nearly kept it:
       # `pushChanges` does pass `cwd` on both paths, which looks conclusive. It is
       # not. On the GitHub API path `cwd` only locates the repository for
       # `commitChangesSinceBase`, which then diffs the whole worktree against the
       # base commit. Measured on the first v2.1.0 run: commit fc83bb8 on
-      # `changeset-release/main` carries 56 files, including `platform.json`, both
-      # `openapi.json` copies and the entire generated HTTP reference. The version
-      # PR is complete in one commit now.
+      # `changeset-release/main` carried 56 files, including both `openapi.json`
+      # copies and the entire generated HTTP reference. The version PR is
+      # complete in one commit now.
       #
       # Keeping the step would not merely have been redundant, it failed: it
       # applies a diff the commit already contains, so the second version run for
       # any pending Changeset died on `patch does not apply`. That is not a rare
       # case -- every push to `main` while a Changeset is pending re-runs this job.
       #
-      # The two assertions it also ran, `platform.mjs --check` and
-      # `check-docs-version`, are not lost: the version PR runs the full platform
-      # gate, which is where both already live. That is the better place for the
-      # docs-line decision in particular -- a red `web` shard on a complete,
-      # reviewable PR, rather than a half-built release branch.
+      # The two assertions it also ran are both gone rather than relocated.
+      # `platform.mjs --check` verified a generated manifest that nothing read;
+      # `check-docs-version` compared a hand-typed label against the spec beside
+      # it. Both were replaced by deriving the value instead of checking it.
 
   publish:
     name: Publish to npm

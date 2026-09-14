@@ -64,9 +64,8 @@ void main() {
     test('does not expose the engine-internal abstain code', () {
       // `abstain` is a system-intent no-op the server converts to a 500; a
       // client must never be asked to handle it.
-      check(
-        ErrorCode.values.map((c) => c.value),
-      ).not((v) => v.contains('abstain'));
+      check(ErrorCode.values.map((c) => c.value))
+          .not((v) => v.contains('abstain'));
     });
   });
 
@@ -139,9 +138,8 @@ void main() {
         check(parsed.status).equals(GameStatus.unknownDefaultOpenApi);
         check(parsed.access).equals(GameAccess.unknownDefaultOpenApi);
         check(parsed.origin).equals(GameOrigin.unknownDefaultOpenApi);
-        check(
-          parsed.participants.single.type,
-        ).equals(SeatTypeEnum.unknownDefaultOpenApi);
+        check(parsed.participants.single.type)
+            .equals(SeatTypeEnum.unknownDefaultOpenApi);
       },
     );
   });

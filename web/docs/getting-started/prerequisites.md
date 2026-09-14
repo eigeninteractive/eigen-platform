@@ -29,7 +29,7 @@ run every test. No account, no device, no Android SDK.
 | --- | --- | --- |
 | [Node.js](https://nodejs.org/en/download) | 22 or newer | Runs the scaffolder, `wrangler`, and the Worker's tests |
 | [pnpm](https://pnpm.io/installation) *or* npm | any current release | pnpm is the default the scaffolder assumes; npm works identically |
-| [Flutter](https://docs.flutter.dev/get-started/install) | 3.44 or newer, bringing Dart 3.12 or newer | The app half, the Dart rules twin, and the payload generator |
+| [Flutter](https://docs.flutter.dev/get-started/install) | 3.47 or newer, bringing Dart 3.13 or newer | The app half, the Dart rules twin, and the payload generator |
 | [Git](https://git-scm.com/downloads) | any | Flutter uses it internally, and it is your project's history |
 
 Dart is not a separate install. It ships inside Flutter, and
@@ -142,7 +142,7 @@ tables list:
 node -v                # v22.x or newer
 pnpm -v                # or: npm -v
 git --version
-flutter --version      # Flutter 3.44+ · Dart 3.12+
+flutter --version      # Flutter 3.47+ · Dart 3.13+
 ```
 
 Then let Flutter audit its own half, which covers the Android SDK, the JDK,

@@ -80,6 +80,24 @@ const overrides = () => ["", "overrides:", ...ENGINE_PACKAGES.map((name) => `  "
 
 const target = resolve(mkdtempSync(resolve(tmpdir(), "eigen-scaffold-e2e-")), "e2e-game");
 
+/**
+ * The `name@range` arguments the scaffolder passed to `flutter pub add`.
+ *
+ * Captured from the seam rather than read out of `src/index.ts`, because the
+ * floors are module-private constants there and the alternative is scraping the
+ * source. `platform.mjs` used to scrape `docusaurus.config.ts` for a version
+ * label; when that label became an expression the pattern did not fail, it
+ * matched something else and reported the wrong string. What the scaffolder
+ * emits is the thing worth checking anyway.
+ */
+const emittedFloors = new Map();
+const recordFloors = (args) => {
+  for (const argument of args) {
+    const match = /^(?:dev:)?(eigen_[a-z_]+)@(.+)$/.exec(argument);
+    if (match) emittedFloors.set(match[1], match[2]);
+  }
+};
+
 const { root } = scaffoldGame({
   directory: target,
   packageManager: "pnpm",
@@ -115,8 +133,10 @@ const { root } = scaffoldGame({
         ].join("\n"),
       );
       writeHostedDependencies(args, cwd);
+      recordFloors(args);
       return;
     }
+    if (command === "flutter" && args[0] === "pub" && args[1] === "add") recordFloors(args);
     shell(command, args, cwd);
   },
 });
@@ -216,6 +236,67 @@ if (speakers.length === 0) {
     `the scaffolded halves speak different engines: the server takes ${emittedEngine} but eigen_flutter ${resolvedShell} resolved eigen_api ${resolvedApi} (the ${line(resolvedApi)}.x wire). ` +
       `eigen_flutter ${speakers.join(", ")} already speaks ${engineLine}.x, so this is a stale pin rather than a shell that has not caught up. ` +
       `Raise flutterClientVersion in packages/create-eigen-game/src/index.ts, and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.`,
+  );
+}
+
+// ── Every floor must name the newest published line ──────────────────────────
+//
+// The check above asks whether the two halves speak the same wire, which only
+// `eigen_flutter` can answer: `eigen_shell`, `eigen_firebase` and
+// `eigen_codegen` carry no `eigen_api` constraint, so they have no wire to
+// compare. They still go stale the same way, and nothing noticed. The offline
+// play release is the worked example: `eigen_shell` went 0.1.1 to 0.2.0 and
+// `eigen_firebase` 0.2.0 to 0.3.0 on the same day, and `flutterShellVersion`
+// and `firebaseAdapterVersion` sat at the lines those releases had left, so a
+// freshly scaffolded project would have installed a shell two lines behind the
+// templates written against it.
+//
+// `tool/check-dart-pin.mjs` cannot see these. It compares pubspec constraints
+// against pubspecs in this repository; these are TypeScript literals naming
+// *published* packages, and the repository's own version is the wrong thing to
+// compare them against -- during the window between a version commit landing
+// and the package publishing, the repository is ahead of pub.dev on purpose and
+// a local comparison would demand a floor pointing at nothing.
+//
+// So the registry is the authority, and asking it has no false-red window at
+// all. While a release is in flight pub.dev still serves the old line, which is
+// the line the floor names, and this passes. It goes red exactly when a
+// published release moves past the floor, which is exactly when the floor
+// should move -- the same design as the wire check above, which also turns red
+// the moment a compatible shell ships.
+const latestLine = async (name) => {
+  const url = `https://pub.dev/api/packages/${name}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${url} responded ${response.status} ${response.statusText}`);
+  const { versions = [] } = await response.json();
+  const published = versions.filter((entry) => entry.retracted !== true && !entry.version.includes("-")).map((entry) => entry.version);
+  if (published.length === 0) throw new Error(`${name} has no published stable version`);
+  // Ordered here rather than trusting the array: pub.dev happens to return
+  // ascending, but 0.9.0 sorts after 0.10.0 under any string comparison, so an
+  // ordering this cares about should not be inherited from a response shape.
+  const rank = (version) => version.split(".").map(Number);
+  const newest = published.reduce((best, candidate) => {
+    const [a, b] = [rank(candidate), rank(best)];
+    for (let index = 0; index < 3; index += 1) {
+      if (a[index] !== b[index]) return a[index] > b[index] ? candidate : best;
+    }
+    return best;
+  });
+  return line(newest);
+};
+
+const staleFloors = [];
+for (const [name, floor] of emittedFloors) {
+  const published = await latestLine(name);
+  if (line(floor) !== published) staleFloors.push(`${name} ${floor} is behind the published ${published}.x line`);
+}
+
+if (staleFloors.length > 0) {
+  throw new Error(
+    `the scaffolder installs packages that have moved on: ${staleFloors.join("; ")}. ` +
+      "A newly scaffolded project would get a release older than the templates were written against. " +
+      "Raise the matching floor in packages/create-eigen-game/src/index.ts, update the expectation in test/scaffold.spec.ts, " +
+      "and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.",
   );
 }
 

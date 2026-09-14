@@ -237,8 +237,9 @@ final class LocalBotActionArgs<TObs, TConfig> {
 /// The `FutureOr` return is what lets a web brain yield cooperatively: Flutter
 /// has no isolates on the web, so a brain that thinks for long must give the
 /// frame back rather than block it.
-typedef LocalBotAction<TAction, TObs, TConfig> =
-    FutureOr<TAction> Function(LocalBotActionArgs<TObs, TConfig>);
+typedef LocalBotAction<TAction, TObs, TConfig> = FutureOr<TAction> Function(
+  LocalBotActionArgs<TObs, TConfig>,
+);
 
 /// A move the game's rules refuse: the twin of the TypeScript
 /// `IllegalMoveError`.

@@ -1,0 +1,103 @@
+# The Dart workspace root.
+#
+# This file exists to make the platform's seven Dart packages resolve as one
+# unit, which is what `tool/link-local-dart.sh` used to approximate by writing
+# `dependency_overrides` into each package before every check.
+#
+# The difference is the whole reason this replaced it. A `dependency_overrides`
+# entry BYPASSES the declared constraint: `eigen_flutter` could say
+# `eigen_client: ^0.1.0` while resolving 0.2.0 from the working tree, and every
+# shard would pass. The declared range was exercised nowhere but a publish, so a
+# stale pin was invisible until the release job, and `tool/check-dart-pin.mjs`
+# existed to read the pubspecs by hand and say so earlier.
+#
+# Workspace resolution uses the local package AND still checks the constraint.
+# The same mistake now fails `pub get`:
+#
+#     Because eigen_flutter depends on eigen_client ^0.1.0 and eigen-platform
+#     depends on eigen_client, version solving failed.
+#
+# So the guard is gone, and so is the thing it was guarding.
+#
+# `resolution: workspace` stays in a published pubspec -- pub does not strip it,
+# and `melos`, `riverpod`, `flutter_riverpod` and `drift` all ship it today. It
+# only means anything when the package is the ROOT of a resolution, which a
+# hosted dependency never is.
+#
+# Members are listed explicitly rather than globbed. They do not share a parent
+# directory, and moving them would churn the imported histories that
+# `docs/architecture/0000-monorepo-import.md` and AGENTS.md require preserving.
+name: eigen_platform
+description: >-
+  Workspace root for the EigenInteractive Dart packages. Not a package; it
+  carries no code and is never published.
+publish_to: none
+
+environment:
+  # The Dart line of the pinned Flutter SDK in `flutter/.fvmrc`: Flutter 3.47.4
+  # bundles Dart 3.13.3. Every member declares the same floor, because they
+  # share one resolution and are released as one version -- a lower floor on a
+  # pure-Dart member would be a promise nothing here ever tests. This moves with
+  # the Flutter pin, not on its own.
+  sdk: ^3.13.0
+
+# Melos is a dev dependency of the root because that is how it recognises a
+# workspace; it carries no analyzer dependency, so it cannot disturb the
+# analyzer-12 resolution the committed generated sources depend on.
+dev_dependencies:
+  melos: ^8.7.0
+  # `dart doc` is not used anywhere in this repository, and this is why. The
+  # dartdoc bundled with the Dart SDK crashes on any package whose dependencies
+  # carry `@docImport` doc comments -- a string-offset bug in `_stripDocImports`
+  # fixed upstream in 9.0.8, but Dart 3.13.1 and 3.13.3 pin the same
+  # `dartdoc_rev` (1d56f263, "9.0.6-wip"), so every current stable SDK ships it.
+  #
+  # Pinning the tool here rather than waiting for an SDK decouples the two:
+  # `tool/check.sh` runs this dartdoc, and the crash stops gating the Flutter
+  # version. Remove once a bundled `dart doc` works and the checks go back to it.
+  #
+  # 9.0.8 rather than 9.0.9, which is the newer release: 9.0.9 wants analyzer
+  # ^14.1.0, and `flutter_test` from the SDK pins `matcher`, which pins `test`,
+  # which caps analyzer below 14. 9.0.8 is the release that carries the fix and
+  # asks only for ^13.0.2.
+  dartdoc: 9.0.8
+
+workspace:
+  - server/clients/dart
+  - dart/eigen_client
+  - dart/eigen_codegen
+  - flutter
+  - flutter/example
+  - shell
+  - firebase
+
+# Melos versions these packages and rewrites the constraints between them.
+#
+# It owns versions ONLY. Changelogs stay with cider, because these are curated
+# prose rather than a list of commit subjects, and `--no-changelog` keeps melos
+# out of them. Tags and publication stay with the release workflows, because
+# pub.dev trusted publishing validates the calling workflow's filename.
+melos:
+  name: eigen_platform
+
+  command:
+    version:
+      # Independent versions -- Melos's default, and what FlutterFire's twenty-odd
+      # packages use.
+      #
+      # `fixed` was tried first and does not fit this repository. It versions
+      # every workspace member in lockstep, and `eigen_api` is a member whose
+      # version is not ours to choose: it is generated from the engine's OpenAPI
+      # document and stamped with `@eigeninteractive/server`'s version, so the
+      # npm release owns it. Fixed mode raised it 0.7.0 -> 0.10.1, "lockstep
+      # with workspace", which would break the one coupling this repository most
+      # needs to hold. Nor can it simply leave the workspace: the Dart packages
+      # have to resolve it from this checkout, which is the whole point.
+      #
+      # What removes the release-day arithmetic is not a shared number anyway.
+      # It is `--dependent-constraints`, on by default, which rewrites the caret
+      # ranges these packages name each other by in the same commit that
+      # versions them -- and that works the same in either mode. The release
+      # workflow names every package it releases explicitly, so nothing is
+      # versioned by accident.
+      mode: independent

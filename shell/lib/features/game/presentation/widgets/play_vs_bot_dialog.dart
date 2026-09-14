@@ -295,9 +295,8 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
       if (e is EngineException) _creationId = null;
       if (!mounted) return;
       setState(() => _creating = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 }

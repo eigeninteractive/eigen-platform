@@ -124,8 +124,7 @@ void main() {
       gameSchema: 3,
       supportedSchema: 2,
     );
-    check(
-      exception.toString(),
-    ).contains('no rules for game schema 3 (latest supported: 2)');
+    check(exception.toString())
+        .contains('no rules for game schema 3 (latest supported: 2)');
   });
 }

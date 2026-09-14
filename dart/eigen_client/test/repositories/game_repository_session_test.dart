@@ -224,9 +224,8 @@ void main() {
     });
 
     check(seen.map((s) => s.version)).deepEquals([0, 1, 2, 3]);
-    check(
-      seen.map((s) => s.status.name),
-    ).deepEquals(['active', 'active', 'active', 'finished']);
+    check(seen.map((s) => s.status.name))
+        .deepEquals(['active', 'active', 'active', 'finished']);
     // `seq` holds still too, so a snapshot racing the animation is still
     // ordered against the last one the server actually stated.
     check(seen.map((s) => s.seq)).deepEquals([1, 1, 1, 4]);
@@ -327,9 +326,8 @@ void main() {
       t.socket.emit(_session(seq: 3, version: 0));
     });
 
-    check(
-      seen.map((s) => s.status.name),
-    ).deepEquals(['waiting', 'ready', 'active']);
+    check(seen.map((s) => s.status.name))
+        .deepEquals(['waiting', 'ready', 'active']);
     check(seen[0].version).isNull();
     check(seen[0].frame).isNull();
     check(seen[2].version).equals(0);

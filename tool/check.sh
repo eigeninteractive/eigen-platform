@@ -6,14 +6,18 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The platform manifest: versions, package inventory, and cross-repo wiring. The
 # portable schema profile is no longer checked here — it is enforced where it can
 # be acted on, inside the contract emitter (`run_server`).
+# The SDK's bundled `dart doc` crashes on any package whose dependencies carry
+# `@docImport` doc comments (dartdoc's `_stripDocImports`, fixed upstream in
+# 9.0.8, still unfixed in every current stable SDK). The workspace pins a fixed
+# dartdoc instead; see the root pubspec.yaml. Run from the repository root with
+# `--input` rather than from inside the package, because the pin is a dependency
+# of the workspace root.
+check_docs() {
+  ( cd "$platform_root" && dart run dartdoc --no-generate-docs --input="$1" --output="$(mktemp -d)" )
+}
+
 run_manifest() {
-  node "$platform_root/tool/platform.mjs" --check
   node "$platform_root/tool/check-dart-releases.mjs"
-  # Cross-component version wiring that no toolchain shard can see: every other
-  # check resolves eigen_api through link-local-dart.sh's path override, so the
-  # range flutter/pubspec.yaml actually declares is exercised nowhere but a
-  # publish.
-  node "$platform_root/tool/check-dart-pin.mjs"
 }
 
 assert_no_drift() {
@@ -62,15 +66,13 @@ run_server() {
 
   pnpm dart-client
   assert_no_drift "Dart API generation" server/clients/dart
-
-  cd "$platform_root/server/clients/dart"
-  # Generation rewrites this package but does not install it. A developer may
-  # already have .dart_tool/package_config.json from an earlier run; a clean CI
-  # checkout never does. Make the shard self-contained rather than depending on
-  # ambient pub state.
-  dart pub get
-  dart analyze
-  dart pub publish --dry-run
+  # Generating the client is this shard's job; VALIDATING it is the flutter
+  # shard's. `server/clients/dart` is a member of the workspace at the
+  # repository root, and that workspace contains Flutter packages, so resolving
+  # anything inside it needs the Flutter SDK -- which this shard deliberately
+  # does not install. Generation itself still works on standalone Dart, because
+  # `generate-dart-client.sh` strips `resolution: workspace` from its staging
+  # tree and resolves there.
 
   cd "$platform_root/server"
   local pack_dir
@@ -88,10 +90,17 @@ run_server() {
 }
 
 run_flutter() {
-  "$platform_root/tool/link-local-dart.sh"
+  # The generated wire client is the base of the Dart graph, and it is validated
+  # here rather than in the server shard because resolving any member of this
+  # workspace needs the Flutter SDK. The server shard generates it and asserts
+  # it did not drift.
+  cd "$platform_root/server/clients/dart"
+  flutter pub get
+  dart analyze
+  dart pub publish --dry-run
 
   cd "$platform_root/dart/eigen_client"
-  dart pub get
+  flutter pub get
   dart format --output=none --set-exit-if-changed .
   dart analyze
   dart test
@@ -101,7 +110,7 @@ run_flutter() {
   dart pub publish --dry-run
 
   cd "$platform_root/dart/eigen_codegen"
-  dart pub get
+  flutter pub get
   dart format --output=none --set-exit-if-changed .
   dart analyze
   dart test
@@ -118,7 +127,7 @@ run_flutter() {
   assert_no_drift "Flutter code generation" flutter
   dart analyze lib
   dart analyze test
-  dart doc --dry-run .
+  check_docs flutter
   flutter test
 
   cd "$platform_root/shell"
@@ -130,7 +139,7 @@ run_flutter() {
   dart fix --dry-run
   assert_no_drift "Shell code generation" shell
   flutter analyze
-  dart doc --dry-run .
+  check_docs shell
   flutter test
   dart pub publish --dry-run
 
@@ -139,7 +148,7 @@ run_flutter() {
   dart format --output=none --set-exit-if-changed \
     $(git ls-files '*.dart' | sed 's#^firebase/##')
   flutter analyze
-  dart doc --dry-run .
+  check_docs firebase
   flutter test
   dart pub publish --dry-run
 
@@ -177,7 +186,6 @@ run_web() {
   fi
 
   cd "$platform_root/web"
-  pnpm check-docs-version
   pnpm check-admonitions
   pnpm sync-api
   assert_no_drift "Documentation generation" \

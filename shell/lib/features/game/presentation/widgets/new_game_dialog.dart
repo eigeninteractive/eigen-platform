@@ -262,9 +262,8 @@ class _NewGameDialogState extends ConsumerState<NewGameDialog> {
       if (e is EngineException) _creationId = null;
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 }

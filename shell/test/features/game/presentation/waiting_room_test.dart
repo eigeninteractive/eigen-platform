@@ -89,9 +89,8 @@ Future<void> _pump(
         ),
         currentUserIdProvider.overrideWithValue(viewer),
         gameSessionProvider(gameId: _gameId).overrideWith((ref) => sessions),
-        playerInfoCacheProvider(
-          id: _creator,
-        ).overrideWith(_FakePlayerCache.new),
+        playerInfoCacheProvider(id: _creator)
+            .overrideWith(_FakePlayerCache.new),
         playerInfoCacheProvider(id: _joiner).overrideWith(_FakePlayerCache.new),
       ],
       child: const MaterialApp(home: GameScreen(gameId: _gameId)),

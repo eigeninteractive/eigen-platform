@@ -136,7 +136,7 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).toContain("upload_to_play_store");
     expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
     expect(readFileSync(resolve(root, "app/.ruby-version"), "utf8").trim()).not.toBe("");
-    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.44.8");
+    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.47.4");
     expect(readFileSync(resolve(root, "app/android/app/proguard-rules.pro"), "utf8")).toContain("image_cropper");
     expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
     expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");
@@ -206,7 +206,7 @@ describe("scaffoldGame", () => {
     // release on that line, which is the part a scaffold-time pub.dev lookup
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.9.0", "eigen_shell@^0.1.0", "eigen_firebase@^0.2.0", "firebase_core@^4.9.0"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.10.0", "eigen_shell@^0.2.0", "eigen_firebase@^0.3.0", "firebase_core@^4.9.0"], expect.stringMatching(/\/app$/));
     // A separate `pub add` (rather than folded into the call above) so a
     // failure here is legible on its own, and because these are dev
     // dependencies (`dev:` prefix) while the engine/Firebase packages above

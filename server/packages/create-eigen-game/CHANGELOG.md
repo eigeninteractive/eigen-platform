@@ -1,5 +1,49 @@
 # create-eigen-game
 
+## 0.15.2
+
+### Patch Changes
+
+- [#82](https://github.com/eigeninteractive/eigen-platform/pull/82) [`80c97e7`](https://github.com/eigeninteractive/eigen-platform/commit/80c97e7ab1542a86b2d7929b1b1ca421835c0002) Thanks [@seenu-k](https://github.com/seenu-k)! - Install `eigen_shell` 0.2.0 and `eigen_firebase` 0.3.0 in a newly scaffolded
+  project, and check every floor against the registry from now on.
+  
+  Both packages released with offline play, and the scaffolder's floors still
+  named the lines they had left, so a fresh project installed a shell two lines
+  behind the templates written against it.
+  
+  `scaffold-e2e.mjs` already refused to let `flutterClientVersion` go stale, but
+  only through the wire pairing, which `eigen_shell`, `eigen_firebase` and
+  `eigen_codegen` cannot answer: they carry no `eigen_api` constraint. Every floor
+  the scaffolder emits is now compared with the newest published line of the
+  package it names, which has no window where it is expected to be red — while a
+  release is in flight pub.dev still serves the line the floor names.
+
+## 0.15.1
+
+### Patch Changes
+
+- [#76](https://github.com/eigeninteractive/eigen-platform/pull/76) [`6a64dae`](https://github.com/eigeninteractive/eigen-platform/commit/6a64dae79503272920891cdb9b1a27245f27037c) Thanks [@seenu-k](https://github.com/seenu-k)! - Pair a newly scaffolded project with `eigen_flutter` 0.10.0.
+  
+  The scaffolded worker already takes engine `^0.7.0`, but the app overlay still
+  pinned `eigen_flutter ^0.9.0`, which resolves `eigen_api` on the 0.6.x wire. A
+  project generated from `create-eigen-game@0.15.0` therefore gets two halves that
+  speak different engines, and the scaffold's own `local_rules.dart` calls
+  `GameRules.local`, which does not exist before 0.10.0.
+  
+  This is the follow-up patch a Flutter line move structurally costs: the floor
+  names a *published* `eigen_flutter`, and `eigen_flutter` publishes at the end of
+  the release chain, after the npm packages this scaffolder ships beside, so there
+  is no 0.10.0 to point at until the chain has finished.
+
+## 0.15.0
+
+### Minor Changes
+
+- [#67](https://github.com/eigeninteractive/eigen-platform/pull/67) [`d43e097`](https://github.com/eigeninteractive/eigen-platform/commit/d43e097e801366366c2c304b8e029686a0ac0337) Thanks [@seenu-k](https://github.com/seenu-k)! - Regenerate the scaffolded worker's `game-contract.json` and counter example
+  fixtures to cover the new `initialState`, `lifecycle`, and `transcript` twin-fixture
+  kinds, keeping a freshly scaffolded project's contract in sync with
+  `@eigeninteractive/testkit`.
+
 ## 0.14.3
 
 ### Patch Changes

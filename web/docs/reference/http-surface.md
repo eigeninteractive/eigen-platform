@@ -29,7 +29,6 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | `GET /me` · `GET /me/ratings` · `GET /me/rating-history` | The caller's own profile / ratings |
 | `GET /friends` · `GET /friends/requests` · `GET /friends/games` | Social lists |
 | `GET /users/search?q=` | Friend-picker search (registered only) |
-| `GET /commerce/catalog` · `GET /commerce/access` | Optional registered offers and the caller's effective commercial access |
 
 **Game lifecycle** (Commands to the DO; policy at the edge, integrity in the DO):
 
@@ -59,13 +58,6 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | `PUT /me/devices` · `DELETE /me/devices/{fid}` | FCM device register / deregister |
 | `POST /friends/requests` · `/requests/{id}/accept` · `DELETE /friends/{id}` | Friend request / accept / remove |
 | `POST` + `DELETE /friends/{id}/block` | Block / unblock |
-| `POST /commerce/claims` · `/restore` | Verify or restore provider evidence, then return authoritative access |
-| `POST /commerce/checkout` · `/management` | Create provider-hosted checkout or subscription-management links |
-
-Commerce routes are mounted only when the deployment configures commerce.
-`POST /api/commerce/{provider}/webhook` is outside Firebase middleware: the
-matching provider adapter authenticates the raw notification. Scheduled
-reconciliation repairs missed or stale provider updates.
 
 ## Bot webhook: `/api/bot`
 
@@ -101,19 +93,15 @@ rejection converted to one) rendered by the app-level error handler.
 |---|---|---|
 | 400 | Client mistake | `invalidPayload`, `illegalMove`, `notLocalBot` |
 | 401 | Missing/invalid token | none |
-<<<<<<< Updated upstream
 | 403 | Ownership/permission refusal | `notCreator`, `notParticipant`, `localOnly` |
-=======
-| 403 | Ownership/permission refusal | `notCreator`, `notParticipant`, `capabilityRequired`, `contentRequired`, `commercialLimitReached`, `registrationRequired` |
->>>>>>> Stashed changes
 | 404 | No such game/user | `unknownGame` |
-| 409 | Stale view, lifecycle, purchase, or creation-identity conflict | `stateUpdated`, `notActive`, `notReady`, `gameFull`, `clientUpdateRequired`, `serverUpdateRequired`, `creationConflict`, `purchasePending`, `purchaseConflict` |
+| 409 | Stale view, lifecycle conflict, or version mismatch | `stateUpdated`, `notActive`, `notReady`, `gameFull`, `clientUpdateRequired`, `serverUpdateRequired` |
 | 413 | Game/bot JSON or avatar too big | none or `imageTooLarge` |
 | 415 | Avatar type not accepted | `unsupportedImageType` |
 | 422 | A creation assertion disagrees with the authoritative game policy | none |
 | 429 | Rate limited | `rateLimited` |
 | 500 | Server fault (game-hook bug, storage) | none |
-| 502 | An upstream identity or commerce provider failed (local state remains safe; retry) | none |
+| 502 | Account deletion upstream failure (intact; retry) | none |
 
 ## Mutations use operation-specific correctness
 
@@ -123,13 +111,10 @@ rejected. Join and leave express a desired membership state; start and cancel
 are idempotent lifecycle transitions; bot seating is guarded by the lobby
 version it was chosen from.
 
-Creation has one operation-specific identity because a duplicate can create a
-second game and consume a second commercial allowance. Both create bodies
-require a client-minted `creationId`. Reusing it with the same normalized inputs
-returns the first game; reusing it for different inputs returns
-`creationConflict`. The standard client keeps the same identity across an
-ambiguous transport retry and mints a new one for a new player intent. This is
-not a generic receipt protocol for other mutations.
+Creation is the one deliberately ambiguous case. If the connection fails before
+the response arrives, the client reloads its game list and the player may create
+again. The platform does not retain permanent receipts for this rare early-stage
+case.
 
 Two reject codes are **not** errors and never reach the client as failures:
 `abstain` (a system `timeout` that lost its race, a clean no-op) and the

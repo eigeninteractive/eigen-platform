@@ -32,8 +32,8 @@ packages move only when their own user-visible contents change.
   validation shards run concurrently; the final `check` job succeeds only when
   all five do. The [repository ruleset](rulesets.md) requires that result before
   squash merge. A successful check of the resulting `main` commit emits
-  `workflow_run` events that start `.github/workflows/release.yml` and the Dart
-  tag coordinator at the checked commit.
+  `workflow_run` events that start `.github/workflows/release.yml` and
+  `.github/workflows/publish-dart.yml` at the checked commit.
 - Publishing runs only after a successful `Platform checks` push run for
   `main`. The pull-request run protects the merge; the main run protects the
   release and proves the exact commit that will ship.
@@ -64,12 +64,15 @@ packages move only when their own user-visible contents change.
   eventually consistent, so both the 0.5.0 and 0.5.1 releases failed there with a
   404 for a version that was already live. It still refuses to tag a version npm
   never accepted; it waits up to two minutes first.
-- The `manifest` shard asserts that every direct `eigen_api` consumer uses a
-  caret on the generated client's line. Nothing else can: `tool/check.sh` links
-  the local client first, so a publish is otherwise the first thing to resolve
-  the declared range. It also checks that each hand-written Dart package's
+- Constraints between the Dart packages are checked by resolution itself. They
+  are one pub workspace, so `pub get` uses the local sibling and still enforces
+  the declared range; a consumer naming a line its sibling has outgrown fails
+  every shard rather than reaching a publish. This replaced
+  `tool/check-dart-pin.mjs`, which read the pubspecs by hand because
+  `dependency_overrides` meant nothing else resolved them.
+- The `manifest` shard still checks that each hand-written Dart package's
   pubspec version is its latest linked changelog release. See
-  `tool/check-dart-pin.mjs` and `tool/check-dart-releases.mjs`.
+  `tool/check-dart-releases.mjs`.
 
 ## Required GitHub configuration
 
@@ -122,6 +125,9 @@ two-factor authentication and disallow tokens** and revoke any obsolete
 automation token. Keep an owner account's interactive recovery access.
 
 ### pub.dev
+
+Configured per package by **tag pattern**, not by workflow file, so the single
+`publish-dart.yml` that serves all five patterns needs no change here.
 
 Open **Admin → Automated publishing** for each package and replace the previous
 GitHub repository:
@@ -209,7 +215,6 @@ complete gate again before publication. The version PR:
 - consumes pending Changesets and updates package changelogs;
 - stamps and regenerates `eigen_api`;
 - regenerates the OpenAPI and TypeScript documentation;
-- updates `platform.json`;
 - carries all of that as a single commit. Changesets diffs the whole worktree
   against the base commit, so the cross-workspace regeneration lands with the
   version bump rather than needing a second commit transported onto the branch.
@@ -225,16 +230,15 @@ dry-runs the tagged Dart package before publishing it automatically.
 A scaffolder-only release does not create a new client version; it only verifies
 that the tag for the current engine already exists.
 
-When the engine crosses a documentation release line, the version PR is
-expected to fail `check-docs-version` on its `web` shard. That is the gate doing
-its job on a complete, reviewable pull request. Before merging, deliberately
-choose one:
+When the engine crosses a documentation release line, the version PR needs no
+documentation change. `web/docusaurus.config.ts` derives the site's version
+label from `info.version` in `api/openapi.json`, which that same PR regenerates,
+so the label moves with the release.
 
-1. Relabel current docs in `web/docusaurus.config.ts` when no supported user
-   needs the old line.
-2. Freeze the old Docusaurus line first when it must remain supported.
-
-That decision is intentionally not automated.
+Freezing the old line into `versioned_docs/` is a separate decision, triggered
+by an adopter who cannot follow the break rather than by the crossing itself,
+and it can be made at any time afterwards. `web/CONTRIBUTING.md` has the
+procedure, including how to cut a line the site has already moved past.
 
 ## Hand-written Dart package release flow
 
@@ -249,14 +253,24 @@ cider --project-root=dart/eigen_client log fixed "Ignore stale game snapshots."
 cider --project-root=flutter log added "Show spectators in the game screen."
 ```
 
-Open **Actions → Version Dart package → Run workflow**, choose the package and
-bump, or run:
+Open **Actions → Version Dart packages → Run workflow** and choose a bump, or
+run:
 
 ```bash
-gh workflow run version-dart-package.yml \
-  -f package=eigen_flutter \
-  -f bump=patch
+gh workflow run version-dart-package.yml -f bump=patch
 ```
+
+There is no package to choose. The workflow versions every package that has
+`## [Unreleased]` entries, and Melos works out the rest: `--dependent-constraints`
+rewrites the caret ranges these packages name each other by in the same commit,
+and `--dependent-versions` gives a patch release to anything whose only change
+was one of those ranges.
+
+That is the whole reason it works this way. A caret range names a **published**
+version, so before Melos a consumer's pin could only be raised after its
+dependency published -- which made every release serial, one round per level of
+the dependency graph, and cost the offline-play release three hand-written pull
+requests. Versioning and constraint-rewriting in one commit removes the rounds.
 
 Pre-1.0 choices mean:
 
@@ -266,28 +280,49 @@ Pre-1.0 choices mean:
 | `minor` | substantial compatible work |
 | `breaking` | advances the minor line for an incompatible change |
 
-The workflow refuses to bump again while the current local version is absent
-from pub.dev, or to release without an `Unreleased` entry. It opens **Release
-PACKAGE vX.Y.Z** with only the version, dated changelog, and `platform.json`
-update. Review and merge that PR. Once the exact merged commit passes the
-complete platform gate, **Tag Dart packages** creates the package's namespaced
-tag only when that version is neither tagged nor published. The matching
-package-specific **Publish** workflow validates and uploads the tag through
-OIDC. Existing tags and published versions are no-ops.
+`minor` and `breaking` do the same thing below 1.0, because the breaking change
+*is* the minor bump there -- that is what `^0.2.0` resolving to `>=0.2.0 <0.3.0`
+means. They separate at 1.0.
 
-`eigen_client` must be published before any `eigen_flutter` version that
-depends on its new line. `eigen_flutter` must be published before either
-`eigen_shell` or `eigen_firebase` versions that depend on that line. The shell
-and Firebase adapter are siblings and may then publish independently.
-`eigen_codegen` is dev-only and does not affect runtime resolution.
+Melos and cider disagree about 0.x, and the workflow maps between them. On
+0.2.0, cider gives patch 0.2.1, minor 0.3.0, breaking 0.3.0; Melos gives patch
+0.2.1, minor 0.2.1, major 0.3.0 -- it shifts each name down one position below
+1.0 and cider does not. The table above is what a dispatch means; the mapping is
+in the workflow.
 
-After an `eigen_flutter` publication, its workflow dispatches **Sync
-compatibility table**, which reads registry state and opens a generated PR if
-necessary. A manual recovery run accepts an exact expected package:
+The workflow refuses to bump while any package's current local version is absent
+from pub.dev, or to release when no package has an `Unreleased` entry. It opens
+**Release Dart packages** carrying versions, rewritten constraints and dated
+changelogs. Review and merge it.
 
-```bash
-gh workflow run sync-compatibility.yml -f expect=eigen_flutter@0.8.0
-```
+Once the merged commit passes the complete platform gate, **Tag Dart packages**
+creates each namespaced tag whose version is neither tagged nor published. Each
+tag then starts **Publish Dart package**, which resolves the package from the
+tag name, checks that the tag and the pubspec agree, and uploads through OIDC.
+Existing tags and published versions are no-ops.
+
+One workflow serves all five tag patterns, where there used to be five. It has
+to be triggered by a tag, and that is pub.dev's rule rather than a preference:
+
+> Pub.dev only allows automated publishing from GitHub Actions when the workflow
+> is triggered by pushing a git tag to GitHub. Pub.dev rejects publishing from
+> GitHub Actions triggered without a tag.
+
+So the `workflow_run`-on-green-`main` shape `release.yml` uses for npm is not
+available here, however alike the two halves otherwise look. What pub.dev
+validates is the repository, the tag against each package's configured pattern,
+and the `pub.dev` environment -- **not** which workflow file published it. That
+last one is npm's rule and does not transfer, which is why five tag patterns can
+share one workflow and why consolidating them needed no change to any package's
+pub.dev settings.
+
+Tags are pushed together, so the publish runs are concurrent and unordered. That
+used to matter, because each run resolved its dependencies from pub.dev and
+`eigen_shell` could fail on an `eigen_flutter` that was still uploading. It no
+longer does: these packages are one pub workspace, so a run resolves its
+siblings from the checkout. What remains is a window of minutes in which a
+published package names a sibling version pub.dev does not have yet, where a
+consumer resolving gets a solver error and succeeds on retry.
 
 ### Publish Dart dependencies before updating the scaffold
 

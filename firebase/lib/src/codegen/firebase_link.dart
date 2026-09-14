@@ -121,9 +121,8 @@ FirebaseLink linkFirebaseProject({
   required Directory appRoot,
   Directory? workerRoot,
 }) {
-  final projectId = _read(
-    path.join(appRoot.path, 'firebase.json'),
-  )?.let(projectIdFrom);
+  final projectId = _read(path.join(appRoot.path, 'firebase.json'))
+      ?.let(projectIdFrom);
   if (projectId != null && workerRoot != null) {
     final wrangler = File(path.join(workerRoot.path, 'wrangler.jsonc'));
     final source = _read(wrangler.path);

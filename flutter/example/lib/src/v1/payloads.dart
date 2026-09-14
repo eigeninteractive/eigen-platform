@@ -11,9 +11,8 @@ bool _payloadEquals(Object? left, Object? right) {
   if (identical(left, right)) return true;
   if (left is List && right is List) {
     return left.length == right.length &&
-        Iterable<int>.generate(
-          left.length,
-        ).every((index) => _payloadEquals(left[index], right[index]));
+        Iterable<int>.generate(left.length)
+            .every((index) => _payloadEquals(left[index], right[index]));
   }
   if (left is Map && right is Map) {
     return left.length == right.length &&

@@ -12,7 +12,7 @@ Cloudflare Worker that owns the rules, and the Flutter app that draws them.
 ## Before you start
 
 - **Node.js 22 or newer**, with npm or pnpm.
-- **Flutter 3.44 or newer**, which brings the Dart 3.12 the client needs.
+- **Flutter 3.47 or newer**, which brings the Dart 3.13 the client needs.
 - **Network access throughout**, since scaffolding installs both halves as it
   goes.
 - **A Firebase project** (free) for sign-in and push. Optional while

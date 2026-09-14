@@ -374,9 +374,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void _onSubmitFailed(Object e) {
     if (!mounted) return;
     setState(() => _pendingAction = null);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(humanize(e))));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(humanize(e))));
   }
 
   Future<void> _cancelGame() async {
@@ -388,9 +387,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _pendingAction = null);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 
@@ -403,9 +401,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _pendingAction = null);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 
@@ -417,9 +414,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _pendingAction = null);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 
@@ -442,9 +438,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _pendingAction = null);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(humanize(e))));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(humanize(e))));
     }
   }
 }

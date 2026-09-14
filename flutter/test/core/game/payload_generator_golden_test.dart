@@ -11,9 +11,9 @@ void main() {
   const payloadsPath = 'test/fixtures/codegen/kitchen_sink_payloads.dart';
 
   test('the broad generated payload fixture has no drift', () {
-    final contract =
-        jsonDecode(File(contractPath).readAsStringSync())
-            as Map<String, dynamic>;
+    final contract = jsonDecode(
+      File(contractPath).readAsStringSync(),
+    ) as Map<String, dynamic>;
 
     expect(
       generatePayloadLibrary(contract),
@@ -112,9 +112,8 @@ void main() {
 
   test('generated v2 types are distinct and use normalized wire names', () {
     expect(
-      Game2048ArenaV2Observation.fromJson(<String, dynamic>{
-        'turn': 7,
-      }).toJson(),
+      Game2048ArenaV2Observation.fromJson(<String, dynamic>{'turn': 7})
+          .toJson(),
       <String, dynamic>{'turn': 7},
     );
     expect(
@@ -122,9 +121,8 @@ void main() {
       <String, dynamic>{'pass': true},
     );
     expect(
-      Game2048ArenaV2Config.fromJson(<String, dynamic>{
-        'board-size': 4,
-      }).boardSize,
+      Game2048ArenaV2Config.fromJson(<String, dynamic>{'board-size': 4})
+          .boardSize,
       4,
     );
   });

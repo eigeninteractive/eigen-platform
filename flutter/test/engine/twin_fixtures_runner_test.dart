@@ -125,12 +125,10 @@ void main() {
             config: const {},
             expected: expected,
           );
-      check(
-        runTwinFixtureCase(rules, ratingCase(GameAccess.public, 'casual')),
-      ).isEmpty();
-      check(
-        runTwinFixtureCase(rules, ratingCase(GameAccess.private, null)),
-      ).isEmpty();
+      check(runTwinFixtureCase(rules, ratingCase(GameAccess.public, 'casual')))
+          .isEmpty();
+      check(runTwinFixtureCase(rules, ratingCase(GameAccess.private, null)))
+          .isEmpty();
       expectSingleFailure(
         runTwinFixtureCase(rules, ratingCase(GameAccess.public, 'blitz')),
         'ratingPool returned "casual"',
@@ -203,9 +201,10 @@ void main() {
 
     test('defaults obs to state when the fixture omits it', () {
       final kase = parseTwinFixtureSuite('f.json', file(const {})).cases.single;
-      check(kase).isA<ActionCase>().has((c) => c.obs, 'obs').deepEquals({
-        'board': emptyBoard,
-      });
+      check(kase)
+          .isA<ActionCase>()
+          .has((c) => c.obs, 'obs')
+          .deepEquals({'board': emptyBoard});
     });
 
     test('names the file, the case and the field', () {
@@ -286,12 +285,10 @@ void main() {
         },
       ],
     };
-    File(
-      '${root.path}/v1/b.json',
-    ).writeAsStringSync(jsonEncode(botFile('second')));
-    File(
-      '${root.path}/v1/a.json',
-    ).writeAsStringSync(jsonEncode(botFile('first')));
+    File('${root.path}/v1/b.json')
+        .writeAsStringSync(jsonEncode(botFile('second')));
+    File('${root.path}/v1/a.json')
+        .writeAsStringSync(jsonEncode(botFile('first')));
 
     final suites = loadTwinFixtureSuites(root.path);
     check(suites).length.equals(2);

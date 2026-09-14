@@ -5,35 +5,30 @@ import 'package:test/test.dart';
 void main() {
   group('PerActionConfig', () {
     test('rejects minSeconds below the infra floor', () {
-      check(
-        () => PerActionConfig(minSeconds: 10, maxSeconds: 300),
-      ).throws<AssertionError>();
+      check(() => PerActionConfig(minSeconds: 10, maxSeconds: 300))
+          .throws<AssertionError>();
     });
 
     test('rejects maxSeconds not greater than minSeconds', () {
-      check(
-        () => PerActionConfig(minSeconds: 60, maxSeconds: 60),
-      ).throws<AssertionError>();
+      check(() => PerActionConfig(minSeconds: 60, maxSeconds: 60))
+          .throws<AssertionError>();
     });
 
     test('defaults minSeconds to the infra floor', () {
-      check(
-        PerActionConfig(maxSeconds: 300).minSeconds,
-      ).equals(kMinTurnSeconds);
+      check(PerActionConfig(maxSeconds: 300).minSeconds)
+          .equals(kMinTurnSeconds);
     });
   });
 
   group('BudgetConfig', () {
     test('rejects minBudgetSeconds below the infra floor', () {
-      check(
-        () => BudgetConfig(minBudgetSeconds: 60, maxBudgetSeconds: 600),
-      ).throws<AssertionError>();
+      check(() => BudgetConfig(minBudgetSeconds: 60, maxBudgetSeconds: 600))
+          .throws<AssertionError>();
     });
 
     test('rejects maxBudgetSeconds not greater than minBudgetSeconds', () {
-      check(
-        () => BudgetConfig(maxBudgetSeconds: kMinBudgetSeconds),
-      ).throws<AssertionError>();
+      check(() => BudgetConfig(maxBudgetSeconds: kMinBudgetSeconds))
+          .throws<AssertionError>();
     });
   });
 

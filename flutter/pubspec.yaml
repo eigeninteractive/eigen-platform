@@ -1,6 +1,6 @@
 name: eigen_flutter
 description: "EigenInteractive Flutter client: the whitelabel app half for turn-based multiplayer games on the EigenInteractive server."
-version: 0.9.0
+version: 0.10.0
 homepage: https://eigeninteractive.com
 repository: https://github.com/eigeninteractive/eigen-platform/tree/main/flutter
 documentation: https://eigeninteractive.com/docs/reference/dart
@@ -16,20 +16,23 @@ cider:
     diff: https://github.com/eigeninteractive/eigen-platform/compare/%from%...%to%
     version: eigen_flutter-v%version%
 
+# Resolved as part of the workspace at the repository root.
+resolution: workspace
+
 environment:
-  sdk: ^3.12.0
-  flutter: ">=3.44.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  eigen_client: ^0.1.0
+  eigen_client: ^0.2.0
   flutter_riverpod: ^3.3.2
   riverpod_annotation: ^4.0.3
   json_annotation: ^4.12.0
   freezed_annotation: ^3.1.0
   shared_preferences: ^2.5.4
-  cached_network_image: ^3.4.1
+  cached_network_image: ^4.0.0
   connectivity_plus: ^7.1.1
   drift: ^2.35.0
   drift_flutter: ^0.3.1
@@ -41,7 +44,7 @@ dependencies:
   # Pre-1.0 that resolves to `>=0.1.0 <0.2.0`: the engine announces breakage in
   # the MINOR position, so 0.2.0 is the release that needs a deliberate bump
   # here. See https://eigeninteractive.com/docs/reference/compatibility.
-  eigen_api: ^0.6.0
+  eigen_api: ^0.7.0
   dio: ^5.10.0
   dio_smart_retry: ^7.0.1
 
@@ -54,10 +57,16 @@ dev_dependencies:
   riverpod_lint: ^3.1.4
   json_serializable: ^6.13.0
   # Generated sources are committed, so the generator itself is an exact build
-  # input. 3.2.6-dev.1 is the analyzer-12 release compatible with our minimum
-  # supported Flutter SDK (see .fvmrc); a range lets newer SDKs silently select
-  # the analyzer-13/Freezed-4 generator and produce different source.
-  freezed: 3.2.6-dev.1
+  # input: a range would let a newer generator produce different source without
+  # anyone choosing it. Dependabot proposes the bump, CI regenerates, and
+  # `assert_no_drift` proves the output still matches.
+  #
+  # 4.0.1 is the first stable release usable here. Until the Flutter pin reached
+  # 3.47, this was 3.2.6-dev.1 -- a dev prerelease, held there because Freezed 4
+  # needs analyzer 13 and the analyzer-12 line was what the older SDK allowed.
+  # That pin was also what kept riverpod, build_runner, dart_style and mockito
+  # on older versions across the whole workspace.
+  freezed: 4.0.1
   checks: ^0.3.1
   eigen_codegen: ^0.1.0
 

@@ -246,14 +246,22 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * integration. A Flutter line move therefore costs a follow-up scaffolder patch, and
  * `scripts/scaffold-e2e.mjs` is what refuses to let it be forgotten: it resolves
  * both halves for real and compares the wire lines they land on.
+ *
+ * Raised to 0.10.0 for the 0.7.x engine line and offline play, and the same
+ * window opened again: `create-eigen-game@0.15.0` shipped a `^0.7.0` worker
+ * beside a `^0.9.0` overlay speaking the 0.6.x wire, and its own emitted
+ * `local_rules.dart` calls `GameRules.local`, which 0.9.0 does not have. The
+ * gate stayed quiet through it exactly as designed -- until `eigen_flutter`
+ * 0.10.0 was on pub.dev there was no shell speaking 0.7.x to compare against,
+ * and it says so in a notice rather than failing.
  */
-const flutterClientVersion = "^0.9.0";
+const flutterClientVersion = "^0.10.0";
 
 /** Complete first-party app shell installed by the standard scaffold. */
-const flutterShellVersion = "^0.1.0";
+const flutterShellVersion = "^0.2.0";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
-const firebaseAdapterVersion = "^0.2.0";
+const firebaseAdapterVersion = "^0.3.0";
 
 /** Development-only contract compiler installed into the generated app. */
 const dartCodegenVersion = "^0.1.0";

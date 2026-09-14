@@ -14,17 +14,21 @@ bundled JDK is suitable locally. Then install dependencies:
 ```bash
 (cd server && pnpm install --frozen-lockfile)
 (cd web && pnpm install --frozen-lockfile)
-./tool/link-local-dart.sh
-(cd flutter && flutter pub get)
-(cd shell && flutter pub get)
-(cd firebase && flutter pub get)
-(cd flutter/example && flutter pub get)
+flutter pub get
 ```
 
-`link-local-dart.sh` creates ignored `pubspec_overrides.yaml` files so Flutter
-consumes the generated Dart API under `server/clients/dart` from this checkout.
-They are local build wiring, not source; published package constraints remain
-unchanged.
+The seven Dart packages form one pub workspace, declared in the `pubspec.yaml`
+at the repository root, so a single `flutter pub get` there resolves all of them
+together and each consumes its siblings from this checkout. There is one
+`pubspec.lock`, at the root.
+
+Workspace resolution uses the local package **and still checks the declared
+constraint**, which is the difference from the `dependency_overrides` this
+replaced: a pubspec naming a range its sibling has outgrown now fails
+`pub get` here rather than at a publish weeks later.
+
+Run `flutter pub get` from the root after changing any pubspec. Running it
+inside a single package works too -- pub finds the workspace root above it.
 
 ## Validation
 

@@ -8,7 +8,6 @@
     "docusaurus": "docusaurus",
     "sync-api": "node scripts/sync-api.mjs",
     "sync-compatibility": "node scripts/sync-compatibility.mjs",
-    "check-docs-version": "node scripts/check-docs-version.mjs",
     "check-admonitions": "node scripts/check-admonitions.mjs",
     "generate-brand": "node scripts/generate-brand.mjs",
     "start": "docusaurus start",

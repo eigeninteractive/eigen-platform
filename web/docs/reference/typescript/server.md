@@ -570,74 +570,9 @@ DurableObject.webSocketMessage
 
 ***
 
-### CommercialLimitWriteError
-
-Defined in: [server/packages/server/src/d1/apply.ts:337](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L337)
-
-#### Extends
-
-- `Error`
-
-#### Constructors
-
-##### Constructor
-
-```ts
-new CommercialLimitWriteError(message?): CommercialLimitWriteError;
-```
-
-Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/lib/lib.es5.d.ts:1080
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `message?` | `string` |
-
-###### Returns
-
-[`CommercialLimitWriteError`](#commerciallimitwriteerror)
-
-###### Inherited from
-
-```ts
-Error.constructor
-```
-
-##### Constructor
-
-```ts
-new CommercialLimitWriteError(message?, options?): CommercialLimitWriteError;
-```
-
-Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/lib/lib.es5.d.ts:1080
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `message?` | `string` |
-| `options?` | `ErrorOptions` |
-
-###### Returns
-
-[`CommercialLimitWriteError`](#commerciallimitwriteerror)
-
-###### Inherited from
-
-```ts
-Error.constructor
-```
-
-***
-
 ### HttpError
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
-=======
-Defined in: [server/packages/server/src/http.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L48)
->>>>>>> Stashed changes
 
 #### Extends
 
@@ -656,11 +591,7 @@ new HttpError(
 ): HttpError;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/http.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L58)
-=======
-Defined in: [server/packages/server/src/http.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L56)
->>>>>>> Stashed changes
 
 ###### Parameters
 
@@ -689,11 +620,7 @@ Error.constructor
 readonly code: ErrorCode | undefined;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/http.ts:52](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L52)
-=======
-Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L50)
->>>>>>> Stashed changes
 
 ##### retryAfterSeconds
 
@@ -701,11 +628,7 @@ Defined in: [server/packages/server/src/http.ts:50](https://github.com/eigeninte
 readonly retryAfterSeconds: number | undefined;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/http.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L56)
-=======
-Defined in: [server/packages/server/src/http.ts:54](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L54)
->>>>>>> Stashed changes
 
 Seconds the caller should wait before retrying, rendered as the
 `Retry-After` header. Set only on a 429 (see `ErrorCode.rateLimited`);
@@ -717,91 +640,9 @@ Seconds the caller should wait before retrying, rendered as the
 readonly status: 400 | 401 | 403 | 404 | 409 | 413 | 415 | 422 | 429 | 500 | 502;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/http.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L51)
-=======
-Defined in: [server/packages/server/src/http.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/http.ts#L49)
->>>>>>> Stashed changes
 
 ## Interfaces
-
-### AccessGrant
-
-Defined in: server/packages/server/src/commerce/types.ts:34
-
-Permissions, content ownership, and limits contributed by one source.
-
-#### Extended by
-
-- [`EntitlementDefinition`](#entitlementdefinition)
-
-#### Properties
-
-##### content?
-
-```ts
-optional content?: readonly ContentGrant[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:36
-
-##### limits?
-
-```ts
-optional limits?: readonly CommercialLimit[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:37
-
-##### permissions?
-
-```ts
-optional permissions?: readonly EngineAccessCapability[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:35
-
-***
-
-### AccessSnapshot
-
-Defined in: server/packages/server/src/commerce/types.ts:167
-
-#### Properties
-
-##### content
-
-```ts
-content: ContentGrant[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:170
-
-##### entitlements
-
-```ts
-entitlements: ActiveEntitlement[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:168
-
-##### limits
-
-```ts
-limits: LimitAccess[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:171
-
-##### permissions
-
-```ts
-permissions: EngineAccessCapability[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:169
-
-***
 
 ### AuthClaims
 
@@ -856,468 +697,9 @@ Defined in: [server/packages/server/src/auth/firebase.ts:19](https://github.com/
 
 ***
 
-### CommerceCatalog
-
-Defined in: server/packages/server/src/commerce/types.ts:56
-
-#### Properties
-
-##### botTiers?
-
-```ts
-optional botTiers?: Readonly<Record<string, string>>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:62
-
-Optional mapping from a registered bot id to its commercial tier.
-
-##### content?
-
-```ts
-optional content?: Readonly<Record<string, Readonly<Record<string, ContentDefinition>>>>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:60
-
-##### entitlements
-
-```ts
-entitlements: readonly EntitlementDefinition[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:58
-
-##### free
-
-```ts
-free: AccessGrant;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:57
-
-##### offers
-
-```ts
-offers: readonly CommerceOffer[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:59
-
-***
-
-### CommerceCheckout
-
-Defined in: server/packages/server/src/commerce/types.ts:83
-
-#### Properties
-
-##### url
-
-```ts
-url: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:84
-
-***
-
-### CommerceConfig
-
-Defined in: server/packages/server/src/commerce/types.ts:130
-
-#### Type Parameters
-
-| Type Parameter |
-| ------ |
-| `TEnv` |
-
-#### Properties
-
-##### catalog
-
-```ts
-catalog: CommerceCatalog;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:131
-
-##### now?
-
-```ts
-optional now?: () => number;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:134
-
-Test seam. Production uses `Date.now`.
-
-###### Returns
-
-`number`
-
-##### providers
-
-```ts
-providers: readonly CommerceProvider<TEnv>[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:132
-
-##### reconcileBatch?
-
-```ts
-optional reconcileBatch?: number;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:136
-
-Maximum nonterminal transactions checked per scheduled invocation.
-
-***
-
-### CommerceManagement
-
-Defined in: server/packages/server/src/commerce/types.ts:87
-
-#### Properties
-
-##### url
-
-```ts
-url: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:88
-
-***
-
-### CommerceOffer
-
-Defined in: server/packages/server/src/commerce/types.ts:45
-
-#### Properties
-
-##### description
-
-```ts
-description: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:49
-
-##### entitlements
-
-```ts
-entitlements: readonly string[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:51
-
-##### key
-
-```ts
-key: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:47
-
-Stable logical key used by clients and analytics.
-
-##### kind
-
-```ts
-kind: "oneTime" | "subscription";
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:50
-
-##### name
-
-```ts
-name: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:48
-
-##### products
-
-```ts
-products: Readonly<Record<string, string>>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:53
-
-Public storefront identifiers. Secret credentials remain in bindings.
-
-***
-
-### CommerceProduct
-
-Defined in: server/packages/server/src/commerce/types.ts:77
-
-#### Properties
-
-##### currencyCode?
-
-```ts
-optional currencyCode?: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:80
-
-##### displayPrice
-
-```ts
-displayPrice: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:79
-
-##### productId
-
-```ts
-productId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:78
-
-***
-
-### CommerceProvider
-
-Defined in: server/packages/server/src/commerce/types.ts:118
-
-A provider boundary. Implementations perform all remote verification.
-
-#### Type Parameters
-
-| Type Parameter | Default type |
-| ------ | ------ |
-| `TEnv` | `unknown` |
-
-#### Properties
-
-##### key
-
-```ts
-readonly key: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:119
-
-#### Methods
-
-##### createCheckout()?
-
-```ts
-optional createCheckout(env, input): Promise<CommerceCheckout>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:126
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `input` | `CreateCheckoutInput` |
-
-###### Returns
-
-`Promise`\<[`CommerceCheckout`](#commercecheckout)\>
-
-##### management()?
-
-```ts
-optional management(
-   env,
-   accountId,
-   returnUrl
-): Promise<CommerceManagement>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:127
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `accountId` | `string` |
-| `returnUrl` | `string` |
-
-###### Returns
-
-`Promise`\<[`CommerceManagement`](#commercemanagement)\>
-
-##### products()?
-
-```ts
-optional products(env, productIds): Promise<readonly CommerceProduct[]>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:120
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `productIds` | readonly `string`[] |
-
-###### Returns
-
-`Promise`\<readonly [`CommerceProduct`](#commerceproduct)[]\>
-
-##### reconcile()?
-
-```ts
-optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:125
-
-Fetches current state for locally active or pending transaction refs.
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `transactions` | readonly [`CommerceTransactionReference`](#commercetransactionreference)[] |
-
-###### Returns
-
-`Promise`\<readonly [`VerifiedCommerceTransaction`](#verifiedcommercetransaction)[]\>
-
-##### verifyClaim()
-
-```ts
-verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:121
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `input` | `VerifyClaimInput` |
-
-###### Returns
-
-`Promise`\<[`VerifiedCommerceTransaction`](#verifiedcommercetransaction)\>
-
-##### verifyWebhook()?
-
-```ts
-optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent>;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:123
-
-Verifies the raw request and fetches current provider state when needed.
-
-###### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `env` | `TEnv` |
-| `request` | `Request` |
-
-###### Returns
-
-`Promise`\<[`VerifiedCommerceEvent`](#verifiedcommerceevent)\>
-
-***
-
-### CommerceTransactionReference
-
-Defined in: server/packages/server/src/commerce/types.ts:111
-
-#### Properties
-
-##### accountId
-
-```ts
-accountId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:113
-
-##### productId
-
-```ts
-productId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:114
-
-##### providerTransactionId
-
-```ts
-providerTransactionId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:112
-
-***
-
-### ContentDefinition
-
-Defined in: server/packages/server/src/commerce/types.ts:23
-
-#### Properties
-
-##### classification
-
-```ts
-classification: ContentClassification;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:24
-
-***
-
-### ContentGrant
-
-Defined in: server/packages/server/src/commerce/types.ts:15
-
-A stable, game-owned noun below the engine-owned `content.use` verb.
-
-#### Extended by
-
-- [`SelectedContent`](#selectedcontent)
-
-#### Properties
-
-##### collection
-
-```ts
-collection: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:16
-
-##### id
-
-```ts
-id: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:17
-
-***
-
 ### CreateGameInput
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:293](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L293)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
->>>>>>> Stashed changes
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -1330,11 +712,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:297](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L297)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
->>>>>>> Stashed changes
 
 ##### budgetSeconds
 
@@ -1342,27 +720,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
-
-##### capacity?
-
-```ts
-optional capacity?: {
-  maximum: number;
-};
-```
-
-Defined in: [server/packages/server/src/d1/apply.ts:332](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L332)
-
-###### maximum
-
-```ts
-maximum: number;
-```
->>>>>>> Stashed changes
 
 ##### config
 
@@ -1370,7 +728,6 @@ maximum: number;
 config: JsonObject;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:300](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L300)
 
 ##### createdAt
@@ -1385,17 +742,6 @@ When the game began. `now` for an online create, which begins here; a
 local game began on the device, possibly days earlier, so it carries its
 own instant (clamped to `now` by the route, since it is a client claim) and
 history sorts by when it was played rather than when it synchronized.
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
-
-##### content?
-
-```ts
-optional content?: readonly SelectedContent[];
-```
-
-Defined in: [server/packages/server/src/d1/apply.ts:324](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L324)
->>>>>>> Stashed changes
 
 ##### createdBy
 
@@ -1403,44 +749,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:324](https://github.com/eige
 createdBy: string | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:295](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L295)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
-
-##### creation?
-
-```ts
-optional creation?: {
-  creationId: string;
-  creatorId: string;
-  fingerprint: string;
-};
-```
-
-Defined in: [server/packages/server/src/d1/apply.ts:319](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L319)
-
-Present on client-facing creates; omitted only by low-level test/repair
-utilities that seed a game directly.
-
-###### creationId
-
-```ts
-creationId: string;
-```
-
-###### creatorId
-
-```ts
-creatorId: string;
-```
-
-###### fingerprint
-
-```ts
-fingerprint: string;
-```
->>>>>>> Stashed changes
 
 ##### gameId
 
@@ -1448,11 +757,7 @@ fingerprint: string;
 gameId: string;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:294](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L294)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
->>>>>>> Stashed changes
 
 ##### incrementSeconds
 
@@ -1460,11 +765,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eige
 incrementSeconds: number | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L309)
->>>>>>> Stashed changes
 
 ##### maxPlayers
 
@@ -1472,11 +773,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:309](https://github.com/eige
 maxPlayers: number;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:313](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L313)
->>>>>>> Stashed changes
 
 ##### minPlayers
 
@@ -1484,11 +781,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:313](https://github.com/eige
 minPlayers: number;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:306](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L306)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:312](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L312)
->>>>>>> Stashed changes
 
 ##### now
 
@@ -1496,7 +789,6 @@ Defined in: [server/packages/server/src/d1/apply.ts:312](https://github.com/eige
 now: number;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:315](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L315)
 
 ##### origin
@@ -1506,9 +798,6 @@ origin: GameOrigin;
 ```
 
 Defined in: [server/packages/server/src/d1/apply.ts:298](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L298)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:316](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L316)
->>>>>>> Stashed changes
 
 ##### rated
 
@@ -1516,11 +805,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:316](https://github.com/eige
 rated: boolean;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L304)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:310](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L310)
->>>>>>> Stashed changes
 
 ##### ratingPool
 
@@ -1528,11 +813,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:310](https://github.com/eige
 ratingPool: string | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:311](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L311)
->>>>>>> Stashed changes
 
 ##### schemaVersion
 
@@ -1540,11 +821,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:311](https://github.com/eige
 schemaVersion: number;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:299](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L299)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L305)
->>>>>>> Stashed changes
 
 ##### seats
 
@@ -1552,11 +829,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:305](https://github.com/eige
 seats: Seat[];
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L309)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:315](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L315)
->>>>>>> Stashed changes
 
 ##### shortCode
 
@@ -1564,11 +837,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:315](https://github.com/eige
 shortCode: string;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:314](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L314)
->>>>>>> Stashed changes
 
 ##### status
 
@@ -1576,11 +845,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:314](https://github.com/eige
 status: "waiting" | "ready";
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:296](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L296)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
->>>>>>> Stashed changes
 
 ##### turnSeconds
 
@@ -1588,30 +853,13 @@ Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eige
 turnSeconds: number | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:301](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L301)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L307)
-
-##### usage?
-
-```ts
-optional usage?: readonly {
-  maximum: number | null;
-  metric: "game.create.success" | "bot.game.success";
-  operationId: string;
-  periodKey: string;
-}[];
-```
-
-Defined in: [server/packages/server/src/d1/apply.ts:325](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L325)
->>>>>>> Stashed changes
 
 ***
 
 ### EngineConfig
 
-Defined in: [server/packages/server/src/engine.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L106)
+Defined in: [server/packages/server/src/engine.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L101)
 
 The EngineConfig seam: the engine never assumes binding names, so the
 implementor picks bindings off their own Env. Annotate the accessors' `env`
@@ -1632,7 +880,7 @@ parameter and both type arguments infer.
 appName: string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L113)
+Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L108)
 
 The whitelabel app's display name, the single source of truth for the
 engine's own identity (share metadata and public-page titles today;
@@ -1646,7 +894,7 @@ feature blocks are enabled.
 optional avatars?: AvatarsConfig<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:135](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L135)
+Defined in: [server/packages/server/src/engine.ts:130](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L130)
 
 Opt-in avatar uploads. Omit → not mounted.
 
@@ -1656,7 +904,7 @@ Opt-in avatar uploads. Omit → not mounted.
 optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
-Defined in: [server/packages/server/src/engine.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L131)
+Defined in: [server/packages/server/src/engine.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L126)
 
 Browser origins allowed to call the engine from a different origin.
 
@@ -1669,24 +917,13 @@ unsupported. The list also protects browser WebSocket upgrades, whose
 
 Set an empty list to disable the `WEB_APP_ORIGIN` default.
 
-##### commerce?
-
-```ts
-optional commerce?: CommerceConfig<TEnv>;
-```
-
-Defined in: [server/packages/server/src/engine.ts:138](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L138)
-
-Opt-in commerce, entitlements, fixed capabilities, and commercial limits.
-Omit to mount no commerce routes and enforce no commercial policy.
-
 ##### deepLink?
 
 ```ts
 optional deepLink?: DeepLinkConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
+Defined in: [server/packages/server/src/engine.ts:128](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L128)
 
 Native deep-link verification and store links. Omit for web-only.
 
@@ -1696,7 +933,7 @@ Native deep-link verification and store links. Omit for web-only.
 gameModule: GameModule;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L107)
+Defined in: [server/packages/server/src/engine.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L102)
 
 ##### lifecycle?
 
@@ -1704,7 +941,7 @@ Defined in: [server/packages/server/src/engine.ts:107](https://github.com/eigeni
 optional lifecycle?: LifecycleOptions;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:145](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L145)
+Defined in: [server/packages/server/src/engine.ts:137](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L137)
 
 Cron-backstop tuning: guest-purge/reap windows and batch caps.
 Omit for the defaults (`LIFECYCLE_DEFAULTS`); set any subset to
@@ -1716,7 +953,7 @@ override just those.
 optional site?: SiteConfig;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L141)
+Defined in: [server/packages/server/src/engine.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L133)
 
 The public web surface: download page, legal documents, crawler files.
 Omit → not mounted (the worker is API-only).
@@ -1730,7 +967,7 @@ optional testing?: {
 };
 ```
 
-Defined in: [server/packages/server/src/engine.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L150)
+Defined in: [server/packages/server/src/engine.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L142)
 
 Explicit test-only replacements for Firebase verification and Admin
 effects. Supplying them together prevents a fake verifier from
@@ -1767,7 +1004,7 @@ firebaseAdmin(env): FirebaseAdminEffects;
 d1(env): D1Database;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L115)
+Defined in: [server/packages/server/src/engine.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L110)
 
 The engine's D1 database (engine-private).
 
@@ -1787,7 +1024,7 @@ The engine's D1 database (engine-private).
 optional firebaseProjectId(env): string;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L120)
+Defined in: [server/packages/server/src/engine.ts:115](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L115)
 
 Firebase project id for token verification; defaults to the
 `FIREBASE_PROJECT_ID` var (the only secret verification needs).
@@ -1808,7 +1045,7 @@ Firebase project id for token verification; defaults to the
 gameDO(env): DurableObjectNamespace<TDO>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L117)
+Defined in: [server/packages/server/src/engine.ts:112](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L112)
 
 The GameDO namespace binding.
 
@@ -1824,73 +1061,9 @@ The GameDO namespace binding.
 
 ***
 
-### EntitlementDefinition
-
-Defined in: server/packages/server/src/commerce/types.ts:40
-
-Permissions, content ownership, and limits contributed by one source.
-
-#### Extends
-
-- [`AccessGrant`](#accessgrant)
-
-#### Properties
-
-##### content?
-
-```ts
-optional content?: readonly ContentGrant[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:36
-
-###### Inherited from
-
-[`AccessGrant`](#accessgrant).[`content`](#content)
-
-##### key
-
-```ts
-key: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:42
-
-Stable logical key, independent of any storefront product identifier.
-
-##### limits?
-
-```ts
-optional limits?: readonly CommercialLimit[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:37
-
-###### Inherited from
-
-[`AccessGrant`](#accessgrant).[`limits`](#limits)
-
-##### permissions?
-
-```ts
-optional permissions?: readonly EngineAccessCapability[];
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:35
-
-###### Inherited from
-
-[`AccessGrant`](#accessgrant).[`permissions`](#permissions)
-
-***
-
 ### FinishApplyInput
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L31)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L32)
->>>>>>> Stashed changes
 
 #### Properties
 
@@ -1900,11 +1073,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:32](https://github.com/eigen
 finishId: string;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:35](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L35)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L36)
->>>>>>> Stashed changes
 
 The DO-minted idempotency key. The apply is a no-op replay when
 the games row already carries it.
@@ -1915,11 +1084,7 @@ the games row already carries it.
 gameId: string;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L32)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:33](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L33)
->>>>>>> Stashed changes
 
 ##### now
 
@@ -1927,11 +1092,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:33](https://github.com/eigen
 now: number;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L40)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:41](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L41)
->>>>>>> Stashed changes
 
 ##### outcomes
 
@@ -1939,11 +1100,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:41](https://github.com/eigen
 outcomes: OutcomeEntry[];
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L36)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L37)
->>>>>>> Stashed changes
 
 ##### rated
 
@@ -1951,11 +1108,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigen
 rated: boolean;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L38)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L39)
->>>>>>> Stashed changes
 
 ##### ratingPool
 
@@ -1963,11 +1116,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigen
 ratingPool: string | null;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L39)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L40)
->>>>>>> Stashed changes
 
 ##### roster
 
@@ -1975,11 +1124,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:40](https://github.com/eigen
 roster: Seat[];
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L37)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L38)
->>>>>>> Stashed changes
 
 ***
 
@@ -2595,60 +1740,6 @@ Delay primitive, injectable so tests run without real timers.
 
 ***
 
-### SelectedContent
-
-Defined in: server/packages/server/src/commerce/types.ts:147
-
-One content choice snapshotted onto a game at creation.
-
-#### Extends
-
-- [`ContentGrant`](#contentgrant)
-
-#### Properties
-
-##### classification
-
-```ts
-classification: ContentClassification;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:149
-
-##### collection
-
-```ts
-collection: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:16
-
-###### Inherited from
-
-[`ContentGrant`](#contentgrant).[`collection`](#collection)
-
-##### id
-
-```ts
-id: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:17
-
-###### Inherited from
-
-[`ContentGrant`](#contentgrant).[`id`](#id)
-
-##### ownership
-
-```ts
-ownership: ContentOwnershipScope;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:148
-
-***
-
 ### SessionSnapshot
 
 Defined in: [server/packages/server/src/protocol.ts:164](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L164)
@@ -2988,98 +2079,6 @@ Resolve a bearer token to claims, or throw [AuthError](#autherror).
 
 `Promise`\<[`AuthClaims`](#authclaims)\>
 
-***
-
-### VerifiedCommerceEvent
-
-Defined in: server/packages/server/src/commerce/types.ts:105
-
-A provider-authenticated notification resolved to current provider state.
-
-#### Properties
-
-##### accountId
-
-```ts
-accountId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:107
-
-##### providerEventId
-
-```ts
-providerEventId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:106
-
-##### transaction
-
-```ts
-transaction: VerifiedCommerceTransaction;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:108
-
-***
-
-### VerifiedCommerceTransaction
-
-Defined in: server/packages/server/src/commerce/types.ts:68
-
-Provider output after server-side verification. Never accepted from a client.
-
-#### Properties
-
-##### productId
-
-```ts
-productId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:70
-
-##### providerTransactionId
-
-```ts
-providerTransactionId: string;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:69
-
-##### purchasedAt
-
-```ts
-purchasedAt: number;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:72
-
-##### state
-
-```ts
-state: CommerceTransactionState;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:71
-
-##### validFrom
-
-```ts
-validFrom: number;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:73
-
-##### validUntil?
-
-```ts
-optional validUntil?: number;
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:74
-
 ## Type Aliases
 
 ### Command
@@ -3415,7 +2414,6 @@ state on every attempt.
 
 ***
 
-<<<<<<< Updated upstream
 ### GameOrigin
 
 ```ts
@@ -3437,133 +2435,6 @@ may continue appending to it from the device.
 Lives here rather than beside the D1 column because it is protocol: it rides
 [SessionSnapshot](#sessionsnapshot) and the game summary, so a game screen needs no
 second source to know what it is looking at.
-=======
-### CommerceTransactionState
-
-```ts
-type CommerceTransactionState = "pending" | "active" | "grace" | "expired" | "revoked";
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:65
-
-***
-
-### CommercialLimit
-
-```ts
-type CommercialLimit =
-  | {
-  maximum: number;
-  metric: CommercialMetric;
-  period: CommercialPeriod;
-}
-  | {
-  maximum: "noCommercialLimit";
-  metric: CommercialMetric;
-};
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:31
-
-***
-
-### CommercialMetric
-
-```ts
-type CommercialMetric =
-  | "game.create.success"
-  | "games.openCreated"
-  | "bot.game.success"
-  | "analysis.run.success";
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:27
-
-***
-
-### CommercialPeriod
-
-```ts
-type CommercialPeriod =
-  | {
-  kind: "calendarMonth";
-  timezone: "UTC";
-}
-  | {
-  kind: "subscriptionPeriod";
-}
-  | {
-  kind: "lifetime";
-}
-  | {
-  kind: "concurrent";
-};
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:29
-
-***
-
-### ContentClassification
-
-```ts
-type ContentClassification = "sharedRuleset" | "cosmetic";
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:20
-
-***
-
-### ContentOwnershipScope
-
-```ts
-type ContentOwnershipScope = "creator" | "eachParticipant" | "viewer";
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:21
-
-***
-
-### EngineAccessCapability
-
-```ts
-type EngineAccessCapability =
-  | {
-  kind: "app.access";
-}
-  | {
-  access: GameAccess;
-  kind: "game.create";
-}
-  | {
-  access: GameAccess;
-  kind: "game.join";
-}
-  | {
-  kind: "game.create.rated";
-}
-  | {
-  kind: "bot.use";
-  tier?: string;
-}
-  | {
-  collection: string;
-  id: string;
-  kind: "content.use";
-}
-  | {
-  kind: "replay.read";
-}
-  | {
-  analysisType?: string;
-  kind: "analysis.use";
-};
-```
-
-Defined in: server/packages/server/src/commerce/types.ts:4
-
-The engine-owned commercial authorization vocabulary.
->>>>>>> Stashed changes
 
 ***
 
@@ -3683,11 +2554,7 @@ renders as plain text rather than pointing somewhere it never mentioned.
 function applyFinish(d1, input): Promise<RatingDelta[] | null>;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L49)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L50)
->>>>>>> Stashed changes
 
 Apply one finished game to D1. Returns the rated deltas (null for an
 unrated game) for the DO to deliver as the ratings transition. Throws on
@@ -3707,58 +2574,13 @@ the call site; the internal loop only absorbs CAS conflicts).
 
 ***
 
-### capabilityAllows()
-
-```ts
-function capabilityAllows(granted, required): boolean;
-```
-
-Defined in: server/packages/server/src/commerce/capability.ts:23
-
-An unparameterized resource grant satisfies every tier of that capability.
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `granted` | [`EngineAccessCapability`](#engineaccesscapability) |
-| `required` | [`EngineAccessCapability`](#engineaccesscapability) |
-
-#### Returns
-
-`boolean`
-
-***
-
-### capabilityKey()
-
-```ts
-function capabilityKey(capability): string;
-```
-
-Defined in: server/packages/server/src/commerce/capability.ts:4
-
-Stable structural identity for set membership, logs, and error details.
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `capability` | [`EngineAccessCapability`](#engineaccesscapability) |
-
-#### Returns
-
-`string`
-
-***
-
 ### createEngine()
 
 ```ts
 function createEngine<TEnv, TDO>(cfg): ExportedHandler<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:475](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L475)
+Defined in: [server/packages/server/src/engine.ts:448](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L448)
 
 Creates the complete Cloudflare Worker for one game deployment.
 
@@ -3826,11 +2648,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:323](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L323)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:349](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L349)
->>>>>>> Stashed changes
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact.
@@ -3993,11 +2811,7 @@ Deliberately narrow; see RETRYABLE\_D1. Pass to `withRetry` as its
 function mirrorRoster(d1, args): Promise<void>;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:281](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L281)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:283](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L283)
->>>>>>> Stashed changes
 
 The roster mirror after a committed waiting-room command. The DO's
 roster is the integrity copy; this rewrites the D1 display copy wholesale
@@ -4028,7 +2842,7 @@ single attempt.
 function openApiDocument(version): OpenAPIObject;
 ```
 
-Defined in: [server/packages/server/src/engine.ts:590](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L590)
+Defined in: [server/packages/server/src/engine.ts:557](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L557)
 
 #### Parameters
 
@@ -4039,52 +2853,6 @@ Defined in: [server/packages/server/src/engine.ts:590](https://github.com/eigeni
 #### Returns
 
 `OpenAPIObject`
-
-***
-
-### readCreationOperation()
-
-```ts
-function readCreationOperation(
-   d1,
-   creatorId,
-   creationId
-): Promise<
-  | {
-  createdAt: number;
-  creationId: string;
-  creatorId: string;
-  fingerprint: string;
-  gameId: string;
-  id: string;
-  shortCode: string;
-}
-| undefined>;
-```
-
-Defined in: [server/packages/server/src/d1/apply.ts:434](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L434)
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `d1` | `D1Database` |
-| `creatorId` | `string` |
-| `creationId` | `string` |
-
-#### Returns
-
-`Promise`\<
-  \| \{
-  `createdAt`: `number`;
-  `creationId`: `string`;
-  `creatorId`: `string`;
-  `fingerprint`: `string`;
-  `gameId`: `string`;
-  `id`: `string`;
-  `shortCode`: `string`;
-\}
-  \| `undefined`\>
 
 ***
 
@@ -4121,11 +2889,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:351](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L351)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:444](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L444)
->>>>>>> Stashed changes
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
@@ -4170,45 +2934,13 @@ its `meta`/`roster` on first contact, in one batched round trip.
 
 ***
 
-### resolveCommerce()
-
-```ts
-function resolveCommerce<TEnv>(config): ResolvedCommerce;
-```
-
-Defined in: server/packages/server/src/commerce/catalog.ts:74
-
-Validate a deployment catalog once, before any request can reach it.
-
-#### Type Parameters
-
-| Type Parameter |
-| ------ |
-| `TEnv` |
-
-#### Parameters
-
-| Parameter | Type |
-| ------ | ------ |
-| `config` | [`CommerceConfig`](#commerceconfig)\<`TEnv`\> |
-
-#### Returns
-
-`ResolvedCommerce`
-
-***
-
 ### updateSummary()
 
 ```ts
 function updateSummary(d1, args): Promise<void>;
 ```
 
-<<<<<<< Updated upstream
 Defined in: [server/packages/server/src/d1/apply.ts:263](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L263)
-=======
-Defined in: [server/packages/server/src/d1/apply.ts:265](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L265)
->>>>>>> Stashed changes
 
 The display upsert after a non-finishing transition: fire-and-forget
 post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,

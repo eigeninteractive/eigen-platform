@@ -56,13 +56,11 @@ Future<void> _pump(WidgetTester tester, GoRouter router) async {
     ProviderScope(
       overrides: [
         appConfigProvider.overrideWithValue(_config),
-        playerInfoCacheProvider(
-          id: _playerId,
-        ).overrideWith(_FakePlayerCache.new),
+        playerInfoCacheProvider(id: _playerId)
+            .overrideWith(_FakePlayerCache.new),
         playerRatingsProvider(_playerId).overrideWith((ref) async => const []),
-        playerPublicFinishedGamesProvider(
-          playerId: _playerId,
-        ).overrideWith((ref) async => [_game]),
+        playerPublicFinishedGamesProvider(playerId: _playerId)
+            .overrideWith((ref) async => [_game]),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light(Colors.teal),

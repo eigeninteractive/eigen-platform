@@ -144,33 +144,28 @@ verify the `latest` link on `reference/dart.md`.
 ## Documentation versions
 
 The site is versioned on the **engine's release line**. Pre-1.0 that is the
-minor, so `0.4.x` is one line and `0.5.0` starts the next. The label lives in
-`docusaurus.config.ts` under `versions.current.label`, and
-`pnpm check-docs-version` asserts it against `info.version` in the committed
-`api/openapi.json`. CI runs that check on every pull request.
+minor, so `0.6.x` is one line and `0.7.0` starts the next. The label in the
+navbar is not written down anywhere: `docusaurus.config.ts` derives it from
+`info.version` in the committed `api/openapi.json`, which is the engine's own
+stamp and is already refreshed by every release. **There is nothing to update
+when the engine crosses a line**, and nothing that can fall out of step with
+the reference it labels.
 
-Only the current line is served, at `/docs/*`. Nothing has been frozen into
-`versioned_docs/` yet.
+It used to be written down, and asserted against the spec by a
+`check-docs-version` script. That made every line crossing land a red `web`
+shard on the version pull request, cleared by a one-line commit. The
+transcription was the only thing that could ever drift, so deriving the label
+removed the drift and the check together.
 
-When the engine crosses a line, the sync pull request lands the new spec and
-that check goes red. That is the design: auto-merge stops, and someone decides
-between two answers:
+Only the current line is served, at `/docs/*`. Nothing has ever been frozen
+into `versioned_docs/`: every crossing so far has been a relabel.
 
-**Freeze the old line**, the answer whenever a reader could still be running it:
+### Freezing a line
 
-```bash
-pnpm docusaurus docs:version 0.4.x   # the line being frozen, not the new one
-```
-
-That snapshots `docs/` into `versioned_docs/version-0.4.x/` at `/docs/0.4.x/*`,
-and `docs/` becomes the new line at `/docs/*`. Then set
-`versions.current.label` to the new line. The generated reference freezes with
-everything else, which is what you want, since `sync-api` only ever writes to
-`docs/`, so no part of that pipeline knows versions exist.
-
-**Relabel in place**, only when the old line was never published, or nobody can
-still be on it. Set `versions.current.label` and change nothing else. All three
-crossings so far took this answer.
+Freezing is triggered by an **adopter who cannot follow a break**, not by a
+version number. That is why nothing forces the question at release time: a line
+moving is not evidence anybody is stranded on the old one, and every crossing so
+far bears that out.
 
 `0.2.x` is the precedent for a cut being arguable and still declined: the line
 was published and `eigen_flutter` 0.3.x was on pub.dev pinned to it, but the
@@ -188,6 +183,32 @@ lists are always empty, sitting beside the one that works.
 
 (`0.1.x` was simpler than either: the site's first public deploy already
 described `0.2.x`, so no `0.1.x` page was ever reachable.)
+
+When someone does need a line kept, cut it:
+
+```bash
+pnpm docusaurus docs:version 0.6.x   # the line being frozen, not the new one
+```
+
+That snapshots `docs/` into `versioned_docs/version-0.6.x/` at `/docs/0.6.x/*`,
+and `docs/` stays the current line at `/docs/*`. The generated reference freezes
+with everything else, which is what you want, since `sync-api` only ever writes
+to `docs/`, so no part of that pipeline knows versions exist. The label needs no
+edit: it still names whatever `api/openapi.json` currently says.
+
+**A cut is not time-critical, which is what makes deferring it safe.**
+`docs:version` snapshots whatever is in `docs/` right now, so cutting a line the
+site has already moved past means restoring `docs/` from that release's tag
+first:
+
+```bash
+# from the repository root
+git worktree add ../freeze eigen_api-v0.6.1
+rm -rf web/docs && cp -R ../freeze/web/docs web/docs  # the line as it shipped
+(cd web && pnpm docusaurus docs:version 0.6.x)
+git checkout HEAD -- web/docs                         # put the current line back
+git worktree remove ../freeze
+```
 
 Freezing is not free. A cut copies all of `docs/`, and most of this site by
 volume is the generated TypeScript and HTTP reference, so each frozen line

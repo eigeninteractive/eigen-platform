@@ -14,7 +14,7 @@
     "openapi": "pnpm --filter @eigeninteractive/server openapi",
     "dart-client": "scripts/generate-dart-client.sh",
     "changeset": "changeset",
-    "version-packages": "changeset version && node ../tool/sync-dart-api-pin.mjs && pnpm --filter \"@eigeninteractive/server^...\" build && pnpm openapi && scripts/generate-dart-client.sh && pnpm --dir ../web sync-api && node ../tool/platform.mjs"
+    "version-packages": "changeset version && node ../tool/sync-dart-api-pin.mjs && pnpm --filter \"@eigeninteractive/server^...\" build && pnpm openapi && scripts/generate-dart-client.sh && pnpm --dir ../web sync-api"
   },
   "packageManager": "pnpm@11.20.0",
   "devEngines": {
