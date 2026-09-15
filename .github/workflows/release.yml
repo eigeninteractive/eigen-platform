@@ -258,22 +258,29 @@ jobs:
 
           # Poll rather than ask once. This guard runs seconds after the publish
           # step wrote to the same registry, and npm's read path is eventually
-          # consistent: the 0.5.0 and 0.5.1 releases both failed here with E404
-          # on a version that was already live, and both needed a manual rerun.
-          # The check is still a real gate -- it refuses to tag a version npm
-          # never accepted -- it just stops treating propagation lag as that.
+          # consistent: 0.5.0, 0.5.1 and 0.8.0 all failed here with E404 on a
+          # version that was already live. The check is still a real gate -- it
+          # refuses to tag a version npm never accepted -- it just stops
+          # treating propagation lag as that.
+          #
+          # Two minutes of fixed ten-second polls was not enough for 0.8.0, so
+          # this backs off to a half-minute and keeps going for about ten. The
+          # cost of waiting is a slow job; the cost of giving up early is a
+          # manual rerun of a release that had already succeeded.
           published=false
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 25); do
             if npm view "@eigeninteractive/server@$server_v" version --json >/dev/null 2>&1; then
               published=true
               break
             fi
-            echo "::notice::npm has not surfaced @eigeninteractive/server@$server_v yet (attempt $attempt/12); waiting 10s."
-            sleep 10
+            wait=$(( attempt * 5 ))
+            [ "$wait" -gt 30 ] && wait=30
+            echo "::notice::npm has not surfaced @eigeninteractive/server@$server_v yet (attempt $attempt/25); waiting ${wait}s."
+            sleep "$wait"
           done
 
           if [ "$published" != "true" ]; then
-            echo "::error::@eigeninteractive/server@$server_v is not published after two minutes; refusing to tag eigen_api."
+            echo "::error::@eigeninteractive/server@$server_v is not published after ten minutes; refusing to tag eigen_api."
             exit 1
           fi
 
