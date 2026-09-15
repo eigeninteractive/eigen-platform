@@ -128,7 +128,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const bots = await readBots(ctx.d1(c.env));
-      return c.json({ bots: bots.map((bot) => botOf(bot, botTier(ctx.commerce?.catalog, bot) ?? null)) }, 200);
+      return c.json({ bots: bots.map((bot) => botOf(bot, botTier(ctx.commerce?.catalog, bot))) }, 200);
     },
   );
 

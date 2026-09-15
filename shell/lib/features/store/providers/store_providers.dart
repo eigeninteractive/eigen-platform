@@ -61,20 +61,20 @@ AccessSnapshot? knownAccess(WidgetRef ref) => ref.watch(storeAvailableProvider)
     ? ref.watch(storeAccessProvider).value
     : null;
 
-/// Whether [access] is known not to include seating a bot sold under [tier].
+/// Whether [access] is known not to include seating a bot in [tier].
 ///
-/// The rule is the engine's `capabilityAllows` for `bot.use`: an unparameterized
-/// grant covers every tier, a tiered grant covers only its own, and an untiered
-/// bot needs the unparameterized grant. An unknown [access] is not a lock.
+/// The rule is the engine's `capabilityAllows` for `bot.use`: every bot belongs
+/// to exactly one tier, and a grant covers only the tier it names. An unknown
+/// [access] is not a lock.
 ///
 /// Presentation only. The server decides when it seats the bot; this just stops
 /// a paid opponent looking free until then. It applies to server seating alone:
 /// a game played on the device is not priced, so the untimed picker never asks.
-bool seatingLocked(AccessSnapshot? access, String? tier) {
+bool seatingLocked(AccessSnapshot? access, String tier) {
   if (access == null) return false;
   return !access.permissions.any(
     (grant) =>
         grant.kind == AccessCapabilityKindEnum.botPeriodUse &&
-        (grant.tier == null || grant.tier == tier),
+        grant.tier == tier,
   );
 }

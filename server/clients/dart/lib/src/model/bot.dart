@@ -65,9 +65,9 @@ class Bot {
   @JsonKey(name: r'config', required: true, includeIfNull: false)
   final Object config;
 
-  /// The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.
-  @JsonKey(name: r'tier', required: true, includeIfNull: true)
-  final String? tier;
+  /// The commercial tier this bot belongs to: its `botTiers` entry, or `standard`. A `local` bot is always `standard`, because the server never seats it. Presentation only: the server checks access when it seats the bot.
+  @JsonKey(name: r'tier', required: true, includeIfNull: false)
+  final String tier;
 
   @override
   bool operator ==(Object other) =>
@@ -93,7 +93,7 @@ class Bot {
       type.hashCode +
       ratedEligible.hashCode +
       config.hashCode +
-      (tier == null ? 0 : tier.hashCode);
+      tier.hashCode;
 
   factory Bot.fromJson(Map<String, dynamic> json) => _$BotFromJson(json);
 

@@ -74,6 +74,7 @@ export default createEngine({
           { kind: "game.join", access: "private" },
           { kind: "game.create.rated" },
           { kind: "replay.read" },
+          { kind: "bot.use", tier: "standard" },
         ],
       },
       entitlements: [
@@ -156,7 +157,7 @@ type EngineAccessCapability =
   | { kind: "game.create"; access: "public" | "friends" | "private" }
   | { kind: "game.join"; access: "public" | "friends" | "private" }
   | { kind: "game.create.rated" }
-  | { kind: "bot.use"; tier?: string }
+  | { kind: "bot.use"; tier: string }
   | { kind: "content.use"; collection: string; id: string }
   | { kind: "replay.read" }
   | { kind: "analysis.use"; analysisType?: string };
@@ -178,30 +179,35 @@ Solo creation composes existing checks rather than introducing another verb:
 game.create.private + bot.use(selected tier)
 ```
 
-Every selected bot needs `bot.use`. `botTiers` maps registered bot IDs to a
-named tier; a bot omitted from that map requires the unparameterized base
-capability. Grant that base capability in `free.permissions` when every bot
-should remain free.
-
-The base grant covers **every** tier, paid ones included, so a deployment that
-sells a tier must not grant it. Give the ordinary bots a free tier of their own
-instead, and grant that:
+Every selected bot needs `bot.use` for its tier, and every bot has exactly one.
+`botTiers` lists the bots priced differently; every bot it does not list is in
+`standard`. A grant covers only the tier it names, and there is no `bot.use`
+meaning "every bot", so ordinary bots stay free while a paid tier stays paid:
 
 ```ts
 free: {
   permissions: [{ kind: "bot.use", tier: "standard" }],
 },
+entitlements: [{
+  key: "pro",
+  permissions: [
+    { kind: "bot.use", tier: "standard" },
+    { kind: "bot.use", tier: "advanced" },
+  ],
+}],
 botTiers: {
-  "bot-random": "standard",
-  "bot-stockfish": "advanced", // granted by an entitlement
+  "bot-stockfish": "advanced",
 },
 ```
 
+An entitlement that should include every bot names every tier. To make every
+bot paid, grant `standard` through an entitlement rather than the free profile.
+
 `GET /bots` publishes each bot's `tier`, so a picker can mark an opponent before
-it is chosen; the standard shell shows a lock on one the account's access does
-not include. It is `null` for an untiered bot, and always `null` for a
-`local` bot, which the server never seats and so never charges for. It is
-presentation only: seating is what checks access.
+it is chosen; the shell shows a lock on one the account's access does not
+include. A `local` bot is always `standard`, whatever `botTiers` says, because
+the server never seats it and so never charges for it. The tier is presentation
+only: seating is what checks access.
 
 ## Select game-owned content
 
@@ -330,8 +336,8 @@ The practical consequence for a paid catalog:
 - **Only price a bot the device cannot run.** A tier binds only where the server
   seats the bot, and server seating requires a turn deadline (the only backstop
   for a dispatch that never lands), so untimed play always happens on the
-  device. A `local` bot's brain exists only in the app, so the engine gives it no
-  tier whatever `botTiers` says. An `engine` bot whose brain you also put in the
+  device. A `local` bot's brain exists only in the app, so the engine keeps it in
+  `standard` whatever `botTiers` says. An `engine` bot whose brain you also put in the
   local unit is free in every untimed game, so don't tier that one either: the
   player would be paying for the timed version of something one toggle away.
   Sell tiers on `external` bots, or on `engine` bots you leave out of the local

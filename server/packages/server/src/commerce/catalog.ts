@@ -1,4 +1,4 @@
-import { capabilityKey, catalogGrants } from "./capability.js";
+import { capabilityKey, catalogGrants, DEFAULT_BOT_TIER } from "./capability.js";
 import type { AccessGrant, CommerceCatalog, CommerceConfig, CommerceProvider, CommercialLimit, CommercialMetric, ResolvedCommerce } from "./types.js";
 
 const KEY = /^[a-z][a-z0-9._-]{0,63}$/;
@@ -27,9 +27,15 @@ function validateGrant(catalog: CommerceCatalog, grant: AccessGrant, where: stri
     if (permission.kind === "content.use" && catalog.content?.[permission.collection]?.[permission.id] === undefined) {
       throw new Error(`createEngine: ${where} references unknown content capability ${permission.collection}/${permission.id}`);
     }
-    if (permission.kind === "bot.use" && permission.tier !== undefined) {
+    if (permission.kind === "bot.use") {
+      // Typed as required, but a catalog written as plain JavaScript can still
+      // omit it, and an omitted tier is exactly the "every bot" grant this
+      // vocabulary exists to rule out.
+      if (typeof permission.tier !== "string") {
+        throw new Error(`createEngine: ${where} bot.use must name a tier; every bot not listed in botTiers is in "${DEFAULT_BOT_TIER}"`);
+      }
       assertKey(permission.tier, `${where} bot tier`);
-      if (!Object.values(catalog.botTiers ?? {}).includes(permission.tier)) {
+      if (permission.tier !== DEFAULT_BOT_TIER && !Object.values(catalog.botTiers ?? {}).includes(permission.tier)) {
         throw new Error(`createEngine: ${where} references unknown bot tier ${permission.tier}`);
       }
     }
@@ -86,6 +92,7 @@ export function resolveCommerce<TEnv>(config: CommerceConfig<TEnv>): ResolvedCom
     assertKey(collection, "content collection");
     for (const id of Object.keys(items)) assertKey(id, `content id in ${collection}`);
   }
+  for (const [botId, tier] of Object.entries(catalog.botTiers ?? {})) assertKey(tier, `bot tier for ${botId}`);
 
   validateGrant(catalog, catalog.free, "free grant");
   if (catalog.free.limits?.some((limit) => limit.maximum !== "noCommercialLimit" && limit.period.kind === "subscriptionPeriod") === true) {

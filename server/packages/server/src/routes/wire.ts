@@ -289,8 +289,8 @@ export const botShape = z
     type: botTypeShape,
     ratedEligible: z.boolean(),
     config: jsonObjectShape,
-    tier: z.string().nullable().openapi({
-      description: "The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.",
+    tier: z.string().openapi({
+      description: "The commercial tier this bot belongs to: its `botTiers` entry, or `standard`. A `local` bot is always `standard`, because the server never seats it. Presentation only: the server checks access when it seats the bot.",
     }),
   })
   .openapi("Bot");
@@ -601,6 +601,6 @@ export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "a
  * the public shape is carved out here, at the wire boundary. `type` is public
  * (a client picking an on-device opponent needs it); the secret `webhookUrl`
  * never leaves, which is why this stays an explicit field list. */
-export function botOf(b: BotRow, tier: string | null): z.infer<typeof botShape> {
+export function botOf(b: BotRow, tier: string): z.infer<typeof botShape> {
   return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, type: b.type, ratedEligible: b.ratedEligible, config: b.config, tier };
 }

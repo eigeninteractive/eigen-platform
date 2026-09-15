@@ -1,7 +1,7 @@
 # Changelog
 ## [Unreleased]
-### Added
-- Re-export `Bot.tier`: the commercial tier the server enforces when it seats a bot, absent for a bot it never seats.
+### Changed
+- `Bot.tier` is required: every bot belongs to exactly one commercial tier, `standard` unless the deployment prices it differently, so constructing a `Bot` now needs one.
 
 ## [0.3.0] - 2026-09-15
 ### Added

@@ -255,7 +255,7 @@ Commercial tiers do not narrow this set. A local game is outside commerce
 entirely, so a `bot.use` tier is never checked here and an offline game
 consumes no allowance. A brain that ships in the client bundle runs with no
 network, so there is nothing for the server to refuse, which is also why a bot
-listed here should carry no tier at all. See
+listed here should stay in `standard`. See
 [Offline play is not priced](./monetization.md#offline-play-is-not-priced).
 
 ## Sync: nothing to implement

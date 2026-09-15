@@ -8,6 +8,8 @@
 - Amended: 2026-09-15. Replaying a game played offline is not priced, and the
   bot catalog publishes the tier each bot is sold under. See _Offline play_ and
   _Composed operations_.
+- Amended: 2026-09-16. Every bot belongs to exactly one tier, and a grant
+  covers only the resource it names. See _Closed access-capability vocabulary_ and _Composed operations_.
 
 ## Context
 
@@ -179,7 +181,7 @@ type EngineAccessCapability =
       access: "public" | "friends" | "private";
     }
   | { kind: "game.create.rated" }
-  | { kind: "bot.use"; tier?: string }
+  | { kind: "bot.use"; tier: string }
   | {
       kind: "content.use";
       collection: string;
@@ -205,6 +207,14 @@ Resource parameters such as a bot tier, analysis type, content collection, and
 content item are declared by the game in a validated catalog. They are nouns
 under fixed engine-owned verbs, not new permissions.
 
+A grant covers exactly the resource it names. As with `game.create`, there is
+no unparameterized grant meaning "all of them": every bot belongs to exactly one
+tier, `standard` unless `botTiers` lists it, so `bot.use` always names a tier.
+An "every bot" grant is the one a free profile reaches for to keep ordinary bots
+free, and it would silently cover the paid tiers too. `analysis.use` still
+accepts an untyped grant, which covers untyped analysis only; whether an
+analysis type must be named belongs to the decision that ships analysis.
+
 ### Composed operations
 
 A convenience route does not automatically create another capability. The
@@ -226,9 +236,9 @@ A `bot.use` tier is meaningful only for a bot this engine runs or calls: a
 server brain, or an externally hosted one. A brain that ships inside the
 application binary is not gateable, for the reason given under _Offline play_.
 
-It follows that a deployment SHOULD NOT tier a bot whose brain it also ships in
-the application. A `local` bot is never seated by the server, so the engine
-resolves no tier for it whatever the catalog says. An `engine` bot with a Dart
+It follows that a deployment SHOULD NOT put a bot whose brain it also ships in the
+application in a paid tier. A `local` bot is never seated by the server, so the engine
+keeps it in `standard` whatever the catalog says. An `engine` bot with a Dart
 twin in the local unit is seatable both ways: its offline games are free and its
 server-seated ones would be paid, which prices the timed version of something the
 player can already play untimed. Nothing server-side can see a client bundle, so
@@ -485,7 +495,7 @@ selection metadata; it does not scatter entitlement reads through routes.
 | Create game | `game.create(access)`, `game.create.rated` when rated, selected creator-owned content, and configured creation limits |
 | Create solo game | private creation requirements plus every selected `bot.use` requirement and creation/bot limits |
 | Join or join by code | `game.join(stored access)` plus snapshotted `eachParticipant` content |
-| Add bot | `bot.use` for the selected bot/tier |
+| Add bot | `bot.use` for the selected bot's tier |
 | Open protected replay | `replay.read` plus snapshotted viewer requirements; neither for a game played offline |
 | Run analysis | `analysis.use` plus its configured allowance |
 | Equip cosmetic | `content.use(collection, id)` before persisting selection |

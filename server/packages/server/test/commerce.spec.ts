@@ -625,7 +625,10 @@ describe("offline play", () => {
       commerce: {
         catalog: {
           free: {
-            permissions: [{ kind: "game.create", access: "private" }, { kind: "bot.use" }],
+            permissions: [
+              { kind: "game.create", access: "private" },
+              { kind: "bot.use", tier: "standard" },
+            ],
             limits: [{ metric: "game.create.success", maximum: 1, period: { kind: "calendarMonth", timezone: "UTC" } }],
           },
           entitlements: [],
@@ -696,7 +699,10 @@ describe("offline play", () => {
       commerce: {
         catalog: {
           free: {
-            permissions: [{ kind: "game.create", access: "private" }, { kind: "bot.use" }],
+            permissions: [
+              { kind: "game.create", access: "private" },
+              { kind: "bot.use", tier: "standard" },
+            ],
             limits: [{ metric: "games.openCreated", maximum: 2, period: { kind: "concurrent" } }],
           },
           entitlements: [],
@@ -801,18 +807,20 @@ describe("offline play", () => {
 describe("bot tiers", () => {
   const PAID_ENGINE = "test-engine-bot";
   const PAID_LOCAL = "tiered-local-bot";
+  const UNLISTED = "unlisted-hosted-bot";
 
-  it("publishes the tier seating enforces, and none for a bot the server never seats", async () => {
+  it("publishes every bot's tier, the one seating enforces, and keeps a local bot in the default tier", async () => {
     await db
       .insert(bots)
       .values([
         { id: PAID_ENGINE, username: PAID_ENGINE, displayName: "Engine Bot", avatarUrl: null, schemaVersion: 1, type: "engine", webhookUrl: null, ratedEligible: true, config: {}, createdAt: Date.now() },
         { id: PAID_LOCAL, username: PAID_LOCAL, displayName: "Local Brain", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() },
+        { id: UNLISTED, username: UNLISTED, displayName: "Hosted Bot", avatarUrl: null, schemaVersion: 1, type: "external", webhookUrl: "https://wake.test/unlisted", ratedEligible: false, config: {}, createdAt: Date.now() },
       ])
       .onConflictDoNothing();
 
-    // Ordinary bots get a free tier of their own. A base `bot.use` grant would
-    // cover every tier, paid ones included, so selling a tier means not granting it.
+    // Every bot botTiers does not list is in the default tier, which the free
+    // profile grants; both of these are configured as paid.
     const engine = createEngine({
       gameModule: testGame,
       appName: "Tier Test",
@@ -829,7 +837,7 @@ describe("bot tiers", () => {
           },
           entitlements: [{ key: "pro", permissions: [{ kind: "bot.use", tier: "advanced" }] }],
           offers: [],
-          botTiers: { "ordinary-bot": "standard", [PAID_ENGINE]: "advanced", [PAID_LOCAL]: "advanced" },
+          botTiers: { [PAID_ENGINE]: "advanced", [PAID_LOCAL]: "advanced" },
         },
         providers: [fakeCommerceProvider([])],
       },
@@ -846,11 +854,12 @@ describe("bot tiers", () => {
         {} as ExecutionContext,
       )) as Response;
 
-    const catalog = await json<{ bots: { id: string; tier: string | null }[] }>(await fetch("GET", "/bots"));
+    const catalog = await json<{ bots: { id: string; tier: string }[] }>(await fetch("GET", "/bots"));
     expect(catalog.bots.find((bot) => bot.id === PAID_ENGINE)?.tier).toBe("advanced");
+    expect(catalog.bots.find((bot) => bot.id === UNLISTED)?.tier).toBe("standard");
     // Configured as paid, but its brain is only on the device and the server
-    // never seats it, so nothing charges for it and it publishes no tier.
-    expect(catalog.bots.find((bot) => bot.id === PAID_LOCAL)).toMatchObject({ tier: null });
+    // never seats it, so a paid tier on it would advertise a price nothing collects.
+    expect(catalog.bots.find((bot) => bot.id === PAID_LOCAL)?.tier).toBe("standard");
 
     // The published tier is the one seating refuses without the grant.
     const refused = await fetch("POST", "/games/solo", { creationId: crypto.randomUUID(), schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, turnSeconds: 60, rated: false, botIds: [PAID_ENGINE] });

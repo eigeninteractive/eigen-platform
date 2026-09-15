@@ -53,7 +53,7 @@ Bot _bot(
   String id,
   int schemaVersion, {
   BotType type = BotType.engine,
-  String? tier,
+  String tier = 'standard',
 }) => Bot(
   id: id,
   username: id,
@@ -157,16 +157,20 @@ void main() {
             ),
             availableBotsProvider.overrideWith(
               () => _StubAvailableBots([
-                _bot('untiered', 2),
+                _bot('standard', 2),
                 _bot('gold', 2, tier: 'gold'),
                 _bot('silver', 2, tier: 'silver'),
               ]),
             ),
             storeAvailableProvider.overrideWithValue(true),
-            // Gold alone covers the gold bot, and neither the silver one nor an
-            // untiered one, which needs the unparameterized grant.
+            // The default tier and gold. A grant covers only the tier it names, so
+            // silver stays locked however much else is granted.
             storeAccessProvider.overrideWith(
               (ref) async => _access([
+                AccessCapability(
+                  kind: AccessCapabilityKindEnum.botPeriodUse,
+                  tier: 'standard',
+                ),
                 AccessCapability(
                   kind: AccessCapabilityKindEnum.botPeriodUse,
                   tier: 'gold',
@@ -187,7 +191,7 @@ void main() {
           for (final entry in dropdown.dropdownMenuEntries)
             if (entry.trailingIcon != null) entry.value,
         },
-        {'untiered', 'silver'},
+        {'silver'},
       );
     },
   );

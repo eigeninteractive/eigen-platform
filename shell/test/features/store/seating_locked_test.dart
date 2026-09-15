@@ -9,34 +9,31 @@ AccessSnapshot _access(List<AccessCapability> permissions) => AccessSnapshot(
   limits: const [],
 );
 
-AccessCapability _botUse([String? tier]) =>
+AccessCapability _botUse(String tier) =>
     AccessCapability(kind: AccessCapabilityKindEnum.botPeriodUse, tier: tier);
 
 /// The presentation twin of the engine's `capabilityAllows` for `bot.use`. Each
 /// case here is one the TypeScript rule decides the same way.
 void main() {
   test('an unknown access is never a lock', () {
-    expect(seatingLocked(null, 'gold'), isFalse);
-    expect(seatingLocked(null, null), isFalse);
+    expect(seatingLocked(null, 'standard'), isFalse);
   });
 
-  test('an unparameterized grant covers every tier', () {
-    final access = _access([_botUse()]);
-    expect(seatingLocked(access, null), isFalse);
-    expect(seatingLocked(access, 'gold'), isFalse);
-  });
-
-  test('a tiered grant covers only its own tier, and not an untiered bot', () {
-    final access = _access([_botUse('gold')]);
+  test('a grant covers exactly the tier it names', () {
+    final access = _access([_botUse('standard'), _botUse('gold')]);
+    expect(seatingLocked(access, 'standard'), isFalse);
     expect(seatingLocked(access, 'gold'), isFalse);
     expect(seatingLocked(access, 'silver'), isTrue);
-    expect(seatingLocked(access, null), isTrue);
+  });
+
+  test('the default tier does not reach a paid one', () {
+    expect(seatingLocked(_access([_botUse('standard')]), 'gold'), isTrue);
   });
 
   test('another capability is not a bot grant', () {
     final access = _access([
       AccessCapability(kind: AccessCapabilityKindEnum.replayPeriodRead),
     ]);
-    expect(seatingLocked(access, null), isTrue);
+    expect(seatingLocked(access, 'standard'), isTrue);
   });
 }

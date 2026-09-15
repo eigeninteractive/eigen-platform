@@ -428,13 +428,13 @@ function selectedContent(ctx: RouteContext, rules: GameRules, config: JsonObject
   });
 }
 
-async function authorizeCreate(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", rated: boolean, content: readonly SelectedContent[], botTiers: readonly (string | undefined)[], creationId: string): Promise<Pick<CreateGameInput, "usage" | "capacity">> {
+async function authorizeCreate(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", rated: boolean, content: readonly SelectedContent[], botTiers: readonly string[], creationId: string): Promise<Pick<CreateGameInput, "usage" | "capacity">> {
   if (ctx.commerce === null) return {};
   const now = ctx.commerce.now();
   const access = await readEffectiveAccess(ctx.d1(env), ctx.commerce.catalog, userId, now);
   requireCapability(access, { kind: "game.create", access: accessMode });
   if (rated) requireCapability(access, { kind: "game.create.rated" });
-  for (const tier of botTiers) requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+  for (const tier of botTiers) requireCapability(access, { kind: "bot.use", tier });
   for (const item of content) {
     if (item.ownership === "viewer") continue;
     if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {
@@ -607,7 +607,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const bots = await readBots(ctx.d1(c.env), body.botIds);
       const spec: BotSeatingGame = { schemaVersion: body.schemaVersion, turnSeconds: body.turnSeconds, budgetSeconds: body.budgetSeconds, rated, config };
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
-      const botTiers: (string | undefined)[] = [];
+      const botTiers: string[] = [];
       for (const botId of body.botIds) {
         const bot = bots.find((b) => b.id === botId);
         if (bot === undefined) throw new HttpError(404, `Bot not found: ${botId}`);
@@ -1030,8 +1030,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       assertBotSeatable(ctx, game, bot);
       if (ctx.commerce !== null) {
         const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, auth.user.id, ctx.commerce.now());
-        const tier = botTier(ctx.commerce.catalog, bot);
-        requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+        requireCapability(access, { kind: "bot.use", tier: botTier(ctx.commerce.catalog, bot) });
       }
       const cmd: SingleCommand = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);

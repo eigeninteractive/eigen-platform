@@ -257,7 +257,7 @@ export default createEngine({
           { kind: "game.join", access: "friends" },
           { kind: "game.join", access: "private" },
           { kind: "game.create.rated" },
-          { kind: "bot.use" },
+          { kind: "bot.use", tier: "standard" },
           { kind: "replay.read" },
         ],
       },

@@ -39,7 +39,7 @@ Bot _$BotFromJson(Map<String, dynamic> json) => $checkedCreate('Bot', json, (
     ),
     ratedEligible: $checkedConvert('ratedEligible', (v) => v as bool),
     config: $checkedConvert('config', (v) => v as Object),
-    tier: $checkedConvert('tier', (v) => v as String?),
+    tier: $checkedConvert('tier', (v) => v as String),
   );
   return val;
 });
