@@ -1,13 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-15
 ### Added
 - `PlayPurchaseGateway`, Google Play Billing behind the `eigen_flutter` `PurchaseGateway` port: localized products, consumables for repeatable offers, restoration, the account binding Play carries as `obfuscatedAccountId`, and acknowledgement that works from durable outbox evidence after a restart. It depends on `in_app_purchase_android` rather than the `in_app_purchase` umbrella, which would also link StoreKit into every iOS build.
 - `UrlLauncherCheckout`, the `CheckoutLauncher` hosted storefronts open their provider's page with.
 - A store screen under settings: offers and prices, the entitlements and allowances the account holds, and restore. A refusal a purchase could lift now carries the way to lift it, and one it could not does not.
 - `AppStartup` offers the launch URL and every resume to the hosted storefronts, which is how a web checkout return -- a cold start carrying a purchase -- is noticed at all.
-- A &quot;Manage subscription&quot; action, which opens the provider's own portal for a hosted subscription and Play's subscription centre for a Play one. It appears only for an account actually holding a subscription this build's storefronts sold.
+- A "Manage subscription" action, which opens the provider's own portal for a hosted subscription and Play's subscription centre for a Play one. It appears only for an account actually holding a subscription this build's storefronts sold.
 
 ### Changed
 - Preserve one game-creation identity across ambiguous transport retries, so a retry cannot create or commercially count a second game.
@@ -34,7 +34,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...HEAD
+[0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...eigen_shell-v0.3.0
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.1...eigen_shell-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.0...eigen_shell-v0.1.1
 [0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_shell-v0.1.0
