@@ -20,6 +20,7 @@ Bot _$BotFromJson(Map<String, dynamic> json) => $checkedCreate('Bot', json, (
       'type',
       'ratedEligible',
       'config',
+      'tier',
     ],
   );
   final val = Bot(
@@ -52,7 +53,7 @@ Map<String, dynamic> _$BotToJson(Bot instance) => <String, dynamic>{
   'type': _$BotTypeEnumMap[instance.type]!,
   'ratedEligible': instance.ratedEligible,
   'config': instance.config,
-  'tier': ?instance.tier,
+  'tier': instance.tier,
 };
 
 const _$BotTypeEnumMap = {

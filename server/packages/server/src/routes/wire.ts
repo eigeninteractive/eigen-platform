@@ -289,11 +289,8 @@ export const botShape = z
     type: botTypeShape,
     ratedEligible: z.boolean(),
     config: jsonObjectShape,
-    // Optional rather than nullable on purpose: a nullable field is generated as
-    // a required key, and a newer client would then fail to decode the bot list
-    // from a server deployed before this field existed.
-    tier: z.string().optional().openapi({
-      description: "The commercial tier this bot is sold under, when the deployment sells one. Absent means the base `bot.use` capability covers seating it. Never present on a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.",
+    tier: z.string().nullable().openapi({
+      description: "The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.",
     }),
   })
   .openapi("Bot");
@@ -604,6 +601,6 @@ export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "a
  * the public shape is carved out here, at the wire boundary. `type` is public
  * (a client picking an on-device opponent needs it); the secret `webhookUrl`
  * never leaves, which is why this stays an explicit field list. */
-export function botOf(b: BotRow, tier: string | undefined): z.infer<typeof botShape> {
-  return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, type: b.type, ratedEligible: b.ratedEligible, config: b.config, ...(tier === undefined ? {} : { tier }) };
+export function botOf(b: BotRow, tier: string | null): z.infer<typeof botShape> {
+  return { id: b.id, username: b.username, displayName: b.displayName, avatarUrl: b.avatarUrl, schemaVersion: b.schemaVersion, type: b.type, ratedEligible: b.ratedEligible, config: b.config, tier };
 }

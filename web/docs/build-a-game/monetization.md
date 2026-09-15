@@ -199,7 +199,7 @@ botTiers: {
 
 `GET /bots` publishes each bot's `tier`, so a picker can mark an opponent before
 it is chosen; the standard shell shows a lock on one the account's access does
-not include. The field is absent for an untiered bot, and always absent for a
+not include. It is `null` for an untiered bot, and always `null` for a
 `local` bot, which the server never seats and so never charges for. It is
 presentation only: seating is what checks access.
 

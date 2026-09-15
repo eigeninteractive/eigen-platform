@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 **type** | [**BotType**](BotType.md) |  | 
 **ratedEligible** | **bool** |  | 
 **config** | **Object** |  | 
-**tier** | **String** | The commercial tier this bot is sold under, when the deployment sells one. Absent means the base `bot.use` capability covers seating it. Never present on a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot. | [optional] 
+**tier** | **String** | The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot. | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

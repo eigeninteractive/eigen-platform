@@ -33,7 +33,7 @@ class Bot {
 
     required this.config,
 
-    this.tier,
+    required this.tier,
   });
 
   @JsonKey(name: r'id', required: true, includeIfNull: false)
@@ -65,8 +65,8 @@ class Bot {
   @JsonKey(name: r'config', required: true, includeIfNull: false)
   final Object config;
 
-  /// The commercial tier this bot is sold under, when the deployment sells one. Absent means the base `bot.use` capability covers seating it. Never present on a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.
-  @JsonKey(name: r'tier', required: false, includeIfNull: false)
+  /// The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.
+  @JsonKey(name: r'tier', required: true, includeIfNull: true)
   final String? tier;
 
   @override
@@ -93,7 +93,7 @@ class Bot {
       type.hashCode +
       ratedEligible.hashCode +
       config.hashCode +
-      tier.hashCode;
+      (tier == null ? 0 : tier.hashCode);
 
   factory Bot.fromJson(Map<String, dynamic> json) => _$BotFromJson(json);
 

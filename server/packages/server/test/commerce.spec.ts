@@ -846,13 +846,11 @@ describe("bot tiers", () => {
         {} as ExecutionContext,
       )) as Response;
 
-    const catalog = await json<{ bots: { id: string; tier?: string }[] }>(await fetch("GET", "/bots"));
+    const catalog = await json<{ bots: { id: string; tier: string | null }[] }>(await fetch("GET", "/bots"));
     expect(catalog.bots.find((bot) => bot.id === PAID_ENGINE)?.tier).toBe("advanced");
     // Configured as paid, but its brain is only on the device and the server
-    // never seats it, so nothing charges for it and nothing is published.
-    const local = catalog.bots.find((bot) => bot.id === PAID_LOCAL);
-    expect(local).toBeDefined();
-    expect(local).not.toHaveProperty("tier");
+    // never seats it, so nothing charges for it and it publishes no tier.
+    expect(catalog.bots.find((bot) => bot.id === PAID_LOCAL)).toMatchObject({ tier: null });
 
     // The published tier is the one seating refuses without the grant.
     const refused = await fetch("POST", "/games/solo", { creationId: crypto.randomUUID(), schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, turnSeconds: 60, rated: false, botIds: [PAID_ENGINE] });

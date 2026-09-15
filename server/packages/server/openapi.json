@@ -727,8 +727,11 @@
             "type": "object"
           },
           "tier": {
-            "type": "string",
-            "description": "The commercial tier this bot is sold under, when the deployment sells one. Absent means the base `bot.use` capability covers seating it. Never present on a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot."
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The commercial tier this bot is sold under, or null when it has none. Always null for a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot."
           }
         },
         "required": [
@@ -739,7 +742,8 @@
           "schemaVersion",
           "type",
           "ratedEligible",
-          "config"
+          "config",
+          "tier"
         ]
       },
       "BotType": {
