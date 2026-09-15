@@ -107,7 +107,7 @@ final class StoreCatalogProvider
   }
 }
 
-String _$storeCatalogHash() => r'cafbcda954906cb06cddd9ba8f60814d04aeb3a5';
+String _$storeCatalogHash() => r'3cc82162737d486d8a42669bffd9effee7c9dde9';
 
 /// The account's entitlements, capabilities, content, and allowances.
 ///
@@ -160,7 +160,7 @@ final class StoreAccessProvider
   }
 }
 
-String _$storeAccessHash() => r'b70773c0b91e5758f32d1ed8646b2bd2b62a4037';
+String _$storeAccessHash() => r'272634b560ebf3c8cb3adf6f45e06c8c07a938a5';
 
 /// SDK-native product details, for the storefronts that have any.
 ///

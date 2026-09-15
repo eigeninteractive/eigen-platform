@@ -3838,7 +3838,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:356](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L356)
+Defined in: [server/packages/server/src/d1/apply.ts:351](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L351)
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact.
@@ -3975,7 +3975,7 @@ permanent conversion.
 function isTransientD1Error(error): boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/errors.ts:89](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/errors.ts#L89)
+Defined in: [server/packages/server/src/d1/errors.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/errors.ts#L118)
 
 True for the D1 failures worth retrying: a network blip, a storage or
 Durable-Object reset, a code-update restart, or a transient routing failure.
@@ -4066,7 +4066,7 @@ function readCreationOperation(
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:442](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L442)
+Defined in: [server/packages/server/src/d1/apply.ts:440](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L440)
 
 #### Parameters
 
@@ -4125,7 +4125,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:452](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L452)
+Defined in: [server/packages/server/src/d1/apply.ts:450](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L450)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
