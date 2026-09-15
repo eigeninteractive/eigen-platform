@@ -70,6 +70,9 @@ member, or type:
   actions, optimistic preview, seats, and widget tests.
 - [Creation UI](../build-a-game/creation-ui.md) covers `GameCreationSpec` and
   the version-independent module UI.
+- [Monetization](../build-a-game/monetization.md) covers `CommerceRepository`,
+  `PurchaseGateway` and `HostedStorefront`, offers, entitlements, access, and
+  commercial limits.
 - [Testing](../build-a-game/testing.md) covers the dedicated testing library.
 
 `eigen_api` is the generated transport package used inside `eigen_client`.

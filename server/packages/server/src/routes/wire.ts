@@ -57,6 +57,12 @@ const errorCodeDocs: Record<ErrorCode, string> = {
   usernameTaken: "The submitted username is already in use",
   friendsOnly: "The game is limited to the creator's friends",
   registrationRequired: "The action needs a registered account; the caller is a guest",
+  capabilityRequired: "The account does not have the fixed capability required for this operation",
+  contentRequired: "The account does not own a selected registered content resource",
+  commercialLimitReached: "The account has reached a configured commercial allowance",
+  creationConflict: "A game-creation identity was reused with different normalized inputs",
+  purchasePending: "The provider reports that the purchase has not completed yet",
+  purchaseConflict: "The verified purchase identity conflicts with its account, offer, or product",
   imageTooLarge: "The uploaded avatar exceeds the size limit",
   unsupportedImageType: "The uploaded avatar is not an accepted image type",
   rateLimited: "Too many requests in a short window; retry after the interval in the Retry-After header",
@@ -326,6 +332,9 @@ const creatableSchemaVersionAssertion = z.number().int().positive().openapi({
 
 export const createGameBody = z
   .object({
+    /** Stable identity for this logical creation. Reuse it only when retrying
+     * the same normalized request. */
+    creationId: z.string().uuid(),
     access: gameAccessShape,
     schemaVersion: creatableSchemaVersionAssertion,
     /** Game-defined; parsed by the version unit's config schema. Uses the
@@ -355,6 +364,8 @@ export const socketTicketShape = z.object({ ticket: z.string() }).openapi("Socke
  * bots to seat. */
 export const createSoloBody = z
   .object({
+    /** Stable identity for this logical creation. */
+    creationId: z.string().uuid(),
     schemaVersion: creatableSchemaVersionAssertion,
     /** Game-defined; parsed by the version unit's config schema. Uses the
      * shared free-form-object shape so every JSON payload on the wire

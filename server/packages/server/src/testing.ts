@@ -31,6 +31,9 @@
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";
 import { createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
+import type { CommerceProduct, CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "./commerce/types.js";
+import { orm } from "./d1/orm.js";
+import { users } from "./d1/schema.js";
 import type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 
 export const TEST_PROJECT_ID = "eigen-test";
@@ -108,4 +111,218 @@ export async function testMutationHeaders(opts: TestTokenOptions): Promise<Recor
     ...(await testBearer(opts)),
     "content-type": "application/json",
   };
+}
+
+export interface FakeCommerceEvidence {
+  transactionId: string;
+  providerReference: string;
+  accountId: string;
+  state?: CommerceTransactionState;
+  purchasedAt?: number;
+  validFrom?: number;
+  validUntil?: number;
+  kind?: "oneTime" | "subscription";
+  requiresAcknowledgement?: boolean;
+  sealedProviderState?: string;
+}
+
+/**
+ * A fake provider with the controls a lifecycle test needs.
+ *
+ * Reconciliation and acknowledgement are the two places where the engine
+ * depends on a provider doing something later, so a fake that cannot fail,
+ * stall, or refuse to answer cannot prove either of them works.
+ */
+export interface FakeCommerceProvider extends CommerceProvider<unknown> {
+  /** Current provider truth per transaction, returned by the next sweep.
+   * A transaction absent from here is one the provider will not answer for. */
+  readonly transactions: Map<string, Partial<VerifiedCommerceTransaction>>;
+  /** Every transaction this provider was asked to acknowledge, in order. */
+  readonly acknowledged: string[];
+  /** Each sweep's requested ids, in order. Proves queue rotation. */
+  readonly sweeps: string[][];
+  /** Make the whole next `reconcile` call throw, as a provider outage does. */
+  failNextSweep(message?: string): void;
+  /** Make every `acknowledge` throw until cleared. */
+  failAcknowledgement(message?: string): void;
+  clearFailures(): void;
+  /** One entry per checkout session the provider actually opened. A replayed
+   * operation identity must not add one. */
+  readonly checkouts: { accountId: string; providerReference: string; operationId: string; url: string }[];
+  /** Report this provider customer on the next checkout instead of the
+   * account's usual one, as a provider confusing two customers would. */
+  reportProviderAccount(providerAccountId: string): void;
+}
+
+/** Deterministic provider for commerce lifecycle and implementor conformance tests. */
+export function fakeCommerceProvider(
+  products: readonly (CommerceProduct & { kind?: "oneTime" | "subscription" })[],
+  now: () => number = Date.now,
+  /** The provider key. Give a sweep test its own, so the reconciliation queue
+   * it reasons about holds only the rows that test seeded. */
+  key = "fake",
+): FakeCommerceProvider {
+  const registered = new Map(products.map((product) => [product.providerReference, product] as const));
+  const transactions = new Map<string, Partial<VerifiedCommerceTransaction>>();
+  const acknowledged: string[] = [];
+  const sweeps: string[][] = [];
+  const checkouts: { accountId: string; providerReference: string; operationId: string; url: string }[] = [];
+  let sweepFailure: string | null = null;
+  let acknowledgementFailure: string | null = null;
+  let providerAccountOverride: string | null = null;
+  return {
+    key,
+    transactions,
+    acknowledged,
+    sweeps,
+    failNextSweep(message = "fake provider is unavailable") {
+      sweepFailure = message;
+    },
+    failAcknowledgement(message = "fake provider refused the acknowledgement") {
+      acknowledgementFailure = message;
+    },
+    clearFailures() {
+      sweepFailure = null;
+      acknowledgementFailure = null;
+    },
+    checkouts,
+    reportProviderAccount(providerAccountId: string) {
+      providerAccountOverride = providerAccountId;
+    },
+    reconcile: async (_env, requested): Promise<readonly VerifiedCommerceTransaction[]> => {
+      sweeps.push(requested.map((reference) => reference.providerTransactionId));
+      if (sweepFailure !== null) {
+        const message = sweepFailure;
+        sweepFailure = null;
+        throw new Error(message);
+      }
+      return requested.flatMap((reference) => {
+        const current = transactions.get(reference.providerTransactionId);
+        if (current === undefined) return [];
+        const instant = now();
+        return [
+          {
+            providerTransactionId: reference.providerTransactionId,
+            providerReference: current.providerReference ?? reference.providerReference,
+            kind: current.kind ?? reference.kind,
+            state: current.state ?? "active",
+            purchasedAt: current.purchasedAt ?? instant,
+            validFrom: current.validFrom ?? instant,
+            ...(current.validUntil === undefined ? {} : { validUntil: current.validUntil }),
+            ...(current.requiresAcknowledgement === undefined ? {} : { requiresAcknowledgement: current.requiresAcknowledgement }),
+            ...(current.sealedProviderState === undefined ? {} : { sealedProviderState: current.sealedProviderState }),
+          } satisfies VerifiedCommerceTransaction,
+        ];
+      });
+    },
+    acknowledge: async (_env, transaction): Promise<void> => {
+      if (acknowledgementFailure !== null) throw new Error(acknowledgementFailure);
+      acknowledged.push(transaction.providerTransactionId);
+    },
+    products: async (_env, providerReferences) => providerReferences.flatMap((id) => (registered.get(id) === undefined ? [] : [registered.get(id) as CommerceProduct])),
+    verifyClaim: async (_env, input): Promise<VerifiedCommerceTransaction> => {
+      const evidence = input.evidence as Partial<FakeCommerceEvidence> | null;
+      if (evidence === null || typeof evidence !== "object") throw new Error("fake commerce evidence must be an object");
+      if (evidence.accountId !== input.accountId) throw new Error("fake commerce evidence belongs to another account");
+      if (evidence.providerReference !== input.expectedProviderReference || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+      if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
+      const instant = now();
+      return {
+        providerTransactionId: evidence.transactionId,
+        providerReference: evidence.providerReference,
+        kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
+        state: evidence.state ?? "active",
+        purchasedAt: evidence.purchasedAt ?? instant,
+        validFrom: evidence.validFrom ?? instant,
+        ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+        ...(evidence.requiresAcknowledgement === undefined ? {} : { requiresAcknowledgement: evidence.requiresAcknowledgement }),
+        ...(evidence.sealedProviderState === undefined ? {} : { sealedProviderState: evidence.sealedProviderState }),
+      };
+    },
+    verifyWebhook: async (_env, request): Promise<VerifiedCommerceEvent> => {
+      const body = (await request.json()) as Partial<FakeCommerceEvidence> & {
+        eventId?: string;
+      };
+      if (typeof body.eventId !== "string" || body.eventId.length === 0) {
+        throw new Error("fake commerce webhook needs an eventId");
+      }
+      if (typeof body.accountId !== "string") {
+        throw new Error("fake commerce webhook needs an accountId");
+      }
+      const transaction = await (async (): Promise<VerifiedCommerceTransaction> => {
+        const evidence = body;
+        if (typeof evidence.providerReference !== "string" || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+        if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
+        const instant = now();
+        return {
+          providerTransactionId: evidence.transactionId,
+          providerReference: evidence.providerReference,
+          kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
+          state: evidence.state ?? "active",
+          purchasedAt: evidence.purchasedAt ?? instant,
+          validFrom: evidence.validFrom ?? instant,
+          ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+        };
+      })();
+      return { providerEventId: body.eventId, accountId: body.accountId, transaction };
+    },
+    createCheckout: async (_env, input) => {
+      // A real storefront opens a NEW session per call. Keeping that true here
+      // is what lets a test tell a replayed operation identity from a second
+      // session that merely happens to address the same offer.
+      const url = `https://checkout.example/session/${crypto.randomUUID()}?account=${encodeURIComponent(input.accountId)}&product=${encodeURIComponent(input.providerReference)}&return=${encodeURIComponent(input.returnUrl)}`;
+      checkouts.push({ accountId: input.accountId, providerReference: input.providerReference, operationId: input.operationId, url });
+      const providerAccountId = providerAccountOverride ?? input.providerAccountId ?? `fake:${input.accountId}`;
+      providerAccountOverride = null;
+      return { url, providerAccountId, expiresAt: now() + 30 * 60 * 1000 };
+    },
+    management: async (_env, accountId, providerAccountId, returnUrl) => ({
+      url: `https://checkout.example/manage?account=${encodeURIComponent(accountId)}&customer=${encodeURIComponent(providerAccountId)}&return=${encodeURIComponent(returnUrl)}`,
+    }),
+  };
+}
+
+/**
+ * Adds a fresh `creationId` to a game-creation body that does not already
+ * carry one.
+ *
+ * Game creation is operation-specifically idempotent: `POST /games` and
+ * `POST /games/solo` bind the caller, this identity, and a fingerprint of the
+ * creation inputs, so a retry returns the original game instead of creating --
+ * or commercially counting -- a second one. A test that is not about that
+ * binding still has to send an identity, and wants a different one each time.
+ *
+ * `POST /games/local` is deliberately absent: an imported game carries the
+ * device's own `gameId` as its whole identity and takes no `creationId`.
+ */
+/**
+ * Provision the account a commerce test is about.
+ *
+ * The ledger refuses to write for an account that does not exist, because a
+ * provider notification names an account from its own metadata and that
+ * metadata outlives an erasure. Anything reaching the ledger through the API
+ * has already been provisioned by the auth middleware; a test calling the
+ * ledger directly has to say so itself.
+ */
+export async function testAccount(d1: D1Database, userId: string, now = Date.now()): Promise<string> {
+  await orm(d1)
+    .insert(users)
+    .values({
+      id: userId,
+      username: userId,
+      email: null,
+      displayName: userId,
+      avatarUrl: null,
+      isAnonymous: false,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+  return userId;
+}
+
+export function withCreationId(method: string, path: string, body: unknown): unknown {
+  if (method !== "POST" || (path !== "/games" && path !== "/games/solo")) return body;
+  if (body === null || typeof body !== "object" || "creationId" in body) return body;
+  return { creationId: crypto.randomUUID(), ...body };
 }

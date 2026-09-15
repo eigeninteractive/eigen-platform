@@ -7,7 +7,7 @@
 import type { GameModule, GameRules, JsonObject } from "@eigeninteractive/rules";
 import type { FirebaseAdminEffects } from "../src/index.js";
 import { BaseGameDO, createEngine } from "../src/index.js";
-import { testVerifier } from "../src/testing.js";
+import { fakeCommerceProvider, testVerifier } from "../src/testing.js";
 
 /** The worker-side Env: the global namespace declared in env.d.ts. */
 export type TestEnv = Cloudflare.Env;
@@ -32,6 +32,9 @@ type Action = { add: number };
 type Config = { target: number };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+
+/** Every argument object `contentForCreate` was called with. */
+export const contentForCreateArguments: Record<string, unknown>[] = [];
 
 const rules: GameRules = {
   schemas: {
@@ -77,6 +80,48 @@ const rules: GameRules = {
   timingOptions: () => [{ mode: "untimed" }, { mode: "perAction", minSeconds: 30, maxSeconds: 3600 }, { mode: "budget", minBudgetSeconds: 120, maxBudgetSeconds: 86400, minIncrementSeconds: 0, maxIncrementSeconds: 60 }],
   ratingPool: () => "test-pool",
   botSeatable: () => true,
+  contentForCreate: (input) => {
+    // Captured so a spec can assert what this hook is ABLE to see. The rule it
+    // guards is structural: authoritative game code must never be handed
+    // entitlements, provider state, or storage, because a rule that can read a
+    // purchase is a rule that can be bought.
+    contentForCreateArguments.push(input as unknown as Record<string, unknown>);
+    const { config } = input;
+    const selected = config as Config & {
+      premiumVariant?: boolean;
+      participantTheme?: boolean;
+      viewerTheme?: boolean;
+    };
+    return [
+      ...(selected.premiumVariant === true
+        ? [
+            {
+              collection: "test_variant",
+              id: "supporter_mode",
+              ownership: "creator" as const,
+            },
+          ]
+        : []),
+      ...(selected.participantTheme === true
+        ? [
+            {
+              collection: "board_theme",
+              id: "supporter_gold",
+              ownership: "eachParticipant" as const,
+            },
+          ]
+        : []),
+      ...(selected.viewerTheme === true
+        ? [
+            {
+              collection: "board_theme",
+              id: "supporter_gold",
+              ownership: "viewer" as const,
+            },
+          ]
+        : []),
+    ];
+  },
   // In-DO brains, keyed by bot username: the `test-engine-bot` always
   // adds 1, so a human-vs-bot race advances two versions per human move.
   // Deterministic, so no rng needed.
@@ -135,7 +180,7 @@ const hiddenRules: GameRules = {
   botSeatable: () => true,
 };
 
-const testGame: GameModule = { versions: { 1: hiddenRules } };
+export const testGame: GameModule = { versions: { 1: hiddenRules } };
 
 /**
  * Every push the engine attempted, newest last.
@@ -169,6 +214,20 @@ export class GameDO extends BaseGameDO<TestEnv> {
 
 /** The deployed shape, with the test auth seam: the same verifier
  * code path production uses, against the checked-in local JWKS. */
+/** The suite's commerce provider, exported so a spec can drive its controls --
+ * make a sweep fail, refuse an acknowledgement, or report a different provider
+ * customer -- without rebuilding the whole worker. */
+export const commerceProvider = fakeCommerceProvider([
+  { providerReference: "supporter_once", displayPrice: "$4.99", currencyCode: "USD" },
+  { providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" },
+]);
+
+/** A second registered storefront, so the suite can tell "every provider" from
+ * "the one this caller asked for". `products` records who was consulted. */
+export const secondCommerceProvider = fakeCommerceProvider([{ providerReference: "supporter_web", displayPrice: "$5.49", currencyCode: "USD" }], Date.now, "fake_web");
+
+export const productLookups: string[] = [];
+
 export default createEngine({
   gameModule: testGame,
   appName: "Eigen Test",
@@ -187,6 +246,53 @@ export default createEngine({
     apple: { appId: "TEAMID1234.com.eigen.test", storeUrl: "https://apps.apple.com/app/id000000000" },
   },
   avatars: { bucket: (env: TestEnv) => env.AVATARS, maxBytes: 4096 },
+  commerce: {
+    catalog: {
+      free: {
+        permissions: [
+          { kind: "game.create", access: "public" },
+          { kind: "game.create", access: "friends" },
+          { kind: "game.create", access: "private" },
+          { kind: "game.join", access: "public" },
+          { kind: "game.join", access: "friends" },
+          { kind: "game.join", access: "private" },
+          { kind: "game.create.rated" },
+          { kind: "bot.use" },
+          { kind: "replay.read" },
+        ],
+      },
+      entitlements: [
+        {
+          key: "supporter",
+          content: [
+            { collection: "board_theme", id: "supporter_gold" },
+            { collection: "test_variant", id: "supporter_mode" },
+          ],
+        },
+        {
+          key: "pro",
+          permissions: [{ kind: "analysis.use" }],
+          limits: [{ metric: "analysis.run.success", maximum: 100, period: { kind: "subscriptionPeriod" } }],
+        },
+      ],
+      offers: [
+        { key: "supporter", name: "Supporter", description: "Permanent supporter cosmetics.", kind: "oneTime", entitlements: ["supporter"], providerReferences: { fake: "supporter_once", fake_web: "supporter_web" } },
+        { key: "pro_monthly", name: "Pro", description: "Monthly analysis access.", kind: "subscription", entitlements: ["pro"], providerReferences: { fake: "pro_monthly" } },
+      ],
+      content: {
+        board_theme: { supporter_gold: { classification: "cosmetic" } },
+        test_variant: {
+          supporter_mode: { classification: "sharedRuleset" },
+        },
+      },
+    },
+    providers: [
+      // Each adapter records the fact that it was asked for prices at all: the
+      // catalog route must not consult a storefront the caller cannot buy from.
+      { ...commerceProvider, products: async (env, ids) => (productLookups.push(commerceProvider.key), (await commerceProvider.products?.(env, ids)) ?? []) },
+      { ...secondCommerceProvider, products: async (env, ids) => (productLookups.push(secondCommerceProvider.key), (await secondCommerceProvider.products?.(env, ids)) ?? []) },
+    ],
+  },
   // The public web surface, exercised by site.spec.ts. Legal documents are
   // left at the engine defaults so the tests assert the shipped prose and its
   // token substitution, not a fixture.

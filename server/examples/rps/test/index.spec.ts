@@ -16,8 +16,8 @@ const VIEWER = "rps-viewer";
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
   return await exports.default.fetch(`https://rps.test/api/engine${path}`, {
     method,
-    // Mutations need the `Idempotency-Key` the engine requires; a fresh one per
-    // call, since each of these is a new intent rather than a retry.
+    // Mutations share the test helper's authenticated JSON headers. Creation's
+    // operation-specific identity lives in its body below.
     headers: method === "GET" ? { ...(await testBearer({ uid })), "content-type": "application/json" } : await testMutationHeaders({ uid }),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
@@ -29,6 +29,7 @@ it("requires a token on every route", async () => {
 
 it("plays a full game: waiting room, same-view simultaneous commits, finish, replay reveal", async () => {
   const created = await api(ALICE, "POST", "/games", {
+    creationId: crypto.randomUUID(),
     access: "public",
     schemaVersion: 1,
     config: { targetWins: 1 },

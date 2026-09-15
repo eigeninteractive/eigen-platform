@@ -27,6 +27,10 @@
       "description": "The bots this deployment offers as opponents."
     },
     {
+      "name": "Commerce",
+      "description": "Optional offers, verified purchases, entitlements, access capabilities, and commercial limits."
+    },
+    {
       "name": "BotWebhook",
       "description": "The HMAC-authenticated callback an external bot answers on. Not for clients."
     },
@@ -421,6 +425,12 @@
           "usernameTaken",
           "friendsOnly",
           "registrationRequired",
+          "capabilityRequired",
+          "contentRequired",
+          "commercialLimitReached",
+          "creationConflict",
+          "purchasePending",
+          "purchaseConflict",
           "imageTooLarge",
           "unsupportedImageType",
           "rateLimited",
@@ -888,6 +898,10 @@
       "CreateGame": {
         "type": "object",
         "properties": {
+          "creationId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "access": {
             "$ref": "#/components/schemas/GameAccess"
           },
@@ -937,6 +951,7 @@
           }
         },
         "required": [
+          "creationId",
           "access",
           "schemaVersion",
           "config"
@@ -956,6 +971,10 @@
       "CreateSolo": {
         "type": "object",
         "properties": {
+          "creationId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "schemaVersion": {
             "type": "integer",
             "exclusiveMinimum": 0,
@@ -1009,6 +1028,7 @@
           }
         },
         "required": [
+          "creationId",
           "schemaVersion",
           "config",
           "botIds"
@@ -1611,6 +1631,364 @@
         },
         "required": [
           "targetUserId"
+        ]
+      },
+      "CommerceCatalog": {
+        "type": "object",
+        "properties": {
+          "offers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommerceOffer"
+            }
+          }
+        },
+        "required": [
+          "offers"
+        ]
+      },
+      "CommerceOffer": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "oneTime",
+              "subscription"
+            ]
+          },
+          "entitlements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "repeatable": {
+            "type": "boolean"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommerceProduct"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "description",
+          "kind",
+          "entitlements",
+          "repeatable",
+          "products"
+        ]
+      },
+      "CommerceProduct": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "providerReference": {
+            "type": "string"
+          },
+          "displayPrice": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currencyCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "providerReference",
+          "displayPrice",
+          "currencyCode"
+        ]
+      },
+      "AccessSnapshot": {
+        "type": "object",
+        "properties": {
+          "entitlements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveEntitlement"
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessCapability"
+            }
+          },
+          "content": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContentGrant"
+            }
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommercialLimitAccess"
+            }
+          }
+        },
+        "required": [
+          "entitlements",
+          "permissions",
+          "content",
+          "limits"
+        ]
+      },
+      "ActiveEntitlement": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "validFrom": {
+            "type": "integer"
+          },
+          "validUntil": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "validFrom",
+          "validUntil"
+        ]
+      },
+      "AccessCapability": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "app.access",
+              "game.create",
+              "game.join",
+              "game.create.rated",
+              "bot.use",
+              "content.use",
+              "replay.read",
+              "analysis.use"
+            ]
+          },
+          "access": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "friends"
+            ]
+          },
+          "tier": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "analysisType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "ContentGrant": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "collection",
+          "id"
+        ]
+      },
+      "CommercialLimitAccess": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": [
+              "game.create.success",
+              "games.openCreated",
+              "bot.game.success",
+              "analysis.run.success"
+            ]
+          },
+          "maximum": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "noCommercialLimit": {
+            "type": "boolean"
+          },
+          "period": {
+            "$ref": "#/components/schemas/CommercialPeriodKind"
+          },
+          "used": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "remaining": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "resetsAt": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "metric",
+          "maximum",
+          "noCommercialLimit",
+          "period",
+          "used",
+          "remaining",
+          "resetsAt"
+        ]
+      },
+      "CommercialPeriodKind": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "calendarMonth",
+          "subscriptionPeriod",
+          "lifetime",
+          "concurrent",
+          null
+        ],
+        "description": "The commercial accounting window. Calendar months always use UTC."
+      },
+      "CommerceClaim": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "offerKey": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "object",
+            "additionalProperties": {}
+          }
+        },
+        "required": [
+          "provider",
+          "offerKey",
+          "evidence"
+        ]
+      },
+      "CommerceRestore": {
+        "type": "object",
+        "properties": {
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommerceClaim"
+            },
+            "minItems": 1,
+            "maxItems": 100
+          }
+        },
+        "required": [
+          "claims"
+        ]
+      },
+      "CommerceUrl": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "CommerceCheckoutRequest": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "offerKey": {
+            "type": "string"
+          },
+          "returnUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "operationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "provider",
+          "offerKey",
+          "returnUrl",
+          "operationId"
+        ]
+      },
+      "CommerceManagementRequest": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "returnUrl": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "provider",
+          "returnUrl"
         ]
       },
       "BotAction": {
@@ -4898,6 +5276,537 @@
           },
           "404": {
             "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/catalog": {
+      "get": {
+        "operationId": "getCommerceCatalog",
+        "tags": [
+          "Commerce"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered offers and storefront products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommerceCatalog"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/access": {
+      "get": {
+        "operationId": "getCommerceAccess",
+        "tags": [
+          "Commerce"
+        ],
+        "responses": {
+          "200": {
+            "description": "Effective entitlements, capabilities, content, and limits",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/claims": {
+      "post": {
+        "operationId": "claimCommercePurchase",
+        "tags": [
+          "Commerce"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommerceClaim"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Purchase verified and effective access refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/restore": {
+      "post": {
+        "operationId": "restoreCommercePurchases",
+        "tags": [
+          "Commerce"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommerceRestore"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Submitted purchases restored and effective access refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessSnapshot"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/checkout": {
+      "post": {
+        "operationId": "createCommerceCheckout",
+        "tags": [
+          "Commerce"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommerceCheckoutRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Provider-hosted checkout URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommerceUrl"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/engine/commerce/management": {
+      "post": {
+        "operationId": "createCommerceManagement",
+        "tags": [
+          "Commerce"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommerceManagementRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Provider-hosted subscription management URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommerceUrl"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid commerce request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "A recoverable account or entitlement is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown offer or provider",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Purchase is pending or conflicts with another account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The commerce provider could not verify the operation",
             "content": {
               "application/json": {
                 "schema": {

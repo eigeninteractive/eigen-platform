@@ -6,7 +6,20 @@
  * @type {Partial<import("typedoc").TypeDocOptions>}
  */
 export default {
-  entryPoints: ["../server/packages/kernel/src/index.ts", "../server/packages/rules/src/index.ts", "../server/packages/server/src/index.ts", "../server/packages/server/src/testing.ts", "../server/packages/testkit/src/index.ts"],
+  entryPoints: [
+    "../server/packages/kernel/src/index.ts",
+    "../server/packages/rules/src/index.ts",
+    "../server/packages/server/src/index.ts",
+    "../server/packages/server/src/testing.ts",
+    "../server/packages/server/src/commerce/provider-kit.ts",
+    "../server/packages/testkit/src/index.ts",
+    // The commerce adapters. Each is one factory and its config, and the config
+    // is the part an implementor has to get right. They ship inside the server
+    // package as separate entry points, so importing one carries only that one.
+    "../server/packages/server/src/commerce/providers/google-play.ts",
+    "../server/packages/server/src/commerce/providers/stripe.ts",
+    "../server/packages/server/src/commerce/providers/razorpay.ts",
+  ],
   entryPointStrategy: "resolve",
   tsconfig: "./scripts/typedoc.tsconfig.json",
   out: "docs/reference/typescript",

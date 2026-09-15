@@ -16,6 +16,8 @@ part 'create_solo.g.dart';
 class CreateSolo {
   /// Returns a new [CreateSolo] instance.
   CreateSolo({
+    required this.creationId,
+
     required this.schemaVersion,
 
     required this.config,
@@ -34,6 +36,9 @@ class CreateSolo {
 
     this.incrementSeconds,
   });
+
+  @JsonKey(name: r'creationId', required: true, includeIfNull: false)
+  final String creationId;
 
   /// The newest schemaVersion bundled by this client. New games always use exactly the server's latest installed version.
   @JsonKey(name: r'schemaVersion', required: true, includeIfNull: false)
@@ -70,6 +75,7 @@ class CreateSolo {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CreateSolo &&
+          other.creationId == creationId &&
           other.schemaVersion == schemaVersion &&
           other.config == config &&
           other.minPlayers == minPlayers &&
@@ -82,6 +88,7 @@ class CreateSolo {
 
   @override
   int get hashCode =>
+      creationId.hashCode +
       schemaVersion.hashCode +
       config.hashCode +
       minPlayers.hashCode +

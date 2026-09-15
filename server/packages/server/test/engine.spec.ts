@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { deriveBotKey, signForBot } from "../src/bot/bot-auth.js";
 import { orm } from "../src/d1/orm.js";
 import { bots, participants } from "../src/d1/schema.js";
-import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, mintTestToken as mintToken, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 
 const BOT_SECRET = "test-bot-signing-secret";
 
@@ -27,10 +27,11 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown, anonymous = false): Promise<Response> {
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid, anonymous }) : await mutationHeaders({ uid, anonymous }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
 }
 
@@ -324,6 +325,53 @@ describe("active play & frames", () => {
     expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.gameId, second.gameId]));
   });
 
+  it("replays the same creation identity and rejects changed inputs", async () => {
+    const u = makeUsers();
+    const creationId = crypto.randomUUID();
+    const body = { creationId, ...createBody, rated: false };
+
+    const first = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    const replay = await json<Created>(await api(u.a, "POST", "/games", body), 201);
+    expect(replay).toEqual(first);
+
+    const conflict = await api(u.a, "POST", "/games", {
+      ...body,
+      access: "private",
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ code: "creationConflict" });
+
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.filter((game) => game.id === first.gameId)).toHaveLength(1);
+  });
+
+  it("requires a creation identity on both create routes", async () => {
+    const u = makeUsers();
+    const headers = await mutationHeaders({ uid: u.a });
+    for (const [path, body] of [
+      ["/games", { ...createBody, rated: false }],
+      [
+        "/games/solo",
+        {
+          schemaVersion: 1,
+          config: { target: 3 },
+          minPlayers: 2,
+          maxPlayers: 2,
+          turnSeconds: 60,
+          rated: false,
+          botIds: ["test-engine-bot"],
+        },
+      ],
+    ] as const) {
+      const response = await exports.default.fetch(`https://x/api/engine${path}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+      });
+      expect(response.status).toBe(400);
+    }
+  });
+
   it("plays to a rated finish; ratings land; frames replay for a viewer", async () => {
     const u = makeUsers();
     const gameId = await readyGame(u);
@@ -527,6 +575,35 @@ describe("bots", () => {
 
     const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
     expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.session.gameId, second.session.gameId]));
+  });
+
+  /**
+   * Solo creation is two writes in different stores: the game commits to D1,
+   * then its Durable Object is told to start. A response lost between them
+   * leaves a client that must retry, and the retry must land on the game that
+   * already exists rather than buying a second one.
+   */
+  it("replays a solo creation identity across the D1 and Durable Object halves", async () => {
+    const u = makeUsers();
+    const creationId = crypto.randomUUID();
+    const body = { creationId, ...soloBody(ENGINE) };
+
+    const first = await json<CommandOk>(await api(u.a, "POST", "/games/solo", body), 201);
+    const retry = await json<CommandOk>(await api(u.a, "POST", "/games/solo", body), 201);
+
+    // The same game, and started both times: starting is an idempotent
+    // lifecycle transition, so re-poking it is how the second half converges
+    // when the first attempt died between the two stores.
+    expect(retry.session.gameId).toBe(first.session.gameId);
+    expect(retry.session.status).toBe(first.session.status);
+
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.filter((game) => game.id === first.session.gameId)).toHaveLength(1);
+
+    // And the identity is still bound to its inputs on this route too.
+    const conflict = await api(u.a, "POST", "/games/solo", { ...body, turnSeconds: 90 });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ code: "creationConflict" });
   });
 
   it("rejects seating a bot in an untimed game (bots ⇒ timed)", async () => {

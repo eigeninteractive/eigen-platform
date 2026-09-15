@@ -52,6 +52,18 @@ String messageForCode(ErrorCode code) => switch (code) {
   ErrorCode.usernameTaken => 'That username is already taken.',
   ErrorCode.friendsOnly => 'Only friends of the host can join this game.',
   ErrorCode.registrationRequired => 'Create an account to do that.',
+  ErrorCode.capabilityRequired =>
+    'This feature is not included in your current access.',
+  ErrorCode.contentRequired =>
+    'This game uses content that is not included in your current access.',
+  ErrorCode.commercialLimitReached =>
+    'You have reached the limit for your current access.',
+  ErrorCode.creationConflict =>
+    'That creation request changed while it was being retried. Try again.',
+  ErrorCode.purchasePending =>
+    'Your purchase is still pending. Check again in a moment.',
+  ErrorCode.purchaseConflict =>
+    'This purchase is linked to a different account or product.',
   ErrorCode.imageTooLarge => 'That image is too large. Try a smaller one.',
   ErrorCode.unsupportedImageType => 'Use a JPEG, PNG, or WebP image.',
   ErrorCode.rateLimited =>
@@ -71,3 +83,19 @@ String messageForCode(ErrorCode code) => switch (code) {
 
 const _offline = "Can't reach the server. Check your connection.";
 const _unexpected = 'Something went wrong. Please try again.';
+
+/// Whether [code] is a refusal a purchase could actually resolve.
+///
+/// The three that qualify are all "your access does not include this": a
+/// capability, a piece of content, or a commercial allowance. Everything else
+/// that mentions money does not — `purchasePending` is already paid and only
+/// waiting, and `registrationRequired` wants an account, not a purchase.
+///
+/// Offering a store for a refusal a purchase cannot lift is worse than
+/// offering nothing: it reads as being asked to pay for a bug.
+bool isUpgradeableRefusal(ErrorCode? code) => switch (code) {
+  ErrorCode.capabilityRequired ||
+  ErrorCode.contentRequired ||
+  ErrorCode.commercialLimitReached => true,
+  _ => false,
+};

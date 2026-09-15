@@ -20,7 +20,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { bots, games, playerRatings, ratingHistory } from "../src/d1/schema.js";
 import { createGame } from "../src/index.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 import { LEAK_SENTINEL, pushLog } from "./worker.js";
 
 const db = orm(env.DB);
@@ -44,10 +44,11 @@ function makeUsers() {
 }
 
 async function api(uid: string, method: string, path: string, body?: unknown): Promise<Response> {
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? await bearer({ uid }) : await mutationHeaders({ uid }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
 }
 

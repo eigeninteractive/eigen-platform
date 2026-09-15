@@ -5,6 +5,13 @@ export default defineConfig((options) => ({
     index: "src/index.ts",
     openapi: "src/openapi.ts",
     testing: "src/testing.ts",
+    "commerce-kit": "src/commerce/provider-kit.ts",
+    // The provider adapters. Separate entries, never re-exported from the
+    // barrel: a game that sells nothing -- or sells through only one of them
+    // -- must not carry the other two into its Worker bundle.
+    "commerce-stripe": "src/commerce/providers/stripe.ts",
+    "commerce-razorpay": "src/commerce/providers/razorpay.ts",
+    "commerce-google-play": "src/commerce/providers/google-play.ts",
   },
   format: "esm",
   platform: "neutral",

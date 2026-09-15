@@ -1,4 +1,12 @@
 # Changelog
+## [Unreleased]
+### Added
+- `CommerceRepository` and the generated access and catalog types for verified claims, restoration, hosted checkout, and subscription management.
+
+### Changed
+- Game creation requires a stable `creationId`; `newGameCreationId()` mints one so a retried creation resolves to the original game, and `newCheckoutOperationId()` does the same for hosted checkout.
+- `CommerceRepository.getCatalog` takes the storefronts this build can buy through, so the Worker consults only those providers' pricing APIs.
+
 ## [0.2.0] - 2026-09-13
 ### Added
 - The local half of offline play: EigenRng, a port of the engine commit kernel for an untimed game, LocalGameRules, the record and its store port, the bot-runner port, and LocalGameEngine.
@@ -14,6 +22,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.2.0...HEAD
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.1...eigen_client-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.0...eigen_client-v0.1.1
 [0.1.0]: https://github.com/eigeninteractive/eigen-platform/tree/eigen_client-v0.1.0

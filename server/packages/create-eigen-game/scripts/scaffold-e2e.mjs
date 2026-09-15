@@ -251,8 +251,8 @@ if (speakers.length === 0) {
 // freshly scaffolded project would have installed a shell two lines behind the
 // templates written against it.
 //
-// `tool/check-dart-pin.mjs` cannot see these. It compares pubspec constraints
-// against pubspecs in this repository; these are TypeScript literals naming
+// Workspace resolution cannot see these either. It enforces the constraints
+// workspace members name each other by; these are TypeScript literals naming
 // *published* packages, and the repository's own version is the wrong thing to
 // compare them against -- during the window between a version commit landing
 // and the package publishing, the repository is ahead of pub.dev on purpose and

@@ -12,15 +12,16 @@
 
 import { exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders, type TestTokenOptions } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, type TestTokenOptions, withCreationId } from "../src/testing.js";
 
 const rnd = () => crypto.randomUUID().slice(0, 8);
 
 async function api(opts: TestTokenOptions, method: string, path: string, body?: unknown): Promise<Response> {
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer(opts)), "content-type": "application/json" } : await mutationHeaders(opts),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
 }
 

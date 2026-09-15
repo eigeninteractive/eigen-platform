@@ -21,7 +21,7 @@
 
 import { and, eq, inArray, or } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
-import { deviceInstallations, games, participants, playerRatings, ratingHistory, relationships, users } from "../d1/schema.js";
+import { commerceCapacity, commerceCheckoutOperations, commerceProviderAccounts, commerceTransactions, commerceUsage, creationOperations, deviceInstallations, entitlementGrants, games, participants, playerRatings, ratingHistory, relationships, users } from "../d1/schema.js";
 import type { FirebaseAdminEffects } from "../firebase/admin-effects.js";
 import type { GameStub, SingleCommand } from "../protocol.js";
 
@@ -84,6 +84,13 @@ async function purgeD1(d1: D1Database, userId: string): Promise<void> {
     db.delete(playerRatings).where(eq(playerRatings.userId, userId)),
     db.delete(ratingHistory).where(eq(ratingHistory.userId, userId)),
     db.delete(deviceInstallations).where(eq(deviceInstallations.userId, userId)),
+    db.delete(commerceCapacity).where(eq(commerceCapacity.userId, userId)),
+    db.delete(commerceUsage).where(eq(commerceUsage.userId, userId)),
+    db.delete(commerceCheckoutOperations).where(eq(commerceCheckoutOperations.userId, userId)),
+    db.delete(commerceProviderAccounts).where(eq(commerceProviderAccounts.userId, userId)),
+    db.delete(creationOperations).where(eq(creationOperations.creatorId, userId)),
+    db.delete(entitlementGrants).where(eq(entitlementGrants.userId, userId)),
+    db.update(commerceTransactions).set({ userId: null, sealedProviderState: null, updatedAt: Date.now() }).where(eq(commerceTransactions.userId, userId)),
     db.delete(users).where(eq(users.id, userId)),
   ]);
 }

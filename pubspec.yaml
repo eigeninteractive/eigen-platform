@@ -76,7 +76,7 @@ workspace:
 # It owns versions ONLY. Changelogs stay with cider, because these are curated
 # prose rather than a list of commit subjects, and `--no-changelog` keeps melos
 # out of them. Tags and publication stay with the release workflows, because
-# pub.dev trusted publishing validates the calling workflow's filename.
+# pub.dev only accepts an automated publish from a tag-triggered run.
 melos:
   name: eigen_platform
 

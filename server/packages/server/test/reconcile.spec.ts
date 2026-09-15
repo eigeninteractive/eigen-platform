@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
 import { games, participants } from "../src/d1/schema.js";
-import { testBearer as bearer, testMutationHeaders as mutationHeaders } from "../src/testing.js";
+import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
 import worker from "./worker.js";
 
 const db = orm(env.DB);
@@ -25,10 +25,11 @@ const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 async function api(id: string, method: string, path: string, body?: unknown): Promise<Response> {
+  const requestBody = withCreationId(method, path, body);
   return await exports.default.fetch(`https://x/api/engine${path}`, {
     method,
     headers: method === "GET" ? { ...(await bearer({ uid: id })), "content-type": "application/json" } : await mutationHeaders({ uid: id }),
-    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+    ...(requestBody !== undefined ? { body: JSON.stringify(requestBody) } : {}),
   });
 }
 

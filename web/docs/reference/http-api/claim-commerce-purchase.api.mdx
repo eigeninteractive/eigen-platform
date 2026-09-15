@@ -1,0 +1,67 @@
+---
+id: claim-commerce-purchase
+title: "claimCommercePurchase"
+description: "claimCommercePurchase"
+sidebar_label: "claimCommercePurchase"
+hide_title: true
+hide_table_of_contents: true
+api: {"operationId":"claimCommercePurchase","tags":["Commerce"],"requestBody":{"required":true,"content":{"application/json":{"schema":{"type":"object","properties":{"provider":{"type":"string"},"offerKey":{"type":"string"},"evidence":{"type":"object","additionalProperties":{}}},"required":["provider","offerKey","evidence"],"title":"CommerceClaim"}}}},"responses":{"200":{"description":"Purchase verified and effective access refreshed","content":{"application/json":{"schema":{"type":"object","properties":{"entitlements":{"type":"array","items":{"type":"object","properties":{"key":{"type":"string"},"validFrom":{"type":"integer"},"validUntil":{"type":["integer","null"]}},"required":["key","validFrom","validUntil"],"title":"ActiveEntitlement"}},"permissions":{"type":"array","items":{"type":"object","properties":{"kind":{"type":"string","enum":["app.access","game.create","game.join","game.create.rated","bot.use","content.use","replay.read","analysis.use"]},"access":{"type":"string","enum":["public","private","friends"]},"tier":{"type":"string"},"collection":{"type":"string"},"id":{"type":"string"},"analysisType":{"type":"string"}},"required":["kind"],"title":"AccessCapability"}},"content":{"type":"array","items":{"type":"object","properties":{"collection":{"type":"string"},"id":{"type":"string"}},"required":["collection","id"],"title":"ContentGrant"}},"limits":{"type":"array","items":{"type":"object","properties":{"metric":{"type":"string","enum":["game.create.success","games.openCreated","bot.game.success","analysis.run.success"]},"maximum":{"type":["integer","null"],"minimum":0},"noCommercialLimit":{"type":"boolean"},"period":{"type":["string","null"],"enum":["calendarMonth","subscriptionPeriod","lifetime","concurrent",null],"description":"The commercial accounting window. Calendar months always use UTC.","title":"CommercialPeriodKind"},"used":{"type":"integer","minimum":0},"remaining":{"type":["integer","null"],"minimum":0},"resetsAt":{"type":["integer","null"]}},"required":["metric","maximum","noCommercialLimit","period","used","remaining","resetsAt"],"title":"CommercialLimitAccess"}}},"required":["entitlements","permissions","content","limits"],"title":"AccessSnapshot"}}}},"400":{"description":"Invalid commerce request","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"401":{"description":"Missing or invalid token","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"403":{"description":"A recoverable account or entitlement is required","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"404":{"description":"Unknown offer or provider","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"409":{"description":"Purchase is pending or conflicts with another account","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}},"502":{"description":"The commerce provider could not verify the operation","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"},"code":{"type":"string","enum":["notActive","notReady","expired","notPending","stateUpdated","invalidPayload","illegalMove","unknownGame","notJoinable","gameFull","alreadyJoined","notParticipant","notCreator","creatorCannotLeave","clientUpdateRequired","serverUpdateRequired","usernameInvalid","usernameTaken","friendsOnly","registrationRequired","capabilityRequired","contentRequired","commercialLimitReached","creationConflict","purchasePending","purchaseConflict","imageTooLarge","unsupportedImageType","rateLimited","invalidCursor","localOnly","notLocalBot"],"description":"A stable machine code identifying why a request failed.","title":"ErrorCode"}},"required":["error"],"title":"ErrorResponse"}}}}},"description":"claimCommercePurchase","method":"post","path":"/api/engine/commerce/claims","security":[{"firebase":[]}],"securitySchemes":{"firebase":{"type":"http","scheme":"bearer","bearerFormat":"JWT","description":"A Firebase ID token, sent as `Authorization: Bearer <token>`."},"botHmac":{"type":"apiKey","in":"header","name":"Eigen-Signature","description":"An external bot's HMAC signature over the exact request body, bound to the `action` domain. Scheme `v1,<base64>`; the per-bot key is `HMAC(BOT_SIGNING_SECRET, botId)`. The engine signs wakes with the same header in the other direction."}},"jsonRequestBodyExample":{"provider":"string","offerKey":"string","evidence":{}},"info":{"title":"EigenInteractive Engine API","version":"0.7.0","description":"The server-authoritative game engine API. Client routes (`/api/engine/*`) require a Firebase ID token; the external-bot webhook (`/api/bot/action`) is HMAC-authenticated."},"postman":{"name":"claim Commerce Purchase","description":{"type":"text/plain"},"url":{"path":["api","engine","commerce","claims"],"host":["{{baseUrl}}"],"query":[],"variable":[]},"header":[{"key":"Content-Type","value":"application/json"},{"key":"Accept","value":"application/json"}],"method":"POST","body":{"mode":"raw","raw":"","options":{"raw":{"language":"json"}}}}}
+sidebar_class_name: "post api-method"
+info_path: docs/reference/http-api/eigeninteractive-engine-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"claimCommercePurchase"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/engine/commerce/claims"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+claimCommercePurchase
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails>
+  
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./claim-commerce-purchase.RequestSchema.json")}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  {...require("./claim-commerce-purchase.StatusCodes.json")}
+>
+  
+</StatusCodes>
+
+
+      

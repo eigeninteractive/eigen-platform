@@ -88,6 +88,30 @@ enum ErrorCode {
   registrationRequired(r'registrationRequired'),
 
   /// A stable machine code identifying why a request failed.
+  @JsonValue(r'capabilityRequired')
+  capabilityRequired(r'capabilityRequired'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'contentRequired')
+  contentRequired(r'contentRequired'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'commercialLimitReached')
+  commercialLimitReached(r'commercialLimitReached'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'creationConflict')
+  creationConflict(r'creationConflict'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'purchasePending')
+  purchasePending(r'purchasePending'),
+
+  /// A stable machine code identifying why a request failed.
+  @JsonValue(r'purchaseConflict')
+  purchaseConflict(r'purchaseConflict'),
+
+  /// A stable machine code identifying why a request failed.
   @JsonValue(r'imageTooLarge')
   imageTooLarge(r'imageTooLarge'),
 

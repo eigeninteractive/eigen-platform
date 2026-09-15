@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:eigen_shell/shared/widgets/refusal_snack_bar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/shell_support.dart';
 
@@ -27,8 +28,9 @@ class JoinGameScreen extends ConsumerWidget {
           );
         },
         error: (e, _) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(humanize(e))));
+          // A capability, content or allowance refusal is one a purchase can
+          // lift, so the report carries the way to lift it.
+          showRefusal(context, ref, e);
           context.goNamed('home');
         },
       );

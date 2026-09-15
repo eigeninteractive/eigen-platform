@@ -46,6 +46,7 @@ const sidebars: SidebarsConfig = {
         "build-a-game/bots",
         "build-a-game/offline-play",
         "build-a-game/creation-ui",
+        "build-a-game/monetization",
         "build-a-game/testing",
         "build-a-game/debugging",
         "build-a-game/versions",

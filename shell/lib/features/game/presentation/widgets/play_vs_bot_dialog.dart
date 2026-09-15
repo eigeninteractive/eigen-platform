@@ -48,6 +48,7 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
   // is no list to keep sized and no state mutation during build.
   final Map<int, String> _seatOverrides = {};
   bool _creating = false;
+  String? _creationId;
 
   @override
   void initState() {
@@ -256,13 +257,15 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
     if (usable.isEmpty) return;
     final opponents = _totalPlayers - 1;
     final botIds = [for (var i = 0; i < opponents; i++) _seatBot(i, usable)];
+    final isLocal = _timing.mode == 'untimed';
+    final creationId = isLocal ? null : (_creationId ??= newGameCreationId());
 
     setState(() => _creating = true);
     try {
       // Untimed means on the device: the id, the seed and the opening board are
       // minted here and no request is made, which is what lets this succeed
       // with no network. A timed game is the server's to create.
-      final gameId = _timing.mode == 'untimed'
+      final gameId = isLocal
           ? await ref.read(createLocalGameProvider)(
               config: _config,
               botIds: botIds,
@@ -270,6 +273,7 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
           : (await ref
                     .read(gameRepositoryProvider)
                     .createSoloGame(
+                      creationId: creationId!,
                       botIds: botIds,
                       schemaVersion: module.latestSchemaVersion,
                       minPlayers: _totalPlayers,
@@ -281,10 +285,14 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
                     ))
                 .session
                 .gameId;
+      _creationId = null;
       if (!mounted) return;
       Navigator.pop(context);
       context.pushNamed('game', pathParameters: {'gameId': gameId});
     } catch (e) {
+      // Preserve an ambiguous operation across transport retry, but start a
+      // fresh identity after a definitive server rejection.
+      if (e is EngineException) _creationId = null;
       if (!mounted) return;
       setState(() => _creating = false);
       ScaffoldMessenger.of(context)

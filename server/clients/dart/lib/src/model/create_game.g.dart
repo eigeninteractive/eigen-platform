@@ -9,8 +9,12 @@ part of 'create_game.dart';
 CreateGame _$CreateGameFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate('CreateGame', json, ($checkedConvert) {
-  $checkKeys(json, requiredKeys: const ['access', 'schemaVersion', 'config']);
+  $checkKeys(
+    json,
+    requiredKeys: const ['creationId', 'access', 'schemaVersion', 'config'],
+  );
   final val = CreateGame(
+    creationId: $checkedConvert('creationId', (v) => v as String),
     access: $checkedConvert(
       'access',
       (v) => $enumDecode(
@@ -39,6 +43,7 @@ CreateGame _$CreateGameFromJson(
 
 Map<String, dynamic> _$CreateGameToJson(CreateGame instance) =>
     <String, dynamic>{
+      'creationId': instance.creationId,
       'access': _$GameAccessEnumMap[instance.access]!,
       'schemaVersion': instance.schemaVersion,
       'config': instance.config,

@@ -14,6 +14,16 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- Provider-neutral `PurchaseGateway` and `CommerceService` integration points that verify a completed purchase update with the Worker before exposing any access it grants, and a Drift-backed delivery outbox so a verified purchase still completes with the storefront after a restart.
+- `StripeHostedStorefront` and `RazorpayHostedStorefront`, which open a Worker-created checkout page and read the purchase out of the provider's return. They need no dependency of their own — the `CheckoutLauncher` that opens the page is supplied by the application, so no game links a platform plugin for a storefront it does not use.
+- `isUpgradeableRefusal`, which says whether an error code is a refusal a purchase could actually lift.
+
+### Changed
+- The Flutter purchase port is split in two: `PurchaseGateway` for an on-device billing SDK and `HostedStorefront` for a provider-hosted checkout page, both under a common `Storefront`. `CommerceService` now takes the storefronts a build carries, chooses between them per offer, publishes verified purchases from either on one stream, and settles only at an SDK. `purchaseGatewayProvider` is replaced by `storefrontsProvider`.
+- `PurchaseGateway.purchase` takes the offer's `repeatable` flag, which decides whether a store sells it as a consumable. `HostedStorefront` gains `resume`, because a web checkout unloads the app and its return is a cold start rather than something `present` could await; `CommerceService.resumeFrom` offers a URL to each hosted storefront, and carries the offer key on the return URL it asks a provider for. A storefront no longer needs to know what offer its product sells: the service resolves that against the catalog.
+
 ## [0.10.0] - 2026-09-13
 ### Added
 - Offline play: a game module may declare a `LocalGameRules` unit per version through `GameRules.local`, and a game that does is playable on the device against bots this build ships brains for.
@@ -301,6 +311,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.10.0...HEAD
 [0.10.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.9.0...eigen_flutter-v0.10.0
 [0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.8.0...eigen_flutter-v0.9.0
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.7.0...eigen_flutter-v0.8.0

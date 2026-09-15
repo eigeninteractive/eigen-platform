@@ -259,3 +259,172 @@ export const deviceInstallations = sqliteTable(
   },
   (t) => [index("idx_device_installations_user").on(t.userId)],
 );
+
+/** Stable identity for the two game-creation routes. The game row, roster,
+ * usage, and this receipt are inserted in one D1 batch. */
+export const creationOperations = sqliteTable(
+  "creation_operations",
+  {
+    id: text().primaryKey(),
+    creatorId: text().notNull(),
+    creationId: text().notNull(),
+    fingerprint: text().notNull(),
+    gameId: text().notNull(),
+    shortCode: text().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_creation_operations_creator_id").on(t.creatorId, t.creationId), uniqueIndex("idx_creation_operations_game").on(t.gameId)],
+);
+
+/** Immutable commercial content selected when a game is created. */
+export const gameContent = sqliteTable(
+  "game_content",
+  {
+    id: text().primaryKey(),
+    gameId: text().notNull(),
+    collection: text().notNull(),
+    itemId: text().notNull(),
+    classification: text().$type<"sharedRuleset" | "cosmetic">().notNull(),
+    ownership: text().$type<"creator" | "eachParticipant" | "viewer">().notNull(),
+  },
+  (t) => [uniqueIndex("idx_game_content_item").on(t.gameId, t.collection, t.itemId, t.ownership), index("idx_game_content_game").on(t.gameId)],
+);
+
+/** Minimal normalized provider transaction state. The provider token or raw
+ * receipt is never stored here. `user_id` is nulled on account deletion while
+ * the financial fact remains available for refunds and fraud review. */
+export const commerceTransactions = sqliteTable(
+  "commerce_transactions",
+  {
+    id: text().primaryKey(),
+    provider: text().notNull(),
+    providerTransactionId: text().notNull(),
+    userId: text(),
+    providerReference: text().notNull(),
+    offerKey: text().notNull(),
+    kind: text().$type<"oneTime" | "subscription">().notNull(),
+    state: text().$type<"pending" | "active" | "grace" | "expired" | "revoked">().notNull(),
+    purchasedAt: integer().notNull(),
+    validFrom: integer().notNull(),
+    validUntil: integer(),
+    sealedProviderState: text(),
+    acknowledgementState: text().$type<"notRequired" | "pending" | "acknowledged">().notNull(),
+    /** When the provider last ANSWERED for this transaction. Staleness. */
+    lastReconciledAt: integer(),
+    /** When reconciliation last LOOKED at it, answered or not. This is what
+     * orders the sweep, so a transaction the provider will not answer for
+     * rotates to the back of the queue instead of holding the front of it. */
+    reconcileAttemptedAt: integer(),
+    /** Consecutive failed attempts. Reset by any successful record, from a
+     * sweep, a webhook or a claim. At the configured ceiling the row stops
+     * being swept and becomes an operator problem rather than a hot loop. */
+    reconcileFailures: integer().notNull().default(0),
+    /** Why the last attempt failed, truncated, for the operator surface.
+     * Adapters must keep provider tokens out of their error messages. */
+    reconcileError: text(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_commerce_transactions_provider_id").on(t.provider, t.providerTransactionId), index("idx_commerce_transactions_user").on(t.userId), index("idx_commerce_transactions_sweep").on(t.provider, t.reconcileFailures, t.reconcileAttemptedAt)],
+);
+
+/** Stable account binding used by hosted checkout, customer portals, and
+ * provider notifications that identify the provider customer rather than the
+ * Eigen account. */
+export const commerceProviderAccounts = sqliteTable(
+  "commerce_provider_accounts",
+  {
+    id: text().primaryKey(),
+    provider: text().notNull(),
+    userId: text().notNull(),
+    providerAccountId: text().notNull(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_commerce_provider_accounts_user").on(t.provider, t.userId), uniqueIndex("idx_commerce_provider_accounts_provider_id").on(t.provider, t.providerAccountId)],
+);
+
+/** Recoverable hosted-checkout result keyed by a client operation identity.
+ * The provider receives the same identity as its idempotency key. */
+export const commerceCheckoutOperations = sqliteTable(
+  "commerce_checkout_operations",
+  {
+    id: text().primaryKey(),
+    provider: text().notNull(),
+    userId: text().notNull(),
+    operationId: text().notNull(),
+    offerKey: text().notNull(),
+    fingerprint: text().notNull(),
+    checkoutUrl: text().notNull(),
+    expiresAt: integer().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_commerce_checkout_operations_identity").on(t.provider, t.userId, t.operationId)],
+);
+
+/** One entitlement granted by one verified transaction. Multiple rows may
+ * sustain the same effective entitlement. */
+export const entitlementGrants = sqliteTable(
+  "entitlement_grants",
+  {
+    id: text().primaryKey(),
+    /** Never null, unlike the transaction that sourced it. An erasure deletes
+     * these rows rather than anonymising them: a grant is only ever about a
+     * person, where a transaction is also a record of money. */
+    userId: text().notNull(),
+    entitlementKey: text().notNull(),
+    sourceTransactionId: text().notNull(),
+    validFrom: integer().notNull(),
+    validUntil: integer(),
+    revokedAt: integer(),
+    createdAt: integer().notNull(),
+    updatedAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_entitlement_grants_source_key").on(t.sourceTransactionId, t.entitlementKey), index("idx_entitlement_grants_user").on(t.userId, t.entitlementKey)],
+);
+
+/** Accepted provider notification identities. Payloads and purchase evidence
+ * are deliberately absent; adapters re-fetch current provider state. */
+export const commerceEvents = sqliteTable(
+  "commerce_events",
+  {
+    id: text().primaryKey(),
+    provider: text().notNull(),
+    providerEventId: text().notNull(),
+    providerTransactionId: text(),
+    receivedAt: integer().notNull(),
+    processedAt: integer(),
+  },
+  (t) => [uniqueIndex("idx_commerce_events_provider_id").on(t.provider, t.providerEventId)],
+);
+
+/** Successful commercial metric uses. `slot` is unique within a policy
+ * window, enabling an atomic guarded insert instead of a read-then-write cap. */
+export const commerceUsage = sqliteTable(
+  "commerce_usage",
+  {
+    id: text().primaryKey(),
+    userId: text().notNull(),
+    metric: text().$type<"game.create.success" | "games.openCreated" | "bot.game.success" | "analysis.run.success">().notNull(),
+    periodKey: text().notNull(),
+    slot: integer().notNull(),
+    operationId: text().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_commerce_usage_operation").on(t.userId, t.metric, t.operationId), uniqueIndex("idx_commerce_usage_slot").on(t.userId, t.metric, t.periodKey, t.slot), index("idx_commerce_usage_window").on(t.userId, t.metric, t.periodKey)],
+);
+
+/** Slots held by live games for the `games.openCreated` limit. Terminal games
+ * release their row from the same D1 apply that changes the game status. */
+export const commerceCapacity = sqliteTable(
+  "commerce_capacity",
+  {
+    id: text().primaryKey(),
+    userId: text().notNull(),
+    metric: text().$type<"games.openCreated">().notNull(),
+    slot: integer().notNull(),
+    gameId: text().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [uniqueIndex("idx_commerce_capacity_slot").on(t.userId, t.metric, t.slot), uniqueIndex("idx_commerce_capacity_game").on(t.gameId), index("idx_commerce_capacity_user").on(t.userId, t.metric)],
+);

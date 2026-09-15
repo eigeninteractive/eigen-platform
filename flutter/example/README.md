@@ -100,11 +100,11 @@ flutter build appbundle --release \
   --dart-define-from-file=app-config.json
 ```
 
-> **`dependency_overrides` in `pubspec.yaml`** is temporary. `eigen_flutter`
-> depends on `eigen_api` by version, but the override that points it at the
-> local checkout is honoured only for the *root* package, and here the root is
-> this example, so it has to be repeated. Delete the block once `eigen_api` is
-> published; an app depending on `eigen_flutter` never needs it.
+> **This example is a workspace member.** It carries `resolution: workspace` and
+> is listed in the repository's root `pubspec.yaml`, so it resolves
+> `eigen_flutter` and `eigen_api` from this checkout while still honouring the
+> versions it declares. There is no `dependency_overrides` block to copy, and a
+> real app depending on published `eigen_flutter` needs none either.
 
 ## The generated contract
 
