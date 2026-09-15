@@ -1,5 +1,22 @@
 # @eigeninteractive/rules
 
+## 0.8.0
+
+### Minor Changes
+
+- [#86](https://github.com/eigeninteractive/eigen-platform/pull/86) [`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874) Thanks [@seenu-k](https://github.com/seenu-k)! - Add the optional provider-neutral commerce runtime: fixed access capabilities,
+  registered content, entitlements, commercial limits, verified transaction and
+  webhook ingestion, restoration, reconciliation, and atomic creation usage.
+  
+  Game creation now requires a stable `creationId`. Retrying the same normalized
+  create returns the original game; reusing that identity for different inputs is
+  rejected. Rules may declare selected commercial content through the pure
+  `contentForCreate` hook.
+  
+  `@eigeninteractive/server/testing` gains `withCreationId`, which stamps a fresh
+  identity onto a creation body that has none, so an implementor's existing tests
+  keep working by wrapping their request helper rather than editing every call.
+
 ## 0.7.0
 
 No changes in this release.

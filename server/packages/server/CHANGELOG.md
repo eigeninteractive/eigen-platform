@@ -1,5 +1,86 @@
 # @eigeninteractive/server
 
+## 0.8.0
+
+### Minor Changes
+
+- [#86](https://github.com/eigeninteractive/eigen-platform/pull/86) [`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874) Thanks [@seenu-k](https://github.com/seenu-k)! - Add the three commerce provider adapters: Google Play Billing for Android, and
+  Stripe and Razorpay for the web.
+  
+  Each is its own entry point — `@eigeninteractive/server/commerce/stripe`,
+  `/razorpay`, `/google-play` — and none is re-exported from the barrel, so a
+  game that sells nothing carries no storefront code and a game that sells
+  through one carries only that one. They are entry points rather than separate
+  packages because they have no dependencies of their own: splitting them out
+  bought nothing at install time and cost a peer-dependency lockstep on every
+  change to `CommerceProvider`.
+  
+  `@eigeninteractive/server` also gains a `./commerce-kit` entry point carrying
+  the primitives every adapter needs on Workers: an HMAC, a constant-time hex
+  comparison, and a JSON call whose failures name the provider without quoting
+  the credential that failed with it.
+
+- [#86](https://github.com/eigeninteractive/eigen-platform/pull/86) [`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874) Thanks [@seenu-k](https://github.com/seenu-k)! - `GET /commerce/catalog` takes an optional `provider` query naming the
+  storefronts the caller can actually buy through, comma-separated. Only those
+  adapters are asked for prices, and only their products are listed; an offer
+  sold through none of them is still listed, with nothing to buy it by. Omitting
+  it asks every registered storefront, as before.
+  
+  Without this, a client's first store screen made the Worker call every
+  configured payment API — a round trip each to Stripe and Razorpay for an
+  Android build that can render neither.
+  
+  Naming a storefront the deployment has not configured is ignored so a build
+  that knows about more than this deployment has still sells through the ones it
+  has; naming *only* unknown storefronts is a mismatch and answers 404 rather
+  than an empty store.
+  
+  Stripe's hosted checkout now brings its session id back on the return URL
+  (`session_id={CHECKOUT_SESSION_ID}`). `verifyClaim` reads the session from that
+  evidence and a returning browser had no other way to know it, so a web purchase
+  could previously only be recognized when the webhook arrived.
+
+- [#86](https://github.com/eigeninteractive/eigen-platform/pull/86) [`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874) Thanks [@seenu-k](https://github.com/seenu-k)! - Erasure now outlives the provider. A notification arriving after
+  `DELETE /api/engine/me` — a cancellation, a refund, a final renewal — could
+  write a grant and a user id back for an account that asked to be forgotten:
+  the transaction was anonymized by the purge, but nothing stopped the ledger
+  from creating a fresh one. The ledger refuses to write for an account it
+  cannot find, and reads an already-anonymized transaction as erased rather than
+  as belonging to somebody else. The notification is still accepted and recorded
+  as handled, because refusing it would only have the provider redeliver it for
+  days against an account that is never coming back.
+  
+  A creation that lost an allowance slot to another of the same account's
+  creations was reported as the allowance being spent. The guarded insert
+  signals the two on the same column and they mean opposite things — NOT NULL is
+  the insert declining to produce a slot because the allowance is gone, UNIQUE is
+  another write having taken the number first while there was still room — so an
+  account well under its limit could be told it had reached it. They are now
+  distinguished, and contention is retried rather than reported.
+  
+  `entitlement_grants.user_id` is NOT NULL. It was nullable and never null: a
+  grant is only ever about a person, where a transaction is also a record of
+  money, so an erasure deletes grants rather than anonymizing them.
+
+- [#86](https://github.com/eigeninteractive/eigen-platform/pull/86) [`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874) Thanks [@seenu-k](https://github.com/seenu-k)! - Add the optional provider-neutral commerce runtime: fixed access capabilities,
+  registered content, entitlements, commercial limits, verified transaction and
+  webhook ingestion, restoration, reconciliation, and atomic creation usage.
+  
+  Game creation now requires a stable `creationId`. Retrying the same normalized
+  create returns the original game; reusing that identity for different inputs is
+  rejected. Rules may declare selected commercial content through the pure
+  `contentForCreate` hook.
+  
+  `@eigeninteractive/server/testing` gains `withCreationId`, which stamps a fresh
+  identity onto a creation body that has none, so an implementor's existing tests
+  keep working by wrapping their request helper rather than editing every call.
+
+### Patch Changes
+
+- Updated dependencies [[`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874)]:
+  - @eigeninteractive/rules@0.8.0
+  - @eigeninteractive/kernel@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes
