@@ -33,7 +33,17 @@ async function sign(body: string, timestamp: number, secret = SECRET): Promise<s
   return [...new Uint8Array(mac)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+/** Basil (2025-03-31) and later: the billing period lives on the line item. */
 const subscription = (status: string) => ({
+  id: "sub_1",
+  status,
+  customer: "cus_1",
+  start_date: 1_699_000_000,
+  items: { data: [{ price: { id: "price_pro" }, current_period_start: 1_699_000_000, current_period_end: 1_701_000_000 }] },
+});
+
+/** Before Basil, the same period sat on the subscription itself. */
+const legacySubscription = (status: string) => ({
   id: "sub_1",
   status,
   customer: "cus_1",
@@ -60,6 +70,28 @@ describe("stripe subscriptions", () => {
     expect(verified?.[0]?.state).toBe(expected);
     expect(verified?.[0]?.providerReference).toBe("price_pro");
     expect(verified?.[0]?.providerAccountId).toBe("cus_1");
+  });
+
+  it.each([
+    ["item-level, as Basil and later report it", subscription("active")],
+    ["subscription-level, as versions before Basil did", legacySubscription("active")],
+  ])("reads the billing period %s", async (_shape, body) => {
+    scriptFetch({ "/v1/subscriptions/sub_1": body });
+    const verified = await provider.reconcile?.(null, [{ providerTransactionId: "sub_1", accountId: "a", providerReference: "price_pro", kind: "subscription", acknowledgementPending: false }]);
+    // Without this, validUntil is absent and the grant never expires: a
+    // cancelled subscription would keep paying out forever.
+    expect(verified?.[0]?.validUntil).toBe(1_701_000_000_000);
+    expect(verified?.[0]?.validFrom).toBe(1_699_000_000_000);
+  });
+
+  it("pins the API version on every request, so the merchant's dashboard cannot reshape the response", async () => {
+    const versions: string[] = [];
+    vi.stubGlobal("fetch", async (request: Request) => {
+      versions.push(request.headers.get("stripe-version") ?? "(none)");
+      return new Response(JSON.stringify(subscription("active")), { headers: { "content-type": "application/json" } });
+    });
+    await provider.reconcile?.(null, [{ providerTransactionId: "sub_1", accountId: "a", providerReference: "price_pro", kind: "subscription", acknowledgementPending: false }]);
+    expect(versions).toEqual(["2026-08-26.dahlia"]);
   });
 
   it("leaves a transaction unanswered rather than failing the whole sweep", async () => {

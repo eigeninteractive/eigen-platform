@@ -28,6 +28,17 @@ import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualH
 const API = "https://api.stripe.com/v1";
 const PROVIDER = "stripe";
 
+/**
+ * The API version every request pins.
+ *
+ * Unpinned, Stripe answers in whatever version the merchant's dashboard is set
+ * to, which they can change without telling anyone who wrote code against it.
+ * That is not hypothetical here: Basil (2025-03-31) moved a subscription's
+ * billing period onto its line items, and an adapter reading the old field
+ * would quietly stop knowing when a subscription ends.
+ */
+const API_VERSION = "2026-08-26.dahlia";
+
 /** Everything this adapter needs from the Worker's environment. */
 export interface StripeCommerceConfig<TEnv> {
   /** The restricted or secret API key. Never a publishable key. */
@@ -36,17 +47,48 @@ export interface StripeCommerceConfig<TEnv> {
   webhookSecret(env: TEnv): string | undefined;
   /** Seconds a signed payload stays acceptable. Stripe's own default is 300. */
   toleranceSeconds?: number;
+  /**
+   * Override the pinned API version. Set the webhook endpoint to the same
+   * version, and expect to revisit the field mapping below if you move back
+   * past Basil.
+   */
+  apiVersion?: string;
   now?: () => number;
+}
+
+interface StripeSubscriptionItem {
+  price: { id: string };
+  /** Basil and later. Each item bills on its own period. */
+  current_period_start?: number;
+  current_period_end?: number;
 }
 
 interface StripeSubscription {
   id: string;
   status: "incomplete" | "incomplete_expired" | "trialing" | "active" | "past_due" | "canceled" | "unpaid" | "paused";
   customer: string;
+  /** Pre-Basil only; read through `periodOf` rather than directly. */
   current_period_start?: number;
   current_period_end?: number;
   start_date?: number;
-  items: { data: { price: { id: string } }[] };
+  items: { data: StripeSubscriptionItem[] };
+}
+
+/**
+ * The subscription's billing period, from wherever this API version keeps it.
+ *
+ * Basil moved these onto the line items. A subscription may now hold items on
+ * different intervals, so "the" period is the one that ends last: that is when
+ * the account stops being paid up, which is the only question an entitlement
+ * asks. The subscription-level fields are the pre-Basil fallback.
+ */
+function periodOf(subscription: StripeSubscription): { start?: number; end?: number } {
+  const ends = subscription.items.data.flatMap((item) => (item.current_period_end === undefined ? [] : [item.current_period_end]));
+  const starts = subscription.items.data.flatMap((item) => (item.current_period_start === undefined ? [] : [item.current_period_start]));
+  return {
+    start: starts.length > 0 ? Math.min(...starts) : subscription.current_period_start,
+    end: ends.length > 0 ? Math.max(...ends) : subscription.current_period_end,
+  };
 }
 
 interface StripeCheckoutSession {
@@ -94,12 +136,13 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
 
   const call = async <T>(env: TEnv, path: string, init?: { method: "POST"; form: Record<string, string> }): Promise<T> => {
     const key = requireSecret(config.secretKey(env), "stripe secretKey");
+    const version = config.apiVersion ?? API_VERSION;
     const request =
       init === undefined
-        ? new Request(`${API}${path}`, { headers: { authorization: basicAuth(key, "") } })
+        ? new Request(`${API}${path}`, { headers: { authorization: basicAuth(key, ""), "stripe-version": version } })
         : new Request(`${API}${path}`, {
             method: "POST",
-            headers: { authorization: basicAuth(key, ""), "content-type": "application/x-www-form-urlencoded" },
+            headers: { authorization: basicAuth(key, ""), "stripe-version": version, "content-type": "application/x-www-form-urlencoded" },
             body: new URLSearchParams(init.form).toString(),
           });
     return await providerJson<T>(PROVIDER, request);
@@ -109,14 +152,15 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
     const price = subscription.items.data[0]?.price.id;
     if (price === undefined) throw new Error("stripe subscription has no line item");
     const instant = now();
+    const period = periodOf(subscription);
     return {
       providerTransactionId: subscription.id,
       providerReference: price,
       kind: "subscription",
       state: subscriptionState(subscription.status),
       purchasedAt: seconds(subscription.start_date, instant),
-      validFrom: seconds(subscription.current_period_start ?? subscription.start_date, instant),
-      ...(subscription.current_period_end === undefined ? {} : { validUntil: subscription.current_period_end * 1000 }),
+      validFrom: seconds(period.start ?? subscription.start_date, instant),
+      ...(period.end === undefined ? {} : { validUntil: period.end * 1000 }),
       providerAccountId: subscription.customer,
     };
   };
@@ -255,6 +299,7 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
           method: "POST",
           headers: {
             authorization: basicAuth(requireSecret(config.secretKey(env), "stripe secretKey"), ""),
+            "stripe-version": config.apiVersion ?? API_VERSION,
             "content-type": "application/x-www-form-urlencoded",
             "idempotency-key": input.operationId,
           },

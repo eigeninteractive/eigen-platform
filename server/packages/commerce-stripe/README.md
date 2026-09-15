@@ -34,3 +34,16 @@ claim evidence.
 
 `past_due` maps to the engine's `grace`, because Stripe keeps serving through a
 failed renewal's retry window.
+
+## API version
+
+Every request pins `Stripe-Version`. Unpinned, Stripe answers in whatever
+version the merchant's dashboard is set to, which they can change without
+telling anyone who wrote code against it — and Basil (2025-03-31) moved a
+subscription's billing period onto its line items, so an adapter reading the
+old field would quietly stop knowing when a subscription ends.
+
+**Set your webhook endpoint to the same version.** Events use the version
+configured on the endpoint, not the one a request pins. The adapter re-reads
+every object from the API before acting on it, so a mismatch is survivable, but
+matching them keeps the shapes you see in logs consistent.
