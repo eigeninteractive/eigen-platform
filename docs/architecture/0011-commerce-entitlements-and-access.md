@@ -5,6 +5,9 @@
 - Amends: the ambiguous-creation exception in
   [0009](0009-compatibility-simplifications.md). Game creation gains
   operation-specific identity; this does not restore generic command receipts.
+- Amended: 2026-09-15. Replaying a game played offline is not priced, and the
+  bot catalog publishes the tier each bot is sold under. See _Offline play_ and
+  _Composed operations_.
 
 ## Context
 
@@ -223,6 +226,19 @@ A `bot.use` tier is meaningful only for a bot this engine runs or calls: a
 server brain, or an externally hosted one. A brain that ships inside the
 application binary is not gateable, for the reason given under _Offline play_.
 
+It follows that a deployment SHOULD NOT tier a bot whose brain it also ships in
+the application. A `local` bot is never seated by the server, so the engine
+resolves no tier for it whatever the catalog says. An `engine` bot with a Dart
+twin in the local unit is seatable both ways: its offline games are free and its
+server-seated ones would be paid, which prices the timed version of something the
+player can already play untimed. Nothing server-side can see a client bundle, so
+that half is guidance for the game author rather than a check.
+
+`GET /bots` publishes each bot's tier, so a picker can mark an opponent the
+account's access does not include before it is chosen. The tier is resolved by
+the same function the seating routes enforce with, so the published tier and the
+enforced one cannot diverge. It is presentation only: seating still decides.
+
 ## Offline play
 
 [0012](0012-offline-play.md) lets a device play a whole game against brains the
@@ -258,12 +274,21 @@ an ownership assertion, and it is not re-checked as though the creator had
 bought it.
 
 What remains sellable around offline play is the part a server actually
-performs: hosting the imported game, serving its replay, and carrying it to a
-second device. `replay.read` already governs the first of those. Metering
+performs: hosting the imported game and carrying it to a second device. Metering
 retention or sync would be a new engine capability with a real enforcement
 point, and needs its own accepted decision rather than an extension of
 `game.create` — whose access modes are exactly `GameAccess`, and which would
 misdescribe an operation whose creation happened elsewhere.
+
+This list originally also named serving the imported game's replay, under
+`replay.read`. The 2026-09-15 amendment removes it. A local game is private and
+has one human seat, so the only account that can open its replay is its creator,
+and `GET /games/{gameId}/local` already hands that same account the whole
+transcript with no capability. A `replay.read` check on the frames route would
+refuse through one route what the other serves, and protect nothing. The frames
+route therefore exempts the local origin from `replay.read` and from viewer-owned
+content alike; a price on keeping offline games belongs to the retention decision
+above.
 
 ## Game-owned content resources
 
@@ -461,7 +486,7 @@ selection metadata; it does not scatter entitlement reads through routes.
 | Create solo game | private creation requirements plus every selected `bot.use` requirement and creation/bot limits |
 | Join or join by code | `game.join(stored access)` plus snapshotted `eachParticipant` content |
 | Add bot | `bot.use` for the selected bot/tier |
-| Open protected replay | `replay.read` plus snapshotted viewer requirements |
+| Open protected replay | `replay.read` plus snapshotted viewer requirements; neither for a game played offline |
 | Run analysis | `analysis.use` plus its configured allowance |
 | Equip cosmetic | `content.use(collection, id)` before persisting selection |
 | Import a local game | `app.access` and abuse limits only; no capability, content, or limit check |

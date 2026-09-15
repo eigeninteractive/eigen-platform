@@ -89,7 +89,9 @@ describe("friend requests", () => {
     // Registered A cannot friend a guest.
     expect((await api(a, "POST", "/friends/requests", { targetUserId: guest.uid })).status).toBe(400);
     // A guest cannot send requests at all.
-    expect((await api(guest, "POST", "/friends/requests", { targetUserId: a.uid })).status).toBe(403);
+    const refused = await api(guest, "POST", "/friends/requests", { targetUserId: a.uid });
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ code: "registrationRequired" });
   });
 });
 

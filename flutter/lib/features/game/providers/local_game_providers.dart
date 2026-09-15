@@ -293,6 +293,13 @@ Future<List<GameSummary>> localFinishedGames(Ref ref) async {
 /// must not be an externally hosted bot, this build's local unit must ship a
 /// brain under its username, and the game's own `botSeatable` rule must accept
 /// the pairing.
+///
+/// Deliberately not a fourth condition: a `bot.use` tier. A local game is
+/// outside commerce on the server too, so filtering here would hide an
+/// opponent the import would have accepted — and it would make the client an
+/// access decider, which it never is. A brain in this bundle runs with no
+/// network; a deployment that wants a bot to stay paid keeps its brain out of
+/// the local unit.
 List<Bot> usableLocalBots(
   List<Bot> bots,
   GameModule module, {

@@ -251,6 +251,13 @@ The solo picker filters to exactly this set, with no network call: whatever
 username the local unit's `botActions` names, for a bot whose type is not
 `external`. See [Bots](./bots.md) and [How bots work](../how-it-works/bots.md).
 
+Commercial tiers do not narrow this set. A local game is outside commerce
+entirely, so a `bot.use` tier is never checked here and an offline game
+consumes no allowance. A brain that ships in the client bundle runs with no
+network, so there is nothing for the server to refuse, which is also why a bot
+listed here should carry no tier at all. See
+[Offline play is not priced](./monetization.md#offline-play-is-not-priced).
+
 ## Sync: nothing to implement
 
 Sync is engine-owned; there is no implementor hook for it. In the background —

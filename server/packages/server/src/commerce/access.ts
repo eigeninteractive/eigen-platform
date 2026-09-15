@@ -1,8 +1,31 @@
-import { and, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { commerceUsage, entitlementGrants, gameContent, games } from "../d1/schema.js";
-import { capabilityAllows, capabilityKey } from "./capability.js";
+import { HttpError } from "../http.js";
+import type { GameOrigin } from "../protocol.js";
+import { capabilityAllows, capabilityKey, catalogGrants } from "./capability.js";
 import type { AccessGrant, AccessSnapshot, ActiveEntitlement, CommerceCatalog, CommercialLimit, CommercialMetric, CommercialPeriod, ContentGrant, EngineAccessCapability, LimitAccess, SelectedContent } from "./types.js";
+
+/**
+ * The one game origin commerce does not price.
+ *
+ * A local game is played entirely on the device: no server turn, no dispatch,
+ * no alarm, and no seat held open between moves. Nothing was sold, so nothing
+ * is charged — it consumes no capability, no content ownership, and no metric.
+ * The engine still registers it, commits its transitions, and replays it,
+ * because those are records of play rather than play itself.
+ *
+ * `app.access` is the deliberate exception and is enforced in the auth
+ * middleware, not here: it gates reaching the server at all rather than
+ * playing, and a player without it can still play offline — they just cannot
+ * synchronize. Every other gate asks {@link isCommerceExempt} first.
+ */
+export const COMMERCE_EXEMPT_ORIGIN: GameOrigin = "local";
+
+/** Whether commerce prices this game. See {@link COMMERCE_EXEMPT_ORIGIN}. */
+export function isCommerceExempt(game: { origin: GameOrigin }): boolean {
+  return game.origin === COMMERCE_EXEMPT_ORIGIN;
+}
 
 interface ActiveGrantSource {
   key: string;
@@ -83,7 +106,9 @@ function numericCandidates(access: EffectiveAccess, metric: CommercialMetric): {
 
 export function metricPolicy(access: EffectiveAccess, catalog: CommerceCatalog, metric: CommercialMetric, now: number): MetricPolicy | null {
   const candidates = numericCandidates(access, metric);
-  const allConfigured = [catalog.free, ...catalog.entitlements].flatMap((grant) => grant.limits ?? []).filter((limit) => limit.metric === metric);
+  const allConfigured = catalogGrants(catalog)
+    .flatMap((grant) => grant.limits ?? [])
+    .filter((limit) => limit.metric === metric);
   if (allConfigured.length === 0) return null;
 
   const unlimited = access.grants.some((item) => item.grant.limits?.some((limit) => limit.metric === metric && limit.maximum === "noCommercialLimit") === true);
@@ -105,10 +130,15 @@ export function metricPolicy(access: EffectiveAccess, catalog: CommerceCatalog, 
 
 async function usageFor(d1: D1Database, userId: string, policy: MetricPolicy): Promise<number> {
   if (policy.period?.kind === "concurrent") {
+    // A game played on the device holds no server seat and reserves no capacity
+    // slot at creation, so counting one here would spend an allowance nothing
+    // is holding and that finishing it would then have to release. Excluded by
+    // the same constant the create and replay gates read, so the boundary
+    // cannot drift between what is charged and what is counted.
     const row = await orm(d1)
       .select({ count: sql<number>`count(*)` })
       .from(games)
-      .where(and(eq(games.createdBy, userId), inArray(games.status, ["waiting", "ready", "active"])))
+      .where(and(eq(games.createdBy, userId), ne(games.origin, COMMERCE_EXEMPT_ORIGIN), inArray(games.status, ["waiting", "ready", "active"])))
       .get();
     return row?.count ?? 0;
   }
@@ -147,7 +177,7 @@ export async function readEffectiveAccess(d1: D1Database, catalog: CommerceCatal
       limits: [],
     },
   };
-  const metrics = new Set([catalog.free, ...catalog.entitlements].flatMap((grant) => (grant.limits ?? []).map((limit) => limit.metric)));
+  const metrics = new Set(catalogGrants(catalog).flatMap((grant) => (grant.limits ?? []).map((limit) => limit.metric)));
   const limits: LimitAccess[] = [];
   for (const metric of metrics) {
     const policy = metricPolicy(access, catalog, metric, now);
@@ -167,6 +197,15 @@ export async function readEffectiveAccess(d1: D1Database, catalog: CommerceCatal
 
 export function allowsCapability(access: EffectiveAccess, required: EngineAccessCapability): boolean {
   return access.snapshot.permissions.some((granted) => capabilityAllows(granted, required));
+}
+
+/** Enforce one capability, or refuse with the code the client renders a store
+ * for. `message` overrides the default rendering where a route has copy a
+ * player can act on; the code is what the client actually switches on. */
+export function requireCapability(access: EffectiveAccess, required: EngineAccessCapability, message?: string): void {
+  if (!allowsCapability(access, required)) {
+    throw new HttpError(403, message ?? `Capability required: ${capabilityKey(required)}`, "capabilityRequired");
+  }
 }
 
 export function ownsContent(access: EffectiveAccess, required: ContentGrant): boolean {

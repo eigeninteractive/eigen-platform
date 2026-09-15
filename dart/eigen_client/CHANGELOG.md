@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Added
+- Re-export `Bot.tier`: the commercial tier the server enforces when it seats a bot, absent for a bot it never seats.
+
 ## [0.3.0] - 2026-09-15
 ### Added
 - `CommerceRepository` and the generated access and catalog types for verified claims, restoration, hosted checkout, and subscription management.
@@ -22,6 +26,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.3.0...HEAD
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.2.0...eigen_client-v0.3.0
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.1...eigen_client-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.1.0...eigen_client-v0.1.1

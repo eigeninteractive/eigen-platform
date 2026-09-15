@@ -13,10 +13,11 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
+import { requireRegistered } from "../auth/registration.js";
 import { decodeOptionalCursor } from "../cursor.js";
 import { readPlayers } from "../d1/reads.js";
 import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPendingRequests, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
-import type { Authed, EngineApp, RouteContext } from "../engine.js";
+import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { friendAcceptedPush, friendRequestPush } from "../notify/push.js";
 import { enforceRateLimit } from "../rate-limit.js";
@@ -37,11 +38,6 @@ function noContentResponse(description: string) {
 }
 
 const userIdParam = z.object({ userId: z.string().min(1) });
-
-/** Friend writes are for registered accounts only. */
-function requireRegistered(auth: Authed): void {
-  if (auth.claims.isAnonymous) throw new HttpError(403, "This action requires a registered account", "registrationRequired");
-}
 
 /** Best-effort friend-event push, off the response path. `waitUntil` keeps the
  * background send alive past the response (a stateless Worker needs it, unlike
@@ -87,7 +83,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       responses: okResponse(z.object({ users: z.array(playerShape) }).openapi("UserSearch"), "Matching registered users, best match first"),
     }),
     async (c) => {
-      requireRegistered(c.var.auth);
+      requireRegistered(c.var.auth.claims);
       await enforceRateLimit(c.env, "user_search", c.var.auth.user.id);
       const { q, limit } = c.req.valid("query");
       const rows = await searchUsers(ctx.d1(c.env), c.var.auth.user.id, q, limit);
@@ -106,7 +102,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
       responses: okResponse(z.object({ status: z.enum(["requested", "accepted"]) }).openapi("FriendRequestResult"), "Request sent, or auto-accepted"),
     }),
     async (c) => {
-      requireRegistered(c.var.auth);
+      requireRegistered(c.var.auth.claims);
       const caller = c.var.auth.user;
       await enforceRateLimit(c.env, "friend_request", caller.id);
       const target = c.req.valid("json").targetUserId;
@@ -134,7 +130,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
   );
 
   app.openapi(createRoute({ method: "post", path: "/friends/requests/{userId}/accept", operationId: "acceptFriendRequest", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("The request was accepted") }), async (c) => {
-    requireRegistered(c.var.auth);
+    requireRegistered(c.var.auth.claims);
     const caller = c.var.auth.user;
     const requester = c.req.valid("param").userId;
     const accepted = await acceptFriendRequest(ctx.d1(c.env), caller.id, requester);
@@ -152,7 +148,7 @@ export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
   });
 
   app.openapi(createRoute({ method: "post", path: "/friends/{userId}/block", operationId: "blockUser", tags: ["Social"], request: { params: userIdParam }, responses: noContentResponse("Blocked (idempotent)") }), async (c) => {
-    requireRegistered(c.var.auth);
+    requireRegistered(c.var.auth.claims);
     const target = c.req.valid("param").userId;
     if (target === c.var.auth.user.id) throw new HttpError(400, "You cannot block yourself");
     await blockUser(ctx.d1(c.env), c.var.auth.user.id, target);

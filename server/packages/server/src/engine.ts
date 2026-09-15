@@ -36,7 +36,8 @@ import type { OpenAPIObject } from "openapi3-ts/oas31";
 import { type AuthClaims, AuthError, createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 import { ensureUser, type UserRow } from "./auth/provision.js";
 import { registerBotRoutes } from "./bot/routes.js";
-import { allowsCapability, readEffectiveAccess } from "./commerce/access.js";
+import { readEffectiveAccess, requireCapability } from "./commerce/access.js";
+import { catalogGates } from "./commerce/capability.js";
 import { resolveCommerce } from "./commerce/catalog.js";
 import { reconcileCommerce } from "./commerce/reconcile.js";
 import { registerCommerceRoutes, registerCommerceWebhookRoutes } from "./commerce/routes.js";
@@ -292,12 +293,12 @@ function authMiddleware(ctx: RouteContext): MiddlewareHandler<AppEnv> {
     const commerceSelfService = c.req.path === "/api/engine/commerce" || c.req.path.startsWith("/api/engine/commerce/");
     // Account deletion is a privacy/lifecycle right, never a paid capability.
     const accountDeletion = c.req.method === "DELETE" && c.req.path === "/api/engine/me";
-    if (ctx.commerce !== null && !commerceSelfService && !accountDeletion) {
-      const appGated = [ctx.commerce.catalog.free, ...ctx.commerce.catalog.entitlements].some((grant) => grant.permissions?.some((permission) => permission.kind === "app.access") === true);
-      if (appGated) {
-        const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, user.id, ctx.commerce.now());
-        if (!allowsCapability(access, { kind: "app.access" })) throw new HttpError(403, "Application access requires an entitlement", "capabilityRequired");
-      }
+    // Deliberately origin-blind, unlike every other commerce gate: a local game
+    // is exempt from being PRICED, but this asks whether the caller may reach
+    // the server at all, and importing one is reaching the server.
+    if (ctx.commerce !== null && !commerceSelfService && !accountDeletion && catalogGates(ctx.commerce.catalog, "app.access")) {
+      const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, user.id, ctx.commerce.now());
+      requireCapability(access, { kind: "app.access" }, "Application access requires an entitlement");
     }
     c.set("auth", { claims, user });
     await next();

@@ -32,6 +32,8 @@ class Bot {
     required this.ratedEligible,
 
     required this.config,
+
+    this.tier,
   });
 
   @JsonKey(name: r'id', required: true, includeIfNull: false)
@@ -63,6 +65,10 @@ class Bot {
   @JsonKey(name: r'config', required: true, includeIfNull: false)
   final Object config;
 
+  /// The commercial tier this bot is sold under, when the deployment sells one. Absent means the base `bot.use` capability covers seating it. Never present on a `local` bot, which the server never seats. Presentation only: the server checks access when it seats the bot.
+  @JsonKey(name: r'tier', required: false, includeIfNull: false)
+  final String? tier;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -74,7 +80,8 @@ class Bot {
           other.schemaVersion == schemaVersion &&
           other.type == type &&
           other.ratedEligible == ratedEligible &&
-          other.config == config;
+          other.config == config &&
+          other.tier == tier;
 
   @override
   int get hashCode =>
@@ -85,7 +92,8 @@ class Bot {
       schemaVersion.hashCode +
       type.hashCode +
       ratedEligible.hashCode +
-      config.hashCode;
+      config.hashCode +
+      tier.hashCode;
 
   factory Bot.fromJson(Map<String, dynamic> json) => _$BotFromJson(json);
 

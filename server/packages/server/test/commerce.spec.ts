@@ -4,7 +4,7 @@ import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { orm } from "../src/d1/orm.js";
-import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
+import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants, gameContent } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
 import { testBearer as bearer, fakeCommerceProvider, testMutationHeaders as mutationHeaders, testFirebaseAdmin, testVerifier } from "../src/testing.js";
 import { commerceProvider, contentForCreateArguments, productLookups, testGame } from "./worker.js";
@@ -681,6 +681,183 @@ describe("offline play", () => {
     const uses = await db.select().from(commerceUsage).where(eq(commerceUsage.userId, accountId)).all();
     expect(uses).toHaveLength(1);
     expect(uses[0]?.metric).toBe("game.create.success");
+  });
+
+  it("holds no concurrent slot for a game played on the device", async () => {
+    await db.insert(bots).values({ id: LOCAL_BOT, username: LOCAL_BOT, displayName: "Local Brain", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() }).onConflictDoNothing();
+
+    // Two live games at a time, so the count is small enough to read off.
+    const engine = createEngine({
+      gameModule: testGame,
+      appName: "Capacity Test",
+      d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+      gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+      testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+      commerce: {
+        catalog: {
+          free: {
+            permissions: [{ kind: "game.create", access: "private" }, { kind: "bot.use" }],
+            limits: [{ metric: "games.openCreated", maximum: 2, period: { kind: "concurrent" } }],
+          },
+          entitlements: [],
+          offers: [],
+        },
+        providers: [fakeCommerceProvider([])],
+      },
+    });
+    const accountId = uid("offline-capacity");
+    const fetch = async (method: string, path: string, body?: unknown) =>
+      await engine.fetch?.(
+        new Request(`https://capacity.test/api/engine${path}`, {
+          method,
+          headers: method === "GET" ? await bearer({ uid: accountId }) : await mutationHeaders({ uid: accountId }),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+        env,
+        {} as ExecutionContext,
+      );
+    const openOnline = async () => await fetch("POST", "/games", { creationId: crypto.randomUUID(), access: "private", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false });
+    const openSlots = async () => {
+      const access = await json<{ limits: { metric: string; used: number; remaining: number | null }[] }>((await fetch("GET", "/commerce/access")) as Response);
+      return access.limits.find((limit) => limit.metric === "games.openCreated");
+    };
+
+    expect((await openOnline())?.status).toBe(201);
+    expect(
+      (
+        await fetch("POST", "/games/local", {
+          gameId: crypto.randomUUID(),
+          schemaVersion: 1,
+          config: { target: 3 },
+          minPlayers: 2,
+          maxPlayers: 2,
+          botIds: [LOCAL_BOT],
+          seed: "00112233445566778899aabbccddeeff",
+          createdAt: Date.now() - 3_600_000,
+        })
+      )?.status,
+    ).toBe(201);
+
+    // The imported game is live in D1 and belongs to this account, so a count
+    // that asked only "whose games are open" would read two here. It reserved
+    // no capacity slot when it was created, so reading it as one spends an
+    // allowance nothing is holding.
+    expect(await openSlots()).toMatchObject({ used: 1, remaining: 1 });
+
+    // The proof that matters is behavioural: the second server game still fits,
+    // and the third still does not.
+    expect((await openOnline())?.status).toBe(201);
+    expect(await openSlots()).toMatchObject({ used: 2, remaining: 0 });
+    const refused = await openOnline();
+    expect(refused?.status).toBe(403);
+    expect(await refused?.json()).toMatchObject({ code: "commercialLimitReached" });
+  });
+
+  it("replays a device's own finished game without charging for the content it used", async () => {
+    await db.insert(bots).values({ id: LOCAL_BOT, username: LOCAL_BOT, displayName: "Local Brain", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() }).onConflictDoNothing();
+    const accountId = uid("offline-replay");
+
+    // `viewerTheme` selects viewer-owned content this account does not own. On
+    // a server game that refuses the replay with `contentRequired`, which is
+    // asserted above; here the same selection must not, because nothing about
+    // this game was sold.
+    const gameId = crypto.randomUUID();
+    expect(
+      (
+        await api(accountId, "POST", "/games/local", {
+          gameId,
+          schemaVersion: 1,
+          config: { target: 3, viewerTheme: true },
+          minPlayers: 2,
+          maxPlayers: 2,
+          botIds: [LOCAL_BOT],
+          seed: "00112233445566778899aabbccddeeff",
+          createdAt: Date.now() - 3_600_000,
+        })
+      ).status,
+    ).toBe(201);
+
+    // The snapshot is still written, so this is an exemption from the gate and
+    // not an empty record quietly passing it.
+    expect(await db.select().from(gameContent).where(eq(gameContent.gameId, gameId)).all()).toEqual([expect.objectContaining({ collection: "board_theme", itemId: "supporter_gold", ownership: "viewer" })]);
+
+    const applied = await json<{ applied: number; session: { status: string } }>(
+      await api(accountId, "POST", `/games/${gameId}/local/transitions`, {
+        fromVersion: 0,
+        transitions: [
+          { seat: 0, kind: "game", data: { add: 1 } },
+          { seat: 1, kind: "game", data: { add: 1 } },
+          { seat: 0, kind: "game", data: { add: 1 } },
+        ],
+      }),
+    );
+    expect(applied.session.status).toBe("finished");
+
+    const frames = await json<{ frames: { version: number }[] }>(await api(accountId, "GET", `/games/${gameId}/frames?from=0&to=10`));
+    expect(frames.frames.map((frame) => frame.version)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("bot tiers", () => {
+  const PAID_ENGINE = "test-engine-bot";
+  const PAID_LOCAL = "tiered-local-bot";
+
+  it("publishes the tier seating enforces, and none for a bot the server never seats", async () => {
+    await db
+      .insert(bots)
+      .values([
+        { id: PAID_ENGINE, username: PAID_ENGINE, displayName: "Engine Bot", avatarUrl: null, schemaVersion: 1, type: "engine", webhookUrl: null, ratedEligible: true, config: {}, createdAt: Date.now() },
+        { id: PAID_LOCAL, username: PAID_LOCAL, displayName: "Local Brain", avatarUrl: null, schemaVersion: 1, type: "local", webhookUrl: null, ratedEligible: false, config: {}, createdAt: Date.now() },
+      ])
+      .onConflictDoNothing();
+
+    // Ordinary bots get a free tier of their own. A base `bot.use` grant would
+    // cover every tier, paid ones included, so selling a tier means not granting it.
+    const engine = createEngine({
+      gameModule: testGame,
+      appName: "Tier Test",
+      d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+      gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+      testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+      commerce: {
+        catalog: {
+          free: {
+            permissions: [
+              { kind: "game.create", access: "private" },
+              { kind: "bot.use", tier: "standard" },
+            ],
+          },
+          entitlements: [{ key: "pro", permissions: [{ kind: "bot.use", tier: "advanced" }] }],
+          offers: [],
+          botTiers: { "ordinary-bot": "standard", [PAID_ENGINE]: "advanced", [PAID_LOCAL]: "advanced" },
+        },
+        providers: [fakeCommerceProvider([])],
+      },
+    });
+    const accountId = uid("tiers");
+    const fetch = async (method: string, path: string, body?: unknown) =>
+      (await engine.fetch?.(
+        new Request(`https://tiers.test/api/engine${path}`, {
+          method,
+          headers: method === "GET" ? await bearer({ uid: accountId }) : await mutationHeaders({ uid: accountId }),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+        env,
+        {} as ExecutionContext,
+      )) as Response;
+
+    const catalog = await json<{ bots: { id: string; tier?: string }[] }>(await fetch("GET", "/bots"));
+    expect(catalog.bots.find((bot) => bot.id === PAID_ENGINE)?.tier).toBe("advanced");
+    // Configured as paid, but its brain is only on the device and the server
+    // never seats it, so nothing charges for it and nothing is published.
+    const local = catalog.bots.find((bot) => bot.id === PAID_LOCAL);
+    expect(local).toBeDefined();
+    expect(local).not.toHaveProperty("tier");
+
+    // The published tier is the one seating refuses without the grant.
+    const refused = await fetch("POST", "/games/solo", { creationId: crypto.randomUUID(), schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, turnSeconds: 60, rated: false, botIds: [PAID_ENGINE] });
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ code: "capabilityRequired", error: "Capability required: bot.use.advanced" });
   });
 });
 

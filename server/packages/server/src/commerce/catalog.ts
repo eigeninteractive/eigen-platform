@@ -1,4 +1,4 @@
-import { capabilityKey } from "./capability.js";
+import { capabilityKey, catalogGrants } from "./capability.js";
 import type { AccessGrant, CommerceCatalog, CommerceConfig, CommerceProvider, CommercialLimit, CommercialMetric, ResolvedCommerce } from "./types.js";
 
 const KEY = /^[a-z][a-z0-9._-]{0,63}$/;
@@ -141,7 +141,7 @@ export function resolveCommerce<TEnv>(config: CommerceConfig<TEnv>): ResolvedCom
   }
 
   const periodByMetric = new Map<CommercialMetric, string>();
-  for (const grant of [catalog.free, ...catalog.entitlements]) {
+  for (const grant of catalogGrants(catalog)) {
     for (const limit of grant.limits ?? []) {
       if (limit.maximum === "noCommercialLimit") continue;
       const key = periodKey(limit);

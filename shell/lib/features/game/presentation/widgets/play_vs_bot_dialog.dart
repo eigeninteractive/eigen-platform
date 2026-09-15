@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_shell/features/game/presentation/widgets/timing_selector.dart';
+import 'package:eigen_shell/features/store/providers/store_providers.dart';
+import 'package:eigen_shell/shared/widgets/refusal_snack_bar.dart';
 
 /// Solo-game picker (the "New Solo Game" FAB): choose an opponent for each bot
 /// seat and start a solo game (you + bots) immediately, with no waiting room.
@@ -164,6 +166,13 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
     };
     final opponents = _totalPlayers - 1;
     final canPlay = !_creating && usable.isNotEmpty && opponents >= 1;
+    // Marked only where the server seats the bot, the one place a tier is
+    // charged. An untimed game is played on the device and is not priced.
+    final access = timed ? knownAccess(ref) : null;
+    final locked = {
+      for (final bot in usable)
+        if (seatingLocked(access, bot.tier)) bot.id,
+    };
 
     return AlertDialog(
       title: const Text('New Solo Game'),
@@ -213,6 +222,7 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
                               : 'Opponent ${i + 1}',
                           value: _seatBot(i, usable),
                           bots: usable,
+                          locked: locked,
                           enabled: !_creating,
                           onChanged: (id) =>
                               setState(() => _seatOverrides[i] = id),
@@ -295,8 +305,8 @@ class _PlayVsBotDialogState extends ConsumerState<PlayVsBotDialog> {
       if (e is EngineException) _creationId = null;
       if (!mounted) return;
       setState(() => _creating = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanize(e))));
+      // A refusal a purchase could lift carries the way to lift it.
+      showRefusal(context, ref, e);
     }
   }
 }
@@ -347,6 +357,7 @@ class _OpponentRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.bots,
+    required this.locked,
     required this.enabled,
     required this.onChanged,
   });
@@ -354,6 +365,9 @@ class _OpponentRow extends StatelessWidget {
   final String label;
   final String value;
   final List<Bot> bots;
+
+  /// Ids of [bots] the account's known access does not include seating.
+  final Set<String> locked;
   final bool enabled;
   final ValueChanged<String> onChanged;
 
@@ -369,7 +383,16 @@ class _OpponentRow extends StatelessWidget {
         label: Text(label),
         dropdownMenuEntries: [
           for (final bot in bots)
-            DropdownMenuEntry(value: bot.id, label: bot.displayName),
+            DropdownMenuEntry(
+              value: bot.id,
+              label: bot.displayName,
+              trailingIcon: locked.contains(bot.id)
+                  ? const Icon(
+                      Icons.lock_outline,
+                      semanticLabel: 'Not included in your access',
+                    )
+                  : null,
+            ),
         ],
         onSelected: (id) {
           if (id != null) onChanged(id);
