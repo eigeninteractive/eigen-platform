@@ -3,6 +3,12 @@ name: Publish eigen_api
 on:
   push:
     tags: ["eigen_api-v*"]
+  # Recovery. A tag-triggered run always uses the workflow file AT THE TAG, so
+  # re-running a failure caused by the workflow itself just reproduces it, and
+  # the only alternative would be moving a release tag. Dispatched from a branch
+  # this publishes whatever version that branch's pubspec carries, which is the
+  # same version the tag names.
+  workflow_dispatch:
 
 concurrency:
   group: publish-eigen-api
@@ -44,6 +50,7 @@ jobs:
         run: dart pub token remove https://pub.dev || true
 
       - name: Verify tag and package version
+        if: github.event_name == 'push'
         run: |
           tag="${GITHUB_REF_NAME#eigen_api-v}"
           package=$(awk '/^version:/ { print $2; exit }' pubspec.yaml)
