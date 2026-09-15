@@ -337,10 +337,29 @@ consults only those providers' pricing APIs. Calling
 which is what an operator wants and what a player's first screen does not.
 
 A hosted return URL must use the Worker origin or a configured trusted client
-origin. It is also not proof of payment: a browser closed on a slow network
-returns nothing at all, which a `HostedStorefront` reports as
-`PurchaseUpdateState.pending` rather than a failure. The provider webhook
-remains authoritative.
+origin, and it must be `http`/`https` — a custom URI scheme will not do, so on
+Android and iOS it is an App Link or Universal Link. It is also not proof of
+payment: a browser closed on a slow network returns nothing at all, which a
+`HostedStorefront` reports as `PurchaseUpdateState.pending` rather than a
+failure. The provider webhook remains authoritative.
+
+Leaving and coming back are separate events, and on the web separate page
+loads: opening checkout replaces the page, so the return is an ordinary cold
+start that happens to carry a purchase. Call `CommerceService.resumeFrom` with
+the URL the app was opened at, and again whenever a deep link arrives.
+
+Two optional packages implement these ports, so a game that sells nothing links
+neither their code nor their platform plugins:
+
+| Package | Storefront | Install it to… |
+| --- | --- | --- |
+| `eigen_commerce_play` | `PurchaseGateway` | sell through Google Play Billing on Android |
+| `eigen_commerce_hosted` | `HostedStorefront` | sell through Stripe or Razorpay's hosted pages |
+
+They are separate packages where the server's storefronts are entry points of
+one, and the difference is the dependency: an adapter that needs Play Billing
+or a URL launcher on the device is not something a game that sells nothing
+should link, while the Worker's adapters have no dependencies at all.
 
 A concrete adapter is an entry point of its own rather than part of the barrel,
 because it needs a merchant account, credentials and product identifiers the

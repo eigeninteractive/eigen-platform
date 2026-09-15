@@ -76,15 +76,32 @@ jobs:
             "eigen_codegen:dart/eigen_codegen" \
             "eigen_flutter:flutter" \
             "eigen_shell:shell" \
-            "eigen_firebase:firebase"; do
+            "eigen_firebase:firebase" \
+            "eigen_commerce_play:commerce_play" \
+            "eigen_commerce_hosted:commerce_hosted"; do
             IFS=: read -r package path <<<"$entry"
             current=$(cider --project-root="$path" version)
-            published=$(curl -sf --retry 3 "https://pub.dev/api/packages/$package") || {
-              echo "::error::could not query pub.dev for $package"
-              exit 1
-            }
+            # The status, not just success: pub.dev answers 404 for a package it
+            # has never seen, and `curl -f` cannot tell that apart from being
+            # unreachable. A package awaiting its first release has no published
+            # version to verify and nothing to strand, which is the one case
+            # this guard has to let through rather than fail the whole release.
+            published=$(mktemp)
+            status=$(curl -s --retry 3 -o "$published" -w '%{http_code}' \
+              "https://pub.dev/api/packages/$package")
+            case "$status" in
+              200) ;;
+              404)
+                echo "::notice::$package has never been published; treating as a first release"
+                continue
+                ;;
+              *)
+                echo "::error::could not query pub.dev for $package (HTTP $status)"
+                exit 1
+                ;;
+            esac
             jq -e --arg version "$current" \
-              '.versions[] | select(.version == $version)' >/dev/null <<<"$published" || {
+              '.versions[] | select(.version == $version)' >/dev/null <"$published" || {
               echo "::error::$package $current is not published; recover that release before bumping again"
               exit 1
             }
@@ -94,7 +111,8 @@ jobs:
           # legitimately have nothing -- they come along only if they depend on
           # one that does -- but a release where NOTHING changed is a mistake.
           described=0
-          for path in dart/eigen_client dart/eigen_codegen flutter shell firebase; do
+          for path in dart/eigen_client dart/eigen_codegen flutter shell firebase \
+            commerce_play commerce_hosted; do
             changes=$(cider --project-root="$path" describe --only-body 2>/dev/null || true)
             [ -n "$(tr -d '[:space:]' <<<"$changes")" ] && described=1
           done

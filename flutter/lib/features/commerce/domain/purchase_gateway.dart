@@ -76,9 +76,16 @@ abstract interface class PurchaseGateway implements Storefront {
 
   Stream<PurchaseUpdate> get updates;
 
+  /// Starts the SDK purchase flow.
+  ///
+  /// [repeatable] is the offer's own flag, and it decides the store's product
+  /// type: a store will not sell the same non-consumable twice, so a tip that
+  /// cannot be tipped again is the wrong product type rather than a quirk to
+  /// work around.
   Future<void> purchase({
     required String offerKey,
     required StoreProduct product,
+    required bool repeatable,
   });
 
   Future<void> restore();
@@ -92,6 +99,14 @@ abstract interface class PurchaseGateway implements Storefront {
   Future<void> complete(PurchaseUpdate update);
 }
 
+/// The query parameter carrying the logical offer through a hosted checkout.
+///
+/// A provider's return URL says what was paid for in the provider's own terms
+/// — a Stripe session, a Razorpay payment — and nothing about the offer the
+/// player thought they were buying, which is what a claim is made against. The
+/// return URL is ours, so the offer key travels on it.
+const hostedOfferQueryParameter = 'eigen_offer';
+
 /// A storefront whose purchase UI is a provider-hosted page.
 ///
 /// Stripe and Razorpay are these: the Worker creates a checkout URL, the
@@ -99,28 +114,38 @@ abstract interface class PurchaseGateway implements Storefront {
 /// through [returnUrl]. Nothing is settled afterwards — the provider has
 /// already taken the money — so there is no completion hook.
 ///
-/// A hosted return is not proof of payment, and often not proof of anything:
-/// a browser closed on a slow network leaves no signal at all. Implementations
-/// report that honestly as [PurchaseUpdateState.pending] and let the
-/// provider's webhook be authoritative.
+/// Leaving and returning are separate events, and on the web they are separate
+/// *page loads*: a redirect to the provider unloads the app, so nothing that
+/// [present] returned would still be listening. That is why recognising a
+/// return is [resume]'s job and not [present]'s, and why it is safe to call
+/// [resume] at startup with whatever URL the app was opened at.
 abstract interface class HostedStorefront implements Storefront {
   /// Where the provider sends the player back to.
   ///
   /// The Worker requires this to be its own origin or a configured trusted
-  /// client origin, so it is a property of the deployment rather than of any
-  /// one purchase.
+  /// client origin, and requires `http`/`https` — so a custom URI scheme will
+  /// not do. On Android and iOS that means an App Link or Universal Link the
+  /// system routes back into the app.
   Uri get returnUrl;
 
-  /// Opens [checkoutUrl] and resolves once the player leaves it.
+  /// Opens [checkoutUrl] and reports what can be told from here.
   ///
-  /// Returns a `purchased` update carrying provider evidence when the return
-  /// identified the purchase, `cancelled` when the player declined, and
-  /// `pending` when the outcome cannot be told from here.
+  /// Usually nothing: the player has left, and only the return says whether
+  /// they paid. Implementations report that as [PurchaseUpdateState.pending]
+  /// rather than inventing an outcome. On a platform where opening the page
+  /// unloads the app, this never completes, and nothing is waiting for it.
   Future<PurchaseUpdate> present(
     Uri checkoutUrl, {
     required String offerKey,
     required String providerReference,
   });
+
+  /// The purchase [uri] reports, if it is a return from this storefront.
+  ///
+  /// Returns null for any other URL — an ordinary deep link, or a return
+  /// belonging to a different provider — so every hosted storefront a build
+  /// carries can be offered the same URL.
+  PurchaseUpdate? resume(Uri uri);
 }
 
 /// Default for applications that do not opt into commerce.
@@ -141,6 +166,7 @@ class UnavailablePurchaseGateway implements PurchaseGateway {
   Future<void> purchase({
     required String offerKey,
     required StoreProduct product,
+    required bool repeatable,
   }) {
     throw UnsupportedError('No purchase gateway is configured.');
   }

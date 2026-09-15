@@ -21,6 +21,10 @@ class CommerceService {
   final StreamController<StorefrontUpdate> _hosted =
       StreamController<StorefrontUpdate>.broadcast();
 
+  /// The last catalog read, which is the only thing that maps a storefront's
+  /// product back to the logical offer a claim is made against.
+  CommerceCatalog? _catalog;
+
   Iterable<String> get _providers =>
       _storefronts.map((storefront) => storefront.provider);
 
@@ -28,8 +32,8 @@ class CommerceService {
   ///
   /// Naming the providers keeps the Worker from calling payment APIs for
   /// prices no storefront here could render.
-  Future<CommerceCatalog> getCatalog() =>
-      _repository.getCatalog(providers: _providers);
+  Future<CommerceCatalog> getCatalog() async =>
+      _catalog = await _repository.getCatalog(providers: _providers);
 
   Future<AccessSnapshot> getAccess() => _repository.getAccess();
 
@@ -78,7 +82,11 @@ class CommerceService {
               'Storefront did not return ${mapping.providerReference}.',
             );
           }
-          await gateway.purchase(offerKey: offer.key, product: product);
+          await gateway.purchase(
+            offerKey: offer.key,
+            product: product,
+            repeatable: offer.repeatable,
+          );
           return;
         case final HostedStorefront hosted:
           await _presentHosted(hosted, offer, mapping.providerReference);
@@ -102,14 +110,51 @@ class CommerceService {
     final checkout = await _repository.createCheckout(
       provider: hosted.provider,
       offerKey: offer.key,
-      returnUrl: hosted.returnUrl,
+      // The provider's return says what was paid for in its own terms and
+      // nothing about the offer, which is what the claim is made against.
+      returnUrl: hosted.returnUrl.replace(
+        queryParameters: {
+          ...hosted.returnUrl.queryParameters,
+          hostedOfferQueryParameter: offer.key,
+        },
+      ),
       operationId: newCheckoutOperationId(),
     );
-    final update = await hosted.present(
-      checkout,
-      offerKey: offer.key,
-      providerReference: providerReference,
+    await _publishHosted(
+      hosted,
+      await hosted.present(
+        checkout,
+        offerKey: offer.key,
+        providerReference: providerReference,
+      ),
     );
+  }
+
+  /// Offers [uri] to every hosted storefront this build carries.
+  ///
+  /// Call it with the URL the app was opened at, and again whenever a deep
+  /// link arrives: on the web a checkout redirect unloads the app entirely, so
+  /// a return is an ordinary cold start that happens to carry a purchase. A
+  /// URL no storefront recognizes changes nothing.
+  ///
+  /// Returns true when a storefront claimed the URL.
+  Future<bool> resumeFrom(Uri uri) async {
+    for (final hosted in _storefronts.whereType<HostedStorefront>()) {
+      final update = hosted.resume(uri);
+      if (update == null) continue;
+      await _publishHosted(hosted, update);
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> _publishHosted(
+    HostedStorefront hosted,
+    PurchaseUpdate update,
+  ) async {
+    // Durable before it is announced: a claim interrupted between here and the
+    // Worker is retried from the outbox on the next start, exactly as an SDK
+    // delivery is.
     if (update.state == PurchaseUpdateState.purchased &&
         update.deliveryId != null &&
         update.evidence != null) {
@@ -172,7 +217,7 @@ class CommerceService {
     final access = await _repository.claim(
       CommercePurchaseClaim(
         provider: storefront.provider,
-        offerKey: update.offerKey,
+        offerKey: await _offerKeyFor(storefront, update),
         evidence: evidence,
       ),
     );
@@ -183,6 +228,33 @@ class CommerceService {
     }
     await _deliveries.remove(storefront.provider, deliveryId);
     return (update: update, access: access);
+  }
+
+  /// The logical offer [update] paid for.
+  ///
+  /// A store SDK reports its own product identifier and knows nothing about
+  /// offers, so the mapping lives in the catalog and nowhere else. It is
+  /// fetched if this service has not read one yet: a purchase restored at
+  /// startup can arrive before any store screen has asked for the catalog, and
+  /// claiming it with a product id would fail as an unknown offer.
+  Future<String> _offerKeyFor(
+    Storefront storefront,
+    PurchaseUpdate update,
+  ) async {
+    final catalog = _catalog ?? await getCatalog();
+    for (final offer in catalog.offers) {
+      for (final product in offer.products) {
+        if (product.provider == storefront.provider &&
+            product.providerReference == update.providerReference) {
+          return offer.key;
+        }
+      }
+    }
+    // Nothing better to say than what the storefront said. A hosted return
+    // carries the offer key itself, so this is the honest answer there; for an
+    // SDK it is a product id, and the Worker will reject it as an unknown
+    // offer, which is the right failure.
+    return update.offerKey;
   }
 
   /// Every storefront's updates as one stream.

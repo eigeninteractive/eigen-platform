@@ -20,6 +20,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 
 ### Changed
 - The Flutter purchase port is split in two: `PurchaseGateway` for an on-device billing SDK and `HostedStorefront` for a provider-hosted checkout page, both under a common `Storefront`. `CommerceService` now takes the storefronts a build carries, chooses between them per offer, publishes verified purchases from either on one stream, and settles only at an SDK. `purchaseGatewayProvider` is replaced by `storefrontsProvider`.
+- `PurchaseGateway.purchase` takes the offer's `repeatable` flag, which decides whether a store sells it as a consumable. `HostedStorefront` gains `resume`, because a web checkout unloads the app and its return is a cold start rather than something `present` could await; `CommerceService.resumeFrom` offers a URL to each hosted storefront, and carries the offer key on the return URL it asks a provider for. A storefront no longer needs to know what offer its product sells: the service resolves that against the catalog.
 
 ## [0.10.0] - 2026-09-13
 ### Added

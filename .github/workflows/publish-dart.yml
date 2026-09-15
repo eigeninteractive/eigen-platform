@@ -28,11 +28,13 @@ on:
       - "eigen_flutter-v*"
       - "eigen_shell-v*"
       - "eigen_firebase-v*"
+      - "eigen_commerce_play-v*"
+      - "eigen_commerce_hosted-v*"
 
 # Per package, not global: two packages tagged in the same release are
 # independent uploads and may run at once.
 concurrency:
-  group: publish-dart-${{ startsWith(github.ref_name, 'eigen_client-v') && 'client' || startsWith(github.ref_name, 'eigen_codegen-v') && 'codegen' || startsWith(github.ref_name, 'eigen_flutter-v') && 'flutter' || startsWith(github.ref_name, 'eigen_shell-v') && 'shell' || 'firebase' }}
+  group: publish-dart-${{ startsWith(github.ref_name, 'eigen_client-v') && 'client' || startsWith(github.ref_name, 'eigen_codegen-v') && 'codegen' || startsWith(github.ref_name, 'eigen_flutter-v') && 'flutter' || startsWith(github.ref_name, 'eigen_shell-v') && 'shell' || startsWith(github.ref_name, 'eigen_commerce_play-v') && 'commerce-play' || startsWith(github.ref_name, 'eigen_commerce_hosted-v') && 'commerce-hosted' || 'firebase' }}
   cancel-in-progress: false
 
 permissions: {}
@@ -72,6 +74,8 @@ jobs:
             eigen_flutter-v*) package=eigen_flutter; path=flutter ;;
             eigen_shell-v*) package=eigen_shell; path=shell ;;
             eigen_firebase-v*) package=eigen_firebase; path=firebase ;;
+            eigen_commerce_play-v*) package=eigen_commerce_play; path=commerce_play ;;
+            eigen_commerce_hosted-v*) package=eigen_commerce_hosted; path=commerce_hosted ;;
             *) echo "::error::unrecognised tag: $GITHUB_REF_NAME"; exit 64 ;;
           esac
 

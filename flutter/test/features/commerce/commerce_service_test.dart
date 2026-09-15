@@ -43,6 +43,7 @@ class _Repository implements CommerceRepository {
   final claims = <CommercePurchaseClaim>[];
   final checkouts =
       <({String provider, String offerKey, String operationId})>[];
+  final checkoutReturnUrls = <Uri>[];
   Iterable<String>? requestedProviders;
 
   @override
@@ -69,6 +70,7 @@ class _Repository implements CommerceRepository {
       offerKey: offerKey,
       operationId: operationId,
     ));
+    checkoutReturnUrls.add(returnUrl);
     return Uri.parse('https://checkout.example/$offerKey');
   }
 
@@ -86,6 +88,7 @@ class _Gateway implements PurchaseGateway {
   String get provider => 'google_play';
 
   String? purchasedOffer;
+  bool? purchasedRepeatable;
   PurchaseUpdate? completedUpdate;
 
   @override
@@ -102,8 +105,10 @@ class _Gateway implements PurchaseGateway {
   Future<void> purchase({
     required String offerKey,
     required StoreProduct product,
+    required bool repeatable,
   }) async {
     purchasedOffer = offerKey;
+    purchasedRepeatable = repeatable;
   }
 
   @override
@@ -156,6 +161,19 @@ class _Hosted implements HostedStorefront {
   }) async {
     presented.add(checkoutUrl);
     return _outcome(checkoutUrl);
+  }
+
+  @override
+  PurchaseUpdate? resume(Uri uri) {
+    final offerKey = uri.queryParameters[hostedOfferQueryParameter];
+    if (offerKey == null) return null;
+    return PurchaseUpdate(
+      deliveryId: uri.queryParameters['session_id'],
+      offerKey: offerKey,
+      providerReference: '',
+      state: PurchaseUpdateState.purchased,
+      evidence: {'sessionId': uri.queryParameters['session_id']!},
+    );
   }
 }
 
@@ -384,5 +402,94 @@ void main() {
       service.purchase(playOnly.offers.single, const {}),
       throwsStateError,
     );
+  });
+
+  test(
+    'carries the offer key on the return URL it asks the provider for',
+    () async {
+      // A provider return names a session or a payment, never the offer the
+      // player thought they were buying, and a claim is made against the offer.
+      final repository = _Repository();
+      final hosted = _Hosted(
+        (_) => const PurchaseUpdate(
+          offerKey: 'supporter',
+          providerReference: 'price_supporter',
+          state: PurchaseUpdateState.pending,
+        ),
+      );
+      final service = CommerceService(repository, [hosted], _Deliveries());
+
+      await service.purchase(_catalog().offers.single, const {});
+
+      expect(
+        repository
+            .checkoutReturnUrls
+            .single
+            .queryParameters[hostedOfferQueryParameter],
+        'supporter',
+      );
+      await service.dispose();
+    },
+  );
+
+  test('claims a return that arrives as a cold start', () async {
+    // On the web, leaving for the provider unloads the app entirely: the
+    // return is a fresh launch that happens to carry a purchase.
+    final repository = _Repository();
+    final deliveries = _Deliveries();
+    final hosted = _Hosted((_) => throw StateError('nothing was presented'));
+    final service = CommerceService(repository, [hosted], deliveries);
+
+    final updates = service.verifiedUpdates().take(1).toList();
+    final claimed = await service.resumeFrom(
+      Uri.parse(
+        'https://game.example/return?$hostedOfferQueryParameter=supporter&session_id=cs_cold',
+      ),
+    );
+
+    expect(claimed, isTrue);
+    expect((await updates).single.access?.entitlements.single.key, 'supporter');
+    expect(repository.claims.single.evidence, {'sessionId': 'cs_cold'});
+    // Durable before announced, so a claim interrupted here is retried.
+    expect(deliveries.values, isEmpty);
+    await service.dispose();
+  });
+
+  test('ignores a URL that is nobody's return', () async {
+    final service = CommerceService(_Repository(), [
+      _Hosted((_) => throw StateError('nothing was presented')),
+    ], _Deliveries());
+
+    expect(
+      await service.resumeFrom(Uri.parse('https://game.example/games/42')),
+      isFalse,
+    );
+    await service.dispose();
+  });
+
+  test('resolves an SDK product id to the offer it sells', () async {
+    // A store SDK reports its own product identifier and knows nothing about
+    // offers. Claiming with a product id would be rejected as an unknown offer.
+    final repository = _Repository();
+    final gateway = _Gateway(
+      Stream.value(
+        const PurchaseUpdate(
+          deliveryId: 'purchase-9',
+          offerKey: 'supporter_once',
+          providerReference: 'supporter_once',
+          state: PurchaseUpdateState.purchased,
+          evidence: {'purchaseToken': 'tok'},
+        ),
+      ),
+    );
+    final service = CommerceService(repository, [gateway], _Deliveries());
+
+    await service.verifiedUpdates().take(1).toList();
+
+    expect(repository.claims.single.offerKey, 'supporter');
+    // Resolved without a store screen having asked for the catalog first: a
+    // restored purchase can arrive before anything else does.
+    expect(repository.requestedProviders, ['google_play']);
+    await service.dispose();
   });
 }
