@@ -43,12 +43,6 @@ jobs:
           flutter-version-file: flutter/.fvmrc
           cache: true
 
-      # setup-dart eagerly configures the package-scoped OIDC token for the
-      # whole pub.dev host. Keep dependency resolution anonymous: pub.dev can
-      # legitimately reject that upload identity for unrelated dependencies.
-      - name: Defer pub.dev credentials until upload
-        run: dart pub token remove https://pub.dev || true
-
       - name: Verify tag and package version
         if: github.event_name == 'push'
         run: |
@@ -81,11 +75,31 @@ jobs:
         if: steps.published.outputs.skip == 'false'
         run: dart pub publish --dry-run
 
-      - name: Publish
+      # `setup-dart` mints the pub.dev OIDC token itself and exports PUB_TOKEN;
+      # `subosito/flutter-action` does not, so the exchange is done by hand --
+      # the same way `publish-dart.yml` does it, and for the same reason.
+      #
+      # Deliberately after the dry run, so resolution and validation stay
+      # anonymous: pub.dev can legitimately reject this package-scoped upload
+      # identity when reading unrelated dependencies.
+      - name: Authenticate to pub.dev
         if: steps.published.outputs.skip == 'false'
         run: |
+          PUB_TOKEN=$(curl --retry 5 --retry-connrefused -sLS \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://pub.dev" \
+            -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
+          [ -n "$PUB_TOKEN" ] && [ "$PUB_TOKEN" != "null" ] || {
+            echo "::error::could not mint the pub.dev OIDC token"
+            exit 1
+          }
+          echo "::add-mask::$PUB_TOKEN"
+          echo "PUB_TOKEN=$PUB_TOKEN" >> "$GITHUB_ENV"
+          export PUB_TOKEN
           dart pub token add https://pub.dev --env-var PUB_TOKEN
-          # The immediately preceding anonymous dry run already performed
-          # validation and resolution. Avoid repeating those reads with the
-          # package-scoped upload credential attached.
-          dart pub publish --force --skip-validation
+
+      - name: Publish
+        if: steps.published.outputs.skip == 'false'
+        # The immediately preceding anonymous dry run already performed
+        # validation and resolution. Avoid repeating those reads with the
+        # package-scoped upload credential attached.
+        run: dart pub publish --force --skip-validation
