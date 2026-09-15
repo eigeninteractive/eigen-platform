@@ -57,7 +57,16 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
 
-      - uses: dart-lang/setup-dart@v1
+      # The Flutter SDK, not the Dart SDK. Melos resolves itself into the
+      # workspace before it runs, and it picks the resolver the workspace needs
+      # -- this one contains Flutter packages, so melos shells out to
+      # `flutter pub get` and dies with `ProcessException: No such file or
+      # directory` when only Dart is installed. `dart` still comes with Flutter,
+      # so activating cider and melos below is unaffected.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          cache: true
 
       - name: Install cider and melos
         run: |
