@@ -128,8 +128,17 @@ jobs:
         if: needs.scope.outputs.full != 'true'
         run: echo "Server checks are not needed for this scoped change."
 
-  flutter:
+  # The Dart and Flutter subtree, sharded. They share a workspace but not a
+  # runner, so each job gets its own checkout and they cannot race on the
+  # `pubspec.lock` and `.dart_tool` that keep them sequential locally. `docs`
+  # is separate because it is pure compute that nothing else waits on.
+  dart:
     needs: scope
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [dart, flutter, shell, docs]
+    name: ${{ matrix.shard }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -143,9 +152,9 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Check the Flutter package and example
+      - name: Check ${{ matrix.shard }}
         if: needs.scope.outputs.full == 'true'
-        run: ./tool/check.sh flutter
+        run: ./tool/check.sh ${{ matrix.shard }}
 
       - name: Scoped change
         if: needs.scope.outputs.full != 'true'
@@ -242,7 +251,7 @@ jobs:
   check:
     name: check
     if: always()
-    needs: [scope, manifest, server, flutter, web, scaffold]
+    needs: [scope, manifest, server, dart, web, scaffold]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -250,7 +259,7 @@ jobs:
         if: >-
           needs.manifest.result != 'success' ||
           needs.server.result != 'success' ||
-          needs.flutter.result != 'success' ||
+          needs.dart.result != 'success' ||
           needs.web.result != 'success' ||
           needs.scaffold.result != 'success'
         run: |

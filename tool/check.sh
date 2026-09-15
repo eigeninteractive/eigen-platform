@@ -89,11 +89,20 @@ run_server() {
   pnpm --filter create-eigen-game publish --dry-run --no-git-checks
 }
 
-run_flutter() {
-  # The generated wire client is the base of the Dart graph, and it is validated
-  # here rather than in the server shard because resolving any member of this
-  # workspace needs the Flutter SDK. The server shard generates it and asserts
-  # it did not drift.
+# The Flutter and Dart subtree, as four independent shards.
+#
+# Split because they ARE independent, not because any one of them is slow:
+# eight packages each paying resolve, format, analyze, test and a publish dry
+# run add up to about ten minutes on a two-core runner, and CI can run them at
+# once. Locally they stay sequential -- one workspace means one `pubspec.lock`
+# and one `.dart_tool`, and concurrent `pub get` would race on both.
+
+# The pure Dart packages, including the generated wire client.
+#
+# The client is validated here rather than in the server shard because
+# resolving any member of this workspace needs the Flutter SDK. The server
+# shard generates it and asserts it did not drift.
+run_dart() {
   cd "$platform_root/server/clients/dart"
   flutter pub get
   dart analyze
@@ -115,7 +124,10 @@ run_flutter() {
   dart analyze
   dart test
   dart pub publish --dry-run
+}
 
+# `eigen_flutter` and the example app that exercises it.
+run_flutter() {
   cd "$platform_root/flutter"
   # The example is an independent app checked below. Avoid Flutter's implicit
   # example resolution so the core package check has one dependency graph.
@@ -127,30 +139,7 @@ run_flutter() {
   assert_no_drift "Flutter code generation" flutter
   dart analyze lib
   dart analyze test
-  check_docs flutter
   flutter test
-
-  cd "$platform_root/shell"
-  flutter pub get
-  dart format --output=none --set-exit-if-changed \
-    $(git ls-files --cached --others --exclude-standard '*.dart' \
-      ':!:**/*.g.dart' ':!:**/*.freezed.dart')
-  dart run build_runner build
-  dart fix --dry-run
-  assert_no_drift "Shell code generation" shell
-  flutter analyze
-  check_docs shell
-  flutter test
-  dart pub publish --dry-run
-
-  cd "$platform_root/firebase"
-  flutter pub get
-  dart format --output=none --set-exit-if-changed \
-    $(git ls-files '*.dart' | sed 's#^firebase/##')
-  flutter analyze
-  check_docs firebase
-  flutter test
-  dart pub publish --dry-run
 
   cd "$platform_root/flutter/example"
   flutter pub get
@@ -175,6 +164,42 @@ run_flutter() {
 
   cd "$platform_root/flutter"
   dart pub publish --dry-run
+}
+
+# The optional packages above the core: the app shell and the Firebase adapter.
+run_shell() {
+  cd "$platform_root/shell"
+  flutter pub get
+  dart format --output=none --set-exit-if-changed \
+    $(git ls-files --cached --others --exclude-standard '*.dart' \
+      ':!:**/*.g.dart' ':!:**/*.freezed.dart')
+  dart run build_runner build
+  dart fix --dry-run
+  assert_no_drift "Shell code generation" shell
+  flutter analyze
+  flutter test
+  dart pub publish --dry-run
+
+  cd "$platform_root/firebase"
+  flutter pub get
+  dart format --output=none --set-exit-if-changed \
+    $(git ls-files '*.dart' | sed 's#^firebase/##')
+  flutter analyze
+  flutter test
+  dart pub publish --dry-run
+}
+
+# Doc-comment references across the three Flutter packages.
+#
+# Its own shard because it is two minutes of pure compute that caches nothing
+# and validates nothing the other shards depend on, so it has no business
+# sitting on their critical path. One workspace resolve serves all three.
+run_docs() {
+  cd "$platform_root"
+  flutter pub get
+  check_docs flutter
+  check_docs shell
+  check_docs firebase
 }
 
 run_web() {
@@ -222,23 +247,35 @@ run_scaffold() {
 case "${1:-all}" in
   manifest) run_manifest ;;
   server) run_server ;;
+  dart) run_dart ;;
   flutter) run_flutter ;;
+  shell) run_shell ;;
+  docs) run_docs ;;
   web) run_web ;;
   scaffold) run_scaffold "${2:-all}" ;;
   all)
     run_manifest
     run_server
-    SERVER_ALREADY_BUILT=1 run_flutter & flutter_pid=$!
+    # The four Dart shards share one workspace, so they run in sequence here
+    # however they are sharded in CI: `pub get` and `build_runner` write the
+    # same `pubspec.lock` and `.dart_tool`, and `assert_no_drift` reads a git
+    # status two of them would be racing to change.
+    (
+      run_dart
+      run_flutter
+      run_shell
+      run_docs
+    ) & dart_pid=$!
     SERVER_ALREADY_BUILT=1 run_web & web_pid=$!
     SERVER_ALREADY_BUILT=1 run_scaffold & scaffold_pid=$!
     status=0
-    wait "$flutter_pid" || status=$?
+    wait "$dart_pid" || status=$?
     wait "$web_pid" || status=$?
     wait "$scaffold_pid" || status=$?
     exit "$status"
     ;;
   *)
-    echo "usage: $0 [all|manifest|server|flutter|web|scaffold]" >&2
+    echo "usage: $0 [all|manifest|server|dart|flutter|shell|docs|web|scaffold]" >&2
     exit 64
     ;;
 esac
