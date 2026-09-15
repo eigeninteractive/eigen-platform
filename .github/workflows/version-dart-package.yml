@@ -26,10 +26,10 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: How far to raise the packages that have changelog entries
+        description: "Melos release type for the packages that have changelog entries (pre-1.0: major is the breaking one)"
         required: true
         type: choice
-        options: [patch, minor, breaking]
+        options: [patch, minor, major]
 
 concurrency:
   group: version-dart-packages
@@ -117,19 +117,23 @@ jobs:
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          # Melos and cider disagree about 0.x, so the mapping is explicit.
-          # On 0.2.0, cider gives patch 0.2.1, minor 0.3.0, breaking 0.3.0;
-          # melos gives patch 0.2.1, minor 0.2.1, major 0.3.0. Melos shifts
-          # every name down one position below 1.0, cider does not. This mapping
-          # reproduces exactly what this workflow did when cider owned the bump.
+          # Melos's own release types, passed straight through. It shifts every
+          # name down one slot below 1.0, which is the pub convention rather
+          # than strict semver:
           #
-          # `minor` and `breaking` coincide here, and that is not a mistake:
-          # pre-1.0 the breaking change IS the minor bump, which is what
-          # `^0.2.0` resolving to `>=0.2.0 <0.3.0` means. They separate at 1.0,
-          # and this mapping needs revisiting then.
+          #                pre-1.0 (0.2.0)   1.0 and after (1.2.0)
+          #     patch      0.2.1             1.2.1
+          #     minor      0.2.1             1.3.0
+          #     major      0.3.0             2.0.0
+          #
+          # So `major` is the breaking release pre-1.0, because the minor slot
+          # IS the breaking slot -- that is what `^0.2.0` resolving to
+          # `>=0.2.0 <0.3.0` means -- and `minor` is indistinguishable from
+          # `patch` until 1.0. Both facts are melos's to own; naming these
+          # inputs anything else would mean re-encoding its version arithmetic
+          # here and keeping the two in step across 1.0.
           case "$BUMP" in
-            patch) melos_bump=patch ;;
-            minor|breaking) melos_bump=major ;;
+            patch | minor | major) ;;
             *) echo "::error::unknown bump: $BUMP"; exit 64 ;;
           esac
 
@@ -150,7 +154,7 @@ jobs:
             IFS=: read -r package path <<<"$entry"
             echo "$package $(cider --project-root="$path" version)" >> "$before"
             changes=$(cider --project-root="$path" describe --only-body 2>/dev/null || true)
-            [ -n "$(tr -d '[:space:]' <<<"$changes")" ] && args+=(--manual-version="$package:$melos_bump")
+            [ -n "$(tr -d '[:space:]' <<<"$changes")" ] && args+=(--manual-version="$package:$BUMP")
           done
 
           # `--dependent-constraints` is on by default and is the point of
