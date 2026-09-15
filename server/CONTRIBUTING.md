@@ -158,7 +158,7 @@ Adding a response-enum member is normally additive because the generated Dart
 client has an unknown-value sentinel. Removing or renaming a member remains
 breaking, as does requiring an existing client to send a newly added request
 value. The release-order implications are covered in
-[`../docs/operations/releases.md`](../docs/operations/releases.md#publish-dart-dependencies-before-updating-the-scaffold).
+[`../docs/operations/releases.md`](../docs/operations/releases.md#the-scaffolders-dart-floors-move-with-the-dart-release).
 
 ## Changes that cross workspaces
 

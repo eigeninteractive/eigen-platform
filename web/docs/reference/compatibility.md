@@ -22,7 +22,8 @@ a version constraint; it is not where you expect.
 
 | Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter integration (`eigen_flutter`) |
 | --- | --- | --- | --- |
-| **0.7.x** *(this version)* | `^0.7.0` | `^0.7.0` | `0.10.0` |
+| **0.8.x** *(this version)* | `^0.8.0` | `^0.8.0` | `0.11.0` |
+| 0.7.x | `^0.7.0` | `^0.7.0` | `0.10.0` |
 | 0.6.x | `^0.6.0` | `^0.6.0` | `0.9.0`, `0.8.0` |
 | 0.5.x | `^0.5.0` | `^0.5.0` | `0.7.0` |
 | 0.4.x | `^0.4.0` | `^0.4.0` | `0.6.0` |
@@ -68,8 +69,9 @@ its own clock; neither is another wire-compatibility axis.
 A new project does not choose from the table above. `create-eigen-game` has
 already chosen, and **the version of the scaffolder you run decides both
 halves**. It writes one engine range into `server/package.json` and one
-tested `eigen_flutter`, `eigen_shell`, and `eigen_firebase` ranges into
-`app/pubspec.yaml`, and it resolves nothing at run time. Use `@latest` rather
+tested set of `eigen_flutter`, `eigen_shell`, `eigen_firebase` and
+`eigen_codegen` ranges into `app/pubspec.yaml`, and it resolves nothing at run
+time. Use `@latest` rather
 than a cached copy:
 
 ```bash
@@ -88,9 +90,14 @@ cannot ship paired with an engine no build ever saw.
 client for this engine's wire line" from pub.dev, which was wrong: a client
 declares which *wire* it speaks, and says nothing about whether its *Dart API*
 still matches the templates. `eigen_flutter 0.4.0` constraining `eigen_api:
-^0.2.0` is a legal match that would emit code against an API that moved. The pin
-is raised by hand, and only after CI has scaffolded a project and run
-`flutter analyze` against that exact shell.
+^0.2.0` is a legal match that would emit code against an API that moved.
+
+Stated does not mean hand-maintained. The pin is raised by the Dart release
+itself, in the same commit that creates the version it names — the one commit
+that knows that number without being told — and CI then scaffolds a project and
+runs `flutter analyze` against exactly that shell before the release lands. So
+the scaffolder never names the previous line, and a pin that does not compile
+stops its own release rather than a later one.
 
 So a scaffolder release trails an engine release, and that gap is real rather
 than an oversight. When the engine crosses a line, no shell can speak it yet:
@@ -98,8 +105,8 @@ than an oversight. When the engine crosses a line, no shell can speak it yet:
 `eigen_api` for the new line does not exist until the engine's release publishes
 it. The scaffolder keeps emitting the previous line, a pairing that works,
 until a Flutter integration for the new one ships and the pin is raised. The
-shell and Firebase pins are raised in the same tested scaffolder update whenever
-their public composition APIs move.
+shell, Firebase and codegen pins move on the same mechanism, each raised by the
+release that publishes it.
 
 If you need a combination the current scaffolder does not emit, take the manual
 path: [Set up without the scaffolder](../getting-started/manual-setup.md) uses

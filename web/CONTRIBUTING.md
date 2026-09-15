@@ -108,10 +108,19 @@ It reads `api/openapi.json` for the line these docs describe, then asks pub.dev
 which `eigen_api` lines exist and which `eigen_flutter` releases declare they
 speak each one. No sibling checkout and no dependencies, just Node.
 
-It usually runs for you: eigen-flutter dispatches to this repo after publishing
-to pub.dev, and `.github/workflows/sync-compatibility.yml` regenerates and opens
-an auto-merging PR. Engine releases move the table too, but only through
-`api/openapi.json`, which `sync-api` already brings in.
+It usually runs for you. `publish-dart.yml` and `publish-eigen-api.yml` send a
+`dart-package-released` dispatch once an upload lands, and
+`.github/workflows/sync-compatibility.yml` regenerates and opens an auto-merging
+PR. Engine releases move the table through `api/openapi.json` as well, which
+`sync-api` already brings in.
+
+"Usually" was aspirational until recently. The listener was written against a
+dispatch named `flutter-client-released` that nothing ever sent — it assumed a
+separate eigen-flutter repository that the monorepo import had already absorbed
+— so the table only moved when someone ran the workflow by hand, and it spent a
+release describing the previous engine line. If it goes quiet again, check that
+the publish workflows are minting the App token: a `repository_dispatch` sent
+with `GITHUB_TOKEN` starts no workflow run, and reports success either way.
 
 Two things worth knowing:
 
