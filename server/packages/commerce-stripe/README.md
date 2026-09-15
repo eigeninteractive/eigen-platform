@@ -47,3 +47,12 @@ old field would quietly stop knowing when a subscription ends.
 configured on the endpoint, not the one a request pins. The adapter re-reads
 every object from the API before acting on it, so a mismatch is survivable, but
 matching them keeps the shapes you see in logs consistent.
+
+Bumping `API_VERSION` is a deliberate change, not housekeeping. This adapter
+types Stripe's responses by hand rather than pulling in `stripe-node`, so a
+field this file reads can move without anything failing to compile — which is
+how the Basil change above would have been missed. Read the
+[API changelog](https://docs.stripe.com/changelog) between the two versions for
+moved or removed fields on Subscription, Checkout Session and Price before
+raising it, and check the interfaces at the top of `src/index.ts` against what
+you find.
