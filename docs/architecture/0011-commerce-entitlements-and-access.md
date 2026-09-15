@@ -688,10 +688,18 @@ The pure `eigen_client` package owns commerce DTOs and a `CommerceRepository`
 for catalog reads, entitlement/access snapshots, claims, restoration, and
 management links. It does not depend on Flutter or a store SDK.
 
-`eigen_flutter` defines a provider-neutral purchase port resembling:
+`eigen_flutter` defines two provider-neutral purchase ports, because the two
+kinds of storefront differ in a way no single interface states honestly: an
+on-device SDK owns the transaction and must be told to settle it, while a
+hosted page hands control to a browser and gets it back through a return URL.
 
 ```dart
-abstract interface class PurchaseGateway {
+abstract interface class Storefront {
+  String get provider;
+}
+
+/// The purchase UI is an on-device billing SDK.
+abstract interface class PurchaseGateway implements Storefront {
   Future<List<StoreProduct>> products(Set<String> providerReferences);
   Stream<PurchaseUpdate> get updates;
   Future<void> purchase({
@@ -701,12 +709,33 @@ abstract interface class PurchaseGateway {
   Future<void> restore();
   Future<void> complete(PurchaseUpdate update);
 }
+
+/// The purchase UI is a provider-hosted page.
+abstract interface class HostedStorefront implements Storefront {
+  Uri get returnUrl;
+  Future<PurchaseUpdate> present(
+    Uri checkoutUrl, {
+    required String offerKey,
+    required String providerReference,
+  });
+}
 ```
 
-Native SDK adapters implement that port and connect through the existing
-provider-override composition boundary. Hosted web checkout uses the pure Dart
-repository's checkout and management URL methods. Purchase updates are evidence
-to send to the Worker, not permission to unlock locally.
+Both produce a `PurchaseUpdate`, so `CommerceService` verifies, settles and
+publishes them on one stream whatever they came from. `complete` runs only for
+an SDK gateway: a hosted page holds no transaction to settle.
+
+Which storefronts a build carries is an application composition decision, made
+at the composition root and not by the server. The server holds no routing
+policy — jurisdiction and distribution rules change slowly enough that an app
+release is an acceptable way to change them, and a policy split between a
+deployment and a binary would be worse than one in a single place. A client
+tells the catalog route which storefronts it carries so the Worker does not
+call payment APIs for prices that client could never render; that is the client
+declaring what it is, not the server deciding what it may do.
+
+Purchase updates are evidence to send to the Worker, not permission to unlock
+locally.
 
 The optional shell may provide:
 

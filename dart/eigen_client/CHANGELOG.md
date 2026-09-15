@@ -5,6 +5,7 @@
 
 ### Changed
 - Game creation requires a stable `creationId`; `newGameCreationId()` mints one so a retried creation resolves to the original game, and `newCheckoutOperationId()` does the same for hosted checkout.
+- `CommerceRepository.getCatalog` takes the storefronts this build can buy through, so the Worker consults only those providers' pricing APIs.
 
 ## [0.2.0] - 2026-09-13
 ### Added

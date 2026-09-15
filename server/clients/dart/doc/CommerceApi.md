@@ -178,7 +178,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **getCommerceCatalog**
-> CommerceCatalog getCommerceCatalog()
+> CommerceCatalog getCommerceCatalog(provider)
 
 
 
@@ -187,9 +187,10 @@ This endpoint does not need any parameter.
 import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getCommerceApi();
+final String provider = provider_example; // String | 
 
 try {
-    final response = api.getCommerceCatalog();
+    final response = api.getCommerceCatalog(provider);
     print(response);
 } catch on DioException (e) {
     print('Exception when calling CommerceApi->getCommerceCatalog: $e\n');
@@ -197,7 +198,10 @@ try {
 ```
 
 ### Parameters
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **provider** | **String**|  | [optional] 
 
 ### Return type
 

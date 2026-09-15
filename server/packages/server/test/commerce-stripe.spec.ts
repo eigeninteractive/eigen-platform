@@ -8,7 +8,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { stripeCommerceProvider } from "../src/index.js";
+import { stripeCommerceProvider } from "../src/commerce/providers/stripe.js";
 
 const SECRET = "whsec_test_secret";
 const config = { secretKey: () => "sk_test", webhookSecret: () => SECRET, now: () => 1_700_000_000_000 };
@@ -107,14 +107,14 @@ describe("stripe subscriptions", () => {
 describe("stripe claims", () => {
   it("refuses a session opened by another account", async () => {
     scriptFetch({ "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: "someone-else", created: 1_699_000_000 } });
-    await expect(provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(/another account/);
   });
 
   it("reads the price from the expanded session rather than the client", async () => {
     scriptFetch({
       "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: "alice", created: 1_699_000_000, line_items: { data: [{ price: { id: "price_supporter" } }] } },
     });
-    const verified = await provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
     expect(verified).toMatchObject({ providerTransactionId: "cs_1", providerReference: "price_supporter", kind: "oneTime", state: "active", providerAccountId: "cus_1" });
   });
 });
@@ -168,5 +168,46 @@ describe("stripe checkout", () => {
     expect(seenKey).toBe("op-42");
     expect(seenForm).toContain("client_reference_id=alice");
     expect(checkout).toMatchObject({ url: "https://checkout.stripe.com/c/pay/cs_1", providerAccountId: "cus_1" });
+  });
+
+  it("brings the session id back on the return, because the claim needs it", async () => {
+    // `verifyClaim` reads the session from `{ sessionId }`, and a returning
+    // browser has no other way to know it. Without the placeholder a web
+    // purchase can only be recognized when the webhook arrives, which may be
+    // after the player has given up and asked for a refund.
+    let seenForm = "";
+    vi.stubGlobal("fetch", async (request: Request) => {
+      seenForm = await request.text();
+      return new Response(JSON.stringify({ id: "cs_2", url: "https://checkout.stripe.com/c/pay/cs_2", customer: null, mode: "payment", payment_status: "unpaid", subscription: null, client_reference_id: "alice", created: 1 }), { headers: { "content-type": "application/json" } });
+    });
+    await provider.createCheckout?.(null, {
+      accountId: "alice",
+      offer: { key: "supporter", kind: "oneTime", name: "Supporter" } as never,
+      providerReference: "price_supporter",
+      returnUrl: "https://game.example/store",
+      operationId: "op-43",
+    });
+    const form = new URLSearchParams(seenForm);
+    // Stripe substitutes this itself, so the braces have to survive encoding.
+    expect(form.get("success_url")).toBe("https://game.example/store?session_id={CHECKOUT_SESSION_ID}");
+    // Cancelling identifies nothing, and a cancel URL claiming a session would
+    // invite a claim for a purchase that never happened.
+    expect(form.get("cancel_url")).toBe("https://game.example/store");
+  });
+
+  it("keeps a return URL's own query when it appends the session id", async () => {
+    let seenForm = "";
+    vi.stubGlobal("fetch", async (request: Request) => {
+      seenForm = await request.text();
+      return new Response(JSON.stringify({ id: "cs_3", url: "https://checkout.stripe.com/c/pay/cs_3", customer: null, mode: "payment", payment_status: "unpaid", subscription: null, client_reference_id: "alice", created: 1 }), { headers: { "content-type": "application/json" } });
+    });
+    await provider.createCheckout?.(null, {
+      accountId: "alice",
+      offer: { key: "supporter", kind: "oneTime", name: "Supporter" } as never,
+      providerReference: "price_supporter",
+      returnUrl: "https://game.example/store?from=offer",
+      operationId: "op-44",
+    });
+    expect(new URLSearchParams(seenForm).get("success_url")).toBe("https://game.example/store?from=offer&session_id={CHECKOUT_SESSION_ID}");
   });
 });

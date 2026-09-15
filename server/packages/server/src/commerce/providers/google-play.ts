@@ -22,11 +22,11 @@
  * There is no `createCheckout`: Play checkout is launched by the Billing
  * library on the device, and the engine answers that plainly for this provider.
  *
- * @module @eigeninteractive/commerce-google-play
+ * @module @eigeninteractive/server/commerce/google-play
  */
 
-import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";
-import { providerJson, requireSecret } from "@eigeninteractive/server/commerce-kit";
+import { providerJson, requireSecret } from "../provider-kit.js";
+import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://androidpublisher.googleapis.com/androidpublisher/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";

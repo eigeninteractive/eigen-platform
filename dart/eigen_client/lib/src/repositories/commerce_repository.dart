@@ -34,8 +34,20 @@ class CommerceRepository {
   final CommerceApi _api;
 
   /// The game's registered offers and provider-localized product details.
-  Future<CommerceCatalog> getCatalog() =>
-      engineData(() => _api.getCommerceCatalog());
+  ///
+  /// [providers] names the storefronts this build can actually buy through,
+  /// comma-separated. Passing them keeps the Worker from calling payment APIs
+  /// for prices this client cannot display, on a request a player is waiting
+  /// for. Omit it only to inspect every registered storefront at once.
+  ///
+  /// An offer with no [CommerceProduct] for any named provider is still
+  /// listed: it exists, and it is not purchasable from here.
+  Future<CommerceCatalog> getCatalog({Iterable<String>? providers}) =>
+      engineData(
+        () => _api.getCommerceCatalog(
+          provider: providers == null ? null : providers.join(','),
+        ),
+      );
 
   /// The account's current entitlements, capabilities, content, and limits.
   Future<AccessSnapshot> getAccess() =>

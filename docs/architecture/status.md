@@ -39,7 +39,7 @@ compatibility and command machinery from earlier phases.
 | Mutation model | Generic receipts and public `Idempotency-Key` requirements are removed. Lifecycle and membership operations rely on their operation-specific idempotence. |
 | Creation identity | Both create routes require a client-minted `creationId`; D1 binds it to the creator and canonical input fingerprint in the same transaction as the game, usage, and capacity. |
 | Commerce core | Optional catalogs, fixed capabilities, content ownership, limits, a normalized transaction/grant ledger, access projection, claims, restoration, hosted checkout/management seams, provider-authenticated webhooks, and scheduled reconciliation are implemented. |
-| Commerce clients | Generated OpenAPI/Dart models, the pure-Dart `CommerceRepository`, Flutter `PurchaseGateway`/`CommerceService`, and shell-safe creation retries are implemented. Concrete merchant SDK adapters and storefront presentation remain deployment or integration-package work. |
+| Commerce clients | Generated OpenAPI/Dart models, the pure-Dart `CommerceRepository`, the Flutter `PurchaseGateway`/`HostedStorefront` ports with `CommerceService`, and shell-safe creation retries are implemented. Concrete store-SDK and hosted-page implementations, and storefront presentation, remain application work. |
 | Creation policy | Versioned server rules validate player limits and timing options after parsing config. Flutter may mirror these rules for responsive UX. |
 | Socket authentication | Authenticated HTTP mints a signed 60-second game ticket; upgrade verification happens before Durable Object routing. |
 | Unknown game routing | Public commands and session reads prove the retained D1 row exists before deriving or waking a Durable Object. |

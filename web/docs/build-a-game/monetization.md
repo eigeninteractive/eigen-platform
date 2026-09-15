@@ -312,34 +312,49 @@ The pure Dart client exposes `CommerceRepository` for:
 - provider-hosted `createCheckout()`; and
 - provider-hosted `createManagement()`.
 
-`eigen_flutter` adds a `PurchaseGateway` boundary for native billing SDKs. An
-adapter supplies localized products, launches the SDK purchase/restore flow,
-emits normalized updates with provider evidence, and completes provider
-delivery only after verification. Override
-`purchaseGatewayProvider` at the application composition root, then use
-`CommerceService`. A purchased or restored SDK update is not access: the
-service submits its evidence to the Worker, commits access, calls the gateway
-completion hook, and only then yields an `AccessSnapshot`.
+`eigen_flutter` adds two storefront boundaries, because a store SDK and a
+hosted page are not the same shape. A `PurchaseGateway` supplies localized
+products, launches the SDK purchase/restore flow, emits normalized updates with
+provider evidence, and settles provider delivery only after verification. A
+`HostedStorefront` opens a checkout URL the Worker created and reports what
+came back through the return URL; it settles nothing, because the provider
+already took the money.
 
-For hosted web billing, call `CommerceRepository.createCheckout`, open the
-returned provider URL, and refresh `getAccess` after the return redirect. The
-return URL must use the Worker origin or a configured trusted client origin.
-The provider webhook is still authoritative if the browser disappears after
-payment.
+Override `storefrontsProvider` at the application composition root with the
+storefronts this build carries, in preference order, then use
+`CommerceService`. That list is the routing decision: the server holds no
+per-platform policy, so which storefront an Android or web build uses is
+decided here and changing it is an app release.
 
-A concrete adapter lives in an optional package rather than the engine, because
-it needs a merchant account, credentials and product identifiers the engine has
-no business holding. Three ship today, and installing none of them is the
-normal case:
+Whatever the storefront, a purchased or restored update is not access. The
+service submits its evidence to the Worker, commits access, settles at the SDK
+if there is one, and only then yields an `AccessSnapshot` — on one stream, so a
+store screen listens once.
 
-| Package | Storefront | Reference is | Checkout |
+`CommerceService.getCatalog` names this build's storefronts, so the Worker
+consults only those providers' pricing APIs. Calling
+`CommerceRepository.getCatalog` without them asks every registered storefront,
+which is what an operator wants and what a player's first screen does not.
+
+A hosted return URL must use the Worker origin or a configured trusted client
+origin. It is also not proof of payment: a browser closed on a slow network
+returns nothing at all, which a `HostedStorefront` reports as
+`PurchaseUpdateState.pending` rather than a failure. The provider webhook
+remains authoritative.
+
+A concrete adapter is an entry point of its own rather than part of the barrel,
+because it needs a merchant account, credentials and product identifiers the
+engine has no business holding. Three ship today, importing none of them is the
+normal case, and importing one carries only that one into your bundle:
+
+| Entry point | Storefront | Reference is | Checkout |
 | --- | --- | --- | --- |
-| [`@eigeninteractive/commerce-google-play`](https://www.npmjs.com/package/@eigeninteractive/commerce-google-play) | Google Play Billing | the product id | launched on the device by the Billing library |
-| [`@eigeninteractive/commerce-stripe`](https://www.npmjs.com/package/@eigeninteractive/commerce-stripe) | Stripe | a Price id (`price_...`) | hosted Checkout Session |
-| [`@eigeninteractive/commerce-razorpay`](https://www.npmjs.com/package/@eigeninteractive/commerce-razorpay) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
+| [`@eigeninteractive/server/commerce/google-play`](../reference/typescript/server-commerce-google-play.md) | Google Play Billing | the product id | launched on the device by the Billing library |
+| [`@eigeninteractive/server/commerce/stripe`](../reference/typescript/server-commerce-stripe.md) | Stripe | a Price id (`price_...`) | hosted Checkout Session |
+| [`@eigeninteractive/server/commerce/razorpay`](../reference/typescript/server-commerce-razorpay.md) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
 
-Each package's README carries its configuration and the details that are only
-true of that provider. Three are worth knowing before you choose:
+Each reference page carries the adapter's configuration and the details that
+are only true of that provider. Three are worth knowing before you choose:
 
 - **Play refunds an unacknowledged purchase after three days.** The engine
   acknowledges only after the entitlement is durable and retries a lost

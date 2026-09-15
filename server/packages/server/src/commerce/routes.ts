@@ -1,4 +1,4 @@
-import { createRoute, type z } from "@hono/zod-openapi";
+import { createRoute, z } from "@hono/zod-openapi";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { errorShape } from "../routes/wire.js";
@@ -6,7 +6,7 @@ import { readEffectiveAccess } from "./access.js";
 import { assertPurchasable, readCheckout, readOpenCheckout, recordCheckout } from "./checkout.js";
 import { readProviderAccount, recordProviderAccount, recordVerifiedEvent, recordVerifiedTransaction } from "./ledger.js";
 import { acknowledgeIfNeeded } from "./provider-lifecycle.js";
-import type { CommerceOffer, CommerceProvider } from "./types.js";
+import type { CommerceOffer, CommerceProvider, ResolvedCommerce } from "./types.js";
 import { accessSnapshotShape, checkoutBodyShape, claimBodyShape, commerceCatalogShape, managementBodyShape, restoreBodyShape, urlShape } from "./wire.js";
 
 const commerceErrors = {
@@ -26,6 +26,32 @@ function commerce(ctx: RouteContext) {
 function provider(ctx: RouteContext, key: string): CommerceProvider<unknown> {
   const found = commerce(ctx).providers.get(key);
   if (found === undefined) throw new HttpError(404, `Unknown commerce provider: ${key}`);
+  return found;
+}
+
+/**
+ * The adapters a catalog request should actually consult.
+ *
+ * Omitting `provider` asks for every registered storefront, which is what an
+ * operator or a one-platform deployment wants. Naming some narrows to those:
+ * an Android build that names `google_play` should not make the Worker fetch
+ * Stripe prices it will never render.
+ *
+ * Unknown names are dropped rather than refused, so a deployment that has not
+ * configured every storefront a client build knows about still serves the ones
+ * it has. Naming only unknown storefronts is a real mismatch and says so.
+ */
+function selectedAdapters(resolved: ResolvedCommerce, requested: string | undefined): CommerceProvider<unknown>[] {
+  if (requested === undefined) return [...resolved.providers.values()];
+  const keys = requested
+    .split(",")
+    .map((key) => key.trim())
+    .filter((key) => key.length > 0);
+  const found = keys.flatMap((key) => {
+    const adapter = resolved.providers.get(key);
+    return adapter === undefined ? [] : [adapter];
+  });
+  if (found.length === 0) throw new HttpError(404, `No registered commerce provider among: ${keys.join(", ")}`);
   return found;
 }
 
@@ -99,35 +125,55 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
 }
 
 export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void {
-  app.openapi(createRoute({ method: "get", path: "/commerce/catalog", operationId: "getCommerceCatalog", tags: ["Commerce"], responses: { 200: { content: { "application/json": { schema: commerceCatalogShape } }, description: "Registered offers and storefront products" }, ...commerceErrors } }), async (c) => {
-    const resolved = commerce(ctx);
-    const productDetails = new Map<string, { displayPrice: string; currencyCode?: string }>();
-    await Promise.all(
-      [...resolved.providers.values()].map(async (adapter) => {
-        if (adapter.products === undefined) return;
-        const ids = resolved.catalog.offers.flatMap((item) => (item.providerReferences[adapter.key] === undefined ? [] : [item.providerReferences[adapter.key]]));
-        const products = await providerCall(`The ${adapter.key} provider could not load its products`, async () => (await adapter.products?.(c.env, ids)) ?? []);
-        for (const item of products) productDetails.set(`${adapter.key}:${item.providerReference}`, item);
-      }),
-    );
-    return c.json(
-      {
-        offers: resolved.catalog.offers.map((item) => ({
-          key: item.key,
-          name: item.name,
-          description: item.description,
-          kind: item.kind,
-          entitlements: [...item.entitlements],
-          repeatable: item.repeatable === true,
-          products: Object.entries(item.providerReferences).map(([providerKey, providerReference]) => {
-            const detail = productDetails.get(`${providerKey}:${providerReference}`);
-            return { provider: providerKey, providerReference, displayPrice: detail?.displayPrice ?? null, currencyCode: detail?.currencyCode ?? null };
-          }),
-        })),
-      },
-      200,
-    );
-  });
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/commerce/catalog",
+      operationId: "getCommerceCatalog",
+      tags: ["Commerce"],
+      request: { query: z.object({ provider: z.string().min(1).optional() }) },
+      responses: { 200: { content: { "application/json": { schema: commerceCatalogShape } }, description: "Registered offers and storefront products" }, ...commerceErrors },
+    }),
+    async (c) => {
+      const resolved = commerce(ctx);
+      // A client can buy through exactly the storefronts its build ships an
+      // adapter for, and naming them here is how it says so. Every other
+      // provider's `products` call is a round trip to a payment API for a price
+      // this caller can never display, on a request a player is waiting for.
+      const adapters = selectedAdapters(resolved, c.req.valid("query").provider);
+      const productDetails = new Map<string, { displayPrice: string; currencyCode?: string }>();
+      await Promise.all(
+        adapters.map(async (adapter) => {
+          if (adapter.products === undefined) return;
+          const ids = resolved.catalog.offers.flatMap((item) => (item.providerReferences[adapter.key] === undefined ? [] : [item.providerReferences[adapter.key]]));
+          const products = await providerCall(`The ${adapter.key} provider could not load its products`, async () => (await adapter.products?.(c.env, ids)) ?? []);
+          for (const item of products) productDetails.set(`${adapter.key}:${item.providerReference}`, item);
+        }),
+      );
+      const visible = new Set(adapters.map((adapter) => adapter.key));
+      return c.json(
+        {
+          offers: resolved.catalog.offers.map((item) => ({
+            key: item.key,
+            name: item.name,
+            description: item.description,
+            kind: item.kind,
+            entitlements: [...item.entitlements],
+            repeatable: item.repeatable === true,
+            // The offer itself is always listed. An empty `products` is a
+            // truthful "not purchasable from here", which a store screen can
+            // show as such; hiding the offer would make it unexplainable.
+            products: Object.entries(item.providerReferences).flatMap(([providerKey, providerReference]) => {
+              if (!visible.has(providerKey)) return [];
+              const detail = productDetails.get(`${providerKey}:${providerReference}`);
+              return [{ provider: providerKey, providerReference, displayPrice: detail?.displayPrice ?? null, currencyCode: detail?.currencyCode ?? null }];
+            }),
+          })),
+        },
+        200,
+      );
+    },
+  );
 
   app.openapi(
     createRoute({ method: "get", path: "/commerce/access", operationId: "getCommerceAccess", tags: ["Commerce"], responses: { 200: { content: { "application/json": { schema: accessSnapshotShape } }, description: "Effective entitlements, capabilities, content, and limits" }, ...commerceErrors } }),

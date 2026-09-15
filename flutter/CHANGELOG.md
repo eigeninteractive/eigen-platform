@@ -18,6 +18,9 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 ### Added
 - Provider-neutral `PurchaseGateway` and `CommerceService` integration points that verify a completed purchase update with the Worker before exposing any access it grants, and a Drift-backed delivery outbox so a verified purchase still completes with the storefront after a restart.
 
+### Changed
+- The Flutter purchase port is split in two: `PurchaseGateway` for an on-device billing SDK and `HostedStorefront` for a provider-hosted checkout page, both under a common `Storefront`. `CommerceService` now takes the storefronts a build carries, chooses between them per offer, publishes verified purchases from either on one stream, and settles only at an SDK. `purchaseGatewayProvider` is replaced by `storefrontsProvider`.
+
 ## [0.10.0] - 2026-09-13
 ### Added
 - Offline play: a game module may declare a `LocalGameRules` unit per version through `GameRules.local`, and a game that does is playable on the device against bots this build ships brains for.

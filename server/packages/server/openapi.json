@@ -5293,6 +5293,17 @@
         "tags": [
           "Commerce"
         ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Registered offers and storefront products",

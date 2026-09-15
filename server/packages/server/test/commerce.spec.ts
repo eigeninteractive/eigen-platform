@@ -7,7 +7,7 @@ import { orm } from "../src/d1/orm.js";
 import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
 import { testBearer as bearer, fakeCommerceProvider, testMutationHeaders as mutationHeaders, testFirebaseAdmin, testVerifier } from "../src/testing.js";
-import { commerceProvider, contentForCreateArguments, testGame } from "./worker.js";
+import { commerceProvider, contentForCreateArguments, productLookups, testGame } from "./worker.js";
 
 const db = orm(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
@@ -51,11 +51,49 @@ describe("commerce catalog and access", () => {
               displayPrice: "$4.99",
               currencyCode: "USD",
             },
+            {
+              provider: "fake_web",
+              providerReference: "supporter_web",
+              displayPrice: "$5.49",
+              currencyCode: "USD",
+            },
           ],
         }),
         expect.objectContaining({ key: "pro_monthly", kind: "subscription" }),
       ]),
     );
+  });
+
+  it("consults only the storefronts the caller can buy through", async () => {
+    productLookups.length = 0;
+    const response = await json<{ offers: { key: string; products: { provider: string }[] }[] }>(await api(uid("narrow"), "GET", "/commerce/catalog?provider=fake_web"));
+
+    // Every other storefront's price lookup is a round trip to a payment API,
+    // for a number this caller could not render, on a request a player waits on.
+    expect(productLookups).toEqual(["fake_web"]);
+    const supporter = response.offers.find((offer) => offer.key === "supporter");
+    expect(supporter?.products.map((product) => product.provider)).toEqual(["fake_web"]);
+    // The offer is still listed with nothing to buy it by, which a store screen
+    // can explain. Hiding it would make it unexplainable.
+    const pro = response.offers.find((offer) => offer.key === "pro_monthly");
+    expect(pro?.products).toEqual([]);
+  });
+
+  it("serves the storefronts it has when a build names one it does not", async () => {
+    productLookups.length = 0;
+    const response = await json<{ offers: { key: string; products: { provider: string }[] }[] }>(await api(uid("partial"), "GET", "/commerce/catalog?provider=fake,apple_app_store"));
+
+    // A build that knows about a storefront this deployment has not configured
+    // should still be able to sell through the ones it has.
+    expect(productLookups).toEqual(["fake"]);
+    expect(response.offers.find((offer) => offer.key === "supporter")?.products.map((product) => product.provider)).toEqual(["fake"]);
+  });
+
+  it("says so when it has none of the storefronts a build named", async () => {
+    // Silently returning an empty storefront would look like "nothing is for
+    // sale" rather than "this deployment and this build disagree".
+    const response = await api(uid("mismatch"), "GET", "/commerce/catalog?provider=apple_app_store");
+    expect(response.status).toBe(404);
   });
 
   it("returns the free profile before any purchase", async () => {

@@ -8,19 +8,31 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'commerce_providers.g.dart';
 
-/// Platform billing boundary. Commerce applications override this provider.
+/// The storefronts this build can buy through, in preference order.
+///
+/// Empty by default: a game that sells nothing overrides nothing. A commerce
+/// application overrides this at its composition root with the storefronts its
+/// platform allows — typically a [PurchaseGateway] for the store SDK on
+/// Android, and a [HostedStorefront] per merchant account on the web. There is
+/// no server-side routing policy, so this list is the decision, and changing
+/// it is an app release.
 @Riverpod(keepAlive: true)
-PurchaseGateway purchaseGateway(Ref ref) => const UnavailablePurchaseGateway();
+List<Storefront> storefronts(Ref ref) => const [];
 
 /// Pure-Dart access to the Worker's commerce API.
 @Riverpod(keepAlive: true)
 CommerceRepository commerceRepository(Ref ref) =>
     CommerceRepository(ref.watch(engineDioProvider));
 
-/// Provider-neutral coordinator joining SDK updates to server verification.
+/// Provider-neutral coordinator joining storefront updates to server
+/// verification.
 @Riverpod(keepAlive: true)
-CommerceService commerceService(Ref ref) => CommerceService(
-  ref.watch(commerceRepositoryProvider),
-  ref.watch(purchaseGatewayProvider),
-  DriftPurchaseDeliveryStore(ref.watch(localDatabaseProvider.future)),
-);
+CommerceService commerceService(Ref ref) {
+  final service = CommerceService(
+    ref.watch(commerceRepositoryProvider),
+    ref.watch(storefrontsProvider),
+    DriftPurchaseDeliveryStore(ref.watch(localDatabaseProvider.future)),
+  );
+  ref.onDispose(service.dispose);
+  return service;
+}

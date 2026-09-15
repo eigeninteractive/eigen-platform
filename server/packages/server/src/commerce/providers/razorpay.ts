@@ -18,11 +18,11 @@
  *   portal, so `management` is deliberately absent and the engine's management
  *   route answers that this provider is managed elsewhere.
  *
- * @module @eigeninteractive/commerce-razorpay
+ * @module @eigeninteractive/server/commerce/razorpay
  */
 
-import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";
-import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "@eigeninteractive/server/commerce-kit";
+import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
+import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://api.razorpay.com/v1";
 const PROVIDER = "razorpay";

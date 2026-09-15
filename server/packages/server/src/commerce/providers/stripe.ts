@@ -19,11 +19,11 @@
  *   adapter re-reads the Session, Subscription or PaymentIntent from the API
  *   before anything becomes an entitlement.
  *
- * @module @eigeninteractive/commerce-stripe
+ * @module @eigeninteractive/server/commerce/stripe
  */
 
-import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "@eigeninteractive/server";
-import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "@eigeninteractive/server/commerce-kit";
+import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
+import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://api.stripe.com/v1";
 const PROVIDER = "stripe";
@@ -279,11 +279,17 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
 
     createCheckout: async (env, input) => {
       const mode = input.offer.kind === "subscription" ? "subscription" : "payment";
+      // Stripe substitutes the session id into this placeholder on the way
+      // back, and it is the only thing the returning client can present as
+      // claim evidence -- `verifyClaim` reads the session from it. The braces
+      // must reach Stripe unescaped, so this is string concatenation rather
+      // than `URL.searchParams`, which would percent-encode them.
+      const successUrl = `${input.returnUrl}${input.returnUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
       const form: Record<string, string> = {
         mode,
         "line_items[0][price]": input.providerReference,
         "line_items[0][quantity]": "1",
-        success_url: input.returnUrl,
+        success_url: successUrl,
         cancel_url: input.returnUrl,
         // Binds the session to the Eigen account in both directions: the claim
         // checks it, and a webhook that arrives first can still name the owner.

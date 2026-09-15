@@ -10,7 +10,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { googlePlayCommerceProvider } from "../src/index.js";
+import { googlePlayCommerceProvider } from "../src/commerce/providers/google-play.js";
 
 // A throwaway PKCS#8 RSA key, generated for this test and used nowhere else:
 // the adapter signs a service-account assertion with it, so the test needs a
@@ -19,7 +19,7 @@ let cachedKey: string | null = null;
 async function testPrivateKey(): Promise<string> {
   if (cachedKey !== null) return cachedKey;
   const pair = (await crypto.subtle.generateKey({ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, true, ["sign", "verify"])) as CryptoKeyPair;
-  const pkcs8 = new Uint8Array(await crypto.subtle.exportKey("pkcs8", pair.privateKey));
+  const pkcs8 = new Uint8Array((await crypto.subtle.exportKey("pkcs8", pair.privateKey)) as ArrayBuffer);
   const base64 = btoa(String.fromCharCode(...pkcs8)).replace(/(.{64})/g, "$1\n");
   cachedKey = `-----BEGIN PRIVATE KEY-----\n${base64}\n-----END PRIVATE KEY-----`;
   return cachedKey;
@@ -61,7 +61,7 @@ describe("google play one-time purchases", () => {
     await testPrivateKey();
     scriptFetch({ [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 0, purchaseTimeMillis: "1699000000000", orderId: "GPA.1", obfuscatedExternalAccountId: "alice" } });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
     expect(verified).toMatchObject({ providerTransactionId: "GPA.1", providerReference: "supporter_once", kind: "oneTime", state: "active", requiresAcknowledgement: true });
     // The token is the handle every later call needs, so it rides in sealed
     // state rather than being the transaction's public identity.
@@ -76,7 +76,7 @@ describe("google play one-time purchases", () => {
     await testPrivateKey();
     scriptFetch({ [PRODUCT_PATH]: { purchaseState, acknowledgementState, purchaseTimeMillis: "1699000000000", orderId: "GPA.1" } });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
     expect(verified.state).toBe(expected);
     expect(verified.requiresAcknowledgement).toBe(needsAck);
   });
@@ -85,14 +85,14 @@ describe("google play one-time purchases", () => {
     await testPrivateKey();
     scriptFetch({ [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 1, orderId: "GPA.1", obfuscatedExternalAccountId: "mallory" } });
     const provider = await makeProvider();
-    await expect(provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(/another account/);
   });
 
   it("acknowledges through the product path and reuses one access token", async () => {
     await testPrivateKey();
     const state = scriptFetch({ [`${PRODUCT_PATH}:acknowledge`]: null, [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 0, orderId: "GPA.1" } });
     const provider = await makeProvider();
-    await provider.verifyClaim(null, { accountId: "alice", offer: { key: "supporter" } as never, expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
+    await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
     await provider.acknowledge?.(null, { providerTransactionId: "GPA.1", accountId: "alice", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ productId: "supporter_once", token: "tok_1" }), acknowledgementPending: true });
     expect(state.seen).toContain(`POST ${PRODUCT_PATH}:acknowledge`);
     // Minting is an RS256 signature plus a round trip; once per isolate.
@@ -124,7 +124,7 @@ describe("google play subscriptions", () => {
     await testPrivateKey();
     scriptFetch({ [SUBSCRIPTION_PATH]: purchase(playState) });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", offer: { key: "pro" } as never, expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
     expect(verified.state).toBe(expected);
     expect(verified.validUntil).toBe(Date.parse("2026-10-01T00:00:00Z"));
   });
@@ -133,7 +133,7 @@ describe("google play subscriptions", () => {
     await testPrivateKey();
     scriptFetch({ [SUBSCRIPTION_PATH]: purchase("SUBSCRIPTION_STATE_ACTIVE", "ACKNOWLEDGEMENT_STATE_PENDING") });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", offer: { key: "pro" } as never, expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
     expect(verified.requiresAcknowledgement).toBe(true);
   });
 });

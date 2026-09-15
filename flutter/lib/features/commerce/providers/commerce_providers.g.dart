@@ -8,52 +8,77 @@ part of 'commerce_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Platform billing boundary. Commerce applications override this provider.
+/// The storefronts this build can buy through, in preference order.
+///
+/// Empty by default: a game that sells nothing overrides nothing. A commerce
+/// application overrides this at its composition root with the storefronts its
+/// platform allows — typically a [PurchaseGateway] for the store SDK on
+/// Android, and a [HostedStorefront] per merchant account on the web. There is
+/// no server-side routing policy, so this list is the decision, and changing
+/// it is an app release.
 
-@ProviderFor(purchaseGateway)
-final purchaseGatewayProvider = PurchaseGatewayProvider._();
+@ProviderFor(storefronts)
+final storefrontsProvider = StorefrontsProvider._();
 
-/// Platform billing boundary. Commerce applications override this provider.
+/// The storefronts this build can buy through, in preference order.
+///
+/// Empty by default: a game that sells nothing overrides nothing. A commerce
+/// application overrides this at its composition root with the storefronts its
+/// platform allows — typically a [PurchaseGateway] for the store SDK on
+/// Android, and a [HostedStorefront] per merchant account on the web. There is
+/// no server-side routing policy, so this list is the decision, and changing
+/// it is an app release.
 
-final class PurchaseGatewayProvider
+final class StorefrontsProvider
     extends
-        $FunctionalProvider<PurchaseGateway, PurchaseGateway, PurchaseGateway>
-    with $Provider<PurchaseGateway> {
-  /// Platform billing boundary. Commerce applications override this provider.
-  PurchaseGatewayProvider._()
+        $FunctionalProvider<
+          List<Storefront>,
+          List<Storefront>,
+          List<Storefront>
+        >
+    with $Provider<List<Storefront>> {
+  /// The storefronts this build can buy through, in preference order.
+  ///
+  /// Empty by default: a game that sells nothing overrides nothing. A commerce
+  /// application overrides this at its composition root with the storefronts its
+  /// platform allows — typically a [PurchaseGateway] for the store SDK on
+  /// Android, and a [HostedStorefront] per merchant account on the web. There is
+  /// no server-side routing policy, so this list is the decision, and changing
+  /// it is an app release.
+  StorefrontsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'purchaseGatewayProvider',
+        name: r'storefrontsProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$purchaseGatewayHash();
+  String debugGetCreateSourceHash() => _$storefrontsHash();
 
   @$internal
   @override
-  $ProviderElement<PurchaseGateway> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<List<Storefront>> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  PurchaseGateway create(Ref ref) {
-    return purchaseGateway(ref);
+  List<Storefront> create(Ref ref) {
+    return storefronts(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(PurchaseGateway value) {
+  Override overrideWithValue(List<Storefront> value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<PurchaseGateway>(value),
+      providerOverride: $SyncValueProvider<List<Storefront>>(value),
     );
   }
 }
 
-String _$purchaseGatewayHash() => r'61a7161e9b3054d12d4e164d929f4a5bb9877072';
+String _$storefrontsHash() => r'8d984cfc2cf4c3eee2b1c4a50c26c3efaf63998c';
 
 /// Pure-Dart access to the Worker's commerce API.
 
@@ -108,18 +133,21 @@ final class CommerceRepositoryProvider
 String _$commerceRepositoryHash() =>
     r'e231d2c5d2639b3cd6691063baab09529e0ce460';
 
-/// Provider-neutral coordinator joining SDK updates to server verification.
+/// Provider-neutral coordinator joining storefront updates to server
+/// verification.
 
 @ProviderFor(commerceService)
 final commerceServiceProvider = CommerceServiceProvider._();
 
-/// Provider-neutral coordinator joining SDK updates to server verification.
+/// Provider-neutral coordinator joining storefront updates to server
+/// verification.
 
 final class CommerceServiceProvider
     extends
         $FunctionalProvider<CommerceService, CommerceService, CommerceService>
     with $Provider<CommerceService> {
-  /// Provider-neutral coordinator joining SDK updates to server verification.
+  /// Provider-neutral coordinator joining storefront updates to server
+  /// verification.
   CommerceServiceProvider._()
     : super(
         from: null,
@@ -153,4 +181,4 @@ final class CommerceServiceProvider
   }
 }
 
-String _$commerceServiceHash() => r'9009c49eec81440773f33994ad14b03bc281e430';
+String _$commerceServiceHash() => r'9ada6ffa667ae75fb14c1ce65faac9e14b4afd41';

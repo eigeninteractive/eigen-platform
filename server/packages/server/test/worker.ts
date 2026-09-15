@@ -222,6 +222,12 @@ export const commerceProvider = fakeCommerceProvider([
   { providerReference: "pro_monthly", displayPrice: "$1.00", currencyCode: "USD", kind: "subscription" },
 ]);
 
+/** A second registered storefront, so the suite can tell "every provider" from
+ * "the one this caller asked for". `products` records who was consulted. */
+export const secondCommerceProvider = fakeCommerceProvider([{ providerReference: "supporter_web", displayPrice: "$5.49", currencyCode: "USD" }], Date.now, "fake_web");
+
+export const productLookups: string[] = [];
+
 export default createEngine({
   gameModule: testGame,
   appName: "Eigen Test",
@@ -270,7 +276,7 @@ export default createEngine({
         },
       ],
       offers: [
-        { key: "supporter", name: "Supporter", description: "Permanent supporter cosmetics.", kind: "oneTime", entitlements: ["supporter"], providerReferences: { fake: "supporter_once" } },
+        { key: "supporter", name: "Supporter", description: "Permanent supporter cosmetics.", kind: "oneTime", entitlements: ["supporter"], providerReferences: { fake: "supporter_once", fake_web: "supporter_web" } },
         { key: "pro_monthly", name: "Pro", description: "Monthly analysis access.", kind: "subscription", entitlements: ["pro"], providerReferences: { fake: "pro_monthly" } },
       ],
       content: {
@@ -280,7 +286,12 @@ export default createEngine({
         },
       },
     },
-    providers: [commerceProvider],
+    providers: [
+      // Each adapter records the fact that it was asked for prices at all: the
+      // catalog route must not consult a storefront the caller cannot buy from.
+      { ...commerceProvider, products: async (env, ids) => (productLookups.push(commerceProvider.key), (await commerceProvider.products?.(env, ids)) ?? []) },
+      { ...secondCommerceProvider, products: async (env, ids) => (productLookups.push(secondCommerceProvider.key), (await secondCommerceProvider.products?.(env, ids)) ?? []) },
+    ],
   },
   // The public web surface, exercised by site.spec.ts. Legal documents are
   // left at the engine defaults so the tests assert the shipped prose and its
