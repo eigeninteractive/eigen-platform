@@ -1,5 +1,12 @@
 # @eigeninteractive/kernel
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies [[`3dc7a3b`](https://github.com/eigeninteractive/eigen-platform/commit/3dc7a3b4a2792669924eccdd46f2e969924b3874)]:
+  - @eigeninteractive/rules@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
