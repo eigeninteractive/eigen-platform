@@ -25,13 +25,23 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: dart-lang/setup-dart@v1
+      # The Flutter SDK, not the Dart SDK, because this package is a member of
+      # the Dart workspace at the repository root: resolving it resolves every
+      # OTHER member too, and `eigen_firebase` requires Flutter. Standalone
+      # `dart pub get` fails here with "Because eigen_firebase requires the
+      # Flutter SDK, version solving failed", naming a package this one does
+      # not depend on and cannot see. `tool/check.sh` validates this package in
+      # its Flutter shard for exactly the same reason.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: flutter/.fvmrc
+          cache: true
 
       # setup-dart eagerly configures the package-scoped OIDC token for the
       # whole pub.dev host. Keep dependency resolution anonymous: pub.dev can
       # legitimately reject that upload identity for unrelated dependencies.
       - name: Defer pub.dev credentials until upload
-        run: dart pub token remove https://pub.dev
+        run: dart pub token remove https://pub.dev || true
 
       - name: Verify tag and package version
         run: |
@@ -57,7 +67,7 @@ jobs:
       - name: Check generated Dart package
         if: steps.published.outputs.skip == 'false'
         run: |
-          dart pub get
+          flutter pub get
           dart analyze
 
       - name: Publish dry run
