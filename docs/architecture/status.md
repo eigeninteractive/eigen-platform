@@ -50,13 +50,14 @@ compatibility and command machinery from earlier phases.
 | Firebase adapter | `eigen_flutter` exposes provider-neutral auth, token, analytics, navigation-observer, and notification ports. `eigen_firebase` owns the Firebase SDKs, Android integration, Firebase configuration CLI, and explicit telemetry policy. |
 | Flutter package boundary | `eigen_flutter` is embeddable and owns no root app, routes, or product flows. `eigen_shell` owns the complete first-party application, while `eigen_firebase` is an optional sibling adapter that returns provider overrides. |
 | Split release wiring | The platform inventory, local overrides, checks, scaffolder templates, implementor docs, changelogs, and namespaced `eigen_shell` pub.dev workflows describe the same package graph and dependency order. |
-| Local checks | Server work runs once; independent Flutter, docs, and scaffold shards run concurrently afterwards. Local dependency overrides are generated ignored files. |
+| Local checks | Server work runs once; the implementor-documentation and scaffold shards then run concurrently with the Dart ones, which run in sequence among themselves because they share one pub workspace. CI shards all of them. Local dependency overrides are generated ignored files. |
 | Offline play | A pure-Dart local kernel and an optional `LocalGameRules` twin let a device play a game against on-device bots with no network; the server registers the game's `origin`, replays an imported device log through the authoritative TypeScript rules, and a disagreement between the two surfaces as `diverged` rather than resolving silently. |
 
 ## Completion
 
-The architectural rewrite is complete. A clean GitHub checkout passes the server,
-Flutter, documentation, manifest, and Android/web scaffold shards. The unified
+The architectural rewrite is complete. A clean GitHub checkout passes the
+manifest, server, Dart, Flutter, shell, dartdoc, implementor-documentation, and
+Android/web scaffold shards. The unified
 release process has published every package from `eigen-platform`, the live
 documentation deploys from this repository, and registry versions match
 the manifests in this repository.
