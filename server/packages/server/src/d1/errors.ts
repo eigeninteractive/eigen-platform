@@ -61,6 +61,35 @@ export function isShortCodeCollision(error: unknown): boolean {
   return matchesCause(error, /UNIQUE constraint failed: [^:]*\bgames\.short_code\b/i);
 }
 
+/** The slot columns that carry a commercial allowance. A `commerce_usage` or
+ * `commerce_capacity` row is admitted by a guarded insert whose slot expression
+ * yields NULL once the allowance is spent, so the allowance is enforced by the
+ * NOT NULL on these columns and the uniqueness on the index over them. */
+const SLOT_COLUMN = String.raw`\bcommerce_(?:usage|capacity)\.slot\b`;
+
+/**
+ * The allowance is genuinely spent.
+ *
+ * NOT NULL is the guarded insert's own verdict: the slot expression evaluated
+ * the count against the maximum and declined to produce a number.
+ */
+export function isCommercialLimitReached(error: unknown): boolean {
+  return matchesCause(error, new RegExp(String.raw`NOT NULL constraint failed: [^:]*${SLOT_COLUMN}`, "i"));
+}
+
+/**
+ * Two of this account's writes wanted the same slot, and one lost.
+ *
+ * Not the allowance: both reads saw room, and `max(slot) + 1` is only unique
+ * because the index says so. Losing that race is exactly how the allowance is
+ * held under concurrency -- without it both would be admitted -- but the loser
+ * may still be well under its maximum, so this is retried rather than reported.
+ * Retrying re-evaluates the count, which now includes the winner.
+ */
+export function isSlotContention(error: unknown): boolean {
+  return matchesCause(error, new RegExp(String.raw`UNIQUE constraint failed: [^:]*${SLOT_COLUMN}`, "i"));
+}
+
 /** The transient D1 failures Cloudflare's debug-D1 docs mark "Retry the
  * operation": a network blip, a storage/Durable-Object reset, a code-update
  * restart, or a transient routing failure. This mirrors Cloudflare's own

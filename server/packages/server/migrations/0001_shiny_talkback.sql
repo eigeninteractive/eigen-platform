@@ -96,7 +96,7 @@ CREATE UNIQUE INDEX `idx_creation_operations_creator_id` ON `creation_operations
 CREATE UNIQUE INDEX `idx_creation_operations_game` ON `creation_operations` (`game_id`);--> statement-breakpoint
 CREATE TABLE `entitlement_grants` (
 	`id` text PRIMARY KEY NOT NULL,
-	`user_id` text,
+	`user_id` text NOT NULL,
 	`entitlement_key` text NOT NULL,
 	`source_transaction_id` text NOT NULL,
 	`valid_from` integer NOT NULL,

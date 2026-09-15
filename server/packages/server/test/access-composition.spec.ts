@@ -10,7 +10,7 @@ import { reconcileCommerce } from "../src/commerce/reconcile.js";
 import type { CommerceCatalog, CommerceProvider, VerifiedCommerceTransaction } from "../src/commerce/types.js";
 import { orm } from "../src/d1/orm.js";
 import { commerceUsage } from "../src/d1/schema.js";
-import { fakeCommerceProvider } from "../src/testing.js";
+import { fakeCommerceProvider, testAccount } from "../src/testing.js";
 
 const now = Date.UTC(2026, 8, 15, 12);
 
@@ -71,6 +71,9 @@ const catalog: CommerceCatalog = {
 };
 
 async function record(accountId: string, offerKey: string, transaction: VerifiedCommerceTransaction) {
+  // The ledger writes only for an account that exists. Through the API the
+  // auth middleware guarantees that; a direct call has to provision it.
+  await testAccount(env.DB, accountId, now);
   await recordVerifiedTransaction(env.DB, {
     catalog,
     provider: "fake",
@@ -268,6 +271,7 @@ describe("grant composition", () => {
         },
       ],
     };
+    await testAccount(env.DB, accountId, now);
     await recordVerifiedTransaction(env.DB, {
       catalog: unlimitedCatalog,
       provider: "fake",

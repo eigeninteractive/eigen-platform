@@ -32,6 +32,8 @@
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";
 import { createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
 import type { CommerceProduct, CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "./commerce/types.js";
+import { orm } from "./d1/orm.js";
+import { users } from "./d1/schema.js";
 import type { FirebaseAdminEffects } from "./firebase/admin-effects.js";
 
 export const TEST_PROJECT_ID = "eigen-test";
@@ -293,6 +295,32 @@ export function fakeCommerceProvider(
  * `POST /games/local` is deliberately absent: an imported game carries the
  * device's own `gameId` as its whole identity and takes no `creationId`.
  */
+/**
+ * Provision the account a commerce test is about.
+ *
+ * The ledger refuses to write for an account that does not exist, because a
+ * provider notification names an account from its own metadata and that
+ * metadata outlives an erasure. Anything reaching the ledger through the API
+ * has already been provisioned by the auth middleware; a test calling the
+ * ledger directly has to say so itself.
+ */
+export async function testAccount(d1: D1Database, userId: string, now = Date.now()): Promise<string> {
+  await orm(d1)
+    .insert(users)
+    .values({
+      id: userId,
+      username: userId,
+      email: null,
+      displayName: userId,
+      avatarUrl: null,
+      isAnonymous: false,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+  return userId;
+}
+
 export function withCreationId(method: string, path: string, body: unknown): unknown {
   if (method !== "POST" || (path !== "/games" && path !== "/games/solo")) return body;
   if (body === null || typeof body !== "object" || "creationId" in body) return body;

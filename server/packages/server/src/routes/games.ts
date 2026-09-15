@@ -15,7 +15,7 @@ import { creationFingerprint } from "../commerce/creation.js";
 import type { EngineAccessCapability, SelectedContent } from "../commerce/types.js";
 import { CommercialLimitWriteError, type CreateGameInput, createGame, readCreationOperation } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
-import { isShortCodeCollision, isUniqueViolation } from "../d1/errors.js";
+import { isShortCodeCollision, isSlotContention, isUniqueViolation } from "../d1/errors.js";
 import { type BotRow, type GameWithRoster, gameExists, isAcceptedFriend, readBots, readGame, readGameByCode } from "../d1/reads.js";
 import { acceptedFriendIds } from "../d1/social.js";
 import type { Authed, EngineApp, RouteContext } from "../engine.js";
@@ -382,7 +382,10 @@ async function createOnce(d1: D1Database, input: Omit<CreateGameInput, "shortCod
         const raced = await existingCreation(d1, creation.creatorId, creation.creationId, creation.fingerprint);
         if (raced !== null) return raced;
       }
-      if (!isShortCodeCollision(error) || attempt === CODE_ATTEMPTS) throw error;
+      // A short code clashed, or two of this account's creations wanted the
+      // same allowance slot. Both are resolved by trying again: a new code, and
+      // a count that now includes whoever won.
+      if ((!isShortCodeCollision(error) && !isSlotContention(error)) || attempt === CODE_ATTEMPTS) throw error;
     }
   }
 }

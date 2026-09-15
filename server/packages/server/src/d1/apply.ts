@@ -25,7 +25,7 @@ import { and, eq, inArray, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { SelectedContent } from "../commerce/types.js";
 import type { GameOrigin } from "../protocol.js";
-import { isUniqueViolation } from "./errors.js";
+import { isCommercialLimitReached, isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
 import { commerceCapacity, commerceUsage, creationOperations, gameContent, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
@@ -343,11 +343,6 @@ export interface CreateGameInput {
 
 export class CommercialLimitWriteError extends Error {}
 
-function isLimitConstraint(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("commerce_usage.slot") || message.includes("commerce_capacity.slot");
-}
-
 /** Write the games row + one participants row per seat, atomically. The DO
  * lazy-inits from exactly these rows on first contact.
  *
@@ -434,7 +429,10 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
   try {
     await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
   } catch (error) {
-    if (isLimitConstraint(error)) throw new CommercialLimitWriteError("Commercial limit reached");
+    // Only the guarded insert's own verdict. A slot COLLISION means another
+    // write of this account's took the number first, which says nothing about
+    // whether the allowance is spent, so it stays a retryable D1 error.
+    if (isCommercialLimitReached(error)) throw new CommercialLimitWriteError("Commercial limit reached");
     throw error;
   }
 }

@@ -83,3 +83,19 @@ String messageForCode(ErrorCode code) => switch (code) {
 
 const _offline = "Can't reach the server. Check your connection.";
 const _unexpected = 'Something went wrong. Please try again.';
+
+/// Whether [code] is a refusal a purchase could actually resolve.
+///
+/// The three that qualify are all "your access does not include this": a
+/// capability, a piece of content, or a commercial allowance. Everything else
+/// that mentions money does not — `purchasePending` is already paid and only
+/// waiting, and `registrationRequired` wants an account, not a purchase.
+///
+/// Offering a store for a refusal a purchase cannot lift is worse than
+/// offering nothing: it reads as being asked to pay for a bug.
+bool isUpgradeableRefusal(ErrorCode? code) => switch (code) {
+  ErrorCode.capabilityRequired ||
+  ErrorCode.contentRequired ||
+  ErrorCode.commercialLimitReached => true,
+  _ => false,
+};

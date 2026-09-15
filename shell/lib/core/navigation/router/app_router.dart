@@ -14,6 +14,7 @@ import 'package:eigen_shell/features/home/presentation/screens/home_screen.dart'
 import 'package:eigen_shell/features/profile/presentation/screens/profile_screen.dart';
 import 'package:eigen_shell/features/settings/presentation/screens/settings_screen.dart';
 import 'package:eigen_shell/features/social/presentation/social_screen.dart';
+import 'package:eigen_shell/features/store/presentation/screens/store_screen.dart';
 
 /// Global navigator key for top-level navigation (e.g., login screen).
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
@@ -186,6 +187,14 @@ final List<RouteBase> appRoutes = [
                 name: 'profile',
                 parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => const ProfileScreen(),
+              ),
+              // Under settings rather than its own tab: a game that sells
+              // nothing should not grow a navigation destination, and the
+              // screen says so plainly when it is reached anyway.
+              GoRoute(
+                path: 'store',
+                name: 'store',
+                builder: (context, state) => const StoreScreen(),
               ),
             ],
           ),

@@ -751,6 +751,20 @@ The game may replace all presentation while consuming the same client APIs.
 The client may mirror access for immediate UX, but the server re-evaluates every
 protected operation.
 
+### Erasure outlives the provider
+
+Account deletion removes grants, usage, capacity and open checkouts, and
+anonymizes transactions rather than deleting them — a transaction is a record
+of money as well as of a person. The provider knows none of this: it keeps the
+account identifier it was given at checkout, and a cancellation or a final
+renewal may arrive weeks later naming an account that no longer exists.
+
+The ledger therefore refuses to write for an account it cannot find, and a
+transaction whose user is already null is read as erased rather than as
+belonging to somebody else. The notification is still accepted and recorded as
+handled, because a rejection would only have the provider redeliver it for
+days against an account that is never coming back.
+
 Local development and tests use an explicit fake provider that can issue,
 expire, renew, refund, and revoke deterministic transactions without a merchant
 account or network access. A missing production adapter fails only commerce;
@@ -772,6 +786,32 @@ Startup and CI fail for an invalid commerce definition. Validation includes:
   inputs, while games retain the obligation not to branch rules on cosmetic
   configuration; and
 - no advertising or paid-advantage grant type exists.
+
+### What validation cannot see
+
+Startup validation proves the catalog is consistent with itself. It cannot
+prove the catalog is consistent with what has already been sold, because the
+ledger is data and the catalog is code, and the engine will not read a
+deployment's grants to decide whether its own configuration is legal.
+
+That makes two identifiers permanent from the moment anything is sold under
+them:
+
+- **An `entitlement` key.** Every grant row names one. Renaming a key does not
+  migrate the grants that carry the old name — it silently revokes the
+  entitlement for everyone holding it, and the deployment starts cleanly with
+  no error anywhere.
+- **An `offer` key.** Every transaction row names one, and a claim resolves
+  through it. Renaming one orphans that purchase history and breaks
+  restoration for anyone who bought it.
+
+Provider product references (a Stripe Price, a Play product id) are the
+exception: they may be re-pointed freely, because a transaction records the
+reference it was actually bought at and the catalog only maps the current one.
+
+A key that must change is therefore a data migration, not an edit. Treat both
+as append-only: introduce the new key, grant it alongside the old one, and
+retire the old one only once nothing holds it.
 
 ## Observability and operations
 
@@ -817,8 +857,11 @@ Before commerce is called production-ready, automated tests must cover:
 - entitlement expiry without cancelling or changing an existing game;
 - authoritative rules being unable to read cosmetic grants;
 - account deletion and pseudonymized retained transaction policy;
-- every concrete Android or web adapter's parity at the normalized API boundary;
-  and
+- every concrete Android or web adapter's parity at the normalized API
+  boundary: the shape of a verified transaction, refusal of evidence naming no
+  purchase, a batch surviving one unreadable row, storefront capabilities
+  declared by presence rather than by a stub, a signature that does not verify,
+  and no credential quoted in a failure; and
 - commerce-disabled local creation with no provider dependency or credential;
   and
 - importing a game played offline while the account's creation allowance is
@@ -826,7 +869,11 @@ Before commerce is called production-ready, automated tests must cover:
 - a purchase failing to raise an abuse ceiling, however generous its
   commercial limit; and
 - authoritative rules receiving no entitlement, access decision, or provider
-  state, asserted on the arguments the hook is actually handed.
+  state, asserted on the arguments the hook is actually handed;
+- a provider notification arriving after an account is erased, changing nothing
+  and still being accepted rather than left for redelivery; and
+- a creation losing an allowance slot to another of the same account's
+  creations being retried rather than reported as the allowance being spent.
 
 The testkit supplies provider fakes and reusable lifecycle fixtures. Generated
 scaffolds that enable commerce run the same conformance suite.

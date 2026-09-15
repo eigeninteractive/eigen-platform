@@ -368,7 +368,10 @@ export const entitlementGrants = sqliteTable(
   "entitlement_grants",
   {
     id: text().primaryKey(),
-    userId: text(),
+    /** Never null, unlike the transaction that sourced it. An erasure deletes
+     * these rows rather than anonymising them: a grant is only ever about a
+     * person, where a transaction is also a record of money. */
+    userId: text().notNull(),
     entitlementKey: text().notNull(),
     sourceTransactionId: text().notNull(),
     validFrom: integer().notNull(),

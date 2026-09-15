@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b89e1553-ef2e-4080-8cc8-98690a91a145",
+  "id": "b0b09141-962a-4399-a0ee-afaa3bcb6c10",
   "prevId": "b76258a2-75d8-43d5-a4df-c78df9054a4a",
   "tables": {
     "bots": {
@@ -783,7 +783,7 @@
           "name": "user_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "entitlement_key": {

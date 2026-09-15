@@ -2,9 +2,22 @@ import { and, eq, notInArray } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { isUniqueViolation } from "../d1/errors.js";
 import { orm } from "../d1/orm.js";
-import { commerceEvents, commerceProviderAccounts, commerceTransactions, entitlementGrants } from "../d1/schema.js";
+import { commerceEvents, commerceProviderAccounts, commerceTransactions, entitlementGrants, users } from "../d1/schema.js";
 import { HttpError } from "../http.js";
 import type { CommerceCatalog, CommerceOffer, CommerceTransactionReference, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "./types.js";
+
+/**
+ * The named account is gone, so there is nothing to write.
+ *
+ * Distinguished from every other conflict because it is not an error the
+ * provider can retry its way out of: the account will not come back. The
+ * webhook path answers it by accepting the notification and recording nothing.
+ */
+export class ErasedAccountError extends HttpError {
+  constructor() {
+    super(409, "This purchase names an account that no longer exists", "purchaseConflict");
+  }
+}
 
 export function offerForProduct(catalog: CommerceCatalog, provider: string, providerReference: string): CommerceOffer | undefined {
   return catalog.offers.find((offer) => offer.providerReferences[provider] === providerReference);
@@ -101,12 +114,30 @@ export async function recordVerifiedTransaction(
     .where(and(eq(commerceTransactions.provider, input.provider), eq(commerceTransactions.providerTransactionId, input.transaction.providerTransactionId)))
     .get();
   if (existing !== undefined) {
+    // A null user is not a mismatch with somebody else's account: it is what
+    // the purge leaves behind, so this transaction belonged to an account that
+    // has been erased.
+    if (existing.userId === null) throw new ErasedAccountError();
     if (existing.userId !== input.accountId) {
       throw new HttpError(409, "This purchase is associated with another account", "purchaseConflict");
     }
     if (existing.providerReference !== input.transaction.providerReference || existing.offerKey !== offer.key || existing.kind !== input.transaction.kind) {
       throw new HttpError(409, "The provider transaction changed product identity", "purchaseConflict");
     }
+  }
+  // Erasure has to survive the provider. A claim is made by an authenticated
+  // caller, whose row the auth middleware has just ensured; a webhook is not,
+  // and names an account from provider metadata that outlives the account
+  // itself. A cancellation or a final renewal arriving weeks after
+  // `DELETE /api/engine/me` would otherwise write a grant, and a user id, back
+  // for someone who asked to be forgotten.
+  //
+  // A transaction that already exists is refused earlier: the purge nulls its
+  // user, and a webhook naming an account no longer matches it. This is the
+  // other half -- the transaction the ledger has never seen.
+  if (existing === undefined) {
+    const account = await db.select({ id: users.id }).from(users).where(eq(users.id, input.accountId)).get();
+    if (account === undefined) throw new ErasedAccountError();
   }
   const boundProviderAccount = await readProviderAccount(d1, input.provider, input.accountId);
   if (input.transaction.providerAccountId !== undefined && boundProviderAccount !== undefined && boundProviderAccount !== input.transaction.providerAccountId) {
@@ -261,6 +292,10 @@ export async function recordVerifiedEvent(
   if (offer === undefined) {
     throw new HttpError(409, "The verified webhook product is not registered", "purchaseConflict");
   }
+  // An erased account is the one conflict a provider cannot retry its way out
+  // of, and a 5xx would have Stripe redelivering this for three days. The
+  // notification was received and understood; there is simply nothing left to
+  // write it against, so it is marked handled like any other.
   const reference = await recordVerifiedTransaction(d1, {
     catalog: input.catalog,
     provider: input.provider,
@@ -268,6 +303,9 @@ export async function recordVerifiedEvent(
     expectedOfferKey: offer.key,
     transaction: input.event.transaction,
     now: input.now,
+  }).catch((error) => {
+    if (error instanceof ErasedAccountError) return null;
+    throw error;
   });
   await db
     .update(commerceEvents)

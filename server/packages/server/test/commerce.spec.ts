@@ -25,6 +25,20 @@ async function json<T>(response: Response, status = 200): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * An account a webhook is allowed to name.
+ *
+ * A provider learns an account id when an authenticated caller opens a
+ * checkout, so by the time it notifies anyone the account exists — and the
+ * ledger refuses to write for one that does not, so that an erasure is not
+ * undone by a notification weeks later. Any authenticated request provisions
+ * it, which is how a real client gets there too.
+ */
+async function provisioned(userId: string): Promise<string> {
+  expect((await api(userId, "GET", "/commerce/access")).status).toBe(200);
+  return userId;
+}
+
 function evidence(accountId: string, transactionId: string, providerReference: string, overrides: Record<string, unknown> = {}) {
   return { accountId, transactionId, providerReference, ...overrides };
 }
@@ -452,7 +466,7 @@ describe("purchase claims", () => {
 
 describe("provider webhooks", () => {
   it("authenticates in the adapter, deduplicates events, and applies revocation", async () => {
-    const accountId = uid("webhook");
+    const accountId = await provisioned(uid("webhook"));
     const transactionId = crypto.randomUUID();
     const eventId = crypto.randomUUID();
     const notification = {
@@ -677,6 +691,51 @@ describe("offline play", () => {
  * all: nothing in the shape of the code stops a later change from quietly
  * violating either, and neither would announce itself when broken.
  */
+describe("erasure outlives the provider", () => {
+  it("does not let a late notification undo an account deletion", async () => {
+    // A cancellation or a final renewal can arrive weeks after the player
+    // asked to be forgotten. Writing it would put their user id, and a grant,
+    // back into the ledger.
+    const accountId = await provisioned(uid("erased"));
+    const transactionId = crypto.randomUUID();
+    const notify = async (state: string, eventId: string) =>
+      await exports.default.fetch("https://x/api/commerce/fake/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ eventId, accountId, transactionId, providerReference: "supporter_once", state }),
+      });
+
+    expect((await notify("active", crypto.randomUUID())).status).toBe(204);
+    expect((await api(accountId, "DELETE", "/me")).status).toBe(204);
+
+    const late = await notify("revoked", crypto.randomUUID());
+    // Accepted, not refused: a 5xx would have the provider redelivering this
+    // for days, and the account is never coming back.
+    expect(late.status).toBe(204);
+
+    expect(await db.select().from(entitlementGrants).where(eq(entitlementGrants.userId, accountId)).all()).toEqual([]);
+    const transaction = await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).get();
+    expect(transaction?.userId).toBeNull();
+    expect(transaction?.sealedProviderState).toBeNull();
+  });
+
+  it("refuses a first notification for an account that never existed", async () => {
+    // The same guard, from the other direction: a webhook naming an unknown
+    // account must not conjure a ledger row for it.
+    const accountId = uid("never-existed");
+    const transactionId = crypto.randomUUID();
+    const response = await exports.default.fetch("https://x/api/commerce/fake/webhook", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventId: crypto.randomUUID(), accountId, transactionId, providerReference: "supporter_once", state: "active" }),
+    });
+
+    expect(response.status).toBe(204);
+    expect(await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).all()).toEqual([]);
+    expect(await db.select().from(entitlementGrants).where(eq(entitlementGrants.userId, accountId)).all()).toEqual([]);
+  });
+});
+
 describe("boundaries commerce must not cross", () => {
   it("cannot raise an abuse ceiling, however much the account has paid", async () => {
     const accountId = uid("ceiling");
@@ -721,7 +780,7 @@ describe("boundaries commerce must not cross", () => {
   });
 
   it("expiring an entitlement changes nothing about a game already created under it", async () => {
-    const accountId = uid("expiry-holder");
+    const accountId = await provisioned(uid("expiry-holder"));
     const transactionId = crypto.randomUUID();
     const webhook = async (state: string) =>
       await exports.default.fetch("https://x/api/commerce/fake/webhook", {

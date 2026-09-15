@@ -18,6 +18,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 ### Added
 - Provider-neutral `PurchaseGateway` and `CommerceService` integration points that verify a completed purchase update with the Worker before exposing any access it grants, and a Drift-backed delivery outbox so a verified purchase still completes with the storefront after a restart.
 - `StripeHostedStorefront` and `RazorpayHostedStorefront`, which open a Worker-created checkout page and read the purchase out of the provider's return. They need no dependency of their own — the `CheckoutLauncher` that opens the page is supplied by the application, so no game links a platform plugin for a storefront it does not use.
+- `isUpgradeableRefusal`, which says whether an error code is a refusal a purchase could actually lift.
 
 ### Changed
 - The Flutter purchase port is split in two: `PurchaseGateway` for an on-device billing SDK and `HostedStorefront` for a provider-hosted checkout page, both under a common `Storefront`. `CommerceService` now takes the storefronts a build carries, chooses between them per offer, publishes verified purchases from either on one stream, and settles only at an SDK. `purchaseGatewayProvider` is replaced by `storefrontsProvider`.

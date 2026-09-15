@@ -40,9 +40,55 @@ class _AppStartupState extends ConsumerState<AppStartup> {
         // notification access in system/browser settings while we were away.
         unawaited(_syncNotifications());
         ref.invalidate(notificationPermissionStatusProvider);
+        // Coming back from a provider's checkout page is a resume on Android
+        // and iOS, and a cold start on the web -- hence both here and below.
+        unawaited(_claimHostedCheckoutReturn());
       },
     );
     unawaited(_initNotifications());
+    unawaited(_claimHostedCheckoutReturn());
+  }
+
+  /// The last URL already offered to the storefronts, so a resume that changed
+  /// nothing does not re-claim a purchase already claimed.
+  Uri? _lastCheckoutReturn;
+
+  /// Offers the URL the app is sitting at to every hosted storefront.
+  ///
+  /// A provider-hosted checkout leaves the app and comes back through a return
+  /// URL: on the web that unloads the page entirely, so the return is an
+  /// ordinary cold start, and on Android and iOS it is an App Link delivered to
+  /// the router. Neither is something the purchase call could have awaited, so
+  /// this is where a completed hosted purchase is noticed at all.
+  ///
+  /// Silent for a build that carries no hosted storefront, and deliberately
+  /// short-circuited before reading `commerceServiceProvider` at all, so a game
+  /// that sells nothing does not open a local database to find that out.
+  Future<void> _claimHostedCheckoutReturn() async {
+    if (!mounted) return;
+    if (ref.read(storefrontsProvider).whereType<HostedStorefront>().isEmpty) {
+      return;
+    }
+    // `Uri.base` is the page on the web; on a device the App Link arrives as a
+    // route, so the router knows where a deep link actually put us.
+    final router = GoRouter.maybeOf(context);
+    final routed = router?.routeInformationProvider.value.uri;
+    for (final uri in <Uri?>{Uri.base, routed}) {
+      if (uri == null || uri == _lastCheckoutReturn) continue;
+      try {
+        if (await ref.read(commerceServiceProvider).resumeFrom(uri)) {
+          _lastCheckoutReturn = uri;
+          return;
+        }
+      } catch (e, stack) {
+        developer.log(
+          'Hosted checkout return could not be claimed',
+          name: 'app.startup',
+          error: e,
+          stackTrace: stack,
+        );
+      }
+    }
   }
 
   Future<void> _syncNotifications() async {
