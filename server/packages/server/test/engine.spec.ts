@@ -577,6 +577,35 @@ describe("bots", () => {
     expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.session.gameId, second.session.gameId]));
   });
 
+  /**
+   * Solo creation is two writes in different stores: the game commits to D1,
+   * then its Durable Object is told to start. A response lost between them
+   * leaves a client that must retry, and the retry must land on the game that
+   * already exists rather than buying a second one.
+   */
+  it("replays a solo creation identity across the D1 and Durable Object halves", async () => {
+    const u = makeUsers();
+    const creationId = crypto.randomUUID();
+    const body = { creationId, ...soloBody(ENGINE) };
+
+    const first = await json<CommandOk>(await api(u.a, "POST", "/games/solo", body), 201);
+    const retry = await json<CommandOk>(await api(u.a, "POST", "/games/solo", body), 201);
+
+    // The same game, and started both times: starting is an idempotent
+    // lifecycle transition, so re-poking it is how the second half converges
+    // when the first attempt died between the two stores.
+    expect(retry.session.gameId).toBe(first.session.gameId);
+    expect(retry.session.status).toBe(first.session.status);
+
+    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
+    expect(mine.games.filter((game) => game.id === first.session.gameId)).toHaveLength(1);
+
+    // And the identity is still bound to its inputs on this route too.
+    const conflict = await api(u.a, "POST", "/games/solo", { ...body, turnSeconds: 90 });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ code: "creationConflict" });
+  });
+
   it("rejects seating a bot in an untimed game (bots ⇒ timed)", async () => {
     const u = makeUsers();
     // The default game is untimed; add-bot must refuse it.

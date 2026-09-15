@@ -793,7 +793,11 @@ Before commerce is called production-ready, automated tests must cover:
 - commerce-disabled local creation with no provider dependency or credential;
   and
 - importing a game played offline while the account's creation allowance is
-  already exhausted, consuming no allowance and acquiring no capability.
+  already exhausted, consuming no allowance and acquiring no capability;
+- a purchase failing to raise an abuse ceiling, however generous its
+  commercial limit; and
+- authoritative rules receiving no entitlement, access decision, or provider
+  state, asserted on the arguments the hook is actually handed.
 
 The testkit supplies provider fakes and reusable lifecycle fixtures. Generated
 scaffolds that enable commerce run the same conformance suite.

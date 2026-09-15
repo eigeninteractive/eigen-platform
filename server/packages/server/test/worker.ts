@@ -33,6 +33,9 @@ type Config = { target: number };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
+/** Every argument object `contentForCreate` was called with. */
+export const contentForCreateArguments: Record<string, unknown>[] = [];
+
 const rules: GameRules = {
   schemas: {
     state: schemaOf((v): v is State => isObject(v) && typeof v.count === "number"),
@@ -77,7 +80,13 @@ const rules: GameRules = {
   timingOptions: () => [{ mode: "untimed" }, { mode: "perAction", minSeconds: 30, maxSeconds: 3600 }, { mode: "budget", minBudgetSeconds: 120, maxBudgetSeconds: 86400, minIncrementSeconds: 0, maxIncrementSeconds: 60 }],
   ratingPool: () => "test-pool",
   botSeatable: () => true,
-  contentForCreate: ({ config }) => {
+  contentForCreate: (input) => {
+    // Captured so a spec can assert what this hook is ABLE to see. The rule it
+    // guards is structural: authoritative game code must never be handed
+    // entitlements, provider state, or storage, because a rule that can read a
+    // purchase is a rule that can be bought.
+    contentForCreateArguments.push(input as unknown as Record<string, unknown>);
+    const { config } = input;
     const selected = config as Config & {
       premiumVariant?: boolean;
       participantTheme?: boolean;

@@ -7,7 +7,7 @@ import { orm } from "../src/d1/orm.js";
 import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
 import { testBearer as bearer, fakeCommerceProvider, testMutationHeaders as mutationHeaders, testFirebaseAdmin, testVerifier } from "../src/testing.js";
-import { commerceProvider, testGame } from "./worker.js";
+import { commerceProvider, contentForCreateArguments, testGame } from "./worker.js";
 
 const db = orm(env.DB);
 const uid = (tag: string) => `${tag}-${crypto.randomUUID()}`;
@@ -629,5 +629,169 @@ describe("offline play", () => {
     const uses = await db.select().from(commerceUsage).where(eq(commerceUsage.userId, accountId)).all();
     expect(uses).toHaveLength(1);
     expect(uses[0]?.metric).toBe("game.create.success");
+  });
+});
+
+/**
+ * The two boundaries commerce must never cross.
+ *
+ * Both are invariants rather than features, which is why they are tested at
+ * all: nothing in the shape of the code stops a later change from quietly
+ * violating either, and neither would announce itself when broken.
+ */
+describe("boundaries commerce must not cross", () => {
+  it("cannot raise an abuse ceiling, however much the account has paid", async () => {
+    const accountId = uid("ceiling");
+    const engine = createEngine({
+      gameModule: testGame,
+      appName: "Ceiling Test",
+      d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+      gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+      testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+      commerce: {
+        catalog: {
+          // The most generous commercial policy this engine can express.
+          free: {
+            permissions: [{ kind: "game.create", access: "public" }],
+            limits: [{ metric: "game.create.success", maximum: "noCommercialLimit" }],
+          },
+          entitlements: [],
+          offers: [],
+        },
+        providers: [fakeCommerceProvider([])],
+      },
+    });
+
+    // A limiter that refuses everything, standing in for an account that has
+    // genuinely been hammering the endpoint.
+    const refusing = { limit: async () => ({ success: false }) };
+    const response = await engine.fetch?.(
+      new Request("https://ceiling.test/api/engine/games", {
+        method: "POST",
+        headers: await mutationHeaders({ uid: accountId }),
+        body: JSON.stringify({ creationId: crypto.randomUUID(), access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }),
+      }),
+      { ...env, EIGEN_RATE_LIMIT_GAME_CREATE: refusing } as Cloudflare.Env,
+      {} as ExecutionContext,
+    );
+
+    // `noCommercialLimit` means no PLAN restriction. It has never meant
+    // unbounded infrastructure, and a purchase that could buy its way past the
+    // abuse limiter would make the limiter worthless.
+    expect(response?.status).toBe(429);
+    expect(await response?.json()).toMatchObject({ code: "rateLimited" });
+  });
+
+  it("expiring an entitlement changes nothing about a game already created under it", async () => {
+    const accountId = uid("expiry-holder");
+    const transactionId = crypto.randomUUID();
+    const webhook = async (state: string) =>
+      await exports.default.fetch("https://x/api/commerce/fake/webhook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ eventId: crypto.randomUUID(), accountId, transactionId, providerReference: "supporter_once", state }),
+      });
+
+    expect((await webhook("active")).status).toBe(204);
+    // A game using the paid variant, created while the entitlement was live.
+    const created = await json<{ gameId: string }>(
+      await api(accountId, "POST", "/games", {
+        creationId: crypto.randomUUID(),
+        access: "public",
+        schemaVersion: 1,
+        config: { target: 3, premiumVariant: true },
+        minPlayers: 2,
+        maxPlayers: 2,
+        rated: false,
+      }),
+      201,
+    );
+
+    expect((await webhook("revoked")).status).toBe(204);
+    expect((await json<{ entitlements: unknown[] }>(await api(accountId, "GET", "/commerce/access"))).entitlements).toEqual([]);
+
+    // Expiry governs NEW protected operations, never committed history. The
+    // game is not cancelled, still reads back, and still carries the content
+    // it was created with -- a snapshot, not a live entitlement lookup.
+    const game = await json<{ status: string; participants: { userId: string | null }[] }>(await api(accountId, "GET", `/games/${created.gameId}`));
+    expect(game.status).toBe("waiting");
+    expect(game.participants.map((seat) => seat.userId)).toContain(accountId);
+
+    // What expiry DOES stop is the next one.
+    const denied = await api(accountId, "POST", "/games", {
+      creationId: crypto.randomUUID(),
+      access: "public",
+      schemaVersion: 1,
+      config: { target: 3, premiumVariant: true },
+      minPlayers: 2,
+      maxPlayers: 2,
+      rated: false,
+    });
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toMatchObject({ code: "contentRequired" });
+  });
+
+  it("mounts no commerce surface, and enforces no commercial policy, when commerce is absent", async () => {
+    const accountId = uid("no-commerce");
+    const plain = createEngine({
+      gameModule: testGame,
+      appName: "No Commerce Test",
+      d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+      gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+      testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+    });
+    const fetch = async (method: string, path: string, body?: unknown) =>
+      await plain.fetch?.(
+        new Request(`https://plain.test/api/engine${path}`, {
+          method,
+          headers: method === "GET" ? await bearer({ uid: accountId }) : await mutationHeaders({ uid: accountId }),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+        env,
+        {} as ExecutionContext,
+      );
+
+    // Opting out is not a degraded mode: creation works, with no catalog, no
+    // provider, and no credential anywhere in the deployment.
+    expect((await fetch("POST", "/games", { creationId: crypto.randomUUID(), access: "public", schemaVersion: 1, config: { target: 3 }, minPlayers: 2, maxPlayers: 2, rated: false }))?.status).toBe(201);
+    // And the routes are not merely empty, they are absent.
+    expect((await fetch("GET", "/commerce/catalog"))?.status).toBe(404);
+    expect((await fetch("GET", "/commerce/access"))?.status).toBe(404);
+  });
+
+  it("never hands authoritative rules an entitlement, an access decision, or provider state", async () => {
+    const accountId = uid("rules-isolation");
+    // Give the account real commerce state first, so the assertion is about
+    // what the hook is SHOWN rather than about there being nothing to show.
+    await json(
+      await api(accountId, "POST", "/commerce/claims", {
+        provider: "fake",
+        offerKey: "supporter",
+        evidence: evidence(accountId, crypto.randomUUID(), "supporter_once"),
+      }),
+    );
+
+    const before = contentForCreateArguments.length;
+    await json(
+      await api(accountId, "POST", "/games", {
+        creationId: crypto.randomUUID(),
+        access: "public",
+        schemaVersion: 1,
+        config: { target: 3, premiumVariant: true },
+        minPlayers: 2,
+        maxPlayers: 2,
+        rated: false,
+      }),
+      201,
+    );
+
+    const seen = contentForCreateArguments.slice(before);
+    expect(seen.length).toBeGreaterThan(0);
+    for (const argument of seen) {
+      // Exactly the validated creation input, and nothing else. A rule that
+      // could read a purchase is a rule that can be bought, which is the one
+      // thing this whole model refuses to allow.
+      expect(Object.keys(argument).sort()).toEqual(["config"]);
+    }
   });
 });
