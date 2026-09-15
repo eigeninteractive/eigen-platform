@@ -44,34 +44,16 @@ Pass a `commerce` block to `createEngine`. This example has unrestricted human
 play, a permanent cosmetic/variant product, and a subscription for analysis:
 
 ```ts
-import {
-  createEngine,
-  type CommerceProvider,
-} from "@eigeninteractive/server";
+import { createEngine } from "@eigeninteractive/server";
+import { stripeCommerceProvider } from "@eigeninteractive/server/commerce/stripe";
 
-const provider: CommerceProvider<Env> = {
-  key: "my_store",
-
-  async products(env, providerReferences) {
-    // Ask the storefront for localized display prices.
-    return loadProducts(env, providerReferences);
-  },
-
-  async verifyClaim(env, input) {
-    // Verify input.evidence with the provider. Return provider truth only.
-    return verifyPurchase(env, input);
-  },
-
-  async verifyWebhook(env, request) {
-    // Authenticate the raw request, then resolve current provider state.
-    return verifyNotification(env, request);
-  },
-
-  async reconcile(env, transactions) {
-    // Refresh the bounded set of nonterminal provider transactions.
-    return refreshTransactions(env, transactions);
-  },
-};
+// A storefront is one factory and the bindings it reads. Import only the ones
+// you sell through: a game that sells nothing imports none, and each entry
+// point carries only itself into your Worker bundle.
+const provider = stripeCommerceProvider<Env>({
+  secretKey: (env) => env.STRIPE_SECRET_KEY,
+  webhookSecret: (env) => env.STRIPE_WEBHOOK_SECRET,
+});
 
 export default createEngine({
   // The ordinary game, D1, Durable Object, and identity configuration.
@@ -326,6 +308,31 @@ storefronts this build carries, in preference order, then use
 per-platform policy, so which storefront an Android or web build uses is
 decided here and changing it is an app release.
 
+```dart
+runEigenShell(
+  module: myGame,
+  config: myConfig,
+  initializeAdapter: () async => [
+    storefrontsProvider.overrideWithValue([
+      // Android sells through Play; everywhere else through a hosted page.
+      // This conditional is the whole routing policy.
+      if (defaultTargetPlatform == TargetPlatform.android && !kIsWeb)
+        PlayPurchaseGateway(accountId: () => ref.read(currentUserIdProvider)!)
+      else
+        StripeHostedStorefront(
+          returnUrl: Uri.parse('https://yourgame.example/store/return'),
+          launcher: const UrlLauncherCheckout(),
+        ),
+    ]),
+  ],
+);
+```
+
+The shell's store screen, restore, subscription management and upgrade prompts
+work from that list alone. The return URL must use the Worker's origin or a
+configured trusted client origin, and must be `http`/`https` — on Android and
+iOS, an App Link or Universal Link.
+
 Whatever the storefront, a purchased or restored update is not access. The
 service submits its evidence to the Worker, commits access, settles at the SDK
 if there is one, and only then yields an `AccessSnapshot` — on one stream, so a
@@ -392,6 +399,42 @@ are only true of that provider. Three are worth knowing before you choose:
 - **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
   auto-charge failed and is being retried. The adapter maps it to `grace` so a
   paying player is not cut off mid-retry.
+
+### Write your own
+
+A provider Eigen does not ship implements the same `CommerceProvider` port,
+whose optional members are how an adapter declares what its storefront can
+actually do:
+
+```ts
+const provider: CommerceProvider<Env> = {
+  key: "my_store",
+
+  async products(env, providerReferences) {
+    // Ask the storefront for localized display prices.
+    return loadProducts(env, providerReferences);
+  },
+
+  async verifyClaim(env, input) {
+    // Verify input.evidence with the provider. Return provider truth only.
+    return verifyPurchase(env, input);
+  },
+
+  async verifyWebhook(env, request) {
+    // Authenticate the raw request, then resolve current provider state.
+    return verifyNotification(env, request);
+  },
+
+  async reconcile(env, transactions) {
+    // Refresh the bounded set of nonterminal provider transactions.
+    return refreshTransactions(env, transactions);
+  },
+
+  // Omit `createCheckout` and `management` entirely when the storefront has
+  // no such page. The engine answers plainly for a provider that cannot open
+  // one, which is better than a stub returning somewhere that does not exist.
+};
+```
 
 An adapter you write yourself implements the same `CommerceProvider` port, and
 `@eigeninteractive/server/commerce-kit` carries the Workers-side primitives the

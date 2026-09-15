@@ -1,5 +1,6 @@
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
+import 'package:eigen_shell/features/commerce/data/url_launcher_checkout.dart';
 import 'package:eigen_shell/features/store/providers/store_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -184,9 +185,72 @@ class _AccountActionsState extends ConsumerState<_AccountActions> {
             enabled: !_busy,
             onTap: _busy ? null : _restore,
           ),
+          if (_subscribedThrough() != null) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.manage_accounts_outlined),
+              title: const Text('Manage subscription'),
+              subtitle: const Text(
+                'Change or cancel your subscription with the provider.',
+              ),
+              enabled: !_busy,
+              onTap: _busy ? null : _manage,
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// The storefront that sold the subscription this account is holding, or
+  /// null when it holds none this build can speak for.
+  ///
+  /// Managing is the provider's own screen, so the question is not "does the
+  /// account subscribe" but "which storefront's portal answers for it".
+  Storefront? _subscribedThrough() {
+    final catalog = ref.watch(storeCatalogProvider).value;
+    final access = ref.watch(storeAccessProvider).value;
+    if (catalog == null || access == null) return null;
+    final held = access.entitlements.map((e) => e.key).toSet();
+    final storefronts = ref.watch(storefrontsProvider);
+    for (final offer in catalog.offers) {
+      if (offer.kind != CommerceOfferKindEnum.subscription) continue;
+      if (!offer.entitlements.any(held.contains)) continue;
+      for (final product in offer.products) {
+        for (final storefront in storefronts) {
+          if (storefront.provider == product.provider) return storefront;
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<void> _manage() async {
+    final storefront = _subscribedThrough();
+    if (storefront == null) return;
+    setState(() => _busy = true);
+    try {
+      // A store SDK owns its own subscription centre and has no server-created
+      // portal; asking the Worker for one would be asking for a page that does
+      // not exist.
+      final url = storefront is HostedStorefront
+          ? await ref
+                .read(commerceRepositoryProvider)
+                .createManagement(
+                  provider: storefront.provider,
+                  returnUrl: storefront.returnUrl,
+                )
+          : _playSubscriptions;
+      if (!await const UrlLauncherCheckout().open(url) && mounted) {
+        _say(context, 'Could not open the subscription page.');
+      }
+    } catch (e) {
+      // Razorpay has no billing portal at all, and the Worker answers plainly
+      // rather than inventing one. That answer is the right thing to show.
+      if (mounted) _say(context, humanize(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _restore() async {
@@ -237,6 +301,12 @@ String? _priceOf(CommerceOffer offer, Map<String, StoreProduct> products) {
   }
   return null;
 }
+
+/// Play's own subscription centre, which is where a Play subscription is
+/// cancelled. There is no server-created portal for it.
+final _playSubscriptions = Uri.parse(
+  'https://play.google.com/store/account/subscriptions',
+);
 
 /// A name a player can read for an entitlement they hold.
 ///

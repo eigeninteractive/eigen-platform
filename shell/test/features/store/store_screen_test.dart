@@ -1,4 +1,5 @@
 import 'package:eigen_client/eigen_client.dart';
+import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/features/store/presentation/screens/store_screen.dart';
 import 'package:eigen_shell/features/store/providers/store_providers.dart';
 import 'package:eigen_shell/shared/widgets/refusal_snack_bar.dart';
@@ -27,6 +28,22 @@ CommerceCatalog _catalog() => CommerceCatalog.fromJson({
       ],
     },
     {
+      'key': 'pro_monthly',
+      'name': 'Pro',
+      'description': 'Monthly analysis',
+      'kind': 'subscription',
+      'entitlements': ['pro'],
+      'repeatable': false,
+      'products': [
+        {
+          'provider': 'stripe',
+          'providerReference': 'price_pro',
+          'displayPrice': r'$9.99',
+          'currencyCode': 'USD',
+        },
+      ],
+    },
+    {
       'key': 'android_only',
       'name': 'Android only',
       'description': 'Sold elsewhere',
@@ -38,24 +55,46 @@ CommerceCatalog _catalog() => CommerceCatalog.fromJson({
   ],
 });
 
-AccessSnapshot _access() => AccessSnapshot.fromJson({
-  'entitlements': [
-    {'key': 'supporter', 'validFrom': 1000, 'validUntil': null},
-  ],
-  'permissions': <Object>[],
-  'content': <Object>[],
-  'limits': [
-    {
-      'metric': 'game.create.success',
-      'maximum': 20,
-      'noCommercialLimit': false,
-      'period': 'calendarMonth',
-      'used': 3,
-      'remaining': 17,
-      'resetsAt': null,
-    },
-  ],
-});
+AccessSnapshot _access({List<String> entitlements = const ['supporter']}) =>
+    AccessSnapshot.fromJson({
+      'entitlements': [
+        for (final key in entitlements)
+          {'key': key, 'validFrom': 1000, 'validUntil': null},
+      ],
+      'permissions': <Object>[],
+      'content': <Object>[],
+      'limits': [
+        {
+          'metric': 'game.create.success',
+          'maximum': 20,
+          'noCommercialLimit': false,
+          'period': 'calendarMonth',
+          'used': 3,
+          'remaining': 17,
+          'resetsAt': null,
+        },
+      ],
+    });
+
+/// A hosted storefront that is never opened; its presence is what decides
+/// whether a subscription can be managed from here.
+class _Hosted implements HostedStorefront {
+  @override
+  String get provider => 'stripe';
+
+  @override
+  Uri get returnUrl => Uri.parse('https://game.example/return');
+
+  @override
+  Future<PurchaseUpdate> present(
+    Uri checkoutUrl, {
+    required String offerKey,
+    required String providerReference,
+  }) async => throw UnimplementedError();
+
+  @override
+  PurchaseUpdate? resume(Uri uri) => null;
+}
 
 Future<void> _pump(
   WidgetTester tester, {
@@ -194,6 +233,34 @@ void main() {
       await tester.pump();
 
       expect(find.text('See options'), findsNothing);
+    });
+  });
+
+  group('managing a subscription', () {
+    List<Override> overrides({required bool subscribed}) => [
+      storeAvailableProvider.overrideWithValue(true),
+      storefrontsProvider.overrideWithValue([_Hosted()]),
+      storeCatalogProvider.overrideWith((ref) async => _catalog()),
+      storeAccessProvider.overrideWith(
+        (ref) async =>
+            subscribed ? _access(entitlements: const ['pro']) : _access(),
+      ),
+      storeProductsProvider.overrideWith((ref) async => const {}),
+    ];
+
+    testWidgets('is offered to an account holding one', (tester) async {
+      await _pump(tester, overrides: overrides(subscribed: true));
+
+      // Both stores expect a subscriber to be able to cancel from inside the
+      // app; a store screen with only Restore leaves them nowhere to go.
+      expect(find.text('Manage subscription'), findsOneWidget);
+    });
+
+    testWidgets('is not offered to an account holding none', (tester) async {
+      await _pump(tester, overrides: overrides(subscribed: false));
+
+      expect(find.text('Manage subscription'), findsNothing);
+      expect(find.text('Restore purchases'), findsOneWidget);
     });
   });
 }

@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - `UrlLauncherCheckout`, the `CheckoutLauncher` hosted storefronts open their provider's page with.
 - A store screen under settings: offers and prices, the entitlements and allowances the account holds, and restore. A refusal a purchase could lift now carries the way to lift it, and one it could not does not.
 - `AppStartup` offers the launch URL and every resume to the hosted storefronts, which is how a web checkout return -- a cold start carrying a purchase -- is noticed at all.
+- A &quot;Manage subscription&quot; action, which opens the provider's own portal for a hosted subscription and Play's subscription centre for a Play one. It appears only for an account actually holding a subscription this build's storefronts sold.
 
 ### Changed
 - Preserve one game-creation identity across ambiguous transport retries, so a retry cannot create or commercially count a second game.
