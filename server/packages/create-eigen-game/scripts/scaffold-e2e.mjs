@@ -235,7 +235,8 @@ if (speakers.length === 0) {
   throw new Error(
     `the scaffolded halves speak different engines: the server takes ${emittedEngine} but eigen_flutter ${resolvedShell} resolved eigen_api ${resolvedApi} (the ${line(resolvedApi)}.x wire). ` +
       `eigen_flutter ${speakers.join(", ")} already speaks ${engineLine}.x, so this is a stale pin rather than a shell that has not caught up. ` +
-      `Raise flutterClientVersion in packages/create-eigen-game/src/index.ts, and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.`,
+      `Run \`node scripts/set-pins.mjs eigen_flutter=<version>\` from packages/create-eigen-game to raise flutterClientVersion and write the Changeset. ` +
+      `The compatibility matrix regenerates itself from pub.dev; sync-compatibility.yml opens that pull request.`,
   );
 }
 
@@ -258,13 +259,25 @@ if (speakers.length === 0) {
 // and the package publishing, the repository is ahead of pub.dev on purpose and
 // a local comparison would demand a floor pointing at nothing.
 //
-// So the registry is the authority, and asking it has no false-red window at
-// all. While a release is in flight pub.dev still serves the old line, which is
-// the line the floor names, and this passes. It goes red exactly when a
-// published release moves past the floor, which is exactly when the floor
-// should move -- the same design as the wire check above, which also turns red
-// the moment a compatible shell ships.
-const latestLine = async (name) => {
+// So the registry is the authority, and the comparison is DIRECTIONAL: a floor
+// below the newest published line is the defect, a floor above it is a release
+// in flight. That asymmetry is the whole point now. `version-dart-package.yml`
+// raises these floors in the same commit that creates the versions they name,
+// which is the only commit that knows those numbers, so between that commit and
+// the pub.dev publish every floor it moved is legitimately ahead of the
+// registry. An equality test would fail the release commit it exists to protect.
+//
+// Being ahead is not free, it is merely not this script's problem: what it
+// costs is that a scaffolder published in that window would emit a range no user
+// could resolve, and `release.yml` runs `check-pins.mjs` immediately before the
+// npm publish to make sure one never is.
+//
+// What remains red here is a floor that has genuinely fallen behind -- someone
+// published out of band, or a release moved a package the workflow did not pass
+// through. That is still worth blocking on, and it is still the same signal the
+// wire check above gives: the floors are only ever knowably behind once
+// something has overtaken them.
+const latestPublished = async (name) => {
   const url = `https://pub.dev/api/packages/${name}`;
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${url} responded ${response.status} ${response.statusText}`);
@@ -282,21 +295,51 @@ const latestLine = async (name) => {
     }
     return best;
   });
-  return line(newest);
+  return newest;
+};
+
+/**
+ * Where a version sits on the compatibility ladder, as numbers.
+ *
+ * `line()` above answers the same question as a label, which reads well in a
+ * message and sorts wrongly: "0.9" comes after "0.10" under any string
+ * comparison, and this now needs to know which of two lines is higher.
+ */
+const rung = (version) => {
+  const [major, minor] = version.replace(/^\D+/, "").split(".").map(Number);
+  return major === 0 ? [0, minor] : [major, 0];
+};
+
+const behind = (floor, published) => {
+  const [a, b] = [rung(floor), rung(published)];
+  return a[0] !== b[0] ? a[0] < b[0] : a[1] < b[1];
 };
 
 const staleFloors = [];
+const unpublishedFloors = [];
 for (const [name, floor] of emittedFloors) {
-  const published = await latestLine(name);
-  if (line(floor) !== published) staleFloors.push(`${name} ${floor} is behind the published ${published}.x line`);
+  const published = await latestPublished(name);
+  if (behind(floor, published)) {
+    staleFloors.push(`${name} ${floor} is behind the published ${line(published)}.x line`);
+  } else if (behind(published, floor)) {
+    unpublishedFloors.push(`${name} ${floor} (pub.dev is still on ${published})`);
+  }
+}
+
+if (unpublishedFloors.length > 0) {
+  console.log(
+    `::notice::Floors ahead of pub.dev: ${unpublishedFloors.join(", ")}. ` +
+      "This is the expected state between a Dart release commit and the tags that publish it, and the templates above compiled against those versions from this checkout. " +
+      "release.yml re-checks that they are installable before the scaffolder itself publishes.",
+  );
 }
 
 if (staleFloors.length > 0) {
   throw new Error(
     `the scaffolder installs packages that have moved on: ${staleFloors.join("; ")}. ` +
       "A newly scaffolded project would get a release older than the templates were written against. " +
-      "Raise the matching floor in packages/create-eigen-game/src/index.ts, update the expectation in test/scaffold.spec.ts, " +
-      "and update the matrix at https://eigeninteractive.com/docs/reference/compatibility.",
+      "Floors normally move in the Dart release commit itself (see version-dart-package.yml), so a floor that is behind means a release reached pub.dev without going through it. " +
+      "Run `node scripts/set-pins.mjs <package>=<version> ...` from packages/create-eigen-game to raise it and write the Changeset.",
   );
 }
 

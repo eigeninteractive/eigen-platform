@@ -21,6 +21,13 @@ name: Version Dart packages
 # pub.dev only accepts an automated publish from a tag-triggered run -- it
 # validates the repository, the tag against each package's configured pattern,
 # and the `pub.dev` environment, not which file published.
+#
+# It also raises the `create-eigen-game` floors, for the same reason it rewrites
+# the constraints between the packages: the floors name versions this commit is
+# creating, so this is the only commit that knows them without being told. Doing
+# it here is what removes the window in which the scaffolder pairs a new worker
+# with an old shell, and with it the unrelated red that window put on every pull
+# request in the repository. See `packages/create-eigen-game/scripts/set-pins.mjs`.
 
 on:
   workflow_dispatch:
@@ -67,6 +74,12 @@ jobs:
         with:
           flutter-version-file: flutter/.fvmrc
           cache: true
+
+      # For `set-pins.mjs` below. No install: it depends on nothing outside the
+      # standard library, so that it can run before the workspace does.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: server/.nvmrc
 
       - name: Install cider and melos
         run: |
@@ -188,6 +201,27 @@ jobs:
             exit 1
           }
 
+          # A scaffolded app installs published Dart packages by floor, and the
+          # floors that just moved name versions only this commit knows. Raising
+          # them here means the scaffolder is already correct when the tags
+          # publish; raising them afterwards meant `scaffold-e2e.mjs` failing
+          # every pull request until someone noticed. The gate resolves the Dart
+          # half through this checkout, so a floor naming a version pub.dev does
+          # not have yet compiles exactly as well as one it does -- and
+          # `release.yml` is what refuses to PUBLISH the scaffolder until it does.
+          #
+          # Positional rather than an array: `set --` is the one form that
+          # splits pairs without bash 4, which the version bookkeeping above
+          # already goes out of its way to avoid.
+          pins=""
+          set -- $released
+          while [ "$#" -ge 2 ]; do
+            pins="$pins $1=$2"
+            shift 2
+          done
+          # shellcheck disable=SC2086
+          node server/packages/create-eigen-game/scripts/set-pins.mjs $pins
+
           node tool/check-dart-releases.mjs
           {
             echo "released<<EOF"
@@ -211,12 +245,20 @@ jobs:
           git config user.name "eigen-release[bot]"
           git config user.email "eigen-release[bot]@users.noreply.github.com"
           git switch -C "$branch"
+          # `-a` below stages every tracked file melos and cider rewrote, which
+          # is everything except this: a Changeset is a new file, and it only
+          # exists when a floor actually moved. Named rather than `add -A`, so
+          # nothing a future tool leaves in the worktree can ride along.
+          if [ -f server/.changeset/scaffold-pins.md ]; then
+            git add server/.changeset/scaffold-pins.md
+          fi
           git commit -am "Release Dart packages"
           git push --force-with-lease -u origin "$branch"
 
-          body=$(printf '%s\n\n%s\n\n%s\n' \
+          body=$(printf '%s\n\n%s\n\n%s\n\n%s\n' \
             "Raises the Dart packages that had \`## [Unreleased]\` entries by \`$BUMP\`, and anything that depends on them by a patch. Melos rewrote the constraints between them in this same commit, so no follow-up pin change is needed." \
             "$lines" \
+            "Where a release moves a package \`create-eigen-game\` installs, its floor and a Changeset are in this commit too, so the scaffolder never names the previous line. Check the diff to \`src/index.ts\` if the scaffold job is red: it compiles the templates against this checkout, so a red one means the templates need a change these versions imply, not that the floor is wrong." \
             "After the merged \`main\` commit passes the platform gate, the namespaced tags publish through pub.dev trusted publishing.")
 
           state=$(gh pr view "$branch" --json state --jq .state 2>/dev/null || echo NONE)

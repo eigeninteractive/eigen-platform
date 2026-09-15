@@ -272,23 +272,24 @@ dependency published -- which made every release serial, one round per level of
 the dependency graph, and cost the offline-play release three hand-written pull
 requests. Versioning and constraint-rewriting in one commit removes the rounds.
 
-Pre-1.0 choices mean:
+The choices are Melos's own release types, passed straight through. Below 1.0
+Melos shifts each name down one position, which is the pub convention rather
+than strict semver:
 
-| Choice | Meaning |
-| --- | --- |
-| `patch` | compatible fix or addition |
-| `minor` | substantial compatible work |
-| `breaking` | advances the minor line for an incompatible change |
+| Choice | On `0.2.0` | On `1.2.0` |
+| --- | --- | --- |
+| `patch` | `0.2.1` | `1.2.1` |
+| `minor` | `0.2.1` | `1.3.0` |
+| `major` | `0.3.0` | `2.0.0` |
 
-`minor` and `breaking` do the same thing below 1.0, because the breaking change
-*is* the minor bump there -- that is what `^0.2.0` resolving to `>=0.2.0 <0.3.0`
-means. They separate at 1.0.
+So **`major` is the breaking release pre-1.0**, because the minor slot *is* the
+breaking slot -- that is what `^0.2.0` resolving to `>=0.2.0 <0.3.0` means --
+and `minor` is indistinguishable from `patch` until 1.0. The three separate at
+1.0 without this page or the workflow changing.
 
-Melos and cider disagree about 0.x, and the workflow maps between them. On
-0.2.0, cider gives patch 0.2.1, minor 0.3.0, breaking 0.3.0; Melos gives patch
-0.2.1, minor 0.2.1, major 0.3.0 -- it shifts each name down one position below
-1.0 and cider does not. The table above is what a dispatch means; the mapping is
-in the workflow.
+These names used to be `patch`, `minor` and `breaking`, translated into Melos's
+vocabulary by the workflow. The translation is gone: re-encoding another tool's
+version arithmetic meant owning it, and keeping the two in step across 1.0.
 
 The workflow refuses to bump while any package's current local version is absent
 from pub.dev, or to release when no package has an `Unreleased` entry. It opens
@@ -324,19 +325,44 @@ siblings from the checkout. What remains is a window of minutes in which a
 published package names a sibling version pub.dev does not have yet, where a
 consumer resolving gets a solver error and succeeds on retry.
 
-### Publish Dart dependencies before updating the scaffold
+### The scaffolder's Dart floors move with the Dart release
 
-`create-eigen-game` writes fixed, published ranges for the server,
-`eigen_flutter`, `eigen_shell`, and `eigen_firebase`. Those constants are one
+`create-eigen-game` writes fixed ranges for the server, `eigen_flutter`,
+`eigen_shell`, `eigen_firebase` and `eigen_codegen`. Those constants are one
 tested dependency set; the CLI does not query registries or choose versions at
 scaffold time.
 
-After publishing the required Dart packages, raise `flutterClientVersion`,
-`flutterShellVersion`, and `firebaseAdapterVersion` in
-`packages/create-eigen-game/src/index.ts` as needed, add a Changeset, and let
-the normal npm flow ship the reproducible set. `scripts/scaffold-e2e.mjs`
-compiles the same-revision graph with local overrides and checks the published
-wire pairing separately.
+**Nothing to do by hand.** `version-dart-package.yml` passes the versions melos
+just wrote to `packages/create-eigen-game/scripts/set-pins.mjs`, which raises
+the matching floors, updates the expectations in `test/scaffold.spec.ts`, and
+writes the Changeset — all inside the same release commit. The scaffolder is
+therefore already correct when the tags publish.
+
+This works because the floors can name a version pub.dev does not have yet.
+`scripts/scaffold-e2e.mjs` resolves the Dart half through
+`pubspec_overrides.yaml` pointing at the checkout, so it compiles the templates
+against the source being released rather than against the registry. What it
+gives up is the user's question — whether the emitted ranges install for someone
+with no overrides — and `release.yml` asks that one directly, running
+`scripts/check-pins.mjs` immediately before the npm publish and waiting out
+pub.dev's propagation lag.
+
+It replaced a rule that read "publish the Dart packages, then raise the pins".
+That rule was correct and its cost was borne by everyone: a floor could only
+move after its release published, and until someone moved it the scaffold gate
+failed **every pull request in the repository**, for a reason unrelated to the
+change in it.
+
+To raise a floor outside a release — a package published out of band, say — run
+it directly:
+
+```bash
+cd server/packages/create-eigen-game
+node scripts/set-pins.mjs eigen_flutter=0.12.0 eigen_shell=0.3.1
+```
+
+It refuses to lower a floor, and insists each constant and expectation it
+rewrites is exactly where it expects, rather than quietly matching nothing.
 
 ## Verification after publication
 
@@ -369,8 +395,14 @@ For pub.dev:
   workflow uses the workflow definition stored at the tag.
 - **Dart version is already published:** never move its tag or overwrite the
   version. Publish a new patch. The workflows treat a retry as a clean no-op.
-- **Compatibility dispatch failed after Flutter published:** manually run
-  `sync-compatibility.yml` with `expect=eigen_flutter@<version>`.
+- **Compatibility dispatch failed after a Dart package published:** manually run
+  `sync-compatibility.yml` with `expect=<package>@<version>`. The publish
+  workflows send `dart-package-released` with the App token, because an event
+  sent with `GITHUB_TOKEN` starts no workflow run at all.
+- **npm publish blocked by `Check the scaffolder's floors are installable`:** the
+  Dart release that raised those floors has not reached pub.dev. Confirm
+  `publish-dart.yml` succeeded for each tag, then rerun the publish job; the
+  check already waits about five minutes for propagation on its own.
 - **A harmful Dart release shipped:** retract it on pub.dev, communicate the
   affected range, and publish a replacement version.
 

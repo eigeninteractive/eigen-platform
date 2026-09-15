@@ -101,3 +101,25 @@ jobs:
         # validation and resolution. Avoid repeating those reads with the
         # package-scoped upload credential attached.
         run: dart pub publish --force --skip-validation
+
+      # The compatibility table's rows ARE the engine lines that ever shipped a
+      # wire client, which it reads off this package. A new line appears there
+      # only once this upload lands, so this is the other half of the
+      # announcement `publish-dart.yml` sends; see the note there about why the
+      # App token is not optional.
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        if: steps.published.outputs.skip == 'false'
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Announce the release
+        if: steps.published.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          jq -n --arg version "${GITHUB_REF_NAME#eigen_api-v}" \
+            '{event_type: "dart-package-released", client_payload: {package: "eigen_api", version: $version}}' \
+            | gh api "repos/$GITHUB_REPOSITORY/dispatches" --input -

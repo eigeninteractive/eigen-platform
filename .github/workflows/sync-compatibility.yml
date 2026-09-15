@@ -1,8 +1,14 @@
 name: Sync compatibility table
 
+# `dart-package-released` is sent by `publish-dart.yml` and
+# `publish-eigen-api.yml` once an upload lands. It was `flutter-client-released`
+# and carried only a version, which assumed the only publish worth regenerating
+# for was `eigen_flutter`; the table's ROWS come from `eigen_api`, so that
+# assumption cost it a row per engine line. Renaming was free -- nothing had
+# ever sent the old event.
 on:
   repository_dispatch:
-    types: [flutter-client-released]
+    types: [dart-package-released]
   workflow_dispatch:
     inputs:
       expect:
@@ -41,7 +47,12 @@ jobs:
       - name: Regenerate table
         working-directory: web
         env:
-          EXPECT: ${{ github.event.client_payload.version && format('eigen_flutter@{0}', github.event.client_payload.version) || inputs.expect }}
+          # The script waits for this version to surface on pub.dev before it
+          # regenerates, and ignores any package the table does not read. A
+          # release that moves `eigen_shell` therefore costs one anonymous fetch
+          # and no wait, which is cheaper than teaching this workflow which
+          # packages matter.
+          EXPECT: ${{ github.event.client_payload.package && format('{0}@{1}', github.event.client_payload.package, github.event.client_payload.version) || inputs.expect }}
         run: |
           if [ -n "$EXPECT" ]; then
             node scripts/sync-compatibility.mjs --expect "$EXPECT"
@@ -52,7 +63,7 @@ jobs:
       - name: Open or refresh the generated pull request
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          TRIGGER: ${{ github.event.client_payload.version && format('eigen_flutter {0}', github.event.client_payload.version) || 'a manual run' }}
+          TRIGGER: ${{ github.event.client_payload.package && format('{0} {1}', github.event.client_payload.package, github.event.client_payload.version) || 'a manual run' }}
         run: |
           git config user.name "eigen-release[bot]"
           git config user.email "eigen-release[bot]@users.noreply.github.com"
