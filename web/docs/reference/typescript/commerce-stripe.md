@@ -24,7 +24,7 @@ Three things about the shape are deliberate:
 
 ### StripeCommerceConfig
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L32)
+Defined in: [server/packages/commerce-stripe/src/index.ts:43](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L43)
 
 Everything this adapter needs from the Worker's environment.
 
@@ -36,13 +36,25 @@ Everything this adapter needs from the Worker's environment.
 
 #### Properties
 
+##### apiVersion?
+
+```ts
+optional apiVersion?: string;
+```
+
+Defined in: [server/packages/commerce-stripe/src/index.ts:55](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L55)
+
+Override the pinned API version. Set the webhook endpoint to the same
+version, and expect to revisit the field mapping below if you move back
+past Basil.
+
 ##### now?
 
 ```ts
 optional now?: () => number;
 ```
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L39)
+Defined in: [server/packages/commerce-stripe/src/index.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L56)
 
 ###### Returns
 
@@ -54,7 +66,7 @@ Defined in: [server/packages/commerce-stripe/src/index.ts:39](https://github.com
 optional toleranceSeconds?: number;
 ```
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L38)
+Defined in: [server/packages/commerce-stripe/src/index.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L49)
 
 Seconds a signed payload stays acceptable. Stripe's own default is 300.
 
@@ -66,7 +78,7 @@ Seconds a signed payload stays acceptable. Stripe's own default is 300.
 secretKey(env): string | undefined;
 ```
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:34](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L34)
+Defined in: [server/packages/commerce-stripe/src/index.ts:45](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L45)
 
 The restricted or secret API key. Never a publishable key.
 
@@ -86,7 +98,7 @@ The restricted or secret API key. Never a publishable key.
 webhookSecret(env): string | undefined;
 ```
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L36)
+Defined in: [server/packages/commerce-stripe/src/index.ts:47](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L47)
 
 The `whsec_...` signing secret for the endpoint Stripe posts to.
 
@@ -108,7 +120,7 @@ The `whsec_...` signing secret for the endpoint Stripe posts to.
 function stripeCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/commerce-stripe/src/index.ts:91](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L91)
+Defined in: [server/packages/commerce-stripe/src/index.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/commerce-stripe/src/index.ts#L133)
 
 #### Type Parameters
 
