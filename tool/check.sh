@@ -143,19 +143,6 @@ run_flutter() {
   flutter test
   dart pub publish --dry-run
 
-  # The optional storefronts. They are separate packages precisely so a game
-  # that sells nothing inherits neither their code nor their platform plugins,
-  # so they are analyzed, tested and dry-run published like everything else.
-  for storefront in commerce_play commerce_hosted; do
-    cd "$platform_root/$storefront"
-    flutter pub get
-    dart format --output=none --set-exit-if-changed .
-    flutter analyze
-    check_docs "$storefront"
-    flutter test
-    dart pub publish --dry-run
-  done
-
   cd "$platform_root/firebase"
   flutter pub get
   dart format --output=none --set-exit-if-changed \

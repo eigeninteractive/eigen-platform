@@ -39,6 +39,11 @@ dependencies:
   share_plus: ^13.1.0
   flutter_native_splash: ^2.4.7
   in_app_update: ^5.0.0
+  # Google Play Billing, for a game that sells through Play. The Android
+  # implementation and its interface rather than the `in_app_purchase`
+  # umbrella, which would also link StoreKit into every iOS build.
+  in_app_purchase_android: ^0.5.3
+  in_app_purchase_platform_interface: ^1.4.1
   in_app_review: ^2.0.11
   app_settings: ">=8.0.3 <10.0.0"
   url_launcher: ^6.3.2

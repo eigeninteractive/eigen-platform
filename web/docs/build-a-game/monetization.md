@@ -348,18 +348,24 @@ loads: opening checkout replaces the page, so the return is an ordinary cold
 start that happens to carry a purchase. Call `CommerceService.resumeFrom` with
 the URL the app was opened at, and again whenever a deep link arrives.
 
-Two optional packages implement these ports, so a game that sells nothing links
-neither their code nor their platform plugins:
+Implementations ship where their dependencies belong, which is the same rule
+the Worker's storefront entry points follow:
 
-| Package | Storefront | Install it to… |
+| | Where | Why there |
 | --- | --- | --- |
-| `eigen_commerce_play` | `PurchaseGateway` | sell through Google Play Billing on Android |
-| `eigen_commerce_hosted` | `HostedStorefront` | sell through Stripe or Razorpay's hosted pages |
+| `StripeHostedStorefront`, `RazorpayHostedStorefront` | `eigen_flutter` | Pure URL construction. No dependency, so nothing is saved by keeping them out. |
+| `UrlLauncherCheckout` | `eigen_shell` | Needs `url_launcher`, which the shell already has. |
+| `PlayPurchaseGateway` | `eigen_shell` | Links Google Play Billing, native Android code no game should carry unless it ships the shell. |
 
-They are separate packages where the server's storefronts are entry points of
-one, and the difference is the dependency: an adapter that needs Play Billing
-or a URL launcher on the device is not something a game that sells nothing
-should link, while the Worker's adapters have no dependencies at all.
+`CheckoutLauncher` is the seam between the two halves: `eigen_flutter` asks for
+one rather than depending on a platform plugin every game would then link
+whether or not it sells anything. The shell supplies `UrlLauncherCheckout`, and
+an application that wants an in-app browser instead supplies its own — it is a
+single `launchUrl` call.
+
+`PlayPurchaseGateway` depends on `in_app_purchase_android` rather than the
+`in_app_purchase` umbrella, which would also link StoreKit into every iOS
+build. Play Billing is Android-only, and so is this.
 
 A concrete adapter is an entry point of its own rather than part of the barrel,
 because it needs a merchant account, credentials and product identifiers the

@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:eigen_commerce_play/eigen_commerce_play.dart';
-import 'package:eigen_flutter/adapters.dart';
+import 'package:eigen_flutter/shell_support.dart';
+import 'package:eigen_shell/features/commerce/data/play_purchase_gateway.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 
 /// Play, scripted. Records what the gateway asked it to do.
-class _Billing implements InAppPurchase {
+class _Billing implements InAppPurchasePlatform {
   _Billing({this.available = true, this.products = const []});
 
   final bool available;

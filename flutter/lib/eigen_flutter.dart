@@ -43,6 +43,9 @@ export 'core/game/game_module.dart';
 export 'features/auth/domain/auth_gateway.dart';
 export 'features/auth/domain/auth_user.dart';
 export 'features/commerce/data/commerce_service.dart';
+export 'features/commerce/data/hosted_storefront.dart';
+export 'features/commerce/data/razorpay_storefront.dart';
+export 'features/commerce/data/stripe_storefront.dart';
 export 'features/commerce/domain/purchase_gateway.dart';
 export 'features/commerce/providers/commerce_providers.dart'
     show commerceRepositoryProvider, commerceServiceProvider;

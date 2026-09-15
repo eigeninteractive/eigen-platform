@@ -45,8 +45,6 @@ jobs:
             "eigen_flutter:flutter/pubspec.yaml"
             "eigen_shell:shell/pubspec.yaml"
             "eigen_firebase:firebase/pubspec.yaml"
-            "eigen_commerce_play:commerce_play/pubspec.yaml"
-            "eigen_commerce_hosted:commerce_hosted/pubspec.yaml"
           )
 
           pending=()

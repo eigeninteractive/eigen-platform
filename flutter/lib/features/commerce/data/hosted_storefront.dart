@@ -1,5 +1,4 @@
-import 'package:eigen_flutter/adapters.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../domain/purchase_gateway.dart';
 
 /// Opens a provider's checkout page.
 ///
@@ -15,26 +14,6 @@ abstract interface class CheckoutLauncher {
   Future<bool> open(Uri checkoutUrl);
 }
 
-/// The default: hand the URL to the platform browser.
-///
-/// On the web this replaces the current page, so the app is unloaded and the
-/// return is an ordinary cold start. On Android and iOS it opens an external
-/// browser and the app stays alive until the return URL, an App Link or
-/// Universal Link, routes back in.
-class UrlLauncherCheckout implements CheckoutLauncher {
-  const UrlLauncherCheckout();
-
-  @override
-  Future<bool> open(Uri checkoutUrl) => launchUrl(
-    checkoutUrl,
-    mode: LaunchMode.externalApplication,
-    // Replace rather than open a tab: a popup is blocked unless the gesture is
-    // recognized as one, and a checkout that silently fails to open is worse
-    // than one that takes the page.
-    webOnlyWindowName: '_self',
-  );
-}
-
 /// Shared shape of a storefront whose purchase happens on a provider's page.
 ///
 /// The two below differ only in which query parameters their provider brings
@@ -42,12 +21,15 @@ class UrlLauncherCheckout implements CheckoutLauncher {
 abstract base class HostedCheckoutStorefront implements HostedStorefront {
   const HostedCheckoutStorefront({
     required this.returnUrl,
-    this.launcher = const UrlLauncherCheckout(),
+    required this.launcher,
   });
 
   @override
   final Uri returnUrl;
 
+  /// How the provider's page is opened. `eigen_shell` supplies one over
+  /// `url_launcher`; the core asks for it rather than depending on a platform
+  /// plugin every game would then link whether or not it sells anything.
   final CheckoutLauncher launcher;
 
   /// What [uri] reports, given it is a return to this storefront for

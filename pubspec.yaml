@@ -70,8 +70,6 @@ workspace:
   - flutter/example
   - shell
   - firebase
-  - commerce_play
-  - commerce_hosted
 
 # Melos versions these packages and rewrites the constraints between them.
 #

@@ -75,10 +75,6 @@ member, or type:
   commercial limits.
 - [Testing](../build-a-game/testing.md) covers the dedicated testing library.
 
-`eigen_commerce_play` and `eigen_commerce_hosted` are the optional storefront
-packages: Google Play Billing, and Stripe/Razorpay hosted checkout. A game that
-sells nothing installs neither.
-
 `eigen_api` is the generated transport package used inside `eigen_client`.
 Game apps do not depend on or import it directly. For wire-level lookup, use
 the [HTTP API reference](./http-api/eigeninteractive-engine-api.info.mdx) or

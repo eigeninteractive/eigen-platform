@@ -1,5 +1,4 @@
-import 'package:eigen_commerce_hosted/eigen_commerce_hosted.dart';
-import 'package:eigen_flutter/adapters.dart';
+import 'package:eigen_flutter/eigen_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final _returnUrl = Uri.parse('https://game.example/store/return');
@@ -60,7 +59,10 @@ void main() {
 
   group('recognizing a return', () {
     test('ignores a URL that is not a return at all', () {
-      final storefront = StripeHostedStorefront(returnUrl: _returnUrl);
+      final storefront = StripeHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
 
       // An app's own deep links arrive here too. None of them is a purchase.
       expect(
@@ -71,7 +73,10 @@ void main() {
     });
 
     test('reads the Stripe session the adapter asked to be sent back', () {
-      final storefront = StripeHostedStorefront(returnUrl: _returnUrl);
+      final storefront = StripeHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
 
       final update = storefront.resume(
         _returnedWith({'session_id': 'cs_test_1'}),
@@ -86,7 +91,10 @@ void main() {
     test('treats a Stripe return with no session as a cancellation', () {
       // The adapter puts the session placeholder on the success URL only, so a
       // return without one came back from `cancel_url`.
-      final storefront = StripeHostedStorefront(returnUrl: _returnUrl);
+      final storefront = StripeHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
 
       final update = storefront.resume(_returnedWith(const {}));
 
@@ -97,7 +105,10 @@ void main() {
     test('prefers a Razorpay subscription over the payment inside it', () {
       // The payment is the first instalment; the subscription is the thing the
       // entitlement follows.
-      final storefront = RazorpayHostedStorefront(returnUrl: _returnUrl);
+      final storefront = RazorpayHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
 
       final update = storefront.resume(
         _returnedWith({
@@ -112,7 +123,10 @@ void main() {
     });
 
     test('reads a Razorpay payment link return', () {
-      final storefront = RazorpayHostedStorefront(returnUrl: _returnUrl);
+      final storefront = RazorpayHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
 
       final update = storefront.resume(
         _returnedWith({
@@ -127,8 +141,14 @@ void main() {
     test('does not answer for another provider on the same return URL', () {
       // A build carrying both offers each storefront the same URL; the one it
       // does not belong to must decline rather than guess.
-      final stripe = StripeHostedStorefront(returnUrl: _returnUrl);
-      final razorpay = RazorpayHostedStorefront(returnUrl: _returnUrl);
+      final stripe = StripeHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
+      final razorpay = RazorpayHostedStorefront(
+        returnUrl: _returnUrl,
+        launcher: _Launcher(),
+      );
       final fromRazorpay = _returnedWith({'razorpay_payment_id': 'pay_3'});
 
       expect(razorpay.resume(fromRazorpay)?.evidence, {'paymentId': 'pay_3'});

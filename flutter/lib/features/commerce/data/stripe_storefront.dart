@@ -1,6 +1,5 @@
-import 'package:eigen_flutter/adapters.dart';
-
-import 'checkout_launcher.dart';
+import '../domain/purchase_gateway.dart';
+import 'hosted_storefront.dart';
 
 /// The provider key this storefront sells through.
 ///
@@ -15,7 +14,10 @@ const stripeProvider = 'stripe';
 /// reads the return. No Stripe SDK is involved, and no card data passes through
 /// this process, which is the point of hosted Checkout rather than Elements.
 final class StripeHostedStorefront extends HostedCheckoutStorefront {
-  const StripeHostedStorefront({required super.returnUrl, super.launcher});
+  const StripeHostedStorefront({
+    required super.returnUrl,
+    required super.launcher,
+  });
 
   @override
   String get provider => stripeProvider;

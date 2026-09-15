@@ -9,8 +9,6 @@ const packages = [
   ["eigen_flutter", "flutter"],
   ["eigen_shell", "shell"],
   ["eigen_firebase", "firebase"],
-  ["eigen_commerce_play", "commerce_play"],
-  ["eigen_commerce_hosted", "commerce_hosted"],
 ];
 const versionPattern =
   "[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?";
@@ -43,9 +41,6 @@ async function checkPackage([name, path]) {
   );
   const releases = [...changelog.matchAll(headingPattern)];
   if (releases.length === 0) {
-    // Including a package that has never shipped: `cider release` cuts its
-    // first section before it is ever checked in, which is what makes the
-    // pubspec and the changelog agree from the start.
     throw new Error(`${path}/CHANGELOG.md has no release headings`);
   }
 

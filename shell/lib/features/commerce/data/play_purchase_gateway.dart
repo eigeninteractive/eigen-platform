@@ -1,9 +1,13 @@
 import 'dart:async';
 
-import 'package:eigen_flutter/adapters.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:eigen_flutter/shell_support.dart';
+// The Android implementation directly, not the `in_app_purchase` umbrella: the
+// umbrella also pulls in StoreKit, which would link an Apple payments
+// framework into every iOS build of every game the shell ships, including the
+// ones that sell nothing.
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 
 /// The provider key this gateway sells through.
 ///
@@ -23,8 +27,21 @@ const googlePlayProvider = 'google_play';
 /// claim that Play says something was bought; the Worker re-reads it from the
 /// Android Publisher API before any of it becomes access.
 class PlayPurchaseGateway implements PurchaseGateway {
-  PlayPurchaseGateway({required this.accountId, InAppPurchase? billing})
-    : _billing = billing ?? InAppPurchase.instance;
+  PlayPurchaseGateway({required this.accountId, InAppPurchasePlatform? billing})
+    : _billing = billing ?? _androidPlatform();
+
+  /// The umbrella package registers the Android implementation on startup, and
+  /// this does not use the umbrella. Registering here rather than asking an
+  /// application to remember turns a runtime failure into nothing at all.
+  static InAppPurchasePlatform _androidPlatform() {
+    if (!_registered) {
+      InAppPurchaseAndroidPlatform.registerPlatform();
+      _registered = true;
+    }
+    return InAppPurchasePlatform.instance;
+  }
+
+  static bool _registered = false;
 
   /// The Eigen account to bind a purchase to, read at purchase time.
   ///
@@ -34,7 +51,7 @@ class PlayPurchaseGateway implements PurchaseGateway {
   /// late rather than captured, because the signed-in account outlives no
   /// session in particular.
   final String Function() accountId;
-  final InAppPurchase _billing;
+  final InAppPurchasePlatform _billing;
 
   /// What Play last said about each product, so a purchase can name the SDK
   /// object Play expects rather than an identifier we invented.

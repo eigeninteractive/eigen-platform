@@ -1,6 +1,5 @@
-import 'package:eigen_flutter/adapters.dart';
-
-import 'checkout_launcher.dart';
+import '../domain/purchase_gateway.dart';
+import 'hosted_storefront.dart';
 
 /// The provider key this storefront sells through.
 ///
@@ -15,7 +14,10 @@ const razorpayProvider = 'razorpay';
 /// calls for. Both send the player to a Razorpay-hosted page and back with the
 /// purchase named in the query, which is the only thing read here.
 final class RazorpayHostedStorefront extends HostedCheckoutStorefront {
-  const RazorpayHostedStorefront({required super.returnUrl, super.launcher});
+  const RazorpayHostedStorefront({
+    required super.returnUrl,
+    required super.launcher,
+  });
 
   @override
   String get provider => razorpayProvider;

@@ -2,6 +2,10 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- `PlayPurchaseGateway`, Google Play Billing behind the `eigen_flutter` `PurchaseGateway` port: localized products, consumables for repeatable offers, restoration, the account binding Play carries as `obfuscatedAccountId`, and acknowledgement that works from durable outbox evidence after a restart. It depends on `in_app_purchase_android` rather than the `in_app_purchase` umbrella, which would also link StoreKit into every iOS build.
+- `UrlLauncherCheckout`, the `CheckoutLauncher` hosted storefronts open their provider's page with.
+
 ### Changed
 - Preserve one game-creation identity across ambiguous transport retries, so a retry cannot create or commercially count a second game.
 
