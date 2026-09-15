@@ -342,4 +342,5 @@ Bot counterBot({String id = 'bot-1', String username = 'counter-bot'}) => Bot(
   type: BotType.local,
   ratedEligible: false,
   config: const <String, dynamic>{},
+  tier: 'standard',
 );

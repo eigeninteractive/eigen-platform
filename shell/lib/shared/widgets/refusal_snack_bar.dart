@@ -18,13 +18,18 @@ void showRefusal(BuildContext context, WidgetRef ref, Object error) {
   final code = error is EngineException ? error.code : null;
   final upgradeable =
       isUpgradeableRefusal(code) && ref.read(storeAvailableProvider);
+  // Resolved now rather than on tap. The snack bar outlives whatever showed it
+  // -- a picker the player closes, a join screen that has already gone home --
+  // and a late tap would otherwise look the router up from an unmounted context.
+  final router = GoRouter.maybeOf(context);
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
       content: Text(humanize(error)),
       action: upgradeable
           ? SnackBarAction(
               label: 'See options',
-              onPressed: () => context.goNamed('store'),
+              onPressed: () =>
+                  (router ?? GoRouter.of(context)).goNamed('store'),
             )
           : null,
     ),

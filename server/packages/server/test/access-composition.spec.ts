@@ -4,10 +4,11 @@ import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { readEffectiveAccess } from "../src/commerce/access.js";
+import { capabilityAllows, DEFAULT_BOT_TIER } from "../src/commerce/capability.js";
 import { resolveCommerce } from "../src/commerce/catalog.js";
 import { recordVerifiedTransaction } from "../src/commerce/ledger.js";
 import { reconcileCommerce } from "../src/commerce/reconcile.js";
-import type { CommerceCatalog, CommerceProvider, VerifiedCommerceTransaction } from "../src/commerce/types.js";
+import type { CommerceCatalog, CommerceProvider, EngineAccessCapability, VerifiedCommerceTransaction } from "../src/commerce/types.js";
 import { orm } from "../src/d1/orm.js";
 import { commerceUsage } from "../src/d1/schema.js";
 import { fakeCommerceProvider, testAccount } from "../src/testing.js";
@@ -299,6 +300,24 @@ describe("grant composition", () => {
   });
 });
 
+describe("capability matching", () => {
+  it("covers exactly the tier a bot.use grant names, and nothing wider", () => {
+    const standard = { kind: "bot.use", tier: DEFAULT_BOT_TIER } as const;
+    const advanced = { kind: "bot.use", tier: "advanced" } as const;
+    expect(capabilityAllows(standard, standard)).toBe(true);
+    // The grant a free profile holds must never reach a paid tier, which is the
+    // whole reason there is no "every bot" grant.
+    expect(capabilityAllows(standard, advanced)).toBe(false);
+    expect(capabilityAllows(advanced, standard)).toBe(false);
+  });
+
+  it("matches an analysis type exactly, so an untyped grant covers untyped analysis only", () => {
+    expect(capabilityAllows({ kind: "analysis.use" }, { kind: "analysis.use" })).toBe(true);
+    expect(capabilityAllows({ kind: "analysis.use" }, { kind: "analysis.use", analysisType: "deep" })).toBe(false);
+    expect(capabilityAllows({ kind: "analysis.use", analysisType: "deep" }, { kind: "analysis.use", analysisType: "deep" })).toBe(true);
+  });
+});
+
 describe("catalog validation", () => {
   const provider = fakeCommerceProvider([{ providerReference: "product", displayPrice: "$1" }]);
 
@@ -330,6 +349,18 @@ describe("catalog validation", () => {
         providers: [provider],
       }),
     ).not.toThrow();
+  });
+
+  it("requires every bot.use grant to name a tier: standard, or one botTiers lists", () => {
+    const withBots = (permissions: EngineAccessCapability[], botTiers?: Record<string, string>) => ({
+      catalog: { free: { permissions }, entitlements: [], offers: [], ...(botTiers === undefined ? {} : { botTiers }) },
+      providers: [provider],
+    });
+    expect(() => resolveCommerce(withBots([{ kind: "bot.use", tier: DEFAULT_BOT_TIER }]))).not.toThrow();
+    expect(() => resolveCommerce(withBots([{ kind: "bot.use", tier: "advanced" }], { "bot-stockfish": "advanced" }))).not.toThrow();
+    expect(() => resolveCommerce(withBots([{ kind: "bot.use", tier: "advanced" }]))).toThrow(/unknown bot tier advanced/);
+    // Typed as required, but a catalog written as plain JavaScript can omit it.
+    expect(() => resolveCommerce(withBots([{ kind: "bot.use" } as unknown as EngineAccessCapability]))).toThrow(/must name a tier/);
   });
 
   it("rejects subscription accounting on the free profile", () => {

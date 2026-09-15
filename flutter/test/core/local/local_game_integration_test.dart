@@ -20,6 +20,7 @@ Bot _bot(String username, {BotType type = BotType.local}) => Bot(
   type: type,
   ratedEligible: false,
   config: const <String, dynamic>{},
+  tier: 'standard',
 );
 
 void main() {

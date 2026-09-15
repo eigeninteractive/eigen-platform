@@ -132,7 +132,9 @@ describe("create", () => {
 
   it("gates guests out of friends-access games and validates timing", async () => {
     const u = makeUsers();
-    expect((await api(u.a, "POST", "/games", { ...createBody, access: "friends" }, true)).status).toBe(403);
+    const guestFriends = await api(u.a, "POST", "/games", { ...createBody, access: "friends" }, true);
+    expect(guestFriends.status).toBe(403);
+    expect(await guestFriends.json()).toMatchObject({ code: "registrationRequired" });
     expect((await api(u.a, "POST", "/games", { ...createBody, turnSeconds: 30, budgetSeconds: 300 })).status).toBe(400);
     // A client ahead of the deployed server gets an explicit deployment
     // mismatch rather than misleading "update your app" copy.
@@ -207,7 +209,9 @@ describe("waiting room", () => {
   it("guests cannot join rated games", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a); // rated by default
-    expect((await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }, true)).status).toBe(403);
+    const refused = await api(u.b, "POST", `/games/${gameId}/join`, { clientSchemaVersion: 1 }, true);
+    expect(refused.status).toBe(403);
+    expect(await refused.json()).toMatchObject({ code: "registrationRequired" });
   });
 
   it("leave compacts and demotes below minPlayers; the creator cannot leave", async () => {

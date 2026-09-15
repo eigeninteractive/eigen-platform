@@ -213,7 +213,9 @@ passed the complete gate, and its final merged `main` commit must pass the
 complete gate again before publication. The version PR:
 
 - consumes pending Changesets and updates package changelogs;
-- stamps and regenerates `eigen_api`;
+- stamps and regenerates `eigen_api`, and raises the `eigen_api` floor of
+  `eigen_flutter` and `eigen_client` to that same version, so a Dart release
+  that reads a field this engine added cannot resolve an older client;
 - regenerates the OpenAPI and TypeScript documentation;
 - carries all of that as a single commit. Changesets diffs the whole worktree
   against the base commit, so the cross-workspace regeneration lands with the

@@ -5,6 +5,7 @@
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
+import { botTier } from "../commerce/capability.js";
 import { decodeOptionalCursor } from "../cursor.js";
 import { clampIds, gameExists, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
 import type { EngineApp, RouteContext } from "../engine.js";
@@ -127,7 +128,7 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     }),
     async (c) => {
       const bots = await readBots(ctx.d1(c.env));
-      return c.json({ bots: bots.map(botOf) }, 200);
+      return c.json({ bots: bots.map((bot) => botOf(bot, botTier(ctx.commerce?.catalog, bot))) }, 200);
     },
   );
 

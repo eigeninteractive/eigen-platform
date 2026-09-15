@@ -74,6 +74,7 @@ export default createEngine({
           { kind: "game.join", access: "private" },
           { kind: "game.create.rated" },
           { kind: "replay.read" },
+          { kind: "bot.use", tier: "standard" },
         ],
       },
       entitlements: [
@@ -156,7 +157,7 @@ type EngineAccessCapability =
   | { kind: "game.create"; access: "public" | "friends" | "private" }
   | { kind: "game.join"; access: "public" | "friends" | "private" }
   | { kind: "game.create.rated" }
-  | { kind: "bot.use"; tier?: string }
+  | { kind: "bot.use"; tier: string }
   | { kind: "content.use"; collection: string; id: string }
   | { kind: "replay.read" }
   | { kind: "analysis.use"; analysisType?: string };
@@ -178,10 +179,35 @@ Solo creation composes existing checks rather than introducing another verb:
 game.create.private + bot.use(selected tier)
 ```
 
-Every selected bot needs `bot.use`. `botTiers` maps registered bot IDs to a
-named tier; a bot omitted from that map requires the unparameterized base
-capability. Grant that base capability in `free.permissions` when all ordinary
-bots should remain free.
+Every selected bot needs `bot.use` for its tier, and every bot has exactly one.
+`botTiers` lists the bots priced differently; every bot it does not list is in
+`standard`. A grant covers only the tier it names, and there is no `bot.use`
+meaning "every bot", so ordinary bots stay free while a paid tier stays paid:
+
+```ts
+free: {
+  permissions: [{ kind: "bot.use", tier: "standard" }],
+},
+entitlements: [{
+  key: "pro",
+  permissions: [
+    { kind: "bot.use", tier: "standard" },
+    { kind: "bot.use", tier: "advanced" },
+  ],
+}],
+botTiers: {
+  "bot-stockfish": "advanced",
+},
+```
+
+An entitlement that should include every bot names every tier. To make every
+bot paid, grant `standard` through an entitlement rather than the free profile.
+
+`GET /bots` publishes each bot's `tier`, so a picker can mark an opponent before
+it is chosen; the shell shows a lock on one the account's access does not
+include. A `local` bot is always `standard`, whatever `botTiers` says, because
+the server never seats it and so never charges for it. The tier is presentation
+only: seating is what checks access.
 
 ## Select game-owned content
 
@@ -261,10 +287,13 @@ The supported metrics are:
 
 | Metric | Meaning | Compatible period |
 |---|---|---|
-| `game.create.success` | Successfully created games across all access modes | calendar month, subscription period, lifetime |
-| `games.openCreated` | Games this account created that remain waiting, ready, or active | concurrent |
-| `bot.game.success` | Successfully created games containing bots | calendar month, subscription period, lifetime |
+| `game.create.success` | Successfully created online games across all access modes | calendar month, subscription period, lifetime |
+| `games.openCreated` | Online games this account created that remain waiting, ready, or active | concurrent |
+| `bot.game.success` | Successfully created online games containing bots | calendar month, subscription period, lifetime |
 | `analysis.run.success` | Successfully completed analysis operations | calendar month, subscription period, lifetime |
+
+Every metric counts online play. A game played offline is outside commerce
+entirely; see [Offline play is not priced](#offline-play-is-not-priced).
 
 `analysis.use` and `analysis.run.success` are reserved parts of the closed
 engine vocabulary, but the current core does not yet expose a game-agnostic
@@ -284,6 +313,42 @@ must not consume two allowances. Mint one `creationId`, reuse it after an
 ambiguous transport failure, and mint another only when the player begins a new
 creation intent. The Dart repository requires this explicitly; the standard
 shell preserves it while retrying.
+
+## Offline play is not priced
+
+Commerce authorizes play the **server** provides. A game played on the device
+is outside it: no capability is checked, no content ownership is required, and
+no metric moves — not when it is played, and not when it is later imported.
+Importing one registers a game that already happened.
+
+This is not an exemption the engine chose so much as one it cannot avoid. A bot
+brain that ships in the client bundle runs with no network, so there is no
+request to refuse; a variant the device already played through cannot be
+un-played by a later check. Gating the import would only refuse a history the
+player can already see on their phone.
+
+`app.access` is the one capability that still applies, because it gates
+reaching the server at all rather than playing. A player without it can still
+play offline; they cannot synchronize.
+
+The practical consequence for a paid catalog:
+
+- **Only price a bot the device cannot run.** A tier binds only where the server
+  seats the bot, and server seating requires a turn deadline (the only backstop
+  for a dispatch that never lands), so untimed play always happens on the
+  device. A `local` bot's brain exists only in the app, so the engine keeps it in
+  `standard` whatever `botTiers` says. An `engine` bot whose brain you also put in the
+  local unit is free in every untimed game, so don't tier that one either: the
+  player would be paying for the timed version of something one toggle away.
+  Sell tiers on `external` bots, or on `engine` bots you leave out of the local
+  unit. Both are timed-only by construction.
+- **`contentForCreate` still runs for a local game, and its result is still
+  recorded**, so the row says which variant the transcript was produced under.
+  It is a record, never a gate.
+- **Replaying a local game is free**, including viewer-owned content. The
+  device's own record route already hands its creator the whole transcript, so
+  gating the projected frames of the same game would be two answers about one
+  game.
 
 ## Connect the client
 
