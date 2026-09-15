@@ -254,11 +254,21 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * gate stayed quiet through it exactly as designed -- until `eigen_flutter`
  * 0.10.0 was on pub.dev there was no shell speaking 0.7.x to compare against,
  * and it says so in a notice rather than failing.
+ *
+ * Raised to 0.11.0 for the 0.8.x engine line and commerce, the first time the
+ * gate has fired rather than waited: `eigen_flutter 0.11.0` reached pub.dev
+ * constraining `eigen_api ^0.8.0`, which made a shell speaking 0.8.x exist,
+ * which turned `^0.10.0` from "nothing to compare against" into a stale pin in
+ * the same minute. That is the design -- the scaffold's pins are only ever
+ * knowably behind once something has overtaken them.
  */
-const flutterClientVersion = "^0.10.0";
+const flutterClientVersion = "^0.11.0";
 
-/** Complete first-party app shell installed by the standard scaffold. */
-const flutterShellVersion = "^0.2.0";
+/** Complete first-party app shell installed by the standard scaffold.
+ *
+ * Moves with `eigen_flutter`, and pre-1.0 it has to: `eigen_shell 0.3.0`
+ * constrains `eigen_flutter ^0.11.0`, and `^0.2.0` cannot reach it. */
+const flutterShellVersion = "^0.3.0";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
 const firebaseAdapterVersion = "^0.3.0";
