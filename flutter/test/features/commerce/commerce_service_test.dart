@@ -455,7 +455,7 @@ void main() {
     await service.dispose();
   });
 
-  test('ignores a URL that is nobody's return', () async {
+  test('ignores a URL that no storefront claims', () async {
     final service = CommerceService(_Repository(), [
       _Hosted((_) => throw StateError('nothing was presented')),
     ], _Deliveries());
