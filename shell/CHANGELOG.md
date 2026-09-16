@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- Every screen opens from the device replica: the home and history lists, replays, the profile, ratings and friends render with no network and no spinner on a device that has synced before, and pull-to-refresh runs the sync pass.
+- History pages older games in as the list is scrolled, from the server when the device does not hold them yet, and the home screen says how long ago the account last synced.
+
+### Changed
+- The home and history lists no longer merge games played on this device into the server's list by hand; both kinds are rows in one table and sort together.
+- A server game opened offline shows the board as it was last seen and holds its controls still, instead of failing to open. A game played on this device shows no offline or reconnecting banner at all.
+
 ## [0.4.0] - 2026-09-16
 ### Added
 - The pickers that seat a server bot mark an opponent the account's access does not include, and a refusal to seat one offers the store. The untimed picker never does: a game played on the device is not priced.
@@ -41,6 +50,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.4.0...HEAD
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...eigen_shell-v0.4.0
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...eigen_shell-v0.3.0
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.1...eigen_shell-v0.2.0

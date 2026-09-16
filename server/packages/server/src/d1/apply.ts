@@ -17,18 +17,24 @@
  * back, and we re-read fresh priors and recompute. Within one committed
  * batch there is no concurrent writer, so a history row that landed
  * guarantees its paired rating write did too.
+ *
+ * Ordering: every write here after the create names the Durable Object `seq`
+ * of the commit it mirrors and lands only when the row is not already newer
+ * (see `games` in the schema). A batch statement that matches nothing does not
+ * fail the batch, so each statement that follows the guarded update restates
+ * the guard rather than relying on the update having happened.
  */
 
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
-import { and, eq, inArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { SelectedContent } from "../commerce/types.js";
 import type { GameOrigin } from "../protocol.js";
 import { isCommercialLimitReached, isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
-import { commerceCapacity, commerceUsage, creationOperations, gameContent, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
+import { commerceCapacity, commerceUsage, creationOperations, gameContent, gameFinishes, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -39,10 +45,24 @@ export interface FinishApplyInput {
   roster: Seat[];
   rated: boolean;
   ratingPool: string | null;
+  /** The finishing commit's `seq`. */
+  seq: number;
   now: number;
 }
 
 const CAS_ATTEMPTS = 5;
+
+/** The row still names this revision: true after a guarded update that landed,
+ * or when an equal-revision write already had. What the statements after that
+ * update in one batch condition on. */
+function rowAt(gameId: string, seq: number) {
+  return sql`EXISTS (SELECT 1 FROM games WHERE id = ${gameId} AND seq = ${seq})`;
+}
+
+/** The row is not newer than this revision, so a write carrying it may land. */
+function notNewerThan(seq: number) {
+  return lte(games.seq, seq);
+}
 
 /** Apply one finished game to D1. Returns the rated deltas (null for an
  * unrated game) for the DO to deliver as the ratings transition. Throws on
@@ -70,13 +90,30 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         finishedAt: input.now,
         pendingPlayers: [],
         turnDeadline: null,
+        seq: input.seq,
         updatedAt: input.now,
       })
-      .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`));
+      .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq)));
+    // The history sync cursor, appended in the same batch and under the same
+    // guard as the summary above, so the number the database assigns reflects
+    // the order finishes COMMIT in. It runs FIRST: its guard reads the
+    // pre-update row. Nothing absorbs a conflict here, because the guard makes
+    // one unreachable -- a second row for one game would need the row to still
+    // be unfinished -- and `game_id`'s unique index is where that invariant is
+    // stated. A finish sequenced twice is a bug, and should say so.
+    const finishSequence = db.insert(gameFinishes).select(
+      db
+        // The rowid is spelled out because Drizzle's insert-select wants a
+        // value for every column of the target; NULL is how SQLite is asked
+        // to assign the next one.
+        .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
+        .from(games)
+        .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),
+    );
     const capacityRelease = db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, input.gameId));
 
     if (pool === null) {
-      await db.batch([summaryUpdate, capacityRelease]);
+      await db.batch([finishSequence, summaryUpdate, capacityRelease]);
       return null;
     }
 
@@ -126,9 +163,9 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     const existingUsers = await readExistingUsers(d1, deltaUserIds);
     const deltas = allDeltas.filter((d) => d.identity.userId === null || existingUsers.has(d.identity.userId));
 
-    const statements = [summaryUpdate, capacityRelease, ...ratingStatements(db, input, pool, deltas, priors)];
+    const statements = [finishSequence, summaryUpdate, capacityRelease, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
-      await db.batch(statements as [typeof summaryUpdate, ...typeof statements]);
+      await db.batch(statements as [typeof finishSequence, ...typeof statements]);
       return deltas;
     } catch (error) {
       // Only a CAS conflict is retryable, and it is the ONLY error this batch
@@ -261,9 +298,9 @@ async function recoverDeltas(d1: D1Database, finishId: string): Promise<RatingDe
 }
 
 /** The display upsert after a non-finishing transition: fire-and-forget
- * post-commit (the DO leaves it unawaited; no `waitUntil`), single attempt,
- * re-derivable from the DO at any time. */
-export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; now: number }): Promise<void> {
+ * post-commit (the DO leaves it unawaited, under a retry), re-derivable from
+ * the DO at any time. */
+export async function updateSummary(d1: D1Database, args: { gameId: string; status?: "active"; pendingPlayers: number[]; turnDeadline: number | null; seq: number; now: number }): Promise<void> {
   const db = orm(d1);
   await db
     .update(games)
@@ -271,28 +308,49 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
       ...(args.status !== undefined ? { status: args.status } : {}),
       pendingPlayers: args.pendingPlayers,
       turnDeadline: args.turnDeadline,
+      seq: args.seq,
       updatedAt: args.now,
     })
-    .where(eq(games.id, args.gameId));
+    .where(and(eq(games.id, args.gameId), notNewerThan(args.seq)));
 }
 
 /** The roster mirror after a committed waiting-room command. The DO's
  * roster is the integrity copy; this rewrites the D1 display copy wholesale
  * (delete + reinsert), which is idempotent and immune to per-row drift.
- * Fire-and-forget post-commit (the DO leaves it unawaited; no `waitUntil`),
- * single attempt. */
-export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; now: number }): Promise<void> {
+ * Fire-and-forget post-commit (the DO leaves it unawaited, under a retry).
+ *
+ * Each reinsert is an `INSERT ... SELECT` from the game's own row at this
+ * revision, so it carries the same guard as the delete: a stale mirror must
+ * leave the roster a newer one wrote, not delete it and put back an older one. */
+export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; seq: number; now: number }): Promise<void> {
   const db = orm(d1);
+  const current = rowAt(args.gameId, args.seq);
   const statements: BatchItem<"sqlite">[] = [
-    db.update(games).set({ status: args.status, updatedAt: args.now }).where(eq(games.id, args.gameId)),
-    db.delete(participants).where(eq(participants.gameId, args.gameId)),
-    ...(args.status === "aborted" ? [db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, args.gameId))] : []),
+    db
+      .update(games)
+      .set({ status: args.status, seq: args.seq, updatedAt: args.now })
+      .where(and(eq(games.id, args.gameId), notNewerThan(args.seq))),
+    db.delete(participants).where(and(eq(participants.gameId, args.gameId), current)),
+    ...(args.status === "aborted" ? [db.delete(commerceCapacity).where(and(eq(commerceCapacity.gameId, args.gameId), current))] : []),
   ];
-  if (args.seats.length === 0) {
-    await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
-    return;
+  for (const seat of args.seats) {
+    statements.push(
+      db.insert(participants).select(
+        db
+          .select({
+            id: sql<string>`${crypto.randomUUID()}`.as("id"),
+            gameId: games.id,
+            userId: sql<string | null>`${seat.userId}`.as("user_id"),
+            botId: sql<string | null>`${seat.botId}`.as("bot_id"),
+            playerIndex: sql<number>`${seat.playerIndex}`.as("player_index"),
+            type: sql<Seat["type"]>`${seat.type}`.as("type"),
+            createdAt: sql<number>`${args.now}`.as("created_at"),
+          })
+          .from(games)
+          .where(and(eq(games.id, args.gameId), eq(games.seq, args.seq))),
+      ),
+    );
   }
-  statements.push(db.insert(participants).values(args.seats.map((s) => ({ id: crypto.randomUUID(), gameId: args.gameId, userId: s.userId, botId: s.botId, playerIndex: s.playerIndex, type: s.type, createdAt: args.now }))));
   await db.batch(statements as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]]);
 }
 

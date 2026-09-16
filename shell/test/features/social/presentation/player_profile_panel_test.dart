@@ -1,11 +1,15 @@
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
+import 'package:eigen_shell/features/game/providers/replay_controller.dart';
+import 'package:eigen_shell/features/social/providers/social_providers.dart';
 import 'package:eigen_shell/features/rating/providers/rating_providers.dart';
 import 'package:eigen_shell/features/social/presentation/widgets/player_profile_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../helpers/replica.dart';
 
 const _playerId = 'player-1';
 const _gameId = 'game-12345678';
@@ -17,6 +21,7 @@ const _config = AppConfig(
 
 final _game = GameSummary(
   id: _gameId,
+  seq: 0,
   createdBy: null,
   status: GameStatus.finished,
   access: GameAccess.public,
@@ -40,27 +45,29 @@ final _game = GameSummary(
   participants: const [],
 );
 
-class _FakePlayerCache extends PlayerInfoCache {
-  @override
-  Future<Player> build({required String id}) async => Player(
-    id: id,
-    username: 'tester',
-    displayName: 'Test Player',
-    avatarUrl: null,
-    isAnonymous: false,
-  );
-}
-
 Future<void> _pump(WidgetTester tester, GoRouter router) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...withoutReplica(),
+        // What the panel needs from the replica is the relationship, and
+        // stating it keeps a friend lookup out of a routing test.
+        friendStatusProvider(targetId: _playerId)
+            .overrideWith((ref) async => FriendStatus.none),
         appConfigProvider.overrideWithValue(_config),
-        playerInfoCacheProvider(id: _playerId)
-            .overrideWith(_FakePlayerCache.new),
-        playerRatingsProvider(_playerId).overrideWith((ref) async => const []),
+        // Both variants: these tests open the panel for a bot and for a human.
+        seatIdentityProvider(userId: _playerId)
+            .overrideWith((ref) async => _tester),
+        seatIdentityProvider(botId: _playerId)
+            .overrideWith((ref) async => _tester),
+        playerRatingsProvider(_playerId)
+            .overrideWith((ref) => Stream.value(const [])),
         playerPublicFinishedGamesProvider(playerId: _playerId)
             .overrideWith((ref) async => [_game]),
+        // The replay screen itself is not what these tests are about; without
+        // this it would reach for the frames of a game no replica holds.
+        replayFramesProvider(gameId: _gameId)
+            .overrideWith((ref) async => const []),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light(Colors.teal),
@@ -70,6 +77,14 @@ Future<void> _pump(WidgetTester tester, GoRouter router) async {
   );
   await tester.pumpAndSettle();
 }
+
+final _tester = Player(
+  id: _playerId,
+  username: 'tester',
+  displayName: 'Test Player',
+  avatarUrl: null,
+  isAnonymous: false,
+);
 
 Widget _replayPage(GoRouterState state) => Scaffold(
   body: Center(child: Text('Replay ${state.pathParameters['gameId']}')),

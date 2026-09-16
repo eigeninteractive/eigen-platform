@@ -28,7 +28,6 @@ import 'package:eigen_api/src/model/local_record.dart';
 import 'package:eigen_api/src/model/local_started.dart';
 import 'package:eigen_api/src/model/local_transitions.dart';
 import 'package:eigen_api/src/model/local_transitions_applied.dart';
-import 'package:eigen_api/src/model/my_games.dart';
 import 'package:eigen_api/src/model/session.dart';
 import 'package:eigen_api/src/model/socket_ticket.dart';
 import 'package:eigen_api/src/model/solo_started.dart';
@@ -1181,90 +1180,6 @@ class GamesApi {
     }
 
     return Response<LocalRecord>(
-      data: _responseData,
-      headers: _response.headers,
-      isRedirect: _response.isRedirect,
-      requestOptions: _response.requestOptions,
-      redirects: _response.redirects,
-      statusCode: _response.statusCode,
-      statusMessage: _response.statusMessage,
-      extra: _response.extra,
-    );
-  }
-
-  /// getMyGames
-  ///
-  ///
-  /// Parameters:
-  /// * [bucket]
-  /// * [limit]
-  /// * [cursor]
-  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
-  /// * [headers] - Can be used to add additional headers to the request
-  /// * [extras] - Can be used to add flags to the request
-  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
-  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
-  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
-  ///
-  /// Returns a [Future] containing a [Response] with a [MyGames] as data
-  /// Throws [DioException] if API call or serialization fails
-  Future<Response<MyGames>> getMyGames({
-    String? bucket = 'active',
-    int? limit = 20,
-    String? cursor,
-    CancelToken? cancelToken,
-    Map<String, dynamic>? headers,
-    Map<String, dynamic>? extra,
-    ValidateStatus? validateStatus,
-    ProgressCallback? onSendProgress,
-    ProgressCallback? onReceiveProgress,
-  }) async {
-    final _path = r'/api/engine/games/mine';
-    final _options = Options(
-      method: r'GET',
-      headers: <String, dynamic>{...?headers},
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[
-          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
-        ],
-        ...?extra,
-      },
-      validateStatus: validateStatus,
-    );
-
-    final _queryParameters = <String, dynamic>{
-      if (bucket != null) r'bucket': bucket,
-      if (limit != null) r'limit': limit,
-      if (cursor != null) r'cursor': cursor,
-    };
-
-    final _response = await _dio.request<Object>(
-      _path,
-      options: _options,
-      queryParameters: _queryParameters,
-      cancelToken: cancelToken,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
-    );
-
-    MyGames? _responseData;
-
-    try {
-      final rawData = _response.data;
-      _responseData = rawData == null
-          ? null
-          : deserialize<MyGames, MyGames>(rawData, 'MyGames', growable: true);
-    } catch (error, stackTrace) {
-      throw DioException(
-        requestOptions: _response.requestOptions,
-        response: _response,
-        type: DioExceptionType.unknown,
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-
-    return Response<MyGames>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

@@ -8,57 +8,57 @@ part of 'profile_providers.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider for ProfileRepository instance.
+/// Provider for the signed-in account's repository.
 
-@ProviderFor(profileRepository)
-final profileRepositoryProvider = ProfileRepositoryProvider._();
+@ProviderFor(accountRepository)
+final accountRepositoryProvider = AccountRepositoryProvider._();
 
-/// Provider for ProfileRepository instance.
+/// Provider for the signed-in account's repository.
 
-final class ProfileRepositoryProvider
+final class AccountRepositoryProvider
     extends
         $FunctionalProvider<
-          ProfileRepository,
-          ProfileRepository,
-          ProfileRepository
+          AccountRepository,
+          AccountRepository,
+          AccountRepository
         >
-    with $Provider<ProfileRepository> {
-  /// Provider for ProfileRepository instance.
-  ProfileRepositoryProvider._()
+    with $Provider<AccountRepository> {
+  /// Provider for the signed-in account's repository.
+  AccountRepositoryProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'profileRepositoryProvider',
+        name: r'accountRepositoryProvider',
         isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$profileRepositoryHash();
+  String debugGetCreateSourceHash() => _$accountRepositoryHash();
 
   @$internal
   @override
-  $ProviderElement<ProfileRepository> $createElement(
+  $ProviderElement<AccountRepository> $createElement(
     $ProviderPointer pointer,
   ) => $ProviderElement(pointer);
 
   @override
-  ProfileRepository create(Ref ref) {
-    return profileRepository(ref);
+  AccountRepository create(Ref ref) {
+    return accountRepository(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(ProfileRepository value) {
+  Override overrideWithValue(AccountRepository value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<ProfileRepository>(value),
+      providerOverride: $SyncValueProvider<AccountRepository>(value),
     );
   }
 }
 
-String _$profileRepositoryHash() => r'a0100da780d9dc371c329f3f9b798019312f12cc';
+String _$accountRepositoryHash() => r'41f8d6ce723665603a1c5666c99f381ceb82c69d';
 
 /// Provider for AvatarStorageService instance.
 
@@ -113,54 +113,33 @@ final class AvatarStorageServiceProvider
 String _$avatarStorageServiceHash() =>
     r'7b26fe6852ed1c85b26b5ec31b4b937806210761';
 
-/// The signed-in user's own profile.
+/// The signed-in user's own profile, from the replica.
 ///
-/// Kept alive for the session and persisted on native so the profile can load
-/// from cache on cold start. Web fetches it again after a browser reload. The
-/// network result remains authoritative on every platform.
-///
-/// Every mutation below re-reads the profile from the server rather than
-/// patching state locally. That is not caution for its own sake: the server
-/// derives fields the client does not send - it stamps `avatarUrl` itself on
-/// upload, complete with the cache-buster - so a locally patched copy would
-/// diverge from what every other client sees.
+/// Answers straight away from what the device holds, offline included, and
+/// waits for the first sync on a device that holds nothing yet.
 
-@ProviderFor(CurrentUserProfile)
-@JsonPersist()
+@ProviderFor(currentUserProfile)
 final currentUserProfileProvider = CurrentUserProfileProvider._();
 
-/// The signed-in user's own profile.
+/// The signed-in user's own profile, from the replica.
 ///
-/// Kept alive for the session and persisted on native so the profile can load
-/// from cache on cold start. Web fetches it again after a browser reload. The
-/// network result remains authoritative on every platform.
-///
-/// Every mutation below re-reads the profile from the server rather than
-/// patching state locally. That is not caution for its own sake: the server
-/// derives fields the client does not send - it stamps `avatarUrl` itself on
-/// upload, complete with the cache-buster - so a locally patched copy would
-/// diverge from what every other client sees.
-@JsonPersist()
+/// Answers straight away from what the device holds, offline included, and
+/// waits for the first sync on a device that holds nothing yet.
+
 final class CurrentUserProfileProvider
-    extends $AsyncNotifierProvider<CurrentUserProfile, Profile> {
-  /// The signed-in user's own profile.
+    extends $FunctionalProvider<AsyncValue<Profile>, Profile, Stream<Profile>>
+    with $FutureModifier<Profile>, $StreamProvider<Profile> {
+  /// The signed-in user's own profile, from the replica.
   ///
-  /// Kept alive for the session and persisted on native so the profile can load
-  /// from cache on cold start. Web fetches it again after a browser reload. The
-  /// network result remains authoritative on every platform.
-  ///
-  /// Every mutation below re-reads the profile from the server rather than
-  /// patching state locally. That is not caution for its own sake: the server
-  /// derives fields the client does not send - it stamps `avatarUrl` itself on
-  /// upload, complete with the cache-buster - so a locally patched copy would
-  /// diverge from what every other client sees.
+  /// Answers straight away from what the device holds, offline included, and
+  /// waits for the first sync on a device that holds nothing yet.
   CurrentUserProfileProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'currentUserProfileProvider',
-        isAutoDispose: false,
+        isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -170,76 +149,96 @@ final class CurrentUserProfileProvider
 
   @$internal
   @override
-  CurrentUserProfile create() => CurrentUserProfile();
+  $StreamProviderElement<Profile> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Profile> create(Ref ref) {
+    return currentUserProfile(ref);
+  }
 }
 
 String _$currentUserProfileHash() =>
-    r'3264845c76f771032e4febe7c7000377a648c36f';
+    r'a16fa9fdfed2bea37df6f351de31dc63f81e6cd2';
 
-/// The signed-in user's own profile.
+/// Changes to the signed-in user's profile.
 ///
-/// Kept alive for the session and persisted on native so the profile can load
-/// from cache on cold start. Web fetches it again after a browser reload. The
-/// network result remains authoritative on every platform.
-///
-/// Every mutation below re-reads the profile from the server rather than
-/// patching state locally. That is not caution for its own sake: the server
-/// derives fields the client does not send - it stamps `avatarUrl` itself on
-/// upload, complete with the cache-buster - so a locally patched copy would
-/// diverge from what every other client sees.
+/// Every change answers with the whole updated profile, which is written to
+/// the replica as it arrives: the server derives fields the client does not
+/// send (it stamps `avatarUrl` itself on upload, cache-buster included), so the
+/// replica holds what every other client sees rather than a local patch, and a
+/// change that half-succeeded holds exactly the half that did.
 
-@JsonPersist()
-abstract class _$CurrentUserProfileBase extends $AsyncNotifier<Profile> {
-  FutureOr<Profile> build();
+@ProviderFor(ProfileEditor)
+final profileEditorProvider = ProfileEditorProvider._();
+
+/// Changes to the signed-in user's profile.
+///
+/// Every change answers with the whole updated profile, which is written to
+/// the replica as it arrives: the server derives fields the client does not
+/// send (it stamps `avatarUrl` itself on upload, cache-buster included), so the
+/// replica holds what every other client sees rather than a local patch, and a
+/// change that half-succeeded holds exactly the half that did.
+final class ProfileEditorProvider
+    extends $NotifierProvider<ProfileEditor, void> {
+  /// Changes to the signed-in user's profile.
+  ///
+  /// Every change answers with the whole updated profile, which is written to
+  /// the replica as it arrives: the server derives fields the client does not
+  /// send (it stamps `avatarUrl` itself on upload, cache-buster included), so the
+  /// replica holds what every other client sees rather than a local patch, and a
+  /// change that half-succeeded holds exactly the half that did.
+  ProfileEditorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'profileEditorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$profileEditorHash();
+
+  @$internal
+  @override
+  ProfileEditor create() => ProfileEditor();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$profileEditorHash() => r'0ee4f996c8a0f4f69622cc82f65c2add4799460f';
+
+/// Changes to the signed-in user's profile.
+///
+/// Every change answers with the whole updated profile, which is written to
+/// the replica as it arrives: the server derives fields the client does not
+/// send (it stamps `avatarUrl` itself on upload, cache-buster included), so the
+/// replica holds what every other client sees rather than a local patch, and a
+/// change that half-succeeded holds exactly the half that did.
+
+abstract class _$ProfileEditor extends $Notifier<void> {
+  void build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<Profile>, Profile>;
+    final ref = this.ref as $Ref<void, void>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Profile>, Profile>,
-              AsyncValue<Profile>,
+              AnyNotifier<void, void>,
+              void,
               Object?,
               Object?
             >;
     return element.handleCreate(ref, build);
-  }
-}
-
-// **************************************************************************
-// JsonGenerator
-// **************************************************************************
-
-// GENERATED CODE - DO NOT MODIFY BY HAND
-abstract class _$CurrentUserProfile extends _$CurrentUserProfileBase {
-  /// The default key used by [persist].
-  String get key {
-    const resolvedKey = "CurrentUserProfile";
-    return resolvedKey;
-  }
-
-  /// A variant of [persist], for JSON-specific encoding.
-  ///
-  /// You can override [key] to customize the key used for storage.
-  PersistResult persist(
-    FutureOr<Storage<String, String>> storage, {
-    String? key,
-    String Function(Profile state)? encode,
-    Profile Function(String encoded)? decode,
-    StorageOptions options = const StorageOptions(),
-  }) {
-    return NotifierPersistX(this).persist<String, String>(
-      storage,
-      key: key ?? this.key,
-      encode: encode ?? $jsonCodex.encode,
-      decode:
-          decode ??
-          (encoded) {
-            final e = $jsonCodex.decode(encoded);
-            return Profile.fromJson(e as Map<String, Object?>);
-          },
-      options: options,
-    );
   }
 }

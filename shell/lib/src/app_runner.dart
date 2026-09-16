@@ -114,8 +114,57 @@ class MyApp extends ConsumerWidget {
       builder: (context, child) => AppRouteTitle(
         router: router,
         appName: branding.appName,
-        child: child ?? const SizedBox.shrink(),
+        child: _ReplicaGate(child: child ?? const SizedBox.shrink()),
       ),
     );
+  }
+}
+
+/// Stops the app where the browser gives it nowhere to keep its data.
+///
+/// Another tab of the app may hold the replica in a browser where sharing it
+/// between tabs is unsafe, and this tab then opens nothing and says so. A
+/// browser that keeps nothing across a reload runs the app normally, minus
+/// local play, and says that too (decision 0013). Native always persists, so
+/// this renders its child.
+class _ReplicaGate extends ConsumerWidget {
+  const _ReplicaGate({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final storage = ref.watch(replicaStorageProvider).value;
+    final colorScheme = Theme.of(context).colorScheme;
+    return switch (storage) {
+      ReplicaStorage.heldElsewhere => Scaffold(
+        body: EmptyStateView(
+          icon: Icons.tab_outlined,
+          title: 'Open in another tab',
+          message:
+              'This browser can only use the app in one tab at a time. '
+              'Close this tab, or close the other one and reload.',
+        ),
+      ),
+      ReplicaStorage.ephemeral => Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: StatusBanner(
+              leading: Icon(
+                Icons.info_outline,
+                size: 16,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              label: "This browser isn't saving data, so offline play is off",
+              backgroundColor: colorScheme.surfaceContainerHigh,
+              foregroundColor: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Expanded(child: child),
+        ],
+      ),
+      _ => child,
+    };
   }
 }

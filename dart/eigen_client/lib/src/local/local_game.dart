@@ -3,13 +3,14 @@ import 'dart:math';
 import 'package:eigen_api/eigen_api.dart';
 
 import 'local_kernel.dart';
+import 'local_rules.dart';
 
 /// One committed transition of a local game: what the Durable Object stores per
 /// version, minus the engine's clocks.
 ///
-/// The state is kept alongside the action because the record is the whole game:
-/// a device continuing a pulled game rebuilds from the newest state, and the
-/// import route replays the actions.
+/// The state is kept beside the action because the log is the game: a device
+/// continuing a pulled game rebuilds from the newest state, and the import route
+/// replays the actions.
 final class LocalGameTransition {
   const LocalGameTransition({
     required this.version,
@@ -17,20 +18,6 @@ final class LocalGameTransition {
     required this.action,
     required this.pending,
   });
-
-  factory LocalGameTransition.fromJson(Map<String, dynamic> json) {
-    final action = json['action'];
-    return LocalGameTransition(
-      version: json['version'] as int,
-      state: (json['state'] as Map).cast<String, dynamic>(),
-      action: action == null
-          ? null
-          : LocalTransitionAction.fromJson(
-              (action as Map).cast<String, dynamic>(),
-            ),
-      pending: (json['pending'] as List).cast<int>(),
-    );
-  }
 
   final int version;
   final Map<String, dynamic> state;
@@ -40,26 +27,18 @@ final class LocalGameTransition {
   final LocalTransitionAction? action;
 
   final List<int> pending;
-
-  Map<String, dynamic> toJson() => {
-    'version': version,
-    'state': state,
-    'action': action?.toJson(),
-    'pending': pending,
-  };
 }
 
-/// A whole local game as the device holds it: the record [LocalGameStore]
-/// persists and [LocalGameEngine] advances.
+/// A local game as the engine holds it in memory: everything but the log.
 ///
-/// This is the device's copy of what the Durable Object holds for a server
-/// game: meta, roster, the append-only transition log with state and action,
-/// and the per-seat frames. It is a game record, not a command queue: there is
-/// no command identity, receipt, or retry policy in it (decision 0012), and
-/// synchronization is append-only replay of [transitions] into the
-/// authoritative object.
-final class LocalGameRecord {
-  const LocalGameRecord({
+/// The log itself lives in the replica's `transitions` table, one row per
+/// version, and is read only where it is needed: its newest entry to commit
+/// against, a page after the synchronized version to upload, one state to
+/// settle a stale append. Nothing here is rewritten wholesale on a move; a
+/// commit appends one transition and one frame, and updates the game's row
+/// (decision 0013).
+final class LocalGame {
+  const LocalGame({
     required this.id,
     required this.createdBy,
     required this.createdAt,
@@ -69,66 +48,13 @@ final class LocalGameRecord {
     required this.roster,
     required this.status,
     required this.seq,
-    required this.transitions,
-    required this.frames,
+    required this.latest,
     this.outcomes,
     this.finishedAt,
     this.syncedVersion = notSynced,
     this.remoteCreated = false,
     this.diverged = false,
   });
-
-  factory LocalGameRecord.fromJson(Map<String, dynamic> json) {
-    final outcomes = json['outcomes'] as List<dynamic>?;
-    final finishedAt = json['finishedAt'] as int?;
-    return LocalGameRecord(
-      id: json['id'] as String,
-      createdBy: json['createdBy'] as String,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        json['createdAt'] as int,
-        isUtc: true,
-      ),
-      schemaVersion: json['schemaVersion'] as int,
-      config: (json['config'] as Map).cast<String, dynamic>(),
-      seed: json['seed'] as String,
-      roster: [
-        for (final seat in json['roster'] as List<dynamic>)
-          LocalSeat.fromJson((seat as Map).cast<String, dynamic>()),
-      ],
-      status: GameStatus.values.firstWhere(
-        (value) => value.value == json['status'],
-        orElse: () => GameStatus.unknownDefaultOpenApi,
-      ),
-      seq: json['seq'] as int,
-      transitions: [
-        for (final transition in json['transitions'] as List<dynamic>)
-          LocalGameTransition.fromJson(
-            (transition as Map).cast<String, dynamic>(),
-          ),
-      ],
-      frames: {
-        for (final entry in (json['frames'] as Map).entries)
-          int.parse(entry.key as String): [
-            for (final frame in entry.value as List<dynamic>)
-              LocalObservationFrame.fromJson(
-                (frame as Map).cast<String, dynamic>(),
-              ),
-          ],
-      },
-      outcomes: outcomes == null
-          ? null
-          : [
-              for (final outcome in outcomes)
-                Outcome.fromJson((outcome as Map).cast<String, dynamic>()),
-            ],
-      finishedAt: finishedAt == null
-          ? null
-          : DateTime.fromMillisecondsSinceEpoch(finishedAt, isUtc: true),
-      syncedVersion: json['syncedVersion'] as int,
-      remoteCreated: json['remoteCreated'] as bool,
-      diverged: json['diverged'] as bool,
-    );
-  }
 
   /// [syncedVersion] before the game exists on the server at all.
   static const notSynced = -1;
@@ -137,7 +63,8 @@ final class LocalGameRecord {
   /// imported: the create route is idempotent on it.
   final String id;
 
-  /// The signed-in user who created the game, and its only human.
+  /// The signed-in user who created the game, and its only human. Also the
+  /// account whose replica holds it.
   final String createdBy;
 
   final DateTime createdAt;
@@ -152,15 +79,12 @@ final class LocalGameRecord {
   final GameStatus status;
 
   /// Monotonic per game, incremented by every commit exactly as the Durable
-  /// Object does, so a local session snapshot orders against a server one.
+  /// Object does. The device numbers it; the server numbers its imported copy
+  /// independently, and the two are never compared.
   final int seq;
 
-  /// The append-only log, version-ascending from 0.
-  final List<LocalGameTransition> transitions;
-
-  /// The per-seat projections, keyed by version. One entry per identified seat
-  /// per version, exactly what the socket would have fanned out.
-  final Map<int, List<LocalObservationFrame>> frames;
+  /// The newest committed transition, or null before the start transition.
+  final LocalGameTransition? latest;
 
   /// Per-seat results once the game ends, else null.
   final List<Outcome>? outcomes;
@@ -180,15 +104,15 @@ final class LocalGameRecord {
   final bool diverged;
 
   /// The newest committed version, or null before the start transition.
-  int? get version => transitions.isEmpty ? null : transitions.last.version;
-
-  /// The newest committed transition, or null before the start transition.
-  LocalGameTransition? get latest =>
-      transitions.isEmpty ? null : transitions.last;
+  int? get version => latest?.version;
 
   /// Whether the game has reached a status nothing can move it out of.
   bool get isTerminal =>
       status == GameStatus.finished || status == GameStatus.aborted;
+
+  /// Whether the server lacks anything this device committed.
+  bool get needsSync =>
+      !diverged && (!remoteCreated || syncedVersion < (version ?? 0));
 
   /// The standing configuration the kernel reads.
   LocalGameMeta get meta => LocalGameMeta(
@@ -210,35 +134,24 @@ final class LocalGameRecord {
     );
   }
 
-  /// One seat's frame at [version], or null when the seat held no identity at
-  /// that version.
-  LocalObservationFrame? frameFor({required int seat, required int version}) {
-    for (final frame in frames[version] ?? const <LocalObservationFrame>[]) {
-      if (frame.playerIndex == seat) return frame;
-    }
-    return null;
-  }
-
-  /// The seat the signed-in human holds, or null for a record whose roster has
-  /// no human (which the engine never mints).
-  int? get humanSeat {
+  /// The seat the signed-in human holds.
+  int get humanSeat {
     for (final seat in roster) {
       if (seat.userId != null) return seat.playerIndex;
     }
-    return null;
+    throw StateError('Local game $id has no human seat');
   }
 
-  LocalGameRecord copyWith({
+  LocalGame copyWith({
     GameStatus? status,
     int? seq,
-    List<LocalGameTransition>? transitions,
-    Map<int, List<LocalObservationFrame>>? frames,
+    LocalGameTransition? latest,
     List<Outcome>? outcomes,
     DateTime? finishedAt,
     int? syncedVersion,
     bool? remoteCreated,
     bool? diverged,
-  }) => LocalGameRecord(
+  }) => LocalGame(
     id: id,
     createdBy: createdBy,
     createdAt: createdAt,
@@ -248,37 +161,51 @@ final class LocalGameRecord {
     roster: roster,
     status: status ?? this.status,
     seq: seq ?? this.seq,
-    transitions: transitions ?? this.transitions,
-    frames: frames ?? this.frames,
+    latest: latest ?? this.latest,
     outcomes: outcomes ?? this.outcomes,
     finishedAt: finishedAt ?? this.finishedAt,
     syncedVersion: syncedVersion ?? this.syncedVersion,
     remoteCreated: remoteCreated ?? this.remoteCreated,
     diverged: diverged ?? this.diverged,
   );
+}
 
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'createdBy': createdBy,
-    'createdAt': createdAt.toUtc().millisecondsSinceEpoch,
-    'schemaVersion': schemaVersion,
-    'config': config,
-    'seed': seed,
-    'roster': [for (final seat in roster) seat.toJson()],
-    'status': status.value,
-    'seq': seq,
-    'transitions': [for (final transition in transitions) transition.toJson()],
-    'frames': {
-      for (final entry in frames.entries)
-        '${entry.key}': [for (final frame in entry.value) frame.toJson()],
-    },
-    'outcomes': outcomes == null
-        ? null
-        : [for (final outcome in outcomes!) outcome.toJson()],
-    'finishedAt': finishedAt?.toUtc().millisecondsSinceEpoch,
-    'syncedVersion': syncedVersion,
-    'remoteCreated': remoteCreated,
-    'diverged': diverged,
+/// Every seat's projection of [transition]: what the commit that produced it
+/// fanned out.
+///
+/// Projection is pure, so re-deriving it gives exactly the frames the commit
+/// produced. That is what lets the replica keep only the human's frames: a bot's
+/// observation is derived when its brain runs, from the state the log already
+/// holds, rather than stored beside it.
+List<LocalObservationFrame> projectTransition(
+  AnyLocalGameRules rules, {
+  required LocalGameTransition transition,
+  required Map<String, dynamic> config,
+  required int participantCount,
+}) => fanOutObservations(
+  rules,
+  state: rules.parseState(transition.state),
+  pending: transition.pending,
+  participantCount: participantCount,
+  cause: causeOf(transition.action, rules),
+  isReplay: false,
+  config: rules.parseConfig(config),
+);
+
+/// What the projection is told produced a state, erased for the fan-out.
+TransitionCause<Object?> causeOf(
+  LocalTransitionAction? action,
+  AnyLocalGameRules rules,
+) {
+  if (action == null) return const NoCause<Object?>();
+  return switch (action.kind) {
+    LocalActionKind.game => GameCause<Object?>(
+      data: rules.parseAction(action.data),
+      playerIndex: action.playerIndex ?? 0,
+    ),
+    LocalActionKind.lifecycle => LifecycleCause<Object?>(
+      data: LifecycleAction.fromJson(action.data),
+    ),
   };
 }
 
@@ -304,7 +231,7 @@ String newLocalGameId([Random? random]) {
 /// kernel's `randomSeed()`.
 ///
 /// The whole randomness of the game derives from it, so it is minted once,
-/// stored on the record, and sent to the server on import rather than
+/// stored with the game, and sent to the server on import rather than
 /// regenerated there.
 String newLocalSeed([Random? random]) {
   final source = random ?? Random.secure();

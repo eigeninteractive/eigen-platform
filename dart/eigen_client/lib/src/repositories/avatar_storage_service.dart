@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:eigen_api/eigen_api.dart';
 
 import '../api/engine_call.dart';
 
@@ -22,16 +23,14 @@ class AvatarStorageService {
   /// Image types the server accepts.
   static const allowedMimeTypes = {'image/jpeg', 'image/png', 'image/webp'};
 
-  /// Replaces the caller's avatar with [bytes] and returns its new URL.
+  /// Replaces the caller's avatar with [bytes] and answers with the updated
+  /// profile, like every other profile change.
   ///
-  /// The returned URL may be relative - run it through `resolveAvatarUrl`
-  /// before handing it to an image widget. It carries a `?v=` cache-buster the
-  /// server bumps per upload, because the underlying object is overwritten in
-  /// place and the URL would otherwise be unchanged.
-  ///
-  /// The server also writes the new URL onto the user's profile, so a cached
-  /// profile should be invalidated after this rather than patched locally.
-  Future<String> uploadAvatar(
+  /// The profile's avatar URL may be relative - run it through
+  /// `resolveAvatarUrl` before handing it to an image widget. It carries a
+  /// `?v=` cache-buster the server bumps per upload, because the underlying
+  /// object is overwritten in place and the URL would otherwise be unchanged.
+  Future<Profile> uploadAvatar(
     Uint8List bytes, {
     String mimeType = 'image/jpeg',
   }) async {
@@ -47,6 +46,6 @@ class AvatarStorageService {
         ),
       ),
     );
-    return body['avatarUrl'] as String;
+    return Profile.fromJson(body);
   }
 }

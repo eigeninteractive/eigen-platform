@@ -1,0 +1,13 @@
+# Code generation for the device replica's Drift schema (decision 0013). The
+# generated sources are committed and ship with the package, so a consuming app
+# never runs this.
+targets:
+  $default:
+    builders:
+      drift_dev:
+        generate_for:
+          - lib/src/replica/**
+        options:
+          generate_manager: false
+          skip_verification_code: true
+          data_class_to_companions: true

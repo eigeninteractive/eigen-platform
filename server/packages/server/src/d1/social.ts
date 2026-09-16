@@ -8,8 +8,8 @@
  * from `initiated_by`.
  *
  * Writes here are pure data effects; the routes own policy (registered caller,
- * self-target, guest target) and the FCM pushes. Reads return identities by
- * reusing the batch player projection.
+ * self-target, guest target) and the FCM pushes. Listing an account's friends
+ * and requests is part of the account sync (`d1/sync.ts`).
  */
 
 import { and, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
@@ -97,68 +97,6 @@ export async function unblockUser(d1: D1Database, caller: string, target: string
   const db = orm(d1);
   const { u1, u2 } = pair(caller, target);
   await db.delete(relationships).where(and(eq(relationships.userId1, u1), eq(relationships.userId2, u2), eq(relationships.status, "blocked"), eq(relationships.initiatedBy, caller)));
-}
-
-/** The other user's public identity: the shared core of a friend and a
- * pending-request entry. */
-interface IdentityFields {
-  userId: string;
-  username: string;
-  displayName: string;
-  avatarUrl: string | null;
-  isAnonymous: boolean;
-}
-
-/** One accepted friend. */
-export type FriendEntry = IdentityFields & { since: number };
-
-/** One pending request: a friend entry plus the request's direction relative to
- * the caller (`outgoing` = sent, `incoming` = received). */
-export type FriendRequestEntry = FriendEntry & { direction: "incoming" | "outgoing" };
-
-/** Resolve public identities for a batch of user ids, keyed by id. Ids whose
- * identity has vanished (e.g. purged) are simply absent from the map. */
-async function resolveIdentities(d1: D1Database, ids: string[]): Promise<Map<string, IdentityFields>> {
-  if (ids.length === 0) return new Map();
-  const people = await orm(d1).select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous }).from(users).where(inArray(users.id, ids)).all();
-  return new Map(people.map((p) => [p.id, { userId: p.id, username: p.username, displayName: p.displayName, avatarUrl: p.avatarUrl, isAnonymous: p.isAnonymous }]));
-}
-
-/** The caller's accepted friends, newest first. */
-export async function listFriends(d1: D1Database, caller: string): Promise<FriendEntry[]> {
-  const rows = await orm(d1)
-    .select()
-    .from(relationships)
-    .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "accepted")))
-    .orderBy(desc(relationships.updatedAt))
-    .all();
-  const idents = await resolveIdentities(
-    d1,
-    rows.map((r) => (r.userId1 === caller ? r.userId2 : r.userId1)),
-  );
-  return rows.flatMap((r) => {
-    const ident = idents.get(r.userId1 === caller ? r.userId2 : r.userId1);
-    return ident === undefined ? [] : [{ ...ident, since: r.updatedAt }];
-  });
-}
-
-/** The caller's pending requests (both incoming and outgoing), newest first. */
-export async function listPendingRequests(d1: D1Database, caller: string): Promise<FriendRequestEntry[]> {
-  const rows = await orm(d1)
-    .select()
-    .from(relationships)
-    .where(and(or(eq(relationships.userId1, caller), eq(relationships.userId2, caller)), eq(relationships.status, "pending")))
-    .orderBy(desc(relationships.updatedAt))
-    .all();
-  const idents = await resolveIdentities(
-    d1,
-    rows.map((r) => (r.userId1 === caller ? r.userId2 : r.userId1)),
-  );
-  return rows.flatMap((r) => {
-    const ident = idents.get(r.userId1 === caller ? r.userId2 : r.userId1);
-    if (ident === undefined) return [];
-    return [{ ...ident, direction: (r.initiatedBy === caller ? "outgoing" : "incoming") as "incoming" | "outgoing", since: r.updatedAt }];
-  });
 }
 
 /** User search for the friend picker: a case-insensitive substring match on

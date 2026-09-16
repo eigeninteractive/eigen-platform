@@ -116,14 +116,16 @@ class _UpdateRequiredContent extends StatelessWidget {
   }
 }
 
-/// Shows [_ReconnectingBanner] when disconnected during any in-progress game
-/// state (waiting, ready, or active).
+/// Shows the game's connection state during any in-progress game state
+/// (waiting, ready, or active), for a game played on the server.
 ///
-/// Disconnected means device-level offline, the observation stream is in
-/// [AsyncError], or the game stream itself is in [AsyncError], covering
-/// transient socket blips where [isOfflineProvider] stays false. Uses
-/// [AsyncValue.value] to read stale status during error states. Isolated as a
-/// [ConsumerWidget] leaf so changes don't rebuild the entire game tree.
+/// A game played on this device has no connection to show, so it shows
+/// nothing. For a server game, offline means the board is the replica's copy
+/// and read-only, which [_OfflineGameBanner] says plainly; a socket failing
+/// while the device reports a network (a blip, or a network with no internet)
+/// is [_ReconnectingBanner]. Uses [AsyncValue.value] to read the stale status
+/// during error states. Isolated as a [ConsumerWidget] leaf so changes don't
+/// rebuild the entire game tree.
 class _ReconnectingBannerSlot extends ConsumerWidget {
   const _ReconnectingBannerSlot({required this.gameId});
 
@@ -131,23 +133,52 @@ class _ReconnectingBannerSlot extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isLocal = ref.watch(isLocalGameProvider(gameId: gameId)).value;
     final isOffline = ref.watch(isOfflineProvider);
     final sessionAsync = ref.watch(gameSessionProvider(gameId: gameId));
-    final isDisconnected = isOffline || sessionAsync is AsyncError;
 
-    // Use .value to read the stale session when the stream is in AsyncError.
     final status = sessionAsync.value?.status;
     final isInGame = switch (status) {
       GameStatus.waiting || GameStatus.ready || GameStatus.active => true,
       _ => false,
     };
 
+    final Widget banner;
+    if (isLocal != false || !isInGame) {
+      banner = const SizedBox.shrink();
+    } else if (isOffline) {
+      banner = const _OfflineGameBanner();
+    } else if (sessionAsync is AsyncError) {
+      banner = const _ReconnectingBanner();
+    } else {
+      banner = const SizedBox.shrink();
+    }
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
-      child: (isDisconnected && isInGame)
-          ? const _ReconnectingBanner()
-          : const SizedBox.shrink(),
+      child: banner,
+    );
+  }
+}
+
+/// Slim banner shown over a server game while the device is offline: the board
+/// is where the game was last seen, and it cannot be played until the device
+/// reconnects.
+class _OfflineGameBanner extends StatelessWidget {
+  const _OfflineGameBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return StatusBanner(
+      leading: Icon(
+        Icons.cloud_off_rounded,
+        size: 16,
+        color: colorScheme.onSurfaceVariant,
+      ),
+      label: 'Offline · showing this game as it was last seen',
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      foregroundColor: colorScheme.onSurfaceVariant,
     );
   }
 }

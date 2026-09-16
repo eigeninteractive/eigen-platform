@@ -40,8 +40,8 @@ class Profile {
   @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
-  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: false)
-  final String avatarUrl;
+  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: true)
+  final String? avatarUrl;
 
   @JsonKey(name: r'isAnonymous', required: true, includeIfNull: false)
   final bool isAnonymous;
@@ -49,6 +49,7 @@ class Profile {
   @JsonKey(name: r'email', required: true, includeIfNull: true)
   final String? email;
 
+  /// When this account was created. It changes only if the account was deleted and created again under the same id (a swept guest signing back in), so a client holding data for the account discards it when this differs.
   @JsonKey(name: r'createdAt', required: true, includeIfNull: false)
   final int createdAt;
 
@@ -69,7 +70,7 @@ class Profile {
       id.hashCode +
       username.hashCode +
       displayName.hashCode +
-      avatarUrl.hashCode +
+      (avatarUrl == null ? 0 : avatarUrl.hashCode) +
       isAnonymous.hashCode +
       (email == null ? 0 : email.hashCode) +
       createdAt.hashCode;

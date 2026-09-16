@@ -1,94 +1,69 @@
 import 'dart:async';
 
 import 'package:eigen_client/eigen_client.dart';
-import 'package:eigen_flutter/core/connectivity/connectivity_provider.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/local/drift_local_game_store.dart';
 import 'package:eigen_flutter/core/local/isolate_bot_runner.dart';
-import 'package:eigen_flutter/core/storage/storage_provider.dart';
+import 'package:eigen_flutter/core/replica/replica_host.dart';
+import 'package:eigen_flutter/core/replica/replica_providers.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
+import 'package:eigen_flutter/features/sync/providers/sync_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'local_game_providers.g.dart';
-
-/// Where this device keeps the games it played offline.
-@Riverpod(keepAlive: true)
-Future<LocalGameStore> localGameStore(Ref ref) async =>
-    DriftLocalGameStore(await ref.watch(localDatabaseProvider.future));
 
 /// Where a bot's brain runs: an isolate on native, the main thread on the web.
 @Riverpod(keepAlive: true)
 BotRunner botRunner(Ref ref) => const IsolateBotRunner();
 
-/// Every local game the signed-in user holds on this device.
-///
-/// Records are keyed by their creator, so signing out and back in finds them
-/// again and a second account never sees another's games.
-@riverpod
-Future<List<LocalGameRecord>> localGames(Ref ref) async {
-  final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return const [];
-  final records = await (await ref.watch(localGameStoreProvider.future))
-      .list(userId);
-  return records..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-}
-
-/// One local game's record, or null when this device holds none under that id
-/// (an ordinary server game, or one another device played).
-@riverpod
-Future<LocalGameRecord?> localGameRecord(
-  Ref ref, {
-  required String gameId,
-}) async {
-  final store = await ref.watch(localGameStoreProvider.future);
-  return store.load(gameId);
-}
-
-/// The engine driving one local game, or null when the game is not local.
+/// The engine driving one local game, or null when this device does not decide
+/// the game.
 ///
 /// Keyed by game id and kept alive, so leaving the screen and returning resumes
-/// the same serialized queue rather than replaying the record through a second
-/// engine. A local game whose version this build no longer ships a local unit
-/// for fails here, exactly as a server game with an unsupported schema does.
+/// the same serialized queue rather than opening a second engine over the same
+/// rows. A local game whose version this build no longer ships a local unit for
+/// fails here, exactly as a server game with an unsupported schema does.
 @Riverpod(keepAlive: true)
 Future<LocalGameEngine?> localGameEngine(
   Ref ref, {
   required String gameId,
 }) async {
-  final record = await ref.watch(
-    localGameRecordProvider(gameId: gameId).future,
-  );
-  if (record == null) return null;
-  // A diverged record is not played on any further. The server refused a move
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null) return null;
+  final storage = await ref.watch(localGameStorageProvider.future);
+  final game = await storage.load(accountId: userId, gameId: gameId);
+  if (game == null) return null;
+  // A diverged game is not played on any further. The server refused a move
   // this device's rules accepted, or another device moved the game, and either
   // way the two copies are of different games from that point. Handing back no
   // engine is what stops local play: the session falls through to the server's
   // copy, which is the one that counts, and commands are refused rather than
   // committed onto a log the server will never take.
-  if (record.diverged) return null;
+  if (game.diverged) return null;
   final module = ref.watch(currentGameModuleProvider);
-  final local = module.versions[record.schemaVersion]?.local;
+  final local = module.versions[game.schemaVersion]?.local;
   if (local == null) {
     throw UnsupportedGameSchemaException(
-      gameSchema: record.schemaVersion,
+      gameSchema: game.schemaVersion,
       supportedSchema: module.latestSchemaVersion,
     );
   }
-  final engine = LocalGameEngine(
-    record: record,
+  final engine = await LocalGameEngine.open(
+    accountId: userId,
+    gameId: gameId,
     rules: local,
-    store: await ref.watch(localGameStoreProvider.future),
+    storage: storage,
     bots: await ref.watch(botCatalogByIdProvider.future),
     botRunner: ref.watch(botRunnerProvider),
   );
+  if (engine == null) return null;
   // A finished game is worth carrying to the server straight away: it is the
-  // moment the record stops changing, so the next pass has nothing left to do.
+  // moment it stops changing, so the next pass has nothing left to do.
   final finished = engine.sessions.listen((session) {
     if (session.status == GameStatus.finished ||
         session.status == GameStatus.aborted) {
-      unawaited(ref.read(localSyncCoordinatorProvider.notifier).run());
+      unawaited(ref.read(syncCoordinatorProvider.notifier).run());
     }
   }, onError: (Object _) {});
   ref.onDispose(() {
@@ -102,44 +77,41 @@ Future<LocalGameEngine?> localGameEngine(
 ///
 /// The second half of resume (decision 0012): a game played on a phone is
 /// visible from a tablet once it has synchronized, and this is what makes it
-/// playable there. It reads the record the server kept, re-derives every seat's
-/// frame through this build's own rules, and saves it, after which
-/// [localGameRecordProvider] finds it and the session switches to the engine.
+/// playable there. It reads the log the server kept, re-derives the human's
+/// frames through this build's own rules, and writes it to the replica, after
+/// which [localGameEngineProvider] finds it and the session switches to the
+/// engine.
 ///
-/// Driven by the session rather than by the store, which is what keeps it off
+/// Driven by the session rather than by the replica, which is what keeps it off
 /// the hot path: an ordinary server game is recognised from the snapshot the
-/// socket already delivered, and costs no request at all. It is also what
-/// breaks the cycle, since the engine reads the record and the record must not
+/// session already delivered, and costs no request at all. It is also what
+/// breaks the cycle, since the engine reads the replica and the replica must not
 /// read the engine.
 ///
-/// Also how a diverged record recovers: the local copy is dropped and the
-/// server's is pulled in its place, which is the only reconciliation there is
-/// once the two have committed different moves at the same version.
+/// Also how a diverged game recovers: the local copy is dropped and the server's
+/// is pulled in its place, which is the only reconciliation there is once the
+/// two have committed different moves at the same version.
 ///
-/// Four things are checked before anything is pulled, because a record this
-/// build cannot play is worse than no record: the game must be local-origin,
-/// the caller must be its creator, this build must ship a local unit for its
-/// version, and it must ship a brain for every bot on the roster. A bot added
-/// in a later release is the realistic case, and it leaves the game readable
-/// here rather than stuck waiting for a move that can never come.
+/// Four things are checked before anything is pulled, because a game this build
+/// cannot play is worse than no game: the game must be local-origin, the caller
+/// must be its creator, this build must ship a local unit for its version, and
+/// it must ship a brain for every bot on the roster. A bot added in a later
+/// release is the realistic case, and it leaves the game readable here rather
+/// than stuck waiting for a move that can never come.
 @riverpod
-Future<LocalGameRecord?> localGameCatchUp(
-  Ref ref, {
-  required String gameId,
-}) async {
+Future<LocalGame?> localGameCatchUp(Ref ref, {required String gameId}) async {
   final session = await ref.watch(gameSessionProvider(gameId: gameId).future);
   if (session.snapshot.origin != GameOrigin.local) return null;
-  final store = await ref.watch(localGameStoreProvider.future);
-  final held = await store.load(gameId);
-  // A diverged record is deliberately not kept. Its unsynchronized moves are
-  // the ones the server refused, so they are discarded and the game is pulled
+  final userId = ref.watch(currentUserIdProvider);
+  if (userId == null || session.snapshot.createdBy != userId) return null;
+  final storage = await ref.watch(localGameStorageProvider.future);
+  final held = await storage.load(accountId: userId, gameId: gameId);
+  // A diverged game is deliberately not kept. Its unsynchronized moves are the
+  // ones the server refused, so they are discarded and the game is pulled
   // again; that is what makes divergence recoverable rather than a game the
   // player can never open again. Everything else held here is already current.
   if (held != null && !held.diverged) return held;
 
-  if (session.snapshot.createdBy != ref.watch(currentUserIdProvider)) {
-    return null;
-  }
   final module = ref.watch(currentGameModuleProvider);
   final local = module.versions[session.snapshot.schemaVersion]?.local;
   if (local == null) return null;
@@ -154,20 +126,21 @@ Future<LocalGameRecord?> localGameCatchUp(
   final remote = await ref
       .watch(gameRepositoryProvider)
       .getWholeLocalRecord(gameId);
-  final record = localRecordFromRemote(remote: remote, rules: local);
-  await store.save(record);
-  // Every await above is behind us, so this is a plain cache invalidation
-  // rather than a write during another provider's build. The session provider
-  // re-reads, finds the record, and hands the game to the engine.
-  ref.invalidate(localGameRecordProvider(gameId: gameId));
-  ref.invalidate(localGamesProvider);
-  return record;
+  final rebuilt = localGameFromRemote(remote: remote, rules: local);
+  await storage.replace(rebuilt, now: DateTime.now());
+  // Every await above is behind us, so this is a plain invalidation rather than
+  // a write during another provider's build. The session provider re-reads,
+  // finds the game, and hands it to the engine.
+  ref.invalidate(localGameEngineProvider(gameId: gameId));
+  return rebuilt.game;
 }
 
-/// Whether [gameId] is a game this device played offline.
+/// Whether [gameId] is a game this device decides.
 @riverpod
-Future<bool> isLocalGame(Ref ref, {required String gameId}) async =>
-    await ref.watch(localGameRecordProvider(gameId: gameId).future) != null;
+Future<bool> isLocalGame(Ref ref, {required String gameId}) async {
+  final replica = await ref.watch(accountReplicaProvider.future);
+  return await replica?.decidesHere(gameId) ?? false;
+}
 
 /// Folds a local engine's snapshots into the same [GameSession] a server game
 /// produces.
@@ -206,82 +179,6 @@ Stream<GameSession> localGameSessions(LocalGameEngine engine) {
     },
   );
   return controller.stream;
-}
-
-/// One game's read-model entry, built from the device's own record.
-///
-/// A local game has no server row until it synchronizes, and the lists must
-/// show it from the moment it exists, so the record answers the same questions
-/// the summary does. Every local-only value is fixed here and in
-/// `localSession`: private, unrated, untimed, and as large as its roster.
-GameSummary localGameSummaryOf(LocalGameRecord record) => GameSummary(
-  id: record.id,
-  createdBy: record.createdBy,
-  status: record.status,
-  access: GameAccess.private,
-  origin: GameOrigin.local,
-  schemaVersion: record.schemaVersion,
-  config: record.config,
-  turnSeconds: null,
-  budgetSeconds: null,
-  incrementSeconds: null,
-  rated: false,
-  ratingPool: null,
-  minPlayers: record.roster.length,
-  maxPlayers: record.roster.length,
-  // A local game cannot be joined, so it has no code to share.
-  shortCode: '',
-  pendingPlayers: record.latest?.pending,
-  turnDeadline: null,
-  outcomes: record.outcomes,
-  finishedAt: record.finishedAt?.toUtc().millisecondsSinceEpoch,
-  createdAt: record.createdAt.toUtc().millisecondsSinceEpoch,
-  updatedAt: record.createdAt.toUtc().millisecondsSinceEpoch,
-  participants: [for (final seat in record.roster) seat.toSeat()],
-);
-
-/// The frames a finished local game replays, for one seat.
-///
-/// The record already holds every seat's projection per version, which is what
-/// the server re-projects on its replay route, so a local replay is a read
-/// rather than a fetch.
-List<Frame> localReplayFrames(LocalGameRecord record, {required int seat}) => [
-  for (final transition in record.transitions)
-    if (record.frameFor(seat: seat, version: transition.version)
-        case final frame?)
-      Frame(
-        type: FrameTypeEnum.frame,
-        version: transition.version,
-        data: frame.data,
-        pendingPlayers: frame.pendingPlayers,
-        deadline: null,
-        playerTimes: null,
-        outcomes: transition.version == record.version ? record.outcomes : null,
-        ratings: null,
-      ),
-];
-
-/// Local games still playable, newest first.
-@riverpod
-Future<List<GameSummary>> localActiveGames(Ref ref) async => [
-  for (final record in await ref.watch(localGamesProvider.future))
-    if (!record.isTerminal) localGameSummaryOf(record),
-];
-
-/// Local games that have ended, newest finish first.
-@riverpod
-Future<List<GameSummary>> localFinishedGames(Ref ref) async {
-  final records = await ref.watch(localGamesProvider.future);
-  final finished =
-      [
-        for (final record in records)
-          if (record.isTerminal) record,
-      ]..sort(
-        (a, b) => (b.finishedAt ?? b.createdAt).compareTo(
-          a.finishedAt ?? a.createdAt,
-        ),
-      );
-  return [for (final record in finished) localGameSummaryOf(record)];
 }
 
 // ── Bots a local game can seat ───────────────────────────────────────────────
@@ -325,8 +222,16 @@ List<Bot> usableLocalBots(
 
 /// Whether this build can play any game on the device at all: the local arm of
 /// the solo picker's availability.
+///
+/// False where the device keeps nothing across a restart, which only a browser
+/// with no storage at all reports: a game played there would be lost with the
+/// page. Storage that has not answered yet is not that, so the picker is
+/// offered while it resolves rather than flickering.
 @riverpod
 bool localPlayAvailable(Ref ref) {
+  if (ref.watch(replicaStorageProvider).value == ReplicaStorage.ephemeral) {
+    return false;
+  }
   final module = ref.watch(currentGameModuleProvider);
   if (module.latestRules.local == null) return false;
   final untimed = module.creationSpec.timingConfigs.values.any(
@@ -373,60 +278,19 @@ createLocalGame(Ref ref) {
       botIds: botIds,
       bots: await ref.read(botCatalogByIdProvider.future),
       rules: local,
-      store: await ref.read(localGameStoreProvider.future),
+      storage: await ref.read(localGameStorageProvider.future),
       botRunner: ref.read(botRunnerProvider),
     );
     await engine.close();
-    ref.invalidate(localGamesProvider);
-    return engine.record.id;
+    // A browser may evict site storage under pressure, and a local game not yet
+    // uploaded is the one thing a sync cannot bring back.
+    unawaited(
+      ref.read(replicaHostProvider.future).then((host) {
+        return host.requestPersistence();
+      }),
+    );
+    return engine.game.id;
   };
-}
-
-// ── Synchronization ──────────────────────────────────────────────────────────
-
-/// Carries this device's local games to the server, or null when nobody is
-/// signed in.
-@Riverpod(keepAlive: true)
-Future<LocalGameSync?> localGameSync(Ref ref) async {
-  final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return null;
-  return LocalGameSync(
-    store: await ref.watch(localGameStoreProvider.future),
-    games: ref.watch(gameRepositoryProvider),
-    userId: userId,
-  );
-}
-
-/// Runs synchronization when there is reason to, and holds what the last pass
-/// found.
-///
-/// Three reasons, and they are the three moments a pass can newly succeed:
-/// somebody signs in, the device regains connectivity, and a local game
-/// finishes. Nothing here blocks play: the coordinator's own state is the
-/// report, and a failed pass simply leaves work for the next one.
-@Riverpod(keepAlive: true)
-class LocalSyncCoordinator extends _$LocalSyncCoordinator {
-  @override
-  LocalSyncReport? build() {
-    ref.listen(isOfflineProvider, (previous, next) {
-      if (previous == true && next == false) unawaited(run());
-    });
-    ref.listen(currentUserIdProvider, (previous, next) {
-      if (next != null && next != previous) unawaited(run());
-    }, fireImmediately: true);
-    return null;
-  }
-
-  /// Carries every unsynchronized game. Single-flight inside [LocalGameSync],
-  /// so overlapping reasons collapse into one pass.
-  Future<void> run() async {
-    final sync = await ref.read(localGameSyncProvider.future);
-    if (sync == null) return;
-    final report = await sync.syncAll();
-    if (!ref.mounted) return;
-    state = report;
-    if (report.outcomes.isNotEmpty) ref.invalidate(localGamesProvider);
-  }
 }
 
 // ── Commands ─────────────────────────────────────────────────────────────────
@@ -498,7 +362,7 @@ final class LocalGameCommands implements GameCommands {
 /// A synchronized local game is visible from any of its owner's devices, and
 /// [localGameCatchUp] brings it to one that can play it. What is left here is
 /// the case it declines: a build with no local unit for the game's version, or
-/// none for a bot on its roster. Only the device running the record can move
+/// none for a bot on its roster. Only the device running the game can move
 /// such a game, because the server dispatches nothing for a local-origin one,
 /// so a move sent anyway would commit a turn no bot would ever answer.
 final class UnplayableLocalGameCommands implements GameCommands {
@@ -528,7 +392,7 @@ Future<GameCommands> gameCommands(Ref ref, {required String gameId}) async {
   );
   if (engine != null) return LocalGameCommands(engine);
   // A local-origin game with no engine is one this build declined to bring
-  // here, or one whose record has diverged; see [localGameCatchUp] for what it
+  // here, or one whose game has diverged; see [localGameCatchUp] for what it
   // checks first, and [localGameEngine] for the divergence case.
   final session = ref.watch(gameSessionProvider(gameId: gameId)).value;
   if (session?.snapshot.origin == GameOrigin.local) {

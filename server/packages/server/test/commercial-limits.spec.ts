@@ -91,6 +91,7 @@ describe("commercial create limits", () => {
       gameId: first.gameId,
       status: "aborted",
       seats: [],
+      seq: 1,
       now: Date.now(),
     });
     await createGame(env.DB, second);

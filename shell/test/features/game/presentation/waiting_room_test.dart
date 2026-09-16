@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fakes.dart';
+import '../../../helpers/replica.dart';
 
 /// The regression these cover: a creator sitting in the waiting room while the
 /// second player joins used to never see Start, because the screen read its
@@ -61,14 +62,6 @@ Player _player(String id) => Player(
   isAnonymous: false,
 );
 
-/// Serves one identity without a network or a persisted cache. The seat
-/// identities have to resolve for the roster to render, and what is under test
-/// is the status wiring, not identity.
-class _FakePlayerCache extends PlayerInfoCache {
-  @override
-  Future<Player> build({required String id}) async => _player(id);
-}
-
 Future<void> _pump(
   WidgetTester tester,
   Stream<GameSession> sessions, {
@@ -77,6 +70,7 @@ Future<void> _pump(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        ...replicaTestOverrides(),
         currentGameModuleProvider.overrideWithValue(const SampleModule()),
         appConfigProvider.overrideWithValue(
           const AppConfig(
@@ -89,9 +83,12 @@ Future<void> _pump(
         ),
         currentUserIdProvider.overrideWithValue(viewer),
         gameSessionProvider(gameId: _gameId).overrideWith((ref) => sessions),
-        playerInfoCacheProvider(id: _creator)
-            .overrideWith(_FakePlayerCache.new),
-        playerInfoCacheProvider(id: _joiner).overrideWith(_FakePlayerCache.new),
+        // The seat identities have to resolve for the roster to render, and
+        // what is under test is the status wiring, not identity.
+        playerIdentityProvider(id: _creator)
+            .overrideWith((ref) => Stream.value(_player(_creator))),
+        playerIdentityProvider(id: _joiner)
+            .overrideWith((ref) => Stream.value(_player(_joiner))),
       ],
       child: const MaterialApp(home: GameScreen(gameId: _gameId)),
     ),

@@ -1,11 +1,12 @@
 import 'package:checks/checks.dart';
+import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/features/auth/providers/auth_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/experimental/persist.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../helpers/container.dart';
+import '../../helpers/replica.dart';
 
 final class _FakeAuthGateway implements AuthGateway {
   bool throwExistingAccount = false;
@@ -97,6 +98,8 @@ void main() {
       final auth = _FakeAuthGateway()..throwExistingAccount = true;
       final container = makeContainer(
         overrides: [
+          ...replicaTestOverrides(),
+          syncCoordinatorProvider.overrideWith(_IdleSyncCoordinator.new),
           authServiceProvider.overrideWithValue(auth),
           analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
           currentUserProvider.overrideWith(
@@ -123,6 +126,8 @@ void main() {
     final auth = _FakeAuthGateway();
     final container = makeContainer(
       overrides: [
+        ...replicaTestOverrides(),
+        syncCoordinatorProvider.overrideWith(_IdleSyncCoordinator.new),
         authServiceProvider.overrideWithValue(auth),
         analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
         currentUserProvider.overrideWith(
@@ -143,12 +148,13 @@ void main() {
     final auth = _FakeAuthGateway()..throwExistingAccount = true;
     final container = makeContainer(
       overrides: [
+        ...replicaTestOverrides(),
+        syncCoordinatorProvider.overrideWith(_IdleSyncCoordinator.new),
         authServiceProvider.overrideWithValue(auth),
         analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
         currentUserProvider.overrideWith(
           (ref) => const AuthUser(id: 'guest-1', isAnonymous: true),
         ),
-        storageProvider.overrideWith((ref) async => Storage.inMemory()),
       ],
     );
 
@@ -159,4 +165,14 @@ void main() {
     check(auth.switched).isTrue();
     expect(container.read(authControllerProvider), isA<AsyncData<void>>());
   });
+}
+
+/// A sync coordinator that runs nothing: account changes trigger a sync, which
+/// is not what these tests are about.
+class _IdleSyncCoordinator extends SyncCoordinator {
+  @override
+  SyncStatus build() => (running: false, last: null);
+
+  @override
+  Future<SyncReport?> run() async => null;
 }

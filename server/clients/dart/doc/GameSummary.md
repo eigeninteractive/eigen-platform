@@ -9,6 +9,7 @@ import 'package:eigen_api/api.dart';
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | **String** |  | 
+**seq** | **int** | The game's revision: the same per-game counter a `Session` carries as `seq`, as of the commit this summary reflects. A client holding a game from several sources keeps whichever copy has the higher `seq`. | 
 **createdBy** | **String** |  | 
 **status** | [**GameStatus**](GameStatus.md) |  | 
 **access** | [**GameAccess**](GameAccess.md) |  | 

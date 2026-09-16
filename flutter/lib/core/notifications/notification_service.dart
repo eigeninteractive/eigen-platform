@@ -29,6 +29,12 @@ abstract interface class NotificationService {
   /// Deep links selected from notifications.
   Stream<String> get navigationStream;
 
+  /// One event per push received while the app is in the foreground.
+  ///
+  /// A push says something changed on the server, so the account's sync pass
+  /// runs on it (decision 0013). Carries nothing: the pass reads what changed.
+  Stream<void> get foregroundMessages;
+
   /// Installs listeners and restores any existing registration.
   Future<void> initialize();
 
@@ -54,6 +60,9 @@ final class NoopNotificationService implements NotificationService {
 
   @override
   Stream<String> get navigationStream => const Stream.empty();
+
+  @override
+  Stream<void> get foregroundMessages => const Stream.empty();
 
   @override
   Future<void> initialize() async {}

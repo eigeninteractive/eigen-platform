@@ -9,7 +9,6 @@ import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/core/navigation/router/app_router.dart';
 import 'package:eigen_shell/core/updates/update_notifier.dart';
 import 'package:eigen_shell/features/profile/providers/profile_providers.dart';
-import 'package:eigen_shell/features/social/providers/social_providers.dart';
 
 /// Keeps the native splash screen visible until the auth state is known,
 /// then hands control to [child] (which GoRouter routes normally).
@@ -31,10 +30,15 @@ class _AppStartupState extends ConsumerState<AppStartup> {
   void initState() {
     super.initState();
     _authSub = ref.listenManual(authStateChangesProvider, _onAuthStateChange);
+    // Built now so its triggers are listening from the first frame: signing
+    // in, reconnecting, and a push each run the account's sync pass.
+    ref.read(syncCoordinatorProvider);
     unawaited(_removeNativeSplashWhenReady());
     unawaited(ref.read(updateProvider.notifier).checkForUpdate());
     _lifecycleListener = AppLifecycleListener(
       onResume: () {
+        // Whatever changed while the app was away arrives in one pass.
+        unawaited(ref.read(syncCoordinatorProvider.notifier).run());
         ref.read(updateProvider.notifier).checkForUpdate();
         // Reconcile permission and FCM registration in case the user changed
         // notification access in system/browser settings while we were away.
@@ -176,15 +180,6 @@ class _AppStartupState extends ConsumerState<AppStartup> {
               unawaited(
                 ref.read(notificationServiceProvider).registerInstallation(),
               );
-              // Fire-and-forget: starts the local cache restore + network
-              // fetch before any screen renders. keepAlive ensures the result
-              // is reused by all subsequent watchers.
-              ref.read(currentUserProfileProvider.future).ignore();
-              // Warm the bot catalog the same way. The shell only watches it
-              // when the build ships local bots (localBots.isNotEmpty short-
-              // circuit), so this is what readies it for the server-bots-only
-              // path (the waiting-room "Add bot" picker) before it is opened.
-              ref.read(availableBotsProvider.future).ignore();
             }
           case AuthEvent.signedOut:
             unawaited(analytics.reset());
@@ -199,7 +194,8 @@ class _AppStartupState extends ConsumerState<AppStartup> {
     final context = rootNavigatorKey.currentContext;
     if (context == null) return;
     if (path.startsWith('/social')) {
-      ref.invalidate(friendsProvider);
+      // A friend event: the pass brings the friends and requests it changed.
+      unawaited(ref.read(syncCoordinatorProvider.notifier).run());
     }
     GoRouter.of(context).navigateFromNotification(path);
   }

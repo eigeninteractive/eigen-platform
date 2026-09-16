@@ -42,7 +42,7 @@ Future<T> engineCall<T>(Future<T> Function() run) async {
 /// returns the non-null payload.
 ///
 /// ```dart
-/// final friends = (await engineData(() => api.listFriends())).friends;
+/// final bots = (await engineData(() => api.getBots())).bots;
 /// ```
 ///
 /// Throws [EngineException] if a success response carries no body, which is a

@@ -144,9 +144,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 ),
                 IconButton(
                   onPressed: () {
-                    ref
-                      ..invalidate(friendsProvider)
-                      ..invalidate(friendRequestsProvider);
+                    ref.read(syncCoordinatorProvider.notifier).run();
                   },
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Refresh social lists',
@@ -240,7 +238,7 @@ class _FriendsListState extends ConsumerState<_FriendsList>
     return friendsAsync.when(
       skipLoadingOnReload: true,
       data: (friendships) => RefreshIndicator(
-        onRefresh: () async => ref.invalidate(friendsProvider),
+        onRefresh: () => ref.read(syncCoordinatorProvider.notifier).run(),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
@@ -376,7 +374,7 @@ class _PendingRequestsState extends ConsumerState<_PendingRequests>
     return requestsAsync.when(
       skipLoadingOnReload: true,
       data: (requests) => RefreshIndicator(
-        onRefresh: () async => ref.invalidate(friendRequestsProvider),
+        onRefresh: () => ref.read(syncCoordinatorProvider.notifier).run(),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [

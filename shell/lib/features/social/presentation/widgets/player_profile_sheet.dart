@@ -73,8 +73,10 @@ class PlayerProfilePanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<Player> playerAsync = ref.watch(
-      playerInfoCacheProvider(id: playerId),
+    final playerAsync = ref.watch(
+      type == SeatTypeEnum.bot
+          ? seatIdentityProvider(botId: playerId)
+          : seatIdentityProvider(userId: playerId),
     );
 
     return CustomScrollView(
@@ -82,7 +84,9 @@ class PlayerProfilePanel extends ConsumerWidget {
       slivers: [
         SliverToBoxAdapter(
           child: playerAsync.when(
-            data: (player) => _Header(player: player, type: type),
+            data: (player) => player == null
+                ? const _DeletedPlayerHeader()
+                : _Header(player: player, type: type),
             loading: () => const Padding(
               padding: EdgeInsets.symmetric(vertical: 48),
               child: Center(child: CircularProgressIndicator()),

@@ -10,10 +10,10 @@ All URIs are relative to *http://localhost*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**deleteAccount**](MeApi.md#deleteaccount) | **DELETE** /api/engine/me | 
-[**getMyRatingHistory**](MeApi.md#getmyratinghistory) | **GET** /api/engine/me/rating-history | 
-[**getMyRatings**](MeApi.md#getmyratings) | **GET** /api/engine/me/ratings | 
+[**getMyFinishedGames**](MeApi.md#getmyfinishedgames) | **GET** /api/engine/me/games/finished | 
 [**getProfile**](MeApi.md#getprofile) | **GET** /api/engine/me | 
 [**registerDevice**](MeApi.md#registerdevice) | **PUT** /api/engine/me/devices | 
+[**syncAccount**](MeApi.md#syncaccount) | **GET** /api/engine/me/sync | 
 [**unregisterDevice**](MeApi.md#unregisterdevice) | **DELETE** /api/engine/me/devices/{fid} | 
 [**updateDisplayName**](MeApi.md#updatedisplayname) | **PUT** /api/engine/me/display-name | 
 [**updateUsername**](MeApi.md#updateusername) | **PUT** /api/engine/me/username | 
@@ -55,8 +55,8 @@ void (empty response body)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **getMyRatingHistory**
-> RatingHistory getMyRatingHistory(pool, limit)
+# **getMyFinishedGames**
+> MyFinishedGames getMyFinishedGames(limit, cursor)
 
 
 
@@ -65,14 +65,14 @@ void (empty response body)
 import 'package:eigen_api/api.dart';
 
 final api = EigenApi().getMeApi();
-final String pool = pool_example; // String | 
 final int limit = 56; // int | 
+final String cursor = cursor_example; // String | 
 
 try {
-    final response = api.getMyRatingHistory(pool, limit);
+    final response = api.getMyFinishedGames(limit, cursor);
     print(response);
 } catch on DioException (e) {
-    print('Exception when calling MeApi->getMyRatingHistory: $e\n');
+    print('Exception when calling MeApi->getMyFinishedGames: $e\n');
 }
 ```
 
@@ -80,49 +80,12 @@ try {
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **pool** | **String**|  | [optional] 
  **limit** | **int**|  | [optional] [default to 20]
+ **cursor** | **String**|  | [optional] 
 
 ### Return type
 
-[**RatingHistory**](RatingHistory.md)
-
-### Authorization
-
-[firebase](../README.md#firebase)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **getMyRatings**
-> Ratings getMyRatings()
-
-
-
-### Example
-```dart
-import 'package:eigen_api/api.dart';
-
-final api = EigenApi().getMeApi();
-
-try {
-    final response = api.getMyRatings();
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling MeApi->getMyRatings: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-[**Ratings**](Ratings.md)
+[**MyFinishedGames**](MyFinishedGames.md)
 
 ### Authorization
 
@@ -212,6 +175,47 @@ void (empty response body)
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **syncAccount**
+> AccountSync syncAccount(finishedAfter)
+
+
+
+### Example
+```dart
+import 'package:eigen_api/api.dart';
+
+final api = EigenApi().getMeApi();
+final int finishedAfter = 56; // int | 
+
+try {
+    final response = api.syncAccount(finishedAfter);
+    print(response);
+} catch on DioException (e) {
+    print('Exception when calling MeApi->syncAccount: $e\n');
+}
+```
+
+### Parameters
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **finishedAfter** | **int**|  | [optional] 
+
+### Return type
+
+[**AccountSync**](AccountSync.md)
+
+### Authorization
+
+[firebase](../README.md#firebase)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **unregisterDevice**
 > unregisterDevice(fid)
 
@@ -253,7 +257,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateDisplayName**
-> DisplayNameUpdated updateDisplayName(displayNameUpdate)
+> Profile updateDisplayName(displayNameUpdate)
 
 
 
@@ -280,7 +284,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**DisplayNameUpdated**](DisplayNameUpdated.md)
+[**Profile**](Profile.md)
 
 ### Authorization
 
@@ -294,7 +298,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateUsername**
-> UsernameUpdated updateUsername(usernameUpdate)
+> Profile updateUsername(usernameUpdate)
 
 
 
@@ -321,7 +325,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**UsernameUpdated**](UsernameUpdated.md)
+[**Profile**](Profile.md)
 
 ### Authorization
 

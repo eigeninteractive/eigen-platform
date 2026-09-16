@@ -2,6 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:test/test.dart';
 
+import '../replica/memory_replica.dart';
 import 'counter_game.dart';
 
 Session _session({
@@ -77,40 +78,39 @@ LocalRecord _remote({int upTo = 2, int? finishedAt}) => LocalRecord(
 void main() {
   const rules = CounterRules();
 
-  test('rebuilds a playable record from the server copy', () {
-    final record = localRecordFromRemote(remote: _remote(), rules: rules);
+  test('rebuilds a playable game from the server copy', () {
+    final rebuilt = localGameFromRemote(remote: _remote(), rules: rules);
+    final game = rebuilt.game;
 
-    check(record.id).equals('game-1');
-    check(record.createdBy).equals('user-a');
-    check(record.seed).equals('b' * 32);
-    check(record.schemaVersion).equals(1);
-    check(record.roster.length).equals(2);
-    check(record.roster[1].botId).equals('bot-1');
-    check(record.transitions.map((t) => t.version)).deepEquals([0, 1, 2]);
-    check(record.version).equals(2);
-    check(record.createdAt).equals(DateTime.utc(2026, 9, 1));
+    check(game.id).equals('game-1');
+    check(game.createdBy).equals('user-a');
+    check(game.seed).equals('b' * 32);
+    check(game.schemaVersion).equals(1);
+    check(game.roster.length).equals(2);
+    check(game.roster[1].botId).equals('bot-1');
+    check(rebuilt.transitions.map((t) => t.version)).deepEquals([0, 1, 2]);
+    check(game.version).equals(2);
+    check(game.createdAt).equals(DateTime.utc(2026, 9, 1));
   });
 
   test('arrives already synchronized, because the server is where it came '
       'from', () {
-    final record = localRecordFromRemote(remote: _remote(), rules: rules);
+    final game = localGameFromRemote(remote: _remote(), rules: rules).game;
 
-    check(record.remoteCreated).isTrue();
-    check(record.syncedVersion).equals(2);
-    check(record.diverged).isFalse();
+    check(game.remoteCreated).isTrue();
+    check(game.syncedVersion).equals(2);
+    check(game.diverged).isFalse();
   });
 
-  test('re-projects every seat\'s frame rather than trusting a transferred '
-      'copy', () {
-    final record = localRecordFromRemote(remote: _remote(), rules: rules);
+  test('re-projects the human\'s frame at every version rather than trusting a '
+      'transferred copy', () {
+    final rebuilt = localGameFromRemote(remote: _remote(), rules: rules);
 
-    for (var version = 0; version <= 2; version++) {
-      // Both seats, at every version: the engine needs the bot's own view to
-      // run its brain, and replay needs the human's.
-      check(record.frameFor(seat: 0, version: version)).isNotNull();
-      check(record.frameFor(seat: 1, version: version)).isNotNull();
-    }
-    final projected = record.frameFor(seat: 0, version: 2)!.data;
+    // One per version, and only the human's: replay needs it, and the engine
+    // derives a bot's view from the state when its brain runs.
+    check(rebuilt.frames.map((frame) => frame.playerIndex))
+        .deepEquals([0, 0, 0]);
+    final projected = rebuilt.frames[2].data;
     check((projected['scores'] as List).first).equals(2);
     // The cue the projection embeds comes from the logged action, which is
     // what proves the frame was re-derived rather than copied.
@@ -118,11 +118,14 @@ void main() {
   });
 
   test('logs a bot move as a bot move, so a resumed game replays the same', () {
-    final record = localRecordFromRemote(remote: _remote(), rules: rules);
+    final transitions = localGameFromRemote(
+      remote: _remote(),
+      rules: rules,
+    ).transitions;
 
-    check(record.transitions[0].action).isNull();
-    check(record.transitions[1].action!.type).equals(LocalActionType.user);
-    check(record.transitions[2].action!.type).equals(LocalActionType.bot);
+    check(transitions[0].action).isNull();
+    check(transitions[1].action!.type).equals(LocalActionType.user);
+    check(transitions[2].action!.type).equals(LocalActionType.bot);
   });
 
   test('carries a finished game\'s outcomes and finish time', () {
@@ -152,13 +155,13 @@ void main() {
       transitions: [for (var v = 0; v <= 2; v++) _row(v)],
     );
 
-    final record = localRecordFromRemote(remote: remote, rules: rules);
+    final game = localGameFromRemote(remote: remote, rules: rules).game;
 
-    check(record.status).equals(GameStatus.finished);
-    check(record.isTerminal).isTrue();
-    check(record.outcomes).isNotNull();
-    check(record.outcomes!.first.result).equals(OutcomeResultEnum.win);
-    check(record.finishedAt).equals(DateTime.utc(2026, 9, 2));
+    check(game.status).equals(GameStatus.finished);
+    check(game.isTerminal).isTrue();
+    check(game.outcomes).isNotNull();
+    check(game.outcomes!.first.result).equals(OutcomeResultEnum.win);
+    check(game.finishedAt).equals(DateTime.utc(2026, 9, 2));
   });
 
   test('refuses a ratings transition, which a local game cannot have', () {
@@ -186,7 +189,7 @@ void main() {
       ],
     );
 
-    check(() => localRecordFromRemote(remote: remote, rules: rules))
+    check(() => localGameFromRemote(remote: remote, rules: rules))
         .throws<FormatException>();
   });
 
@@ -201,7 +204,7 @@ void main() {
       transitions: [_row(0), _row(1)],
     );
 
-    check(() => localRecordFromRemote(remote: truncated, rules: rules))
+    check(() => localGameFromRemote(remote: truncated, rules: rules))
         .throws<FormatException>();
   });
 
@@ -214,17 +217,40 @@ void main() {
       transitions: [_row(0), _row(2), _row(2)],
     );
 
-    check(() => localRecordFromRemote(remote: holed, rules: rules))
+    check(() => localGameFromRemote(remote: holed, rules: rules))
         .throws<FormatException>();
   });
 
-  test('a rebuilt record round-trips through the store\'s JSON', () {
-    final record = localRecordFromRemote(remote: _remote(), rules: rules);
-    final restored = LocalGameRecord.fromJson(record.toJson());
+  test(
+    'a rebuilt game written to storage is playable and replayable',
+    () async {
+      final db = memoryReplica();
+      final storage = LocalGameStorage(db);
+      final rebuilt = localGameFromRemote(remote: _remote(), rules: rules);
 
-    check(restored.seed).equals(record.seed);
-    check(restored.syncedVersion).equals(record.syncedVersion);
-    check(restored.transitions.length).equals(record.transitions.length);
-    check(restored.frameFor(seat: 1, version: 2)).isNotNull();
-  });
+      await storage.replace(rebuilt, now: DateTime.utc(2026, 9, 3));
+
+      final restored = (await storage.load(
+        accountId: 'user-a',
+        gameId: 'game-1',
+      ))!;
+      check(restored.seed).equals(rebuilt.game.seed);
+      check(restored.syncedVersion).equals(2);
+      check(restored.version).equals(2);
+      check(restored.needsSync).isFalse();
+      final replay = await AccountReplica(db, 'user-a').replayFrames('game-1');
+      check(replay!.map((frame) => frame.version)).deepEquals([0, 1, 2]);
+
+      final engine = await LocalGameEngine.open(
+        accountId: 'user-a',
+        gameId: 'game-1',
+        rules: rules,
+        storage: storage,
+        bots: {'bot-1': counterBot()},
+      );
+      check(engine).isNotNull();
+      check(engine!.current.version).equals(2);
+      await engine.close();
+    },
+  );
 }

@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:intl/intl.dart';
 import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_client/eigen_client.dart';
 
 import 'package:eigen_shell/features/game/presentation/extensions/game_ui.dart';
 import 'package:eigen_shell/features/rating/presentation/extensions/rating_ui.dart';
+
+/// How many more games each step of scrolling asks the replica for.
+const _pageSize = 30;
 
 typedef _HistoryEntry = ({
   GameSummary game,
@@ -39,6 +43,12 @@ OutcomeResultEnum? _myResult(GameSummary game, String? myUserId) {
 }
 
 /// Screen showing the current user's completed game history.
+///
+/// Read from the replica (decision 0013), so it opens instantly and offline,
+/// with games played online and on this device in one list. Scrolling asks the
+/// replica for more; only when it has shown everything the device holds, and
+/// the server has older history, does it fetch the next page, which lands in
+/// the replica and appears here.
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -47,106 +57,51 @@ class HistoryScreen extends ConsumerStatefulWidget {
 }
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
-  late final PagingController<String, _HistoryEntry> _pagingController;
+  int _limit = _pageSize;
+  bool _fetchingOlder = false;
 
-  /// The cursor for the page after the one most recently fetched, or null once
-  /// the server has said the list is exhausted. The empty string is "no cursor
-  /// yet", i.e. the first page; it cannot be null, because null is how this
-  /// controller is told there are no more pages.
-  String? _nextKey = '';
+  /// The list length the last request for more was made at. The near-end
+  /// callback fires for several cards in one frame, and again on every rebuild
+  /// until the list grows, so one length asks once.
+  int? _askedAt;
 
-  /// Reload from the top.
-  ///
-  /// The cursor lives beside the controller rather than inside it, so the two
-  /// have to be reset together - refreshing the list without clearing the
-  /// cursor would refetch page one and then continue from wherever the last
-  /// scroll had reached. There are three refresh affordances on this screen
-  /// (the toolbar button, pull-to-refresh, and the error retry), which is
-  /// exactly why this is a method and not three copies of two lines.
-  void _refresh() {
-    _nextKey = '';
-    _pagingController.refresh();
+  Future<void> _refresh() async {
+    await ref.read(syncCoordinatorProvider.notifier).run();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _pagingController = PagingController<String, _HistoryEntry>(
-      getNextPageKey: (state) => _nextKey,
-      fetchPage: (key) async {
-        final firstPage = key.isEmpty;
-        // Games played on this device sit at the top of the first page and are
-        // never paged: they live in the device's own store, so there are as
-        // many as there are and no cursor can describe them. A synced one also
-        // exists on the server, and the device's copy is the one kept, for the
-        // same reason the home list keeps it.
-        final local = firstPage
-            ? await ref.read(localFinishedGamesProvider.future)
-            : const <GameSummary>[];
-        final localIds = {for (final game in local) game.id};
-        final page = await ref
-            .read(gameRepositoryProvider)
-            .getMyGames(
-              bucket: finishedGamesBucket,
-              cursor: firstPage ? null : key,
-            );
-        // The server says where the next page starts, and says so with a token
-        // this screen never opens. Nothing here knows that finished games sort
-        // by their finish time; that is the server's rule to keep.
-        _nextKey = page.nextCursor;
-        final games = page.games;
-        // The summary carries the roster, the outcomes and the rating deltas,
-        // so every field of a row is derived from the one response. Joining a
-        // separate rating log here would have been a second round trip per
-        // page - and silently wrong past its own page limit.
-        final myUserId = ref.read(currentUserIdProvider);
-        return [
-          for (final game in [
-            ...local,
-            for (final game in games)
-              if (!localIds.contains(game.id)) game,
-          ])
-            (
-              game: game,
-              myResult: _myResult(game, myUserId),
-              ratingChange: _myRatingChange(game, myUserId),
-            ),
-        ];
-      },
-    );
-    _pagingController.addListener(_onPagingError);
-  }
-
-  void _onPagingError() {
-    if (!mounted) return;
-    if (_pagingController.value.status == PagingStatus.subsequentPageError) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              humanize(_pagingController.value.error ?? 'Unknown error'),
-            ),
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: _pagingController.fetchNextPage,
-            ),
-          ),
-        );
+  /// Shows more of what the replica holds, and fetches older history once the
+  /// replica holds no more to show.
+  Future<void> _showMore({required int shown}) async {
+    if (_askedAt == shown) return;
+    _askedAt = shown;
+    if (shown >= _limit) {
+      setState(() => _limit += _pageSize);
+      return;
+    }
+    if (ref.read(accountHistoryProvider).value?.hasOlder != true) return;
+    setState(() => _fetchingOlder = true);
+    try {
+      await ref.read(syncCoordinatorProvider.notifier).loadOlderHistory();
+      // The page lands in the replica and the list grows past [shown], which
+      // asks again by itself. Clearing this covers a page that added nothing.
+      _askedAt = null;
+    } on Object catch (error) {
+      // Left set, so a failure is not retried on every frame. Pulling to
+      // refresh or scrolling again after the list changes asks anew.
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text(humanize(error))));
+      }
+    } finally {
+      if (mounted) setState(() => _fetchingOlder = false);
     }
   }
 
   @override
-  void dispose() {
-    _pagingController
-      ..removeListener(_onPagingError)
-      ..dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final gamesAsync = ref.watch(finishedGamesProvider(limit: _limit));
+    final myUserId = ref.watch(currentUserIdProvider);
 
     return AdaptiveLayoutBuilder(
       builder: (context, constraints, windowClass) => Column(
@@ -156,7 +111,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               child: IconButton(
-                onPressed: _refresh,
+                onPressed: () => unawaited(_refresh()),
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Refresh history',
               ),
@@ -164,80 +119,119 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () async => _refresh(),
-              child: PagingListener(
-                controller: _pagingController,
-                builder: (context, state, fetchNextPage) {
-                  final builderDelegate =
-                      PagedChildBuilderDelegate<_HistoryEntry>(
-                        animateTransitions: true,
-                        itemBuilder: (context, entry, _) => _HistoryCard(
-                          key: ValueKey(entry.game.id),
-                          entry: entry,
-                        ),
-                        noItemsFoundIndicatorBuilder: (_) => EmptyStateView(
-                          icon: Icons.history,
-                          title: 'No finished games yet',
-                          message: 'Completed games will appear here.',
-                          cta: 'Play your first game',
-                          onCta: () => context.go('/lobby'),
-                          tonalCta: true,
-                        ),
-                        firstPageErrorIndicatorBuilder: (_) => Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                size: 48,
-                                color: colorScheme.error,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(humanize(state.error ?? 'Unknown error')),
-                              const SizedBox(height: 16),
-                              FilledButton(
-                                onPressed: _refresh,
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                  final useGrid = shouldUseCardGrid(
+              onRefresh: _refresh,
+              child: switch (gamesAsync) {
+                AsyncData(:final value) when value.isEmpty => CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: EmptyStateView(
+                        icon: Icons.history,
+                        title: 'No finished games yet',
+                        message: 'Completed games will appear here.',
+                        cta: 'Play your first game',
+                        onCta: () => context.go('/lobby'),
+                        tonalCta: true,
+                      ),
+                    ),
+                  ],
+                ),
+                AsyncValue(:final value?) => _HistoryList(
+                  entries: [
+                    for (final game in value)
+                      (
+                        game: game,
+                        myResult: _myResult(game, myUserId),
+                        ratingChange: _myRatingChange(game, myUserId),
+                      ),
+                  ],
+                  useGrid: shouldUseCardGrid(
                     windowClass: windowClass,
                     textScaler: MediaQuery.textScalerOf(context),
-                  );
-                  if (!useGrid) {
-                    return ConstrainedContentPane(
-                      maxWidth: 720,
-                      child: PagedListView<String, _HistoryEntry>.separated(
-                        state: state,
-                        fetchNextPage: fetchNextPage,
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        separatorBuilder: (_, _) => const SizedBox(height: 12),
-                        builderDelegate: builderDelegate,
-                      ),
-                    );
-                  }
-                  return PagedGridView<String, _HistoryEntry>(
-                    state: state,
-                    fetchNextPage: fetchNextPage,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    gridDelegate: responsiveCardGridDelegate(
-                      availableWidth: constraints.maxWidth - 32,
-                      maxCrossAxisExtent: 560,
-                      mainAxisExtent: 110,
-                    ),
-                    builderDelegate: builderDelegate,
-                  );
-                },
-              ),
+                  ),
+                  availableWidth: constraints.maxWidth,
+                  fetchingOlder: _fetchingOlder,
+                  onNearEnd: () => unawaited(_showMore(shown: value.length)),
+                ),
+                AsyncError(:final error) => Center(
+                  child: Text(humanize(error)),
+                ),
+                _ => const Center(child: CircularProgressIndicator()),
+              },
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HistoryList extends StatelessWidget {
+  const _HistoryList({
+    required this.entries,
+    required this.useGrid,
+    required this.availableWidth,
+    required this.fetchingOlder,
+    required this.onNearEnd,
+  });
+
+  final List<_HistoryEntry> entries;
+  final bool useGrid;
+  final double availableWidth;
+  final bool fetchingOlder;
+  final VoidCallback onNearEnd;
+
+  Widget _item(BuildContext context, int index) {
+    // Asking for more as the last few cards come into view keeps scrolling
+    // continuous; the callback is idempotent while a fetch is in flight.
+    if (index >= entries.length - 5) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onNearEnd());
+    }
+    return _HistoryCard(
+      key: ValueKey(entries[index].game.id),
+      entry: entries[index],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final footer = fetchingOlder
+        ? const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        : const SizedBox(height: 16);
+    if (!useGrid) {
+      return ConstrainedContentPane(
+        maxWidth: 720,
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          itemCount: entries.length + 1,
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
+          itemBuilder: (context, index) =>
+              index == entries.length ? footer : _item(context, index),
+        ),
+      );
+    }
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          sliver: SliverGrid.builder(
+            gridDelegate: responsiveCardGridDelegate(
+              availableWidth: availableWidth - 32,
+              maxCrossAxisExtent: 560,
+              mainAxisExtent: 110,
+            ),
+            itemCount: entries.length,
+            itemBuilder: _item,
+          ),
+        ),
+        SliverToBoxAdapter(child: footer),
+      ],
     );
   }
 }

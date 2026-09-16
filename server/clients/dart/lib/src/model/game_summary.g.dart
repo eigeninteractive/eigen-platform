@@ -13,6 +13,7 @@ GameSummary _$GameSummaryFromJson(
     json,
     requiredKeys: const [
       'id',
+      'seq',
       'createdBy',
       'status',
       'access',
@@ -38,6 +39,7 @@ GameSummary _$GameSummaryFromJson(
   );
   final val = GameSummary(
     id: $checkedConvert('id', (v) => v as String),
+    seq: $checkedConvert('seq', (v) => (v as num).toInt()),
     createdBy: $checkedConvert('createdBy', (v) => v as String?),
     status: $checkedConvert(
       'status',
@@ -112,6 +114,7 @@ GameSummary _$GameSummaryFromJson(
 Map<String, dynamic> _$GameSummaryToJson(GameSummary instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'seq': instance.seq,
       'createdBy': instance.createdBy,
       'status': _$GameStatusEnumMap[instance.status]!,
       'access': _$GameAccessEnumMap[instance.access]!,

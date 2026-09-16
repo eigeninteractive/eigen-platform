@@ -10,15 +10,13 @@ import 'dart:convert';
 import 'package:eigen_api/src/deserialize.dart';
 import 'package:dio/dio.dart';
 
+import 'package:eigen_api/src/model/account_sync.dart';
 import 'package:eigen_api/src/model/device_registration.dart';
 import 'package:eigen_api/src/model/display_name_update.dart';
-import 'package:eigen_api/src/model/display_name_updated.dart';
 import 'package:eigen_api/src/model/error_response.dart';
+import 'package:eigen_api/src/model/my_finished_games.dart';
 import 'package:eigen_api/src/model/profile.dart';
-import 'package:eigen_api/src/model/rating_history.dart';
-import 'package:eigen_api/src/model/ratings.dart';
 import 'package:eigen_api/src/model/username_update.dart';
-import 'package:eigen_api/src/model/username_updated.dart';
 
 class MeApi {
   final Dio _dio;
@@ -70,12 +68,12 @@ class MeApi {
     return _response;
   }
 
-  /// getMyRatingHistory
+  /// getMyFinishedGames
   ///
   ///
   /// Parameters:
-  /// * [pool]
   /// * [limit]
+  /// * [cursor]
   /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
   /// * [headers] - Can be used to add additional headers to the request
   /// * [extras] - Can be used to add flags to the request
@@ -83,11 +81,11 @@ class MeApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [RatingHistory] as data
+  /// Returns a [Future] containing a [Response] with a [MyFinishedGames] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<RatingHistory>> getMyRatingHistory({
-    String? pool,
+  Future<Response<MyFinishedGames>> getMyFinishedGames({
     int? limit = 20,
+    String? cursor,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
     Map<String, dynamic>? extra,
@@ -95,7 +93,7 @@ class MeApi {
     ProgressCallback? onSendProgress,
     ProgressCallback? onReceiveProgress,
   }) async {
-    final _path = r'/api/engine/me/rating-history';
+    final _path = r'/api/engine/me/games/finished';
     final _options = Options(
       method: r'GET',
       headers: <String, dynamic>{...?headers},
@@ -109,8 +107,8 @@ class MeApi {
     );
 
     final _queryParameters = <String, dynamic>{
-      if (pool != null) r'pool': pool,
       if (limit != null) r'limit': limit,
+      if (cursor != null) r'cursor': cursor,
     };
 
     final _response = await _dio.request<Object>(
@@ -122,15 +120,15 @@ class MeApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    RatingHistory? _responseData;
+    MyFinishedGames? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<RatingHistory, RatingHistory>(
+          : deserialize<MyFinishedGames, MyFinishedGames>(
               rawData,
-              'RatingHistory',
+              'MyFinishedGames',
               growable: true,
             );
     } catch (error, stackTrace) {
@@ -143,78 +141,7 @@ class MeApi {
       );
     }
 
-    return Response<RatingHistory>(
-      data: _responseData,
-      headers: _response.headers,
-      isRedirect: _response.isRedirect,
-      requestOptions: _response.requestOptions,
-      redirects: _response.redirects,
-      statusCode: _response.statusCode,
-      statusMessage: _response.statusMessage,
-      extra: _response.extra,
-    );
-  }
-
-  /// getMyRatings
-  ///
-  ///
-  /// Parameters:
-  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
-  /// * [headers] - Can be used to add additional headers to the request
-  /// * [extras] - Can be used to add flags to the request
-  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
-  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
-  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
-  ///
-  /// Returns a [Future] containing a [Response] with a [Ratings] as data
-  /// Throws [DioException] if API call or serialization fails
-  Future<Response<Ratings>> getMyRatings({
-    CancelToken? cancelToken,
-    Map<String, dynamic>? headers,
-    Map<String, dynamic>? extra,
-    ValidateStatus? validateStatus,
-    ProgressCallback? onSendProgress,
-    ProgressCallback? onReceiveProgress,
-  }) async {
-    final _path = r'/api/engine/me/ratings';
-    final _options = Options(
-      method: r'GET',
-      headers: <String, dynamic>{...?headers},
-      extra: <String, dynamic>{
-        'secure': <Map<String, String>>[
-          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
-        ],
-        ...?extra,
-      },
-      validateStatus: validateStatus,
-    );
-
-    final _response = await _dio.request<Object>(
-      _path,
-      options: _options,
-      cancelToken: cancelToken,
-      onSendProgress: onSendProgress,
-      onReceiveProgress: onReceiveProgress,
-    );
-
-    Ratings? _responseData;
-
-    try {
-      final rawData = _response.data;
-      _responseData = rawData == null
-          ? null
-          : deserialize<Ratings, Ratings>(rawData, 'Ratings', growable: true);
-    } catch (error, stackTrace) {
-      throw DioException(
-        requestOptions: _response.requestOptions,
-        response: _response,
-        type: DioExceptionType.unknown,
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-
-    return Response<Ratings>(
+    return Response<MyFinishedGames>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -359,6 +286,88 @@ class MeApi {
     return _response;
   }
 
+  /// syncAccount
+  ///
+  ///
+  /// Parameters:
+  /// * [finishedAfter]
+  /// * [cancelToken] - A [CancelToken] that can be used to cancel the operation
+  /// * [headers] - Can be used to add additional headers to the request
+  /// * [extras] - Can be used to add flags to the request
+  /// * [validateStatus] - A [ValidateStatus] callback that can be used to determine request success based on the HTTP status of the response
+  /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
+  /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
+  ///
+  /// Returns a [Future] containing a [Response] with a [AccountSync] as data
+  /// Throws [DioException] if API call or serialization fails
+  Future<Response<AccountSync>> syncAccount({
+    int? finishedAfter,
+    CancelToken? cancelToken,
+    Map<String, dynamic>? headers,
+    Map<String, dynamic>? extra,
+    ValidateStatus? validateStatus,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    final _path = r'/api/engine/me/sync';
+    final _options = Options(
+      method: r'GET',
+      headers: <String, dynamic>{...?headers},
+      extra: <String, dynamic>{
+        'secure': <Map<String, String>>[
+          {'type': 'http', 'scheme': 'bearer', 'name': 'firebase'},
+        ],
+        ...?extra,
+      },
+      validateStatus: validateStatus,
+    );
+
+    final _queryParameters = <String, dynamic>{
+      if (finishedAfter != null) r'finishedAfter': finishedAfter,
+    };
+
+    final _response = await _dio.request<Object>(
+      _path,
+      options: _options,
+      queryParameters: _queryParameters,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+
+    AccountSync? _responseData;
+
+    try {
+      final rawData = _response.data;
+      _responseData = rawData == null
+          ? null
+          : deserialize<AccountSync, AccountSync>(
+              rawData,
+              'AccountSync',
+              growable: true,
+            );
+    } catch (error, stackTrace) {
+      throw DioException(
+        requestOptions: _response.requestOptions,
+        response: _response,
+        type: DioExceptionType.unknown,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    return Response<AccountSync>(
+      data: _responseData,
+      headers: _response.headers,
+      isRedirect: _response.isRedirect,
+      requestOptions: _response.requestOptions,
+      redirects: _response.redirects,
+      statusCode: _response.statusCode,
+      statusMessage: _response.statusMessage,
+      extra: _response.extra,
+    );
+  }
+
   /// unregisterDevice
   ///
   ///
@@ -423,9 +432,9 @@ class MeApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [DisplayNameUpdated] as data
+  /// Returns a [Future] containing a [Response] with a [Profile] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<DisplayNameUpdated>> updateDisplayName({
+  Future<Response<Profile>> updateDisplayName({
     required DisplayNameUpdate displayNameUpdate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -470,17 +479,13 @@ class MeApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    DisplayNameUpdated? _responseData;
+    Profile? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<DisplayNameUpdated, DisplayNameUpdated>(
-              rawData,
-              'DisplayNameUpdated',
-              growable: true,
-            );
+          : deserialize<Profile, Profile>(rawData, 'Profile', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -491,7 +496,7 @@ class MeApi {
       );
     }
 
-    return Response<DisplayNameUpdated>(
+    return Response<Profile>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,
@@ -515,9 +520,9 @@ class MeApi {
   /// * [onSendProgress] - A [ProgressCallback] that can be used to get the send progress
   /// * [onReceiveProgress] - A [ProgressCallback] that can be used to get the receive progress
   ///
-  /// Returns a [Future] containing a [Response] with a [UsernameUpdated] as data
+  /// Returns a [Future] containing a [Response] with a [Profile] as data
   /// Throws [DioException] if API call or serialization fails
-  Future<Response<UsernameUpdated>> updateUsername({
+  Future<Response<Profile>> updateUsername({
     required UsernameUpdate usernameUpdate,
     CancelToken? cancelToken,
     Map<String, dynamic>? headers,
@@ -562,17 +567,13 @@ class MeApi {
       onReceiveProgress: onReceiveProgress,
     );
 
-    UsernameUpdated? _responseData;
+    Profile? _responseData;
 
     try {
       final rawData = _response.data;
       _responseData = rawData == null
           ? null
-          : deserialize<UsernameUpdated, UsernameUpdated>(
-              rawData,
-              'UsernameUpdated',
-              growable: true,
-            );
+          : deserialize<Profile, Profile>(rawData, 'Profile', growable: true);
     } catch (error, stackTrace) {
       throw DioException(
         requestOptions: _response.requestOptions,
@@ -583,7 +584,7 @@ class MeApi {
       );
     }
 
-    return Response<UsernameUpdated>(
+    return Response<Profile>(
       data: _responseData,
       headers: _response.headers,
       isRedirect: _response.isRedirect,

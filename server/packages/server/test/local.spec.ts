@@ -172,8 +172,8 @@ describe("create-local", () => {
     expect(again.gameId).toBe(first.gameId);
     expect(again.version).toBe(0);
 
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine?bucket=active"));
-    expect(mine.games.filter((g) => g.id === body.gameId)).toHaveLength(1);
+    const mine = await json<{ activeGames: { id: string }[] }>(await api(u.a, "GET", "/me/sync"));
+    expect(mine.activeGames.filter((g) => g.id === body.gameId)).toHaveLength(1);
   });
 
   it("answers a retry after the game has been played with where it actually is", async () => {

@@ -20,25 +20,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  DateTime _lastRefreshed = DateTime.now();
-
+  /// Pull-to-refresh runs the account's sync pass; the list is the replica, so
+  /// it updates as the pass writes rather than being refetched here.
   Future<void> _onRefresh() async {
-    ref.invalidate(activeGamesProvider);
-    await ref.read(activeGamesProvider.future);
+    await ref.read(syncCoordinatorProvider.notifier).run();
   }
 
   @override
   Widget build(BuildContext context) {
     final activeGamesAsync = ref.watch(activeGamesProvider);
     final colorScheme = Theme.of(context).colorScheme;
-
-    // Track when the provider finishes loading so the "updated ago" label
-    // resets after a pull-to-refresh or navigation-triggered reload.
-    ref.listen(activeGamesProvider, (prev, next) {
-      if (next.hasValue && (prev == null || prev.isLoading)) {
-        setState(() => _lastRefreshed = DateTime.now());
-      }
-    });
 
     return ConstrainedContentPane(
       maxWidth: 1200,
@@ -59,7 +50,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       )
                     : _GamesList(
                         entries: entries,
-                        lastRefreshed: _lastRefreshed,
                         onRefresh: _onRefresh,
                         onBrowseLobby: () => context.go('/lobby'),
                         onJoinViaCode: () => _showJoinCodeDialog(context),
@@ -335,7 +325,6 @@ class _EmptyState extends StatelessWidget {
 class _GamesList extends StatelessWidget {
   const _GamesList({
     required this.entries,
-    required this.lastRefreshed,
     required this.onRefresh,
     required this.onBrowseLobby,
     required this.onJoinViaCode,
@@ -344,7 +333,6 @@ class _GamesList extends StatelessWidget {
   /// The caller's active games. The summary already carries the roster, the
   /// pending set and the deadline, so nothing has to be paired alongside it.
   final List<GameSummary> entries;
-  final DateTime lastRefreshed;
   final VoidCallback onRefresh;
   final VoidCallback onBrowseLobby;
   final VoidCallback onJoinViaCode;
@@ -368,7 +356,7 @@ class _GamesList extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            _UpdatedAgoLabel(refreshedAt: lastRefreshed),
+            const _SyncedAgoLabel(),
           ],
         );
         final actions = Row(
@@ -467,15 +455,16 @@ class _GameCard extends ConsumerWidget {
         ? colorScheme.primary
         : colorScheme.onSurfaceVariant;
 
-    // Identities come from the index row's own roster and the player cache, the
-    // same way the lobby card resolves them. A list must never reach for a
-    // game's SESSION: that is a live subscription, and on a screen of cards it
-    // would open one socket per card for nothing but an avatar.
+    // Identities come from the row's own roster and the replica, the same way
+    // the lobby card resolves them. A list must never reach for a game's
+    // SESSION: that is a live subscription, and on a screen of cards it would
+    // open one socket per card for nothing but an avatar.
     final avatars = <AvatarEntry>[];
     for (final seat in game.participants) {
-      final playerId = seat.userId ?? seat.botId;
-      if (playerId == null) continue;
-      final info = ref.watch(playerInfoCacheProvider(id: playerId));
+      if (seat.userId == null && seat.botId == null) continue;
+      final info = ref.watch(
+        seatIdentityProvider(userId: seat.userId, botId: seat.botId),
+      );
       if (info.value case final value?) {
         avatars.add((
           avatarUrl: value.avatarUrl,
@@ -568,25 +557,24 @@ class _GameCard extends ConsumerWidget {
   }
 }
 
-/// Live "Updated X ago" label that ticks every second.
+/// When the account last synced, ticking so the label stays true.
 ///
-/// Resets automatically when the parent passes a new [refreshedAt].
-class _UpdatedAgoLabel extends StatefulWidget {
-  const _UpdatedAgoLabel({required this.refreshedAt});
-
-  final DateTime refreshedAt;
+/// Neutral whatever its age: the list is the device's own copy and stays
+/// usable however old it is, so staleness is information rather than an error.
+class _SyncedAgoLabel extends ConsumerStatefulWidget {
+  const _SyncedAgoLabel();
 
   @override
-  State<_UpdatedAgoLabel> createState() => _UpdatedAgoLabelState();
+  ConsumerState<_SyncedAgoLabel> createState() => _SyncedAgoLabelState();
 }
 
-class _UpdatedAgoLabelState extends State<_UpdatedAgoLabel> {
+class _SyncedAgoLabelState extends ConsumerState<_SyncedAgoLabel> {
   late final Timer _timer;
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
   }
@@ -597,24 +585,23 @@ class _UpdatedAgoLabelState extends State<_UpdatedAgoLabel> {
     super.dispose();
   }
 
-  String get _label {
-    final elapsed = DateTime.now().difference(widget.refreshedAt);
-    if (elapsed.inSeconds < 10) return 'just now';
-    if (elapsed.inSeconds < 60) return '${elapsed.inSeconds}s ago';
-    if (elapsed.inMinutes < 60) return '${elapsed.inMinutes}m ago';
-    return '${elapsed.inHours}h ago';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isStale =
-        DateTime.now().difference(widget.refreshedAt).inSeconds > 30;
+    final syncing = ref.watch(syncCoordinatorProvider).running;
+    final syncedAt = ref.watch(accountHistoryProvider).value?.lastSyncedAt;
     return Text(
-      'Updated $_label',
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-        color: isStale ? colorScheme.error : colorScheme.onSurfaceVariant,
-      ),
+      syncing ? 'Updating…' : _label(syncedAt),
+      style: Theme.of(context).textTheme.bodySmall
+          ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
     );
+  }
+
+  String _label(DateTime? syncedAt) {
+    if (syncedAt == null) return 'Not updated yet';
+    final elapsed = DateTime.now().toUtc().difference(syncedAt);
+    if (elapsed.inMinutes < 1) return 'Updated just now';
+    if (elapsed.inHours < 1) return 'Updated ${elapsed.inMinutes}m ago';
+    if (elapsed.inDays < 1) return 'Updated ${elapsed.inHours}h ago';
+    return 'Updated ${elapsed.inDays}d ago';
   }
 }

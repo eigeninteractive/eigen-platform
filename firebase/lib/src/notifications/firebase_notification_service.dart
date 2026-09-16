@@ -150,6 +150,7 @@ class FirebaseNotificationService implements NotificationService {
   final String _vapidKey;
 
   final StreamController<String> _nav = StreamController<String>.broadcast();
+  final StreamController<void> _received = StreamController<void>.broadcast();
   bool _initialized = false;
   Future<void>? _initializing;
   Future<bool>? _availability;
@@ -160,6 +161,9 @@ class FirebaseNotificationService implements NotificationService {
 
   @override
   Stream<String> get navigationStream => _nav.stream;
+
+  @override
+  Stream<void> get foregroundMessages => _received.stream;
 
   @override
   Future<void> initialize() async {
@@ -260,7 +264,10 @@ class FirebaseNotificationService implements NotificationService {
       }
     });
 
-    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
+    FirebaseMessaging.onMessage.listen((message) {
+      _received.add(null);
+      _showForegroundNotification(message);
+    });
     FirebaseMessaging.onMessageOpenedApp.listen(_handleTap);
 
     final initial = await _messaging.getInitialMessage();

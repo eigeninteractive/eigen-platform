@@ -44,7 +44,7 @@ class PlayerRatings extends ConsumerWidget {
 
     final id = playerId;
     final ratingsAsync = id == null
-        ? ref.watch(myRatingsProvider)
+        ? ref.watch(accountRatingsProvider)
         : ref.watch(playerRatingsProvider(id));
 
     return ratingsAsync.when(

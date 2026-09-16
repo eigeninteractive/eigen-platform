@@ -123,42 +123,31 @@ String _$currentGameModuleHash() => r'261bd79bd7189c66d74b3bb73e5877a5c1db946b';
 
 /// The bot catalog for this deployment - the pickers' source of truth.
 ///
-/// `keepAlive`: static reference data that changes rarely (bots are registered
-/// by an operator), so it is fetched once and reused for the session.
-///
-/// Native apps cache it locally so the pickers resolve before the network
-/// refresh lands. Web keeps it only for the current browser session. The
-/// catalog is deployment-global public reference data - like
-/// [PlayerInfoCache] it is not user-scoped and not cleared on sign-out, so the
-/// auto-derived global storage key is correct.
+/// Read from the replica, which the sync pass keeps current, so a picker opens
+/// with no request and an offline device can still name the opponents of a game
+/// it is already playing. The catalog is deployment-global public reference
+/// data, shared by every account on the device.
 
-@ProviderFor(AvailableBots)
-@JsonPersist()
+@ProviderFor(availableBots)
 final availableBotsProvider = AvailableBotsProvider._();
 
 /// The bot catalog for this deployment - the pickers' source of truth.
 ///
-/// `keepAlive`: static reference data that changes rarely (bots are registered
-/// by an operator), so it is fetched once and reused for the session.
-///
-/// Native apps cache it locally so the pickers resolve before the network
-/// refresh lands. Web keeps it only for the current browser session. The
-/// catalog is deployment-global public reference data - like
-/// [PlayerInfoCache] it is not user-scoped and not cleared on sign-out, so the
-/// auto-derived global storage key is correct.
-@JsonPersist()
+/// Read from the replica, which the sync pass keeps current, so a picker opens
+/// with no request and an offline device can still name the opponents of a game
+/// it is already playing. The catalog is deployment-global public reference
+/// data, shared by every account on the device.
+
 final class AvailableBotsProvider
-    extends $AsyncNotifierProvider<AvailableBots, List<Bot>> {
+    extends
+        $FunctionalProvider<AsyncValue<List<Bot>>, List<Bot>, Stream<List<Bot>>>
+    with $FutureModifier<List<Bot>>, $StreamProvider<List<Bot>> {
   /// The bot catalog for this deployment - the pickers' source of truth.
   ///
-  /// `keepAlive`: static reference data that changes rarely (bots are registered
-  /// by an operator), so it is fetched once and reused for the session.
-  ///
-  /// Native apps cache it locally so the pickers resolve before the network
-  /// refresh lands. Web keeps it only for the current browser session. The
-  /// catalog is deployment-global public reference data - like
-  /// [PlayerInfoCache] it is not user-scoped and not cleared on sign-out, so the
-  /// auto-derived global storage key is correct.
+  /// Read from the replica, which the sync pass keeps current, so a picker opens
+  /// with no request and an offline device can still name the opponents of a game
+  /// it is already playing. The catalog is deployment-global public reference
+  /// data, shared by every account on the device.
   AvailableBotsProvider._()
     : super(
         from: null,
@@ -175,40 +164,16 @@ final class AvailableBotsProvider
 
   @$internal
   @override
-  AvailableBots create() => AvailableBots();
-}
+  $StreamProviderElement<List<Bot>> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
 
-String _$availableBotsHash() => r'765699952e3490091dc46ecc62c9cc17d951f342';
-
-/// The bot catalog for this deployment - the pickers' source of truth.
-///
-/// `keepAlive`: static reference data that changes rarely (bots are registered
-/// by an operator), so it is fetched once and reused for the session.
-///
-/// Native apps cache it locally so the pickers resolve before the network
-/// refresh lands. Web keeps it only for the current browser session. The
-/// catalog is deployment-global public reference data - like
-/// [PlayerInfoCache] it is not user-scoped and not cleared on sign-out, so the
-/// auto-derived global storage key is correct.
-
-@JsonPersist()
-abstract class _$AvailableBotsBase extends $AsyncNotifier<List<Bot>> {
-  FutureOr<List<Bot>> build();
-  @$mustCallSuper
   @override
-  WhenComplete runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<List<Bot>>, List<Bot>>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<List<Bot>>, List<Bot>>,
-              AsyncValue<List<Bot>>,
-              Object?,
-              Object?
-            >;
-    return element.handleCreate(ref, build);
+  Stream<List<Bot>> create(Ref ref) {
+    return availableBots(ref);
   }
 }
+
+String _$availableBotsHash() => r'da06e862e3d9648f4b66369a538856d6877f7d6c';
 
 /// The bot catalog indexed by id, for O(1) capability lookups.
 
@@ -354,51 +319,42 @@ final class SoloPlayAvailableProvider
 
 String _$soloPlayAvailableHash() => r'9270da426e6cbab532b8cc97e4e4a0e5c4acf964';
 
-/// The caller's games, "your turn" first then most recently updated.
+/// The caller's games still in play, "your turn" first then most recently
+/// changed.
 ///
-/// One request for the server's: the summary already carries the roster, the
-/// pending set and the deadline, so nothing has to be derived from a second
-/// read. Games this device played offline are read from its own store and
-/// merged in, which is what makes the home list correct with no network.
-///
-/// A local game that has already synchronized exists in both lists, and the
-/// device's own record wins: it is the copy that stays readable offline, and
-/// the two agree about everything a row shows.
+/// Read from the replica (decision 0013): online and local games are rows in
+/// the same table, so nothing merges them, and opening the list costs no
+/// request. It re-emits when a writer changes a row it shows: a sync pass, a
+/// live session, or the local engine.
 
 @ProviderFor(activeGames)
 final activeGamesProvider = ActiveGamesProvider._();
 
-/// The caller's games, "your turn" first then most recently updated.
+/// The caller's games still in play, "your turn" first then most recently
+/// changed.
 ///
-/// One request for the server's: the summary already carries the roster, the
-/// pending set and the deadline, so nothing has to be derived from a second
-/// read. Games this device played offline are read from its own store and
-/// merged in, which is what makes the home list correct with no network.
-///
-/// A local game that has already synchronized exists in both lists, and the
-/// device's own record wins: it is the copy that stays readable offline, and
-/// the two agree about everything a row shows.
+/// Read from the replica (decision 0013): online and local games are rows in
+/// the same table, so nothing merges them, and opening the list costs no
+/// request. It re-emits when a writer changes a row it shows: a sync pass, a
+/// live session, or the local engine.
 
 final class ActiveGamesProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<GameSummary>>,
           List<GameSummary>,
-          FutureOr<List<GameSummary>>
+          Stream<List<GameSummary>>
         >
     with
         $FutureModifier<List<GameSummary>>,
-        $FutureProvider<List<GameSummary>> {
-  /// The caller's games, "your turn" first then most recently updated.
+        $StreamProvider<List<GameSummary>> {
+  /// The caller's games still in play, "your turn" first then most recently
+  /// changed.
   ///
-  /// One request for the server's: the summary already carries the roster, the
-  /// pending set and the deadline, so nothing has to be derived from a second
-  /// read. Games this device played offline are read from its own store and
-  /// merged in, which is what makes the home list correct with no network.
-  ///
-  /// A local game that has already synchronized exists in both lists, and the
-  /// device's own record wins: it is the copy that stays readable offline, and
-  /// the two agree about everything a row shows.
+  /// Read from the replica (decision 0013): online and local games are rows in
+  /// the same table, so nothing merges them, and opening the list costs no
+  /// request. It re-emits when a writer changes a row it shows: a sync pass, a
+  /// live session, or the local engine.
   ActiveGamesProvider._()
     : super(
         from: null,
@@ -415,17 +371,123 @@ final class ActiveGamesProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<GameSummary>> $createElement(
+  $StreamProviderElement<List<GameSummary>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<GameSummary>> create(Ref ref) {
+  Stream<List<GameSummary>> create(Ref ref) {
     return activeGames(ref);
   }
 }
 
-String _$activeGamesHash() => r'852582d3919c3bfefd72c5690e56d78578250a5a';
+String _$activeGamesHash() => r'625cd0c6c0eac325da30cc10e980c947bc1dab6d';
+
+/// The caller's ended games, most recently ended first, up to [limit].
+///
+/// History grows by raising [limit]. When the replica runs out before the limit
+/// and older history remains on the server, the history screen asks the sync
+/// coordinator for the next page, and this re-emits as it lands.
+
+@ProviderFor(finishedGames)
+final finishedGamesProvider = FinishedGamesFamily._();
+
+/// The caller's ended games, most recently ended first, up to [limit].
+///
+/// History grows by raising [limit]. When the replica runs out before the limit
+/// and older history remains on the server, the history screen asks the sync
+/// coordinator for the next page, and this re-emits as it lands.
+
+final class FinishedGamesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<GameSummary>>,
+          List<GameSummary>,
+          Stream<List<GameSummary>>
+        >
+    with
+        $FutureModifier<List<GameSummary>>,
+        $StreamProvider<List<GameSummary>> {
+  /// The caller's ended games, most recently ended first, up to [limit].
+  ///
+  /// History grows by raising [limit]. When the replica runs out before the limit
+  /// and older history remains on the server, the history screen asks the sync
+  /// coordinator for the next page, and this re-emits as it lands.
+  FinishedGamesProvider._({
+    required FinishedGamesFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'finishedGamesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$finishedGamesHash();
+
+  @override
+  String toString() {
+    return r'finishedGamesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<GameSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<GameSummary>> create(Ref ref) {
+    final argument = this.argument as int;
+    return finishedGames(ref, limit: argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FinishedGamesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$finishedGamesHash() => r'aa123040fefcaea20641f0d9c6e32367518781b6';
+
+/// The caller's ended games, most recently ended first, up to [limit].
+///
+/// History grows by raising [limit]. When the replica runs out before the limit
+/// and older history remains on the server, the history screen asks the sync
+/// coordinator for the next page, and this re-emits as it lands.
+
+final class FinishedGamesFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<GameSummary>>, int> {
+  FinishedGamesFamily._()
+    : super(
+        retry: null,
+        name: r'finishedGamesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// The caller's ended games, most recently ended first, up to [limit].
+  ///
+  /// History grows by raising [limit]. When the replica runs out before the limit
+  /// and older history remains on the server, the history screen asks the sync
+  /// coordinator for the next page, and this re-emits as it lands.
+
+  FinishedGamesProvider call({required int limit}) =>
+      FinishedGamesProvider._(argument: limit, from: this);
+
+  @override
+  String toString() => r'finishedGamesProvider';
+}
 
 /// One game's live session: the single subscription a game screen needs.
 ///
@@ -520,7 +582,7 @@ final class GameSessionProvider
   }
 }
 
-String _$gameSessionHash() => r'277f8ce68012464c1dc44b2c88b7ccbc5a56b668';
+String _$gameSessionHash() => r'314868f42ae9bcc53d6bc98548d3ee6ff810f796';
 
 /// One game's live session: the single subscription a game screen needs.
 ///
@@ -874,8 +936,8 @@ final class GameWireCompatibilityFamily extends $Family
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
 /// Seats come from the live session, so this re-derives as players join and
-/// leave. Identities come from the persisted player cache, which covers humans
-/// and bots alike.
+/// leave. Identities come from the replica: humans from its players, bots from
+/// its catalog.
 
 @ProviderFor(gamePlayers)
 final gamePlayersProvider = GamePlayersFamily._();
@@ -883,8 +945,8 @@ final gamePlayersProvider = GamePlayersFamily._();
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
 /// Seats come from the live session, so this re-derives as players join and
-/// leave. Identities come from the persisted player cache, which covers humans
-/// and bots alike.
+/// leave. Identities come from the replica: humans from its players, bots from
+/// its catalog.
 
 final class GamePlayersProvider
     extends
@@ -897,8 +959,8 @@ final class GamePlayersProvider
   /// The game's seats with their identities resolved, plus which one is mine.
   ///
   /// Seats come from the live session, so this re-derives as players join and
-  /// leave. Identities come from the persisted player cache, which covers humans
-  /// and bots alike.
+  /// leave. Identities come from the replica: humans from its players, bots from
+  /// its catalog.
   GamePlayersProvider._({
     required GamePlayersFamily super.from,
     required String super.argument,
@@ -948,8 +1010,8 @@ String _$gamePlayersHash() => r'1dbcfc8c4276b145fa8cfdb2dc02aaa05eb3b366';
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
 /// Seats come from the live session, so this re-derives as players join and
-/// leave. Identities come from the persisted player cache, which covers humans
-/// and bots alike.
+/// leave. Identities come from the replica: humans from its players, bots from
+/// its catalog.
 
 final class GamePlayersFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<PlayersContext>, String> {
@@ -965,8 +1027,8 @@ final class GamePlayersFamily extends $Family
   /// The game's seats with their identities resolved, plus which one is mine.
   ///
   /// Seats come from the live session, so this re-derives as players join and
-  /// leave. Identities come from the persisted player cache, which covers humans
-  /// and bots alike.
+  /// leave. Identities come from the replica: humans from its players, bots from
+  /// its catalog.
 
   GamePlayersProvider call({required String gameId}) =>
       GamePlayersProvider._(argument: gameId, from: this);
@@ -1290,43 +1352,4 @@ final class PlayerPublicFinishedGamesFamily extends $Family
 
   @override
   String toString() => r'playerPublicFinishedGamesProvider';
-}
-
-// **************************************************************************
-// JsonGenerator
-// **************************************************************************
-
-// GENERATED CODE - DO NOT MODIFY BY HAND
-abstract class _$AvailableBots extends _$AvailableBotsBase {
-  /// The default key used by [persist].
-  String get key {
-    const resolvedKey = "AvailableBots";
-    return resolvedKey;
-  }
-
-  /// A variant of [persist], for JSON-specific encoding.
-  ///
-  /// You can override [key] to customize the key used for storage.
-  PersistResult persist(
-    FutureOr<Storage<String, String>> storage, {
-    String? key,
-    String Function(List<Bot> state)? encode,
-    List<Bot> Function(String encoded)? decode,
-    StorageOptions options = const StorageOptions(),
-  }) {
-    return NotifierPersistX(this).persist<String, String>(
-      storage,
-      key: key ?? this.key,
-      encode: encode ?? $jsonCodex.encode,
-      decode:
-          decode ??
-          (encoded) {
-            final e = $jsonCodex.decode(encoded);
-            return (e as List)
-                .map((e) => Bot.fromJson(e as Map<String, Object?>))
-                .toList();
-          },
-      options: options,
-    );
-  }
 }

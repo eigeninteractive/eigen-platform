@@ -3,15 +3,14 @@ import 'package:eigen_api/eigen_api.dart';
 
 import '../api/engine_call.dart';
 
-/// Player ratings and the caller's own rating log.
+/// Another player's ratings.
 ///
-/// Ratings are computed server-side inside the finish transaction and
-/// delivered to a live game as a post-finish transition; this repository only
-/// reads the settled values.
+/// Ratings are computed server-side inside the finish transaction and delivered
+/// to a live game as a post-finish transition. The caller's own ratings, and
+/// every change to them, arrive with the account sync instead.
 class RatingRepository {
-  RatingRepository(Dio http) : _me = MeApi(http), _players = PlayersApi(http);
+  RatingRepository(Dio http) : _players = PlayersApi(http);
 
-  final MeApi _me;
   final PlayersApi _players;
 
   /// Every pool [playerId] has played in, best rating first.
@@ -23,25 +22,5 @@ class RatingRepository {
       () => _players.getPlayerRatings(playerId: playerId),
     );
     return body.ratings;
-  }
-
-  /// The caller's own ratings.
-  ///
-  /// Distinct from [getPlayerRatings] only in that it needs no id; the token
-  /// identifies the caller.
-  Future<List<Rating>> getMyRatings() async {
-    final body = await engineData(() => _me.getMyRatings());
-    return body.ratings;
-  }
-
-  /// The caller's rating changes, newest first, optionally for one [pool].
-  Future<List<RatingHistoryEntry>> getMyRatingHistory({
-    String? pool,
-    int? limit,
-  }) async {
-    final body = await engineData(
-      () => _me.getMyRatingHistory(pool: pool, limit: limit),
-    );
-    return body.history;
   }
 }

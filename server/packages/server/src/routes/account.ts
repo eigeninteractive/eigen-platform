@@ -8,7 +8,7 @@
  * client as a 502 rather than half-deleting.
  */
 
-import { createRoute, z } from "@hono/zod-openapi";
+import { createRoute } from "@hono/zod-openapi";
 import { eq } from "drizzle-orm";
 import { isUniqueViolation } from "../d1/errors.js";
 import { orm } from "../d1/orm.js";
@@ -17,7 +17,7 @@ import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { purgeUser } from "../lifecycle/purge.js";
 import { invalidateAvatarCache } from "./avatars.js";
-import { displayNameBody, errorShape, usernameBody } from "./wire.js";
+import { displayNameBody, errorShape, profileOf, profileShape, usernameBody } from "./wire.js";
 
 /** The username charset, the same one provisioning sanitizes to: lowercase
  * letters, digits, underscore, and dot, 3–20 chars. */
@@ -40,7 +40,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       tags: ["Me"],
       request: { body: { content: { "application/json": { schema: usernameBody } }, required: true } },
       responses: {
-        200: { content: { "application/json": { schema: z.object({ username: z.string() }).openapi("UsernameUpdated") } }, description: "The new username" },
+        200: { content: { "application/json": { schema: profileShape } }, description: "The caller's profile, with the new username" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Invalid username" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
         409: { content: { "application/json": { schema: errorShape } }, description: "Username already taken" },
@@ -58,7 +58,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
         if (isUsernameCollision(error)) throw new HttpError(409, "That username is taken", "usernameTaken");
         throw error;
       }
-      return c.json({ username }, 200);
+      return c.json(profileOf({ ...c.var.auth.user, username }), 200);
     },
   );
 
@@ -74,7 +74,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
       tags: ["Me"],
       request: { body: { content: { "application/json": { schema: displayNameBody } }, required: true } },
       responses: {
-        200: { content: { "application/json": { schema: z.object({ displayName: z.string() }).openapi("DisplayNameUpdated") } }, description: "The new display name" },
+        200: { content: { "application/json": { schema: profileShape } }, description: "The caller's profile, with the new display name" },
         400: { content: { "application/json": { schema: errorShape } }, description: "Invalid display name" },
         401: { content: { "application/json": { schema: errorShape } }, description: "Missing or invalid token" },
       },
@@ -82,7 +82,7 @@ export function registerAccountRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const displayName = c.req.valid("json").displayName.trim();
       await orm(ctx.d1(c.env)).update(users).set({ displayName, updatedAt: Date.now() }).where(eq(users.id, c.var.auth.user.id));
-      return c.json({ displayName: displayName }, 200);
+      return c.json(profileOf({ ...c.var.auth.user, displayName }), 200);
     },
   );
 

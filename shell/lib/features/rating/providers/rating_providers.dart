@@ -1,6 +1,8 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'dart:async';
+
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'rating_providers.g.dart';
 
@@ -8,22 +10,20 @@ part 'rating_providers.g.dart';
 RatingRepository ratingRepository(Ref ref) =>
     ref.watch(engineClientProvider).ratings;
 
-/// All pool ratings for `id`, ordered by highest display rating.
+/// All pool ratings for `id`, best first: humans and bots alike.
 ///
-/// Works for both human user IDs and bot IDs.
+/// Shown from the replica straight away, and refreshed from the server each
+/// time something starts watching, so another player's sheet opens instantly
+/// and offline, and is current when it can be.
 @riverpod
-Future<List<Rating>> playerRatings(Ref ref, String id) =>
-    ref.watch(ratingRepositoryProvider).getPlayerRatings(id);
-
-/// Current user's ratings across all pools.
-///
-/// Auto-disposes when the profile screen is not visible, so navigation
-/// to the profile page always fetches fresh data.
-@riverpod
-Future<List<Rating>> myRatings(Ref ref) {
-  // Null during the brief sign-out window before navigation completes,
-  // return empty rather than crashing the disposing profile screen.
-  final userId = ref.watch(currentUserIdProvider);
-  if (userId == null) return Future.value(const []);
-  return ref.watch(ratingRepositoryProvider).getMyRatings();
+Stream<List<Rating>> playerRatings(Ref ref, String id) async* {
+  final public = await ref.watch(publicReplicaProvider.future);
+  final repository = ref.read(ratingRepositoryProvider);
+  unawaited(
+    repository
+        .getPlayerRatings(id)
+        .then((ratings) => public.applyRatings(id, ratings))
+        .catchError((Object _) {}),
+  );
+  yield* public.watchRatings(id);
 }

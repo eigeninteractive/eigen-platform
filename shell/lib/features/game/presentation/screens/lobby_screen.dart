@@ -402,12 +402,13 @@ class _GameCardState extends ConsumerState<_GameCard> {
     final colorScheme = Theme.of(context).colorScheme;
     final playerCount = widget.game.participants.length;
 
-    // Resolve participant Player from the cached provider.
+    // Resolve each seat's identity from the replica.
     final avatars = <AvatarEntry>[];
     for (final p in widget.game.participants) {
-      final playerId = p.userId ?? p.botId;
-      if (playerId == null) continue;
-      final info = ref.watch(playerInfoCacheProvider(id: playerId));
+      if (p.userId == null && p.botId == null) continue;
+      final info = ref.watch(
+        seatIdentityProvider(userId: p.userId, botId: p.botId),
+      );
       if (info.value case final value?) {
         avatars.add((
           avatarUrl: value.avatarUrl,

@@ -105,6 +105,7 @@ void main() {
       () {
         final parsed = GameSummary.fromJson({
           'id': 'game-1',
+          'seq': 1,
           'createdBy': null,
           'status': 'pausedLater',
           'access': 'tournamentLater',

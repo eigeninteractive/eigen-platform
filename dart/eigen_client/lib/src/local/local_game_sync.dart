@@ -6,7 +6,7 @@ import '../api/engine_exception.dart';
 import '../repositories/game_repository.dart';
 import 'json_equals.dart';
 import 'local_game.dart';
-import 'local_game_store.dart';
+import 'local_game_storage.dart';
 import 'local_kernel.dart';
 
 /// The most transitions one append carries. The route accepts 200, and a long
@@ -53,9 +53,7 @@ final class LocalSyncReport {
 
   /// Whether anything was left for a later pass, which is what makes a
   /// connectivity change worth acting on.
-  bool get hasPending =>
-      _count(LocalSyncOutcome.unreachable) > 0 ||
-      outcomes.isEmpty == false && _count(LocalSyncOutcome.unreachable) > 0;
+  bool get hasPending => _count(LocalSyncOutcome.unreachable) > 0;
 
   int _count(LocalSyncOutcome outcome) =>
       outcomes.values.where((value) => value == outcome).length;
@@ -80,23 +78,23 @@ final class LocalSyncReport {
 /// and the next pass resumes from it.
 final class LocalGameSync {
   /// Carries [userId]'s local games. One instance per signed-in user: the
-  /// records it walks are that user's, and a sign-out replaces it.
+  /// games it walks are that user's, and a sign-out replaces it.
   factory LocalGameSync({
-    required LocalGameStore store,
+    required LocalGameStorage storage,
     required GameRepository games,
     required String userId,
-  }) => LocalGameSync._(store, games, userId);
+  }) => LocalGameSync._(storage, games, userId);
 
   // Positional and private so the fields can stay private: Dart has no private
   // named parameter, so an initializing formal needs this shape.
-  LocalGameSync._(this._store, this._games, this._userId);
+  LocalGameSync._(this._storage, this._games, this._userId);
 
-  final LocalGameStore _store;
+  final LocalGameStorage _storage;
   final GameRepository _games;
   final String _userId;
 
-  /// The pass in flight, so a connectivity change arriving mid-pass joins it
-  /// rather than starting a second one against the same records.
+  /// The pass in flight, so a trigger arriving mid-pass joins it rather than
+  /// starting a second one against the same games.
   Future<LocalSyncReport>? _inFlight;
 
   /// Carries every unsynchronized game this user holds.
@@ -113,38 +111,27 @@ final class LocalGameSync {
   }
 
   Future<LocalSyncReport> _syncAll() async {
-    final records = await _store.list(_userId);
     final outcomes = <String, LocalSyncOutcome>{};
-    for (final record in records) {
-      if (!_needsSync(record)) continue;
-      outcomes[record.id] = await _syncRecord(record);
+    for (final game in await _storage.unsynced(_userId)) {
+      outcomes[game.id] = await _syncGame(game);
     }
     return LocalSyncReport(outcomes);
   }
 
-  /// Carries one game, by id. Answers [LocalSyncOutcome.upToDate] for a record
-  /// this device no longer holds, since there is then nothing to carry.
+  /// Carries one game, by id. Answers [LocalSyncOutcome.upToDate] for a game
+  /// this device does not decide, since there is then nothing to carry.
   Future<LocalSyncOutcome> syncGame(String id) async {
-    final record = await _store.load(id);
-    if (record == null || !_needsSync(record)) return LocalSyncOutcome.upToDate;
-    return _syncRecord(record);
+    final game = await _storage.load(accountId: _userId, gameId: id);
+    if (game == null || !game.needsSync) return LocalSyncOutcome.upToDate;
+    return _syncGame(game);
   }
 
-  /// Whether a record has anything the server has not accepted. A diverged
-  /// record is deliberately never retried: its local moves are the ones the
-  /// server refused.
-  bool _needsSync(LocalGameRecord record) {
-    if (record.diverged) return false;
-    if (!record.remoteCreated) return true;
-    return record.syncedVersion < (record.version ?? 0);
-  }
-
-  Future<LocalSyncOutcome> _syncRecord(LocalGameRecord record) async {
-    var current = record;
+  Future<LocalSyncOutcome> _syncGame(LocalGame game) async {
+    var current = game;
     if (!current.remoteCreated) {
       final created = await _create(current);
       if (created.outcome != null) return created.outcome!;
-      current = created.record;
+      current = created.game;
     }
     return _append(current);
   }
@@ -155,44 +142,44 @@ final class LocalGameSync {
   /// A session answering above version 0 means another device created this game
   /// and has been appending to it; adopting its version is what makes a second
   /// device continue rather than replay.
-  Future<({LocalGameRecord record, LocalSyncOutcome? outcome})> _create(
-    LocalGameRecord record,
+  Future<({LocalGame game, LocalSyncOutcome? outcome})> _create(
+    LocalGame game,
   ) async {
     try {
       final started = await _games.createLocalGame(
-        gameId: record.id,
-        schemaVersion: record.schemaVersion,
-        config: record.config,
-        seed: record.seed,
+        gameId: game.id,
+        schemaVersion: game.schemaVersion,
+        config: game.config,
+        seed: game.seed,
         botIds: [
-          for (final seat in record.roster)
+          for (final seat in game.roster)
             if (seat.botId != null) seat.botId!,
         ],
-        createdAt: record.createdAt,
-        minPlayers: record.roster.length,
-        maxPlayers: record.roster.length,
+        createdAt: game.createdAt,
+        minPlayers: game.roster.length,
+        maxPlayers: game.roster.length,
       );
-      final saved = await _mark(
-        record,
+      final marked = await _mark(
+        game,
         remoteCreated: true,
         syncedVersion: started.session.version ?? 0,
       );
-      return (record: saved, outcome: null);
+      return (game: marked, outcome: null);
     } on EngineException {
       // The server decided. `notCreator` means this id belongs to another
       // account and `serverUpdateRequired` that the deployment is behind this
       // build: neither changes by being asked again.
-      return (record: record, outcome: LocalSyncOutcome.refused);
+      return (game: game, outcome: LocalSyncOutcome.refused);
     } on Object {
-      return (record: record, outcome: LocalSyncOutcome.unreachable);
+      return (game: game, outcome: LocalSyncOutcome.unreachable);
     }
   }
 
-  Future<LocalSyncOutcome> _append(LocalGameRecord record) async {
-    var current = record;
+  Future<LocalSyncOutcome> _append(LocalGame game) async {
+    var current = game;
     var retriedStale = false;
     while (current.syncedVersion < (current.version ?? 0)) {
-      final batch = _batch(current);
+      final batch = await _batch(current);
       if (batch.isEmpty) {
         // Unsynchronized versions the wire cannot carry. Nothing retries its
         // way out of that, and reporting success here would leave the two
@@ -217,7 +204,7 @@ final class LocalGameSync {
         retriedStale = true;
         final resolved = await _resolveStale(current);
         if (resolved.outcome != null) return resolved.outcome!;
-        current = resolved.record;
+        current = resolved.game;
         continue;
       } on Object {
         return LocalSyncOutcome.unreachable;
@@ -253,21 +240,21 @@ final class LocalGameSync {
   /// send twice. Beyond that, the server holds moves this device never made,
   /// so another device is playing the same game and this device's unsent moves
   /// can never be reconciled with it.
-  Future<({LocalGameRecord record, LocalSyncOutcome? outcome})> _resolveStale(
-    LocalGameRecord record,
+  Future<({LocalGame game, LocalSyncOutcome? outcome})> _resolveStale(
+    LocalGame game,
   ) async {
     final Session session;
     try {
-      session = await _games.getSession(record.id);
+      session = await _games.getSession(game.id);
     } on EngineException {
-      return (record: record, outcome: LocalSyncOutcome.refused);
+      return (game: game, outcome: LocalSyncOutcome.refused);
     } on Object {
-      return (record: record, outcome: LocalSyncOutcome.unreachable);
+      return (game: game, outcome: LocalSyncOutcome.unreachable);
     }
     final serverVersion = session.version ?? 0;
-    if (serverVersion > (record.version ?? 0)) {
-      await _mark(record, diverged: true);
-      return (record: record, outcome: LocalSyncOutcome.diverged);
+    if (serverVersion > (game.version ?? 0)) {
+      await _mark(game, diverged: true);
+      return (game: game, outcome: LocalSyncOutcome.diverged);
     }
     // Versions alone cannot tell the two cases apart. A server sitting at
     // exactly this device's version is either the lost-response case, where it
@@ -275,65 +262,58 @@ final class LocalGameSync {
     // number of different moves. Only the state decides, so compare the one the
     // server actually holds at its own version with the one this device
     // committed there.
-    final ours = _stateAt(record.transitions, serverVersion);
+    final ours = await _storage.stateAt(
+      accountId: _userId,
+      gameId: game.id,
+      version: serverVersion,
+    );
     if (ours == null) {
-      await _mark(record, diverged: true);
-      return (record: record, outcome: LocalSyncOutcome.diverged);
+      await _mark(game, diverged: true);
+      return (game: game, outcome: LocalSyncOutcome.diverged);
     }
     final LocalRecord theirs;
     try {
       theirs = await _games.getLocalRecord(
-        record.id,
+        game.id,
         from: serverVersion,
         to: serverVersion,
       );
     } on EngineException {
-      return (record: record, outcome: LocalSyncOutcome.refused);
+      return (game: game, outcome: LocalSyncOutcome.refused);
     } on Object {
-      return (record: record, outcome: LocalSyncOutcome.unreachable);
+      return (game: game, outcome: LocalSyncOutcome.unreachable);
     }
-    final theirState = _stateAt(theirs.transitions, serverVersion);
+    final theirState = theirs.transitions
+        .where((row) => row.version == serverVersion)
+        .map((row) => (row.state as Map).cast<String, dynamic>())
+        .firstOrNull;
     if (theirState == null || !jsonEquals(theirState, ours)) {
-      await _mark(record, diverged: true);
-      return (record: record, outcome: LocalSyncOutcome.diverged);
+      await _mark(game, diverged: true);
+      return (game: game, outcome: LocalSyncOutcome.diverged);
     }
-    if (_isTerminal(session.status) && !record.isTerminal) {
-      await _mark(record, status: session.status);
-      return (record: record, outcome: LocalSyncOutcome.terminal);
+    if (_isTerminal(session.status) && !game.isTerminal) {
+      await _mark(game, status: session.status);
+      return (game: game, outcome: LocalSyncOutcome.terminal);
     }
     return (
-      record: await _mark(record, syncedVersion: serverVersion),
+      game: await _mark(game, syncedVersion: serverVersion),
       outcome: null,
     );
-  }
-
-  /// The raw state one log holds at [version], or null if it holds none.
-  ///
-  /// Deliberately untyped in the element: the same lookup runs over this
-  /// device's own [LocalGameTransition] log and over the [LocalTransitionRow]
-  /// list the record route returns, and only `version` and `state` are needed
-  /// from either.
-  static Map<String, dynamic>? _stateAt(Iterable<Object?> log, int version) {
-    for (final entry in log) {
-      if (entry is LocalGameTransition && entry.version == version) {
-        return entry.state;
-      }
-      if (entry is LocalTransitionRow && entry.version == version) {
-        return (entry.state as Map).cast<String, dynamic>();
-      }
-    }
-    return null;
   }
 
   /// The next page of unsynchronized transitions, on the wire.
   ///
   /// Version 0 is never sent: the create route started the server's object from
   /// the same seed, so its own `initialState` produced that version.
-  List<LocalTransition> _batch(LocalGameRecord record) {
+  Future<List<LocalTransition>> _batch(LocalGame game) async {
+    final logged = await _storage.transitionsAfter(
+      accountId: _userId,
+      gameId: game.id,
+      afterVersion: game.syncedVersion,
+      limit: localSyncBatchSize,
+    );
     final batch = <LocalTransition>[];
-    for (final transition in record.transitions) {
-      if (transition.version <= record.syncedVersion) continue;
-      if (batch.length >= localSyncBatchSize) break;
+    for (final transition in logged) {
       final wire = _wireTransition(transition);
       if (wire == null) break;
       batch.add(wire);
@@ -362,30 +342,21 @@ final class LocalGameSync {
   bool _isTerminal(GameStatus status) =>
       status == GameStatus.finished || status == GameStatus.aborted;
 
-  /// Stamps this pass's own fields onto whatever the store currently holds.
-  ///
-  /// The engine is the other writer, and the store keeps one record per game as
-  /// a whole document, so writing back the snapshot this pass started from
-  /// would erase a move committed while it ran: connectivity returning is
-  /// exactly when a game is likely to be open on screen. Only the four fields
-  /// synchronization owns are carried over, and every one of them is computed
-  /// from what the server answered rather than from the snapshot, so re-reading
-  /// first loses nothing.
-  Future<LocalGameRecord> _mark(
-    LocalGameRecord record, {
+  /// Records this pass's own fields, and only those: the storage updates them in
+  /// place, so a move the engine commits while this pass runs is never
+  /// overwritten by the snapshot the pass started from.
+  Future<LocalGame> _mark(
+    LocalGame game, {
     bool? remoteCreated,
     int? syncedVersion,
     bool? diverged,
     GameStatus? status,
-  }) async {
-    final fresh = await _store.load(record.id) ?? record;
-    final merged = fresh.copyWith(
-      remoteCreated: remoteCreated,
-      syncedVersion: syncedVersion,
-      diverged: diverged,
-      status: status,
-    );
-    await _store.save(merged);
-    return merged;
-  }
+  }) => _storage.mark(
+    accountId: _userId,
+    gameId: game.id,
+    remoteCreated: remoteCreated,
+    syncedVersion: syncedVersion,
+    diverged: diverged,
+    status: status,
+  );
 }

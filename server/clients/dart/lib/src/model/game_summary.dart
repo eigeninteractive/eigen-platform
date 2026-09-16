@@ -24,6 +24,8 @@ class GameSummary {
   GameSummary({
     required this.id,
 
+    required this.seq,
+
     required this.createdBy,
 
     required this.status,
@@ -71,6 +73,10 @@ class GameSummary {
 
   @JsonKey(name: r'id', required: true, includeIfNull: false)
   final String id;
+
+  /// The game's revision: the same per-game counter a `Session` carries as `seq`, as of the commit this summary reflects. A client holding a game from several sources keeps whichever copy has the higher `seq`.
+  @JsonKey(name: r'seq', required: true, includeIfNull: false)
+  final int seq;
 
   @JsonKey(name: r'createdBy', required: true, includeIfNull: true)
   final String? createdBy;
@@ -158,6 +164,7 @@ class GameSummary {
       identical(this, other) ||
       other is GameSummary &&
           other.id == id &&
+          other.seq == seq &&
           other.createdBy == createdBy &&
           other.status == status &&
           other.access == access &&
@@ -184,6 +191,7 @@ class GameSummary {
   @override
   int get hashCode =>
       id.hashCode +
+      seq.hashCode +
       (createdBy == null ? 0 : createdBy.hashCode) +
       status.hashCode +
       access.hashCode +

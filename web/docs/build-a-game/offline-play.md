@@ -13,6 +13,10 @@ as an ordinary game whose `origin` is `local` rather than `online`. Once
 imported it behaves exactly like any other game: it shows up in history, it
 replays, and it can never be rated.
 
+On the device it is stored in the same tables as every other game (architecture
+decision 0013), plus its log and its human's frames, which is why the lists,
+history and replay show it beside online games with nothing merging the two.
+
 This is opt-in, per `schemaVersion`. A version that ships no Dart local unit
 simply offers no on-device bots for that version; nothing else about the game
 changes. There is nothing to write on the TypeScript side — those hooks are
@@ -260,12 +264,13 @@ listed here should stay in `standard`. See
 
 ## Sync: nothing to implement
 
-Sync is engine-owned; there is no implementor hook for it. In the background —
-on app start, on connectivity regained, and when a local game finishes — the
-device registers the game once and then appends batches of its transition log
-against the game's current version. The server does not trust the device's
-moves: it replays each one through the same TypeScript rules a live move
-takes, and a batch stops at the first rejection.
+Sync is engine-owned; there is no implementor hook for it. It is the upload
+half of the device's one sync pass, which runs on app start, on resume, on
+reconnecting, on pull-to-refresh, when a push arrives, and when a local game
+finishes. The device registers the game once and then appends batches of its
+transition log against the game's current version. The server does not trust the
+device's moves: it replays each one through the same TypeScript rules a live
+move takes, and a batch stops at the first rejection.
 
 A rejection means the Dart local unit and the TypeScript unit disagreed about
 the same transition. That is a twin bug, not a network failure: the record is

@@ -7,6 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:test/test.dart';
 
+import '../replica/memory_replica.dart';
+
 /// One request the stub server saw, reduced to what an assertion cares about.
 typedef _Seen = ({String method, String path, Map<String, dynamic>? body});
 
@@ -167,85 +169,117 @@ class _ImportServer implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-/// A record with [moves] committed moves after the start transition, as the
-/// engine would have written it.
-LocalGameRecord _record({int moves = 2, bool remoteCreated = false}) {
-  final transitions = <LocalGameTransition>[
-    const LocalGameTransition(
-      version: 0,
-      state: {'count': 0},
-      action: null,
-      pending: [0],
-    ),
-    for (var move = 1; move <= moves; move++)
-      LocalGameTransition(
-        version: move,
-        state: {'count': move},
-        action: LocalTransitionAction(
-          type: move.isOdd ? LocalActionType.user : LocalActionType.bot,
+const _roster = [
+  LocalSeat(
+    playerIndex: 0,
+    userId: 'user-a',
+    botId: null,
+    type: SeatTypeEnum.human,
+  ),
+  LocalSeat(
+    playerIndex: 1,
+    userId: null,
+    botId: 'bot-1',
+    type: SeatTypeEnum.bot,
+  ),
+];
+
+LocalGameTransition _transition(int version) => LocalGameTransition(
+  version: version,
+  state: {'count': version},
+  action: version == 0
+      ? null
+      : LocalTransitionAction(
+          type: version.isOdd ? LocalActionType.user : LocalActionType.bot,
           kind: LocalActionKind.game,
           data: const {'add': 1},
-          playerIndex: move.isOdd ? 0 : 1,
+          playerIndex: version.isOdd ? 0 : 1,
         ),
-        pending: [move.isOdd ? 1 : 0],
-      ),
-  ];
-  return LocalGameRecord(
+  pending: [version.isOdd ? 1 : 0],
+);
+
+LocalObservationFrame _frame(int version) => LocalObservationFrame(
+  playerIndex: 0,
+  data: {'count': version},
+  pendingPlayers: [version.isOdd ? 1 : 0],
+);
+
+final _now = DateTime.utc(2026, 9, 12);
+
+/// A game with [moves] committed moves after the start transition, written the
+/// way the engine writes one.
+Future<void> _seed(
+  LocalGameStorage storage, {
+  int moves = 2,
+  bool remoteCreated = false,
+  int? syncedVersion,
+  bool diverged = false,
+}) async {
+  var game = LocalGame(
     id: 'game-1',
     createdBy: 'user-a',
-    createdAt: DateTime.utc(2026, 9, 12),
+    createdAt: _now,
     schemaVersion: 1,
     config: const {'target': 3},
     seed: 'a' * 32,
-    roster: const [
-      LocalSeat(
-        playerIndex: 0,
-        userId: 'user-a',
-        botId: null,
-        type: SeatTypeEnum.human,
-      ),
-      LocalSeat(
-        playerIndex: 1,
-        userId: null,
-        botId: 'bot-1',
-        type: SeatTypeEnum.bot,
-      ),
-    ],
+    roster: _roster,
     status: GameStatus.active,
-    seq: moves + 1,
-    transitions: transitions,
-    frames: const {},
+    seq: 1,
+    latest: _transition(0),
     remoteCreated: remoteCreated,
-    syncedVersion: remoteCreated ? 0 : LocalGameRecord.notSynced,
+    syncedVersion: syncedVersion ?? (remoteCreated ? 0 : LocalGame.notSynced),
+    diverged: diverged,
+  );
+  await storage.create(
+    game,
+    opening: _transition(0),
+    humanFrame: _frame(0),
+    now: _now,
+  );
+  for (var move = 1; move <= moves; move++) {
+    await _commit(storage, game = game.copyWith(seq: move + 1));
+  }
+}
+
+/// Commits the next move onto the stored game, as the engine would.
+Future<void> _commit(LocalGameStorage storage, LocalGame game) async {
+  final current = (await storage.load(accountId: 'user-a', gameId: game.id))!;
+  final version = current.version! + 1;
+  await storage.commit(
+    current.copyWith(seq: current.seq + 1, latest: _transition(version)),
+    transition: _transition(version),
+    humanFrame: _frame(version),
+    now: _now,
   );
 }
 
-({LocalGameSync sync, InMemoryLocalGameStore store}) _sync(
-  _ImportServer server,
-) {
+({LocalGameSync sync, LocalGameStorage storage}) _sync(_ImportServer server) {
   final dio = Dio(BaseOptions(baseUrl: 'https://example.test'))
     ..httpClientAdapter = server;
-  final store = InMemoryLocalGameStore();
+  final storage = LocalGameStorage(memoryReplica());
   return (
     sync: LocalGameSync(
-      store: store,
+      storage: storage,
       games: EigenClient(http: dio, baseUrl: 'https://example.test').games,
       userId: 'user-a',
     ),
-    store: store,
+    storage: storage,
   );
 }
+
+Future<LocalGame> _load(LocalGameStorage storage) async =>
+    (await storage.load(accountId: 'user-a', gameId: 'game-1'))!;
 
 void main() {
   test('creates the server copy, then appends every committed move', () async {
     final server = _ImportServer();
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.synced);
-    final saved = (await store.load('game-1'))!;
+    final saved = (await _load(storage));
     check(saved.remoteCreated).isTrue();
     check(saved.syncedVersion).equals(2);
     check(saved.diverged).isFalse();
@@ -259,8 +293,8 @@ void main() {
 
   test('sends the seed and the bot roster on create', () async {
     final server = _ImportServer();
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     await sync.syncAll();
 
@@ -273,10 +307,8 @@ void main() {
 
   test('resumes from the recorded point instead of resending', () async {
     final server = _ImportServer(serverVersion: 1);
-    final (:sync, :store) = _sync(server);
-    await store.save(
-      _record(moves: 3, remoteCreated: true).copyWith(syncedVersion: 1),
-    );
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, moves: 3, remoteCreated: true, syncedVersion: 1);
 
     await sync.syncAll();
 
@@ -293,13 +325,13 @@ void main() {
         'applied': 1,
         'rejection': {'index': 1, 'code': 'illegalMove', 'message': 'no'},
       });
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.diverged);
-    final saved = (await store.load('game-1'))!;
+    final saved = (await _load(storage));
     check(saved.diverged).isTrue();
     // The move that did commit is still recorded as carried.
     check(saved.syncedVersion).equals(1);
@@ -307,8 +339,8 @@ void main() {
 
   test('a diverged record is never retried', () async {
     final server = _ImportServer();
-    final (:sync, :store) = _sync(server);
-    await store.save(_record().copyWith(diverged: true));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, diverged: true);
 
     final report = await sync.syncAll();
 
@@ -318,56 +350,56 @@ void main() {
 
   test('an unreachable server leaves the record untouched', () async {
     final server = _ImportServer()..offline = true;
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.unreachable);
     check(report.hasPending).isTrue();
-    final saved = (await store.load('game-1'))!;
+    final saved = (await _load(storage));
     check(saved.remoteCreated).isFalse();
-    check(saved.syncedVersion).equals(LocalGameRecord.notSynced);
+    check(saved.syncedVersion).equals(LocalGame.notSynced);
   });
 
   test('a foreign game id is refused without retrying', () async {
     final server = _ImportServer()
       ..createFailure = (status: 403, code: 'notCreator');
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.refused);
-    check((await store.load('game-1'))!.remoteCreated).isFalse();
+    check((await _load(storage)).remoteCreated).isFalse();
   });
 
   test('a stale marker is corrected from the server session', () async {
     final server = _ImportServer(serverVersion: 1)
       ..appendFailure = (status: 409, code: 'stateUpdated');
-    final (:sync, :store) = _sync(server);
+    final (:sync, :storage) = _sync(server);
     // This device believes nothing has landed, but the server holds version 1:
     // a create whose response was lost.
-    await store.save(_record(moves: 2, remoteCreated: true));
+    await _seed(storage, remoteCreated: true);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.synced);
-    check((await store.load('game-1'))!.syncedVersion).equals(2);
+    check((await _load(storage)).syncedVersion).equals(2);
   });
 
   test('a server at this device\'s own version, holding this device\'s own '
       'state, is a lost response rather than a divergence', () async {
     final server = _ImportServer(serverVersion: 2)
       ..appendFailure = (status: 409, code: 'stateUpdated');
-    final (:sync, :store) = _sync(server);
-    await store.save(_record(moves: 2, remoteCreated: true));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, remoteCreated: true);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.synced);
-    check((await store.load('game-1'))!.syncedVersion).equals(2);
-    check((await store.load('game-1'))!.diverged).isFalse();
+    check((await _load(storage)).syncedVersion).equals(2);
+    check((await _load(storage)).diverged).isFalse();
   });
 
   test('a server at this device\'s own version holding a different state is a '
@@ -377,42 +409,42 @@ void main() {
       // Another device played two moves of its own. The counts match; the
       // games do not.
       ..recordState = const {'count': 7};
-    final (:sync, :store) = _sync(server);
-    await store.save(_record(moves: 2, remoteCreated: true));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, remoteCreated: true);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.diverged);
-    check((await store.load('game-1'))!.diverged).isTrue();
+    check((await _load(storage)).diverged).isTrue();
   });
 
   test('a server copy ahead of this device is a divergence', () async {
     final server = _ImportServer(serverVersion: 5)
       ..appendFailure = (status: 409, code: 'stateUpdated');
-    final (:sync, :store) = _sync(server);
-    await store.save(_record(moves: 2, remoteCreated: true));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, remoteCreated: true);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.diverged);
-    check((await store.load('game-1'))!.diverged).isTrue();
+    check((await _load(storage)).diverged).isTrue();
   });
 
   test('adopts a terminal status the server reached first', () async {
     final server = _ImportServer()..status = 'aborted';
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final report = await sync.syncAll();
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.terminal);
-    check((await store.load('game-1'))!.status).equals(GameStatus.aborted);
+    check((await _load(storage)).status).equals(GameStatus.aborted);
   });
 
   test('a second pass started mid-flight joins the first', () async {
     final server = _ImportServer();
-    final (:sync, :store) = _sync(server);
-    await store.save(_record());
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage);
 
     final first = sync.syncAll();
     final second = sync.syncAll();
@@ -428,28 +460,29 @@ void main() {
     // when a game is likely to be open on screen.
     final gate = Completer<void>();
     final server = _ImportServer()..hold = gate.future;
-    final (:sync, :store) = _sync(server);
-    await store.save(_record(moves: 2, remoteCreated: true));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, remoteCreated: true);
     final pass = sync.syncAll();
-    // A third move lands after the pass read the record and before its first
+    // Let the pass read the game and send its first request.
+    await pumpEventQueue();
+    // A third move lands after the pass read the game and before its first
     // request is answered.
-    await store.save(_record(moves: 3, remoteCreated: true));
+    await _commit(storage, await _load(storage));
     gate.complete();
     final report = await pass;
 
     check(report.outcomes['game-1']).equals(LocalSyncOutcome.synced);
-    final saved = (await store.load('game-1'))!;
+    final saved = (await _load(storage));
     // Writing back the snapshot the pass started from would have dropped the
     // third move entirely. It is still here, and the pass went on to carry it.
-    check(saved.transitions.length).equals(4);
     check(saved.version).equals(3);
     check(saved.syncedVersion).equals(3);
   });
 
   test('a game the server already holds in full is left alone', () async {
     final server = _ImportServer(serverVersion: 2);
-    final (:sync, :store) = _sync(server);
-    await store.save(_record(remoteCreated: true).copyWith(syncedVersion: 2));
+    final (:sync, :storage) = _sync(server);
+    await _seed(storage, remoteCreated: true, syncedVersion: 2);
 
     final report = await sync.syncAll();
 

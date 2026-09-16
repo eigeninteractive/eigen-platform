@@ -99,7 +99,6 @@ Class | Method | HTTP request | Description
 [*GamesApi*](doc/GamesApi.md) | [**getGameSession**](doc/GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [*GamesApi*](doc/GamesApi.md) | [**getLobby**](doc/GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
 [*GamesApi*](doc/GamesApi.md) | [**getLocalRecord**](doc/GamesApi.md#getlocalrecord) | **GET** /api/engine/games/{gameId}/local | 
-[*GamesApi*](doc/GamesApi.md) | [**getMyGames**](doc/GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [*GamesApi*](doc/GamesApi.md) | [**joinGame**](doc/GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
 [*GamesApi*](doc/GamesApi.md) | [**joinGameByCode**](doc/GamesApi.md#joingamebycode) | **POST** /api/engine/games/join-by-code | 
 [*GamesApi*](doc/GamesApi.md) | [**leaveGame**](doc/GamesApi.md#leavegame) | **POST** /api/engine/games/{gameId}/leave | 
@@ -107,10 +106,10 @@ Class | Method | HTTP request | Description
 [*GamesApi*](doc/GamesApi.md) | [**submitAction**](doc/GamesApi.md#submitaction) | **POST** /api/engine/games/{gameId}/action | 
 [*HealthApi*](doc/HealthApi.md) | [**getHealth**](doc/HealthApi.md#gethealth) | **GET** /health | Liveness probe
 [*MeApi*](doc/MeApi.md) | [**deleteAccount**](doc/MeApi.md#deleteaccount) | **DELETE** /api/engine/me | 
-[*MeApi*](doc/MeApi.md) | [**getMyRatingHistory**](doc/MeApi.md#getmyratinghistory) | **GET** /api/engine/me/rating-history | 
-[*MeApi*](doc/MeApi.md) | [**getMyRatings**](doc/MeApi.md#getmyratings) | **GET** /api/engine/me/ratings | 
+[*MeApi*](doc/MeApi.md) | [**getMyFinishedGames**](doc/MeApi.md#getmyfinishedgames) | **GET** /api/engine/me/games/finished | 
 [*MeApi*](doc/MeApi.md) | [**getProfile**](doc/MeApi.md#getprofile) | **GET** /api/engine/me | 
 [*MeApi*](doc/MeApi.md) | [**registerDevice**](doc/MeApi.md#registerdevice) | **PUT** /api/engine/me/devices | 
+[*MeApi*](doc/MeApi.md) | [**syncAccount**](doc/MeApi.md#syncaccount) | **GET** /api/engine/me/sync | 
 [*MeApi*](doc/MeApi.md) | [**unregisterDevice**](doc/MeApi.md#unregisterdevice) | **DELETE** /api/engine/me/devices/{fid} | 
 [*MeApi*](doc/MeApi.md) | [**updateDisplayName**](doc/MeApi.md#updatedisplayname) | **PUT** /api/engine/me/display-name | 
 [*MeApi*](doc/MeApi.md) | [**updateUsername**](doc/MeApi.md#updateusername) | **PUT** /api/engine/me/username | 
@@ -120,8 +119,6 @@ Class | Method | HTTP request | Description
 [*SocialApi*](doc/SocialApi.md) | [**acceptFriendRequest**](doc/SocialApi.md#acceptfriendrequest) | **POST** /api/engine/friends/requests/{userId}/accept | 
 [*SocialApi*](doc/SocialApi.md) | [**blockUser**](doc/SocialApi.md#blockuser) | **POST** /api/engine/friends/{userId}/block | 
 [*SocialApi*](doc/SocialApi.md) | [**getFriendsGames**](doc/SocialApi.md#getfriendsgames) | **GET** /api/engine/friends/games | 
-[*SocialApi*](doc/SocialApi.md) | [**listFriendRequests**](doc/SocialApi.md#listfriendrequests) | **GET** /api/engine/friends/requests | 
-[*SocialApi*](doc/SocialApi.md) | [**listFriends**](doc/SocialApi.md#listfriends) | **GET** /api/engine/friends | 
 [*SocialApi*](doc/SocialApi.md) | [**removeFriend**](doc/SocialApi.md#removefriend) | **DELETE** /api/engine/friends/{userId} | 
 [*SocialApi*](doc/SocialApi.md) | [**searchUsers**](doc/SocialApi.md#searchusers) | **GET** /api/engine/users/search | 
 [*SocialApi*](doc/SocialApi.md) | [**sendFriendRequest**](doc/SocialApi.md#sendfriendrequest) | **POST** /api/engine/friends/requests | 
@@ -132,6 +129,7 @@ Class | Method | HTTP request | Description
 
  - [AccessCapability](doc/AccessCapability.md)
  - [AccessSnapshot](doc/AccessSnapshot.md)
+ - [AccountSync](doc/AccountSync.md)
  - [Action](doc/Action.md)
  - [ActiveEntitlement](doc/ActiveEntitlement.md)
  - [AddBot](doc/AddBot.md)
@@ -157,7 +155,6 @@ Class | Method | HTTP request | Description
  - [Created](doc/Created.md)
  - [DeviceRegistration](doc/DeviceRegistration.md)
  - [DisplayNameUpdate](doc/DisplayNameUpdate.md)
- - [DisplayNameUpdated](doc/DisplayNameUpdated.md)
  - [ErrorCode](doc/ErrorCode.md)
  - [ErrorResponse](doc/ErrorResponse.md)
  - [Forfeit](doc/Forfeit.md)
@@ -166,9 +163,7 @@ Class | Method | HTTP request | Description
  - [Friend](doc/Friend.md)
  - [FriendRequest](doc/FriendRequest.md)
  - [FriendRequestResult](doc/FriendRequestResult.md)
- - [FriendRequests](doc/FriendRequests.md)
  - [FriendTarget](doc/FriendTarget.md)
- - [Friends](doc/Friends.md)
  - [FriendsGames](doc/FriendsGames.md)
  - [GameAccess](doc/GameAccess.md)
  - [GameOrigin](doc/GameOrigin.md)
@@ -185,7 +180,7 @@ Class | Method | HTTP request | Description
  - [LocalTransitionRow](doc/LocalTransitionRow.md)
  - [LocalTransitions](doc/LocalTransitions.md)
  - [LocalTransitionsApplied](doc/LocalTransitionsApplied.md)
- - [MyGames](doc/MyGames.md)
+ - [MyFinishedGames](doc/MyFinishedGames.md)
  - [Outcome](doc/Outcome.md)
  - [Player](doc/Player.md)
  - [PlayerGames](doc/PlayerGames.md)
@@ -193,8 +188,6 @@ Class | Method | HTTP request | Description
  - [Profile](doc/Profile.md)
  - [Rating](doc/Rating.md)
  - [RatingDelta](doc/RatingDelta.md)
- - [RatingHistory](doc/RatingHistory.md)
- - [RatingHistoryEntry](doc/RatingHistoryEntry.md)
  - [RatingIdentity](doc/RatingIdentity.md)
  - [Ratings](doc/Ratings.md)
  - [Seat](doc/Seat.md)
@@ -204,7 +197,6 @@ Class | Method | HTTP request | Description
  - [TransitionAction](doc/TransitionAction.md)
  - [UserSearch](doc/UserSearch.md)
  - [UsernameUpdate](doc/UsernameUpdate.md)
- - [UsernameUpdated](doc/UsernameUpdated.md)
 
 
 ## Documentation For Authorization
