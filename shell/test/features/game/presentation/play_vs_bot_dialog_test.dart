@@ -1,6 +1,7 @@
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/features/game/presentation/widgets/play_vs_bot_dialog.dart';
+import 'package:eigen_shell/features/store/providers/store_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,7 +49,12 @@ class _StubAvailableBots extends AvailableBots {
   Future<List<Bot>> build() async => bots;
 }
 
-Bot _bot(String id, int schemaVersion, {BotType type = BotType.engine}) => Bot(
+Bot _bot(
+  String id,
+  int schemaVersion, {
+  BotType type = BotType.engine,
+  String tier = 'standard',
+}) => Bot(
   id: id,
   username: id,
   displayName: '$id bot',
@@ -57,6 +63,14 @@ Bot _bot(String id, int schemaVersion, {BotType type = BotType.engine}) => Bot(
   type: type,
   ratedEligible: true,
   config: const <String, dynamic>{},
+  tier: tier,
+);
+
+AccessSnapshot _access(List<AccessCapability> permissions) => AccessSnapshot(
+  entitlements: const [],
+  permissions: permissions,
+  content: const [],
+  limits: const [],
 );
 
 void main() {
@@ -131,6 +145,84 @@ void main() {
       orderedEquals(['equal', 'newer']),
     );
   });
+
+  testWidgets(
+    'marks an opponent the account cannot seat, where the server seats it',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentGameModuleProvider.overrideWithValue(
+              const _SchemaTwoModule(),
+            ),
+            availableBotsProvider.overrideWith(
+              () => _StubAvailableBots([
+                _bot('standard', 2),
+                _bot('gold', 2, tier: 'gold'),
+                _bot('silver', 2, tier: 'silver'),
+              ]),
+            ),
+            storeAvailableProvider.overrideWithValue(true),
+            // The default tier and gold. A grant covers only the tier it names, so
+            // silver stays locked however much else is granted.
+            storeAccessProvider.overrideWith(
+              (ref) async => _access([
+                AccessCapability(
+                  kind: AccessCapabilityKindEnum.botPeriodUse,
+                  tier: 'standard',
+                ),
+                AccessCapability(
+                  kind: AccessCapabilityKindEnum.botPeriodUse,
+                  tier: 'gold',
+                ),
+              ]),
+            ),
+          ],
+          child: const MaterialApp(home: Scaffold(body: PlayVsBotDialog())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final dropdown = tester.widget<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
+      expect(
+        {
+          for (final entry in dropdown.dropdownMenuEntries)
+            if (entry.trailingIcon != null) entry.value,
+        },
+        {'silver'},
+      );
+    },
+  );
+
+  testWidgets(
+    'never marks an opponent in an untimed game, which is not priced',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentGameModuleProvider.overrideWithValue(const _LocalModule()),
+            availableBotsProvider.overrideWith(
+              () => _StubAvailableBots([_bot('sample-bot', 1, tier: 'gold')]),
+            ),
+            storeAvailableProvider.overrideWithValue(true),
+            storeAccessProvider.overrideWith((ref) async => _access(const [])),
+          ],
+          child: const MaterialApp(home: Scaffold(body: PlayVsBotDialog())),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final dropdown = tester.widget<DropdownMenu<String>>(
+        find.byType(DropdownMenu<String>),
+      );
+      expect(dropdown.dropdownMenuEntries.map((entry) => entry.value), [
+        'sample-bot',
+      ]);
+      expect(dropdown.dropdownMenuEntries.single.trailingIcon, isNull);
+    },
+  );
 
   group('offline play', () {
     test(

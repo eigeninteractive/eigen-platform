@@ -317,11 +317,19 @@ class _AddBotDialogState extends ConsumerState<_AddBotDialog> {
       );
     }
     _selectedBotId ??= usable.first.id;
+    // A waiting-room bot is always seated by the server, so its tier applies.
+    final access = knownAccess(ref);
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: usable.map((b) {
         return ChoiceChip(
+          avatar: seatingLocked(access, b.tier)
+              ? const Icon(
+                  Icons.lock_outline,
+                  semanticLabel: 'Not included in your access',
+                )
+              : null,
           label: Text(b.displayName),
           selected: _selectedBotId == b.id,
           onSelected: _adding
@@ -344,8 +352,7 @@ class _AddBotDialogState extends ConsumerState<_AddBotDialog> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _adding = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(humanize(e))));
+      showRefusal(context, ref, e);
     }
   }
 }

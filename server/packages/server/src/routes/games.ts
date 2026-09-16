@@ -8,11 +8,13 @@
 import { parseClientPayload, type Seat } from "@eigeninteractive/kernel";
 import type { GameRules, Json, JsonObject, PlayerLimits, TimingOption } from "@eigeninteractive/rules";
 import { createRoute, z } from "@hono/zod-openapi";
+import type { AuthClaims } from "../auth/firebase.js";
+import { requireRegistered } from "../auth/registration.js";
 import { issueSocketTicket, verifySocketTicket } from "../auth/socket-ticket.js";
-import { allowsCapability, type EffectiveAccess, metricPolicy, ownsContent, readEffectiveAccess, readSelectedGameContent } from "../commerce/access.js";
-import { capabilityKey } from "../commerce/capability.js";
+import { allowsCapability, isCommerceExempt, metricPolicy, ownsContent, readEffectiveAccess, readSelectedGameContent, requireCapability } from "../commerce/access.js";
+import { botTier, catalogGates } from "../commerce/capability.js";
 import { creationFingerprint } from "../commerce/creation.js";
-import type { EngineAccessCapability, SelectedContent } from "../commerce/types.js";
+import type { SelectedContent } from "../commerce/types.js";
 import { CommercialLimitWriteError, type CreateGameInput, createGame, readCreationOperation } from "../d1/apply.js";
 import { isBlockedAmong } from "../d1/blocks.js";
 import { isShortCodeCollision, isSlotContention, isUniqueViolation } from "../d1/errors.js";
@@ -187,6 +189,27 @@ function assertTimingAllowed(rules: GameRules, config: JsonObject, selection: Ti
     throw new HttpError(422, "timing mismatch: these rules do not allow the requested timing");
   }
 }
+
+/**
+ * Resolve whether a new game is rated, for both create routes.
+ *
+ * The rules decide which settings have a rating pool, and a guest is never
+ * rated: a rating needs an identity that outlives the install. `asserted` is a
+ * concrete value the client also computes (the Dart twin), so a mismatch means
+ * twin drift or a forged client and is refused rather than silently coerced.
+ * There is no forced-rated, so an asserted `false` is always valid.
+ */
+function resolveRated(pool: string | null, claims: AuthClaims, asserted: boolean | undefined): boolean {
+  const canBeRated = pool !== null && !claims.isAnonymous;
+  if (!canBeRated && asserted === true) {
+    throw new HttpError(422, "rated mismatch: this game is not eligible to be rated");
+  }
+  return canBeRated && (asserted ?? true);
+}
+
+/** Refused for a guest on both sides of a friends-access game: a guest can
+ * never hold an accepted friend, so such a lobby could never fill. */
+const FRIENDS_NEED_AN_ACCOUNT = "Friends-access games require a registered account";
 
 /** The bot-seating gates, shared by `add-bot` and create-solo. `game` is
  * anything with the game's timing/rated/schema/config: a stored row or a
@@ -390,10 +413,6 @@ async function createOnce(d1: D1Database, input: Omit<CreateGameInput, "shortCod
   }
 }
 
-function requireCapability(access: EffectiveAccess, required: EngineAccessCapability): void {
-  if (!allowsCapability(access, required)) throw new HttpError(403, `Capability required: ${capabilityKey(required)}`, "capabilityRequired");
-}
-
 function selectedContent(ctx: RouteContext, rules: GameRules, config: JsonObject): SelectedContent[] {
   const selected = rules.contentForCreate?.({ config }) ?? [];
   if (selected.length === 0) return [];
@@ -409,13 +428,13 @@ function selectedContent(ctx: RouteContext, rules: GameRules, config: JsonObject
   });
 }
 
-async function authorizeCreate(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", rated: boolean, content: readonly SelectedContent[], botTiers: readonly (string | undefined)[], creationId: string): Promise<Pick<CreateGameInput, "usage" | "capacity">> {
+async function authorizeCreate(ctx: RouteContext, env: unknown, userId: string, accessMode: "public" | "private" | "friends", rated: boolean, content: readonly SelectedContent[], botTiers: readonly string[], creationId: string): Promise<Pick<CreateGameInput, "usage" | "capacity">> {
   if (ctx.commerce === null) return {};
   const now = ctx.commerce.now();
   const access = await readEffectiveAccess(ctx.d1(env), ctx.commerce.catalog, userId, now);
   requireCapability(access, { kind: "game.create", access: accessMode });
   if (rated) requireCapability(access, { kind: "game.create.rated" });
-  for (const tier of botTiers) requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+  for (const tier of botTiers) requireCapability(access, { kind: "bot.use", tier });
   for (const item of content) {
     if (item.ownership === "viewer") continue;
     if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {
@@ -472,11 +491,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       const auth = c.var.auth;
       await enforceRateLimit(c.env, "game_create", auth.user.id);
       const body = c.req.valid("json");
-      // Guests cannot create friends-access games: guests can never have an
-      // accepted friend, so the lobby would be permanently unjoinable.
-      if (body.access === "friends" && auth.claims.isAnonymous) {
-        throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
-      }
+      if (body.access === "friends") requireRegistered(auth.claims, FRIENDS_NEED_AN_ACCOUNT);
       assertCreatable(ctx, body.schemaVersion);
       const rules = rulesFor(ctx, body.schemaVersion);
       const parsed = parseClientPayload(rules.schemas.config, body.config, "config");
@@ -494,15 +509,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         maxPlayers,
         config,
       });
-      // `rated` is a concrete assertion the client also computes (the Dart
-      // twin). A mismatch means twin drift or a forged client; reject it
-      // rather than silently coercing. There is no forced-rated, so a sent
-      // `false` is always valid.
-      const canBeRated = pool !== null && !auth.claims.isAnonymous;
-      if (!canBeRated && body.rated === true) {
-        throw new HttpError(422, "rated mismatch: this game is not eligible to be rated");
-      }
-      const rated = canBeRated && (body.rated ?? true);
+      const rated = resolveRated(pool, auth.claims, body.rated);
 
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
       const content = selectedContent(ctx, rules, config);
@@ -593,28 +600,25 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         maxPlayers,
         config,
       });
-      const canBeRated = pool !== null && !auth.claims.isAnonymous;
-      if (!canBeRated && body.rated === true) {
-        throw new HttpError(422, "rated mismatch: this game is not eligible to be rated");
-      }
-      const rated = canBeRated && (body.rated ?? true);
+      const rated = resolveRated(pool, auth.claims, body.rated);
 
       // Resolve and gate every bot before writing anything: a bad bot id or a
       // failed seating gate must abort with nothing created.
       const bots = await readBots(ctx.d1(c.env), body.botIds);
       const spec: BotSeatingGame = { schemaVersion: body.schemaVersion, turnSeconds: body.turnSeconds, budgetSeconds: body.budgetSeconds, rated, config };
       const seats: Seat[] = [{ playerIndex: 0, userId: auth.user.id, botId: null, type: "human" }];
+      const botTiers: string[] = [];
       for (const botId of body.botIds) {
         const bot = bots.find((b) => b.id === botId);
         if (bot === undefined) throw new HttpError(404, `Bot not found: ${botId}`);
         assertBotSeatable(ctx, spec, bot);
         seats.push({ playerIndex: seats.length, userId: null, botId: bot.id, type: "bot" });
+        botTiers.push(botTier(ctx.commerce?.catalog, bot));
       }
       if (seats.length < minPlayers) throw new HttpError(400, "Not enough seats to start the game");
       if (seats.length > maxPlayers) throw new HttpError(400, "More bots than maxPlayers allows");
 
       const content = selectedContent(ctx, rules, config);
-      const botTiers = body.botIds.map((botId) => ctx.commerce?.catalog.botTiers?.[botId]);
       const fingerprint = await creationFingerprint({
         kind: "solo",
         schemaVersion: body.schemaVersion,
@@ -756,9 +760,19 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
         // disagreed here would describe one game two ways.
         const seatCount = seats.length;
 
-        // Snapshot known content for replay integrity, but do not perform a
-        // commercial gate here. This game already ran offline; local play and
-        // its later import consume neither creation nor server-bot quota.
+        // A record of what was played, never an authorization input. Commerce
+        // does not price a local game at all (see `COMMERCE_EXEMPT_ORIGIN`): no
+        // capability, no content ownership, no metric. That is not a gap left
+        // for later, it is what offline play means — a brain that ships in the
+        // client bundle runs with no network, so there is no request to refuse
+        // and nothing to sell. A deployment that wants a bot to stay paid keeps
+        // its brain off the device; see the monetization guide.
+        //
+        // The snapshot itself still earns its place: the row records which
+        // variant the transcript was produced under, which is what makes a
+        // later replay legible. Nothing reads it as a gate — `authorizeJoin`
+        // never runs for a game no one can join, and the replay gate exempts
+        // this origin.
         const content = selectedContent(ctx, rules, config);
 
         const now = Date.now();
@@ -898,9 +912,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
     if (game.origin === "local") {
       throw new HttpError(403, "This game was played on a device", "localOnly");
     }
-    if (game.rated && auth.claims.isAnonymous) {
-      throw new HttpError(403, "Guests cannot join rated games", "registrationRequired");
-    }
+    if (game.rated) requireRegistered(auth.claims, "Guests cannot join rated games");
     // Published rules remain a contiguous prefix in every client bundle. A
     // client advertising N therefore supports every retained game at 1...N.
     // Check before seating so a refusal leaves no participant row behind.
@@ -908,7 +920,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       throw new HttpError(409, `This game uses schema ${game.schemaVersion}, but this app supports through schema ${clientSchemaVersion}`, "clientUpdateRequired");
     }
     if (game.access === "friends") {
-      if (auth.claims.isAnonymous) throw new HttpError(403, "Friends-access games require a registered account", "registrationRequired");
+      requireRegistered(auth.claims, FRIENDS_NEED_AN_ACCOUNT);
       if (game.createdBy === null || !(await isAcceptedFriend(ctx.d1(c.env), auth.user.id, game.createdBy))) {
         throw new HttpError(403, "This game is limited to the creator's friends", "friendsOnly");
       }
@@ -1018,8 +1030,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       assertBotSeatable(ctx, game, bot);
       if (ctx.commerce !== null) {
         const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, auth.user.id, ctx.commerce.now());
-        const tier = ctx.commerce.catalog.botTiers?.[bot.id];
-        requireCapability(access, { kind: "bot.use", ...(tier === undefined ? {} : { tier }) });
+        requireCapability(access, { kind: "bot.use", tier: botTier(ctx.commerce.catalog, bot) });
       }
       const cmd: SingleCommand = { kind: "add-bot", gameId, actor: { userId: auth.user.id, botId: null }, botId: bot.id };
       return c.json(commandResult(await ctx.stub(c.env, gameId).handle(cmd)), 200);
@@ -1124,10 +1135,14 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       if (mySeat === null && !(finished && game.access === "public")) {
         throw new HttpError(403, "Not a participant in this game", "notParticipant");
       }
-      if (finished && ctx.commerce !== null) {
+      // Commerce prices watching back a game the SERVER ran. A local game was
+      // played on the device and was never sold, so replaying it is not sold
+      // either: its own record route hands the creator the whole transcript
+      // ungated, and refusing the projected frames of the same game to the same
+      // caller would be two answers about one game.
+      if (finished && ctx.commerce !== null && !isCommerceExempt(game)) {
         const access = await readEffectiveAccess(ctx.d1(c.env), ctx.commerce.catalog, auth.user.id, ctx.commerce.now());
-        const replayGated = [ctx.commerce.catalog.free, ...ctx.commerce.catalog.entitlements].some((grant) => grant.permissions?.some((permission) => permission.kind === "replay.read") === true);
-        if (replayGated) requireCapability(access, { kind: "replay.read" });
+        if (catalogGates(ctx.commerce.catalog, "replay.read")) requireCapability(access, { kind: "replay.read" });
         for (const item of await readSelectedGameContent(ctx.d1(c.env), gameId)) {
           if (item.ownership !== "viewer") continue;
           if (!ownsContent(access, item) && !allowsCapability(access, { kind: "content.use", collection: item.collection, id: item.id })) {

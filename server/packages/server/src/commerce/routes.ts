@@ -1,4 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi";
+import { requireRegistered } from "../auth/registration.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { errorShape } from "../routes/wire.js";
@@ -67,9 +68,9 @@ function registeredProduct(offer: CommerceOffer, providerKey: string): string {
   return providerReference;
 }
 
-function requireAccount(isAnonymous: boolean): void {
-  if (isAnonymous) throw new HttpError(403, "Purchases require a recoverable account", "registrationRequired");
-}
+/** A purchase is durable value, and a guest account can be lost with the
+ * install: buying on one would be buying something that may not survive. */
+const PURCHASES_NEED_AN_ACCOUNT = "Purchases require a recoverable account";
 
 function trustedReturnUrl(ctx: RouteContext, env: unknown, requestUrl: string, value: string): string {
   const target = new URL(value);
@@ -190,7 +191,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       responses: { 200: { content: { "application/json": { schema: accessSnapshotShape } }, description: "Purchase verified and effective access refreshed" }, ...commerceErrors },
     }),
     async (c) => {
-      requireAccount(c.var.auth.claims.isAnonymous);
+      requireRegistered(c.var.auth.claims, PURCHASES_NEED_AN_ACCOUNT);
       await claim(ctx, c.env, c.var.auth.user.id, c.req.valid("json"));
       return c.json(await snapshot(ctx, c.env, c.var.auth.user.id), 200);
     },
@@ -206,7 +207,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       responses: { 200: { content: { "application/json": { schema: accessSnapshotShape } }, description: "Submitted purchases restored and effective access refreshed" }, ...commerceErrors },
     }),
     async (c) => {
-      requireAccount(c.var.auth.claims.isAnonymous);
+      requireRegistered(c.var.auth.claims, PURCHASES_NEED_AN_ACCOUNT);
       for (const item of c.req.valid("json").claims) await claim(ctx, c.env, c.var.auth.user.id, item);
       return c.json(await snapshot(ctx, c.env, c.var.auth.user.id), 200);
     },
@@ -222,7 +223,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       responses: { 200: { content: { "application/json": { schema: urlShape } }, description: "Provider-hosted checkout URL" }, ...commerceErrors },
     }),
     async (c) => {
-      requireAccount(c.var.auth.claims.isAnonymous);
+      requireRegistered(c.var.auth.claims, PURCHASES_NEED_AN_ACCOUNT);
       const body = c.req.valid("json");
       const selectedOffer = offer(ctx, body.offerKey);
       const adapter = provider(ctx, body.provider);
@@ -276,7 +277,7 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       responses: { 200: { content: { "application/json": { schema: urlShape } }, description: "Provider-hosted subscription management URL" }, ...commerceErrors },
     }),
     async (c) => {
-      requireAccount(c.var.auth.claims.isAnonymous);
+      requireRegistered(c.var.auth.claims, PURCHASES_NEED_AN_ACCOUNT);
       const body = c.req.valid("json");
       const adapter = provider(ctx, body.provider);
       if (adapter.management === undefined) throw new HttpError(400, `${adapter.key} does not expose hosted management`);

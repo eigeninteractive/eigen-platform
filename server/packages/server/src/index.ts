@@ -17,7 +17,7 @@ export { ensureUser, type UserRow } from "./auth/provision.js";
 // The operator utility for onboarding an external bot: derive the key you hand
 // its owner. The signing/verifying halves stay internal; the engine does that.
 export { deriveBotKey } from "./bot/bot-auth.js";
-export { capabilityAllows, capabilityKey } from "./commerce/capability.js";
+export { capabilityAllows, capabilityKey, DEFAULT_BOT_TIER } from "./commerce/capability.js";
 export { resolveCommerce } from "./commerce/catalog.js";
 export type {
   AccessGrant,

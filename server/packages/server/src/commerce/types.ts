@@ -6,7 +6,7 @@ export type EngineAccessCapability =
   | { kind: "game.create"; access: GameAccess }
   | { kind: "game.join"; access: GameAccess }
   | { kind: "game.create.rated" }
-  | { kind: "bot.use"; tier?: string }
+  | { kind: "bot.use"; tier: string }
   | { kind: "content.use"; collection: string; id: string }
   | { kind: "replay.read" }
   | { kind: "analysis.use"; analysisType?: string };
@@ -64,7 +64,8 @@ export interface CommerceCatalog {
   entitlements: readonly EntitlementDefinition[];
   offers: readonly CommerceOffer[];
   content?: Readonly<Record<string, Readonly<Record<string, ContentDefinition>>>>;
-  /** Optional mapping from a registered bot id to its commercial tier. */
+  /** The bots priced differently from the rest, by registered bot id. Every bot
+   * this does not list is in `standard` (`DEFAULT_BOT_TIER`). */
   botTiers?: Readonly<Record<string, string>>;
 }
 

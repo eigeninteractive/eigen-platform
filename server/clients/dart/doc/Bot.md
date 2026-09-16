@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **type** | [**BotType**](BotType.md) |  | 
 **ratedEligible** | **bool** |  | 
 **config** | **Object** |  | 
+**tier** | **String** | The commercial tier this bot belongs to: its `botTiers` entry, or `standard`. A `local` bot is always `standard`, because the server never seats it. Presentation only: the server checks access when it seats the bot. | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

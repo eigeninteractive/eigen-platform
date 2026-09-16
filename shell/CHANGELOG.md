@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Added
+- The pickers that seat a server bot mark an opponent the account's access does not include, and a refusal to seat one offers the store. The untimed picker never does: a game played on the device is not priced.
+
+### Fixed
+- The store action on a refusal no longer needs the screen that showed it to still be open.
+
 ## [0.3.0] - 2026-09-15
 ### Added
 - `PlayPurchaseGateway`, Google Play Billing behind the `eigen_flutter` `PurchaseGateway` port: localized products, consumables for repeatable offers, restoration, the account binding Play carries as `obfuscatedAccountId`, and acknowledgement that works from durable outbox evidence after a restart. It depends on `in_app_purchase_android` rather than the `in_app_purchase` umbrella, which would also link StoreKit into every iOS build.
@@ -34,6 +41,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...HEAD
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...eigen_shell-v0.3.0
 [0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.1...eigen_shell-v0.2.0
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.1.0...eigen_shell-v0.1.1

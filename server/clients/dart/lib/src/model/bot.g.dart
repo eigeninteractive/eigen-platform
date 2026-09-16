@@ -20,6 +20,7 @@ Bot _$BotFromJson(Map<String, dynamic> json) => $checkedCreate('Bot', json, (
       'type',
       'ratedEligible',
       'config',
+      'tier',
     ],
   );
   final val = Bot(
@@ -38,6 +39,7 @@ Bot _$BotFromJson(Map<String, dynamic> json) => $checkedCreate('Bot', json, (
     ),
     ratedEligible: $checkedConvert('ratedEligible', (v) => v as bool),
     config: $checkedConvert('config', (v) => v as Object),
+    tier: $checkedConvert('tier', (v) => v as String),
   );
   return val;
 });
@@ -51,6 +53,7 @@ Map<String, dynamic> _$BotToJson(Bot instance) => <String, dynamic>{
   'type': _$BotTypeEnumMap[instance.type]!,
   'ratedEligible': instance.ratedEligible,
   'config': instance.config,
+  'tier': instance.tier,
 };
 
 const _$BotTypeEnumMap = {

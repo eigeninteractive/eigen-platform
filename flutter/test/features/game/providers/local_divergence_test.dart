@@ -97,6 +97,7 @@ Bot _bot() => Bot(
   type: BotType.local,
   ratedEligible: false,
   config: <String, dynamic>{},
+  tier: 'standard',
 );
 
 void main() {

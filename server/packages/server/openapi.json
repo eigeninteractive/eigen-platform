@@ -725,6 +725,10 @@
           },
           "config": {
             "type": "object"
+          },
+          "tier": {
+            "type": "string",
+            "description": "The commercial tier this bot belongs to: its `botTiers` entry, or `standard`. A `local` bot is always `standard`, because the server never seats it. Presentation only: the server checks access when it seats the bot."
           }
         },
         "required": [
@@ -735,7 +739,8 @@
           "schemaVersion",
           "type",
           "ratedEligible",
-          "config"
+          "config",
+          "tier"
         ]
       },
       "BotType": {
