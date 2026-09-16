@@ -163,30 +163,38 @@ results.
 that grows without bound, and a finished or aborted game does not change, so an
 increment only adds.
 
-The increment's cursor is `finish_seq`, a strictly increasing number D1 assigns
-in the batch that records a finish, and never reassigns. Only the finish apply
-assigns it, because only a finished game is ever in an account's history: an
-aborted game keeps no roster, so the participants read no account reaches it
-through. A timestamp
+The increment's cursor is a row in `game_finishes`, appended inside the batch
+that records a finish and under the same guard, so its AUTOINCREMENT `seq`
+follows the order finishes commit in. Only the finish apply appends one, because
+only a finished game is ever in an account's history: an aborted game keeps no
+roster, so the participants read no account reaches it through. A timestamp
 cannot serve: `finishedAt` is chosen before the write commits, and these writes
 commit out of order (the rating compare-and-swap retries, a crashed finish is
 re-applied, and mirrors retry without being awaited). A device whose cursor had
 passed a later timestamp would skip an earlier-stamped game forever. Display
-order (finish time) and sync order (`finish_seq`) are therefore separate.
+order (finish time) and sync order (the sequence) are therefore separate.
 
-`GET /api/engine/me/sync?finishedAfter=<finish_seq>` answers, in one consistent
+The sequence is its own table, and the number comes from SQLite, rather than a
+column of `games` set to `MAX(...) + 1`. That idiom derives a counter from the
+data it numbers, and is correct only while nothing ever removes the highest row:
+the day anything does — retention, erasure, an operator — the next finish reuses
+a number every device's cursor has passed, and those devices skip the game that
+inherited it, silently and permanently. AUTOINCREMENT is exactly the guarantee
+that cannot happen. Gaps are harmless; the cursor only asks for *greater than*.
+
+`GET /api/engine/me/sync?finishedAfter=<seq>` answers, in one consistent
 read:
 
 - `account`: the profile, including `createdAt`;
 - `ratings`, `relationships`, and `active` (with rosters), each whole;
-- `finished`: games with `finish_seq` greater than `finishedAfter`, ascending,
-  with rosters and rating changes, bounded per response with `hasMore`;
+- `finished`: games sequenced after `finishedAfter`, ascending, with rosters and
+  rating changes, bounded per response with `hasMore`;
 - `players`: the identity of every user and bot referenced by the above;
-- `cursor`: the highest `finish_seq` included.
+- `cursor`: the highest sequence number included.
 
 Without `finishedAfter`, as on a fresh device, `finished` is instead the newest
-page in display order, `cursor` is the account's highest `finish_seq` read in the
-same query, and a `floor` display cursor marks the oldest game returned. Scrolling
+page in display order, `cursor` is the account's highest sequence number read in
+the same query, and a `floor` display cursor marks the oldest game returned. Scrolling
 history past the floor calls
 `GET /api/engine/me/games/finished?before=<floor>`, stores the page, and lowers
 the floor. Every finished game is then reachable exactly once: above the cursor
@@ -207,8 +215,8 @@ cursor from an account that no longer exists.
 **Identity.** Identities already stored refresh through the batch player lookup
 when shown. An id the lookup no longer returns is removed from `players`, and its
 seats render as deleted. This covers the one change a finished game does see:
-account deletion removes the deleted user's identity from D1 without a new
-`finish_seq`.
+account deletion removes the deleted user's identity from D1 without sequencing
+anything new.
 
 ### The sync pass
 
@@ -333,8 +341,9 @@ New:
   cursor and floor miss no game committed out of order; an epoch mismatch empties
   the account; a local commit is atomic; upload resumes from `synced_version`;
   replay fills a missing frame range.
-- Server: `finish_seq` is assigned once and increases in commit order, for aborts
-  as well as finishes; a mirror write carrying an older `seq` changes nothing,
+- Server: a finish is sequenced once and in commit order, a re-poked apply does
+  not renumber it, and a removed game's number is never handed to another game;
+  a mirror write carrying an older `seq` changes nothing,
   which is today's regression; `/me/sync` returns a cursor and floor consistent
   with its page; the backfill pages without gaps or repeats.
 - Drift schema dumps are generated and checked, so every later schema change
@@ -345,7 +354,7 @@ New:
 ## Delivery
 
 1. Server: `seq` on D1 games and `GameSummary`, guarded mirror writes,
-   `finish_seq`, `/me/sync`, the finished backfill, removal of the superseded
+   `game_finishes`, `/me/sync`, the finished backfill, removal of the superseded
    reads, and the regenerated OpenAPI and Dart client.
 2. `eigen_client`: the schema, repositories, and sync pass; the local engine on
    tables; removal of `LocalGameStore` and the stored JSON record.

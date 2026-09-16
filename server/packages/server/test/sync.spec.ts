@@ -22,7 +22,7 @@ import { env, exports } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
 import { orm } from "../src/d1/orm.js";
-import { games, participants, users } from "../src/d1/schema.js";
+import { gameFinishes, games, participants, users } from "../src/d1/schema.js";
 import { SYNC_FINISHED_PAGE } from "../src/d1/sync.js";
 import { applyFinish, createGame, mirrorRoster, updateSummary } from "../src/index.js";
 import { testBearer as bearer, testMutationHeaders as mutationHeaders, withCreationId } from "../src/testing.js";
@@ -187,17 +187,10 @@ describe("mirror ordering", () => {
     expect(await db.select().from(participants).where(eq(participants.gameId, gameId)).all()).toHaveLength(2);
   });
 
-  it("assigns finish_seq in commit order, once", async () => {
+  it("sequences a finish in commit order, once", async () => {
     const { a, b } = await pair();
     const [first, second] = await finishedGames(a, b, [2_000, 1_000]);
-    const read = async (id: string) =>
-      (
-        await db
-          .select()
-          .from(games)
-          .where(eq(games.id, id as string))
-          .get()
-      )?.finishSeq;
+    const read = async (id: string) => (await db.select().from(gameFinishes).where(eq(gameFinishes.gameId, id)).get())?.seq;
     const firstSeq = await read(first as string);
     const secondSeq = await read(second as string);
     // Stamped earlier, committed later: the sequence follows the commit.
@@ -221,10 +214,40 @@ describe("mirror ordering", () => {
     });
     expect(await read(second as string)).toBe(secondSeq);
   });
+
+  it("never reuses a number, even after the highest finished game is removed", async () => {
+    const { a, b } = await pair();
+    const [gone] = await finishedGames(a, b, [1_000]);
+    const removed = (
+      await db
+        .select()
+        .from(gameFinishes)
+        .where(eq(gameFinishes.gameId, gone as string))
+        .get()
+    )?.seq as number;
+
+    // Whatever removes a finished game later -- retention, erasure, an operator
+    // -- must not hand its number to the next finish: every device whose cursor
+    // has passed that number would skip the game that inherited it, silently
+    // and permanently. This is the whole reason the sequence is an
+    // AUTOINCREMENT rowid rather than MAX(seq) + 1.
+    await db.delete(gameFinishes).where(eq(gameFinishes.gameId, gone as string));
+    await db.delete(games).where(eq(games.id, gone as string));
+
+    const [next] = await finishedGames(a, b, [2_000]);
+    const assigned = (
+      await db
+        .select()
+        .from(gameFinishes)
+        .where(eq(gameFinishes.gameId, next as string))
+        .get()
+    )?.seq as number;
+    expect(assigned).toBeGreaterThan(removed);
+  });
 });
 
 describe("account sync", () => {
-  it("a first sync returns the newest page of history, the account's highest finish_seq, and a floor", async () => {
+  it("a first sync returns the newest page of history, the account's highest sequence, and a floor", async () => {
     const { a, b } = await pair();
     const base = Date.now() - 10_000_000;
     const ids = await finishedGames(
@@ -238,8 +261,8 @@ describe("account sync", () => {
     expect(first.hasMoreFinished).toBe(false);
     expect(first.historyFloor).not.toBeNull();
 
-    const mine = await db.select({ finishSeq: games.finishSeq }).from(participants).innerJoin(games, eq(games.id, participants.gameId)).where(eq(participants.userId, a)).all();
-    expect(first.finishedCursor).toBe(Math.max(...mine.map((row) => row.finishSeq ?? 0)));
+    const mine = await db.select({ seq: gameFinishes.seq }).from(participants).innerJoin(gameFinishes, eq(gameFinishes.gameId, participants.gameId)).where(eq(participants.userId, a)).all();
+    expect(first.finishedCursor).toBe(Math.max(...mine.map((row) => row.seq)));
 
     // The floor continues exactly where the page stopped.
     expect(await drainHistory(a, first.historyFloor as string, 1)).toEqual(ids.slice(0, 2).reverse());

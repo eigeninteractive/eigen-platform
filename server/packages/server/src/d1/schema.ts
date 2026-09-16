@@ -89,13 +89,6 @@ export const games = sqliteTable(
     /** Stamped by the finish apply; history lists sort by it. An aborted game
      * keeps no roster, so it is in no account's history and never gets one. */
     finishedAt: integer(),
-    /** Where this game sits in the order finishes COMMITTED, assigned once by
-     * the finish apply as one more than the largest so far. The history sync
-     * cursor. Not `finishedAt`: that instant is chosen before the write commits,
-     * and finishes commit out of order (the rating compare-and-swap retries and
-     * a crashed apply is re-poked), so a device that had synced past a later
-     * timestamp would never see an earlier-stamped game that committed after. */
-    finishSeq: integer(),
     /** Cold-tier seam: NULL = history lives in the game's DO. V1 never writes
      * or reads it; the future cold-tier sweep starts stamping it. */
     archivedAt: integer(),
@@ -107,11 +100,32 @@ export const games = sqliteTable(
     index("idx_games_created_by").on(t.createdBy),
     // The lobby page: public joinable games, newest first (ported partial index).
     index("idx_games_lobby").on(t.createdAt).where(sql`access = 'public' AND status IN ('waiting', 'ready')`),
-    // Serves both the next number's MAX() and the history sync's range read.
-    uniqueIndex("idx_games_finish_seq").on(t.finishSeq).where(sql`finish_seq IS NOT NULL`),
     check("games_origin_valid", sql`${t.origin} IN ('online', 'local')`),
   ],
 );
+
+/** The order finishes COMMITTED in, and the history sync cursor.
+ *
+ * One row per finished game, appended by the finish apply's batch. `seq` is a
+ * SQLite AUTOINCREMENT rowid, so the database assigns it — this is deliberately
+ * not `MAX(finish_seq) + 1` on a column of `games`, which derives a counter from
+ * the data it numbers and silently reuses a number as soon as anything removes
+ * the highest row. AUTOINCREMENT never reuses one, which is the whole guarantee
+ * a device's cursor rests on.
+ *
+ * Not `finished_at`: that instant is chosen before the write commits, and
+ * finishes commit out of order (the rating compare-and-swap retries, and a
+ * crashed apply is re-poked), so a device that had synced past a later timestamp
+ * would never see an earlier-stamped game that committed after it. History is
+ * SHOWN by finish time and SYNCED by this.
+ *
+ * Aborted games are absent: an aborted game keeps no roster, so it is in no
+ * account's history. A finished game always has a row here, because the insert
+ * and the summary update share one batch and one guard. */
+export const gameFinishes = sqliteTable("game_finishes", {
+  seq: integer().primaryKey({ autoIncrement: true }),
+  gameId: text().notNull().unique(),
+});
 
 /** The roster join table: one row per seat, and the indexed access path for
  * "games of user X". Written at create/join/leave alongside the games row; the

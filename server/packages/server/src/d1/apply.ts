@@ -34,7 +34,7 @@ import type { GameOrigin } from "../protocol.js";
 import { isCommercialLimitReached, isUniqueViolation } from "./errors.js";
 import { orm } from "./orm.js";
 import { ratingDeltaFromRow } from "./reads.js";
-import { commerceCapacity, commerceUsage, creationOperations, gameContent, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
+import { commerceCapacity, commerceUsage, creationOperations, gameContent, gameFinishes, games, participants, playerRatings, ratingHistory, users } from "./schema.js";
 
 export interface FinishApplyInput {
   gameId: string;
@@ -88,19 +88,31 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         outcomes: input.outcomes,
         finishId: input.finishId,
         finishedAt: input.now,
-        // Assigned inside the batch, so the number reflects the order finishes
-        // commit in: D1 runs a batch as one transaction, sequentially.
-        finishSeq: sql`(SELECT COALESCE(MAX(finish_seq), 0) + 1 FROM games)`,
         pendingPlayers: [],
         turnDeadline: null,
         seq: input.seq,
         updatedAt: input.now,
       })
       .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq)));
+    // The history sync cursor, appended in the same batch and under the same
+    // guard as the summary above, so the number the database assigns reflects
+    // the order finishes COMMIT in. It runs FIRST: its guard reads the
+    // pre-update row. `onConflictDoNothing` makes a re-run harmless without
+    // minting a second number for one finish.
+    const finishSequence = db
+      .insert(gameFinishes)
+      .select(
+        db
+          // A NULL rowid is how SQLite is asked to assign the next one.
+          .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
+          .from(games)
+          .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),
+      )
+      .onConflictDoNothing({ target: gameFinishes.gameId });
     const capacityRelease = db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, input.gameId));
 
     if (pool === null) {
-      await db.batch([summaryUpdate, capacityRelease]);
+      await db.batch([finishSequence, summaryUpdate, capacityRelease]);
       return null;
     }
 
@@ -150,9 +162,9 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     const existingUsers = await readExistingUsers(d1, deltaUserIds);
     const deltas = allDeltas.filter((d) => d.identity.userId === null || existingUsers.has(d.identity.userId));
 
-    const statements = [summaryUpdate, capacityRelease, ...ratingStatements(db, input, pool, deltas, priors)];
+    const statements = [finishSequence, summaryUpdate, capacityRelease, ...ratingStatements(db, input, pool, deltas, priors)];
     try {
-      await db.batch(statements as [typeof summaryUpdate, ...typeof statements]);
+      await db.batch(statements as [typeof finishSequence, ...typeof statements]);
       return deltas;
     } catch (error) {
       // Only a CAS conflict is retryable, and it is the ONLY error this batch

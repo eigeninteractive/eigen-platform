@@ -572,7 +572,7 @@ DurableObject.webSocketMessage
 
 ### CommercialLimitWriteError
 
-Defined in: [server/packages/server/src/d1/apply.ts:389](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L389)
+Defined in: [server/packages/server/src/d1/apply.ts:401](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L401)
 
 #### Extends
 
@@ -1388,7 +1388,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:17](https://github.com
 
 ### CreateGameInput
 
-Defined in: [server/packages/server/src/d1/apply.ts:346](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L346)
+Defined in: [server/packages/server/src/d1/apply.ts:358](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L358)
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -1401,7 +1401,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:350](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L350)
+Defined in: [server/packages/server/src/d1/apply.ts:362](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L362)
 
 ##### budgetSeconds
 
@@ -1409,7 +1409,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:350](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:355](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L355)
+Defined in: [server/packages/server/src/d1/apply.ts:367](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L367)
 
 ##### capacity?
 
@@ -1419,7 +1419,7 @@ optional capacity?: {
 };
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:384](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L384)
+Defined in: [server/packages/server/src/d1/apply.ts:396](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L396)
 
 ###### maximum
 
@@ -1433,7 +1433,7 @@ maximum: number;
 config: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:353](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L353)
+Defined in: [server/packages/server/src/d1/apply.ts:365](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L365)
 
 ##### content?
 
@@ -1441,7 +1441,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:353](https://github.com/eige
 optional content?: readonly SelectedContent[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:376](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L376)
+Defined in: [server/packages/server/src/d1/apply.ts:388](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L388)
 
 ##### createdAt
 
@@ -1449,7 +1449,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:376](https://github.com/eige
 createdAt: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:367](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L367)
+Defined in: [server/packages/server/src/d1/apply.ts:379](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L379)
 
 When the game began. `now` for an online create, which begins here; a
 local game began on the device, possibly days earlier, so it carries its
@@ -1462,7 +1462,7 @@ history sorts by when it was played rather than when it synchronized.
 createdBy: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:348](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L348)
+Defined in: [server/packages/server/src/d1/apply.ts:360](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L360)
 
 ##### creation?
 
@@ -1474,7 +1474,7 @@ optional creation?: {
 };
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:371](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L371)
+Defined in: [server/packages/server/src/d1/apply.ts:383](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L383)
 
 Present on client-facing creates; omitted only by low-level test/repair
 utilities that seed a game directly.
@@ -1503,7 +1503,7 @@ fingerprint: string;
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:347](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L347)
+Defined in: [server/packages/server/src/d1/apply.ts:359](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L359)
 
 ##### incrementSeconds
 
@@ -1511,7 +1511,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:347](https://github.com/eige
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:356](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L356)
+Defined in: [server/packages/server/src/d1/apply.ts:368](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L368)
 
 ##### maxPlayers
 
@@ -1519,7 +1519,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:356](https://github.com/eige
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:360](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L360)
+Defined in: [server/packages/server/src/d1/apply.ts:372](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L372)
 
 ##### minPlayers
 
@@ -1527,7 +1527,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:360](https://github.com/eige
 minPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:359](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L359)
+Defined in: [server/packages/server/src/d1/apply.ts:371](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L371)
 
 ##### now
 
@@ -1535,7 +1535,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:359](https://github.com/eige
 now: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:368](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L368)
+Defined in: [server/packages/server/src/d1/apply.ts:380](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L380)
 
 ##### origin
 
@@ -1543,7 +1543,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:368](https://github.com/eige
 origin: GameOrigin;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:351](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L351)
+Defined in: [server/packages/server/src/d1/apply.ts:363](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L363)
 
 ##### rated
 
@@ -1551,7 +1551,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:351](https://github.com/eige
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:357](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L357)
+Defined in: [server/packages/server/src/d1/apply.ts:369](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L369)
 
 ##### ratingPool
 
@@ -1559,7 +1559,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:357](https://github.com/eige
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:358](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L358)
+Defined in: [server/packages/server/src/d1/apply.ts:370](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L370)
 
 ##### schemaVersion
 
@@ -1567,7 +1567,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:358](https://github.com/eige
 schemaVersion: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:352](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L352)
+Defined in: [server/packages/server/src/d1/apply.ts:364](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L364)
 
 ##### seats
 
@@ -1575,7 +1575,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:352](https://github.com/eige
 seats: Seat[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:362](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L362)
+Defined in: [server/packages/server/src/d1/apply.ts:374](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L374)
 
 ##### shortCode
 
@@ -1583,7 +1583,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:362](https://github.com/eige
 shortCode: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:361](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L361)
+Defined in: [server/packages/server/src/d1/apply.ts:373](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L373)
 
 ##### status
 
@@ -1591,7 +1591,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:361](https://github.com/eige
 status: "waiting" | "ready";
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:349](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L349)
+Defined in: [server/packages/server/src/d1/apply.ts:361](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L361)
 
 ##### turnSeconds
 
@@ -1599,7 +1599,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:349](https://github.com/eige
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:354](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L354)
+Defined in: [server/packages/server/src/d1/apply.ts:366](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L366)
 
 ##### usage?
 
@@ -1612,7 +1612,7 @@ optional usage?: readonly {
 }[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:377](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L377)
+Defined in: [server/packages/server/src/d1/apply.ts:389](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L389)
 
 ***
 
@@ -3874,7 +3874,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:396](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L396)
+Defined in: [server/packages/server/src/d1/apply.ts:408](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L408)
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact.
@@ -4037,7 +4037,7 @@ Deliberately narrow; see RETRYABLE\_D1. Pass to `withRetry` as its
 function mirrorRoster(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:312](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L312)
+Defined in: [server/packages/server/src/d1/apply.ts:324](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L324)
 
 The roster mirror after a committed waiting-room command. The DO's
 roster is the integrity copy; this rewrites the D1 display copy wholesale
@@ -4106,7 +4106,7 @@ function readCreationOperation(
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:485](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L485)
+Defined in: [server/packages/server/src/d1/apply.ts:497](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L497)
 
 #### Parameters
 
@@ -4145,7 +4145,6 @@ function readGameRow(d1, gameId): Promise<
   createdBy: string | null;
   finishedAt: number | null;
   finishId: string | null;
-  finishSeq: number | null;
   id: string;
   incrementSeconds: number | null;
   maxPlayers: number;
@@ -4167,7 +4166,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:495](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L495)
+Defined in: [server/packages/server/src/d1/apply.ts:507](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L507)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
@@ -4191,7 +4190,6 @@ its `meta`/`roster` on first contact, in one batched round trip.
   `createdBy`: `string` \| `null`;
   `finishedAt`: `number` \| `null`;
   `finishId`: `string` \| `null`;
-  `finishSeq`: `number` \| `null`;
   `id`: `string`;
   `incrementSeconds`: `number` \| `null`;
   `maxPlayers`: `number`;
@@ -4248,7 +4246,7 @@ Validate a deployment catalog once, before any request can reach it.
 function updateSummary(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:290](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L290)
+Defined in: [server/packages/server/src/d1/apply.ts:302](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L302)
 
 The display upsert after a non-finishing transition: fire-and-forget
 post-commit (the DO leaves it unawaited, under a retry), re-derivable from

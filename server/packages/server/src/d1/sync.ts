@@ -8,7 +8,8 @@
  * and leaving a lobby rewrites its roster without the player, and neither leaves
  * anything behind to send. Finished games are the one set that grows without
  * bound, and a finished game does not change, so they are returned
- * INCREMENTALLY, ordered by `finish_seq`, the order finishes committed in.
+ * INCREMENTALLY, ordered by `game_finishes.seq`, the order finishes committed
+ * in.
  *
  * Everything is one `batch()`, which D1 runs as one transaction, so the cursor
  * and the rows it describes can never disagree. Rosters, rating changes, and
@@ -18,11 +19,11 @@
  * bound parameters.
  */
 
-import { and, asc, desc, eq, gt, inArray, max, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, inArray, max, or, sql } from "drizzle-orm";
 import { encodeCursor } from "../cursor.js";
 import { orm } from "./orm.js";
 import { assembleGames, finishedAtOf, type GameWithRoster, playerColumns, ratingColumns, seatColumns } from "./reads.js";
-import { games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
+import { gameFinishes, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
 
 /** Finished games per sync response. A device repeats the call while
  * `hasMoreFinished` is true. */
@@ -54,7 +55,7 @@ export interface AccountSync {
   finishedGames: GameWithRoster[];
   /** Identity for every human seated in the games above. */
   players: PlayerRow[];
-  /** The `finish_seq` a device passes as `finishedAfter` next time. */
+  /** The `game_finishes.seq` a device passes as `finishedAfter` next time. */
   finishedCursor: number;
   /** More of the increment remains: call again with `finishedCursor`. */
   hasMoreFinished: boolean;
@@ -66,10 +67,10 @@ export interface AccountSync {
 /**
  * Read one account's sync.
  *
- * With `finishedAfter`, the finished games are those whose `finish_seq` is
- * greater, ascending. Without it (a device holding nothing), they are instead
- * the newest page in the order history is shown, the cursor is the account's
- * highest `finish_seq` read in the same transaction, and `historyFloor` marks
+ * With `finishedAfter`, the finished games are those sequenced after it,
+ * ascending. Without it (a device holding nothing), they are instead the newest
+ * page in the order history is shown, the cursor is the account's highest
+ * sequence number read in the same transaction, and `historyFloor` marks
  * where older games continue. Every finished game is then reached exactly
  * once or more, never zero times: above the cursor through the increment, at or
  * below it through history paging. A game can be reached by both, which a device
@@ -87,12 +88,13 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
 
   // One extra row, as the paged reads do, so "more remain" is an answer rather
   // than a guess from a short page.
-  const finishedOrder = first ? [desc(games.finishedAt), desc(games.id)] : [asc(games.finishSeq)];
+  const finishedOrder = first ? [desc(games.finishedAt), desc(games.id)] : [asc(gameFinishes.seq)];
   const finishedIds = db
     .select({ id: participants.gameId })
     .from(participants)
     .innerJoin(games, eq(games.id, participants.gameId))
-    .where(and(eq(participants.userId, userId), eq(games.status, "finished"), first ? undefined : gt(games.finishSeq, finishedAfter)))
+    .innerJoin(gameFinishes, eq(gameFinishes.gameId, participants.gameId))
+    .where(and(eq(participants.userId, userId), eq(games.status, "finished"), first ? undefined : gt(gameFinishes.seq, finishedAfter)))
     .orderBy(...finishedOrder)
     .limit(SYNC_FINISHED_PAGE + 1);
 
@@ -110,9 +112,14 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
       .where(and(or(eq(relationships.userId1, userId), eq(relationships.userId2, userId)), inArray(relationships.status, ["pending", "accepted"])))
       .orderBy(desc(relationships.updatedAt)),
     db.select().from(games).where(inArray(games.id, activeIds)),
+    // The sequence rides along so the page's last row IS the next cursor; it is
+    // not part of a game's summary and never reaches the wire. Aliased, because
+    // the game's own revision is also called `seq` and D1 keys its rows by
+    // column name: two `seq` columns in one join would arrive as one.
     db
-      .select()
+      .select({ ...getTableColumns(games), finishSeq: sql<number>`${gameFinishes.seq}`.as("finish_seq") })
       .from(games)
+      .innerJoin(gameFinishes, eq(gameFinishes.gameId, games.id))
       .where(inArray(games.id, finishedIds))
       .orderBy(...finishedOrder),
     db.select(seatColumns).from(participants).where(inSyncedGames),
@@ -122,10 +129,10 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
       .from(users)
       .where(inArray(users.id, db.select({ id: participants.userId }).from(participants).where(inSyncedGames))),
     db
-      .select({ value: max(games.finishSeq) })
+      .select({ value: max(gameFinishes.seq) })
       .from(participants)
-      .innerJoin(games, eq(games.id, participants.gameId))
-      .where(and(eq(participants.userId, userId), eq(games.status, "finished"))),
+      .innerJoin(gameFinishes, eq(gameFinishes.gameId, participants.gameId))
+      .where(eq(participants.userId, userId)),
   ]);
 
   const kept = finishedRows.slice(0, SYNC_FINISHED_PAGE);
