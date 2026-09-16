@@ -22,7 +22,7 @@ a version constraint; it is not where you expect.
 
 | Docs | Engine (`@eigeninteractive/*`) | Wire client (`eigen_api`) | Flutter integration (`eigen_flutter`) |
 | --- | --- | --- | --- |
-| **0.9.x** *(this version)* | `^0.9.0` | `^0.9.0` | *none yet* |
+| **0.9.x** *(this version)* | `^0.9.0` | `^0.9.0` | `0.12.0` |
 | 0.8.x | `^0.8.0` | `^0.8.0` | `0.11.0` |
 | 0.7.x | `^0.7.0` | `^0.7.0` | `0.10.0` |
 | 0.6.x | `^0.6.0` | `^0.6.0` | `0.9.0`, `0.8.0` |
