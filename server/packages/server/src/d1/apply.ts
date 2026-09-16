@@ -97,20 +97,19 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
     // The history sync cursor, appended in the same batch and under the same
     // guard as the summary above, so the number the database assigns reflects
     // the order finishes COMMIT in. It runs FIRST: its guard reads the
-    // pre-update row. `onConflictDoNothing` makes a re-run harmless without
-    // minting a second number for one finish.
-    const finishSequence = db
-      .insert(gameFinishes)
-      .select(
-        db
-          // The rowid is spelled out because Drizzle's insert-select wants a
-          // value for every column of the target; NULL is how SQLite is asked
-          // to assign the next one.
-          .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
-          .from(games)
-          .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),
-      )
-      .onConflictDoNothing({ target: gameFinishes.gameId });
+    // pre-update row. Nothing absorbs a conflict here, because the guard makes
+    // one unreachable -- a second row for one game would need the row to still
+    // be unfinished -- and `game_id`'s unique index is where that invariant is
+    // stated. A finish sequenced twice is a bug, and should say so.
+    const finishSequence = db.insert(gameFinishes).select(
+      db
+        // The rowid is spelled out because Drizzle's insert-select wants a
+        // value for every column of the target; NULL is how SQLite is asked
+        // to assign the next one.
+        .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
+        .from(games)
+        .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),
+    );
     const capacityRelease = db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, input.gameId));
 
     if (pool === null) {
