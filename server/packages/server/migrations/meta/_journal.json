@@ -12,15 +12,8 @@
     {
       "idx": 1,
       "version": "6",
-      "when": 1789463810566,
-      "tag": "0001_shiny_talkback",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1789573424831,
-      "tag": "0002_furry_zemo",
+      "when": 1789574039839,
+      "tag": "0001_yummy_ares",
       "breakpoints": true
     }
   ]
