@@ -14,6 +14,18 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- `replicaHostProvider` opens the device replica for the platform: a file on a device, drift's shared-worker storage on the web where the browser has it, and an exclusive single-tab database where it does not. `ReplicaStorage` says which the app got, and whether anything survives a reload.
+- `SyncCoordinator` runs the one sync pass, on sign-in, reconnect, resume, pull-to-refresh, a push arriving while the app is open, and a local game finishing. Never on a timer, and never two at once.
+
+### Changed
+- Every provider a screen reads is now a live query over the replica: active and finished games, the bot catalog, the profile, ratings, friends, and the open game's session. Opening a screen makes no request, and none of them cache through Riverpod's `persist()` any more.
+- `isOfflineProvider` drives a sync on reconnect, one neutral indicator, and the actions that need a server; a game played on this device ignores it.
+
+### Removed
+- `LocalDatabase`, `DriftLocalGameStore`, `DriftJsonStorage` and the `kv` table they persisted provider snapshots through.
+
 ## [0.12.0] - 2026-09-16
 ### Changed
 - Require the `eigen_api` release in which every `Bot` carries a required `tier`.
@@ -315,6 +327,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.12.0...HEAD
 [0.12.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.11.0...eigen_flutter-v0.12.0
 [0.11.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.10.0...eigen_flutter-v0.11.0
 [0.10.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.9.0...eigen_flutter-v0.10.0

@@ -27,8 +27,7 @@ final class MemoryReplicaHost implements ReplicaHost {
   Future<ReplicaStorage> get storage async => storageMode;
 
   @override
-  Future<void> exclusively(String name, Future<void> Function() body) =>
-      body();
+  Future<void> exclusively(String name, Future<void> Function() body) => body();
 
   @override
   Future<void> requestPersistence() async {}

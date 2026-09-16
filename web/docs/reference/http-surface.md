@@ -21,13 +21,13 @@ the [`openapi.json`](pathname:///openapi.json) spec directly.
 | Method + path | Purpose |
 |---|---|
 | `GET /lobby` | Public joinable games, newest first |
-| `GET /games/mine?bucket=active\|finished` | The caller's games |
+| `GET /me/sync?finishedAfter=` | Everything a device keeps about the caller, in one read |
 | `GET /games/{id}` | One game's summary (capability read; never state) |
 | `GET /games/{id}/frames?from=&to=` | Version-range frames: live gap recovery **and** finished-game replay |
 | `GET /players?ids=` | Batch public identity (≤ 50), never email |
 | `GET /bots` | The bot catalog |
-| `GET /me` · `GET /me/ratings` · `GET /me/rating-history` | The caller's own profile / ratings |
-| `GET /friends` · `GET /friends/requests` · `GET /friends/games` | Social lists |
+| `GET /me` · `GET /me/games/finished?cursor=` | The caller's own profile / history older than a device holds |
+| `GET /friends/games` | Joinable games created by the caller's friends |
 | `GET /users/search?q=` | Friend-picker search (registered only) |
 
 **Game lifecycle** (Commands to the DO; policy at the edge, integrity in the DO):

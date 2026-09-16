@@ -19,6 +19,9 @@ compatibility and command machinery from earlier phases.
   client.
 - New games always use the server's latest version. An older client must update;
   a client ahead of the deployment reports a server-update mismatch.
+- Clients keep a replica of the read model and read every screen from it. The
+  replica is a cache of the server except for a game played on the device, which
+  is the only copy of that game until it synchronizes.
 - There is no generic public command identity, capability endpoint, runtime
   contract digest, or durable client command journal. Creation alone has an
   operation-specific identity because a duplicate game can consume a commercial
@@ -52,6 +55,7 @@ compatibility and command machinery from earlier phases.
 | Split release wiring | The platform inventory, local overrides, checks, scaffolder templates, implementor docs, changelogs, and namespaced `eigen_shell` pub.dev workflows describe the same package graph and dependency order. |
 | Local checks | Server work runs once; the implementor-documentation and scaffold shards then run concurrently with the Dart ones, which run in sequence among themselves because they share one pub workspace. CI shards all of them. Local dependency overrides are generated ignored files. |
 | Offline play | A pure-Dart local kernel and an optional `LocalGameRules` twin let a device play a game against on-device bots with no network; the server registers the game's `origin`, replays an imported device log through the authoritative TypeScript rules, and a disagreement between the two surfaces as `diverged` rather than resolving silently. |
+| Device replica | Every screen reads a Drift replica of the server's read model, filled by one sync pass over `GET /me/sync` and written by that pass, the open game's session and the local engine. Games played on the device are rows in the same tables, so no list merges two sources. D1 mirror writes are ordered by the game's `seq`, and history syncs by `finish_seq` rather than by finish time. |
 
 ## Completion
 

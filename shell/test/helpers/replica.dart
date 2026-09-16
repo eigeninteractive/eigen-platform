@@ -11,11 +11,13 @@ List<Override> replicaTestOverrides() => [
   replicaHostProvider.overrideWith((ref) async => MemoryReplicaHost()),
 ];
 
-/// No replica at all: every account-scoped read answers empty.
+/// No account replica, and an empty one for anything public.
 ///
-/// For a widget test that does not exercise stored data. It keeps a database
-/// (and the platform channels that open one) out of the test entirely; a test
-/// that needs stored data uses [replicaTestOverrides] instead.
+/// For a widget test that does not exercise stored data: account-scoped reads
+/// answer empty, and a stray identity or catalog read finds an empty database
+/// rather than opening a real one through platform channels. A test that does
+/// exercise stored data uses [replicaTestOverrides] instead.
 List<Override> withoutReplica() => [
+  ...replicaTestOverrides(),
   accountReplicaProvider.overrideWith((ref) async => null),
 ];

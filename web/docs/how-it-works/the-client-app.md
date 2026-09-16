@@ -85,20 +85,21 @@ initial event is missed:
    `initialize()`**. The terminated-state tap arrives on a broadcast stream, so
    a listener attached after init misses it.
 3. Keep the native splash up until auth resolves; if authenticated, also await
-   the profile warm-up, **capped at 2 s**. A native SQLite cache normally
-   resolves immediately; web fetches the profile again after reload. If neither
-   finishes within the cap, `FlutterNativeSplash.remove()` still runs in
-   `finally` and the home screen opens with a loading profile.
+   the profile, **capped at 2 s**. The replica answers immediately once the
+   account has synced on this device; a device that has never synced waits for
+   the cap, and `FlutterNativeSplash.remove()` still runs in `finally` so the
+   home screen opens with a loading profile.
 4. An `AppLifecycleListener` reconciles OS/browser notification permission,
    FCM registration and the server's installation row, and polls for an Android
    in-app update on every resume.
 
-On **sign-in** the same handler does four things, all fire-and-forget so none of
-them delays first paint: identify the user to analytics, tag the account as guest
-or registered, register this install for push, and pre-warm the profile and bot
-catalog. Registration is driven by *auth state* rather than by the notification
-service's one-time init, because the row maps a **user** to a device, and an
-in-session sign-in or account switch must re-register.
+On **sign-in** the same handler identifies the user to analytics, tags the
+account as guest or registered, and registers this install for push, all
+fire-and-forget so none of them delays first paint. Registration is driven by
+*auth state* rather than by the notification service's one-time init, because
+the row maps a **user** to a device, and an in-session sign-in or account switch
+must re-register. Nothing is pre-warmed: the screens read the replica, and
+signing in is itself a sync trigger.
 
 Notification initialization **never requests permission**. The first time a
 player is successfully seated in a multiplayer waiting room, the shell explains
@@ -128,99 +129,117 @@ installation itself.
 
 The splash is **infra-owned**: a game never calls `FlutterNativeSplash.remove()`.
 
-## Local persistence
+## The device replica
 
-**Native goal:** eliminate cold-start spinners for data that is already known
-and rarely changes. Web deliberately starts with a fresh server read after each
-reload and relies on Riverpod's in-memory state for the browser session.
+Every screen reads a **replica of the server's read model** on the device, and
+nothing else (architecture decision 0013). Opening a screen costs no request,
+works offline, and shows the same thing a moment after the app is killed and
+reopened. The network is not on the path from a screen to its data:
 
-Native apps currently store selected provider state as JSON with Riverpod's
-official SQLite adapter (`riverpod.db`, via `riverpod_sqflite`). Persisted
-providers **race** their restore against the network fetch rather than
-sequencing them: `persist()` is called *without* awaiting, and an internal
-`didChange` guard stops a slow cache read from overwriting a fresher network
-result.
+```text
+ writers                                    readers
+ sync pass (HTTP)      ─┐
+ open game's session   ─┼─► device replica ─► repositories ─► providers ─► screens
+ local engine commits  ─┘   (Drift tables)     (live queries)
+```
 
-| Provider | Native across launches | Web after reload |
-|---|---|---|
-| current user profile | SQLite stale-while-revalidate | fetch |
-| player-info cache (per id) | SQLite, 30-day expiry | fetch through the batch endpoint |
-| friends | SQLite stale-while-revalidate | fetch |
-| bot catalog | SQLite, 7-day expiry | fetch |
-| ratings, active games | fetch | fetch |
+The schema is `eigen_client`'s, in Drift, named after what it mirrors: `games`,
+`participants`, `players`, `bots`, `player_ratings`, `rating_history` and
+`relationships` from D1; `frames` and, for a game this device decides,
+`transitions` from the game's Durable Object; plus `accounts` for where each
+account's sync stands. Everything but the public reference data leads its key
+with an account id, so one account's replica is exactly its own rows: a second
+account on the device never reads them, signing out keeps them, and deleting the
+account deletes them.
+
+**One read fills it.** A sync pass uploads the games this device decides
+(offline play, below) and then pulls `GET /me/sync`, which answers with the
+small sets whole and finished games since a cursor. It runs on events, never on
+a timer: app start, resume, reconnecting, pull-to-refresh, a push arriving while
+the app is open, and a local game finishing. Only one pass runs at a time, and a
+failed one changes nothing, so the replica still holds what the last good one
+wrote.
+
+**Writes are ordered by the game's own revision.** A summary from a sync, a
+snapshot from the open game's socket and a commit from the local engine all
+write the same `games` row; each carries the `seq` its copy was taken at, and an
+older one changes nothing. A game this device decides is written by its engine
+alone.
 
 Two disciplines make this safe:
 
-- **`destroyKey` is per provider, not global.** Bump the individual provider's
-  key when *its* model's persisted shape changes incompatibly; old entries are
-  discarded and refetched. Sharing one key would mean a profile change wipes the
-  friends cache. There is no incremental JSON migration; this is the only path.
-- **Clear native user caches on sign-out and account deletion.**
-  `deleteUserData(uid)` wipes every
-  user-scoped key (`profile_{uid}`, `friends_{uid}`, …) and must run **before**
-  the auth session ends, since after deletion the credentials are gone. Cache
-  entries also carry an expiry. The **player-info cache is deliberately not
-  cleared**, because player identity is public and a second account on the same
-  device benefits from it, but each entry expires after 30 days.
+- **The replica is a cache of the server, except where it is not.** A game this
+  device decides is the only copy of that game until it synchronizes, which is
+  why deleting an account deletes it deliberately rather than as cleanup, and
+  why a browser is asked for persistent storage when the first one is created.
+- **A schema change ships a migration.** The tables are versioned and their
+  schema is dumped into `dart/eigen_client/drift_schemas/`, which CI checks;
+  there is no "drop it and refetch" path, because some of it cannot be refetched.
 
-The keys live in one place (`core/storage/`) rather than beside their providers,
-which also breaks a circular import between auth and profile.
-
-Theme choice and notification reconciliation markers are small preferences, not
-server-response caches, and continue to use `SharedPreferencesAsync` on web.
-Firebase owns authentication persistence independently. When native adopts
-Drift for queryable data such as game history, these JSON snapshots should move
-behind repositories as typed tables rather than turning Drift into another
-generic Riverpod key-value backend.
+Theme choice, notification reconciliation markers and the in-app review counter
+are small preferences rather than replicated data, and stay in
+`SharedPreferences`.
 
 ## Offline play
 
-A [local game](../build-a-game/offline-play.md) is a Drift-backed record, on
-both native and web (web uses IndexedDB rather than OPFS, because OPFS's
-cross-origin isolation requirement breaks the sign-in popup). Records are
-scoped by the owning user id: they survive sign-out, are listed for whoever is
-signed in, and are deleted with the account, the same discipline the rest of
-local persistence follows.
+A [local game](../build-a-game/offline-play.md) is rows in the same tables every
+other game is in: its `games` row and seats, plus its log and its one human's
+frames. So the lists, history and replay read it exactly as they read a server
+game, and nothing merges two sources. A commit is one transaction that appends
+the transition and the frame and moves the game's row, which is the Durable
+Object's commit and D1's mirror in one step, atomic in a way the server cannot
+be.
 
-A local game renders with no network because everything it needs is already
-on the device: its own record, plus the same player-info and bot-catalog
-caches described above, which is what turns a seat index into an avatar and a
-name offline. Sync itself needs no game code and no UI trigger — it runs
-automatically on app start, on connectivity regained, and when a local game
-finishes, appending the device's log to the server in the background without
-ever blocking local play.
+It renders with no network because everything it needs is already here: its own
+rows, plus the players and bots the replica holds, which is what turns a seat
+index into a name and an avatar offline. Sync needs no game code and no UI
+trigger; it is the upload half of the pass above.
 
-The scaffold's web build ships a service worker that precaches the
-application shell, registered at the root scope beside the messaging worker's
-own scope, because Flutter no longer generates one by default: without it, a
-web install has nothing cached to render from on a cold, offline reload.
+The scaffold's web build ships drift's web runtime (`sqlite3.wasm`,
+`drift_worker.js`) and a service worker that precaches the application shell,
+registered at the root scope beside the messaging worker's own scope, because
+Flutter no longer generates one: without it, a web install has nothing cached to
+render from on a cold, offline reload.
 
 ## Connectivity & offline UX
 
-Connectivity is infra-owned; game code never watches it. Two banners, both built
-on `StatusBanner`, both animating their height so the layout slides rather than
-jumps, and both pushing content down rather than overlaying it:
+Connectivity is infra-owned; game code never watches it. It reports what the
+platform says about the network, not whether the internet is reachable, and it
+has exactly three jobs: run a sync pass when the device reconnects, drive one
+neutral indicator, and disable the actions that need a server. Nothing else
+branches on it, because no screen reads the network.
 
-- An **offline banner** on shell screens when the device reports no network.
-- A **reconnecting banner** on the game screen when offline *or* the game
-  stream/observation is erroring *and* the game is non-terminal. It lives in its
-  own leaf `ConsumerWidget` so a connection blip rebuilds the banner, not the
-  whole game tree.
+- A **neutral banner** on shell screens when the device reports no network:
+  being offline changes where data comes from, not whether the app works.
+- A **game played on the server**, offline, shows the board as the replica last
+  saw it, says so, and holds its controls still through the same `actionPending`
+  state a move in flight uses. A socket failing while the device *does* report a
+  network (a blip, or a network with no internet) is the **reconnecting**
+  banner instead.
+- A **game played on this device** shows neither. Nothing about it needs a
+  network, so there is nothing to report.
+- The **lobby and friends' open games are not replicated**: a list of games
+  joinable right now is wrong the moment it is stale, and joining needs the
+  server anyway.
 
-Two subtleties worth keeping:
+On the offline → online transition the game screen re-subscribes immediately,
+bypassing Riverpod's retry backoff.
 
-- **Interface availability is not internet reachability.** `connectivity_plus`
-  reports "online" on a captive Wi-Fi with no upstream. So the error arm matters
-  as much as the offline arm, and the real recovery signal is the stream
-  re-syncing, not the connectivity flag.
-- **Stale data beats an error screen.** The game screen renders from
-  `asyncValue.value` whenever it is non-null, which covers `AsyncError` carrying
-  a previous value, so the board stays visible while the banner communicates the
-  reconnecting state. The hard error state only appears on a cold-start failure
-  with no data ever received.
+### What differs on the web
 
-On the offline → online transition the game screen invalidates its providers
-immediately, bypassing Riverpod's retry backoff.
+The same code runs, with three differences a browser forces:
+
+- **Storage can be cleared.** Replicated rows come back on the next sync; a
+  local game not yet uploaded cannot, so the app asks for persistent storage
+  (`navigator.storage.persist()`) when the first one is created.
+- **Tabs.** The shell cannot send the cross-origin isolation headers, because
+  they break the sign-in popup, so drift's only storage that is safe to share
+  between tabs is the shared-worker kind. Where the browser has no shared
+  workers, the first tab takes an exclusive lock on the database for its
+  lifetime and a second tab says the app is open elsewhere. Sync passes and
+  local games also run under browser locks.
+- **No storage at all.** A browser that keeps nothing across a reload runs the
+  app normally, minus local play, and says so.
 
 ## Navigation
 

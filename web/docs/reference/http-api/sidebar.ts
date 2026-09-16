@@ -22,12 +22,6 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "reference/http-api/get-my-games",
-          label: "getMyGames",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
           id: "reference/http-api/get-game",
           label: "getGame",
           className: "api-method get",
@@ -152,14 +146,14 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: "doc",
-          id: "reference/http-api/get-my-ratings",
-          label: "getMyRatings",
+          id: "reference/http-api/sync-account",
+          label: "syncAccount",
           className: "api-method get",
         },
         {
           type: "doc",
-          id: "reference/http-api/get-my-rating-history",
-          label: "getMyRatingHistory",
+          id: "reference/http-api/get-my-finished-games",
+          label: "getMyFinishedGames",
           className: "api-method get",
         },
         {
@@ -226,24 +220,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: "doc",
-          id: "reference/http-api/list-friends",
-          label: "listFriends",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "reference/http-api/list-friend-requests",
-          label: "listFriendRequests",
-          className: "api-method get",
-        },
-        {
-          type: "doc",
-          id: "reference/http-api/send-friend-request",
-          label: "sendFriendRequest",
-          className: "api-method post",
-        },
-        {
-          type: "doc",
           id: "reference/http-api/get-friends-games",
           label: "getFriendsGames",
           className: "api-method get",
@@ -253,6 +229,12 @@ const sidebar: SidebarsConfig = {
           id: "reference/http-api/search-users",
           label: "searchUsers",
           className: "api-method get",
+        },
+        {
+          type: "doc",
+          id: "reference/http-api/send-friend-request",
+          label: "sendFriendRequest",
+          className: "api-method post",
         },
         {
           type: "doc",

@@ -24,7 +24,7 @@ lives only in the DO.
 | Table | Purpose |
 |---|---|
 | `users` | Identity, keyed by Firebase uid (stable across guest→permanent upgrade). Merged users + profile. `avatar_url` defaults to the provider photo. |
-| `games` | The summary/read-model row (timing, rated, pool, status, outcomes, short_code, `origin` (`online` or `local`, immutable), `finish_id`, `finished_at`, a nullable `archived_at` cold-tier seam). |
+| `games` | The summary/read-model row (timing, rated, pool, status, outcomes, short_code, `origin` (`online` or `local`, immutable), `seq`, `finish_id`, `finished_at`, `finish_seq`, a nullable `archived_at` cold-tier seam). |
 | `participants` | The roster join table: one row per seat, the indexed access path for "games of user X". A display mirror of the DO roster. |
 | `relationships` | Friend edges in canonical pair order. |
 | `bots` | The [bot registry](./bots.md): `type` ∈ engine/external/local, `webhook_url` for external, capabilities `config`. CHECK-enforced. |
@@ -41,6 +41,33 @@ than hidden in schema triggers.
 Because `games` and `participants` are mirrors written after the DO's own commit,
 they can lag it. To read both stores at once and see any disagreement between
 them, see [Debugging a live game](../build-a-game/debugging.md).
+
+### Two numbers that order the mirror
+
+Mirror writes are dispatched without being awaited and retried, so two writes
+for one game can reach D1 in either order. Each carries `seq`, the game's own
+counter in its Durable Object, and lands only when the row is not already
+newer. Without that, a retried older write could put a finished game back to
+whose-turn-it-was.
+
+`finish_seq` is assigned once, inside the batch that records a finish, as one
+more than the largest so far. It is what a device syncs history by. `finished_at`
+cannot be: the instant is chosen before the write commits, and finishes commit
+out of order (the rating compare-and-swap retries, and a crashed apply is
+re-poked later), so a device whose cursor had passed a later timestamp would
+never see an earlier-stamped game that committed after it. History is therefore
+*shown* by finish time and *synced* by commit order.
+
+## What a device keeps
+
+A client keeps a replica of this read model and reads every screen from it, so
+opening one costs no request and works offline. `GET /me/sync` is the one read
+that fills it: the small sets whole (profile, ratings, friends and requests, and
+every game still in play) and finished games incrementally after a
+`finish_seq`. A whole set is what tells a device something was removed - an
+unfriending deletes a row, and leaving a lobby rewrites its roster - without
+tombstones for either. See
+[The app shell](./the-client-app.md#the-device-replica).
 
 ## Ratings & the concurrency-safe CAS
 

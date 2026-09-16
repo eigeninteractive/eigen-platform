@@ -1,6 +1,6 @@
 # 0013: the device replica and sync
 
-- Status: proposed
+- Status: accepted
 - Date: 2026-09-16
 - Amends: 0008's "Durable model", "Ordering rules", and "Offline behavior"
   sections; 0012's "The local engine and store" and "Synchronization"
@@ -164,8 +164,10 @@ that grows without bound, and a finished or aborted game does not change, so an
 increment only adds.
 
 The increment's cursor is `finish_seq`, a strictly increasing number D1 assigns
-in the same batch that first moves a game to `finished` or `aborted` (the finish
-apply and the terminal roster mirror alike) and never reassigns. A timestamp
+in the batch that records a finish, and never reassigns. Only the finish apply
+assigns it, because only a finished game is ever in an account's history: an
+aborted game keeps no roster, so the participants read no account reaches it
+through. A timestamp
 cannot serve: `finishedAt` is chosen before the write commits, and these writes
 commit out of order (the rating compare-and-swap retries, a crashed finish is
 re-applied, and mirrors retry without being awaited). A device whose cursor had
@@ -254,10 +256,12 @@ writes the pulled log into the same tables.
   was last current, and its controls are disabled.
 - An online game **never opened on this device** shows its header and roster;
   the board needs a connection.
-- A **finished game** replays from `frames`. A replay needs every version from 0
-  to the final one; missing ranges are fetched and stored. Frames of finished
-  online games are evicted least-recently-opened under a storage budget. Frames
-  of games still in play, and of local games, are never evicted.
+- A **finished game** replays from `frames` when the replica holds all of them,
+  which it always does for a game played here and does for an online game
+  opened before. Otherwise the replay is fetched whole, once, and kept: a
+  finished game's frames never change. Frames of ended online games are evicted
+  least-recently-opened under a budget; frames of games still in play, and of
+  local games, are never evicted.
 - Actions that need the server (the lobby, joining, creating an online game,
   friend requests) are disabled with the reason shown. The lobby and friends' open
   games are not replicated, because a list of games joinable now is wrong as soon
@@ -291,9 +295,13 @@ as available: that mode requires the isolation headers.
 - Under the in-memory fallback nothing survives a reload, so the app says so and
   does not offer local play.
 
-**Concurrency.** Every sync pass and every local game's engine runs under a Web
-Lock named for the account or the game, so two tabs sharing a database never
-sync at once or play one local game twice.
+**Concurrency.** Every sync pass runs under a Web Lock, so two tabs sharing a
+database never sync at once. Two tabs playing the *same* local game are not
+locked apart where the browser does share a database between them: each engine
+commits against the version it holds, so the second commit collides on the
+version it tries to append and fails rather than corrupting the log. A
+per-game lock would turn that error into a plain "open in another tab", and is
+an open question below rather than something this decision needs.
 
 **Eviction.** A browser may clear site storage. Replicated rows recover through
 the next sync; unsynchronized local games cannot. The app requests persistent
@@ -353,6 +361,9 @@ New:
 
 ## Open questions
 
+- Two tabs of a browser that shares a database between them can open the same
+  local game. The second commit fails rather than corrupting anything; a
+  per-game Web Lock would make that a clearer refusal.
 - The frame storage budget, and whether an app configures it.
 - The active set is returned whole. A product that lets one account hold hundreds
   of open games would need it paged.
