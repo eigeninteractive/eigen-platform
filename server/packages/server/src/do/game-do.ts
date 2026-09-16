@@ -246,7 +246,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
       const gameId = cmd.gameId;
       const state = this.#latestTransition();
       if (state !== null) {
-        this.#mirrorD1(`local import summary for game ${gameId}`, () => updateSummary(this.d1(this.env), { gameId, pendingPlayers: state.pending, turnDeadline: state.deadline, now: Date.now() }));
+        this.#mirrorD1(`local import summary for game ${gameId}`, () => updateSummary(this.d1(this.env), { gameId, pendingPlayers: state.pending, turnDeadline: state.deadline, seq: settled.seq, now: Date.now() }));
       }
     }
     // Read the caller's OWN session rather than reusing the last commit's
@@ -358,7 +358,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // Object stays alive while a promise is pending, so an unawaited (but
     // .catch-guarded) promise runs to completion on its own; waitUntil is a
     // stateless-Worker idiom that's redundant here.
-    this.#mirrorD1(`roster mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, now }));
+    this.#mirrorD1(`roster mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status, seats: nextRoster, seq, now }));
     // A join that just filled the lobby: nudge the away creator to start. Skip
     // when the actor is the creator (they filled it themselves via add-bot, so
     // they are already here). Best-effort, like the mirror above.
@@ -434,7 +434,10 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         // Already closing, nothing to do.
       }
     }
-    this.#mirrorD1(`aborted mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], now: Date.now() }));
+    // A never-touched lobby has no object state and so no revision beyond the
+    // create's, which is 0.
+    const seq = session?.seq ?? 0;
+    this.#mirrorD1(`aborted mirror for game ${gameId}`, () => mirrorRoster(this.d1(this.env), { gameId, status: "aborted", seats: [], seq, now: Date.now() }));
   }
 
   async #commitCommand(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, mode: CommitMode = "live"): Promise<CommandResult> {
@@ -598,7 +601,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // its own .catch so a failure logs rather than becoming an unhandled
     // rejection. #finishEffects also self-catches; the outer .catch is a belt.
     if (finish !== null) {
-      void this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next).catch((error) => console.error(`finish effects failed for game ${gameId}`, error));
+      void this.#finishEffects(meta, roster, finish.outcomes, finish.finishId, next, seq).catch((error) => console.error(`finish effects failed for game ${gameId}`, error));
     } else if (mode === "live") {
       // Skipped under `batch`: an import commits a whole run at once and writes
       // this row once at the end, rather than once per transition for a value
@@ -609,6 +612,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
           ...(cmd.kind === "start" ? { status: "active" as const } : {}),
           pendingPlayers: next.pending,
           turnDeadline: next.deadline,
+          seq,
           now,
         }),
       );
@@ -801,7 +805,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   // ── Finish (steps 3–4) ───────────────────────────────────────────────
 
-  async #finishEffects(meta: MetaRow, roster: Seat[], outcomes: OutcomeEntry[], finishId: string, finalState: StateRow): Promise<void> {
+  /** `seq` is the finishing commit's, which is also the object's current one
+   * until the ratings transition below commits. */
+  async #finishEffects(meta: MetaRow, roster: Seat[], outcomes: OutcomeEntry[], finishId: string, finalState: StateRow, seq: number): Promise<void> {
     try {
       const deltas = await applyFinish(this.d1(this.env), {
         gameId: meta.gameId,
@@ -810,6 +816,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         roster,
         rated: meta.rated,
         ratingPool: meta.ratingPool,
+        seq,
         now: Date.now(),
       });
       this.#commitRatingsTransition(meta, roster, finalState, deltas);
@@ -875,7 +882,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (row === undefined) return false;
     const latest = this.#latestTransition();
     if (latest === null) throw new GameBugError("outbox row exists but no transitions");
-    await this.#finishEffects(meta, this.#roster(), row.outcomes, row.finishId, this.#toStateRow(latest, meta));
+    await this.#finishEffects(meta, this.#roster(), row.outcomes, row.finishId, this.#toStateRow(latest, meta), meta.seq);
     return this.#db.select({ finishId: t.outbox.finishId }).from(t.outbox).get() === undefined;
   }
 
@@ -922,13 +929,13 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // The roster mirror owns `status` and rewrites participants wholesale, which
     // is why it is idempotent. A finished game keeps its roster; a cancelled one
     // has none, and writing that empty roster is the same thing `#cancel` did.
-    await mirrorRoster(d1, { gameId, status: meta.status, seats: roster, now });
+    await mirrorRoster(d1, { gameId, status: meta.status, seats: roster, seq: meta.seq, now });
     // The per-turn summary only exists once play has started. `applyFinish` owns
     // the terminal row, so a finished game gets nothing further from here — its
     // repair is the outbox retry above.
     if (latest !== null && meta.status === "active") {
       const state = this.#toStateRow(latest, meta);
-      await updateSummary(d1, { gameId, status: "active", pendingPlayers: state.pending, turnDeadline: state.deadline, now });
+      await updateSummary(d1, { gameId, status: "active", pendingPlayers: state.pending, turnDeadline: state.deadline, seq: meta.seq, now });
     }
     const alarmRearmed = await this.#reconcileAlarm();
     return { gameId, initialized: true, status: meta.status, mirrorRewritten: true, finishRepoked, alarmRearmed };

@@ -19,6 +19,7 @@ import { users } from "../d1/schema.js";
 import type { EngineApp, ResolvedAvatars, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { enforceRateLimit } from "../rate-limit.js";
+import { profileOf } from "./wire.js";
 
 /** Content types we accept and store. */
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -37,7 +38,8 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
   // Plain route (not OpenAPI): a raw binary body doesn't model cleanly in the
   // spec, so, like the game socket, it is hand-written on the client rather
   // than generated. Clients PUT the image bytes directly with an image/*
-  // content-type (never multipart) and read `{ avatarUrl }` off the 200.
+  // content-type (never multipart) and read the updated `Profile` off the 200,
+  // like every other route that changes the profile.
   engine.put("/me/avatar", async (c) => {
     await enforceRateLimit(c.env, "avatar_upload", c.var.auth.user.id);
     const contentType = (c.req.header("content-type") ?? "").split(";")[0]?.trim() ?? "";
@@ -53,7 +55,7 @@ export function registerAvatarUpload(engine: EngineApp, ctx: RouteContext): void
     await avatars.bucket(c.env).put(uid, body, { httpMetadata: { contentType } });
     const url = avatarUrl(avatars.publicBaseUrl(c.env), uid, now);
     await orm(ctx.d1(c.env)).update(users).set({ avatarUrl: url, updatedAt: now }).where(eq(users.id, uid));
-    return c.json({ avatarUrl: url }, 200);
+    return c.json(profileOf({ ...c.var.auth.user, avatarUrl: url }), 200);
   });
 }
 

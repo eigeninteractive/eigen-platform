@@ -6,7 +6,7 @@
 import 'package:eigen_api/src/model/game_summary.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-part 'my_games.g.dart';
+part 'my_finished_games.g.dart';
 
 @JsonSerializable(
   checked: true,
@@ -14,9 +14,9 @@ part 'my_games.g.dart';
   disallowUnrecognizedKeys: false,
   explicitToJson: true,
 )
-class MyGames {
-  /// Returns a new [MyGames] instance.
-  MyGames({required this.games, required this.nextCursor});
+class MyFinishedGames {
+  /// Returns a new [MyFinishedGames] instance.
+  MyFinishedGames({required this.games, required this.nextCursor});
 
   @JsonKey(name: r'games', required: true, includeIfNull: false)
   final List<GameSummary> games;
@@ -28,7 +28,7 @@ class MyGames {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is MyGames &&
+      other is MyFinishedGames &&
           other.games == games &&
           other.nextCursor == nextCursor;
 
@@ -36,10 +36,10 @@ class MyGames {
   int get hashCode =>
       games.hashCode + (nextCursor == null ? 0 : nextCursor.hashCode);
 
-  factory MyGames.fromJson(Map<String, dynamic> json) =>
-      _$MyGamesFromJson(json);
+  factory MyFinishedGames.fromJson(Map<String, dynamic> json) =>
+      _$MyFinishedGamesFromJson(json);
 
-  Map<String, dynamic> toJson() => _$MyGamesToJson(this);
+  Map<String, dynamic> toJson() => _$MyFinishedGamesToJson(this);
 
   @override
   String toString() {

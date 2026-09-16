@@ -49,6 +49,7 @@ class Profile {
   @JsonKey(name: r'email', required: true, includeIfNull: true)
   final String? email;
 
+  /// When this account was created. It changes only if the account was deleted and created again under the same id (a swept guest signing back in), so a client holding data for the account discards it when this differs.
   @JsonKey(name: r'createdAt', required: true, includeIfNull: false)
   final int createdAt;
 

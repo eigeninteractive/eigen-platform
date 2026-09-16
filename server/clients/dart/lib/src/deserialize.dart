@@ -1,5 +1,6 @@
 import 'package:eigen_api/src/model/access_capability.dart';
 import 'package:eigen_api/src/model/access_snapshot.dart';
+import 'package:eigen_api/src/model/account_sync.dart';
 import 'package:eigen_api/src/model/action.dart';
 import 'package:eigen_api/src/model/active_entitlement.dart';
 import 'package:eigen_api/src/model/add_bot.dart';
@@ -23,7 +24,6 @@ import 'package:eigen_api/src/model/create_solo.dart';
 import 'package:eigen_api/src/model/created.dart';
 import 'package:eigen_api/src/model/device_registration.dart';
 import 'package:eigen_api/src/model/display_name_update.dart';
-import 'package:eigen_api/src/model/display_name_updated.dart';
 import 'package:eigen_api/src/model/error_response.dart';
 import 'package:eigen_api/src/model/forfeit.dart';
 import 'package:eigen_api/src/model/frame.dart';
@@ -31,9 +31,7 @@ import 'package:eigen_api/src/model/frames.dart';
 import 'package:eigen_api/src/model/friend.dart';
 import 'package:eigen_api/src/model/friend_request.dart';
 import 'package:eigen_api/src/model/friend_request_result.dart';
-import 'package:eigen_api/src/model/friend_requests.dart';
 import 'package:eigen_api/src/model/friend_target.dart';
-import 'package:eigen_api/src/model/friends.dart';
 import 'package:eigen_api/src/model/friends_games.dart';
 import 'package:eigen_api/src/model/game_summary.dart';
 import 'package:eigen_api/src/model/health.dart';
@@ -47,7 +45,7 @@ import 'package:eigen_api/src/model/local_transition.dart';
 import 'package:eigen_api/src/model/local_transition_row.dart';
 import 'package:eigen_api/src/model/local_transitions.dart';
 import 'package:eigen_api/src/model/local_transitions_applied.dart';
-import 'package:eigen_api/src/model/my_games.dart';
+import 'package:eigen_api/src/model/my_finished_games.dart';
 import 'package:eigen_api/src/model/outcome.dart';
 import 'package:eigen_api/src/model/player.dart';
 import 'package:eigen_api/src/model/player_games.dart';
@@ -55,8 +53,6 @@ import 'package:eigen_api/src/model/players.dart';
 import 'package:eigen_api/src/model/profile.dart';
 import 'package:eigen_api/src/model/rating.dart';
 import 'package:eigen_api/src/model/rating_delta.dart';
-import 'package:eigen_api/src/model/rating_history.dart';
-import 'package:eigen_api/src/model/rating_history_entry.dart';
 import 'package:eigen_api/src/model/rating_identity.dart';
 import 'package:eigen_api/src/model/ratings.dart';
 import 'package:eigen_api/src/model/seat.dart';
@@ -66,7 +62,6 @@ import 'package:eigen_api/src/model/solo_started.dart';
 import 'package:eigen_api/src/model/transition_action.dart';
 import 'package:eigen_api/src/model/user_search.dart';
 import 'package:eigen_api/src/model/username_update.dart';
-import 'package:eigen_api/src/model/username_updated.dart';
 
 final _regList = RegExp(r'^List<(.*)>$');
 final _regSet = RegExp(r'^Set<(.*)>$');
@@ -96,6 +91,8 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'AccessSnapshot':
       return AccessSnapshot.fromJson(value as Map<String, dynamic>)
           as ReturnType;
+    case 'AccountSync':
+      return AccountSync.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Action':
       return Action.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'ActiveEntitlement':
@@ -157,9 +154,6 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'DisplayNameUpdate':
       return DisplayNameUpdate.fromJson(value as Map<String, dynamic>)
           as ReturnType;
-    case 'DisplayNameUpdated':
-      return DisplayNameUpdated.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
     case 'ErrorCode':
     case 'ErrorResponse':
       return ErrorResponse.fromJson(value as Map<String, dynamic>)
@@ -178,13 +172,8 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'FriendRequestResult':
       return FriendRequestResult.fromJson(value as Map<String, dynamic>)
           as ReturnType;
-    case 'FriendRequests':
-      return FriendRequests.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
     case 'FriendTarget':
       return FriendTarget.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'Friends':
-      return Friends.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'FriendsGames':
       return FriendsGames.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'GameAccess':
@@ -219,8 +208,9 @@ ReturnType deserialize<ReturnType, BaseType>(
     case 'LocalTransitionsApplied':
       return LocalTransitionsApplied.fromJson(value as Map<String, dynamic>)
           as ReturnType;
-    case 'MyGames':
-      return MyGames.fromJson(value as Map<String, dynamic>) as ReturnType;
+    case 'MyFinishedGames':
+      return MyFinishedGames.fromJson(value as Map<String, dynamic>)
+          as ReturnType;
     case 'Outcome':
       return Outcome.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'Player':
@@ -235,12 +225,6 @@ ReturnType deserialize<ReturnType, BaseType>(
       return Rating.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'RatingDelta':
       return RatingDelta.fromJson(value as Map<String, dynamic>) as ReturnType;
-    case 'RatingHistory':
-      return RatingHistory.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
-    case 'RatingHistoryEntry':
-      return RatingHistoryEntry.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
     case 'RatingIdentity':
       return RatingIdentity.fromJson(value as Map<String, dynamic>)
           as ReturnType;
@@ -261,9 +245,6 @@ ReturnType deserialize<ReturnType, BaseType>(
       return UserSearch.fromJson(value as Map<String, dynamic>) as ReturnType;
     case 'UsernameUpdate':
       return UsernameUpdate.fromJson(value as Map<String, dynamic>)
-          as ReturnType;
-    case 'UsernameUpdated':
-      return UsernameUpdated.fromJson(value as Map<String, dynamic>)
           as ReturnType;
     default:
       RegExpMatch? match;

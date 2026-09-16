@@ -1,17 +1,18 @@
 /**
- * The read routes: worker → D1, never a DO. Lobby,
- * my-games (through the participants index), the game summary, the batch
- * players endpoint, the bot catalog, and the caller's profile + ratings.
+ * The read routes: worker → D1, never a DO. Lobby, the game summary, the batch
+ * players endpoint, the bot catalog, the caller's profile, and the account sync
+ * with its history backfill.
  */
 
 import { createRoute, z } from "@hono/zod-openapi";
 import { botTier } from "../commerce/capability.js";
 import { decodeOptionalCursor } from "../cursor.js";
-import { clampIds, gameExists, readBots, readGame, readLobby, readMyGames, readPlayerPublicGames, readPlayers, readRatingHistory, readRatings } from "../d1/reads.js";
+import { clampIds, gameExists, readBots, readGame, readLobby, readMyFinishedGames, readPlayerPublicGames, readPlayers, readRatings } from "../d1/reads.js";
+import { readAccountSync } from "../d1/sync.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
-import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
-import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileShape, sessionShape } from "./wire.js";
+import { cursorQuery, limitQuery, nextCursorShape, sequenceQuery } from "./query.js";
+import { botOf, botShape, errorShape, gameSummaryOf, gameSummaryShape, playerOf, playerShape, profileOf, profileShape, ratingShape, sessionShape, syncShape } from "./wire.js";
 
 function okResponse<T extends z.ZodType>(schema: T, description: string) {
   const error = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
@@ -37,23 +38,6 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const { limit, cursor } = c.req.valid("query");
       const page = await readLobby(ctx.d1(c.env), limit, decodeOptionalCursor(cursor), c.var.auth.user.id);
-      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
-    },
-  );
-
-  // Registered before /games/{gameId} so "mine" never resolves as an id.
-  app.openapi(
-    createRoute({
-      method: "get",
-      path: "/games/mine",
-      operationId: "getMyGames",
-      tags: ["Games"],
-      request: { query: z.object({ bucket: z.enum(["active", "finished"]).default("active"), limit: limitQuery, cursor: cursorQuery }) },
-      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("MyGames"), "The caller's games in the requested bucket"),
-    }),
-    async (c) => {
-      const { bucket, limit, cursor } = c.req.valid("query");
-      const page = await readMyGames(ctx.d1(c.env), c.var.auth.user.id, bucket, limit, decodeOptionalCursor(cursor));
       return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
@@ -140,24 +124,58 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
       tags: ["Me"],
       responses: okResponse(profileShape, "The caller's own profile"),
     }),
-    async (c) => {
-      const user = c.var.auth.user;
-      return c.json({ ...playerOf(user), email: user.email, createdAt: user.createdAt }, 200);
-    },
+    async (c) => c.json(profileOf(c.var.auth.user), 200),
   );
 
-  const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), displayRating: z.number().int(), updatedAt: z.number().int() }).openapi("Rating");
+  // Everything a device keeps about the account, in one transaction: the one
+  // read a device's sync pass makes (decision 0013). It replaces a read per
+  // screen, so opening a screen costs nothing and a sync costs one request.
   app.openapi(
     createRoute({
       method: "get",
-      path: "/me/ratings",
-      operationId: "getMyRatings",
+      path: "/me/sync",
+      operationId: "syncAccount",
       tags: ["Me"],
-      responses: okResponse(z.object({ ratings: z.array(ratingShape) }).openapi("Ratings"), "The caller's current rating per pool"),
+      request: { query: z.object({ finishedAfter: sequenceQuery.optional() }) },
+      responses: okResponse(syncShape, "The caller's account, whole where small and incremental where it grows"),
     }),
     async (c) => {
-      const rows = await readRatings(ctx.d1(c.env), c.var.auth.user.id);
-      return c.json({ ratings: rows }, 200);
+      const { finishedAfter } = c.req.valid("query");
+      const user = c.var.auth.user;
+      const sync = await readAccountSync(ctx.d1(c.env), user.id, finishedAfter ?? null);
+      return c.json(
+        {
+          account: profileOf(user),
+          ratings: sync.ratings,
+          friends: sync.friends,
+          friendRequests: sync.friendRequests,
+          activeGames: sync.activeGames.map(gameSummaryOf),
+          finishedGames: sync.finishedGames.map(gameSummaryOf),
+          players: sync.players.map(playerOf),
+          finishedCursor: sync.finishedCursor,
+          hasMoreFinished: sync.hasMoreFinished,
+          historyFloor: sync.historyFloor,
+        },
+        200,
+      );
+    },
+  );
+
+  // History older than what the sync handed a device: continues from its
+  // `historyFloor`, newest first.
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/me/games/finished",
+      operationId: "getMyFinishedGames",
+      tags: ["Me"],
+      request: { query: z.object({ limit: limitQuery, cursor: cursorQuery }) },
+      responses: okResponse(z.object({ games: z.array(gameSummaryShape), nextCursor: nextCursorShape }).openapi("MyFinishedGames"), "The caller's finished games, newest first"),
+    }),
+    async (c) => {
+      const { limit, cursor } = c.req.valid("query");
+      const page = await readMyFinishedGames(ctx.d1(c.env), c.var.auth.user.id, limit, decodeOptionalCursor(cursor));
+      return c.json({ games: page.rows.map(gameSummaryOf), nextCursor: page.nextCursor }, 200);
     },
   );
 
@@ -198,32 +216,6 @@ export function registerReadRoutes(app: EngineApp, ctx: RouteContext): void {
     async (c) => {
       const rows = await readRatings(ctx.d1(c.env), c.req.valid("param").playerId);
       return c.json({ ratings: rows }, 200);
-    },
-  );
-
-  const historyShape = z
-    .object({
-      gameId: z.string(),
-      pool: z.string(),
-      displayBefore: z.number().int(),
-      displayAfter: z.number().int(),
-      displayChange: z.number().int(),
-      createdAt: z.number().int(),
-    })
-    .openapi("RatingHistoryEntry");
-  app.openapi(
-    createRoute({
-      method: "get",
-      path: "/me/rating-history",
-      operationId: "getMyRatingHistory",
-      tags: ["Me"],
-      request: { query: z.object({ pool: z.string().min(1).optional(), limit: limitQuery }) },
-      responses: okResponse(z.object({ history: z.array(historyShape) }).openapi("RatingHistory"), "The caller's rating log, newest first"),
-    }),
-    async (c) => {
-      const { pool, limit } = c.req.valid("query");
-      const rows = await readRatingHistory(ctx.d1(c.env), c.var.auth.user.id, pool ?? null, limit);
-      return c.json({ history: rows }, 200);
     },
   );
 }

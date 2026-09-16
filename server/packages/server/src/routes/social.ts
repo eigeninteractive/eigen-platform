@@ -16,13 +16,13 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { requireRegistered } from "../auth/registration.js";
 import { decodeOptionalCursor } from "../cursor.js";
 import { readPlayers } from "../d1/reads.js";
-import { acceptFriendRequest, blockUser, friendsOpenGames, listFriends, listPendingRequests, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
+import { acceptFriendRequest, blockUser, friendsOpenGames, removeRelationship, searchUsers, sendFriendRequest, unblockUser } from "../d1/social.js";
 import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { friendAcceptedPush, friendRequestPush } from "../notify/push.js";
 import { enforceRateLimit } from "../rate-limit.js";
 import { cursorQuery, limitQuery, nextCursorShape } from "./query.js";
-import { errorShape, friendRequestShape, friendShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
+import { errorShape, friendTargetBody, gameSummaryOf, gameSummaryShape, playerShape } from "./wire.js";
 
 const err = (what: string) => ({ content: { "application/json": { schema: errorShape } }, description: what });
 const errorResponses = { 400: err("Invalid request"), 401: err("Missing or invalid token"), 403: err("Not allowed"), 404: err("Not found") } as const;
@@ -47,15 +47,9 @@ function pushFriendEvent(ctx: RouteContext, env: unknown, waitUntil: (p: Promise
 }
 
 export function registerSocialRoutes(app: EngineApp, ctx: RouteContext): void {
-  // ── Lists ──────────────────────────────────────────────────────────────────
-  app.openapi(createRoute({ method: "get", path: "/friends", operationId: "listFriends", tags: ["Social"], responses: okResponse(z.object({ friends: z.array(friendShape) }).openapi("Friends"), "The caller's accepted friends") }), async (c) =>
-    c.json({ friends: await listFriends(ctx.d1(c.env), c.var.auth.user.id) }, 200),
-  );
-
-  app.openapi(createRoute({ method: "get", path: "/friends/requests", operationId: "listFriendRequests", tags: ["Social"], responses: okResponse(z.object({ requests: z.array(friendRequestShape) }).openapi("FriendRequests"), "Pending requests, incoming and outgoing") }), async (c) =>
-    c.json({ requests: await listPendingRequests(ctx.d1(c.env), c.var.auth.user.id) }, 200),
-  );
-
+  // ── Friends' open games ─────────────────────────────────────────────────────
+  // The friend list and pending requests themselves are part of the account
+  // sync (`/me/sync`), which is where a device learns about removals.
   app.openapi(
     createRoute({
       method: "get",

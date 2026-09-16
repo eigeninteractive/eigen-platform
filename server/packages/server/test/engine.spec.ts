@@ -66,6 +66,17 @@ async function createGame(uid: string, overrides: Record<string, unknown> = {}):
   return await json<Created>(await api(uid, "POST", "/games", { ...createBody, ...overrides }), 201);
 }
 
+interface Sync {
+  activeGames: { id: string; seq: number }[];
+  finishedGames: { id: string; ratings?: { identity: { userId: string | null }; pool: string }[] }[];
+  ratings: { pool: string }[];
+}
+
+/** The caller's account as a device syncs it. */
+async function sync(uid: string): Promise<Sync> {
+  return await json<Sync>(await api(uid, "GET", "/me/sync"));
+}
+
 async function socketTicket(uid: string, gameId: string): Promise<string> {
   return (await json<{ ticket: string }>(await api(uid, "POST", `/games/${gameId}/socket-ticket`), 200)).ticket;
 }
@@ -325,8 +336,8 @@ describe("active play & frames", () => {
     const first = await json<Created>(await api(u.a, "POST", "/games", body), 201);
     const second = await json<Created>(await api(u.a, "POST", "/games", body), 201);
     expect(second.gameId).not.toBe(first.gameId);
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.gameId, second.gameId]));
+    const mine = await sync(u.a);
+    expect(new Set(mine.activeGames.map((game) => game.id))).toEqual(new Set([first.gameId, second.gameId]));
   });
 
   it("replays the same creation identity and rejects changed inputs", async () => {
@@ -345,8 +356,8 @@ describe("active play & frames", () => {
     expect(conflict.status).toBe(409);
     expect(await conflict.json()).toMatchObject({ code: "creationConflict" });
 
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(mine.games.filter((game) => game.id === first.gameId)).toHaveLength(1);
+    const mine = await sync(u.a);
+    expect(mine.activeGames.filter((game) => game.id === first.gameId)).toHaveLength(1);
   });
 
   it("requires a creation identity on both create routes", async () => {
@@ -400,17 +411,18 @@ describe("active play & frames", () => {
     expect(viewer.frames.map((f) => f.version)).toEqual([0, 1, 2, 3]);
     expect(viewer.frames[3]?.ratings).toHaveLength(2);
 
-    const history = await json<{ history: { pool: string; displayChange: number }[] }>(await api(u.b, "GET", "/me/rating-history"));
-    expect(history.history).toHaveLength(1);
-    expect(history.history[0]?.pool).toBe("test-pool");
-    const ratings = await json<{ ratings: { pool: string }[] }>(await api(u.b, "GET", "/me/ratings"));
-    expect(ratings.ratings).toHaveLength(1);
+    // A device learns its rating change from the finished game it syncs, which
+    // carries every identity's delta, and its standing from the ratings set.
+    await vi.waitFor(async () => {
+      const synced = await sync(u.b);
+      const game = synced.finishedGames.find((g) => g.id === gameId);
+      expect(game?.ratings?.find((r) => r.identity.userId === u.b)?.pool).toBe("test-pool");
+      expect(synced.ratings).toHaveLength(1);
+    });
 
-    // The two parameters that used to fail silently on an empty value: `?pool=`
-    // became `WHERE pool = ''` and matched nothing, and `?to=` became `to: 0`,
-    // which clamped the replay to a single frame. Both are now refused outright
-    // rather than answered with a plausible, wrong 200.
-    expect((await api(u.b, "GET", "/me/rating-history?pool=")).status).toBe(400);
+    // A parameter that used to fail silently on an empty value: `?to=` became
+    // `to: 0`, which clamped the replay to a single frame. It is now refused
+    // outright rather than answered with a plausible, wrong 200.
     expect((await api(u.c, "GET", `/games/${gameId}/frames?from=0&to=`)).status).toBe(400);
     // And the range still works when it is actually given.
     const ranged = await json<{ frames: { version: number }[] }>(await api(u.c, "GET", `/games/${gameId}/frames?from=0&to=10`));
@@ -577,8 +589,8 @@ describe("bots", () => {
     const second = await json<CommandOk>(await api(u.a, "POST", "/games/solo", soloBody(ENGINE)), 201);
     expect(second.session.gameId).not.toBe(first.session.gameId);
 
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(new Set(mine.games.map((game) => game.id))).toEqual(new Set([first.session.gameId, second.session.gameId]));
+    const mine = await sync(u.a);
+    expect(new Set(mine.activeGames.map((game) => game.id))).toEqual(new Set([first.session.gameId, second.session.gameId]));
   });
 
   /**
@@ -601,8 +613,8 @@ describe("bots", () => {
     expect(retry.session.gameId).toBe(first.session.gameId);
     expect(retry.session.status).toBe(first.session.status);
 
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine"));
-    expect(mine.games.filter((game) => game.id === first.session.gameId)).toHaveLength(1);
+    const mine = await sync(u.a);
+    expect(mine.activeGames.filter((game) => game.id === first.session.gameId)).toHaveLength(1);
 
     // And the identity is still bound to its inputs on this route too.
     const conflict = await api(u.a, "POST", "/games/solo", { ...body, turnSeconds: 90 });
@@ -694,57 +706,34 @@ describe("bots", () => {
 });
 
 describe("reads", () => {
-  it("lobby lists public joinable games; my-games buckets by participants", async () => {
+  it("lobby lists public joinable games; the account sync lists only the caller's", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
     const lobby = await json<{ games: { id: string }[] }>(await api(u.c, "GET", "/lobby?limit=50"));
     expect(lobby.games.some((g) => g.id === gameId)).toBe(true);
 
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine?bucket=active"));
-    expect(mine.games.some((g) => g.id === gameId)).toBe(true);
-    const notMine = await json<{ games: { id: string }[] }>(await api(u.b, "GET", "/games/mine?bucket=active"));
-    expect(notMine.games.some((g) => g.id === gameId)).toBe(false);
+    expect((await sync(u.a)).activeGames.some((g) => g.id === gameId)).toBe(true);
+    expect((await sync(u.b)).activeGames.some((g) => g.id === gameId)).toBe(false);
   });
 
   // Absent is the first page. Empty is a MALFORMED request, and the difference
   // between those two is the whole story of this bug: `Number("")` is 0, so an
   // empty cursor used to parse as a real cursor of zero, which is older than
-  // every timestamp there has ever been. The lobby, both my-games buckets and
-  // the friends list all returned 200 with an empty list. Nothing coerces now,
-  // so the same request is a 400 that names itself.
+  // every timestamp there has ever been, and every paged list returned 200 with
+  // an empty list. Nothing coerces now, so the same request is a 400 that names
+  // itself. The sync cursor is the sharpest case: zero is a real position there.
   it("serves the first page when a cursor is absent", async () => {
     const u = makeUsers();
     const { gameId } = await createGame(u.a, { rated: false });
 
     const lobby = await json<{ games: { id: string }[] }>(await api(u.c, "GET", "/lobby"));
     expect(lobby.games.some((g) => g.id === gameId)).toBe(true);
-    const mine = await json<{ games: { id: string }[] }>(await api(u.a, "GET", "/games/mine?bucket=active"));
-    expect(mine.games.some((g) => g.id === gameId)).toBe(true);
   });
 
-  it.each(["/lobby?cursor=", "/lobby?limit=", "/games/mine?cursor=", "/games/mine?bucket=active&cursor=", "/me/rating-history?pool=", "/players/x/games?cursor="])("refuses an empty query value rather than reading it as zero (%s)", async (path) => {
+  it.each(["/lobby?cursor=", "/lobby?limit=", "/me/sync?finishedAfter=", "/me/sync?finishedAfter=1e3", "/me/games/finished?cursor=", "/players/x/games?cursor="])("refuses an empty query value rather than reading it as zero (%s)", async (path) => {
     const u = makeUsers();
     expect((await api(u.a, "GET", path)).status).toBe(400);
-  });
-
-  // The other half of the same rule: a cursor that is actually sent still pages.
-  // Without this, "ignore the cursor entirely" would pass the test above.
-  it("a server-issued cursor excludes everything on the page it came from", async () => {
-    const u = makeUsers();
-    const older = await createGame(u.a, { rated: false });
-    const newer = await createGame(u.a, { rated: false });
-
-    const page = await json<{ games: { id: string }[]; nextCursor: string | null }>(await api(u.a, "GET", "/games/mine?bucket=active&limit=1"));
-    expect(page.games).toHaveLength(1);
-    expect(page.nextCursor).not.toBeNull();
-
-    const next = await json<{ games: { id: string }[]; nextCursor: string | null }>(await api(u.a, "GET", `/games/mine?bucket=active&limit=1&cursor=${encodeURIComponent(page.nextCursor ?? "")}`));
-    expect(next.games).toHaveLength(1);
-    expect(next.games[0].id).not.toBe(page.games[0].id);
-    // The two pages together are the two games, each exactly once.
-    expect(new Set([page.games[0].id, next.games[0].id])).toEqual(new Set([older.gameId, newer.gameId]));
-    expect(next.nextCursor).toBeNull();
   });
 
   it("players batch endpoint returns public identity only", async () => {

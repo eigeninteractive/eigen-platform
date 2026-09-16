@@ -44,7 +44,13 @@ export const users = sqliteTable(
 );
 
 /** The game summary/read-model row (created worker-direct, before the
- * DO exists;: updated post-commit from DO effects, accepted staleness). */
+ * DO exists;: updated post-commit from DO effects, accepted staleness).
+ *
+ * Every write after the create carries the Durable Object's `seq` for the
+ * commit it mirrors and applies only when that is not older than the row's.
+ * The mirror is dispatched without being awaited and retried, so two writes for
+ * one game can land in either order; ordering them by the object's own counter
+ * is what keeps a late, older write from regressing the row. */
 export const games = sqliteTable(
   "games",
   {
@@ -75,11 +81,21 @@ export const games = sqliteTable(
     turnDeadline: integer(),
     /** Folded former game_outcomes table, written once by the finish apply. */
     outcomes: text({ mode: "json" }).$type<OutcomeEntry[] | null>(),
+    /** The game's revision: the Durable Object's `meta.seq` as of the commit
+     * this row mirrors. 0 at create, when no object exists yet. */
+    seq: integer().notNull().default(0),
     /** The D1 apply's idempotency key; set when the apply lands. */
     finishId: text(),
-    /** Stamped by the finish apply (and the future abort path); history
-     * lists sort by it. */
+    /** Stamped by the finish apply; history lists sort by it. An aborted game
+     * keeps no roster, so it is in no account's history and never gets one. */
     finishedAt: integer(),
+    /** Where this game sits in the order finishes COMMITTED, assigned once by
+     * the finish apply as one more than the largest so far. The history sync
+     * cursor. Not `finishedAt`: that instant is chosen before the write commits,
+     * and finishes commit out of order (the rating compare-and-swap retries and
+     * a crashed apply is re-poked), so a device that had synced past a later
+     * timestamp would never see an earlier-stamped game that committed after. */
+    finishSeq: integer(),
     /** Cold-tier seam: NULL = history lives in the game's DO. V1 never writes
      * or reads it; the future cold-tier sweep starts stamping it. */
     archivedAt: integer(),
@@ -91,6 +107,8 @@ export const games = sqliteTable(
     index("idx_games_created_by").on(t.createdBy),
     // The lobby page: public joinable games, newest first (ported partial index).
     index("idx_games_lobby").on(t.createdAt).where(sql`access = 'public' AND status IN ('waiting', 'ready')`),
+    // Serves both the next number's MAX() and the history sync's range read.
+    uniqueIndex("idx_games_finish_seq").on(t.finishSeq).where(sql`finish_seq IS NOT NULL`),
     check("games_origin_valid", sql`${t.origin} IN ('online', 'local')`),
   ],
 );
@@ -195,8 +213,9 @@ export const playerRatings = sqliteTable(
   (t) => [uniqueIndex("idx_player_ratings_user_pool").on(t.userId, t.pool).where(sql`user_id IS NOT NULL`), uniqueIndex("idx_player_ratings_bot_pool").on(t.botId, t.pool).where(sql`bot_id IS NOT NULL`)],
 );
 
-/** Immutable per-game rating log for the profile history screen, and the
- * concurrency control for rating writes.
+/** Immutable per-game rating log, and the concurrency control for rating
+ * writes. A client learns its own changes from the finished games it syncs,
+ * which carry every identity's delta, so nothing lists this table per user.
  *
  * Two unique indexes, guarding two different races:
  *
@@ -244,7 +263,6 @@ export const ratingHistory = sqliteTable(
     // identity column is set per row.
     uniqueIndex("idx_rating_history_user_cas").on(t.userId, t.pool, t.revisionBefore).where(sql`user_id IS NOT NULL`),
     uniqueIndex("idx_rating_history_bot_cas").on(t.botId, t.pool, t.revisionBefore).where(sql`bot_id IS NOT NULL`),
-    index("idx_rating_history_user_pool").on(t.userId, t.pool, t.createdAt),
   ],
 );
 

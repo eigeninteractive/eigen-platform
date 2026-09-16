@@ -77,6 +77,7 @@ function finish(gameId: string, a: string, b: string) {
     ],
     rated: true,
     ratingPool: POOL,
+    seq: 1,
     now: Date.now(),
   });
 }

@@ -12,8 +12,6 @@ Method | HTTP request | Description
 [**acceptFriendRequest**](SocialApi.md#acceptfriendrequest) | **POST** /api/engine/friends/requests/{userId}/accept | 
 [**blockUser**](SocialApi.md#blockuser) | **POST** /api/engine/friends/{userId}/block | 
 [**getFriendsGames**](SocialApi.md#getfriendsgames) | **GET** /api/engine/friends/games | 
-[**listFriendRequests**](SocialApi.md#listfriendrequests) | **GET** /api/engine/friends/requests | 
-[**listFriends**](SocialApi.md#listfriends) | **GET** /api/engine/friends | 
 [**removeFriend**](SocialApi.md#removefriend) | **DELETE** /api/engine/friends/{userId} | 
 [**searchUsers**](SocialApi.md#searchusers) | **GET** /api/engine/users/search | 
 [**sendFriendRequest**](SocialApi.md#sendfriendrequest) | **POST** /api/engine/friends/requests | 
@@ -131,80 +129,6 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**FriendsGames**](FriendsGames.md)
-
-### Authorization
-
-[firebase](../README.md#firebase)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **listFriendRequests**
-> FriendRequests listFriendRequests()
-
-
-
-### Example
-```dart
-import 'package:eigen_api/api.dart';
-
-final api = EigenApi().getSocialApi();
-
-try {
-    final response = api.listFriendRequests();
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling SocialApi->listFriendRequests: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-[**FriendRequests**](FriendRequests.md)
-
-### Authorization
-
-[firebase](../README.md#firebase)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **listFriends**
-> Friends listFriends()
-
-
-
-### Example
-```dart
-import 'package:eigen_api/api.dart';
-
-final api = EigenApi().getSocialApi();
-
-try {
-    final response = api.listFriends();
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling SocialApi->listFriends: $e\n');
-}
-```
-
-### Parameters
-This endpoint does not need any parameter.
-
-### Return type
-
-[**Friends**](Friends.md)
 
 ### Authorization
 

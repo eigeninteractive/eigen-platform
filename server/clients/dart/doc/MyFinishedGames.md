@@ -1,4 +1,4 @@
-# eigen_api.model.MyGames
+# eigen_api.model.MyFinishedGames
 
 ## Load the model package
 ```dart

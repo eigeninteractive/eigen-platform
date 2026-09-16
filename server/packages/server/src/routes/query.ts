@@ -62,6 +62,11 @@ export const limitQuery = intQuery(1, 50).default(20).openapi({ type: "integer",
  * nothing at all. */
 export const versionQuery = intQuery(0, Number.MAX_SAFE_INTEGER);
 
+/** A sync cursor the server issued: a position in the order finishes committed.
+ * Zero is a real position (nothing yet), and absent means the device holds
+ * nothing, so the two must not collapse into each other either. */
+export const sequenceQuery = intQuery(0, Number.MAX_SAFE_INTEGER);
+
 /**
  * Keyset cursor: the opaque `nextCursor` from the previous page, echoed back.
  * Absent on the first page.

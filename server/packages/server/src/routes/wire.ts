@@ -212,6 +212,10 @@ export const commandAcceptedShape = z
 export const gameSummaryShape = z
   .object({
     id: z.string(),
+    /** The game's revision. */
+    seq: z.number().int().openapi({
+      description: "The game's revision: the same per-game counter a `Session` carries as `seq`, as of the commit this summary reflects. A client holding a game from several sources keeps whichever copy has the higher `seq`.",
+    }),
     createdBy: z.string().nullable(),
     status: gameStatusShape,
     access: gameAccessShape,
@@ -253,9 +257,14 @@ export const playerShape = z
 export const profileShape = playerShape
   .extend({
     email: z.string().nullable(),
-    createdAt: z.number().int(),
+    createdAt: z.number().int().openapi({
+      description: "When this account was created. It changes only if the account was deleted and created again under the same id (a swept guest signing back in), so a client holding data for the account discards it when this differs.",
+    }),
   })
   .openapi("Profile");
+
+/** One identity's display rating in one pool. */
+export const ratingShape = z.object({ pool: z.string(), mu: z.number(), sigma: z.number(), displayRating: z.number().int(), updatedAt: z.number().int() }).openapi("Rating");
 
 /** The other user's public identity plus when the relationship formed: the
  * shared base of an accepted friend and a pending request. */
@@ -267,6 +276,28 @@ export const friendShape = friendBase.openapi("Friend");
 /** One pending friend request: a friend shape plus the request's direction
  * relative to the caller (`incoming` = received, `outgoing` = sent). */
 export const friendRequestShape = friendBase.extend({ direction: z.enum(["incoming", "outgoing"]) }).openapi("FriendRequest");
+
+/** Everything a device keeps about the caller's account, read in one
+ * transaction (decision 0013). Small sets are whole; finished games are an
+ * increment ordered by when their finishes committed. */
+export const syncShape = z
+  .object({
+    account: profileShape,
+    ratings: z.array(ratingShape).openapi({ description: "Every pool the caller is rated in. Whole." }),
+    friends: z.array(friendShape).openapi({ description: "Accepted friends. Whole: an absent friend was removed." }),
+    friendRequests: z.array(friendRequestShape).openapi({ description: "Pending requests in both directions. Whole." }),
+    activeGames: z.array(gameSummaryShape).openapi({ description: "Every game the caller is seated in that has not ended. Whole: a game absent here has ended or the caller left it." }),
+    finishedGames: z.array(gameSummaryShape).openapi({
+      description: "With `finishedAfter`: the caller's games whose finish committed after that cursor, in commit order. Without it: the newest page of the caller's history, newest first.",
+    }),
+    players: z.array(playerShape).openapi({ description: "The identity of every human seated in the games above." }),
+    finishedCursor: z.number().int().openapi({ description: "Pass as `finishedAfter` on the next sync." }),
+    hasMoreFinished: z.boolean().openapi({ description: "More of the increment remains; sync again with `finishedCursor` straight away." }),
+    historyFloor: z.string().nullable().openapi({
+      description: "Only on a sync without `finishedAfter`: pass as `cursor` to `getMyFinishedGames` for history older than `finishedGames`. Null when that page was the whole history, and always null on an incremental sync.",
+    }),
+  })
+  .openapi("AccountSync");
 
 /** The target of a friend write. */
 export const friendTargetBody = z.object({ targetUserId: z.string().min(1) }).openapi("FriendTarget");
@@ -567,6 +598,7 @@ export const forfeitBody = z.object({ seat: z.number().int().min(0) }).openapi("
 export function gameSummaryOf(g: GameWithRoster): z.infer<typeof gameSummaryShape> {
   return {
     id: g.id,
+    seq: g.seq,
     createdBy: g.createdBy,
     status: g.status,
     access: g.access,
@@ -594,6 +626,13 @@ export function gameSummaryOf(g: GameWithRoster): z.infer<typeof gameSummaryShap
 
 export function playerOf(u: Pick<UserRow, "id" | "username" | "displayName" | "avatarUrl" | "isAnonymous">): z.infer<typeof playerShape> {
   return { id: u.id, username: u.username, displayName: u.displayName, avatarUrl: u.avatarUrl, isAnonymous: u.isAnonymous };
+}
+
+/** The caller's own profile: public identity plus the private fields. Every
+ * route that changes the profile answers with this, so a client replaces what
+ * it holds rather than re-reading it. */
+export function profileOf(u: Pick<UserRow, "id" | "username" | "displayName" | "avatarUrl" | "isAnonymous" | "email" | "createdAt">): z.infer<typeof profileShape> {
+  return { ...playerOf(u), email: u.email, createdAt: u.createdAt };
 }
 
 /** The bot catalog projection. Unlike the ratings/history reads (whose SELECT

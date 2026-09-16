@@ -15,6 +15,13 @@
       "when": 1789463810566,
       "tag": "0001_shiny_talkback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789568266533,
+      "tag": "0002_neat_kabuki",
+      "breakpoints": true
     }
   ]
 }

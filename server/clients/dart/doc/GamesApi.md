@@ -22,7 +22,6 @@ Method | HTTP request | Description
 [**getGameSession**](GamesApi.md#getgamesession) | **GET** /api/engine/games/{gameId}/session | 
 [**getLobby**](GamesApi.md#getlobby) | **GET** /api/engine/lobby | 
 [**getLocalRecord**](GamesApi.md#getlocalrecord) | **GET** /api/engine/games/{gameId}/local | 
-[**getMyGames**](GamesApi.md#getmygames) | **GET** /api/engine/games/mine | 
 [**joinGame**](GamesApi.md#joingame) | **POST** /api/engine/games/{gameId}/join | 
 [**joinGameByCode**](GamesApi.md#joingamebycode) | **POST** /api/engine/games/join-by-code | 
 [**leaveGame**](GamesApi.md#leavegame) | **POST** /api/engine/games/{gameId}/leave | 
@@ -567,51 +566,6 @@ Name | Type | Description  | Notes
 ### Return type
 
 [**LocalRecord**](LocalRecord.md)
-
-### Authorization
-
-[firebase](../README.md#firebase)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **getMyGames**
-> MyGames getMyGames(bucket, limit, cursor)
-
-
-
-### Example
-```dart
-import 'package:eigen_api/api.dart';
-
-final api = EigenApi().getGamesApi();
-final String bucket = bucket_example; // String | 
-final int limit = 56; // int | 
-final String cursor = cursor_example; // String | 
-
-try {
-    final response = api.getMyGames(bucket, limit, cursor);
-    print(response);
-} catch on DioException (e) {
-    print('Exception when calling GamesApi->getMyGames: $e\n');
-}
-```
-
-### Parameters
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **bucket** | **String**|  | [optional] [default to 'active']
- **limit** | **int**|  | [optional] [default to 20]
- **cursor** | **String**|  | [optional] 
-
-### Return type
-
-[**MyGames**](MyGames.md)
 
 ### Authorization
 

@@ -192,6 +192,7 @@ describe("applyFinish purge guard", () => {
       ],
       rated: true,
       ratingPool: "guard-pool",
+      seq: 1,
       now,
     });
 
