@@ -4,5 +4,5 @@ CREATE TABLE `game_finishes` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `game_finishes_gameId_unique` ON `game_finishes` (`game_id`);--> statement-breakpoint
-DROP INDEX `idx_games_finish_seq`;--> statement-breakpoint
-ALTER TABLE `games` DROP COLUMN `finish_seq`;
+DROP INDEX `idx_rating_history_user_pool`;--> statement-breakpoint
+ALTER TABLE `games` ADD `seq` integer DEFAULT 0 NOT NULL;

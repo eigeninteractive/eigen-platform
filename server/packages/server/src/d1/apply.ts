@@ -103,7 +103,9 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
       .insert(gameFinishes)
       .select(
         db
-          // A NULL rowid is how SQLite is asked to assign the next one.
+          // The rowid is spelled out because Drizzle's insert-select wants a
+          // value for every column of the target; NULL is how SQLite is asked
+          // to assign the next one.
           .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
           .from(games)
           .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),

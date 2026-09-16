@@ -19,15 +19,8 @@
     {
       "idx": 2,
       "version": "6",
-      "when": 1789568266533,
-      "tag": "0002_neat_kabuki",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1789572940710,
-      "tag": "0003_overrated_loners",
+      "when": 1789573424831,
+      "tag": "0002_furry_zemo",
       "breakpoints": true
     }
   ]
