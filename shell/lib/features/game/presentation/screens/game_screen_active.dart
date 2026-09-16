@@ -74,6 +74,15 @@ class _ActiveGameContent extends ConsumerWidget {
       gameOutcomesProvider(gameId: session.snapshot.gameId),
     );
 
+    // A server game offline is the replica's copy: shown, not played. Nothing
+    // it sent could land, so the controls hold still through the same
+    // `actionPending` state a move in flight uses, rather than accepting a
+    // tap that could only fail.
+    final readOnly =
+        ref.watch(isOfflineProvider) &&
+        ref.watch(isLocalGameProvider(gameId: session.snapshot.gameId)).value ==
+            false;
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -95,7 +104,7 @@ class _ActiveGameContent extends ConsumerWidget {
                 ),
                 gameStatus: session.status,
                 outcomes: outcomes,
-                actionPending: isSubmittingAction,
+                actionPending: isSubmittingAction || readOnly,
                 onAction: (actionJson) => onAction(actionJson, frame.version),
                 onInvalidAction: () =>
                     unawaited(HapticFeedback.selectionClick()),
@@ -108,6 +117,7 @@ class _ActiveGameContent extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 8),
               child: _ForfeitButton(
                 isForfeiting: isForfeiting,
+                enabled: !readOnly,
                 onForfeit: onForfeit,
               ),
             ),
@@ -290,9 +300,16 @@ class _TimingHeader extends StatelessWidget {
 
 /// Forfeit button that shows a confirmation dialog before calling [onForfeit].
 class _ForfeitButton extends StatelessWidget {
-  const _ForfeitButton({required this.isForfeiting, required this.onForfeit});
+  const _ForfeitButton({
+    required this.isForfeiting,
+    required this.enabled,
+    required this.onForfeit,
+  });
 
   final bool isForfeiting;
+
+  /// False while the forfeit could not reach the server.
+  final bool enabled;
   final VoidCallback onForfeit;
 
   @override
@@ -300,7 +317,7 @@ class _ForfeitButton extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return TextButton.icon(
       style: TextButton.styleFrom(foregroundColor: colorScheme.error),
-      onPressed: isForfeiting ? null : () => _confirm(context),
+      onPressed: isForfeiting || !enabled ? null : () => _confirm(context),
       icon: isForfeiting
           ? const SizedBox(
               width: 16,

@@ -12,20 +12,8 @@ import '../domain/game_session.dart';
 /// Number of games fetched per lobby page.
 const lobbyPageSize = 50;
 
-/// Number of games fetched per history page.
-const historyPageSize = 30;
-
 /// Number of games shown in the replay list on a player's profile.
 const profileGamesPageSize = 10;
-
-/// Games still playable - the home screen's list.
-///
-/// A plain string because the server declares the bucket as a query enum, and
-/// query parameters generate as strings rather than Dart enums.
-const activeGamesBucket = 'active';
-
-/// Games that have ended - the history list.
-const finishedGamesBucket = 'finished';
 
 void _validateGapFrames(
   List<Frame> frames, {
@@ -81,23 +69,6 @@ class GameRepository {
   }) async {
     final body = await engineData(
       () => _api.getLobby(limit: limit, cursor: cursor),
-    );
-    return (games: body.games.toList(), nextCursor: body.nextCursor);
-  }
-
-  /// The caller's games in one bucket: `active` (still playable) or `finished`
-  /// (the history list).
-  ///
-  /// [cursor] is the previous page's [GamesPage.nextCursor]; omit it for the
-  /// first page. How each bucket is ordered is the server's business and is not
-  /// restated here.
-  Future<GamesPage> getMyGames({
-    String bucket = activeGamesBucket,
-    int limit = historyPageSize,
-    String? cursor,
-  }) async {
-    final body = await engineData(
-      () => _api.getMyGames(bucket: bucket, limit: limit, cursor: cursor),
     );
     return (games: body.games.toList(), nextCursor: body.nextCursor);
   }

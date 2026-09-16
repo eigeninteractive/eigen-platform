@@ -10,6 +10,7 @@ GameSummary _game({
   int? incrementSeconds,
 }) => GameSummary(
   id: 'g',
+  seq: 0,
   createdBy: null,
   status: GameStatus.active,
   access: GameAccess.public,

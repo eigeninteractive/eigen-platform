@@ -125,7 +125,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (cropped == null || !mounted) return;
 
       final bytes = await cropped.readAsBytes();
-      await ref.read(currentUserProfileProvider.notifier).uploadAvatar(bytes);
+      await ref.read(profileEditorProvider.notifier).uploadAvatar(bytes);
 
       if (mounted) {
         ScaffoldMessenger.of(
@@ -469,7 +469,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     setState(() => _saving = true);
     try {
       await ref
-          .read(currentUserProfileProvider.notifier)
+          .read(profileEditorProvider.notifier)
           .updateProfileFields(
             username: _username.trim(),
             displayName: _displayName.trim(),

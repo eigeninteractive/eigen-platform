@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:eigen_shell/core/navigation/widgets/shell_scaffold.dart';
 import 'package:eigen_shell/features/about/presentation/screens/about_screen.dart';
@@ -9,7 +8,6 @@ import 'package:eigen_shell/features/game/presentation/screens/history_screen.da
 import 'package:eigen_shell/features/game/presentation/screens/join_game_screen.dart';
 import 'package:eigen_shell/features/game/presentation/screens/lobby_screen.dart';
 import 'package:eigen_shell/features/game/presentation/screens/replay_screen.dart';
-import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/features/home/presentation/screens/home_screen.dart';
 import 'package:eigen_shell/features/profile/presentation/screens/profile_screen.dart';
 import 'package:eigen_shell/features/settings/presentation/screens/settings_screen.dart';
@@ -74,10 +72,6 @@ final List<RouteBase> appRoutes = [
     path: '/game/:gameId',
     name: 'game',
     parentNavigatorKey: rootNavigatorKey,
-    onExit: (context, state) async {
-      ProviderScope.containerOf(context).invalidate(activeGamesProvider);
-      return true;
-    },
     builder: (context, state) {
       final gameId = state.pathParameters['gameId']!;
       return GameScreen(gameId: gameId);

@@ -59,22 +59,20 @@ final class PlayerRepositoryProvider
 
 String _$playerRepositoryHash() => r'6202fe72c9790427173076d60d04415b08d1feae';
 
-/// Coalesces the per-id [PlayerInfoCache] misses into one batch request.
+/// Coalesces identity lookups into one batch request.
 ///
 /// A session-lived singleton so its batching window spans the whole app: every
-/// id watched in a single widget build funnels through one [PlayerBatchLoader]
-/// and one network call. See [PlayerBatchLoader] for why a zero-delay window
-/// suffices.
+/// id a single widget build finds missing from the replica funnels through one
+/// [PlayerBatchLoader] and one network call.
 
 @ProviderFor(playerBatchLoader)
 final playerBatchLoaderProvider = PlayerBatchLoaderProvider._();
 
-/// Coalesces the per-id [PlayerInfoCache] misses into one batch request.
+/// Coalesces identity lookups into one batch request.
 ///
 /// A session-lived singleton so its batching window spans the whole app: every
-/// id watched in a single widget build funnels through one [PlayerBatchLoader]
-/// and one network call. See [PlayerBatchLoader] for why a zero-delay window
-/// suffices.
+/// id a single widget build finds missing from the replica funnels through one
+/// [PlayerBatchLoader] and one network call.
 
 final class PlayerBatchLoaderProvider
     extends
@@ -84,12 +82,11 @@ final class PlayerBatchLoaderProvider
           PlayerBatchLoader
         >
     with $Provider<PlayerBatchLoader> {
-  /// Coalesces the per-id [PlayerInfoCache] misses into one batch request.
+  /// Coalesces identity lookups into one batch request.
   ///
   /// A session-lived singleton so its batching window spans the whole app: every
-  /// id watched in a single widget build funnels through one [PlayerBatchLoader]
-  /// and one network call. See [PlayerBatchLoader] for why a zero-delay window
-  /// suffices.
+  /// id a single widget build finds missing from the replica funnels through one
+  /// [PlayerBatchLoader] and one network call.
   PlayerBatchLoaderProvider._()
     : super(
         from: null,
@@ -126,69 +123,76 @@ final class PlayerBatchLoaderProvider
 
 String _$playerBatchLoaderHash() => r'b304409a3f6b309cde08d35a10fd8138c53ce989';
 
-/// Globally cached public player identity by ID.
+/// One human's public identity, from the replica.
 ///
-/// Works for both human users and bots; the batch endpoint covers both.
-/// `keepAlive: true` keeps the result in memory for the session lifetime.
-/// Native apps also restore it from the local API cache before the network
-/// response arrives. Web fetches fresh data after a browser reload.
-///
-/// Player identity is public data, so the cache is never cleared on sign-out.
-/// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
+/// The sync pass stores the identity of everyone seated in the account's games
+/// and of its friends, so this is almost always a read. An id the replica does
+/// not hold yet (a lobby seat, a player found by search) is fetched once and
+/// stored. An id the server no longer knows is a deleted account: it is dropped
+/// from the replica and this answers null, which a seat renders as deleted
+/// (decision 0007). Offline, a missing identity simply stays null until a lookup
+/// can succeed.
 
-@ProviderFor(PlayerInfoCache)
-@JsonPersist()
-final playerInfoCacheProvider = PlayerInfoCacheFamily._();
+@ProviderFor(playerIdentity)
+final playerIdentityProvider = PlayerIdentityFamily._();
 
-/// Globally cached public player identity by ID.
+/// One human's public identity, from the replica.
 ///
-/// Works for both human users and bots; the batch endpoint covers both.
-/// `keepAlive: true` keeps the result in memory for the session lifetime.
-/// Native apps also restore it from the local API cache before the network
-/// response arrives. Web fetches fresh data after a browser reload.
-///
-/// Player identity is public data, so the cache is never cleared on sign-out.
-/// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
-@JsonPersist()
-final class PlayerInfoCacheProvider
-    extends $AsyncNotifierProvider<PlayerInfoCache, Player> {
-  /// Globally cached public player identity by ID.
+/// The sync pass stores the identity of everyone seated in the account's games
+/// and of its friends, so this is almost always a read. An id the replica does
+/// not hold yet (a lobby seat, a player found by search) is fetched once and
+/// stored. An id the server no longer knows is a deleted account: it is dropped
+/// from the replica and this answers null, which a seat renders as deleted
+/// (decision 0007). Offline, a missing identity simply stays null until a lookup
+/// can succeed.
+
+final class PlayerIdentityProvider
+    extends $FunctionalProvider<AsyncValue<Player?>, Player?, Stream<Player?>>
+    with $FutureModifier<Player?>, $StreamProvider<Player?> {
+  /// One human's public identity, from the replica.
   ///
-  /// Works for both human users and bots; the batch endpoint covers both.
-  /// `keepAlive: true` keeps the result in memory for the session lifetime.
-  /// Native apps also restore it from the local API cache before the network
-  /// response arrives. Web fetches fresh data after a browser reload.
-  ///
-  /// Player identity is public data, so the cache is never cleared on sign-out.
-  /// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
-  PlayerInfoCacheProvider._({
-    required PlayerInfoCacheFamily super.from,
+  /// The sync pass stores the identity of everyone seated in the account's games
+  /// and of its friends, so this is almost always a read. An id the replica does
+  /// not hold yet (a lobby seat, a player found by search) is fetched once and
+  /// stored. An id the server no longer knows is a deleted account: it is dropped
+  /// from the replica and this answers null, which a seat renders as deleted
+  /// (decision 0007). Offline, a missing identity simply stays null until a lookup
+  /// can succeed.
+  PlayerIdentityProvider._({
+    required PlayerIdentityFamily super.from,
     required String super.argument,
   }) : super(
          retry: null,
-         name: r'playerInfoCacheProvider',
-         isAutoDispose: false,
+         name: r'playerIdentityProvider',
+         isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$playerInfoCacheHash();
+  String debugGetCreateSourceHash() => _$playerIdentityHash();
 
   @override
   String toString() {
-    return r'playerInfoCacheProvider'
+    return r'playerIdentityProvider'
         ''
         '($argument)';
   }
 
   @$internal
   @override
-  PlayerInfoCache create() => PlayerInfoCache();
+  $StreamProviderElement<Player?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Player?> create(Ref ref) {
+    final argument = this.argument as String;
+    return playerIdentity(ref, id: argument);
+  }
 
   @override
   bool operator ==(Object other) {
-    return other is PlayerInfoCacheProvider && other.argument == argument;
+    return other is PlayerIdentityProvider && other.argument == argument;
   }
 
   @override
@@ -197,122 +201,137 @@ final class PlayerInfoCacheProvider
   }
 }
 
-String _$playerInfoCacheHash() => r'd7ff0a693ba8c98392d3bf036475267d181d888b';
+String _$playerIdentityHash() => r'dab8363abfe37dc38df4e43f89c60a55d6d148a8';
 
-/// Globally cached public player identity by ID.
+/// One human's public identity, from the replica.
 ///
-/// Works for both human users and bots; the batch endpoint covers both.
-/// `keepAlive: true` keeps the result in memory for the session lifetime.
-/// Native apps also restore it from the local API cache before the network
-/// response arrives. Web fetches fresh data after a browser reload.
-///
-/// Player identity is public data, so the cache is never cleared on sign-out.
-/// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
+/// The sync pass stores the identity of everyone seated in the account's games
+/// and of its friends, so this is almost always a read. An id the replica does
+/// not hold yet (a lobby seat, a player found by search) is fetched once and
+/// stored. An id the server no longer knows is a deleted account: it is dropped
+/// from the replica and this answers null, which a seat renders as deleted
+/// (decision 0007). Offline, a missing identity simply stays null until a lookup
+/// can succeed.
 
-@JsonPersist()
-final class PlayerInfoCacheFamily extends $Family
-    with
-        $ClassFamilyOverride<
-          PlayerInfoCache,
-          AsyncValue<Player>,
-          Player,
-          FutureOr<Player>,
-          String
-        > {
-  PlayerInfoCacheFamily._()
+final class PlayerIdentityFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Player?>, String> {
+  PlayerIdentityFamily._()
     : super(
         retry: null,
-        name: r'playerInfoCacheProvider',
+        name: r'playerIdentityProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
-        isAutoDispose: false,
+        isAutoDispose: true,
       );
 
-  /// Globally cached public player identity by ID.
+  /// One human's public identity, from the replica.
   ///
-  /// Works for both human users and bots; the batch endpoint covers both.
-  /// `keepAlive: true` keeps the result in memory for the session lifetime.
-  /// Native apps also restore it from the local API cache before the network
-  /// response arrives. Web fetches fresh data after a browser reload.
-  ///
-  /// Player identity is public data, so the cache is never cleared on sign-out.
-  /// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
+  /// The sync pass stores the identity of everyone seated in the account's games
+  /// and of its friends, so this is almost always a read. An id the replica does
+  /// not hold yet (a lobby seat, a player found by search) is fetched once and
+  /// stored. An id the server no longer knows is a deleted account: it is dropped
+  /// from the replica and this answers null, which a seat renders as deleted
+  /// (decision 0007). Offline, a missing identity simply stays null until a lookup
+  /// can succeed.
 
-  @JsonPersist()
-  PlayerInfoCacheProvider call({required String id}) =>
-      PlayerInfoCacheProvider._(argument: id, from: this);
+  PlayerIdentityProvider call({required String id}) =>
+      PlayerIdentityProvider._(argument: id, from: this);
 
   @override
-  String toString() => r'playerInfoCacheProvider';
+  String toString() => r'playerIdentityProvider';
 }
 
-/// Globally cached public player identity by ID.
-///
-/// Works for both human users and bots; the batch endpoint covers both.
-/// `keepAlive: true` keeps the result in memory for the session lifetime.
-/// Native apps also restore it from the local API cache before the network
-/// response arrives. Web fetches fresh data after a browser reload.
-///
-/// Player identity is public data, so the cache is never cleared on sign-out.
-/// Bump [StorageOptions.destroyKey] if [Player]'s JSON schema changes.
+/// The identity a seat renders: a human's from the replica, a bot's from the
+/// catalog. Null for a seat whose account is gone, or while offline for a human
+/// the device has never seen.
 
-@JsonPersist()
-abstract class _$PlayerInfoCacheBase extends $AsyncNotifier<Player> {
-  late final _$args = ref.$arg as String;
-  String get id => _$args;
+@ProviderFor(seatIdentity)
+final seatIdentityProvider = SeatIdentityFamily._();
 
-  FutureOr<Player> build({required String id});
-  @$mustCallSuper
+/// The identity a seat renders: a human's from the replica, a bot's from the
+/// catalog. Null for a seat whose account is gone, or while offline for a human
+/// the device has never seen.
+
+final class SeatIdentityProvider
+    extends $FunctionalProvider<AsyncValue<Player?>, Player?, FutureOr<Player?>>
+    with $FutureModifier<Player?>, $FutureProvider<Player?> {
+  /// The identity a seat renders: a human's from the replica, a bot's from the
+  /// catalog. Null for a seat whose account is gone, or while offline for a human
+  /// the device has never seen.
+  SeatIdentityProvider._({
+    required SeatIdentityFamily super.from,
+    required ({String? userId, String? botId}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'seatIdentityProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
   @override
-  WhenComplete runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<Player>, Player>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<Player>, Player>,
-              AsyncValue<Player>,
-              Object?,
-              Object?
-            >;
-    return element.handleCreate(ref, () => build(id: _$args));
+  String debugGetCreateSourceHash() => _$seatIdentityHash();
+
+  @override
+  String toString() {
+    return r'seatIdentityProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<Player?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Player?> create(Ref ref) {
+    final argument = this.argument as ({String? userId, String? botId});
+    return seatIdentity(ref, userId: argument.userId, botId: argument.botId);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SeatIdentityProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
   }
 }
 
-// **************************************************************************
-// JsonGenerator
-// **************************************************************************
+String _$seatIdentityHash() => r'1ee97cdd5b5c42ebbb16fe1ecb08ddcb108cec36';
 
-// GENERATED CODE - DO NOT MODIFY BY HAND
-abstract class _$PlayerInfoCache extends _$PlayerInfoCacheBase {
-  /// The default key used by [persist].
-  String get key {
-    late final args = id;
-    late final resolvedKey = 'PlayerInfoCache($args)';
+/// The identity a seat renders: a human's from the replica, a bot's from the
+/// catalog. Null for a seat whose account is gone, or while offline for a human
+/// the device has never seen.
 
-    return resolvedKey;
-  }
+final class SeatIdentityFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<Player?>,
+          ({String? userId, String? botId})
+        > {
+  SeatIdentityFamily._()
+    : super(
+        retry: null,
+        name: r'seatIdentityProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
 
-  /// A variant of [persist], for JSON-specific encoding.
-  ///
-  /// You can override [key] to customize the key used for storage.
-  PersistResult persist(
-    FutureOr<Storage<String, String>> storage, {
-    String? key,
-    String Function(Player state)? encode,
-    Player Function(String encoded)? decode,
-    StorageOptions options = const StorageOptions(),
-  }) {
-    return NotifierPersistX(this).persist<String, String>(
-      storage,
-      key: key ?? this.key,
-      encode: encode ?? $jsonCodex.encode,
-      decode:
-          decode ??
-          (encoded) {
-            final e = $jsonCodex.decode(encoded);
-            return Player.fromJson(e as Map<String, Object?>);
-          },
-      options: options,
-    );
-  }
+  /// The identity a seat renders: a human's from the replica, a bot's from the
+  /// catalog. Null for a seat whose account is gone, or while offline for a human
+  /// the device has never seen.
+
+  SeatIdentityProvider call({String? userId, String? botId}) =>
+      SeatIdentityProvider._(
+        argument: (userId: userId, botId: botId),
+        from: this,
+      );
+
+  @override
+  String toString() => r'seatIdentityProvider';
 }

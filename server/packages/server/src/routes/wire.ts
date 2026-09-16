@@ -254,8 +254,13 @@ export const playerShape = z
   })
   .openapi("Player");
 
-export const profileShape = playerShape
-  .extend({
+/** Spread rather than `.extend()`ed: extending a named schema emits an `allOf`
+ * over its `$ref`, and the Dart generator flattens that without the nullable
+ * branches, which typed `avatarUrl` non-null and failed to decode any profile
+ * without an avatar. */
+export const profileShape = z
+  .object({
+    ...playerShape.shape,
     email: z.string().nullable(),
     createdAt: z.number().int().openapi({
       description: "When this account was created. It changes only if the account was deleted and created again under the same id (a swept guest signing back in), so a client holding data for the account discards it when this differs.",

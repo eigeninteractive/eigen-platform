@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:eigen_flutter/shell_support.dart';
-import 'package:eigen_shell/core/storage/user_data_cache.dart';
+import 'package:eigen_shell/core/storage/account_data.dart';
 import 'package:eigen_shell/features/profile/providers/profile_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -53,7 +53,6 @@ class AuthController extends _$AuthController {
 
     final authService = ref.read(authServiceProvider);
     final analytics = ref.read(analyticsServiceProvider);
-    final guestId = ref.read(currentUserProvider)?.id;
     try {
       final result = await authService.upgradeWithGoogle();
       if (result == AuthUpgradeResult.existingAccount) {
@@ -61,10 +60,9 @@ class AuthController extends _$AuthController {
         state = const AsyncData(null);
         return UpgradeOutcome.existingAccount;
       }
-      if (guestId != null) {
-        ref.invalidate(currentUserProfileProvider);
-        ref.invalidate(playerInfoCacheProvider(id: guestId));
-      }
+      // Linking replaced the guest's name and avatar with the provider's, and
+      // the next sync states them.
+      unawaited(ref.read(syncCoordinatorProvider.notifier).run());
       unawaited(analytics.guestUpgraded());
       unawaited(analytics.setAccountType(isGuest: false));
       state = const AsyncData(null);
@@ -90,10 +88,10 @@ class AuthController extends _$AuthController {
       await ref.read(authServiceProvider).switchToExistingGoogleAccount();
       if (guestId != null) {
         try {
-          await deleteUserData(ref, guestId);
+          await forgetAbandonedGuest(ref, guestId);
         } catch (error, stackTrace) {
           developer.log(
-            'Guest cache cleanup after account switch failed (ignored)',
+            'Guest replica cleanup after account switch failed (ignored)',
             name: 'auth.controller',
             error: error,
             stackTrace: stackTrace,
@@ -124,13 +122,10 @@ class AuthController extends _$AuthController {
 
     state = await AsyncValue.guard(() async {
       final userId = ref.read(currentUserProvider)?.id;
-      await ref.read(profileRepositoryProvider).deleteAccount();
-      if (userId != null) {
-        await deleteUserData(ref, userId);
-        // Unlike a sign-out, this is the end of the account, so the games it
-        // played on this device go with it.
-        await deleteLocalGamesFor(ref, userId);
-      }
+      await ref.read(accountRepositoryProvider).deleteAccount();
+      // Unlike a sign-out, this is the end of the account, so everything the
+      // device holds for it goes, the games it played here included.
+      if (userId != null) await deleteAccountData(ref, userId);
       try {
         await ref.read(authServiceProvider).signOut();
       } catch (error) {
@@ -143,13 +138,15 @@ class AuthController extends _$AuthController {
     });
   }
 
-  /// Signs out the current user and clears user-scoped local state.
+  /// Signs out the current user.
+  ///
+  /// The account's replica stays on the device, scoped to it, so signing back
+  /// in is instant and works offline (decision 0013). No other account reads
+  /// it.
   Future<void> signOut() async {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      final userId = ref.read(currentUserProvider)?.id;
-      if (userId != null) await deleteUserData(ref, userId);
       await ref.read(notificationServiceProvider).deleteCurrentInstallation();
       await ref.read(authServiceProvider).signOut();
     });

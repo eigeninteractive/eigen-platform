@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/shell_support.dart';
-import 'package:eigen_shell/core/storage/user_data_cache.dart';
 import 'package:flutter_riverpod/experimental/mutation.dart';
-import 'package:flutter_riverpod/experimental/persist.dart';
-import 'package:riverpod_annotation/experimental/json_persist.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'social_providers.g.dart';
@@ -15,44 +12,28 @@ SocialRepository socialRepository(Ref ref) {
   return ref.watch(engineClientProvider).social;
 }
 
-/// The caller's accepted friends.
+/// The caller's accepted friends, from the replica.
 ///
-/// Native apps persist this stable list to avoid a cold-start spinner. Web
-/// keeps it only for the current browser session and refetches after reload.
-@Riverpod(keepAlive: true)
-@JsonPersist()
+/// Every change goes to the server and is followed by a sync pass, which
+/// returns the friends and requests whole: that is how a request the server
+/// auto-accepted, or a friend removed from another device, reaches this list.
+@riverpod
 class Friends extends _$Friends {
   static final send = Mutation<void>(label: 'sendFriendRequest');
   static final accept = Mutation<void>(label: 'acceptFriendRequest');
   static final remove = Mutation<void>(label: 'removeFriend');
 
   @override
-  Future<List<Friend>> build() async {
-    final user = ref.watch(currentUserProvider);
-    if (user == null) throw StateError('User not authenticated');
-
-    if (persistentApiCacheEnabled) {
-      persist(
-        ref.watch(storageProvider.future),
-        key: friendshipsCacheKey(user.id),
-        options: const StorageOptions(
-          cacheTime: StorageCacheTime.unsafe_forever,
-          // Cache-schema version for the persisted list. Bumped to 2 when the
-          // hand-written Friendship was replaced by the generated Friend,
-          // whose shape carries the other user's identity rather than ids.
-          destroyKey: '2',
-        ),
-      );
+  Stream<List<Friend>> build() async* {
+    final replica = await ref.watch(accountReplicaProvider.future);
+    if (replica == null) {
+      yield const [];
+      return;
     }
-
-    return ref.watch(socialRepositoryProvider).getFriends();
+    yield* replica.watchFriends();
   }
 
   /// Sends a request, or accepts one already pending from that user.
-  ///
-  /// Both lists are invalidated because either outcome is possible: the server
-  /// auto-accepts when the target already had a request out to the caller, so
-  /// this can add a friend rather than a pending request.
   Future<void> sendRequest(String targetUserId) async {
     final result = await ref
         .read(socialRepositoryProvider)
@@ -68,51 +49,47 @@ class Friends extends _$Friends {
       );
     }
     unawaited(ref.read(analyticsServiceProvider).friendRequestSent());
-    _invalidateAll();
+    await _resync();
   }
 
   Future<void> acceptRequest(String targetUserId) async {
     await ref.read(socialRepositoryProvider).acceptFriendRequest(targetUserId);
     unawaited(ref.read(analyticsServiceProvider).friendAccepted());
-    _invalidateAll();
+    await _resync();
   }
 
   /// Unfriends, withdraws an outgoing request, or declines an incoming one.
   Future<void> removeFriend(String targetUserId) async {
     await ref.read(socialRepositoryProvider).removeFriend(targetUserId);
-    _invalidateAll();
+    await _resync();
   }
 
-  void _invalidateAll() {
-    ref.invalidateSelf();
-    ref.invalidate(friendRequestsProvider);
-  }
+  Future<void> _resync() => ref.read(syncCoordinatorProvider.notifier).run();
 }
 
-/// Pending requests in both directions.
-///
-/// Not persisted: unlike the friend list these are short-lived, and showing a
-/// stale request that has since been accepted or withdrawn is worse than a
-/// brief spinner.
+/// Pending requests in both directions, from the replica.
 @riverpod
-Future<List<FriendRequest>> friendRequests(Ref ref) async {
-  final requests = await ref
-      .watch(socialRepositoryProvider)
-      .getFriendRequests();
-  if (requests.any(
-    (request) =>
-        request.direction == FriendRequestDirectionEnum.unknownDefaultOpenApi,
-  )) {
-    unawaited(
-      ref
-          .read(analyticsServiceProvider)
-          .wireEnumFallback(
-            enumType: 'FriendRequestDirection',
-            surface: 'social',
-          ),
-    );
+Stream<List<FriendRequest>> friendRequests(Ref ref) async* {
+  final replica = await ref.watch(accountReplicaProvider.future);
+  if (replica == null) {
+    yield const [];
+    return;
   }
-  return requests;
+  final analytics = ref.read(analyticsServiceProvider);
+  await for (final requests in replica.watchFriendRequests()) {
+    if (requests.any(
+      (request) =>
+          request.direction == FriendRequestDirectionEnum.unknownDefaultOpenApi,
+    )) {
+      unawaited(
+        analytics.wireEnumFallback(
+          enumType: 'FriendRequestDirection',
+          surface: 'social',
+        ),
+      );
+    }
+    yield requests;
+  }
 }
 
 /// Requests the caller received and can act on.
@@ -134,6 +111,9 @@ Future<List<FriendRequest>> outgoingRequests(Ref ref) async {
 }
 
 /// Joinable games created by the caller's friends.
+///
+/// Not replicated: a list of games joinable right now is wrong as soon as it
+/// is stale, and joining needs the network anyway.
 @riverpod
 Future<List<GameSummary>> friendsGames(Ref ref) async {
   return (await ref.watch(socialRepositoryProvider).getFriendsGames()).games;

@@ -4,7 +4,10 @@ import 'package:eigen_api/eigen_api.dart';
 import '../api/engine_call.dart';
 import '../api/games_page.dart';
 
-/// The friend graph: friends, pending requests, blocks, and user search.
+/// The friend graph's writes, user search, and friends' open games.
+///
+/// The caller's friends and pending requests themselves arrive with the account
+/// sync, which is what tells a device one was removed.
 ///
 /// Every write is idempotent and answers 204, so retrying one is always safe.
 /// The server owns the side effects a write implies - notably the friend
@@ -13,22 +16,6 @@ class SocialRepository {
   SocialRepository(Dio http) : _api = SocialApi(http);
 
   final SocialApi _api;
-
-  /// The caller's accepted friends, most recently befriended first.
-  Future<List<Friend>> getFriends() async {
-    final body = await engineData(() => _api.listFriends());
-    return body.friends;
-  }
-
-  /// Pending requests in both directions.
-  ///
-  /// Each entry carries its own [FriendRequest.direction], so incoming
-  /// (actionable) and outgoing (withdrawable) requests arrive together and are
-  /// split by the caller rather than by two round trips.
-  Future<List<FriendRequest>> getFriendRequests() async {
-    final body = await engineData(() => _api.listFriendRequests());
-    return body.requests;
-  }
 
   /// Joinable games created by the caller's friends.
   ///

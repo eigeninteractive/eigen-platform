@@ -229,6 +229,10 @@ List<NavigationRailDestination> _railDestinations({required bool isGuest}) => [
 ];
 
 /// Slim banner shown when the device has no network connectivity.
+///
+/// Neutral rather than an error: every screen reads the device's own copy, so
+/// being offline changes where data comes from, not whether the app works
+/// (decision 0013). Actions that need the server say so where they are offered.
 class _OfflineBanner extends StatelessWidget {
   const _OfflineBanner();
 
@@ -237,13 +241,13 @@ class _OfflineBanner extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return StatusBanner(
       leading: Icon(
-        Icons.wifi_off_rounded,
+        Icons.cloud_off_rounded,
         size: 16,
-        color: colorScheme.onErrorContainer,
+        color: colorScheme.onSurfaceVariant,
       ),
-      label: 'No internet connection',
-      backgroundColor: colorScheme.errorContainer,
-      foregroundColor: colorScheme.onErrorContainer,
+      label: 'Offline · showing what this device has',
+      backgroundColor: colorScheme.surfaceContainerHigh,
+      foregroundColor: colorScheme.onSurfaceVariant,
     );
   }
 }

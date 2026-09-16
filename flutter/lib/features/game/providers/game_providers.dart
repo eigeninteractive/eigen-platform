@@ -4,13 +4,11 @@ import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/storage/storage_provider.dart';
+import 'package:eigen_flutter/core/replica/replica_providers.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/providers/local_game_providers.dart';
 import 'package:eigen_flutter/features/game/utils/bot_compatibility.dart';
 import 'package:eigen_flutter/shared/providers/player_providers.dart';
-import 'package:flutter_riverpod/experimental/persist.dart';
-import 'package:riverpod_annotation/experimental/json_persist.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'game_providers.g.dart';
@@ -37,39 +35,14 @@ GameModule currentGameModule(Ref ref) => throw UnimplementedError(
 
 /// The bot catalog for this deployment - the pickers' source of truth.
 ///
-/// `keepAlive`: static reference data that changes rarely (bots are registered
-/// by an operator), so it is fetched once and reused for the session.
-///
-/// Native apps cache it locally so the pickers resolve before the network
-/// refresh lands. Web keeps it only for the current browser session. The
-/// catalog is deployment-global public reference data - like
-/// [PlayerInfoCache] it is not user-scoped and not cleared on sign-out, so the
-/// auto-derived global storage key is correct.
+/// Read from the replica, which the sync pass keeps current, so a picker opens
+/// with no request and an offline device can still name the opponents of a game
+/// it is already playing. The catalog is deployment-global public reference
+/// data, shared by every account on the device.
 @Riverpod(keepAlive: true)
-@JsonPersist()
-class AvailableBots extends _$AvailableBots {
-  @override
-  Future<List<Bot>> build() async {
-    if (persistentApiCacheEnabled) {
-      persist(
-        ref.watch(storageProvider.future),
-        options: const StorageOptions(
-          // Never expires, deliberately. The refresh below still runs on every
-          // build, so an online device is always current; what an expiry would
-          // add is the ability to empty this cache while offline, and a device
-          // with no catalog cannot name the opponents of a game it is already
-          // playing. Stale bot metadata is a worse-looking name; no metadata is
-          // a game that will not open.
-          cacheTime: StorageCacheTime.unsafe_forever,
-          // Bumped to '4': the row now carries `type`, which the local picker
-          // filters on, so an entry written before it is not usable.
-          destroyKey: '4',
-        ),
-      );
-    }
-
-    return ref.watch(gameRepositoryProvider).getBots();
-  }
+Stream<List<Bot>> availableBots(Ref ref) async* {
+  final public = await ref.watch(publicReplicaProvider.future);
+  yield* public.watchBots();
 }
 
 /// The bot catalog indexed by id, for O(1) capability lookups.
@@ -113,52 +86,36 @@ bool soloPlayAvailable(Ref ref) {
       ref.watch(localPlayAvailableProvider);
 }
 
-/// The caller's games, "your turn" first then most recently updated.
+/// The caller's games still in play, "your turn" first then most recently
+/// changed.
 ///
-/// One request for the server's: the summary already carries the roster, the
-/// pending set and the deadline, so nothing has to be derived from a second
-/// read. Games this device played offline are read from its own store and
-/// merged in, which is what makes the home list correct with no network.
-///
-/// A local game that has already synchronized exists in both lists, and the
-/// device's own record wins: it is the copy that stays readable offline, and
-/// the two agree about everything a row shows.
+/// Read from the replica (decision 0013): online and local games are rows in
+/// the same table, so nothing merges them, and opening the list costs no
+/// request. It re-emits when a writer changes a row it shows: a sync pass, a
+/// live session, or the local engine.
 @riverpod
-Future<List<GameSummary>> activeGames(Ref ref) async {
-  final local = await ref.watch(localActiveGamesProvider.future);
-  List<GameSummary> server;
-  try {
-    server = (await ref.watch(gameRepositoryProvider).getMyGames()).games
-        .toList();
-  } on Object {
-    // Offline. A device holding playable local games must still list them, so
-    // the failure is only fatal when there is nothing else to show - which is
-    // also what keeps the error state reachable for an ordinary account.
-    if (local.isEmpty) rethrow;
-    server = const [];
+Stream<List<GameSummary>> activeGames(Ref ref) async* {
+  final replica = await ref.watch(accountReplicaProvider.future);
+  if (replica == null) {
+    yield const [];
+    return;
   }
-  final myUserId = ref.watch(currentUserIdProvider);
-  final localIds = {for (final game in local) game.id};
+  yield* replica.watchActiveGames();
+}
 
-  bool isMyTurn(GameSummary game) {
-    final seat = game.participants
-        .where((p) => p.userId == myUserId)
-        .map((p) => p.playerIndex)
-        .firstOrNull;
-    return seat != null && (game.pendingPlayers?.contains(seat) ?? false);
+/// The caller's ended games, most recently ended first, up to [limit].
+///
+/// History grows by raising [limit]. When the replica runs out before the limit
+/// and older history remains on the server, the history screen asks the sync
+/// coordinator for the next page, and this re-emits as it lands.
+@riverpod
+Stream<List<GameSummary>> finishedGames(Ref ref, {required int limit}) async* {
+  final replica = await ref.watch(accountReplicaProvider.future);
+  if (replica == null) {
+    yield const [];
+    return;
   }
-
-  // The secondary key is explicit because List.sort is not stable, so relying
-  // on the server's order to survive the sort would be fragile.
-  return [
-    ...local,
-    for (final game in server)
-      if (!localIds.contains(game.id)) game,
-  ]..sort((a, b) {
-    final aMine = isMyTurn(a);
-    if (aMine != isMyTurn(b)) return aMine ? -1 : 1;
-    return b.updatedAt.compareTo(a.updatedAt);
-  });
+  yield* replica.watchFinishedGames(limit: limit);
 }
 
 /// One game's live session: the single subscription a game screen needs.
@@ -186,7 +143,15 @@ Stream<GameSession> gameSession(Ref ref, {required String gameId}) async* {
     yield* localGameSessions(engine);
     return;
   }
-  yield* ref.watch(gameRepositoryProvider).sessions(gameId);
+  final games = ref.watch(gameRepositoryProvider);
+  final replica = await ref.watch(accountReplicaProvider.future);
+  if (replica == null) {
+    yield* games.sessions(gameId);
+    return;
+  }
+  // Opens from the replica straight away, then the live session takes over and
+  // is stored as it passes (decision 0013).
+  yield* replicatedSessions(replica: replica, games: games, gameId: gameId);
 }
 
 /// The game's status, live.
@@ -257,8 +222,8 @@ bool _hasUnknownSeatType(Iterable<Seat>? seats) =>
 /// The game's seats with their identities resolved, plus which one is mine.
 ///
 /// Seats come from the live session, so this re-derives as players join and
-/// leave. Identities come from the persisted player cache, which covers humans
-/// and bots alike.
+/// leave. Identities come from the replica: humans from its players, bots from
+/// its catalog.
 @riverpod
 Future<PlayersContext> gamePlayers(Ref ref, {required String gameId}) async {
   final seats = ref.watch(gameSeatsProvider(gameId: gameId));
@@ -282,33 +247,34 @@ Future<PlayersContext> gamePlayers(Ref ref, {required String gameId}) async {
 /// Resolves one seat's identity, substituting a placeholder for a purged
 /// account.
 ///
-/// Both ids are null when a human deleted their account after the game
-/// finished. The seat still has to render, so it gets a synthetic identity -
-/// marked [GamePlayer.isDeleted] so callers know not to feed its id back into
-/// an identity lookup or a profile sheet.
+/// A human's identity comes from the replica, fetched once when it holds none;
+/// a bot's comes from the catalog. Both ids are null when a human deleted their
+/// account after the game finished, and a human id the server no longer knows
+/// is the same deletion seen later. The seat still has to render, so it gets a
+/// synthetic identity - marked [GamePlayer.isDeleted] so callers know not to
+/// feed its id back into an identity lookup or a profile sheet.
 Future<MapEntry<int, GamePlayer>> _resolveSeat(
   Ref ref, {
   required String gameId,
   required Seat seat,
 }) async {
-  final id = seat.userId ?? seat.botId;
-
-  if (id == null) {
-    return MapEntry(
-      seat.playerIndex,
-      GamePlayer(
-        playerIndex: seat.playerIndex,
-        type: seat.type,
-        info: _deletedPlayer(gameId, seat.playerIndex),
-        isDeleted: true,
-      ),
-    );
+  final Player? info;
+  if (seat.userId case final userId?) {
+    info = await ref.watch(playerIdentityProvider(id: userId).future);
+  } else if (seat.botId case final botId?) {
+    final bot = (await ref.watch(botCatalogByIdProvider.future))[botId];
+    info = bot == null ? null : playerOfBot(bot);
+  } else {
+    info = null;
   }
-
-  final info = await ref.watch(playerInfoCacheProvider(id: id).future);
   return MapEntry(
     seat.playerIndex,
-    GamePlayer(playerIndex: seat.playerIndex, type: seat.type, info: info),
+    GamePlayer(
+      playerIndex: seat.playerIndex,
+      type: seat.type,
+      info: info ?? _deletedPlayer(gameId, seat.playerIndex),
+      isDeleted: info == null,
+    ),
   );
 }
 

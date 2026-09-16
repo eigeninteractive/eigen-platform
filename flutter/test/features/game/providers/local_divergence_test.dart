@@ -2,8 +2,8 @@ import 'package:checks/checks.dart';
 import 'package:drift/native.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/local/drift_local_game_store.dart';
-import 'package:eigen_flutter/core/local/local_database.dart';
+import 'package:eigen_flutter/core/replica/replica_providers.dart';
+import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/game/providers/game_providers.dart';
 import 'package:eigen_flutter/features/game/providers/local_game_providers.dart';
 import 'package:flutter/widgets.dart';
@@ -101,16 +101,16 @@ Bot _bot() => Bot(
 );
 
 void main() {
-  late LocalDatabase database;
-  late DriftLocalGameStore store;
+  late ReplicaDatabase database;
+  late LocalGameStorage storage;
 
   setUp(() {
-    database = LocalDatabase(NativeDatabase.memory());
-    store = DriftLocalGameStore(database);
+    database = ReplicaDatabase(NativeDatabase.memory());
+    storage = LocalGameStorage(database);
   });
   tearDown(() => database.close());
 
-  Future<LocalGameRecord> seed() async {
+  Future<LocalGame> seed() async {
     final engine = await LocalGameEngine.create(
       userId: 'user-a',
       schemaVersion: 1,
@@ -118,15 +118,16 @@ void main() {
       botIds: const ['counter-bot'],
       bots: {'counter-bot': _bot()},
       rules: const CounterLocalRules(),
-      store: store,
+      storage: storage,
     );
     addTearDown(engine.close);
-    return engine.record;
+    return engine.game;
   }
 
   ProviderContainer containerFor() => makeContainer(
     overrides: [
-      localGameStoreProvider.overrideWith((ref) async => store),
+      localGameStorageProvider.overrideWith((ref) async => storage),
+      currentUserIdProvider.overrideWithValue('user-a'),
       currentGameModuleProvider.overrideWithValue(const _Module()),
       botCatalogByIdProvider.overrideWith(
         (ref) async => {'counter-bot': _bot()},
@@ -135,7 +136,7 @@ void main() {
     ],
   );
 
-  test('an ordinary record gets an engine, so the device plays it', () async {
+  test('an ordinary game gets an engine, so the device plays it', () async {
     final record = await seed();
     final container = containerFor();
 
@@ -146,11 +147,11 @@ void main() {
     check(engine).isNotNull();
   });
 
-  test('a diverged record gets no engine, which is what stops local play', () async {
+  test('a diverged game gets no engine, which is what stops local play', () async {
     final record = await seed();
     // The server refused a move these rules accepted, or another device moved
     // the game on. Either way the two copies are of different games from here.
-    await store.save(record.copyWith(diverged: true));
+    await storage.mark(accountId: 'user-a', gameId: record.id, diverged: true);
     final container = containerFor();
 
     final engine = await container.read(

@@ -8,30 +8,34 @@ part of 'replay_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// The full ordered frame history of a finished game, fetched once.
+/// The full ordered frame history of a finished game.
 ///
-/// A finished game's history is immutable, so this is fetched a single time and
-/// cached for the life of the replay screen. A participant receives their own
-/// seat's projection; a non-participant replaying a public game receives the
-/// observer projection - the shape is identical either way, so the replay UI
-/// does not branch on it.
+/// Read from the replica when it holds all of it, which it always does for a
+/// game played on this device and does for an online game opened before (up to
+/// the replica's replay budget), so a replay opens offline. Otherwise fetched
+/// once and stored, since a finished game's history never changes.
 ///
-/// The same range endpoint backs live gap recovery; replay is just the whole
-/// range rather than a missing slice of it.
+/// A participant receives their own seat's projection; a non-participant
+/// replaying a public game receives the observer projection - the shape is
+/// identical either way, so the replay UI does not branch on it. The same range
+/// endpoint backs live gap recovery; replay is just the whole range rather than
+/// a missing slice of it.
 
 @ProviderFor(replayFrames)
 final replayFramesProvider = ReplayFramesFamily._();
 
-/// The full ordered frame history of a finished game, fetched once.
+/// The full ordered frame history of a finished game.
 ///
-/// A finished game's history is immutable, so this is fetched a single time and
-/// cached for the life of the replay screen. A participant receives their own
-/// seat's projection; a non-participant replaying a public game receives the
-/// observer projection - the shape is identical either way, so the replay UI
-/// does not branch on it.
+/// Read from the replica when it holds all of it, which it always does for a
+/// game played on this device and does for an online game opened before (up to
+/// the replica's replay budget), so a replay opens offline. Otherwise fetched
+/// once and stored, since a finished game's history never changes.
 ///
-/// The same range endpoint backs live gap recovery; replay is just the whole
-/// range rather than a missing slice of it.
+/// A participant receives their own seat's projection; a non-participant
+/// replaying a public game receives the observer projection - the shape is
+/// identical either way, so the replay UI does not branch on it. The same range
+/// endpoint backs live gap recovery; replay is just the whole range rather than
+/// a missing slice of it.
 
 final class ReplayFramesProvider
     extends
@@ -41,16 +45,18 @@ final class ReplayFramesProvider
           FutureOr<List<Frame>>
         >
     with $FutureModifier<List<Frame>>, $FutureProvider<List<Frame>> {
-  /// The full ordered frame history of a finished game, fetched once.
+  /// The full ordered frame history of a finished game.
   ///
-  /// A finished game's history is immutable, so this is fetched a single time and
-  /// cached for the life of the replay screen. A participant receives their own
-  /// seat's projection; a non-participant replaying a public game receives the
-  /// observer projection - the shape is identical either way, so the replay UI
-  /// does not branch on it.
+  /// Read from the replica when it holds all of it, which it always does for a
+  /// game played on this device and does for an online game opened before (up to
+  /// the replica's replay budget), so a replay opens offline. Otherwise fetched
+  /// once and stored, since a finished game's history never changes.
   ///
-  /// The same range endpoint backs live gap recovery; replay is just the whole
-  /// range rather than a missing slice of it.
+  /// A participant receives their own seat's projection; a non-participant
+  /// replaying a public game receives the observer projection - the shape is
+  /// identical either way, so the replay UI does not branch on it. The same range
+  /// endpoint backs live gap recovery; replay is just the whole range rather than
+  /// a missing slice of it.
   ReplayFramesProvider._({
     required ReplayFramesFamily super.from,
     required String super.argument,
@@ -95,18 +101,20 @@ final class ReplayFramesProvider
   }
 }
 
-String _$replayFramesHash() => r'471f5b6599dc83663b543c9d52e524c26ca65864';
+String _$replayFramesHash() => r'946b19caf4fc455a78712f94001386ed4d11713d';
 
-/// The full ordered frame history of a finished game, fetched once.
+/// The full ordered frame history of a finished game.
 ///
-/// A finished game's history is immutable, so this is fetched a single time and
-/// cached for the life of the replay screen. A participant receives their own
-/// seat's projection; a non-participant replaying a public game receives the
-/// observer projection - the shape is identical either way, so the replay UI
-/// does not branch on it.
+/// Read from the replica when it holds all of it, which it always does for a
+/// game played on this device and does for an online game opened before (up to
+/// the replica's replay budget), so a replay opens offline. Otherwise fetched
+/// once and stored, since a finished game's history never changes.
 ///
-/// The same range endpoint backs live gap recovery; replay is just the whole
-/// range rather than a missing slice of it.
+/// A participant receives their own seat's projection; a non-participant
+/// replaying a public game receives the observer projection - the shape is
+/// identical either way, so the replay UI does not branch on it. The same range
+/// endpoint backs live gap recovery; replay is just the whole range rather than
+/// a missing slice of it.
 
 final class ReplayFramesFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<Frame>>, String> {
@@ -119,16 +127,18 @@ final class ReplayFramesFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// The full ordered frame history of a finished game, fetched once.
+  /// The full ordered frame history of a finished game.
   ///
-  /// A finished game's history is immutable, so this is fetched a single time and
-  /// cached for the life of the replay screen. A participant receives their own
-  /// seat's projection; a non-participant replaying a public game receives the
-  /// observer projection - the shape is identical either way, so the replay UI
-  /// does not branch on it.
+  /// Read from the replica when it holds all of it, which it always does for a
+  /// game played on this device and does for an online game opened before (up to
+  /// the replica's replay budget), so a replay opens offline. Otherwise fetched
+  /// once and stored, since a finished game's history never changes.
   ///
-  /// The same range endpoint backs live gap recovery; replay is just the whole
-  /// range rather than a missing slice of it.
+  /// A participant receives their own seat's projection; a non-participant
+  /// replaying a public game receives the observer projection - the shape is
+  /// identical either way, so the replay UI does not branch on it. The same range
+  /// endpoint backs live gap recovery; replay is just the whole range rather than
+  /// a missing slice of it.
 
   ReplayFramesProvider call({required String gameId}) =>
       ReplayFramesProvider._(argument: gameId, from: this);

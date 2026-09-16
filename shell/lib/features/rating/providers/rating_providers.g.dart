@@ -55,28 +55,34 @@ final class RatingRepositoryProvider
 
 String _$ratingRepositoryHash() => r'b0e88ea45b61207b0b252143d3fae926730dcbf6';
 
-/// All pool ratings for `id`, ordered by highest display rating.
+/// All pool ratings for `id`, best first: humans and bots alike.
 ///
-/// Works for both human user IDs and bot IDs.
+/// Shown from the replica straight away, and refreshed from the server each
+/// time something starts watching, so another player's sheet opens instantly
+/// and offline, and is current when it can be.
 
 @ProviderFor(playerRatings)
 final playerRatingsProvider = PlayerRatingsFamily._();
 
-/// All pool ratings for `id`, ordered by highest display rating.
+/// All pool ratings for `id`, best first: humans and bots alike.
 ///
-/// Works for both human user IDs and bot IDs.
+/// Shown from the replica straight away, and refreshed from the server each
+/// time something starts watching, so another player's sheet opens instantly
+/// and offline, and is current when it can be.
 
 final class PlayerRatingsProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<Rating>>,
           List<Rating>,
-          FutureOr<List<Rating>>
+          Stream<List<Rating>>
         >
-    with $FutureModifier<List<Rating>>, $FutureProvider<List<Rating>> {
-  /// All pool ratings for `id`, ordered by highest display rating.
+    with $FutureModifier<List<Rating>>, $StreamProvider<List<Rating>> {
+  /// All pool ratings for `id`, best first: humans and bots alike.
   ///
-  /// Works for both human user IDs and bot IDs.
+  /// Shown from the replica straight away, and refreshed from the server each
+  /// time something starts watching, so another player's sheet opens instantly
+  /// and offline, and is current when it can be.
   PlayerRatingsProvider._({
     required PlayerRatingsFamily super.from,
     required String super.argument,
@@ -100,12 +106,12 @@ final class PlayerRatingsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Rating>> $createElement(
+  $StreamProviderElement<List<Rating>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<Rating>> create(Ref ref) {
+  Stream<List<Rating>> create(Ref ref) {
     final argument = this.argument as String;
     return playerRatings(ref, argument);
   }
@@ -121,14 +127,16 @@ final class PlayerRatingsProvider
   }
 }
 
-String _$playerRatingsHash() => r'71c55d167dd0f7d2ff7220b1c26d53eb0ca964c4';
+String _$playerRatingsHash() => r'aaec269b2eed2dd2e89407d470fb5deb28e68db0';
 
-/// All pool ratings for `id`, ordered by highest display rating.
+/// All pool ratings for `id`, best first: humans and bots alike.
 ///
-/// Works for both human user IDs and bot IDs.
+/// Shown from the replica straight away, and refreshed from the server each
+/// time something starts watching, so another player's sheet opens instantly
+/// and offline, and is current when it can be.
 
 final class PlayerRatingsFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<Rating>>, String> {
+    with $FunctionalFamilyOverride<Stream<List<Rating>>, String> {
   PlayerRatingsFamily._()
     : super(
         retry: null,
@@ -138,9 +146,11 @@ final class PlayerRatingsFamily extends $Family
         isAutoDispose: true,
       );
 
-  /// All pool ratings for `id`, ordered by highest display rating.
+  /// All pool ratings for `id`, best first: humans and bots alike.
   ///
-  /// Works for both human user IDs and bot IDs.
+  /// Shown from the replica straight away, and refreshed from the server each
+  /// time something starts watching, so another player's sheet opens instantly
+  /// and offline, and is current when it can be.
 
   PlayerRatingsProvider call(String id) =>
       PlayerRatingsProvider._(argument: id, from: this);
@@ -148,56 +158,3 @@ final class PlayerRatingsFamily extends $Family
   @override
   String toString() => r'playerRatingsProvider';
 }
-
-/// Current user's ratings across all pools.
-///
-/// Auto-disposes when the profile screen is not visible, so navigation
-/// to the profile page always fetches fresh data.
-
-@ProviderFor(myRatings)
-final myRatingsProvider = MyRatingsProvider._();
-
-/// Current user's ratings across all pools.
-///
-/// Auto-disposes when the profile screen is not visible, so navigation
-/// to the profile page always fetches fresh data.
-
-final class MyRatingsProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<Rating>>,
-          List<Rating>,
-          FutureOr<List<Rating>>
-        >
-    with $FutureModifier<List<Rating>>, $FutureProvider<List<Rating>> {
-  /// Current user's ratings across all pools.
-  ///
-  /// Auto-disposes when the profile screen is not visible, so navigation
-  /// to the profile page always fetches fresh data.
-  MyRatingsProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'myRatingsProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
-
-  @override
-  String debugGetCreateSourceHash() => _$myRatingsHash();
-
-  @$internal
-  @override
-  $FutureProviderElement<List<Rating>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<Rating>> create(Ref ref) {
-    return myRatings(ref);
-  }
-}
-
-String _$myRatingsHash() => r'7018d5182c0e8833e2410b52427155196d7973c0';

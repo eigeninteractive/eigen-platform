@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
 
+import '../repositories/account_repository.dart';
 import '../repositories/avatar_storage_service.dart';
 import '../repositories/device_repository.dart';
 import '../repositories/game_repository.dart';
 import '../repositories/player_repository.dart';
-import '../repositories/profile_repository.dart';
 import '../repositories/rating_repository.dart';
 import '../repositories/social_repository.dart';
 import 'engine_call.dart';
@@ -32,7 +32,7 @@ class EigenClient {
     return EigenClient._(
       games: GameRepository(http, socket),
       social: SocialRepository(http),
-      profile: ProfileRepository(http),
+      account: AccountRepository(http),
       avatar: AvatarStorageService(http),
       devices: DeviceRepository(http),
       ratings: RatingRepository(http),
@@ -43,7 +43,7 @@ class EigenClient {
   const EigenClient._({
     required this.games,
     required this.social,
-    required this.profile,
+    required this.account,
     required this.avatar,
     required this.devices,
     required this.ratings,
@@ -56,8 +56,8 @@ class EigenClient {
   /// Friends, requests, blocks, user search, and friends' games.
   final SocialRepository social;
 
-  /// The authenticated user's profile and account lifecycle.
-  final ProfileRepository profile;
+  /// The authenticated account's sync, profile, and lifecycle.
+  final AccountRepository account;
 
   /// The authenticated user's avatar upload endpoint.
   final AvatarStorageService avatar;
@@ -65,7 +65,7 @@ class EigenClient {
   /// Push registrations for the authenticated user's installations.
   final DeviceRepository devices;
 
-  /// Public and authenticated rating reads.
+  /// Other players' ratings.
   final RatingRepository ratings;
 
   /// Batched public player identity reads.

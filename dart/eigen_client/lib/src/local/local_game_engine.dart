@@ -6,7 +6,7 @@ import 'package:eigen_api/eigen_api.dart';
 import '../api/engine_exception.dart';
 import 'bot_runner.dart';
 import 'local_game.dart';
-import 'local_game_store.dart';
+import 'local_game_storage.dart';
 import 'local_kernel.dart';
 import 'local_rules.dart';
 import 'local_session.dart';
@@ -46,41 +46,66 @@ final class LocalBotFailed implements Exception {
 /// The device's Durable Object: one serialized command queue over one local
 /// game (decision 0012).
 ///
-/// It holds what the object holds — meta, roster, the append-only transition
-/// log, per-seat frames — and advances it through [localCommit], the same
-/// pipeline in the same order the server runs. A human action commits, then
-/// every newly pending bot seat runs its brain and commits in the same queue
-/// until a human is pending or the game ends. Every commit persists, and every
-/// commit emits the [Session] snapshot the socket would have pushed, with
+/// It holds what the object holds: the game's standing configuration, its
+/// newest transition, and every seat's projection of it. It advances through
+/// [localCommit], the same pipeline in the same order the server runs. A human
+/// action commits, then every newly pending bot seat runs its brain and commits
+/// in the same queue until a human is pending or the game ends. Every commit
+/// persists as one transaction in the replica (decision 0013), and every commit
+/// emits the [Session] snapshot the socket would have pushed, with
 /// [Session.seq] advancing per commit, so a game screen consumes a local game
 /// through the existing session path with no game code change.
 ///
-/// Pure Dart, like everything else here: the store, the bot runner and the
-/// clock are ports, so the Flutter adapter supplies Drift, an isolate, and the
-/// real clock above it.
+/// Pure Dart, like everything else here: the storage is the replica database a
+/// caller opens, and the bot runner and the clock are ports, so the Flutter
+/// adapter supplies an isolate and the real clock above it.
 final class LocalGameEngine {
-  /// Opens an engine over an existing record: a game resumed from the store, or
-  /// one pulled back from the server on another device.
-  factory LocalGameEngine({
-    required LocalGameRecord record,
-    required AnyLocalGameRules rules,
-    required LocalGameStore store,
-    required Map<String, Bot> bots,
-    BotRunner botRunner = const InlineBotRunner(),
-    DateTime Function() clock = DateTime.now,
-  }) => LocalGameEngine._(record, rules, store, bots, botRunner, clock);
-
-  // Private and positional so the fields can stay private: a named parameter
-  // cannot be an initializing formal for one.
   LocalGameEngine._(
-    this._record,
+    this._game,
+    this._frames,
     this._rules,
-    this._store,
+    this._storage,
     this._bots,
     this._botRunner,
     this._clock,
   ) {
-    _current = localSession(_record, playerIndex: _viewerSeat);
+    _current = _session();
+  }
+
+  /// Opens the engine for a game this device decides, or answers null when it
+  /// decides no game under [gameId].
+  ///
+  /// The bots' projections of the newest version are derived here from its
+  /// state rather than read back, since only the human's are stored.
+  static Future<LocalGameEngine?> open({
+    required String accountId,
+    required String gameId,
+    required AnyLocalGameRules rules,
+    required LocalGameStorage storage,
+    required Map<String, Bot> bots,
+    BotRunner botRunner = const InlineBotRunner(),
+    DateTime Function() clock = DateTime.now,
+  }) async {
+    final game = await storage.load(accountId: accountId, gameId: gameId);
+    if (game == null) return null;
+    final latest = game.latest;
+    final frames = latest == null
+        ? const <LocalObservationFrame>[]
+        : projectTransition(
+            rules,
+            transition: latest,
+            config: game.config,
+            participantCount: game.roster.length,
+          );
+    return LocalGameEngine._(
+      game,
+      frames,
+      rules,
+      storage,
+      bots,
+      botRunner,
+      clock,
+    );
   }
 
   /// Creates, starts and persists a fresh local game, then returns the engine
@@ -88,7 +113,7 @@ final class LocalGameEngine {
   ///
   /// No network is involved: the device mints the id and the 128-bit seed, runs
   /// [LocalGameRules.initialState] through the local kernel, and writes the
-  /// record. Seat 0 is [userId]; [botIds] fill the rest of the roster in order.
+  /// game. Seat 0 is [userId]; [botIds] fill the rest of the roster in order.
   /// [newGameId] and [newSeed] exist so a test can pin identity; production
   /// uses `Random.secure()` through their defaults.
   static Future<LocalGameEngine> create({
@@ -98,14 +123,14 @@ final class LocalGameEngine {
     required List<String> botIds,
     required Map<String, Bot> bots,
     required AnyLocalGameRules rules,
-    required LocalGameStore store,
+    required LocalGameStorage storage,
     BotRunner botRunner = const InlineBotRunner(),
     DateTime Function() clock = DateTime.now,
     String Function()? newGameId,
     String Function()? newSeed,
     Random? random,
   }) async {
-    final record = LocalGameRecord(
+    final game = LocalGame(
       id: (newGameId ?? () => newLocalGameId(random))(),
       createdBy: userId,
       createdAt: clock(),
@@ -132,31 +157,34 @@ final class LocalGameEngine {
       // exists.
       status: GameStatus.ready,
       seq: 0,
-      transitions: const [],
-      frames: const {},
+      latest: null,
     );
-    final engine = LocalGameEngine(
-      record: record,
-      rules: rules,
-      store: store,
-      bots: bots,
-      botRunner: botRunner,
-      clock: clock,
+    final engine = LocalGameEngine._(
+      game,
+      const [],
+      rules,
+      storage,
+      bots,
+      botRunner,
+      clock,
     );
-    await engine._enqueue(() => engine._commit(LocalStartIntent(record.seed)));
+    await engine._enqueue(() => engine._commit(LocalStartIntent(game.seed)));
     engine._enqueueBots();
     return engine;
   }
 
   final AnyLocalGameRules _rules;
-  final LocalGameStore _store;
+  final LocalGameStorage _storage;
   final Map<String, Bot> _bots;
   final BotRunner _botRunner;
   final DateTime Function() _clock;
   final StreamController<Session> _controller =
       StreamController<Session>.broadcast();
 
-  LocalGameRecord _record;
+  LocalGame _game;
+
+  /// Every seat's projection of the newest version.
+  List<LocalObservationFrame> _frames;
   late Session _current;
 
   /// Serializes every command, exactly like the Durable Object's input gate:
@@ -164,8 +192,8 @@ final class LocalGameEngine {
   /// a commit boundary.
   Future<void> _queue = Future<void>.value();
 
-  /// The record as it stands. The store holds the same value.
-  LocalGameRecord get record => _record;
+  /// The game as it stands. The replica holds the same value.
+  LocalGame get game => _game;
 
   /// The newest snapshot, for the seat the signed-in human holds. Always
   /// current, including for commits made before anyone listened.
@@ -179,7 +207,14 @@ final class LocalGameEngine {
   /// [LocalBotFailed] arrives on the error channel.
   Stream<Session> get sessions => _controller.stream;
 
-  int get _viewerSeat => _record.humanSeat ?? 0;
+  Session _session() => localSession(_game, frame: _frameOf(_game.humanSeat));
+
+  LocalObservationFrame? _frameOf(int seat) {
+    for (final frame in _frames) {
+      if (frame.playerIndex == seat) return frame;
+    }
+    return null;
+  }
 
   /// Submits [data] for [seat] against [expectedVersion].
   ///
@@ -214,8 +249,8 @@ final class LocalGameEngine {
     return accepted;
   }
 
-  /// Stops emitting. The record stays in the store, so reopening the game
-  /// builds a fresh engine over it.
+  /// Stops emitting. The game stays in the replica, so reopening it builds a
+  /// fresh engine over it.
   Future<void> close() async {
     await _queue;
     await _controller.close();
@@ -248,12 +283,12 @@ final class LocalGameEngine {
     );
   }
 
-  /// Applies one intent, persists the record, and states the new session.
+  /// Applies one intent, persists it, and states the new session.
   Future<CommandAccepted> _commit(LocalIntent intent) async {
     final result = localCommit(
-      game: _record.meta,
-      state: _record.stateRow,
-      roster: _record.roster,
+      game: _game.meta,
+      state: _game.stateRow,
+      roster: _game.roster,
       intent: intent,
       rules: _rules,
     );
@@ -261,45 +296,57 @@ final class LocalGameEngine {
       case LocalRejected(:final code, :final message):
         throw EngineException(message, code: code.errorCode);
       case LocalCommitPlan():
-        // Persist before the engine moves, not after. A store that throws here
-        // would otherwise leave `_record` a version ahead of `_current` and of
+        // Persist before the engine moves, not after. A write that throws here
+        // would otherwise leave `_game` a version ahead of `_current` and of
         // every listener, and since the next move is submitted against the
         // version the screen is showing, the kernel would refuse it as stale
-        // from then on. Failing with the record untouched leaves the move
-        // simply not made, which the caller can retry.
-        final next = _applyPlan(result);
-        await _store.save(next);
-        _record = next;
-        _current = localSession(_record, playerIndex: _viewerSeat);
+        // from then on. Failing with the game untouched leaves the move simply
+        // not made, which the caller can retry.
+        final now = _clock();
+        final transition = LocalGameTransition(
+          version: result.nextState.version,
+          state: result.nextState.state,
+          action: result.action,
+          pending: result.nextState.pending,
+        );
+        final finished = result.outcomes != null;
+        final next = _game.copyWith(
+          status: finished ? GameStatus.finished : GameStatus.active,
+          seq: _game.seq + 1,
+          latest: transition,
+          outcomes: result.outcomes,
+          finishedAt: finished ? now : null,
+        );
+        final humanFrame = result.frames.firstWhere(
+          (frame) => frame.playerIndex == next.humanSeat,
+        );
+        if (_game.latest == null) {
+          await _storage.create(
+            next,
+            opening: transition,
+            humanFrame: humanFrame,
+            now: now,
+          );
+        } else {
+          await _storage.commit(
+            next,
+            transition: transition,
+            humanFrame: humanFrame,
+            now: now,
+          );
+        }
+        _game = next;
+        _frames = result.frames;
+        _current = _session();
         if (!_controller.isClosed) _controller.add(_current);
         return CommandAccepted(session: _current);
     }
   }
 
-  LocalGameRecord _applyPlan(LocalCommitPlan plan) {
-    final finished = plan.outcomes != null;
-    return _record.copyWith(
-      status: finished ? GameStatus.finished : GameStatus.active,
-      seq: _record.seq + 1,
-      transitions: [
-        ..._record.transitions,
-        LocalGameTransition(
-          version: plan.nextState.version,
-          state: plan.nextState.state,
-          action: plan.action,
-          pending: plan.nextState.pending,
-        ),
-      ],
-      frames: {..._record.frames, plan.nextState.version: plan.frames},
-      outcomes: plan.outcomes,
-      finishedAt: finished ? _clock() : null,
-    );
-  }
-
   /// Runs every pending bot seat in turn until a human is pending or the game
   /// ends: the local stand-in for the wake effects the server dispatches.
   Future<void> _driveBots() async {
-    while (_record.status == GameStatus.active) {
+    while (_game.status == GameStatus.active) {
       final seat = _nextBotSeat();
       if (seat == null) return;
       if (!await _playBot(seat)) return;
@@ -308,9 +355,9 @@ final class LocalGameEngine {
 
   /// The lowest pending seat a bot holds, or null when none is waiting.
   int? _nextBotSeat() {
-    final pending = _record.latest?.pending ?? const <int>[];
+    final pending = _game.latest?.pending ?? const <int>[];
     final seats = [
-      for (final seat in _record.roster)
+      for (final seat in _game.roster)
         if (seat.botId != null && pending.contains(seat.playerIndex))
           seat.playerIndex,
     ]..sort();
@@ -320,15 +367,13 @@ final class LocalGameEngine {
   /// Thinks for one bot seat and commits its move. Answers false when the turn
   /// failed, which stops the chase and leaves the seat pending.
   Future<bool> _playBot(int seat) async {
-    final version = _record.version;
-    final member = _record.roster.firstWhere(
+    final version = _game.version;
+    final member = _game.roster.firstWhere(
       (candidate) => candidate.playerIndex == seat,
     );
     final botId = member.botId;
     final bot = botId == null ? null : _bots[botId];
-    final frame = version == null
-        ? null
-        : _record.frameFor(seat: seat, version: version);
+    final frame = version == null ? null : _frameOf(seat);
     if (bot == null || frame == null || version == null) {
       _reportBotFailure(
         seat,
@@ -350,8 +395,8 @@ final class LocalGameEngine {
           pendingPlayers: frame.pendingPlayers,
           botConfig: (bot.config as Map).cast<String, dynamic>(),
           playerIndex: seat,
-          config: _record.config,
-          seed: _record.seed,
+          config: _game.config,
+          seed: _game.seed,
           // The version the bot is acting FROM, which is also the one it
           // commits against. The Durable Object draws the same stream from the
           // state it is about to act on (`deriveRng(..., next.version)` beside
@@ -378,12 +423,7 @@ final class LocalGameEngine {
   void _reportBotFailure(int seat, String? botId, Object cause) {
     if (_controller.isClosed) return;
     _controller.addError(
-      LocalBotFailed(
-        gameId: _record.id,
-        seat: seat,
-        botId: botId,
-        cause: cause,
-      ),
+      LocalBotFailed(gameId: _game.id, seat: seat, botId: botId, cause: cause),
     );
   }
 }

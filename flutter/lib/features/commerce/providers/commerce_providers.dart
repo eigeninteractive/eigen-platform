@@ -3,7 +3,7 @@ import 'package:eigen_flutter/core/api/engine_api_providers.dart';
 import 'package:eigen_flutter/features/commerce/data/commerce_service.dart';
 import 'package:eigen_flutter/features/commerce/data/drift_purchase_delivery_store.dart';
 import 'package:eigen_flutter/features/commerce/domain/purchase_gateway.dart';
-import 'package:eigen_flutter/core/storage/storage_provider.dart';
+import 'package:eigen_flutter/core/replica/replica_providers.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'commerce_providers.g.dart';
@@ -31,7 +31,7 @@ CommerceService commerceService(Ref ref) {
   final service = CommerceService(
     ref.watch(commerceRepositoryProvider),
     ref.watch(storefrontsProvider),
-    DriftPurchaseDeliveryStore(ref.watch(localDatabaseProvider.future)),
+    DriftPurchaseDeliveryStore(ref.watch(replicaDatabaseProvider.future)),
   );
   ref.onDispose(service.dispose);
   return service;

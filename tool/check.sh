@@ -111,6 +111,13 @@ run_dart() {
   cd "$platform_root/dart/eigen_client"
   flutter pub get
   dart format --output=none --set-exit-if-changed .
+  # The device replica's Drift schema: the generated code, and the schema dump
+  # every later schema version's migration is tested against.
+  dart run build_runner build
+  dart run drift_dev schema dump lib/src/replica/replica_database.dart drift_schemas/
+  assert_no_drift "Replica code generation" \
+    dart/eigen_client/lib \
+    dart/eigen_client/drift_schemas
   dart analyze
   dart test
   dart test --platform chrome \

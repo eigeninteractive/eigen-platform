@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/container.dart';
 import '../../../helpers/fakes.dart';
+import '../../../helpers/replica.dart';
 
 /// A module whose game can be played on the device, in an untimed mode.
 class _LocalModule extends SampleModule {
@@ -38,15 +39,6 @@ class _SchemaTwoModule extends SampleModule {
   GameCreationSpec get creationSpec => const GameCreationSpec(
     timingConfigs: {'Rapid': PerActionConfig(maxSeconds: 60)},
   );
-}
-
-class _StubAvailableBots extends AvailableBots {
-  _StubAvailableBots(this.bots);
-
-  final List<Bot> bots;
-
-  @override
-  Future<List<Bot>> build() async => bots;
 }
 
 Bot _bot(
@@ -99,17 +91,21 @@ void main() {
       test(testCase.name, () async {
         final container = makeContainer(
           overrides: [
+            ...replicaTestOverrides(),
             currentGameModuleProvider.overrideWithValue(
               const _SchemaTwoModule(),
             ),
             availableBotsProvider.overrideWith(
-              () => _StubAvailableBots([
-                _bot('candidate', testCase.schemaVersion),
-              ]),
+              (ref) =>
+                  Stream.value([_bot('candidate', testCase.schemaVersion)]),
             ),
           ],
         );
 
+        // A stream provider only runs while something listens to it.
+        container.listen(availableBotsProvider, (_, _) {});
+        // A stream provider only runs while something listens to it.
+        container.listen(availableBotsProvider, (_, _) {});
         await container.read(availableBotsProvider.future);
 
         expect(container.read(soloPlayAvailableProvider), testCase.expected);
@@ -123,9 +119,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...replicaTestOverrides(),
           currentGameModuleProvider.overrideWithValue(const _SchemaTwoModule()),
           availableBotsProvider.overrideWith(
-            () => _StubAvailableBots([
+            (ref) => Stream.value([
               _bot('older', 1),
               _bot('equal', 2),
               _bot('newer', 3),
@@ -152,11 +149,12 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            ...replicaTestOverrides(),
             currentGameModuleProvider.overrideWithValue(
               const _SchemaTwoModule(),
             ),
             availableBotsProvider.overrideWith(
-              () => _StubAvailableBots([
+              (ref) => Stream.value([
                 _bot('standard', 2),
                 _bot('gold', 2, tier: 'gold'),
                 _bot('silver', 2, tier: 'silver'),
@@ -202,9 +200,10 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            ...replicaTestOverrides(),
             currentGameModuleProvider.overrideWithValue(const _LocalModule()),
             availableBotsProvider.overrideWith(
-              () => _StubAvailableBots([_bot('sample-bot', 1, tier: 'gold')]),
+              (ref) => Stream.value([_bot('sample-bot', 1, tier: 'gold')]),
             ),
             storeAvailableProvider.overrideWithValue(true),
             storeAccessProvider.overrideWith((ref) async => _access(const [])),
@@ -230,12 +229,17 @@ void main() {
       () async {
         final container = makeContainer(
           overrides: [
+            ...replicaTestOverrides(),
             currentGameModuleProvider.overrideWithValue(const _LocalModule()),
             availableBotsProvider.overrideWith(
-              () => _StubAvailableBots([_bot('sample-bot', 1)]),
+              (ref) => Stream.value([_bot('sample-bot', 1)]),
             ),
           ],
         );
+        // A stream provider only runs while something listens to it.
+        container.listen(availableBotsProvider, (_, _) {});
+        // A stream provider only runs while something listens to it.
+        container.listen(availableBotsProvider, (_, _) {});
         await container.read(availableBotsProvider.future);
 
         expect(container.read(localPlayAvailableProvider), isTrue);
@@ -247,13 +251,16 @@ void main() {
     test('is unavailable when no bot has a brain in this build', () async {
       final container = makeContainer(
         overrides: [
+          ...replicaTestOverrides(),
           currentGameModuleProvider.overrideWithValue(const _LocalModule()),
           availableBotsProvider.overrideWith(
             // A registry row this build ships no brain for.
-            () => _StubAvailableBots([_bot('server-only', 1)]),
+            (ref) => Stream.value([_bot('server-only', 1)]),
           ),
         ],
       );
+      // A stream provider only runs while something listens to it.
+      container.listen(availableBotsProvider, (_, _) {});
       await container.read(availableBotsProvider.future);
 
       expect(container.read(localPlayAvailableProvider), isFalse);
@@ -262,12 +269,15 @@ void main() {
     test('is unavailable when the game ships no local unit', () async {
       final container = makeContainer(
         overrides: [
+          ...replicaTestOverrides(),
           currentGameModuleProvider.overrideWithValue(const SampleModule()),
           availableBotsProvider.overrideWith(
-            () => _StubAvailableBots([_bot('sample-bot', 1)]),
+            (ref) => Stream.value([_bot('sample-bot', 1)]),
           ),
         ],
       );
+      // A stream provider only runs while something listens to it.
+      container.listen(availableBotsProvider, (_, _) {});
       await container.read(availableBotsProvider.future);
 
       expect(container.read(localPlayAvailableProvider), isFalse);
@@ -278,9 +288,10 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            ...replicaTestOverrides(),
             currentGameModuleProvider.overrideWithValue(const _LocalModule()),
             availableBotsProvider.overrideWith(
-              () => _StubAvailableBots([
+              (ref) => Stream.value([
                 _bot('sample-bot', 1),
                 _bot('server-only', 1),
                 _bot('device-only', 1, type: BotType.local),

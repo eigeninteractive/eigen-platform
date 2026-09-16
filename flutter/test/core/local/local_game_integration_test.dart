@@ -2,9 +2,7 @@ import 'package:checks/checks.dart';
 import 'package:drift/native.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
-import 'package:eigen_flutter/core/local/drift_local_game_store.dart';
 import 'package:eigen_flutter/core/local/isolate_bot_runner.dart';
-import 'package:eigen_flutter/core/local/local_database.dart';
 import 'package:eigen_flutter/features/game/providers/local_game_providers.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,12 +22,12 @@ Bot _bot(String username, {BotType type = BotType.local}) => Bot(
 );
 
 void main() {
-  late LocalDatabase database;
-  late DriftLocalGameStore store;
+  late ReplicaDatabase database;
+  late LocalGameStorage storage;
 
   setUp(() {
-    database = LocalDatabase(NativeDatabase.memory());
-    store = DriftLocalGameStore(database);
+    database = ReplicaDatabase(NativeDatabase.memory());
+    storage = LocalGameStorage(database);
   });
   tearDown(() => database.close());
 
@@ -41,7 +39,7 @@ void main() {
       botIds: const ['counter-bot'],
       bots: {'counter-bot': _bot('counter-bot')},
       rules: const CounterLocalRules(),
-      store: store,
+      storage: storage,
     );
     addTearDown(engine.close);
 
@@ -60,18 +58,25 @@ void main() {
     );
     await _settle(
       engine,
-      until: (record) =>
-          record.humanSeat == 0 &&
-          (record.latest?.pending.contains(0) ?? false),
+      until: (game) => game.latest?.pending.contains(0) ?? false,
     );
 
-    final saved = await store.load(engine.record.id);
+    final saved = await storage.load(
+      accountId: 'user-a',
+      gameId: engine.game.id,
+    );
     check(saved).isNotNull();
+    final log = await storage.transitionsAfter(
+      accountId: 'user-a',
+      gameId: engine.game.id,
+      afterVersion: -1,
+      limit: 100,
+    );
     // Version 0 (start), 1 (the human), 2 (the bot).
-    check(saved!.transitions.length).isGreaterOrEqual(3);
-    check(saved.transitions[2].action!.type).equals(LocalActionType.bot);
-    check(saved.seed).equals(engine.record.seed);
-    check(saved.syncedVersion).equals(LocalGameRecord.notSynced);
+    check(log.length).isGreaterOrEqual(3);
+    check(log[2].action!.type).equals(LocalActionType.bot);
+    check(saved!.seed).equals(engine.game.seed);
+    check(saved.syncedVersion).equals(LocalGame.notSynced);
   });
 
   test(
@@ -84,7 +89,7 @@ void main() {
         botIds: const ['counter-bot'],
         bots: {'counter-bot': _bot('counter-bot')},
         rules: const CounterLocalRules(),
-        store: store,
+        storage: storage,
       );
       addTearDown(engine.close);
 
@@ -113,7 +118,7 @@ void main() {
       botIds: const ['counter-broken'],
       bots: {'counter-broken': _bot('counter-broken')},
       rules: const CounterLocalRules(),
-      store: store,
+      storage: storage,
     );
     addTearDown(engine.close);
 
@@ -129,7 +134,7 @@ void main() {
     check(failures).isNotEmpty();
     check(failures.first).isA<LocalBotFailed>();
     // The game is resumable: the bot's seat is still the one to move.
-    check(engine.record.latest!.pending).deepEquals([1]);
+    check(engine.game.latest!.pending).deepEquals([1]);
   });
 
   test(
@@ -154,7 +159,7 @@ void main() {
     },
   );
 
-  test('the summary a list shows matches the record', () async {
+  test('a local game is listed from the replica like any other game', () async {
     final engine = await LocalGameEngine.create(
       userId: 'user-a',
       schemaVersion: 1,
@@ -162,12 +167,15 @@ void main() {
       botIds: const ['counter-bot'],
       bots: {'counter-bot': _bot('counter-bot')},
       rules: const CounterLocalRules(),
-      store: store,
+      storage: storage,
     );
     addTearDown(engine.close);
 
-    final summary = localGameSummaryOf(engine.record);
-    check(summary.id).equals(engine.record.id);
+    final summary = (await AccountReplica(
+      database,
+      'user-a',
+    ).watchActiveGames().first).single;
+    check(summary.id).equals(engine.game.id);
     check(summary.origin).equals(GameOrigin.local);
     check(summary.access).equals(GameAccess.private);
     check(summary.rated).isFalse();
@@ -176,7 +184,7 @@ void main() {
     check(summary.pendingPlayers).isNotNull();
   });
 
-  test('replay reads the frames the record already holds', () async {
+  test('replay reads the frames the replica already holds', () async {
     final engine = await LocalGameEngine.create(
       userId: 'user-a',
       schemaVersion: 1,
@@ -184,7 +192,7 @@ void main() {
       botIds: const ['counter-bot'],
       bots: {'counter-bot': _bot('counter-bot')},
       rules: const CounterLocalRules(),
-      store: store,
+      storage: storage,
     );
     addTearDown(engine.close);
     await engine.submitAction(
@@ -193,7 +201,10 @@ void main() {
       expectedVersion: 0,
     );
 
-    final frames = localReplayFrames(engine.record, seat: 0);
+    final frames = (await AccountReplica(
+      database,
+      'user-a',
+    ).replayFrames(engine.game.id))!;
     check(frames).length.equals(2);
     check(frames.first.version).equals(0);
     check(frames.last.outcomes).isNotNull();
@@ -203,25 +214,28 @@ void main() {
   test(
     'a pulled record continues the game where the other device left it',
     () async {
-      // What the catch-up path hands to the engine: the server's copy, rebuilt
-      // through this build's own rules.
-      final record = localRecordFromRemote(
-        remote: _remoteRecord(upTo: 2),
-        rules: const CounterLocalRules(),
+      // What the catch-up path writes for the engine: the server's copy,
+      // rebuilt through this build's own rules.
+      await storage.replace(
+        localGameFromRemote(
+          remote: _remoteRecord(upTo: 2),
+          rules: const CounterLocalRules(),
+        ),
+        now: DateTime.utc(2026, 9, 3),
       );
-      await store.save(record);
 
-      final engine = LocalGameEngine(
-        record: record,
+      final engine = (await LocalGameEngine.open(
+        accountId: 'user-a',
+        gameId: 'pulled-1',
         rules: const CounterLocalRules(),
-        store: store,
+        storage: storage,
         bots: {'counter-bot': _bot('counter-bot')},
-      );
+      ))!;
       addTearDown(engine.close);
 
       // It resumes at the version the other device reached, not at zero.
       check(engine.current.version).equals(2);
-      check(engine.record.syncedVersion).equals(2);
+      check(engine.game.syncedVersion).equals(2);
 
       // And it plays on: the human moves, the bot answers, both from here.
       await engine.submitAction(
@@ -229,12 +243,21 @@ void main() {
         data: const {'add': 1},
         expectedVersion: 2,
       );
-      await _settle(engine, until: (record) => (record.version ?? 0) >= 4);
+      await _settle(engine, until: (game) => (game.version ?? 0) >= 4);
 
-      final saved = (await store.load('pulled-1'))!;
+      final saved = (await storage.load(
+        accountId: 'user-a',
+        gameId: 'pulled-1',
+      ))!;
+      final log = await storage.transitionsAfter(
+        accountId: 'user-a',
+        gameId: 'pulled-1',
+        afterVersion: 2,
+        limit: 100,
+      );
       check(saved.version ?? 0).isGreaterOrEqual(4);
-      check(saved.transitions[3].action!.type).equals(LocalActionType.user);
-      check(saved.transitions[4].action!.type).equals(LocalActionType.bot);
+      check(log[0].action!.type).equals(LocalActionType.user);
+      check(log[1].action!.type).equals(LocalActionType.bot);
       // The moves made here are ahead of what the server holds, so the next
       // synchronization pass has exactly them to carry.
       check(saved.syncedVersion).equals(2);
@@ -310,10 +333,10 @@ LocalRecord _remoteRecord({required int upTo}) => LocalRecord(
 /// Waits for the engine's queue to reach a state, or gives up.
 Future<void> _settle(
   LocalGameEngine engine, {
-  required bool Function(LocalGameRecord) until,
+  required bool Function(LocalGame) until,
 }) async {
   for (var attempt = 0; attempt < 50; attempt++) {
-    if (until(engine.record)) return;
+    if (until(engine.game)) return;
     await Future<void>.delayed(const Duration(milliseconds: 10));
   }
 }

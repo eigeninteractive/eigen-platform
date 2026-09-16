@@ -55,33 +55,34 @@ final class SocialRepositoryProvider
 
 String _$socialRepositoryHash() => r'107233b370a11a092470167df122bae1c4bee922';
 
-/// The caller's accepted friends.
+/// The caller's accepted friends, from the replica.
 ///
-/// Native apps persist this stable list to avoid a cold-start spinner. Web
-/// keeps it only for the current browser session and refetches after reload.
+/// Every change goes to the server and is followed by a sync pass, which
+/// returns the friends and requests whole: that is how a request the server
+/// auto-accepted, or a friend removed from another device, reaches this list.
 
 @ProviderFor(Friends)
-@JsonPersist()
 final friendsProvider = FriendsProvider._();
 
-/// The caller's accepted friends.
+/// The caller's accepted friends, from the replica.
 ///
-/// Native apps persist this stable list to avoid a cold-start spinner. Web
-/// keeps it only for the current browser session and refetches after reload.
-@JsonPersist()
+/// Every change goes to the server and is followed by a sync pass, which
+/// returns the friends and requests whole: that is how a request the server
+/// auto-accepted, or a friend removed from another device, reaches this list.
 final class FriendsProvider
-    extends $AsyncNotifierProvider<Friends, List<Friend>> {
-  /// The caller's accepted friends.
+    extends $StreamNotifierProvider<Friends, List<Friend>> {
+  /// The caller's accepted friends, from the replica.
   ///
-  /// Native apps persist this stable list to avoid a cold-start spinner. Web
-  /// keeps it only for the current browser session and refetches after reload.
+  /// Every change goes to the server and is followed by a sync pass, which
+  /// returns the friends and requests whole: that is how a request the server
+  /// auto-accepted, or a friend removed from another device, reaches this list.
   FriendsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'friendsProvider',
-        isAutoDispose: false,
+        isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -94,16 +95,16 @@ final class FriendsProvider
   Friends create() => Friends();
 }
 
-String _$friendsHash() => r'6a6805257e33660e4f5e74e02d0af8867359b6e8';
+String _$friendsHash() => r'6936c2368982e8a513f4ca3a47d6efe1e1da146f';
 
-/// The caller's accepted friends.
+/// The caller's accepted friends, from the replica.
 ///
-/// Native apps persist this stable list to avoid a cold-start spinner. Web
-/// keeps it only for the current browser session and refetches after reload.
+/// Every change goes to the server and is followed by a sync pass, which
+/// returns the friends and requests whole: that is how a request the server
+/// auto-accepted, or a friend removed from another device, reaches this list.
 
-@JsonPersist()
-abstract class _$FriendsBase extends $AsyncNotifier<List<Friend>> {
-  FutureOr<List<Friend>> build();
+abstract class _$Friends extends $StreamNotifier<List<Friend>> {
+  Stream<List<Friend>> build();
   @$mustCallSuper
   @override
   WhenComplete runBuild() {
@@ -120,36 +121,24 @@ abstract class _$FriendsBase extends $AsyncNotifier<List<Friend>> {
   }
 }
 
-/// Pending requests in both directions.
-///
-/// Not persisted: unlike the friend list these are short-lived, and showing a
-/// stale request that has since been accepted or withdrawn is worse than a
-/// brief spinner.
+/// Pending requests in both directions, from the replica.
 
 @ProviderFor(friendRequests)
 final friendRequestsProvider = FriendRequestsProvider._();
 
-/// Pending requests in both directions.
-///
-/// Not persisted: unlike the friend list these are short-lived, and showing a
-/// stale request that has since been accepted or withdrawn is worse than a
-/// brief spinner.
+/// Pending requests in both directions, from the replica.
 
 final class FriendRequestsProvider
     extends
         $FunctionalProvider<
           AsyncValue<List<FriendRequest>>,
           List<FriendRequest>,
-          FutureOr<List<FriendRequest>>
+          Stream<List<FriendRequest>>
         >
     with
         $FutureModifier<List<FriendRequest>>,
-        $FutureProvider<List<FriendRequest>> {
-  /// Pending requests in both directions.
-  ///
-  /// Not persisted: unlike the friend list these are short-lived, and showing a
-  /// stale request that has since been accepted or withdrawn is worse than a
-  /// brief spinner.
+        $StreamProvider<List<FriendRequest>> {
+  /// Pending requests in both directions, from the replica.
   FriendRequestsProvider._()
     : super(
         from: null,
@@ -166,17 +155,17 @@ final class FriendRequestsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<FriendRequest>> $createElement(
+  $StreamProviderElement<List<FriendRequest>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<FriendRequest>> create(Ref ref) {
+  Stream<List<FriendRequest>> create(Ref ref) {
     return friendRequests(ref);
   }
 }
 
-String _$friendRequestsHash() => r'0d6b0d52d5cf1ff2b6a39391bebfdcfb6c6786de';
+String _$friendRequestsHash() => r'f293b753615e020fc9882f1e401300856390ef02';
 
 /// Requests the caller received and can act on.
 
@@ -271,11 +260,17 @@ final class OutgoingRequestsProvider
 String _$outgoingRequestsHash() => r'2db8f6db28e606e188320c4ddc46661280867f2a';
 
 /// Joinable games created by the caller's friends.
+///
+/// Not replicated: a list of games joinable right now is wrong as soon as it
+/// is stale, and joining needs the network anyway.
 
 @ProviderFor(friendsGames)
 final friendsGamesProvider = FriendsGamesProvider._();
 
 /// Joinable games created by the caller's friends.
+///
+/// Not replicated: a list of games joinable right now is wrong as soon as it
+/// is stale, and joining needs the network anyway.
 
 final class FriendsGamesProvider
     extends
@@ -288,6 +283,9 @@ final class FriendsGamesProvider
         $FutureModifier<List<GameSummary>>,
         $FutureProvider<List<GameSummary>> {
   /// Joinable games created by the caller's friends.
+  ///
+  /// Not replicated: a list of games joinable right now is wrong as soon as it
+  /// is stale, and joining needs the network anyway.
   FriendsGamesProvider._()
     : super(
         from: null,
@@ -389,43 +387,4 @@ final class FriendStatusFamily extends $Family
 
   @override
   String toString() => r'friendStatusProvider';
-}
-
-// **************************************************************************
-// JsonGenerator
-// **************************************************************************
-
-// GENERATED CODE - DO NOT MODIFY BY HAND
-abstract class _$Friends extends _$FriendsBase {
-  /// The default key used by [persist].
-  String get key {
-    const resolvedKey = "Friends";
-    return resolvedKey;
-  }
-
-  /// A variant of [persist], for JSON-specific encoding.
-  ///
-  /// You can override [key] to customize the key used for storage.
-  PersistResult persist(
-    FutureOr<Storage<String, String>> storage, {
-    String? key,
-    String Function(List<Friend> state)? encode,
-    List<Friend> Function(String encoded)? decode,
-    StorageOptions options = const StorageOptions(),
-  }) {
-    return NotifierPersistX(this).persist<String, String>(
-      storage,
-      key: key ?? this.key,
-      encode: encode ?? $jsonCodex.encode,
-      decode:
-          decode ??
-          (encoded) {
-            final e = $jsonCodex.decode(encoded);
-            return (e as List)
-                .map((e) => Friend.fromJson(e as Map<String, Object?>))
-                .toList();
-          },
-      options: options,
-    );
-  }
 }

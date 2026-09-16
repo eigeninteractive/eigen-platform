@@ -40,8 +40,8 @@ class Profile {
   @JsonKey(name: r'displayName', required: true, includeIfNull: false)
   final String displayName;
 
-  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: false)
-  final String avatarUrl;
+  @JsonKey(name: r'avatarUrl', required: true, includeIfNull: true)
+  final String? avatarUrl;
 
   @JsonKey(name: r'isAnonymous', required: true, includeIfNull: false)
   final bool isAnonymous;
@@ -70,7 +70,7 @@ class Profile {
       id.hashCode +
       username.hashCode +
       displayName.hashCode +
-      avatarUrl.hashCode +
+      (avatarUrl == null ? 0 : avatarUrl.hashCode) +
       isAnonymous.hashCode +
       (email == null ? 0 : email.hashCode) +
       createdAt.hashCode;

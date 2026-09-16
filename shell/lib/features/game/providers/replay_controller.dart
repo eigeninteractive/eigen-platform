@@ -4,29 +4,26 @@ import 'package:eigen_client/eigen_client.dart';
 
 part 'replay_controller.g.dart';
 
-/// The full ordered frame history of a finished game, fetched once.
+/// The full ordered frame history of a finished game.
 ///
-/// A finished game's history is immutable, so this is fetched a single time and
-/// cached for the life of the replay screen. A participant receives their own
-/// seat's projection; a non-participant replaying a public game receives the
-/// observer projection - the shape is identical either way, so the replay UI
-/// does not branch on it.
+/// Read from the replica when it holds all of it, which it always does for a
+/// game played on this device and does for an online game opened before (up to
+/// the replica's replay budget), so a replay opens offline. Otherwise fetched
+/// once and stored, since a finished game's history never changes.
 ///
-/// The same range endpoint backs live gap recovery; replay is just the whole
-/// range rather than a missing slice of it.
+/// A participant receives their own seat's projection; a non-participant
+/// replaying a public game receives the observer projection - the shape is
+/// identical either way, so the replay UI does not branch on it. The same range
+/// endpoint backs live gap recovery; replay is just the whole range rather than
+/// a missing slice of it.
 @riverpod
 Future<List<Frame>> replayFrames(Ref ref, {required String gameId}) async {
-  // A game played on this device already holds every seat's projection per
-  // version, which is exactly what the server re-projects for its own replay.
-  // Reading them here is what lets a finished offline game be replayed offline.
-  final record = await ref.watch(
-    localGameRecordProvider(gameId: gameId).future,
-  );
-  if (record != null) {
-    final seat = record.humanSeat;
-    if (seat != null) return localReplayFrames(record, seat: seat);
-  }
-  return ref.watch(gameRepositoryProvider).getFrames(gameId);
+  final replica = await ref.watch(accountReplicaProvider.future);
+  final held = await replica?.replayFrames(gameId);
+  if (held != null) return held;
+  final frames = await ref.watch(gameRepositoryProvider).getFrames(gameId);
+  await replica?.applyReplay(gameId, frames);
+  return frames;
 }
 
 /// The current position within a game's replay, as an index into

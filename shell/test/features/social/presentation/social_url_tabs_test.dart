@@ -9,24 +9,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../helpers/replica.dart';
+
 class _EmptyFriends extends Friends {
   _EmptyFriends(this.values);
 
   final List<Friend> values;
 
   @override
-  Future<List<Friend>> build() async => values;
-}
-
-class _AdaPlayer extends PlayerInfoCache {
-  @override
-  Future<Player> build({required String id}) async => Player(
-    id: id,
-    username: 'ada',
-    displayName: 'Ada',
-    avatarUrl: null,
-    isAnonymous: false,
-  );
+  Stream<List<Friend>> build() => Stream.value(values);
 }
 
 void main() {
@@ -55,11 +46,21 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          ...replicaTestOverrides(),
           appConfigProvider.overrideWithValue(config),
           friendsProvider.overrideWith(() => _EmptyFriends(friends)),
           incomingRequestsProvider.overrideWith((ref) async => const []),
-          playerInfoCacheProvider(id: 'ada-id').overrideWith(_AdaPlayer.new),
-          playerRatingsProvider('ada-id').overrideWith((ref) async => const []),
+          seatIdentityProvider(userId: 'ada-id').overrideWith(
+            (ref) async => Player(
+              id: 'ada-id',
+              username: 'ada',
+              displayName: 'Ada',
+              avatarUrl: null,
+              isAnonymous: false,
+            ),
+          ),
+          playerRatingsProvider('ada-id')
+              .overrideWith((ref) => Stream.value(const [])),
           playerPublicFinishedGamesProvider(playerId: 'ada-id')
               .overrideWith((ref) async => const []),
         ],
