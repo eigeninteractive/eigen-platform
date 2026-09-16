@@ -1,5 +1,66 @@
 # @eigeninteractive/server
 
+## 0.9.0
+
+### Minor Changes
+
+- [#96](https://github.com/eigeninteractive/eigen-platform/pull/96) [`2f2e731`](https://github.com/eigeninteractive/eigen-platform/commit/2f2e7311621443f2f94ca1655e102ea7e6d80155) Thanks [@seenu-k](https://github.com/seenu-k)! - **Breaking:** `bot.use` always names a tier, and a grant covers only the tier
+  it names. A catalog granting a plain `{ kind: "bot.use" }` now fails at
+  `createEngine`.
+  
+  The plain grant meant "every bot", and it was the grant a free profile reached
+  for to keep ordinary bots free, so it quietly covered every paid tier as well.
+  Every bot now belongs to exactly one tier: its `botTiers` entry, or `standard`,
+  exported as `DEFAULT_BOT_TIER`. To migrate, grant
+  `{ kind: "bot.use", tier: "standard" }` wherever you granted
+  `{ kind: "bot.use" }`, and name each paid tier in the entitlements that should
+  include it. `analysis.use` matches its type exactly in the same way, so an
+  untyped grant now covers untyped analysis only.
+  
+  `GET /bots` publishes each bot's `tier`, so a picker can mark a paid opponent
+  before a player chooses it rather than after the server refuses the seat. It is
+  resolved by the same function the seating routes enforce with, so what is
+  published and what is enforced cannot drift apart. A `local` bot is always
+  `standard`, whatever `botTiers` says: its brain ships only in the app and the
+  server never seats it, so a paid tier on it would advertise a price nothing
+  collects.
+
+### Patch Changes
+
+- [#96](https://github.com/eigeninteractive/eigen-platform/pull/96) [`2f2e731`](https://github.com/eigeninteractive/eigen-platform/commit/2f2e7311621443f2f94ca1655e102ea7e6d80155) Thanks [@seenu-k](https://github.com/seenu-k)! - Offline play is now outside commerce on purpose rather than by omission. A
+  local game is played entirely on the device — no server turn, no dispatch, no
+  alarm, no seat held open — so nothing about it was sold and nothing about it is
+  charged. That was already true of `game.create.success` and `bot.game.success`,
+  and two places disagreed.
+  
+  `games.openCreated` counted every live game the account created, local ones
+  included, while the authoritative capacity slot is reserved only by an online
+  create. An imported game the player was still part-way through therefore spent
+  a concurrent allowance that nothing was holding, and that finishing it would
+  then have had to release. The count now excludes the exempt origin, so what is
+  displayed and what is enforced describe the same set.
+  
+  Replaying a finished local game was gated on `replay.read` and on viewer-owned
+  content, so a deployment selling either could refuse a player the frames of a
+  game they played on their own phone — while `GET /games/{gameId}/local` handed
+  the same caller the whole transcript ungated. The replay gate now exempts the
+  local origin. `contentForCreate` still runs for a local game and its result is
+  still recorded: the row says which variant the transcript was produced under,
+  as a record and never as a gate.
+  
+  `app.access` is unchanged and still applies to every route, local import
+  included: it gates reaching the server at all rather than playing.
+  
+  A consequence worth stating for a paid catalog, because the engine cannot
+  enforce it: a `bot.use` tier only binds where the server seats the bot. Server
+  seating requires a turn deadline, so untimed play always happens on the device,
+  where a brain in the client bundle runs with no network and there is no request
+  to refuse. Keep a paid bot's brain off the device and it is timed-only by
+  construction.
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.9.0
+  - @eigeninteractive/rules@0.9.0
+
 ## 0.8.0
 
 ### Minor Changes
