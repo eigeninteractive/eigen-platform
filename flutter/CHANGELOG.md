@@ -14,6 +14,28 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Added
+- Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy, and `drift` is held to the minor line they come from (`>=2.35.0 <2.36.0`).
+- Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy of it.
+- `ReplicaConfig.keptReplays` on `AppConfig`: how many ended online games keep their replay on the device. In a browser the whole replica is held in memory, so an app with large replays can keep fewer there.
+- `replicaAnsweringProvider`: whether the replica still answers. A browser can take the worker holding it away without telling the page, and statements then never answer, so they are timed, and the app can offer the reload that opens everything again.
+
+### Changed
+- The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
+- `ReplicaHost.exclusively` excludes within one process too, and `SyncCoordinator` shares its pass lock across tabs, so triggers arriving together run one pass.
+- `AuthGateway.signInWithGoogle` and `switchToExistingGoogleAccount` return `AuthSignInResult`, and `AuthUpgradeResult` gains `cancelled`: dismissing the provider's sign-in is not an error. A blocked sign-in window is `AuthWindowBlockedException`, which `humanize` explains.
+- The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
+- `ReplicaHost.exclusively` excludes within one process too, and `SyncCoordinator` shares its pass lock across tabs, so triggers arriving together run one pass.
+- `AuthGateway.signInWithGoogle` and `switchToExistingGoogleAccount` return `AuthSignInResult`, and `AuthUpgradeResult` gains `cancelled`: dismissing the provider's sign-in is not an error. A blocked sign-in window is `AuthWindowBlockedException`, which `humanize` explains.
+- `ReplicaHost.persistence()` reports whether the browser keeps this site's storage, and `requestPersistence()` answers what it decided. `KeepLocalGames` offers it while the account holds a game the server does not have, once, instead of creating a local game asking silently.
+
+### Fixed
+- On the web, a browser that opened the replica and closed before writing anything else lost its schema version, and every later open failed. Opening now persists it.
+- The connectivity provider reads the current state before following changes, so a web app opened with no network is offline, and syncs when the network returns.
+- On the web, a transaction the replica committed to IndexedDB was not saved until some later unrelated write, so closing the tab could lose it, including a local game's moves; and a browser that opened the replica and closed before writing anything lost its schema version, failing every later open. Both are now saved, until drift releases its own fix.
+- The connectivity provider reads the current state before following changes, so a web app opened with no network is offline, and syncs when the network returns.
+
 ## [0.13.0] - 2026-09-16
 ### Added
 - `replicaHostProvider` opens the device replica for the platform: a file on a device, drift's shared-worker storage on the web where the browser has it, and an exclusive single-tab database where it does not. `ReplicaStorage` says which the app got, and whether anything survives a reload.
@@ -327,6 +349,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.13.0...HEAD
 [0.13.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.12.0...eigen_flutter-v0.13.0
 [0.12.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.11.0...eigen_flutter-v0.12.0
 [0.11.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.10.0...eigen_flutter-v0.11.0

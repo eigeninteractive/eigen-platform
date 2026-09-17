@@ -88,8 +88,9 @@ values in `app/app-config.json`, then deploy both halves together:
 {{PACKAGE_MANAGER}} run deploy
 ```
 
-That builds Flutter into `server/public/` and deploys one Worker containing the
-SPA and API. The app is `/`; invite and game URLs open the installed native app
+That builds Flutter into `server/public/`, generates the service worker that lets
+the web app open offline (`workbox-config.cjs`), and deploys one Worker
+containing the SPA and API. The app is `/`; invite and game URLs open the installed native app
 or the browser SPA; the native install landing page is `/download`.
 
 Configure Android, Flutter Web, and the messaging service worker together:

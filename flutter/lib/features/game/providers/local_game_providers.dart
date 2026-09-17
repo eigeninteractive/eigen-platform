@@ -282,13 +282,9 @@ createLocalGame(Ref ref) {
       botRunner: ref.read(botRunnerProvider),
     );
     await engine.close();
-    // A browser may evict site storage under pressure, and a local game not yet
-    // uploaded is the one thing a sync cannot bring back.
-    unawaited(
-      ref.read(replicaHostProvider.future).then((host) {
-        return host.requestPersistence();
-      }),
-    );
+    // Nothing asks the browser to keep its storage here: some browsers ask the
+    // player, and a prompt arriving as a game starts explains nothing. That is
+    // `KeepLocalGames`, which offers it once a game is actually at stake.
     return engine.game.id;
   };
 }

@@ -14,11 +14,24 @@ final class _FileReplicaHost implements ReplicaHost {
   final QueryExecutor executor;
 
   @override
-  Future<ReplicaStorage> get storage async => ReplicaStorage.persistent;
+  ReplicaStorage get storage => ReplicaStorage.persistent;
 
   @override
-  Future<void> exclusively(String name, Future<void> Function() body) => body();
+  Future<void> get available => Future.value();
+
+  final _locks = ProcessLocks();
 
   @override
-  Future<void> requestPersistence() async {}
+  Future<void> exclusively(String name, Future<void> Function() body) =>
+      _locks.exclusively(name, body);
+
+  @override
+  Stream<bool> get answering => Stream.value(true);
+
+  @override
+  Future<StoragePersistence> persistence() async => StoragePersistence.granted;
+
+  @override
+  Future<StoragePersistence> requestPersistence() async =>
+      StoragePersistence.granted;
 }

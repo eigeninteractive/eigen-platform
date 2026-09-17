@@ -31,7 +31,7 @@
 // A separate registry query below still checks the engine/eigen_api wire line.
 
 import { execFileSync } from "node:child_process";
-import { appendFileSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -386,7 +386,13 @@ if (buildTarget === "all" || buildTarget === "android") {
   shell("flutter", ["build", "apk", "--release", "--dart-define-from-file=app-config.json"], appRoot);
 }
 if (buildTarget === "all" || buildTarget === "web") {
-  shell("flutter", ["build", "web", "--release", "--dart-define-from-file=app-config.json"], appRoot);
+  // The project's own script, because a web build is Flutter's output plus the
+  // service worker Workbox generates from it; building Flutter alone would
+  // leave the offline half unproven.
+  shell("pnpm", ["run", "build:web"], root);
+  for (const built of ["sw.js", "assets/packages/eigen_flutter/assets/drift/drift_worker.js"]) {
+    if (!existsSync(resolve(root, "server/public", built))) throw new Error(`the web build did not produce server/public/${built}`);
+  }
 }
 
 console.log(`\nScaffolded, built and tested ${buildTarget} at ${root}`);

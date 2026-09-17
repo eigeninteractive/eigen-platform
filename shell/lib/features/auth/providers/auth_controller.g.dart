@@ -44,7 +44,7 @@ final class AuthControllerProvider
   }
 }
 
-String _$authControllerHash() => r'829c02742ab01b266d199af166030e50bdf6fbb2';
+String _$authControllerHash() => r'76e2c6226e1ee548d766c2e6c64f2d56627838a7';
 
 /// Manages first-party account actions and their operation state.
 

@@ -161,13 +161,22 @@ run_flutter() {
   flutter analyze
   flutter test
   flutter build web --release --dart-define-from-file=app-config.json
+  "$platform_root/node_modules/.bin/workbox" generateSW workbox-config.cjs
   test -f build/web/assets/packages/eigen_shell/assets/vendor/cropperjs/cropper.min.js
-  # Drift's web runtime and the shell's own service worker. Without all three a
-  # browser has no persistence and no cold start offline, which is the whole of
-  # offline play on the web, and the build would still be green.
-  test -f build/web/sqlite3.wasm
-  test -f build/web/drift_worker.js
-  test -f build/web/eigen_offline_sw.js
+  # Drift's web runtime, shipped by eigen_flutter, and the Workbox worker that
+  # precaches the build. Without them a browser has no persistence and no cold
+  # start offline, which is the whole of offline play on the web, and the build
+  # would still be green. The worker must precache the runtime and the entry
+  # points by name, or it installs and still fails offline.
+  for precached in \
+    index.html \
+    flutter_bootstrap.js \
+    main.dart.js \
+    assets/packages/eigen_flutter/assets/drift/sqlite3.wasm \
+    assets/packages/eigen_flutter/assets/drift/drift_worker.js; do
+    test -f "build/web/$precached"
+    grep -q "\"$precached\"" build/web/sw.js
+  done
 
   cd "$platform_root/flutter"
   dart pub publish --dry-run

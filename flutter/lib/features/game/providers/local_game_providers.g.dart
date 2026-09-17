@@ -608,7 +608,7 @@ final class CreateLocalGameProvider
   }
 }
 
-String _$createLocalGameHash() => r'19ced586ece86d3af675ca428717baab332f50c4';
+String _$createLocalGameHash() => r'f6dd6e07b1e325eb3b798dee310f4a18116404bb';
 
 /// How to command one game, resolved once from where it is played.
 

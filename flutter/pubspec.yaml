@@ -34,6 +34,15 @@ dependencies:
   shared_preferences: ^2.5.4
   cached_network_image: ^4.0.0
   connectivity_plus: ^7.1.1
+  # `assets/drift/` carries this release's web worker and SQLite module. Drift
+  # supports a newer client with an older worker within a major version, so the
+  # range is an ordinary caret; raising its floor means replacing both files
+  # from the matching drift release, since fixes to web storage live in the
+  # worker.
+  #
+  # Tracking: the first release carrying simolus3/drift#3865 (IndexedDB
+  # transactions are saved) lets `_PersistToIndexedDb` in
+  # lib/core/replica/replica_host_web.dart go. See docs/blockers.md.
   drift: ^2.35.0
   drift_flutter: ^0.3.1
   # The generated REST client. It is produced and published by the ENGINE repo
@@ -70,6 +79,9 @@ dev_dependencies:
   freezed: 4.0.1
   checks: ^0.3.1
   eigen_codegen: ^0.1.0
+  # A fake connectivity platform, so a test can start the app with no network.
+  connectivity_plus_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true
@@ -77,6 +89,12 @@ flutter:
   assets:
     - fonts/OFL-Inter.txt
     - fonts/OFL-SpaceGrotesk.txt
+    # Drift's web runtime, served from the app's own origin. Web only: a device
+    # opens SQLite natively and has no use for either file.
+    - path: assets/drift/sqlite3.wasm
+      platforms: [web]
+    - path: assets/drift/drift_worker.js
+      platforms: [web]
 
   # Both faces are bundled as package fonts, so a consuming app gets them
   # automatically and they render offline from the first frame with no runtime

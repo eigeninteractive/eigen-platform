@@ -11,7 +11,10 @@ import 'package:eigen_flutter/core/replica/replica_host.dart';
 /// replicaHostProvider.overrideWith((ref) async => MemoryReplicaHost()),
 /// ```
 final class MemoryReplicaHost implements ReplicaHost {
-  MemoryReplicaHost({this.storageMode = ReplicaStorage.persistent}) {
+  MemoryReplicaHost({
+    this.storageMode = ReplicaStorage.persistent,
+    this.persistenceMode = StoragePersistence.granted,
+  }) {
     // A test opens a database per case on purpose.
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
@@ -20,15 +23,39 @@ final class MemoryReplicaHost implements ReplicaHost {
   /// nothing.
   final ReplicaStorage storageMode;
 
+  /// What [persistence] reports, so a test can stand in for a browser that has
+  /// not been asked to keep this site's storage.
+  final StoragePersistence persistenceMode;
+
+  /// Whether [requestPersistence] was called.
+  var persistenceRequested = false;
+
   @override
   final QueryExecutor executor = NativeDatabase.memory();
 
   @override
-  Future<ReplicaStorage> get storage async => storageMode;
+  ReplicaStorage get storage => storageMode;
 
   @override
-  Future<void> exclusively(String name, Future<void> Function() body) => body();
+  Future<void> get available => Future.value();
+
+  final _locks = ProcessLocks();
 
   @override
-  Future<void> requestPersistence() async {}
+  Future<void> exclusively(String name, Future<void> Function() body) =>
+      _locks.exclusively(name, body);
+
+  @override
+  Stream<bool> get answering => Stream.value(true);
+
+  @override
+  Future<StoragePersistence> persistence() async => persistenceMode;
+
+  @override
+  Future<StoragePersistence> requestPersistence() async {
+    persistenceRequested = true;
+    return persistenceMode == StoragePersistence.askable
+        ? StoragePersistence.granted
+        : persistenceMode;
+  }
 }

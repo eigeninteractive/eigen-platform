@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
+import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/connectivity/connectivity_provider.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/replica/replica_providers.dart';
@@ -16,6 +17,7 @@ part 'sync_providers.g.dart';
 Future<SyncPass?> syncPass(Ref ref) async {
   final replica = await ref.watch(accountReplicaProvider.future);
   if (replica == null) return null;
+  final host = await ref.watch(replicaHostProvider.future);
   final client = ref.watch(engineClientProvider);
   return SyncPass(
     replica: replica,
@@ -27,6 +29,10 @@ Future<SyncPass?> syncPass(Ref ref) async {
       games: client.games,
       userId: replica.accountId,
     ),
+    // Two tabs of the app in one browser share one database, so their passes
+    // take one lock, and a pass one tab ran answers the other's requests too.
+    lock: (body) => host.exclusively('eigen-sync', body),
+    keptReplays: ref.watch(appConfigProvider).replica.keptReplays,
   );
 }
 
@@ -37,9 +43,10 @@ typedef SyncStatus = ({bool running, SyncReport? last});
 ///
 /// The reasons are events, never a timer: somebody signs in, the device
 /// regains connectivity, a push arrives while the app is open, and a local game
-/// finishes. An app also calls [run] on resume and on pull-to-refresh; resume
-/// is the application's lifecycle to observe, which is why it is not wired
-/// here.
+/// finishes. An app also calls [run] when the player comes back to it and on
+/// pull-to-refresh; coming back is the application's lifecycle to observe,
+/// which is why it is not wired here. However many reasons arrive together, the
+/// pass itself runs once for them (decision 0014).
 ///
 /// Nothing here blocks a screen: every screen reads the replica, and a pass
 /// only changes what it shows.
@@ -61,23 +68,25 @@ class SyncCoordinator extends _$SyncCoordinator {
     return (running: false, last: null);
   }
 
-  /// Runs a pass, or joins the one already running, and answers with its
-  /// report; null when nobody is signed in, or when no pass could start.
+  /// Requests currently waiting on or running a pass.
+  var _requests = 0;
+
+  /// Brings the replica up to date for a reason arising now, and answers with
+  /// the report of the pass that ran for it; null when nobody is signed in, when
+  /// no pass could start, or when a pass run for an earlier request, here or in
+  /// another tab, already covered this one.
   ///
   /// Never throws: every caller is a trigger that has nothing to do with a
   /// failure but try again later, and the replica still holds what the last good
-  /// pass wrote. Two tabs of the app in one browser share one database, so a
-  /// pass runs under a lock only one of them can hold at a time.
+  /// pass wrote.
   Future<SyncReport?> run() async {
+    _requests++;
     if (ref.mounted) state = (running: true, last: state.last);
     SyncReport? report;
     try {
       final pass = await ref.read(syncPassProvider.future);
       if (pass == null) return null;
-      final host = await ref.read(replicaHostProvider.future);
-      await host.exclusively('eigen-sync', () async {
-        report = await pass.run();
-      });
+      report = await pass.run();
       if (report?.error case final error?) {
         developer.log('Sync pass could not pull', name: 'sync', error: error);
       }
@@ -91,7 +100,10 @@ class SyncCoordinator extends _$SyncCoordinator {
       );
       return null;
     } finally {
-      if (ref.mounted) state = (running: false, last: report ?? state.last);
+      _requests--;
+      if (ref.mounted) {
+        state = (running: _requests > 0, last: report ?? state.last);
+      }
     }
   }
 

@@ -10,6 +10,7 @@ upgrades.
 
 - [Android built-in Kotlin migration](#android-built-in-kotlin-migration)
 - [Dart SDK ships a crashing dartdoc](#dart-sdk-ships-a-crashing-dartdoc)
+- [Drift does not persist IndexedDB transactions](#drift-does-not-persist-indexeddb-transactions)
 - [FlutterFire Firebase Installation ID registration API](#flutterfire-firebase-installation-id-registration-api)
 
 ## Android built-in Kotlin migration
@@ -104,6 +105,67 @@ References:
 
 - [dartdoc changelog](https://pub.dev/packages/dartdoc/changelog)
 - [Dart SDK `DEPS`](https://github.com/dart-lang/sdk/blob/main/DEPS)
+
+## Drift does not persist IndexedDB transactions
+
+**Status:** Worked around in `eigen_flutter`; fixed upstream, unreleased.
+**Last checked:** 2026-09-17.
+
+Drift's IndexedDB storage (`sharedIndexedDb`, `unsafeIndexedDb`) keeps the
+database in memory and saves pending writes to IndexedDB only after a statement
+runs outside a transaction. In drift 2.35.0 two writes are never followed by
+one:
+
+- A transaction's `COMMIT` runs while drift still considers itself inside the
+  transaction, so nothing a transaction wrote is saved until some later,
+  unrelated statement. Almost every replica write is a transaction, including
+  each move of a local game, which exists nowhere else until it is uploaded.
+- `Sqlite3Delegate.setSchemaVersion` writes the schema version after every
+  migration statement and saves nothing. Lost, it makes every later open run the
+  creating migration again and fail, for good.
+
+A tab that closes in between loses the write. Reproduced in Chrome 153 with
+`sharedIndexedDb`: a row inserted in a transaction was gone after closing the
+only tab and reopening. IndexedDB is the storage Chrome and Safari get, because
+OPFS needs either shared workers that can start dedicated workers (Firefox
+only) or cross-origin isolation, which breaks the sign-in popup.
+
+[simolus3/drift#3865](https://github.com/simolus3/drift/pull/3865) (merged
+2026-09-16, fixing [#3864](https://github.com/simolus3/drift/issues/3864))
+saves after a commit and after every read outside a transaction, which also
+saves the schema version on the first query after opening. drift 2.35.0
+(2026-09-09) is the latest release and predates it.
+
+### Current compatibility seam
+
+`_PersistToIndexedDb` in `flutter/lib/core/replica/replica_host_web.dart`, a
+drift `QueryInterceptor` applied only to IndexedDB storage: after each outermost
+commit, and once after opening, it runs one statement outside a transaction,
+which is what makes drift save. Nothing else in the platform knows about it.
+
+### Unblock and remove
+
+1. Watch drift's releases for the first one whose changelog carries #3865:
+
+   ```bash
+   gh release list -R simolus3/drift --limit 5
+   ```
+
+2. Raise `drift` in `flutter/pubspec.yaml` to that release, and replace
+   `flutter/assets/drift/sqlite3.wasm` and `drift_worker.js` with that
+   release's assets. The fix runs inside the worker, so the Dart constraint alone
+   changes nothing in a browser.
+3. Delete `_PersistToIndexedDb` and its use in `openReplicaHost`.
+4. In a browser with `sharedIndexedDb` (Chrome), write in a transaction, close
+   the only tab, and reopen: the row must still be there. Repeat on a fresh
+   profile with nothing written after opening: the second open must not fail.
+5. Remove this entry.
+
+References:
+
+- [drift PR #3865](https://github.com/simolus3/drift/pull/3865)
+- [drift issue #3864](https://github.com/simolus3/drift/issues/3864)
+- [Architecture decision 0014](architecture/0014-web-application-shell.md)
 
 ## FlutterFire Firebase Installation ID registration API
 

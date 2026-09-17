@@ -63,7 +63,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _lifecycleListener = AppLifecycleListener(onResume: _invalidateStreams);
+    // Back into view, not merely refocused: a browser reports every window
+    // focus as a resume, and each would reconnect the game's socket.
+    _lifecycleListener = AppLifecycleListener(onShow: _invalidateStreams);
     // Analytics listeners registered once here so they are independent of the
     // build cycle and don't mix side-effects into the build method.
     // Registered before the build-cycle listeners so they read player count

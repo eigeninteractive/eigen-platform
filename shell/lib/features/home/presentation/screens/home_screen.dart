@@ -7,6 +7,7 @@ import 'package:shimmer/shimmer.dart';
 
 import 'package:eigen_shell/features/game/presentation/extensions/game_ui.dart';
 import 'package:eigen_flutter/shell_support.dart';
+import 'package:eigen_shell/features/game/presentation/widgets/keep_local_games_card.dart';
 import 'package:eigen_shell/features/game/presentation/widgets/turn_countdown.dart';
 import 'package:eigen_shell/features/profile/providers/profile_providers.dart';
 import 'package:eigen_client/eigen_client.dart';
@@ -38,6 +39,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         children: [
           const _WelcomeHeader(),
           const SizedBox(height: 16),
+          const KeepLocalGamesCard(),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _onRefresh,

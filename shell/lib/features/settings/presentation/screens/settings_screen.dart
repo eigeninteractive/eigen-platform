@@ -514,6 +514,8 @@ class _UpgradeAccountCard extends ConsumerWidget {
           .read(authControllerProvider.notifier)
           .upgradeToGoogle();
       switch (outcome) {
+        case UpgradeOutcome.cancelled:
+          return;
         case UpgradeOutcome.linked:
           messenger.showSnackBar(
             const SnackBar(
@@ -531,7 +533,10 @@ class _UpgradeAccountCard extends ConsumerWidget {
                 .cancelExistingAccountSwitch();
             return;
           }
-          await ref.read(authControllerProvider.notifier).switchToExisting();
+          final switched = await ref
+              .read(authControllerProvider.notifier)
+              .switchToExisting();
+          if (!switched) return;
           messenger.showSnackBar(
             const SnackBar(
               content: Text(

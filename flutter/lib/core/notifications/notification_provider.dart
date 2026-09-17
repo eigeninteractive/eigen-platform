@@ -35,8 +35,8 @@ NotificationService notificationService(Ref ref) =>
 /// Current app-facing notification permission and capability state.
 ///
 /// Auto-disposes so it is re-fetched on demand. Invalidate this provider
-/// in [AppLifecycleListener.onResume] so the Settings screen reflects any
-/// changes the user made in system Settings while the app was backgrounded.
+/// in [AppLifecycleListener.onShow] so the Settings screen reflects any
+/// changes the user made in system Settings while the app was out of view.
 @riverpod
 Future<NotificationPermissionState> notificationPermissionStatus(Ref ref) =>
     ref.watch(notificationServiceProvider).permissionState();

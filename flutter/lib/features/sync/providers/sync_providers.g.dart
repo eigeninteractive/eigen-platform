@@ -49,15 +49,16 @@ final class SyncPassProvider
   }
 }
 
-String _$syncPassHash() => r'c9000b81972020dccaf7b06167cef2b902583450';
+String _$syncPassHash() => r'341b64cbb30b10a12b5d99d2c8968ddd8bf20860';
 
 /// Runs the account's sync pass whenever there is reason to (decision 0013).
 ///
 /// The reasons are events, never a timer: somebody signs in, the device
 /// regains connectivity, a push arrives while the app is open, and a local game
-/// finishes. An app also calls [run] on resume and on pull-to-refresh; resume
-/// is the application's lifecycle to observe, which is why it is not wired
-/// here.
+/// finishes. An app also calls [run] when the player comes back to it and on
+/// pull-to-refresh; coming back is the application's lifecycle to observe,
+/// which is why it is not wired here. However many reasons arrive together, the
+/// pass itself runs once for them (decision 0014).
 ///
 /// Nothing here blocks a screen: every screen reads the replica, and a pass
 /// only changes what it shows.
@@ -69,9 +70,10 @@ final syncCoordinatorProvider = SyncCoordinatorProvider._();
 ///
 /// The reasons are events, never a timer: somebody signs in, the device
 /// regains connectivity, a push arrives while the app is open, and a local game
-/// finishes. An app also calls [run] on resume and on pull-to-refresh; resume
-/// is the application's lifecycle to observe, which is why it is not wired
-/// here.
+/// finishes. An app also calls [run] when the player comes back to it and on
+/// pull-to-refresh; coming back is the application's lifecycle to observe,
+/// which is why it is not wired here. However many reasons arrive together, the
+/// pass itself runs once for them (decision 0014).
 ///
 /// Nothing here blocks a screen: every screen reads the replica, and a pass
 /// only changes what it shows.
@@ -81,9 +83,10 @@ final class SyncCoordinatorProvider
   ///
   /// The reasons are events, never a timer: somebody signs in, the device
   /// regains connectivity, a push arrives while the app is open, and a local game
-  /// finishes. An app also calls [run] on resume and on pull-to-refresh; resume
-  /// is the application's lifecycle to observe, which is why it is not wired
-  /// here.
+  /// finishes. An app also calls [run] when the player comes back to it and on
+  /// pull-to-refresh; coming back is the application's lifecycle to observe,
+  /// which is why it is not wired here. However many reasons arrive together, the
+  /// pass itself runs once for them (decision 0014).
   ///
   /// Nothing here blocks a screen: every screen reads the replica, and a pass
   /// only changes what it shows.
@@ -114,15 +117,16 @@ final class SyncCoordinatorProvider
   }
 }
 
-String _$syncCoordinatorHash() => r'f3f48ab1501cee2a3814a96fecca3a7c37f58a59';
+String _$syncCoordinatorHash() => r'885eb8fe3f215402f75ad15d90e8ef1de6c9c7cb';
 
 /// Runs the account's sync pass whenever there is reason to (decision 0013).
 ///
 /// The reasons are events, never a timer: somebody signs in, the device
 /// regains connectivity, a push arrives while the app is open, and a local game
-/// finishes. An app also calls [run] on resume and on pull-to-refresh; resume
-/// is the application's lifecycle to observe, which is why it is not wired
-/// here.
+/// finishes. An app also calls [run] when the player comes back to it and on
+/// pull-to-refresh; coming back is the application's lifecycle to observe,
+/// which is why it is not wired here. However many reasons arrive together, the
+/// pass itself runs once for them (decision 0014).
 ///
 /// Nothing here blocks a screen: every screen reads the replica, and a pass
 /// only changes what it shows.

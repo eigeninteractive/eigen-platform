@@ -11,12 +11,17 @@ class StatusBanner extends StatelessWidget {
     required this.label,
     required this.backgroundColor,
     required this.foregroundColor,
+    this.trailing,
   });
 
   final Widget leading;
   final String label;
   final Color backgroundColor;
   final Color foregroundColor;
+
+  /// An action the banner offers, at its end. A banner that only reports
+  /// something has none.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -33,11 +38,17 @@ class StatusBanner extends StatelessWidget {
           children: [
             leading,
             const SizedBox(width: 10),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: foregroundColor),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: foregroundColor),
+              ),
             ),
+            if (trailing case final action?) ...[
+              const SizedBox(width: 8),
+              action,
+            ],
           ],
         ),
       ),

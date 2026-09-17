@@ -84,8 +84,12 @@ class FirebaseAuthGateway implements AuthGateway {
   GoogleAuthProvider _googleProvider() => GoogleAuthProvider();
 
   /// Signs in with Google, creating the account on first use.
+  ///
+  /// The web signs in through Firebase's popup and only the popup (decision
+  /// 0014): never a redirect, which unloads the app mid-flow and needs the auth
+  /// handler on the app's own site to work in browsers that partition storage.
   @override
-  Future<void> signInWithGoogle() async {
+  Future<AuthSignInResult> signInWithGoogle() async {
     try {
       if (kIsWeb) {
         // google_sign_in's endorsed web implementation deliberately does not
@@ -97,14 +101,22 @@ class FirebaseAuthGateway implements AuthGateway {
         await _auth.signInWithCredential(await _googleCredential());
       }
       developer.log('Signed in with Google', name: 'auth.service');
+      return AuthSignInResult.signedIn;
     } catch (error, stackTrace) {
-      developer.log(
-        'Failed to sign in with Google',
-        name: 'auth.service',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      rethrow;
+      switch (signInInterruptionOf(error)) {
+        case SignInInterruption.cancelled:
+          return AuthSignInResult.cancelled;
+        case SignInInterruption.blocked:
+          throw const AuthWindowBlockedException();
+        case null:
+          developer.log(
+            'Failed to sign in with Google',
+            name: 'auth.service',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          rethrow;
+      }
     }
   }
 
@@ -150,21 +162,29 @@ class FirebaseAuthGateway implements AuthGateway {
       cancelExistingAccountSwitch();
       developer.log('Guest upgraded to Google', name: 'auth.service');
       return AuthUpgradeResult.linked;
-    } on FirebaseAuthException catch (error, stackTrace) {
+    } catch (error, stackTrace) {
       // Both codes mean the same thing to a user: that Google account is taken.
-      if (error.code == 'credential-already-in-use' ||
-          error.code == 'email-already-in-use') {
+      if (error case FirebaseAuthException(
+        code: 'credential-already-in-use' || 'email-already-in-use',
+      )) {
         _pendingExistingAccountCredential = error.credential;
         _hasPendingExistingAccount = true;
         return AuthUpgradeResult.existingAccount;
       }
-      developer.log(
-        'Failed to upgrade guest account',
-        name: 'auth.service',
-        error: error,
-        stackTrace: stackTrace,
-      );
-      rethrow;
+      switch (signInInterruptionOf(error)) {
+        case SignInInterruption.cancelled:
+          return AuthUpgradeResult.cancelled;
+        case SignInInterruption.blocked:
+          throw const AuthWindowBlockedException();
+        case null:
+          developer.log(
+            'Failed to upgrade guest account',
+            name: 'auth.service',
+            error: error,
+            stackTrace: stackTrace,
+          );
+          rethrow;
+      }
     }
   }
 
@@ -174,17 +194,15 @@ class FirebaseAuthGateway implements AuthGateway {
   /// one, avoiding a second account prompt. Some providers/platforms omit it,
   /// in which case the normal sign-in flow is the safe fallback.
   @override
-  Future<void> switchToExistingGoogleAccount() async {
+  Future<AuthSignInResult> switchToExistingGoogleAccount() async {
     if (!_hasPendingExistingAccount) {
       throw StateError('No existing Google account switch is pending.');
     }
     final credential = _pendingExistingAccountCredential;
     try {
-      if (credential == null) {
-        await signInWithGoogle();
-      } else {
-        await _auth.signInWithCredential(credential);
-      }
+      if (credential == null) return await signInWithGoogle();
+      await _auth.signInWithCredential(credential);
+      return AuthSignInResult.signedIn;
     } finally {
       cancelExistingAccountSwitch();
     }
@@ -217,3 +235,32 @@ class FirebaseAuthGateway implements AuthGateway {
     }
   }
 }
+
+/// How an interactive sign-in ended without failing.
+@visibleForTesting
+enum SignInInterruption {
+  /// The player dismissed the provider's sign-in.
+  cancelled,
+
+  /// The browser refused to open the provider's window.
+  blocked,
+}
+
+/// What [error], thrown by an interactive sign-in, says the player did, or null
+/// when it is a genuine failure.
+///
+/// A second popup opened over the first (`cancelled-popup-request`) is the same
+/// to a player as closing it: they tapped twice, and the later one stands.
+@visibleForTesting
+SignInInterruption? signInInterruptionOf(Object error) => switch (error) {
+  FirebaseAuthException(
+    code: 'popup-closed-by-user' ||
+        'cancelled-popup-request' ||
+        'user-cancelled',
+  ) =>
+    SignInInterruption.cancelled,
+  FirebaseAuthException(code: 'popup-blocked') => SignInInterruption.blocked,
+  GoogleSignInException(code: GoogleSignInExceptionCode.canceled) =>
+    SignInInterruption.cancelled,
+  _ => null,
+};

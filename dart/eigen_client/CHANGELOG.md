@@ -1,4 +1,9 @@
 # Changelog
+## [Unreleased]
+### Changed
+- A sync request is answered by a completed pass that began pulling after it was made, instead of joining a pass in flight: passes never overlap, a burst of triggers costs one pass, a request made mid-pull still gets its own, and a failed pass answers nothing. `SyncPass` takes a `SyncLock` so processes sharing a replica, such as browser tabs, share passes too, and `run` answers null when an earlier pass already covered the request.
+- `AccountReplica.applySync` takes `pulledAt`, and `lastSyncedAt` is the moment the last completed pass began pulling, written only by the page that completes it. `AccountReplica.lastSyncedAt()` reads it.
+
 ## [0.5.0] - 2026-09-16
 ### Added
 - A replica of the server's read model on the device, in Drift. `AccountReplica` and `PublicReplica` answer every list, profile, rating, friend and replay as a live query; `SyncPass` fills them from one `GET /me/sync` and uploads the games this device decided; `replicatedSessions` opens a game from the replica and writes each session it applies back.
@@ -38,6 +43,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.5.0...HEAD
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.4.0...eigen_client-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.3.0...eigen_client-v0.4.0
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.2.0...eigen_client-v0.3.0

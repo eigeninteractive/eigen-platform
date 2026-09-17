@@ -36,7 +36,12 @@ class _AppStartupState extends ConsumerState<AppStartup> {
     unawaited(_removeNativeSplashWhenReady());
     unawaited(ref.read(updateProvider.notifier).checkForUpdate());
     _lifecycleListener = AppLifecycleListener(
-      onResume: () {
+      // The app coming back into view, not merely regaining focus. A browser
+      // resumes the app whenever its window is focused again, which is every
+      // alt-tab and the closing of the sign-in popup, and Android does the same
+      // when the notification shade closes. None of those is the player
+      // returning, and each would cost a pass (decision 0014).
+      onShow: () {
         // Whatever changed while the app was away arrives in one pass.
         unawaited(ref.read(syncCoordinatorProvider.notifier).run());
         ref.read(updateProvider.notifier).checkForUpdate();

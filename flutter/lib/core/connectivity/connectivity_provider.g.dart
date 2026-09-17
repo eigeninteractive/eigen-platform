@@ -8,20 +8,32 @@ part of 'connectivity_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Emits the current connectivity state whenever the network changes.
+/// The device's connectivity: what it is now, then every change.
 ///
-/// Note: reflects network interface availability, not necessarily internet
-/// reachability (e.g. a connected Wi-Fi with no route to the internet will
-/// not report [ConnectivityResult.none]).
+/// Reflects network interface availability, not internet reachability: a
+/// connected Wi-Fi with no route to the internet does not report
+/// [ConnectivityResult.none].
+///
+/// The current state is read explicitly because the change stream does not
+/// promise one. A browser reports only `online` and `offline` events, so an app
+/// opened with no network would otherwise believe itself online until the
+/// network came and went again. A change that arrives before that read answers
+/// is newer, and the read is then dropped.
 
 @ProviderFor(connectivity)
 final connectivityProvider = ConnectivityProvider._();
 
-/// Emits the current connectivity state whenever the network changes.
+/// The device's connectivity: what it is now, then every change.
 ///
-/// Note: reflects network interface availability, not necessarily internet
-/// reachability (e.g. a connected Wi-Fi with no route to the internet will
-/// not report [ConnectivityResult.none]).
+/// Reflects network interface availability, not internet reachability: a
+/// connected Wi-Fi with no route to the internet does not report
+/// [ConnectivityResult.none].
+///
+/// The current state is read explicitly because the change stream does not
+/// promise one. A browser reports only `online` and `offline` events, so an app
+/// opened with no network would otherwise believe itself online until the
+/// network came and went again. A change that arrives before that read answers
+/// is newer, and the read is then dropped.
 
 final class ConnectivityProvider
     extends
@@ -33,11 +45,17 @@ final class ConnectivityProvider
     with
         $FutureModifier<List<ConnectivityResult>>,
         $StreamProvider<List<ConnectivityResult>> {
-  /// Emits the current connectivity state whenever the network changes.
+  /// The device's connectivity: what it is now, then every change.
   ///
-  /// Note: reflects network interface availability, not necessarily internet
-  /// reachability (e.g. a connected Wi-Fi with no route to the internet will
-  /// not report [ConnectivityResult.none]).
+  /// Reflects network interface availability, not internet reachability: a
+  /// connected Wi-Fi with no route to the internet does not report
+  /// [ConnectivityResult.none].
+  ///
+  /// The current state is read explicitly because the change stream does not
+  /// promise one. A browser reports only `online` and `offline` events, so an app
+  /// opened with no network would otherwise believe itself online until the
+  /// network came and went again. A change that arrives before that read answers
+  /// is newer, and the read is then dropped.
   ConnectivityProvider._()
     : super(
         from: null,
@@ -64,24 +82,27 @@ final class ConnectivityProvider
   }
 }
 
-String _$connectivityHash() => r'59a63c90973f1e1b35f3d22e08aa91406cbfa045';
+String _$connectivityHash() => r'a7214eba57e1ba87a1c8e29132c3204b7b5f0bb2';
 
 /// True when every connectivity result is [ConnectivityResult.none].
 ///
-/// Returns false during the brief loading window before the first event.
+/// Returns false during the brief loading window before the current state is
+/// known.
 
 @ProviderFor(isOffline)
 final isOfflineProvider = IsOfflineProvider._();
 
 /// True when every connectivity result is [ConnectivityResult.none].
 ///
-/// Returns false during the brief loading window before the first event.
+/// Returns false during the brief loading window before the current state is
+/// known.
 
 final class IsOfflineProvider extends $FunctionalProvider<bool, bool, bool>
     with $Provider<bool> {
   /// True when every connectivity result is [ConnectivityResult.none].
   ///
-  /// Returns false during the brief loading window before the first event.
+  /// Returns false during the brief loading window before the current state is
+  /// known.
   IsOfflineProvider._()
     : super(
         from: null,

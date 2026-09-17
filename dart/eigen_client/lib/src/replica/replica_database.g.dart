@@ -125,7 +125,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   /// Where older history continues, or null when none remains to fetch.
   final String? historyFloor;
 
-  /// When a sync last completed, in epoch milliseconds.
+  /// How current the replica is, in epoch milliseconds: when the last completed
+  /// sync began pulling.
   final int? lastSyncedAt;
   const AccountRow({
     required this.id,

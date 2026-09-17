@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/replica/replica_host.dart';
 import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
@@ -10,10 +12,22 @@ const replicaDatabaseName = 'eigen_replica';
 
 /// The platform's replica host: how this device or browser opens the database.
 ///
+/// A browser tab that finds another tab holding the database opens nothing,
+/// and opens again by itself once that tab closes.
+///
 /// A test overrides this with a host over an in-memory database.
 @Riverpod(keepAlive: true)
-Future<ReplicaHost> replicaHost(Ref ref) =>
-    openReplicaHost(name: replicaDatabaseName);
+Future<ReplicaHost> replicaHost(Ref ref) async {
+  final host = await openReplicaHost(name: replicaDatabaseName);
+  if (host.storage == ReplicaStorage.heldElsewhere) {
+    unawaited(
+      host.available.then((_) {
+        if (ref.mounted) ref.invalidateSelf();
+      }),
+    );
+  }
+  return host;
+}
 
 /// The device's replica database (decision 0013). One connection for the
 /// session.
@@ -29,19 +43,22 @@ Future<ReplicaDatabase> replicaDatabase(Ref ref) async {
   return database;
 }
 
-/// What the replica's storage turned out to be once opened.
+/// Whether the replica answers (decision 0014).
 ///
-/// Reading it opens the database, because a browser only decides its storage
-/// when it opens one.
+/// False where the browser has taken the worker holding the database away
+/// without telling the page: nothing the app reads or writes will complete, and
+/// only reopening, which a reload does, recovers it.
 @Riverpod(keepAlive: true)
-Future<ReplicaStorage> replicaStorage(Ref ref) async {
+Stream<bool> replicaAnswering(Ref ref) async* {
   final host = await ref.watch(replicaHostProvider.future);
-  if (host.executor == null) return ReplicaStorage.heldElsewhere;
-  final database = await ref.watch(replicaDatabaseProvider.future);
-  // Any statement opens the connection; this one reads nothing.
-  await database.customSelect('SELECT 1').get();
-  return host.storage;
+  yield true;
+  yield* host.answering;
 }
+
+/// What the replica's storage is on this device or in this tab.
+@Riverpod(keepAlive: true)
+Future<ReplicaStorage> replicaStorage(Ref ref) async =>
+    (await ref.watch(replicaHostProvider.future)).storage;
 
 /// The replica's public reference data: identities, bots, ratings.
 @Riverpod(keepAlive: true)
@@ -64,8 +81,8 @@ Future<AccountReplica?> accountReplica(Ref ref) async {
 Future<LocalGameStorage> localGameStorage(Ref ref) async =>
     LocalGameStorage(await ref.watch(replicaDatabaseProvider.future));
 
-/// This browser tab may not open the replica: another tab of the app holds it,
-/// in a browser where sharing it between tabs is unsafe.
+/// This browser tab may not open the replica yet: another tab of the app holds
+/// it, in a browser where sharing it between tabs is unsafe.
 final class ReplicaUnavailableException implements Exception {
   const ReplicaUnavailableException();
 

@@ -64,8 +64,8 @@ String _$notificationServiceHash() =>
 /// Current app-facing notification permission and capability state.
 ///
 /// Auto-disposes so it is re-fetched on demand. Invalidate this provider
-/// in [AppLifecycleListener.onResume] so the Settings screen reflects any
-/// changes the user made in system Settings while the app was backgrounded.
+/// in [AppLifecycleListener.onShow] so the Settings screen reflects any
+/// changes the user made in system Settings while the app was out of view.
 
 @ProviderFor(notificationPermissionStatus)
 final notificationPermissionStatusProvider =
@@ -74,8 +74,8 @@ final notificationPermissionStatusProvider =
 /// Current app-facing notification permission and capability state.
 ///
 /// Auto-disposes so it is re-fetched on demand. Invalidate this provider
-/// in [AppLifecycleListener.onResume] so the Settings screen reflects any
-/// changes the user made in system Settings while the app was backgrounded.
+/// in [AppLifecycleListener.onShow] so the Settings screen reflects any
+/// changes the user made in system Settings while the app was out of view.
 
 final class NotificationPermissionStatusProvider
     extends
@@ -90,8 +90,8 @@ final class NotificationPermissionStatusProvider
   /// Current app-facing notification permission and capability state.
   ///
   /// Auto-disposes so it is re-fetched on demand. Invalidate this provider
-  /// in [AppLifecycleListener.onResume] so the Settings screen reflects any
-  /// changes the user made in system Settings while the app was backgrounded.
+  /// in [AppLifecycleListener.onShow] so the Settings screen reflects any
+  /// changes the user made in system Settings while the app was out of view.
   NotificationPermissionStatusProvider._()
     : super(
         from: null,

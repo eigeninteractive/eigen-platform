@@ -13,6 +13,9 @@ final class _FakeAuthGateway implements AuthGateway {
   bool switched = false;
   bool cancelled = false;
 
+  /// Whether the player dismisses Google's sign-in when it opens.
+  bool dismisses = false;
+
   @override
   AuthUser? get currentUser => const AuthUser(id: 'guest-1', isAnonymous: true);
 
@@ -23,14 +26,17 @@ final class _FakeAuthGateway implements AuthGateway {
   Future<void> signInAnonymously() async {}
 
   @override
-  Future<void> signInWithGoogle() async {}
+  Future<AuthSignInResult> signInWithGoogle() async =>
+      dismisses ? AuthSignInResult.cancelled : AuthSignInResult.signedIn;
 
   @override
   Future<void> signOut() async {}
 
   @override
-  Future<void> switchToExistingGoogleAccount() async {
+  Future<AuthSignInResult> switchToExistingGoogleAccount() async {
+    if (dismisses) return AuthSignInResult.cancelled;
     switched = true;
+    return AuthSignInResult.signedIn;
   }
 
   @override
@@ -160,9 +166,48 @@ void main() {
 
     final controller = container.read(authControllerProvider.notifier);
     await controller.upgradeToGoogle();
-    await controller.switchToExisting();
+    check(await controller.switchToExisting()).isTrue();
 
     check(auth.switched).isTrue();
+    expect(container.read(authControllerProvider), isA<AsyncData<void>>());
+  });
+
+  test('dismissing Google during a switch keeps the guest as it was', () async {
+    final auth = _FakeAuthGateway()..throwExistingAccount = true;
+    final container = makeContainer(
+      overrides: [
+        ...replicaTestOverrides(),
+        syncCoordinatorProvider.overrideWith(_IdleSyncCoordinator.new),
+        authServiceProvider.overrideWithValue(auth),
+        analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
+        currentUserProvider.overrideWith(
+          (ref) => const AuthUser(id: 'guest-1', isAnonymous: true),
+        ),
+      ],
+    );
+
+    final controller = container.read(authControllerProvider.notifier);
+    await controller.upgradeToGoogle();
+    auth.dismisses = true;
+
+    check(await controller.switchToExisting()).isFalse();
+    check(auth.switched).isFalse();
+    expect(container.read(authControllerProvider), isA<AsyncData<void>>());
+  });
+
+  test('dismissing Google at sign-in is not an error', () async {
+    final auth = _FakeAuthGateway()..dismisses = true;
+    final container = makeContainer(
+      overrides: [
+        ...replicaTestOverrides(),
+        syncCoordinatorProvider.overrideWith(_IdleSyncCoordinator.new),
+        authServiceProvider.overrideWithValue(auth),
+        analyticsServiceProvider.overrideWithValue(_FakeAnalytics()),
+      ],
+    );
+
+    await container.read(authControllerProvider.notifier).signInWithGoogle();
+
     expect(container.read(authControllerProvider), isA<AsyncData<void>>());
   });
 }
