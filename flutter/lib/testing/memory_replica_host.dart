@@ -46,6 +46,9 @@ final class MemoryReplicaHost implements ReplicaHost {
       _locks.exclusively(name, body);
 
   @override
+  Stream<bool> get answering => Stream.value(true);
+
+  @override
   Future<StoragePersistence> persistence() async => persistenceMode;
 
   @override

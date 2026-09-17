@@ -56,6 +56,14 @@ abstract interface class ReplicaHost {
   /// at the same time, in this process or in another tab of the app.
   Future<void> exclusively(String name, Future<void> Function() body);
 
+  /// Whether the database answers, as it changes.
+  ///
+  /// A browser may terminate the worker holding the replica without telling the
+  /// page, and a statement then never answers (decision 0014). False means the
+  /// app should offer a reload, which opens everything again. Always true on a
+  /// device, whose database is in this process.
+  Stream<bool> get answering;
+
   /// Whether the browser keeps this site's storage under pressure.
   ///
   /// The replica itself re-syncs if it is evicted; what cannot be recovered is

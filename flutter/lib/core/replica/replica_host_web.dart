@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/wasm.dart';
 import 'package:web/web.dart' as web;
 
+import 'answering_watch.dart';
 import 'replica_host.dart';
 
 /// Where drift's web runtime is served from: this package's own web assets.
@@ -43,11 +44,15 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
       _PersistToIndexedDb(connection.executor),
     );
   }
+  // Outermost, so it times everything the database is asked, the line above
+  // included.
+  final watch = AnsweringWatch();
   return _BrowserReplicaHost(
-    connection,
+    connection.interceptWith(watch),
     storage == WasmStorageImplementation.inMemory
         ? ReplicaStorage.ephemeral
         : ReplicaStorage.persistent,
+    watch,
   );
 }
 
@@ -159,12 +164,19 @@ abstract final class _TabLocks {
 }
 
 final class _BrowserReplicaHost implements ReplicaHost {
-  _BrowserReplicaHost(QueryExecutor this.executor, this.storage)
+  _BrowserReplicaHost(QueryExecutor this.executor, this.storage, this._watch)
     : available = Future.value();
 
   _BrowserReplicaHost.heldElsewhere(this.available)
     : executor = null,
-      storage = ReplicaStorage.heldElsewhere;
+      storage = ReplicaStorage.heldElsewhere,
+      _watch = null;
+
+  /// Null for a tab that opened nothing: it has no database to answer it.
+  final AnsweringWatch? _watch;
+
+  @override
+  Stream<bool> get answering => _watch?.answering ?? Stream.value(true);
 
   @override
   final QueryExecutor? executor;

@@ -127,6 +127,20 @@ How many replays the replica keeps is `ReplicaConfig.keptReplays`, an app's to
 set, which answers 0013's open question. It matters most in a browser, where the
 whole replica is held in memory.
 
+### A replica that stops answering says so
+
+A browser may terminate the worker hosting the replica, which Chrome for Android
+documents for a backgrounded app, and nothing tells the page: drift's channel
+cannot observe a worker going away, so a statement simply never answers, lists
+keep what they last read, and writes wait forever. There is no signal to listen
+for, so statements are timed instead: one unanswered for 20 seconds reports the
+replica as not answering, and any answer reports it back. Opening is not timed,
+because loading a large replica out of IndexedDB is slow rather than broken.
+
+Nothing recovers automatically. The app says it stopped responding and offers a
+reload, which opens everything again; a reload is also all that was ever needed,
+since every committed write is already stored.
+
 ### Coming back is `onShow`
 
 The app refreshes (sync pass, update check, notification reconciliation, the
@@ -182,8 +196,9 @@ only tab closed.
 ## Open questions
 
 - Chrome for Android shipped shared workers in Chrome 148, with a documented
-  caveat that one may be terminated when the app is backgrounded. What drift's
-  connection does then is untested on a device.
+  caveat that one may be terminated when the app is backgrounded. Whether it
+  happens in practice is untested on a device; the reload offer above is what
+  the app does if it ever does.
 - IndexedDB storage holds the whole database in the worker's memory and writes
   it back behind every save, so the replica's size is memory on the web. Chrome
   and Safari have no other persistent storage without cross-origin isolation.

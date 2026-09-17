@@ -19,6 +19,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy, and `drift` is held to the minor line they come from (`>=2.35.0 <2.36.0`).
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy of it.
 - `ReplicaConfig.keptReplays` on `AppConfig`: how many ended online games keep their replay on the device. In a browser the whole replica is held in memory, so an app with large replays can keep fewer there.
+- `replicaAnsweringProvider`: whether the replica still answers. A browser can take the worker holding it away without telling the page, and statements then never answer, so they are timed, and the app can offer the reload that opens everything again.
 
 ### Changed
 - The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.

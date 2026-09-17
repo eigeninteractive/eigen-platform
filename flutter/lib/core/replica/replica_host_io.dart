@@ -26,6 +26,9 @@ final class _FileReplicaHost implements ReplicaHost {
       _locks.exclusively(name, body);
 
   @override
+  Stream<bool> get answering => Stream.value(true);
+
+  @override
   Future<StoragePersistence> persistence() async => StoragePersistence.granted;
 
   @override

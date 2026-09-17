@@ -43,6 +43,18 @@ Future<ReplicaDatabase> replicaDatabase(Ref ref) async {
   return database;
 }
 
+/// Whether the replica answers (decision 0014).
+///
+/// False where the browser has taken the worker holding the database away
+/// without telling the page: nothing the app reads or writes will complete, and
+/// only reopening, which a reload does, recovers it.
+@Riverpod(keepAlive: true)
+Stream<bool> replicaAnswering(Ref ref) async* {
+  final host = await ref.watch(replicaHostProvider.future);
+  yield true;
+  yield* host.answering;
+}
+
 /// What the replica's storage is on this device or in this tab.
 @Riverpod(keepAlive: true)
 Future<ReplicaStorage> replicaStorage(Ref ref) async =>

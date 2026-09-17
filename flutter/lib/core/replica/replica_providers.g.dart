@@ -123,6 +123,56 @@ final class ReplicaDatabaseProvider
 
 String _$replicaDatabaseHash() => r'6f5b5807d733499e987f467c0d15fee73d6e6814';
 
+/// Whether the replica answers (decision 0014).
+///
+/// False where the browser has taken the worker holding the database away
+/// without telling the page: nothing the app reads or writes will complete, and
+/// only reopening, which a reload does, recovers it.
+
+@ProviderFor(replicaAnswering)
+final replicaAnsweringProvider = ReplicaAnsweringProvider._();
+
+/// Whether the replica answers (decision 0014).
+///
+/// False where the browser has taken the worker holding the database away
+/// without telling the page: nothing the app reads or writes will complete, and
+/// only reopening, which a reload does, recovers it.
+
+final class ReplicaAnsweringProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, Stream<bool>>
+    with $FutureModifier<bool>, $StreamProvider<bool> {
+  /// Whether the replica answers (decision 0014).
+  ///
+  /// False where the browser has taken the worker holding the database away
+  /// without telling the page: nothing the app reads or writes will complete, and
+  /// only reopening, which a reload does, recovers it.
+  ReplicaAnsweringProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'replicaAnsweringProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$replicaAnsweringHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<bool> create(Ref ref) {
+    return replicaAnswering(ref);
+  }
+}
+
+String _$replicaAnsweringHash() => r'4ac1abbf814efd1067888c0cba50c2346442347c';
+
 /// What the replica's storage is on this device or in this tab.
 
 @ProviderFor(replicaStorage)

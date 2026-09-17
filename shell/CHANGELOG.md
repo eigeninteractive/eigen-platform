@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - The home screen offers to have the browser keep games played on this device, explaining what it is for before the browser asks, and only while such a game has yet to upload.
+- A banner offering a reload when the replica stops answering, which in a browser is how a database whose worker has been taken away appears.
 
 ### Changed
 - The app refreshes when it comes back into view (`AppLifecycleListener.onShow`) rather than whenever it regains focus, which on the web was every alt-tab and the closing of the sign-in popup; the open game reconnects on the same signal.

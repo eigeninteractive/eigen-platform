@@ -267,6 +267,11 @@ The same code runs, with these differences a browser forces:
   app normally, minus local play, and says so.
 - **Coming back.** A browser reports every window focus as the app resuming, so
   the app refreshes when it comes back into view, not when it is refocused.
+- **A database that goes away.** A browser may take the worker holding the
+  replica away without telling the page, and nothing the app reads or writes
+  then answers. The app notices that statements have stopped answering, says it
+  stopped responding, and offers a reload, which opens everything again. Every
+  committed write is already stored, so a reload is all it costs.
 - **Updates.** A deploy reaches an open tab as a new service worker that has
   precached the new build and waits. The update-required action lets it take
   over and then reloads, so the reload lands on the new build.

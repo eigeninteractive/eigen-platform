@@ -9,6 +9,7 @@ import 'package:eigen_shell/core/navigation/providers/navigation_providers.dart'
 import 'package:eigen_shell/core/navigation/widgets/app_route_title.dart';
 import 'package:eigen_shell/core/navigation/url_strategy.dart';
 import 'package:eigen_shell/core/startup/app_startup.dart';
+import 'package:eigen_shell/core/updates/update_notifier.dart';
 import 'package:eigen_shell/core/theme/theme_provider.dart';
 
 SemanticsHandle? _webSemanticsHandle;
@@ -120,7 +121,7 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-/// Stops the app where the browser gives it nowhere to keep its data.
+/// Says what the browser has done to the app's data, above whatever it renders.
 ///
 /// Another tab of the app may hold the replica in a browser where sharing it
 /// between tabs is unsafe, and this tab then opens nothing, says so, and opens
@@ -136,8 +137,8 @@ class _ReplicaGate extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final storage = ref.watch(replicaStorageProvider).value;
     final colorScheme = Theme.of(context).colorScheme;
-    return switch (storage) {
-      ReplicaStorage.heldElsewhere => Scaffold(
+    if (storage == ReplicaStorage.heldElsewhere) {
+      return const Scaffold(
         body: EmptyStateView(
           icon: Icons.tab_outlined,
           title: 'Open in another tab',
@@ -145,9 +146,33 @@ class _ReplicaGate extends ConsumerWidget {
               'This browser can only use the app in one tab at a time. '
               'It opens here as soon as the other tab is closed.',
         ),
-      ),
-      ReplicaStorage.ephemeral => Column(
-        children: [
+      );
+    }
+    // A browser can take the worker holding the database away without telling
+    // the page, and then nothing this app reads or writes ever answers. Only
+    // reopening recovers it, which is what a reload does (decision 0014).
+    final answering = ref.watch(replicaAnsweringProvider).value ?? true;
+    return Column(
+      children: [
+        if (!answering)
+          SafeArea(
+            bottom: false,
+            child: StatusBanner(
+              leading: Icon(
+                Icons.sync_problem_outlined,
+                size: 16,
+                color: colorScheme.onErrorContainer,
+              ),
+              label: 'The app stopped responding',
+              backgroundColor: colorScheme.errorContainer,
+              foregroundColor: colorScheme.onErrorContainer,
+              trailing: TextButton(
+                onPressed: () => ref.read(appUpdateGatewayProvider).reloadWeb(),
+                child: const Text('Reload'),
+              ),
+            ),
+          ),
+        if (storage == ReplicaStorage.ephemeral)
           SafeArea(
             bottom: false,
             child: StatusBanner(
@@ -161,10 +186,8 @@ class _ReplicaGate extends ConsumerWidget {
               foregroundColor: colorScheme.onSurfaceVariant,
             ),
           ),
-          Expanded(child: child),
-        ],
-      ),
-      _ => child,
-    };
+        Expanded(child: child),
+      ],
+    );
   }
 }
