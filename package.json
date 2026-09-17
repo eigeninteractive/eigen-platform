@@ -9,5 +9,8 @@
     "check:web": "./tool/check.sh web",
     "contracts:check": "node tool/check-contracts.mjs",
     "dart-releases:check": "node tool/check-dart-releases.mjs"
+  },
+  "devDependencies": {
+    "workbox-cli": "7.4.1"
   }
 }

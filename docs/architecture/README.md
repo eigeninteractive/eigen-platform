@@ -20,6 +20,7 @@ the implementation is wrong or the record must be superseded explicitly.
 | [0011](0011-commerce-entitlements-and-access.md) | Accepted | Commerce, entitlements, fixed access capabilities, and optional limits |
 | [0012](0012-offline-play.md) | Accepted | Offline play against local bots with lazy import |
 | [0013](0013-device-replica-and-sync.md) | Accepted | Device replica of the read model, and one sync pass |
+| [0014](0014-web-application-shell.md) | Accepted | The web application shell: precache, updates, browser storage, and sign-in |
 
 The machine-readable contract is generated, not hand-written: the HTTP surface as OpenAPI 3.1 (`server/packages/server/openapi.json`) from the Zod schemas in `routes/wire.ts`, and each game's payload schemas as `game-contract.json` from its TypeScript rules.
 [`status.md`](status.md) records delivery status and the next product work.

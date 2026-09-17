@@ -34,7 +34,12 @@ dependencies:
   shared_preferences: ^2.5.4
   cached_network_image: ^4.0.0
   connectivity_plus: ^7.1.1
-  drift: ^2.35.0
+  # Held to one minor line, because `assets/drift/` carries this release's web
+  # worker and SQLite module, and a browser's database is only as sound as that
+  # pairing. Exact would be tighter, but pub refuses to publish a single-version
+  # constraint, and drift keeps its worker protocol within a minor line. Moving
+  # this means replacing both files from the matching drift release.
+  drift: ">=2.35.0 <2.36.0"
   drift_flutter: ^0.3.1
   # The generated REST client. It is produced and published by the ENGINE repo
   # (eigen-server/clients/dart), because that is where the wire contract lives:
@@ -70,6 +75,9 @@ dev_dependencies:
   freezed: 4.0.1
   checks: ^0.3.1
   eigen_codegen: ^0.1.0
+  # A fake connectivity platform, so a test can start the app with no network.
+  connectivity_plus_platform_interface: ^2.1.0
+  plugin_platform_interface: ^2.1.8
 
 flutter:
   uses-material-design: true
@@ -77,6 +85,12 @@ flutter:
   assets:
     - fonts/OFL-Inter.txt
     - fonts/OFL-SpaceGrotesk.txt
+    # Drift's web runtime, served from the app's own origin. Web only: a device
+    # opens SQLite natively and has no use for either file.
+    - path: assets/drift/sqlite3.wasm
+      platforms: [web]
+    - path: assets/drift/drift_worker.js
+      platforms: [web]
 
   # Both faces are bundled as package fonts, so a consuming app gets them
   # automatically and they render offline from the first frame with no runtime

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:eigen_client/eigen_client.dart';
+import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
 
 /// Converts a raw exception into a message suitable for display in a snackbar
 /// or inline form error.
@@ -16,6 +17,9 @@ String humanize(Object e) => switch (e) {
   // No response at all: engineCall only converts failures that carried one, so
   // any DioException reaching here is a genuine transport failure.
   DioException() => _offline,
+  AuthWindowBlockedException() =>
+    'Your browser blocked the sign-in window. Allow pop-ups for this site, '
+        'then try again.',
   _ => _unexpected,
 };
 

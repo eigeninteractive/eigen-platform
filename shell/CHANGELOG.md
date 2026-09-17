@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Changed
+- The app refreshes when it comes back into view (`AppLifecycleListener.onShow`) rather than whenever it regains focus, which on the web was every alt-tab and the closing of the sign-in popup; the open game reconnects on the same signal.
+- On the web, the update-required action lets the newly deployed service worker take over before reloading, so the reload lands on the new build.
+
+### Fixed
+- Dismissing Google's sign-in no longer shows an error, and dismissing it while switching to an existing account keeps the guest and its data. A blocked sign-in window says to allow pop-ups.
+
 ## [0.5.0] - 2026-09-16
 ### Added
 - Every screen opens from the device replica: the home and history lists, replays, the profile, ratings and friends render with no network and no spinner on a device that has synced before, and pull-to-refresh runs the sync pass.
@@ -50,6 +58,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.5.0...HEAD
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.4.0...eigen_shell-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...eigen_shell-v0.4.0
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...eigen_shell-v0.3.0

@@ -25,6 +25,14 @@ final class SyncReport {
   bool get pulled => error == null;
 }
 
+/// Keeps a pass's work from overlapping another pass over the same replica.
+///
+/// Runs [body] once no other body given to it is running. A replica only one
+/// process opens needs nothing more than [SyncPass]'s own default; a replica
+/// several processes share, such as browser tabs over one database, passes a
+/// lock they all hold in common.
+typedef SyncLock = Future<void> Function(Future<void> Function() body);
+
 /// Brings one account's replica up to date with the server (decision 0013).
 ///
 /// One pass, two steps, in this order: upload the games this device decides,
@@ -32,10 +40,14 @@ final class SyncReport {
 /// just finished arrives in the same pull that follows, where the reverse order
 /// would leave it for the next trigger.
 ///
-/// Nothing here decides *when* a pass runs; that is the caller's, and it is
-/// always an event (app start, resume, reconnecting, pull-to-refresh, a push, a
-/// local game finishing), never a timer. Single-flight: a trigger arriving
-/// mid-pass joins the pass already running.
+/// Nothing here decides *when* a pass is asked for; that is the caller's, and
+/// it is always an event (app start, coming back to the app, reconnecting,
+/// pull-to-refresh, a push, a local game finishing), never a timer. What this
+/// decides is whether the request still needs a pass of its own (decision
+/// 0014): passes never overlap, and a request is already answered once a pass
+/// that began pulling after it was made has completed. So a burst of triggers,
+/// from one process or from several sharing the replica, costs one pass rather
+/// than one each.
 final class SyncPass {
   SyncPass({
     required this._replica,
@@ -43,27 +55,46 @@ final class SyncPass {
     required this._account,
     required this._games,
     required this._localGames,
+    SyncLock? lock,
     this._clock = DateTime.now,
     this._keptReplays = defaultKeptReplays,
-  });
+  }) : _lock = lock ?? _serial();
 
   final AccountReplica _replica;
   final PublicReplica _public;
   final AccountRepository _account;
   final GameRepository _games;
   final LocalGameSync _localGames;
+  final SyncLock _lock;
   final DateTime Function() _clock;
   final int _keptReplays;
 
-  Future<SyncReport>? _inFlight;
+  /// Runs a pass for a reason arising now, unless one that began pulling since
+  /// then has completed by the time this one could start.
+  ///
+  /// Answers with the pass's report, or null when an earlier-started request's
+  /// pass already brought the replica past this moment. A request arriving
+  /// mid-pass waits for that pass rather than joining it, because a pull that
+  /// began before the request may have missed what prompted it.
+  Future<SyncReport?> run() async {
+    final requestedAt = _clock();
+    SyncReport? report;
+    await _lock(() async {
+      final syncedAt = await _replica.lastSyncedAt();
+      if (syncedAt != null && !syncedAt.isBefore(requestedAt)) return;
+      report = await _run();
+    });
+    return report;
+  }
 
-  /// Runs a pass, or joins the one already running.
-  Future<SyncReport> run() {
-    final running = _inFlight;
-    if (running != null) return running;
-    final pass = _run();
-    _inFlight = pass;
-    return pass.whenComplete(() => _inFlight = null);
+  /// A lock only this process holds: each body starts once the last has ended.
+  static SyncLock _serial() {
+    var tail = Future<void>.value();
+    return (body) {
+      final next = tail.then((_) => body());
+      tail = next.then((_) {}, onError: (Object _) {});
+      return next;
+    };
   }
 
   Future<SyncReport> _run() async {
@@ -79,6 +110,9 @@ final class SyncPass {
   }
 
   Future<void> _pull() async {
+    // What the replica reflects once this pull completes: the server as of the
+    // moment its first request went out, not when the last page landed.
+    final pulledAt = _clock();
     var cursor = await _replica.finishedCursor();
     var response = await _account.sync(finishedAfter: cursor);
     if (cursor != null &&
@@ -99,7 +133,7 @@ final class SyncPass {
         response,
         first: first,
         endedSeen: last ? ended : null,
-        now: _clock(),
+        pulledAt: pulledAt,
       );
       if (last) return;
       response = await _account.sync(finishedAfter: response.finishedCursor);

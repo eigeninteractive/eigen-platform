@@ -109,17 +109,19 @@ jobs:
         run: flutter test
 
       # A VM widget test can pass while a dependency still imports dart:io or
-      # calls an unsupported plugin. Compiling the real web entrypoint is
-      # what actually proves it ships, mirroring eigen-flutter's own `example`
-      # job, which does the same for the RPS reference app.
+      # calls an unsupported plugin. Building the real web app is what actually
+      # proves it ships, mirroring eigen-flutter's own `example` job, which does
+      # the same for the RPS reference app. `build:web` is the deploy's own
+      # build: Flutter, then the service worker Workbox generates from it, so
+      # the root's Node tools are installed first.
       #
       # No Android SDK step in this job, for the same reason
       # `create-eigen-game`'s own `scaffold-e2e.mjs` check skips one:
       # `flutter analyze`/`test`/`build web` don't need it, and it would
       # roughly double this job for no extra coverage. The Android build is
       # verified for real, with a real signing config, in `release.yml`.
+      - name: Install root dependencies
+        run: {{PACKAGE_MANAGER}} install
+
       - name: Build web
-        working-directory: app
-        run: >
-          flutter build web --release
-          --dart-define-from-file=app-config.json
+        run: {{PACKAGE_MANAGER}} run build:web

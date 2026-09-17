@@ -155,10 +155,12 @@ account deletes them.
 **One read fills it.** A sync pass uploads the games this device decides
 (offline play, below) and then pulls `GET /me/sync`, which answers with the
 small sets whole and finished games since a cursor. It runs on events, never on
-a timer: app start, resume, reconnecting, pull-to-refresh, a push arriving while
-the app is open, and a local game finishing. Only one pass runs at a time, and a
-failed one changes nothing, so the replica still holds what the last good one
-wrote.
+a timer: app start, coming back into view, reconnecting, pull-to-refresh, a push
+arriving while the app is open, and a local game finishing. Passes never overlap,
+and a trigger is already answered once a pass that began pulling after it has
+completed, so a burst of triggers costs one pass rather than one each, including
+across browser tabs. A failed pass answers nothing and changes nothing, so the
+replica still holds what the last good one wrote.
 
 **Writes are ordered by the game's own revision.** A summary from a sync, a
 snapshot from the open game's socket and a commit from the local engine all
@@ -195,11 +197,13 @@ rows, plus the players and bots the replica holds, which is what turns a seat
 index into a name and an avatar offline. Sync needs no game code and no UI
 trigger; it is the upload half of the pass above.
 
-The scaffold's web build ships drift's web runtime (`sqlite3.wasm`,
-`drift_worker.js`) and a service worker that precaches the application shell,
-registered at the root scope beside the messaging worker's own scope, because
-Flutter no longer generates one: without it, a web install has nothing cached to
-render from on a cold, offline reload.
+On the web, drift's runtime (`sqlite3.wasm`, `drift_worker.js`) ships inside
+`eigen_flutter` as web-only package assets, so an app carries no copy of it. The
+scaffold's web build ends by generating a service worker with
+[Workbox](https://developer.chrome.com/docs/workbox), which precaches the whole
+build when it installs: after one online visit the app opens with no network,
+always from one consistent build. Flutter no longer generates a worker, and
+without one a web install has nothing to render from on a cold, offline reload.
 
 ## Connectivity & offline UX
 
@@ -227,19 +231,26 @@ bypassing Riverpod's retry backoff.
 
 ### What differs on the web
 
-The same code runs, with three differences a browser forces:
+The same code runs, with these differences a browser forces:
 
 - **Storage can be cleared.** Replicated rows come back on the next sync; a
   local game not yet uploaded cannot, so the app asks for persistent storage
   (`navigator.storage.persist()`) when the first one is created.
 - **Tabs.** The shell cannot send the cross-origin isolation headers, because
   they break the sign-in popup, so drift's only storage that is safe to share
-  between tabs is the shared-worker kind. Where the browser has no shared
-  workers, the first tab takes an exclusive lock on the database for its
-  lifetime and a second tab says the app is open elsewhere. Sync passes and
-  local games also run under browser locks.
+  between tabs is the kind one shared worker hosts for all of them, which
+  Chrome (on Android from version 148), Firefox, and Safari offer. Where a
+  browser does not, the first tab holds the
+  database for its lifetime, a second tab says the app is open elsewhere, and
+  it opens by itself once the first tab closes. Sync passes run under a browser
+  lock, so the tabs share them.
 - **No storage at all.** A browser that keeps nothing across a reload runs the
   app normally, minus local play, and says so.
+- **Coming back.** A browser reports every window focus as the app resuming, so
+  the app refreshes when it comes back into view, not when it is refocused.
+- **Updates.** A deploy reaches an open tab as a new service worker that has
+  precached the new build and waits. The update-required action lets it take
+  over and then reloads, so the reload lands on the new build.
 
 ## Navigation
 

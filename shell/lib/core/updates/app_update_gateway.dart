@@ -72,7 +72,7 @@ class PluginAppUpdateGateway implements AppUpdateGateway {
   Future<void> completeFlexibleUpdate() => InAppUpdate.completeFlexibleUpdate();
 
   @override
-  Future<void> reloadWeb() async => reloadBrowser();
+  Future<void> reloadWeb() => reloadBrowser();
 }
 
 NativeUpdateAttempt _attempt(AppUpdateResult result) => switch (result) {

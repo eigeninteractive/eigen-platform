@@ -28,7 +28,8 @@ class Accounts extends Table {
   /// Where older history continues, or null when none remains to fetch.
   TextColumn get historyFloor => text().nullable()();
 
-  /// When a sync last completed, in epoch milliseconds.
+  /// How current the replica is, in epoch milliseconds: when the last completed
+  /// sync began pulling.
   IntColumn get lastSyncedAt => integer().nullable()();
 
   @override

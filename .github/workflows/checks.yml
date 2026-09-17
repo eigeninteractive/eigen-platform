@@ -152,6 +152,24 @@ jobs:
           channel: stable
           cache: true
 
+      # The example's web build is finished by Workbox, which generates its
+      # service worker; the repository root holds that one Node tool.
+      - uses: pnpm/action-setup@v6
+        if: needs.scope.outputs.full == 'true' && matrix.shard == 'flutter'
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v7
+        if: needs.scope.outputs.full == 'true' && matrix.shard == 'flutter'
+        with:
+          node-version-file: server/.nvmrc
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install Workbox
+        if: needs.scope.outputs.full == 'true' && matrix.shard == 'flutter'
+        run: pnpm install --frozen-lockfile
+
       - name: Check ${{ matrix.shard }}
         if: needs.scope.outputs.full == 'true'
         run: ./tool/check.sh ${{ matrix.shard }}

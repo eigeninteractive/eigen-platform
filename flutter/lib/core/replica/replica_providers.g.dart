@@ -10,12 +10,18 @@ part of 'replica_providers.dart';
 // ignore_for_file: type=lint, type=warning
 /// The platform's replica host: how this device or browser opens the database.
 ///
+/// A browser tab that finds another tab holding the database opens nothing,
+/// and opens again by itself once that tab closes.
+///
 /// A test overrides this with a host over an in-memory database.
 
 @ProviderFor(replicaHost)
 final replicaHostProvider = ReplicaHostProvider._();
 
 /// The platform's replica host: how this device or browser opens the database.
+///
+/// A browser tab that finds another tab holding the database opens nothing,
+/// and opens again by itself once that tab closes.
 ///
 /// A test overrides this with a host over an in-memory database.
 
@@ -28,6 +34,9 @@ final class ReplicaHostProvider
         >
     with $FutureModifier<ReplicaHost>, $FutureProvider<ReplicaHost> {
   /// The platform's replica host: how this device or browser opens the database.
+  ///
+  /// A browser tab that finds another tab holding the database opens nothing,
+  /// and opens again by itself once that tab closes.
   ///
   /// A test overrides this with a host over an in-memory database.
   ReplicaHostProvider._()
@@ -56,7 +65,7 @@ final class ReplicaHostProvider
   }
 }
 
-String _$replicaHostHash() => r'85d2c117296bebaff717d2e5c2fecea02a024121';
+String _$replicaHostHash() => r'26be17e7ccbb88edcbaccdcae8455f8c40c2382c';
 
 /// The device's replica database (decision 0013). One connection for the
 /// session.
@@ -114,18 +123,12 @@ final class ReplicaDatabaseProvider
 
 String _$replicaDatabaseHash() => r'6f5b5807d733499e987f467c0d15fee73d6e6814';
 
-/// What the replica's storage turned out to be once opened.
-///
-/// Reading it opens the database, because a browser only decides its storage
-/// when it opens one.
+/// What the replica's storage is on this device or in this tab.
 
 @ProviderFor(replicaStorage)
 final replicaStorageProvider = ReplicaStorageProvider._();
 
-/// What the replica's storage turned out to be once opened.
-///
-/// Reading it opens the database, because a browser only decides its storage
-/// when it opens one.
+/// What the replica's storage is on this device or in this tab.
 
 final class ReplicaStorageProvider
     extends
@@ -135,10 +138,7 @@ final class ReplicaStorageProvider
           FutureOr<ReplicaStorage>
         >
     with $FutureModifier<ReplicaStorage>, $FutureProvider<ReplicaStorage> {
-  /// What the replica's storage turned out to be once opened.
-  ///
-  /// Reading it opens the database, because a browser only decides its storage
-  /// when it opens one.
+  /// What the replica's storage is on this device or in this tab.
   ReplicaStorageProvider._()
     : super(
         from: null,
@@ -165,7 +165,7 @@ final class ReplicaStorageProvider
   }
 }
 
-String _$replicaStorageHash() => r'1ae7549495f54b6c47b7fda5aada73872d95faa4';
+String _$replicaStorageHash() => r'78da2fe08471136f15df4991bc2f053498cbd547';
 
 /// The replica's public reference data: identities, bots, ratings.
 

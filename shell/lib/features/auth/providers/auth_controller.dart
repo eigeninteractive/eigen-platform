@@ -17,6 +17,10 @@ enum UpgradeOutcome {
   /// The Google identity already belongs to an account. The UI must ask before
   /// abandoning guest progress and calling [AuthController.switchToExisting].
   existingAccount,
+
+  /// The player dismissed Google's sign-in. The guest is unchanged, and there
+  /// is nothing to say.
+  cancelled,
 }
 
 /// Manages first-party account actions and their operation state.
@@ -27,7 +31,8 @@ class AuthController extends _$AuthController {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  /// Signs in with Google.
+  /// Signs in with Google. Dismissing Google's sign-in is not an error: the
+  /// state simply settles back.
   Future<void> signInWithGoogle() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
@@ -55,6 +60,10 @@ class AuthController extends _$AuthController {
     final analytics = ref.read(analyticsServiceProvider);
     try {
       final result = await authService.upgradeWithGoogle();
+      if (result == AuthUpgradeResult.cancelled) {
+        state = const AsyncData(null);
+        return UpgradeOutcome.cancelled;
+      }
       if (result == AuthUpgradeResult.existingAccount) {
         _hasPendingExistingAccount = true;
         state = const AsyncData(null);
@@ -73,11 +82,14 @@ class AuthController extends _$AuthController {
     }
   }
 
-  /// Switches to the existing Google account selected by [upgradeToGoogle].
+  /// Switches to the existing Google account selected by [upgradeToGoogle], and
+  /// answers whether it did.
   ///
   /// This is separate from conflict detection so the UI can explain that guest
   /// progress cannot be transferred and obtain consent before local teardown.
-  Future<void> switchToExisting() async {
+  /// A player who then dismisses Google's sign-in stays the guest, with
+  /// everything the guest had.
+  Future<bool> switchToExisting() async {
     if (!_hasPendingExistingAccount) {
       throw StateError('No existing Google account switch is pending.');
     }
@@ -85,7 +97,13 @@ class AuthController extends _$AuthController {
     state = const AsyncLoading();
     final guestId = ref.read(currentUserProvider)?.id;
     try {
-      await ref.read(authServiceProvider).switchToExistingGoogleAccount();
+      final result = await ref
+          .read(authServiceProvider)
+          .switchToExistingGoogleAccount();
+      if (result == AuthSignInResult.cancelled) {
+        state = const AsyncData(null);
+        return false;
+      }
       if (guestId != null) {
         try {
           await forgetAbandonedGuest(ref, guestId);
@@ -99,6 +117,7 @@ class AuthController extends _$AuthController {
         }
       }
       state = const AsyncData(null);
+      return true;
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
       rethrow;

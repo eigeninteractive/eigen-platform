@@ -24,10 +24,16 @@ final class MemoryReplicaHost implements ReplicaHost {
   final QueryExecutor executor = NativeDatabase.memory();
 
   @override
-  Future<ReplicaStorage> get storage async => storageMode;
+  ReplicaStorage get storage => storageMode;
 
   @override
-  Future<void> exclusively(String name, Future<void> Function() body) => body();
+  Future<void> get available => Future.value();
+
+  final _locks = ProcessLocks();
+
+  @override
+  Future<void> exclusively(String name, Future<void> Function() body) =>
+      _locks.exclusively(name, body);
 
   @override
   Future<void> requestPersistence() async {}

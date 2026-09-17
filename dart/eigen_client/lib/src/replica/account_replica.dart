@@ -6,7 +6,8 @@ import 'replica_database.dart';
 
 /// Where an account's history stands on this device.
 typedef HistoryState = ({
-  /// When a sync last completed, or null before the first one.
+  /// How current the replica is: when the last completed sync began pulling,
+  /// or null before the first one.
   DateTime? lastSyncedAt,
 
   /// Whether older history remains on the server that the device does not
@@ -66,15 +67,8 @@ final class AccountReplica {
       (_db.select(
         _db.accounts,
       )..where((row) => row.id.equals(accountId))).watchSingleOrNull().map(
-        (row) => (
-          lastSyncedAt: row?.lastSyncedAt == null
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch(
-                  row!.lastSyncedAt!,
-                  isUtc: true,
-                ),
-          hasOlder: row?.historyFloor != null,
-        ),
+        (row) =>
+            (lastSyncedAt: _syncedAt(row), hasOlder: row?.historyFloor != null),
       );
 
   /// Every game the account holds a seat in that has not ended, the account's
@@ -255,6 +249,10 @@ final class AccountReplica {
   /// known yet.
   Future<String?> historyFloor() async => (await _account())?.historyFloor;
 
+  /// How current the replica is: when the last completed sync began pulling,
+  /// or null when the account has never synced on this device.
+  Future<DateTime?> lastSyncedAt() async => _syncedAt(await _account());
+
   // ── Writes ────────────────────────────────────────────────────────────────
 
   /// Applies one sync response in one transaction.
@@ -264,13 +262,18 @@ final class AccountReplica {
   /// game absent from it has ended or been left; but an ended game can arrive on
   /// a later page of the same pass, so [endedSeen] is given only with the last
   /// page, carrying every finished game the pass received, and only then are
-  /// absent games removed.
+  /// absent games removed. That last page is also what completes the pass, so
+  /// it alone records [pulledAt], the moment the pass sent its first request,
+  /// as how current the replica now is.
   Future<void> applySync(
     AccountSync sync, {
     required bool first,
     required Set<String>? endedSeen,
-    required DateTime now,
+    required DateTime pulledAt,
   }) => _db.transaction(() async {
+    final syncedAt = endedSeen == null
+        ? const Value<int?>.absent()
+        : Value<int?>(pulledAt.toUtc().millisecondsSinceEpoch);
     final profile = sync.account;
     await _db
         .into(_db.accounts)
@@ -281,7 +284,7 @@ final class AccountReplica {
             createdAt: profile.createdAt,
             finishedCursor: Value(sync.finishedCursor),
             historyFloor: Value(sync.historyFloor),
-            lastSyncedAt: Value(now.toUtc().millisecondsSinceEpoch),
+            lastSyncedAt: syncedAt,
           ),
           onConflict: DoUpdate(
             (_) => AccountsCompanion(
@@ -293,7 +296,7 @@ final class AccountReplica {
               historyFloor: first
                   ? Value(sync.historyFloor)
                   : const Value.absent(),
-              lastSyncedAt: Value(now.toUtc().millisecondsSinceEpoch),
+              lastSyncedAt: syncedAt,
             ),
           ),
         );
@@ -585,6 +588,11 @@ final class AccountReplica {
   });
 
   // ── Internals ─────────────────────────────────────────────────────────────
+
+  static DateTime? _syncedAt(AccountRow? row) => switch (row?.lastSyncedAt) {
+    final millis? => DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true),
+    null => null,
+  };
 
   Future<AccountRow?> _account() => (_db.select(
     _db.accounts,

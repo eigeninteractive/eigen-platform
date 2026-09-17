@@ -1,7 +1,40 @@
 import 'package:eigen_flutter/features/auth/domain/auth_user.dart';
 
+/// How a sign-in the player started ended, when it did not fail.
+enum AuthSignInResult {
+  /// The player is signed in.
+  signedIn,
+
+  /// The player closed or dismissed the provider's sign-in before finishing.
+  /// Nothing changed, and there is nothing to report.
+  cancelled,
+}
+
 /// Result of trying to turn a guest session into a Google-backed account.
-enum AuthUpgradeResult { linked, existingAccount }
+enum AuthUpgradeResult {
+  /// The Google identity now belongs to the guest's own account.
+  linked,
+
+  /// The Google identity already belongs to another account; switching to it
+  /// needs the player's confirmation.
+  existingAccount,
+
+  /// The player dismissed the provider's sign-in. The guest is unchanged.
+  cancelled,
+}
+
+/// The provider's sign-in could not open its window: in a browser, a pop-up
+/// blocker refused it.
+///
+/// Unlike a cancellation this is not the player's choice, and unlike most
+/// failures they can fix it themselves, so it is its own type for the app to
+/// explain.
+final class AuthWindowBlockedException implements Exception {
+  const AuthWindowBlockedException();
+
+  @override
+  String toString() => 'The sign-in window was blocked.';
+}
 
 /// Authentication required by the Flutter presentation package.
 ///
@@ -12,10 +45,10 @@ enum AuthUpgradeResult { linked, existingAccount }
 abstract interface class AuthGateway {
   AuthUser? get currentUser;
   Stream<AuthStateChange> get authStateChanges;
-  Future<void> signInWithGoogle();
+  Future<AuthSignInResult> signInWithGoogle();
   Future<void> signInAnonymously();
   Future<AuthUpgradeResult> upgradeWithGoogle();
-  Future<void> switchToExistingGoogleAccount();
+  Future<AuthSignInResult> switchToExistingGoogleAccount();
   void cancelExistingAccountSwitch();
   Future<void> signOut();
 }
@@ -42,7 +75,7 @@ final class UnavailableAuthGateway implements AuthGateway {
   );
 
   @override
-  Future<void> signInWithGoogle() async => _missing();
+  Future<AuthSignInResult> signInWithGoogle() async => _missing();
 
   @override
   Future<void> signInAnonymously() async => _missing();
@@ -51,7 +84,7 @@ final class UnavailableAuthGateway implements AuthGateway {
   Future<AuthUpgradeResult> upgradeWithGoogle() async => _missing();
 
   @override
-  Future<void> switchToExistingGoogleAccount() async => _missing();
+  Future<AuthSignInResult> switchToExistingGoogleAccount() async => _missing();
 
   @override
   void cancelExistingAccountSwitch() {}

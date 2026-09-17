@@ -123,10 +123,10 @@ class MyApp extends ConsumerWidget {
 /// Stops the app where the browser gives it nowhere to keep its data.
 ///
 /// Another tab of the app may hold the replica in a browser where sharing it
-/// between tabs is unsafe, and this tab then opens nothing and says so. A
-/// browser that keeps nothing across a reload runs the app normally, minus
-/// local play, and says that too (decision 0013). Native always persists, so
-/// this renders its child.
+/// between tabs is unsafe, and this tab then opens nothing, says so, and opens
+/// once that tab closes. A browser that keeps nothing across a reload runs the
+/// app normally, minus local play, and says that too (decisions 0013 and 0014).
+/// Native always persists, so this renders its child.
 class _ReplicaGate extends ConsumerWidget {
   const _ReplicaGate({required this.child});
 
@@ -143,7 +143,7 @@ class _ReplicaGate extends ConsumerWidget {
           title: 'Open in another tab',
           message:
               'This browser can only use the app in one tab at a time. '
-              'Close this tab, or close the other one and reload.',
+              'It opens here as soon as the other tab is closed.',
         ),
       ),
       ReplicaStorage.ephemeral => Column(

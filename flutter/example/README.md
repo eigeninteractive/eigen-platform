@@ -66,7 +66,12 @@ submissions land in either order.
 flutter pub get
 flutter test
 flutter build web --release --dart-define-from-file=app-config.json
+npx workbox-cli generateSW workbox-config.cjs
 ```
+
+The last step generates `build/web/sw.js`, the service worker that precaches the
+build so the app opens offline. `workbox-config.cjs` is the same configuration a
+scaffolded game carries.
 
 Playing it against a real server needs two things this repository deliberately
 does not contain: a Firebase project and a deployed worker. Configure Firebase

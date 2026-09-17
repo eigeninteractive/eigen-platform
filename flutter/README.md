@@ -168,11 +168,14 @@ cd example
 flutter pub get
 flutter test
 flutter build web --release
+npx workbox-cli generateSW workbox-config.cjs
 ```
 
-The package treats Android and web as supported targets. The generated scaffold
-includes the browser Firebase Messaging service worker, Firebase Auth's web
-popup flow, cross-origin Worker setup, and a release web build in CI. See
+The package treats Android and web as supported targets, and ships drift's web
+runtime as web-only package assets, so an app copies none of it. The generated
+scaffold includes the browser Firebase Messaging service worker, Firebase Auth's
+web popup flow, cross-origin Worker setup, a Workbox service worker that makes
+the web app open offline, and a release web build in CI. See
 [Deploy the web app](https://eigeninteractive.com/docs/ship-it/deploy-the-web-app).
 
 ## Documentation

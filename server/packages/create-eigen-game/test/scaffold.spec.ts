@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { relative, resolve } from "node:path";
 import { buildGameContract } from "@eigeninteractive/testkit";
@@ -88,6 +89,7 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/lib/game/README.md"), "utf8")).toContain("eigen_codegen:generate_payloads");
     const bootstrap = readFileSync(resolve(root, "app/web/flutter_bootstrap.js"), "utf8");
     expect(bootstrap).toContain("firebase-messaging-sw.js");
+    expect(bootstrap).toContain('register("sw.js")');
     expect(bootstrap).not.toContain("cdnjs.cloudflare.com");
     expect(readFileSync(resolve(root, "app/web/index.html"), "utf8")).not.toContain("cropper");
     expect(existsSync(resolve(root, "app/web/vendor/cropperjs"))).toBe(false);
@@ -151,11 +153,11 @@ describe("scaffoldGame", () => {
       expect(readFileSync(resolve(root, `app/assets/icon/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/assets/icon/${asset}`)));
     }
 
-    // Drift's web runtime, for the same reason: the module is WebAssembly and
-    // the worker is JavaScript, and the browser gets no local storage - so no
-    // offline play - without both arriving intact from the app's own origin.
-    for (const asset of ["sqlite3.wasm", "drift_worker.js"]) {
-      expect(readFileSync(resolve(root, `app/web/${asset}`))).toEqual(readFileSync(resolve(import.meta.dirname, `../templates/app-overlay/web/${asset}`)));
+    // Drift's web runtime ships inside eigen_flutter as package assets, and the
+    // service worker is generated from each build, so neither is a file the
+    // scaffold writes and a game has to keep in step.
+    for (const asset of ["sqlite3.wasm", "drift_worker.js", "eigen_offline_sw.js"]) {
+      expect(existsSync(resolve(root, `app/web/${asset}`)), asset).toBe(false);
     }
 
     // The notification icon is deliberately NOT here: `eigen_flutter`'s
@@ -173,6 +175,10 @@ describe("scaffoldGame", () => {
     expect(rootManifest.private).toBe(true);
     expect(rootManifest.scripts.contract).toContain("cd server && npm run contract");
     expect(rootManifest.scripts.contract).toContain("cd ../app && dart run eigen_codegen:generate_payloads");
+    // A web build is not finished until Workbox has written its service worker.
+    expect(rootManifest.scripts["build:web"]).toMatch(/flutter build web .*&& cd \.\. && workbox generateSW workbox-config\.cjs$/);
+    expect(rootManifest.devDependencies).toHaveProperty("workbox-cli");
+    expect(readFileSync(resolve(root, "workbox-config.cjs"), "utf8")).toContain('globDirectory: "server/public"');
     expect(rootManifest.scripts.contract).toContain("--fixtures-output test/fixtures");
     expect(rootManifest.scripts["contract:check"]).toContain("npm run contract:check");
     expect(rootManifest.scripts["contract:check"]).toMatch(/--check$/);
@@ -789,6 +795,35 @@ describe("repository initialisation", () => {
   });
 });
 
+describe("the web service worker", () => {
+  const templates = resolve(import.meta.dirname, "../templates");
+  const load = createRequire(import.meta.url);
+  const routesOf = (config: string): string[] => (load(config) as { navigateFallbackDenylist: RegExp[] }).navigateFallbackDenylist.map(String);
+
+  it("answers a navigation with the app exactly where the Worker would", () => {
+    // A path the Worker renders itself (legal pages, the download page, the
+    // API) must reach the network, and the two routes the Worker hands to
+    // Flutter must open the precached app, offline included. The worker's list
+    // is written out rather than read from wrangler.jsonc at build time, so
+    // this is what keeps the two from drifting.
+    const { navigateFallbackDenylist } = load(resolve(templates, "project/workbox-config.cjs")) as { navigateFallbackDenylist: RegExp[] };
+    const wrangler = readFileSync(resolve(templates, "worker/wrangler.jsonc"), "utf8");
+    const runWorkerFirst = JSON.parse(/"run_worker_first":\s*(\[[^\]]*\])/.exec(wrangler)?.[1] ?? "[]") as string[];
+    expect(runWorkerFirst.length).toBeGreaterThan(0);
+    for (const route of runWorkerFirst) {
+      const workerAnswers = !["/join/*", "/game/*"].includes(route);
+      expect(
+        navigateFallbackDenylist.some((pattern) => pattern.test(route.replace("*", "anything"))),
+        route,
+      ).toBe(workerAnswers);
+    }
+  });
+
+  it("is configured the same way for the reference app", () => {
+    expect(routesOf(resolve(import.meta.dirname, "../../../../flutter/example/workbox-config.cjs"))).toEqual(routesOf(resolve(templates, "project/workbox-config.cjs")));
+  });
+});
+
 describe("template rendering", () => {
   it("pins which files are copied verbatim rather than rendered", () => {
     // The rule, "render it if it decodes as UTF-8", is otherwise invisible,
@@ -807,7 +842,7 @@ describe("template rendering", () => {
       .filter((file) => decodeUtf8(readFileSync(resolve(templates, file))) === undefined)
       .sort();
 
-    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png", "app-overlay/web/sqlite3.wasm"]);
+    expect(verbatim).toEqual(["app-overlay/assets/icon/icon.png", "app-overlay/assets/icon/icon_foreground.png", "app-overlay/assets/icon/splash.png", "app-overlay/assets/icon/splash_dark.png"]);
   });
 
   it("keeps each packaged .gitignore identical to the one it stands in for", () => {

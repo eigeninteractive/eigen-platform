@@ -34,7 +34,7 @@ void main() {
         ),
         first: true,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
 
       final profile = (await replica.watchProfile().first)!;
@@ -56,13 +56,13 @@ void main() {
           accountSync(friends: [friendJson(them)]),
           first: true,
           endedSeen: const {},
-          now: _now,
+          pulledAt: _now,
         );
         await replica.applySync(
           accountSync(),
           first: false,
           endedSeen: const {},
-          now: _now,
+          pulledAt: _now,
         );
         expect(await replica.watchFriends().first, isEmpty);
       },
@@ -83,7 +83,7 @@ void main() {
         ),
         first: true,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
       final active = await replica.watchActiveGames().first;
       expect(active.map((game) => game.id), ['my-turn', 'waiting-on-them']);
@@ -96,7 +96,7 @@ void main() {
         accountSync(active: [summaryJson(id: 'left', seq: 2)]),
         first: true,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
 
       // A middle page: the game may yet arrive as ended on a later one.
@@ -104,7 +104,7 @@ void main() {
         accountSync(hasMore: true),
         first: false,
         endedSeen: null,
-        now: _now,
+        pulledAt: _now,
       );
       expect(await replica.watchActiveGames().first, hasLength(1));
 
@@ -112,9 +112,36 @@ void main() {
         accountSync(),
         first: false,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
       expect(await replica.watchActiveGames().first, isEmpty);
+    });
+
+    test('is only as current as its last completed pass', () async {
+      final earlier = _now.subtract(const Duration(minutes: 5));
+      await replica.applySync(
+        accountSync(),
+        first: true,
+        endedSeen: const {},
+        pulledAt: earlier,
+      );
+
+      // A pass still paging has not completed, however recent its first page.
+      await replica.applySync(
+        accountSync(hasMore: true),
+        first: false,
+        endedSeen: null,
+        pulledAt: _now,
+      );
+      expect(await replica.lastSyncedAt(), earlier);
+
+      await replica.applySync(
+        accountSync(),
+        first: false,
+        endedSeen: const {},
+        pulledAt: _now,
+      );
+      expect(await replica.lastSyncedAt(), _now);
     });
 
     test('an ended game moves from in play to history', () async {
@@ -122,7 +149,7 @@ void main() {
         accountSync(active: [summaryJson(id: 'g', seq: 2)]),
         first: true,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
       await replica.applySync(
         accountSync(
@@ -151,7 +178,7 @@ void main() {
         ),
         first: false,
         endedSeen: const {'g'},
-        now: _now,
+        pulledAt: _now,
       );
       expect(await replica.watchActiveGames().first, isEmpty);
       final finished = await replica.watchFinishedGames(limit: 10).first;
@@ -167,7 +194,7 @@ void main() {
           accountSync(floor: 'older', cursor: 3),
           first: true,
           endedSeen: const {},
-          now: _now,
+          pulledAt: _now,
         );
         expect((await replica.watchHistory().first).hasOlder, isTrue);
 
@@ -175,7 +202,7 @@ void main() {
           accountSync(cursor: 4),
           first: false,
           endedSeen: const {},
-          now: _now,
+          pulledAt: _now,
         );
         expect(await replica.historyFloor(), 'older');
 
@@ -304,7 +331,7 @@ void main() {
         accountSync(active: [summaryJson(id: 'online', seq: 2)], cursor: 5),
         first: true,
         endedSeen: const {},
-        now: _now,
+        pulledAt: _now,
       );
       final engine = await LocalGameEngine.create(
         userId: me,

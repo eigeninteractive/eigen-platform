@@ -91,12 +91,15 @@ class _SyncServer implements HttpClientAdapter {
   AccountReplica replica,
   ReplicaDatabase db,
 })
-_build() {
+_build({ReplicaDatabase? database, SyncLock? lock}) {
   final server = _SyncServer();
   final dio = Dio(BaseOptions(baseUrl: 'https://example.test'))
     ..httpClientAdapter = server;
   final client = EigenClient(http: dio, baseUrl: 'https://example.test');
-  final db = memoryReplica();
+  final db = database ?? memoryReplica();
+  // Every reading is a second later than the last, as a real clock would be
+  // across the awaits between them.
+  var ticks = 0;
   final replica = AccountReplica(db, me);
   final storage = LocalGameStorage(db);
   return (
@@ -110,7 +113,8 @@ _build() {
         games: client.games,
         userId: me,
       ),
-      clock: () => DateTime.utc(2026, 9, 16),
+      lock: lock,
+      clock: () => DateTime.utc(2026, 9, 16).add(Duration(seconds: ticks++)),
     ),
     server: server,
     replica: replica,
@@ -128,7 +132,7 @@ void main() {
         ..add(syncJson(active: [summaryJson(id: 'g', seq: 3)], cursor: 4));
 
       final first = await t.pass.run();
-      expect(first.pulled, isTrue);
+      expect(first!.pulled, isTrue);
       await t.pass.run();
 
       expect(t.server.cursors, [null, 4]);
@@ -188,7 +192,7 @@ void main() {
       accountSync(active: [summaryJson(id: 'stale', seq: 2)], cursor: 9),
       first: true,
       endedSeen: const {},
-      now: DateTime.utc(2026),
+      pulledAt: DateTime.utc(2026),
     );
     // Uploading the local game is not what this test is about.
     await LocalGameStorage(t.db)
@@ -199,7 +203,7 @@ void main() {
 
     final report = await t.pass.run();
 
-    expect(report.pulled, isTrue);
+    expect(report!.pulled, isTrue);
     expect(t.server.cursors, [9, null]);
     expect((await t.replica.watchActiveGames().first).map((game) => game.id), [
       'local-1',
@@ -215,7 +219,7 @@ void main() {
 
     final report = await t.pass.run();
 
-    expect(report.pulled, isFalse);
+    expect(report!.pulled, isFalse);
     expect(report.error, isA<DioException>());
     expect(await t.replica.watchActiveGames().first, hasLength(1));
   });
@@ -246,18 +250,73 @@ void main() {
     expect(await t.replica.watchFinishedGames(limit: 10).first, hasLength(2));
   });
 
-  test('a pass started mid-flight joins the one running', () async {
+  test(
+    'requests made before a pass begins pulling are answered by it',
+    () async {
+      final t = _build();
+      t.server.syncs.add(syncJson());
+
+      final first = t.pass.run();
+      final second = t.pass.run();
+
+      expect(await first, isNotNull);
+      expect(await second, isNull);
+      expect(t.server.cursors, [null]);
+    },
+  );
+
+  test('a request made mid-pull waits, then pulls again', () async {
+    // The running pull may have been answered before whatever prompted the
+    // request, so joining it would drop the request.
     final t = _build();
     final gate = Completer<void>();
     t.server
       ..hold = gate.future
-      ..syncs.add(syncJson());
+      ..syncs.add(syncJson(cursor: 1))
+      ..syncs.add(syncJson(cursor: 1));
 
     final first = t.pass.run();
+    await pumpEventQueue();
     final second = t.pass.run();
     gate.complete();
 
-    expect(identical(await first, await second), isTrue);
+    expect(await first, isNotNull);
+    expect(await second, isNotNull);
+    expect(t.server.cursors, [null, 1]);
+  });
+
+  test('a failed pass answers no request', () async {
+    final t = _build();
+    t.server.offline = true;
+    await t.pass.run();
+    t.server
+      ..offline = false
+      ..syncs.add(syncJson());
+
+    expect((await t.pass.run())!.pulled, isTrue);
     expect(t.server.cursors, [null]);
+  });
+
+  test('passes sharing a lock across processes answer each other', () async {
+    // Two browser tabs over one database, each with its own pass: the second
+    // finds the first already brought the replica past its request.
+    final db = memoryReplica();
+    var tail = Future<void>.value();
+    Future<void> shared(Future<void> Function() body) {
+      final next = tail.then((_) => body());
+      tail = next.then((_) {}, onError: (Object _) {});
+      return next;
+    }
+
+    final tab1 = _build(database: db, lock: shared);
+    final tab2 = _build(database: db, lock: shared);
+    tab1.server.syncs.add(syncJson());
+
+    final first = tab1.pass.run();
+    final second = tab2.pass.run();
+
+    expect(await first, isNotNull);
+    expect(await second, isNull);
+    expect(tab2.server.cursors, isEmpty);
   });
 }
