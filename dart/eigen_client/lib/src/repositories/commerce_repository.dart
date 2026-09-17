@@ -43,11 +43,7 @@ class CommerceRepository {
   /// An offer with no [CommerceProduct] for any named provider is still
   /// listed: it exists, and it is not purchasable from here.
   Future<CommerceCatalog> getCatalog({Iterable<String>? providers}) =>
-      engineData(
-        () => _api.getCommerceCatalog(
-          provider: providers == null ? null : providers.join(','),
-        ),
-      );
+      engineData(() => _api.getCommerceCatalog(provider: providers?.join(',')));
 
   /// The account's current entitlements, capabilities, content, and limits.
   Future<AccessSnapshot> getAccess() =>

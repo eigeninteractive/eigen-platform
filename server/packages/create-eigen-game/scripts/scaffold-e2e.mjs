@@ -76,7 +76,23 @@ const writeHostedDependencies = (args, cwd) => {
  * and those would otherwise be fetched from npm at the very version that does
  * not exist yet.
  */
-const overrides = () => ["", "overrides:", ...ENGINE_PACKAGES.map((name) => `  "@eigeninteractive/${name}": "link:${resolve(workspaceRoot, "packages", name)}"`), ""].join("\n");
+const overrideLines = () => ENGINE_PACKAGES.map((name) => `  "@eigeninteractive/${name}": "link:${resolve(workspaceRoot, "packages", name)}"`);
+
+/**
+ * Merged into an existing `overrides:` key rather than appended as a second
+ * one when the template already carries one of its own (the project root's
+ * pins `tmp`, against a security advisory unrelated to this harness) --
+ * `pnpm-workspace.yaml` is YAML, and a duplicate top-level key is a parse
+ * error, not a merge, in every YAML reader including pnpm's.
+ */
+const appendOverrides = (path) => {
+  const existing = readFileSync(path, "utf8");
+  if (/^overrides:\s*$/m.test(existing)) {
+    writeFileSync(path, existing.replace(/^overrides:\s*$/m, ["overrides:", ...overrideLines()].join("\n")));
+  } else {
+    appendFileSync(path, ["", "overrides:", ...overrideLines(), ""].join("\n"));
+  }
+};
 
 const target = resolve(mkdtempSync(resolve(tmpdir(), "eigen-scaffold-e2e-")), "e2e-game");
 
@@ -104,10 +120,11 @@ const { root } = scaffoldGame({
   // The seam exists for the tests; here it is the hook that lands the overrides
   // after the templates are rendered and before anything is installed.
   run: (command, args, cwd) => {
-    // Appended, not written: the template ships its own `pnpm-workspace.yaml`
-    // carrying `allowBuilds`, and replacing it would silently drop that and
-    // turn this into a test of a project no user has.
-    if (args[0] === "install") appendFileSync(resolve(cwd, "pnpm-workspace.yaml"), overrides());
+    // Merged, not written: every template ships its own `pnpm-workspace.yaml`
+    // (`allowBuilds` for the server, an `overrides` pin for the root), and
+    // replacing it would silently drop that and turn this into a test of a
+    // project no user has.
+    if (args[0] === "install") appendOverrides(resolve(cwd, "pnpm-workspace.yaml"));
     // New platform packages cannot exist on pub.dev before the source that
     // introduces them lands. Put local roots in place and persist the exact
     // production arguments without asking pub to reject their old local
