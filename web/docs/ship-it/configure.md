@@ -73,8 +73,9 @@ that schema, and its migrations will not know about them.
 
 ## The app
 
-One provider-neutral `AppConfig` contains `Branding` and the Eigen server
-values. The standard scaffold passes `FirebaseAdapterConfig` to
+One provider-neutral `AppConfig` contains `Branding`, the Eigen server values,
+and `ReplicaConfig`, which is how much of what it syncs the device keeps (only
+`keptReplays` today, and it has a default). The standard scaffold passes `FirebaseAdapterConfig` to
 `initializeEigenFirebase` and hands those overrides to `runEigenShell`. The app reads Dart compilation environment declarations
 once at this composition root; neither package reads hidden process or file
 state.

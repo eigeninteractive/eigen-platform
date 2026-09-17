@@ -1,3 +1,4 @@
+import 'package:eigen_client/eigen_client.dart' show defaultKeptReplays;
 import 'package:eigen_flutter/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,6 +13,7 @@ part 'app_config.g.dart';
 ///
 /// - [branding]: user-facing identity (name, theme seed).
 /// - [engine]: Eigen server and app-host values the framework needs.
+/// - [replica]: how much the device keeps of what it has synced.
 ///
 /// Keeping each concern as its own value object is what stops this from
 /// decaying into a junk drawer of unrelated flags. A consuming app reads its
@@ -20,13 +22,40 @@ part 'app_config.g.dart';
 /// built.
 @immutable
 class AppConfig {
-  const AppConfig({required this.branding, required this.engine});
+  const AppConfig({
+    required this.branding,
+    required this.engine,
+    this.replica = const ReplicaConfig(),
+  });
 
   /// User-facing identity: app name and theme seed color.
   final Branding branding;
 
   /// Backend and integration values the framework needs at runtime.
   final EngineConfig engine;
+
+  /// What the device replica keeps (decision 0013).
+  final ReplicaConfig replica;
+}
+
+/// What the device replica keeps of what it has synced (decision 0013).
+@immutable
+class ReplicaConfig {
+  const ReplicaConfig({this.keptReplays = defaultKeptReplays})
+    : assert(keptReplays >= 0, 'keptReplays cannot be negative');
+
+  /// How many ended online games keep their replay on the device, the most
+  /// recently opened first. A replay beyond it is fetched again when opened.
+  ///
+  /// Nothing else is bounded by it: games still in play, and games played on
+  /// the device, keep every frame. In a browser where drift stores the replica
+  /// in IndexedDB, the whole replica is held in memory while the app is open,
+  /// so a game whose replays are large may keep fewer there:
+  ///
+  /// ```dart
+  /// replica: ReplicaConfig(keptReplays: kIsWeb ? 50 : defaultKeptReplays),
+  /// ```
+  final int keptReplays;
 }
 
 /// Runtime configuration the framework needs to talk to its backends.

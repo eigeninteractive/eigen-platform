@@ -38,7 +38,7 @@ export 'package:eigen_client/eigen_client.dart';
 export 'composition.dart' show EigenFlutterScope;
 
 export 'core/config/app_config.dart'
-    show AppConfig, Branding, EngineConfig, appConfigProvider;
+    show AppConfig, Branding, EngineConfig, ReplicaConfig, appConfigProvider;
 export 'core/game/game_module.dart';
 export 'features/auth/domain/auth_gateway.dart';
 export 'features/auth/domain/auth_user.dart';

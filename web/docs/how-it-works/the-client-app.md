@@ -173,8 +173,24 @@ Two disciplines make this safe:
 - **The replica is a cache of the server, except where it is not.** A game this
   device decides is the only copy of that game until it synchronizes, which is
   why deleting an account deletes it deliberately rather than as cleanup, and
-  why a browser is asked for persistent storage when the first one is created.
-- **A schema change ships a migration.** The tables are versioned and their
+  why a browser is offered the chance to keep it (below).
+- **Replays are the one bounded thing.** The 200 most recently opened ended
+online games keep their frames; beyond that a replay is fetched again when it is
+opened. Games still in play, and games played on this device, keep every frame.
+An app that wants a different number sets it:
+
+```dart
+AppConfig(
+  branding: …,
+  engine: …,
+  replica: ReplicaConfig(keptReplays: kIsWeb ? 50 : defaultKeptReplays),
+)
+```
+
+In a browser that stores the replica in IndexedDB, the whole replica is held in
+memory while the app is open, which is the reason to keep fewer there.
+
+**A schema change ships a migration.** The tables are versioned and their
   schema is dumped into `dart/eigen_client/drift_schemas/`, which CI checks;
   there is no "drop it and refetch" path, because some of it cannot be refetched.
 
@@ -234,8 +250,11 @@ bypassing Riverpod's retry backoff.
 The same code runs, with these differences a browser forces:
 
 - **Storage can be cleared.** Replicated rows come back on the next sync; a
-  local game not yet uploaded cannot, so the app asks for persistent storage
-  (`navigator.storage.persist()`) when the first one is created.
+  local game not yet uploaded cannot. So while the account holds one, the home
+  screen offers to have the browser keep this site's storage, explaining why
+  first: some browsers ask the player in turn, and a prompt with no explanation
+  is a prompt people dismiss. It is offered once, and never on a device, which
+  evicts nothing.
 - **Tabs.** The shell cannot send the cross-origin isolation headers, because
   they break the sign-in popup, so drift's only storage that is safe to share
   between tabs is the kind one shared worker hosts for all of them, which

@@ -2,6 +2,9 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- The home screen offers to have the browser keep games played on this device, explaining what it is for before the browser asks, and only while such a game has yet to upload.
+
 ### Changed
 - The app refreshes when it comes back into view (`AppLifecycleListener.onShow`) rather than whenever it regains focus, which on the web was every alt-tab and the closing of the sign-in popup; the open game reconnects on the same signal.
 - On the web, the update-required action lets the newly deployed service worker take over before reloading, so the reload lands on the new build.

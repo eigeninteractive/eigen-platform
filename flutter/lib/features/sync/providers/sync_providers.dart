@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
+import 'package:eigen_flutter/core/config/app_config.dart';
 import 'package:eigen_flutter/core/connectivity/connectivity_provider.dart';
 import 'package:eigen_flutter/core/notifications/notification_provider.dart';
 import 'package:eigen_flutter/core/replica/replica_providers.dart';
@@ -31,6 +32,7 @@ Future<SyncPass?> syncPass(Ref ref) async {
     // Two tabs of the app in one browser share one database, so their passes
     // take one lock, and a pass one tab ran answers the other's requests too.
     lock: (body) => host.exclusively('eigen-sync', body),
+    keptReplays: ref.watch(appConfigProvider).replica.keptReplays,
   );
 }
 

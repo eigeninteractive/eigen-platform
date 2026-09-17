@@ -19,6 +19,20 @@ enum ReplicaStorage {
   heldElsewhere,
 }
 
+/// Whether the browser keeps this site's storage when it runs short of space.
+enum StoragePersistence {
+  /// Kept: always so on a device, and in a browser that has granted it.
+  granted,
+
+  /// Not granted yet. Asking may show the player the browser's own prompt, so
+  /// the app explains what it is for before it asks.
+  askable,
+
+  /// The browser will not keep it, because the player or the browser itself
+  /// refused. Asking again shows nothing.
+  refused,
+}
+
 /// The replica database as this platform opens it, and the few platform
 /// capabilities that differ between a device and a browser (decisions 0013 and
 /// 0014).
@@ -42,11 +56,18 @@ abstract interface class ReplicaHost {
   /// at the same time, in this process or in another tab of the app.
   Future<void> exclusively(String name, Future<void> Function() body);
 
-  /// Asks the browser not to evict this site's storage under pressure. The
-  /// replica itself re-syncs if evicted; what cannot be recovered is a local
-  /// game not yet uploaded, so this is asked when one is first created. A
-  /// no-op on native.
-  Future<void> requestPersistence();
+  /// Whether the browser keeps this site's storage under pressure.
+  ///
+  /// The replica itself re-syncs if it is evicted; what cannot be recovered is
+  /// a local game not yet uploaded. Always [StoragePersistence.granted] on a
+  /// device, which evicts nothing.
+  Future<StoragePersistence> persistence();
+
+  /// Asks the browser to keep this site's storage, and answers what it decided.
+  ///
+  /// Some browsers ask the player, so this belongs behind an explanation and a
+  /// deliberate action, never a startup call.
+  Future<StoragePersistence> requestPersistence();
 }
 
 /// Named locks that only this process takes: each body under a name starts

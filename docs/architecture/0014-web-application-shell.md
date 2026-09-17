@@ -85,9 +85,8 @@ raising the floor means replacing both files. No app or template carries a copy.
 
 ### Storage is chosen, then locked, then opened
 
-The web replica host probes the browser, chooses the most reliable storage
-(keeping an existing database in the storage it is in), and only then decides
-whether this tab may open it:
+The web replica host probes the browser, chooses the most reliable storage it
+offers, and only then decides whether this tab may open it:
 
 - Storage a shared worker hosts for every tab (`opfsShared`, `sharedIndexedDb`)
   opens in every tab.
@@ -113,6 +112,20 @@ several tabs over one database, therefore costs one pass; a request made while a
 pull is already under way still gets a pass of its own, because that pull may
 have been answered before whatever prompted the request; and a failed pass
 answers no request.
+
+### Keeping the browser's storage is offered, not requested
+
+A browser may clear a site's storage. Replicated rows return with the next pass;
+a game played on the device and not yet uploaded does not. So the app asks the
+browser to keep its storage, and because some browsers ask the player in turn,
+it explains first: the home screen offers it while the account holds a game the
+server does not have, once, and never on a device. `ReplicaHost` reports
+persistence as a state, so an offer is made only where the browser has neither
+granted nor refused. Nothing asks at startup or as a game is created.
+
+How many replays the replica keeps is `ReplicaConfig.keptReplays`, an app's to
+set, which answers 0013's open question. It matters most in a browser, where the
+whole replica is held in memory.
 
 ### Coming back is `onShow`
 
@@ -174,6 +187,10 @@ only tab closed.
 - IndexedDB storage holds the whole database in the worker's memory and writes
   it back behind every save, so the replica's size is memory on the web. Chrome
   and Safari have no other persistent storage without cross-origin isolation.
-  An existing database stays in IndexedDB even once a browser offers OPFS.
-- `navigator.storage.persist()` prompts in Firefox, and is asked when the first
-  local game is created rather than behind an explanation.
+  A browser that starts offering OPFS opens the replica there, empty: synced
+  data returns with the next pass, but local games not yet uploaded stay in the
+  IndexedDB database. Drift's `moveFromIndexedDBToOpfs` is the route if that
+  needs handling once there are players.
+- A browser that refuses to keep storage says so only as a failed request:
+  Chrome reports the permission as `prompt` and then decides for itself without
+  asking anyone, so the app cannot tell beforehand which browsers will ask.

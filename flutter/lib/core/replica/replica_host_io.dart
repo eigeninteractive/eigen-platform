@@ -26,5 +26,9 @@ final class _FileReplicaHost implements ReplicaHost {
       _locks.exclusively(name, body);
 
   @override
-  Future<void> requestPersistence() async {}
+  Future<StoragePersistence> persistence() async => StoragePersistence.granted;
+
+  @override
+  Future<StoragePersistence> requestPersistence() async =>
+      StoragePersistence.granted;
 }

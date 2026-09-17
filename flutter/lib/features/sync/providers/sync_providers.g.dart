@@ -49,7 +49,7 @@ final class SyncPassProvider
   }
 }
 
-String _$syncPassHash() => r'62b893ed214a29afd5fe57cd596eec70f0db6390';
+String _$syncPassHash() => r'341b64cbb30b10a12b5d99d2c8968ddd8bf20860';
 
 /// Runs the account's sync pass whenever there is reason to (decision 0013).
 ///

@@ -27,7 +27,11 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
     driftWorkerUri: _asset('drift_worker.js'),
     databaseName: name,
   );
-  final storage = _choose(probe, name);
+  // Drift's enum lists its storages most reliable first, and memory, the last,
+  // is always available.
+  final storage = probe.availableStorages.reduce(
+    (best, next) => next.index < best.index ? next : best,
+  );
   final tabLock = '$name-tab';
   if (storage == WasmStorageImplementation.unsafeIndexedDb &&
       !await _TabLocks.take(tabLock)) {
@@ -118,21 +122,6 @@ final class _PersistToIndexedDb extends QueryInterceptor {
   Future<void> _save() => _root.runCustom('SELECT 1');
 }
 
-/// The most reliable storage the browser offers, except that a database that
-/// already exists stays in the storage it is in: any other would open empty.
-WasmStorageImplementation _choose(WasmProbeResult probe, String name) {
-  final available = [...probe.availableStorages]
-    ..sort((a, b) => a.index.compareTo(b.index));
-  final existing = {
-    for (final (api, database) in probe.existingDatabases)
-      if (database == name) api,
-  };
-  for (final storage in available) {
-    if (existing.contains(storage.storageApi)) return storage;
-  }
-  return available.firstOrNull ?? WasmStorageImplementation.inMemory;
-}
-
 Uri _asset(String file) =>
     Uri.parse(web.document.baseURI).resolve('$_runtime/$file');
 
@@ -194,7 +183,26 @@ final class _BrowserReplicaHost implements ReplicaHost {
   }
 
   @override
-  Future<void> requestPersistence() async {
-    await web.window.navigator.storage.persist().toDart;
+  Future<StoragePersistence> persistence() async {
+    final storage = web.window.navigator.storage;
+    if ((await storage.persisted().toDart).toDart) {
+      return StoragePersistence.granted;
+    }
+    try {
+      final status = await web.window.navigator.permissions
+          .query({'name': 'persistent-storage'}.jsify()! as JSObject)
+          .toDart;
+      if (status.state == 'denied') return StoragePersistence.refused;
+    } on Object {
+      // A browser that does not name this permission decides for itself, and
+      // asking it costs the player nothing.
+    }
+    return StoragePersistence.askable;
   }
+
+  @override
+  Future<StoragePersistence> requestPersistence() async =>
+      (await web.window.navigator.storage.persist().toDart).toDart
+      ? StoragePersistence.granted
+      : StoragePersistence.refused;
 }

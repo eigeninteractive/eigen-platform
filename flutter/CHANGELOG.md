@@ -18,6 +18,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 ### Added
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy, and `drift` is held to the minor line they come from (`>=2.35.0 <2.36.0`).
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy of it.
+- `ReplicaConfig.keptReplays` on `AppConfig`: how many ended online games keep their replay on the device. In a browser the whole replica is held in memory, so an app with large replays can keep fewer there.
 
 ### Changed
 - The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
@@ -26,6 +27,7 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 - The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
 - `ReplicaHost.exclusively` excludes within one process too, and `SyncCoordinator` shares its pass lock across tabs, so triggers arriving together run one pass.
 - `AuthGateway.signInWithGoogle` and `switchToExistingGoogleAccount` return `AuthSignInResult`, and `AuthUpgradeResult` gains `cancelled`: dismissing the provider's sign-in is not an error. A blocked sign-in window is `AuthWindowBlockedException`, which `humanize` explains.
+- `ReplicaHost.persistence()` reports whether the browser keeps this site's storage, and `requestPersistence()` answers what it decided. `KeepLocalGames` offers it while the account holds a game the server does not have, once, instead of creating a local game asking silently.
 
 ### Fixed
 - On the web, a browser that opened the replica and closed before writing anything else lost its schema version, and every later open failed. Opening now persists it.
