@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.6.0] - 2026-09-17
 ### Added
 - The home screen offers to have the browser keep games played on this device, explaining what it is for before the browser asks, and only while such a game has yet to upload.
 - A banner offering a reload when the replica stops answering, which in a browser is how a database whose worker has been taken away appears.
@@ -62,7 +62,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.5.0...HEAD
+[0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.5.0...eigen_shell-v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.4.0...eigen_shell-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...eigen_shell-v0.4.0
 [0.3.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.2.0...eigen_shell-v0.3.0
