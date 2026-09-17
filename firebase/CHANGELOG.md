@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.5.0] - 2026-09-17
 ### Changed
 - Web sign-in stays on the popup and reports its interruptions: a closed or superseded popup, or a dismissed native account picker, is a cancellation, and a blocked popup is `AuthWindowBlockedException`.
 
@@ -35,7 +35,7 @@ permanent Android notification-permission denials.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
 Android notification resources compose above `eigen_flutter` ports.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.4.0...HEAD
+[0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.4.0...eigen_firebase-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.3.2...eigen_firebase-v0.4.0
 [0.3.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.3.1...eigen_firebase-v0.3.2
 [0.3.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.3.0...eigen_firebase-v0.3.1

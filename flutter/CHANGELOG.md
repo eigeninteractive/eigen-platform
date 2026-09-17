@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.14.0] - 2026-09-17
 ### Added
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy, and `drift` is held to the minor line they come from (`>=2.35.0 <2.36.0`).
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy of it.
@@ -349,7 +349,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.13.0...HEAD
+[0.14.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.13.0...eigen_flutter-v0.14.0
 [0.13.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.12.0...eigen_flutter-v0.13.0
 [0.12.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.11.0...eigen_flutter-v0.12.0
 [0.11.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.10.0...eigen_flutter-v0.11.0

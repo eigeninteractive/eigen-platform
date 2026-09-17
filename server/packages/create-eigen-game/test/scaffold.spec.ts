@@ -212,7 +212,7 @@ describe("scaffoldGame", () => {
     // release on that line, which is the part a scaffold-time pub.dev lookup
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.13.0", "eigen_shell@^0.5.0", "eigen_firebase@^0.4.0", "firebase_core@^4.9.0"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.14.0", "eigen_shell@^0.6.0", "eigen_firebase@^0.5.0", "firebase_core@^4.9.0"], expect.stringMatching(/\/app$/));
     // A separate `pub add` (rather than folded into the call above) so a
     // failure here is legible on its own, and because these are dev
     // dependencies (`dev:` prefix) while the engine/Firebase packages above

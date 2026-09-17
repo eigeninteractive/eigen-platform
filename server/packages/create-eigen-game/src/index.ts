@@ -262,16 +262,16 @@ const engineVersion = engineRange((JSON.parse(readFileSync(resolve(packageRoot, 
  * the same minute. That is the design -- the scaffold's pins are only ever
  * knowably behind once something has overtaken them.
  */
-const flutterClientVersion = "^0.13.0";
+const flutterClientVersion = "^0.14.0";
 
 /** Complete first-party app shell installed by the standard scaffold.
  *
  * Moves with `eigen_flutter`, and pre-1.0 it has to: `eigen_shell 0.3.0`
  * constrains `eigen_flutter ^0.11.0`, and `^0.2.0` cannot reach it. */
-const flutterShellVersion = "^0.5.0";
+const flutterShellVersion = "^0.6.0";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
-const firebaseAdapterVersion = "^0.4.0";
+const firebaseAdapterVersion = "^0.5.0";
 
 /** Development-only contract compiler installed into the generated app. */
 const dartCodegenVersion = "^0.1.0";
