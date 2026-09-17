@@ -35,7 +35,9 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
   }
   var connection = await probe.open(storage, name);
   if (storage.storageApi == WebStorageApi.indexedDb) {
-    connection = connection.interceptWith(_PersistOpening());
+    connection = connection.interceptWith(
+      _PersistToIndexedDb(connection.executor),
+    );
   }
   return _BrowserReplicaHost(
     connection,
@@ -45,17 +47,34 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
   );
 }
 
-/// Makes opening the database durable in IndexedDB.
+/// Makes what the database writes durable in IndexedDB. Temporary: remove once
+/// `eigen_flutter` is on a drift release carrying simolus3/drift#3865 (see
+/// docs/blockers.md, "Drift does not persist IndexedDB transactions").
 ///
-/// Drift's IndexedDB storage holds a write in memory until a later statement
-/// runs outside a transaction, and the last thing opening a database writes is
-/// its schema version, after every migration statement has already been saved.
-/// A tab that closes before writing anything else loses just that, and every
-/// later open then runs the creating migration against tables that exist, and
-/// fails, for good. So one statement runs straight after the first open.
-/// (drift 2.35.0; `Sqlite3Delegate.setSchemaVersion` does not flush.)
-final class _PersistOpening extends QueryInterceptor {
-  Future<void>? _persisted;
+/// Drift's IndexedDB storage holds writes in memory and saves them only after a
+/// statement run outside a transaction. In drift 2.35.0 neither of the two
+/// writes that matter most is followed by one:
+///
+/// - A transaction's `COMMIT` still counts as inside the transaction, so nothing
+///   it wrote is saved until some later, unrelated statement. Nearly every write
+///   the replica makes is a transaction, including a local game's moves, which
+///   exist nowhere else until uploaded.
+/// - Opening a database writes its schema version last, after every migration
+///   statement. Lost, it makes every later open fail creating tables that exist.
+///
+/// A tab that closes in between loses them. So after each outermost commit, and
+/// once after opening, this runs one statement outside any transaction, which
+/// is what makes drift save. A nested transaction is left alone: its writes are
+/// saved with its outermost one, and the root cannot run a statement while that
+/// is still open.
+final class _PersistToIndexedDb extends QueryInterceptor {
+  _PersistToIndexedDb(this._root);
+
+  /// The connection's own executor, outside every transaction.
+  final QueryExecutor _root;
+
+  final _outermost = <TransactionExecutor>{};
+  Future<void>? _opened;
 
   @override
   Future<bool> ensureOpen(
@@ -63,14 +82,40 @@ final class _PersistOpening extends QueryInterceptor {
     QueryExecutorUser user,
   ) async {
     final opened = await executor.ensureOpen(user);
-    try {
-      await (_persisted ??= executor.runCustom('SELECT 1'));
-    } on Object {
-      _persisted = null;
-      rethrow;
+    if (identical(executor, _root)) {
+      try {
+        await (_opened ??= _save());
+      } on Object {
+        _opened = null;
+        rethrow;
+      }
     }
     return opened;
   }
+
+  @override
+  TransactionExecutor beginTransaction(QueryExecutor parent) {
+    final transaction = parent.beginTransaction();
+    if (identical(parent, _root)) _outermost.add(transaction);
+    return transaction;
+  }
+
+  @override
+  Future<void> commitTransaction(TransactionExecutor inner) async {
+    // Only once the commit succeeded: drift may retry a failed one.
+    await inner.send();
+    if (_outermost.remove(inner)) await _save();
+  }
+
+  @override
+  Future<void> rollbackTransaction(TransactionExecutor inner) {
+    _outermost.remove(inner);
+    return inner.rollback();
+  }
+
+  /// Any statement outside a transaction makes drift save what it holds; this
+  /// one reads nothing.
+  Future<void> _save() => _root.runCustom('SELECT 1');
 }
 
 /// The most reliable storage the browser offers, except that a database that

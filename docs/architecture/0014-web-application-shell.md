@@ -26,12 +26,13 @@ verified in a browser or in the source of the library involved:
 - The browser tab lock was taken when `SharedWorker` was missing, but drift also
   falls back to per-tab IndexedDB when a shared worker exists and fails, so the
   unsafe case could open unlocked. A refused tab never recovered on its own.
-- Drift's IndexedDB storage keeps a write in memory until a later statement
-  runs outside a transaction, and `Sqlite3Delegate.setSchemaVersion` writes the
-  schema version last, without flushing (drift 2.35.0). A browser that opened
-  the replica and closed before writing anything else lost the version, and
-  every later open failed creating tables that exist. Reproduced in Chrome with
-  shared-worker storage.
+- Drift's IndexedDB storage saves pending writes only after a statement runs
+  outside a transaction (drift 2.35.0). A transaction's `COMMIT` does not count,
+  so a transaction was not saved until some unrelated later write, and neither
+  was the schema version opening writes last. A tab closed in between lost the
+  transaction, or left every later open failing to create tables that exist.
+  Both reproduced in Chrome with shared-worker storage; the first is fixed
+  upstream in simolus3/drift#3865, not yet released.
 - The sync pass lock was taken before joining a pass in flight, so a trigger
   arriving mid-pass queued a second full pass rather than joining; on native the
   lock was immediate and joining worked.
@@ -76,11 +77,11 @@ it controls the page.
 
 `sqlite3.wasm` and `drift_worker.js` are web-only package assets of
 `eigen_flutter`, served at `assets/packages/eigen_flutter/assets/drift/`.
-`eigen_flutter` holds `drift` to the minor line the files come from
-(`>=2.35.0 <2.36.0`), because the worker and the module are one pair from one
-drift release. An exact pin would be tighter, but pub does not publish a
-single-version constraint, and drift keeps its worker protocol compatible within
-a minor line. No app or template carries a copy.
+The worker and the module are one pair from one drift release, and
+`eigen_flutter`'s `drift` floor names it. The constraint is an ordinary caret:
+drift supports a newer client with an older worker within a major version. What
+it does not do is deliver web storage fixes, which live in the worker, so
+raising the floor means replacing both files. No app or template carries a copy.
 
 ### Storage is chosen, then locked, then opened
 
@@ -95,9 +96,10 @@ whether this tab may open it:
   open elsewhere, waits for the lock, and opens by itself when it is granted.
 - Memory opens, and the app says nothing survives a reload.
 
-A host is created already knowing its storage. On IndexedDB storage, one
-statement runs straight after the database first opens, so the schema version
-opening wrote is persisted.
+A host is created already knowing its storage. On IndexedDB storage, until the
+drift release carrying #3865, one statement runs outside a transaction after
+each outermost commit and once after opening, so drift saves what they wrote.
+`docs/blockers.md` tracks its removal.
 
 ### A sync request is answered by a pass that began after it
 
@@ -169,7 +171,9 @@ only tab closed.
 - Chrome for Android shipped shared workers in Chrome 148, with a documented
   caveat that one may be terminated when the app is backgrounded. What drift's
   connection does then is untested on a device.
-- The schema-version flush works around drift; it should be reported upstream
-  and removed once drift persists `setSchemaVersion` itself.
+- IndexedDB storage holds the whole database in the worker's memory and writes
+  it back behind every save, so the replica's size is memory on the web. Chrome
+  and Safari have no other persistent storage without cross-origin isolation.
+  An existing database stays in IndexedDB even once a browser offers OPFS.
 - `navigator.storage.persist()` prompts in Firefox, and is asked when the first
   local game is created rather than behind an explanation.

@@ -17,14 +17,20 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 ## [Unreleased]
 ### Added
 - Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy, and `drift` is held to the minor line they come from (`>=2.35.0 <2.36.0`).
+- Drift's web runtime (`sqlite3.wasm`, `drift_worker.js`) ships as web-only package assets, so an app carries no copy of it.
 
 ### Changed
+- The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
+- `ReplicaHost.exclusively` excludes within one process too, and `SyncCoordinator` shares its pass lock across tabs, so triggers arriving together run one pass.
+- `AuthGateway.signInWithGoogle` and `switchToExistingGoogleAccount` return `AuthSignInResult`, and `AuthUpgradeResult` gains `cancelled`: dismissing the provider's sign-in is not an error. A blocked sign-in window is `AuthWindowBlockedException`, which `humanize` explains.
 - The web replica host chooses its storage before opening anything and locks a tab only for per-tab IndexedDB, the one storage unsafe to share, including when a shared worker exists but fails. A tab refused the database opens by itself once the tab holding it closes. `ReplicaHost.storage` is known when the host is, and `ReplicaHost.available` completes when a refused tab may open.
 - `ReplicaHost.exclusively` excludes within one process too, and `SyncCoordinator` shares its pass lock across tabs, so triggers arriving together run one pass.
 - `AuthGateway.signInWithGoogle` and `switchToExistingGoogleAccount` return `AuthSignInResult`, and `AuthUpgradeResult` gains `cancelled`: dismissing the provider's sign-in is not an error. A blocked sign-in window is `AuthWindowBlockedException`, which `humanize` explains.
 
 ### Fixed
 - On the web, a browser that opened the replica and closed before writing anything else lost its schema version, and every later open failed. Opening now persists it.
+- The connectivity provider reads the current state before following changes, so a web app opened with no network is offline, and syncs when the network returns.
+- On the web, a transaction the replica committed to IndexedDB was not saved until some later unrelated write, so closing the tab could lose it, including a local game's moves; and a browser that opened the replica and closed before writing anything lost its schema version, failing every later open. Both are now saved, until drift releases its own fix.
 - The connectivity provider reads the current state before following changes, so a web app opened with no network is offline, and syncs when the network returns.
 
 ## [0.13.0] - 2026-09-16

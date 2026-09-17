@@ -9,7 +9,8 @@ worker and the module are one pair.
 They ship here, as web-only package assets, because this package is what
 chooses drift. An app gets them at
 `assets/packages/eigen_flutter/assets/drift/` without copying anything, and
-`pubspec.yaml` holds `drift` to the 2.35 line, so no app can resolve a drift
-minor release the worker was not built with. (Exact would be tighter, but pub
-does not publish a single-version constraint.) Moving that constraint means
-replacing both files from the matching release in the same change.
+`pubspec.yaml`'s floor for `drift` names the release they come from. Drift
+supports a newer client with an older worker within a major version, so an app
+may resolve a later 2.x, but raising the floor means replacing both files from
+the matching release in the same change: fixes to web storage live in the
+worker, not in the Dart package.
