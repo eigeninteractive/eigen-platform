@@ -230,22 +230,35 @@ class CommerceService {
     return (update: update, access: access);
   }
 
-  /// The logical offer [update] paid for.
+  /// The logical offer to claim [update] under.
   ///
   /// A store SDK reports its own product identifier and knows nothing about
   /// offers, so the mapping lives in the catalog and nowhere else. It is
   /// fetched if this service has not read one yet: a purchase restored at
   /// startup can arrive before any store screen has asked for the catalog, and
   /// claiming it with a product id would fail as an unknown offer.
+  ///
+  /// It can be a guess. A store may report less than tells offers apart —
+  /// Play names a subscription's product, not its base plan — and the gateway
+  /// says which references an update [PurchaseGateway.covers]. The claim's
+  /// offer only steers the Worker's verification; the offer recorded is the
+  /// one the provider verifies.
   Future<String> _offerKeyFor(
     Storefront storefront,
     PurchaseUpdate update,
   ) async {
     final catalog = _catalog ?? await getCatalog();
+    bool covers(String providerReference) => switch (storefront) {
+      final PurchaseGateway gateway => gateway.covers(
+        providerReference,
+        update,
+      ),
+      _ => providerReference == update.providerReference,
+    };
     for (final offer in catalog.offers) {
       for (final product in offer.products) {
         if (product.provider == storefront.provider &&
-            product.providerReference == update.providerReference) {
+            covers(product.providerReference)) {
           return offer.key;
         }
       }

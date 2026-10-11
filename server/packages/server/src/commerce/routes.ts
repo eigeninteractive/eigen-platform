@@ -117,7 +117,6 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
     catalog: resolved.catalog,
     provider: adapter.key,
     accountId,
-    expectedOfferKey: selectedOffer.key,
     transaction,
     now: resolved.now(),
   });

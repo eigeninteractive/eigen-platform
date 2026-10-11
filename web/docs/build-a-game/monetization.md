@@ -139,6 +139,39 @@ evidence are secrets and must stay in Worker secret bindings. The server derives
 the expected product identifier from the selected offer; it never trusts a
 client-supplied price or arbitrary product ID.
 
+A purchase claim names an offer, but the offer recorded is the one the provider
+verifies. A store SDK cannot always tell which offer it sold — Play's purchase
+names a subscription's product, never its base plan — so the claim's offer only
+tells the adapter where to look. Naming an offer the player did not pay for
+gains nothing, and a wrong guess never refuses a paying player. The access
+snapshot the claim returns is what was actually granted.
+
+### Changing the catalog
+
+What an entitlement grants is resolved from the catalog on every read: change
+its permissions, content or limits and every holder gets the change on their
+next request. Which entitlements an offer grants is recorded with each
+purchase, so changing an offer's list reaches new purchases, and subscriptions
+when the store next reports on them, but not one-time purchases already made.
+Three things are permanent from the moment anything is sold under them:
+
+- **An entitlement key.** Removing or renaming one silently revokes it for
+  everyone who holds it; it stops granting and stops being reported.
+- **An offer key.** Every transaction names one, and restoration resolves
+  through it.
+- **A provider reference, while the store may still report on it.** Renewals
+  and refunds arrive naming the reference they were bought at. One the catalog
+  no longer maps is refused and the transaction shows up on
+  `GET /ops/commerce/stalled`: a subscriber's access ends with their paid
+  period while the store keeps charging them, and a refund is not applied.
+
+A Stripe subscriber who switches plan in the Billing Portal keeps one
+transaction, and it moves to the offer the new plan maps to; whatever only the
+old offer granted is revoked. On Play a plan change is a new purchase with a
+new token, claimed like any other, and the old token expires. A deferred change
+serves the old plan from the new token until renewal, then moves it the same
+way.
+
 If `commerce` is absent, the routes are absent and ordinary game behavior is
 unchanged. No billing SDK or merchant credential becomes a transitive engine
 requirement.
@@ -446,7 +479,7 @@ normal case, and importing one carries only that one into your bundle:
 
 | Entry point | Storefront | Reference is | Checkout |
 | --- | --- | --- | --- |
-| [`@eigeninteractive/server/commerce/google-play`](../reference/typescript/server-commerce-google-play.md) | Google Play Billing | the product id | launched on the device by the Billing library |
+| [`@eigeninteractive/server/commerce/google-play`](../reference/typescript/server-commerce-google-play.md) | Google Play Billing | the product id; for a subscription, `productId:basePlanId` | launched on the device by the Billing library |
 | [`@eigeninteractive/server/commerce/stripe`](../reference/typescript/server-commerce-stripe.md) | Stripe | a Price id (`price_...`) | hosted Checkout Session |
 | [`@eigeninteractive/server/commerce/razorpay`](../reference/typescript/server-commerce-razorpay.md) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
 
@@ -464,6 +497,15 @@ are only true of that provider. Three are worth knowing before you choose:
 - **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
   auto-charge failed and is being retried. The adapter maps it to `grace` so a
   paying player is not cut off mid-retry.
+- **A Play subscription is sold by base plan.** Reference it as
+  `productId:basePlanId` (`googlePlaySubscriptionReference` builds one), so
+  monthly and yearly can be two offers. Play's offers — free trials,
+  introductory prices, win-back discounts — are prices on a base plan and stay
+  out of the reference. `PlayPurchaseGateway` sells the base plan at its own
+  price and launches no offer: Play returns developer-determined offers to
+  every player and leaves eligibility to the app. Add-on subscriptions, which
+  serve several products from one purchase, are not supported and are
+  refused.
 
 ### Write your own
 
@@ -517,8 +559,10 @@ that names a failing provider without quoting the credential it failed with.
   and routine logs.
 - Display provider-localized price data rather than hard-coded price strings.
 - Explain the exact limit and reset date before purchase.
-- Test pending, duplicate, restore, renewal, expiry, refund, revocation, and
-  another account's transaction—not just the successful checkout.
+- Test pending, duplicate, restore, renewal, expiry, refund, revocation, plan
+  change, and another account's transaction—not just the successful checkout.
+- Keep every subscription's provider reference in the catalog until nobody is
+  subscribed under it.
 - Keep abuse rate limits identical for free and paid accounts.
 - Do not add ads or paid competitive advantage.
 

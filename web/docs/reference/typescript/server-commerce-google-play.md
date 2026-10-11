@@ -9,7 +9,7 @@ entitlement is durable -- which is exactly the order
 `acknowledgeIfNeeded` enforces: ledger first, provider second, and the
 reconciliation sweep repairs an acknowledgement lost in between.
 
-Two Play-specific facts shape the rest:
+Play-specific facts shape the rest:
 
 - **The purchase token is the identity and the handle.** Every later call
   about a purchase needs it again, so it is returned as the transaction's
@@ -17,8 +17,26 @@ Two Play-specific facts shape the rest:
   credential: it never appears in a log, an error, or a client response.
 - **A product id is not enough.** A one-time purchase is read at
   `products/{productId}/tokens/{token}`, so the engine's `providerReference`
-  is the product id; a subscription is read at `subscriptionsv2/tokens/{token}`
-  with no product in the path, and the line item names the plan afterwards.
+  is the product id. A subscription product sells through base plans --
+  monthly and yearly are two base plans of one product -- so its reference is
+  `{productId}:{basePlanId}` (see [googlePlaySubscriptionReference](#googleplaysubscriptionreference)).
+  An offer (a free trial, an introductory price) is a price on a base plan,
+  not a different thing bought, so it is deliberately not part of the
+  reference; its offer token is the device's business when it launches the
+  Billing flow.
+- **The device cannot say which base plan it bought.** Play's on-device
+  purchase names the product, not the plan, so a claim may name any plan of
+  that product; the plan Play reports here is the one recorded.
+- **A plan change is a new purchase.** Play issues a new purchase token for
+  every plan change, to be claimed and acknowledged like any purchase, and
+  reports the old token expired. A deferred change issues it at once but
+  keeps serving the old plan from it until renewal, so the new token holds
+  two line items and swaps which one serves. The reference is read from
+  whichever is serving now, and the ledger moves the transaction to the new
+  offer when that changes.
+- **Acknowledgement is not on the v2 resource.** Subscriptions are read from
+  `subscriptionsv2` but acknowledged at `subscriptions/{productId}/tokens`,
+  which has no v2 counterpart.
 
 There is no `createCheckout`: Play checkout is launched by the Billing
 library on the device, and the engine answers that plainly for this provider.
@@ -27,7 +45,7 @@ library on the device, and the engine answers that plainly for this provider.
 
 ### GooglePlayCommerceConfig
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L36)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:54](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L54)
 
 #### Type Parameters
 
@@ -43,7 +61,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:36](ht
 optional now?: () => number;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:43](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L43)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:61](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L61)
 
 ###### Returns
 
@@ -57,7 +75,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:43](ht
 packageName(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:38](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L38)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L56)
 
 The app's package name, e.g. `com.example.game`.
 
@@ -77,7 +95,7 @@ The app's package name, e.g. `com.example.game`.
 serviceAccountEmail(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L40)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L58)
 
 The service account's `client_email` from its JSON key.
 
@@ -97,7 +115,7 @@ The service account's `client_email` from its JSON key.
 serviceAccountPrivateKey(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:42](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L42)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:60](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L60)
 
 The service account's PKCS#8 `private_key`, PEM, newlines intact.
 
@@ -119,7 +137,7 @@ The service account's PKCS#8 `private_key`, PEM, newlines intact.
 function googlePlayCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L102)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:177](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L177)
 
 #### Type Parameters
 
@@ -136,3 +154,30 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:102](h
 #### Returns
 
 [`CommerceProvider`](server.md#commerceprovider)\<`TEnv`\>
+
+***
+
+### googlePlaySubscriptionReference()
+
+```ts
+function googlePlaySubscriptionReference(productId, basePlanId): string;
+```
+
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:94](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L94)
+
+The `providerReference` a catalog names for a Play subscription base plan.
+
+Play product ids are lowercase letters, digits, underscores and periods, and
+base plan ids are lowercase letters, digits and hyphens, so the colon cannot
+occur in either half.
+
+#### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `productId` | `string` |
+| `basePlanId` | `string` |
+
+#### Returns
+
+`string`

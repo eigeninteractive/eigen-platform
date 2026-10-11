@@ -53,8 +53,9 @@ export interface CommerceOffer {
   repeatable?: boolean;
   /**
    * Public, provider-owned sellable references. The engine treats each value
-   * as opaque; the matching adapter may interpret a Stripe Price, or a Google
-   * Play product/base-plan/offer tuple. Secret credentials remain in bindings.
+   * as opaque; the matching adapter defines its form -- a Stripe Price, a
+   * Razorpay Plan, a Google Play product id, or a Play subscription's
+   * `{productId}:{basePlanId}`. Secret credentials remain in bindings.
    */
   providerReferences: Readonly<Record<string, string>>;
 }
@@ -74,6 +75,8 @@ export type CommerceTransactionState = "pending" | "active" | "grace" | "expired
 /** Provider output after server-side verification. Never accepted from a client. */
 export interface VerifiedCommerceTransaction {
   providerTransactionId: string;
+  /** What this transaction serves now. A subscription's may change over its
+   * life (a plan change), and the ledger moves it to the matching offer. */
   providerReference: string;
   /** Must match the configured logical offer kind. */
   kind: "oneTime" | "subscription";
@@ -113,6 +116,12 @@ export interface CommerceManagement {
 
 export interface VerifyClaimInput {
   accountId: string;
+  /**
+   * The reference of the offer the claim named. It steers verification -- Play
+   * reads a one-time purchase under its product id, and tells a subscription
+   * from its shape -- but the transaction returned says what was actually
+   * bought, and the ledger records that.
+   */
   expectedProviderReference: string;
   evidence: unknown;
 }

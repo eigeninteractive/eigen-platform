@@ -224,7 +224,9 @@ export function fakeCommerceProvider(
       const evidence = input.evidence as Partial<FakeCommerceEvidence> | null;
       if (evidence === null || typeof evidence !== "object") throw new Error("fake commerce evidence must be an object");
       if (evidence.accountId !== input.accountId) throw new Error("fake commerce evidence belongs to another account");
-      if (evidence.providerReference !== input.expectedProviderReference || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+      // The evidence names what was bought, as a Play token does, and the
+      // claim's offer does not get a say: a store SDK may not know it.
+      if (typeof evidence.providerReference !== "string" || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
       if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
       const instant = now();
       return {

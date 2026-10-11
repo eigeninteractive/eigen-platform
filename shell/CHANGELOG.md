@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+### Fixed
+- `PlayPurchaseGateway` sells subscriptions by base plan, the `productId:basePlanId` references the Worker now uses, at the base plan's own price. It launches no offer: Play returns developer-determined offers (win-back, retention) to every player, and before, whichever offer loaded last was the one bought.
+- `PlayPurchaseGateway` restores a subscription whatever plan it was bought on: every plan of the purchased product covers it, and the Worker records the plan Play reports.
+
 ## [0.6.0] - 2026-09-17
 ### Added
 - The home screen offers to have the browser keep games played on this device, explaining what it is for before the browser asks, and only while such a game has yet to upload.
@@ -62,6 +67,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.6.0...HEAD
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.5.0...eigen_shell-v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.4.0...eigen_shell-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...eigen_shell-v0.4.0

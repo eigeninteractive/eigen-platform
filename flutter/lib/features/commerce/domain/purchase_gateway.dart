@@ -90,6 +90,15 @@ abstract interface class PurchaseGateway implements Storefront {
 
   Future<void> restore();
 
+  /// Whether [update] may be a purchase of the catalog's [providerReference].
+  ///
+  /// A store can report less than the catalog names. Play's purchase names a
+  /// subscription's product but never its base plan, so every plan of that
+  /// product covers it. `CommerceService` claims with the first offer covered,
+  /// and the Worker records the offer the provider verifies, so a guess among
+  /// them costs nothing.
+  bool covers(String providerReference, PurchaseUpdate update);
+
   /// Acknowledges or completes provider delivery after Worker verification.
   ///
   /// Implementations must be able to complete a reconstructed update from its
@@ -175,6 +184,9 @@ class UnavailablePurchaseGateway implements PurchaseGateway {
   Future<void> restore() {
     throw UnsupportedError('No purchase gateway is configured.');
   }
+
+  @override
+  bool covers(String providerReference, PurchaseUpdate update) => false;
 
   @override
   Future<void> complete(PurchaseUpdate update) {

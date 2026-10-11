@@ -315,6 +315,23 @@ describe("purchase claims", () => {
     expect(await response.json()).toMatchObject({ code: "purchaseConflict" });
   });
 
+  it("grants what the provider verified, not the offer the claim named", async () => {
+    // A store SDK may not know which offer it sold -- Play reports a
+    // subscription's product, never its base plan -- so the claim's offer only
+    // steers verification, and the provider's answer is what is recorded.
+    const accountId = uid("misnamed");
+    const transactionId = crypto.randomUUID();
+    const access = await json<{ entitlements: { key: string }[] }>(
+      await api(accountId, "POST", "/commerce/claims", {
+        provider: "fake",
+        offerKey: "supporter",
+        evidence: evidence(accountId, transactionId, "pro_monthly", { kind: "subscription", validUntil: Date.now() + 30 * 24 * 60 * 60 * 1000 }),
+      }),
+    );
+    expect(access.entitlements).toEqual([expect.objectContaining({ key: "pro" })]);
+    expect(await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).get()).toMatchObject({ offerKey: "pro_monthly" });
+  });
+
   it("maps unverifiable client evidence to a provider failure", async () => {
     const accountId = uid("invalid");
     const response = await api(accountId, "POST", "/commerce/claims", {

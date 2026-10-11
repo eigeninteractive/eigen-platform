@@ -189,7 +189,7 @@ url: string;
 readonly key: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L149)
+Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
 
 ###### Inherited from
 
@@ -224,7 +224,7 @@ A transaction absent from here is one the provider will not answer for.
 optional acknowledge(env, transaction): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
+Defined in: [server/packages/server/src/commerce/types.ts:166](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L166)
 
 Runs only after the normalized transaction and grants commit.
 
@@ -261,7 +261,7 @@ Defined in: [server/packages/server/src/testing.ts:148](https://github.com/eigen
 optional createCheckout(env, input): Promise<CommerceCheckout>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
+Defined in: [server/packages/server/src/commerce/types.ts:167](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L167)
 
 ###### Parameters
 
@@ -329,7 +329,7 @@ optional management(
 ): Promise<CommerceManagement>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L159)
+Defined in: [server/packages/server/src/commerce/types.ts:168](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L168)
 
 ###### Parameters
 
@@ -354,7 +354,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.co
 optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L150)
+Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L159)
 
 ###### Parameters
 
@@ -377,7 +377,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.co
 optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:155](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L155)
+Defined in: [server/packages/server/src/commerce/types.ts:164](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L164)
 
 Fetches current state for locally active or pending transaction refs.
 
@@ -423,7 +423,7 @@ account's usual one, as a provider confusing two customers would.
 verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L151)
+Defined in: [server/packages/server/src/commerce/types.ts:160](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L160)
 
 ###### Parameters
 
@@ -446,7 +446,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.co
 optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:153](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L153)
+Defined in: [server/packages/server/src/commerce/types.ts:162](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L162)
 
 Verifies the raw request and fetches current provider state when needed.
 
@@ -605,7 +605,7 @@ function testAccount(
 ): Promise<string>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L307)
+Defined in: [server/packages/server/src/testing.ts:309](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L309)
 
 Provision the account a commerce test is about.
 
@@ -699,7 +699,7 @@ function withCreationId(
 ): unknown;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:324](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L324)
+Defined in: [server/packages/server/src/testing.ts:326](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L326)
 
 #### Parameters
 

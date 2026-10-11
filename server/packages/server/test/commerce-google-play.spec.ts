@@ -10,7 +10,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { googlePlayCommerceProvider } from "../src/commerce/providers/google-play.js";
+import { googlePlayCommerceProvider, googlePlaySubscriptionReference } from "../src/commerce/providers/google-play.js";
 
 // A throwaway PKCS#8 RSA key, generated for this test and used nowhere else:
 // the adapter signs a service-account assertion with it, so the test needs a
@@ -106,7 +106,7 @@ describe("google play subscriptions", () => {
     acknowledgementState,
     startTime: "2026-09-01T00:00:00Z",
     externalAccountIdentifiers: { obfuscatedExternalAccountId: "alice" },
-    lineItems: [{ productId: "pro_monthly", expiryTime: "2026-10-01T00:00:00Z" }],
+    lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } }],
   });
 
   it.each([
@@ -124,16 +124,127 @@ describe("google play subscriptions", () => {
     await testPrivateKey();
     scriptFetch({ [SUBSCRIPTION_PATH]: purchase(playState) });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } });
     expect(verified.state).toBe(expected);
     expect(verified.validUntil).toBe(Date.parse("2026-10-01T00:00:00Z"));
+  });
+
+  it("names a subscription by product and base plan, never by offer", async () => {
+    await testPrivateKey();
+    scriptFetch({ [SUBSCRIPTION_PATH]: { ...purchase("SUBSCRIPTION_STATE_ACTIVE"), lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly", offerId: "free-trial" } }] } });
+    const provider = await makeProvider();
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } });
+    // A free trial is a price on the monthly plan, not a different thing bought.
+    expect(verified.providerReference).toBe("pro:monthly");
+    expect(googlePlaySubscriptionReference("pro", "monthly")).toBe("pro:monthly");
+  });
+
+  it("reads a subscription by the reference's shape, and reports the plan Play says, not the one named", async () => {
+    await testPrivateKey();
+    const state = scriptFetch({ [SUBSCRIPTION_PATH]: { ...purchase("SUBSCRIPTION_STATE_ACTIVE"), lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "yearly" } }] } });
+    // The device saw product `pro` and guessed monthly; the evidence carries no
+    // kind, because the device need not know one.
+    const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } });
+    expect(state.seen).toEqual([`GET ${SUBSCRIPTION_PATH}`]);
+    expect(verified).toMatchObject({ kind: "subscription", providerReference: "pro:yearly" });
+  });
+
+  describe("the token a deferred plan change issues, which swaps its line item at renewal", () => {
+    // Play's documented shapes for the new token: before renewal the old item
+    // still serves with a future expiry and names its replacement, and the new
+    // item has no expiry; after renewal the old item's expiry is past and the
+    // new one's is in the future. The test clock is 2023-11-14.
+    const deferred = (lineItems: unknown[]) => ({ ...purchase("SUBSCRIPTION_STATE_ACTIVE"), lineItems });
+    const monthly = { productId: "pro", offerDetails: { basePlanId: "monthly" } };
+    const yearly = { productId: "pro", offerDetails: { basePlanId: "yearly" } };
+
+    it("serves the old plan until renewal, in either item order", async () => {
+      await testPrivateKey();
+      const before = [{ ...monthly, expiryTime: "2026-10-01T00:00:00Z", deferredItemReplacement: { productId: "pro" } }, yearly];
+      for (const lineItems of [before, [...before].reverse()]) {
+        scriptFetch({ [SUBSCRIPTION_PATH]: deferred(lineItems) });
+        const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:yearly", evidence: { purchaseToken: "tok_sub" } });
+        expect(verified).toMatchObject({ providerReference: "pro:monthly", validUntil: Date.parse("2026-10-01T00:00:00Z") });
+      }
+    });
+
+    it("still serves the old plan if Play has already dated the new item", async () => {
+      // Play's docs disagree on when the new item gets its expiry; a waiting
+      // replacement must not read as a second, add-on item either way.
+      await testPrivateKey();
+      scriptFetch({
+        [SUBSCRIPTION_PATH]: deferred([
+          { ...monthly, expiryTime: "2026-10-01T00:00:00Z", deferredItemReplacement: { productId: "pro" } },
+          { ...yearly, expiryTime: "2027-10-01T00:00:00Z" },
+        ]),
+      });
+      const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:yearly", evidence: { purchaseToken: "tok_sub" } });
+      expect(verified).toMatchObject({ providerReference: "pro:monthly", validUntil: Date.parse("2026-10-01T00:00:00Z") });
+    });
+
+    it("serves the new plan once the replacement has taken effect", async () => {
+      await testPrivateKey();
+      scriptFetch({
+        [SUBSCRIPTION_PATH]: deferred([
+          { ...monthly, expiryTime: "2023-11-01T00:00:00Z" },
+          { ...yearly, expiryTime: "2024-11-01T00:00:00Z" },
+        ]),
+      });
+      const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:yearly", evidence: { purchaseToken: "tok_sub" } });
+      expect(verified).toMatchObject({ providerReference: "pro:yearly", validUntil: Date.parse("2024-11-01T00:00:00Z") });
+    });
+  });
+
+  it("answers an expired multi-item purchase with the item that served last", async () => {
+    await testPrivateKey();
+    scriptFetch({
+      [SUBSCRIPTION_PATH]: {
+        ...purchase("SUBSCRIPTION_STATE_EXPIRED"),
+        lineItems: [
+          { productId: "pro", expiryTime: "2023-01-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } },
+          { productId: "pro", expiryTime: "2023-06-01T00:00:00Z", offerDetails: { basePlanId: "yearly" } },
+        ],
+      },
+    });
+    const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:yearly", evidence: { purchaseToken: "tok_sub" } });
+    expect(verified).toMatchObject({ providerReference: "pro:yearly", state: "expired" });
+  });
+
+  it("refuses add-on subscriptions rather than granting only the first item", async () => {
+    await testPrivateKey();
+    scriptFetch({
+      [SUBSCRIPTION_PATH]: {
+        ...purchase("SUBSCRIPTION_STATE_ACTIVE"),
+        lineItems: [
+          { productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } },
+          { productId: "themes", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } },
+        ],
+      },
+    });
+    await expect((await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } })).rejects.toThrow(/add-on/);
+  });
+
+  it("refuses a line item with no base plan rather than guessing one", async () => {
+    await testPrivateKey();
+    scriptFetch({ [SUBSCRIPTION_PATH]: { ...purchase("SUBSCRIPTION_STATE_ACTIVE"), lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z" }] } });
+    await expect((await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } })).rejects.toThrow(/no base plan/);
+  });
+
+  it("acknowledges on the v1 subscriptions resource, which is the only one that can", async () => {
+    // `subscriptionsv2` has get, cancel, defer and revoke, and no acknowledge:
+    // posting there is a 404, and an unacknowledged subscription is refunded.
+    await testPrivateKey();
+    const acknowledgePath = "/androidpublisher/v3/applications/com.example.game/purchases/subscriptions/pro/tokens/tok_sub:acknowledge";
+    const state = scriptFetch({ [acknowledgePath]: null });
+    await (await makeProvider()).acknowledge?.(null, { providerTransactionId: "tok_sub", accountId: "alice", providerReference: "pro:monthly", kind: "subscription", sealedProviderState: JSON.stringify({ kind: "subscription", token: "tok_sub" }), acknowledgementPending: true });
+    expect(state.seen).toEqual([`POST ${acknowledgePath}`]);
   });
 
   it("needs acknowledgement while Play is still waiting to be told", async () => {
     await testPrivateKey();
     scriptFetch({ [SUBSCRIPTION_PATH]: purchase("SUBSCRIPTION_STATE_ACTIVE", "ACKNOWLEDGEMENT_STATE_PENDING") });
     const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro_monthly", evidence: { purchaseToken: "tok_sub", kind: "subscription" } });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } });
     expect(verified.requiresAcknowledgement).toBe(true);
   });
 });
@@ -147,14 +258,14 @@ describe("google play notifications", () => {
         acknowledgementState: "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED",
         startTime: "2026-09-01T00:00:00Z",
         externalAccountIdentifiers: { obfuscatedExternalAccountId: "alice" },
-        lineItems: [{ productId: "pro_monthly", expiryTime: "2026-10-01T00:00:00Z" }],
+        lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } }],
       },
     });
     const provider = await makeProvider();
     const data = btoa(JSON.stringify({ packageName: "com.example.game", subscriptionNotification: { purchaseToken: "tok_sub" } }));
     const verified = await provider.verifyWebhook?.(null, new Request("https://x/rtdn", { method: "POST", body: JSON.stringify({ message: { data, messageId: "msg-1" } }) }));
     expect(verified).toMatchObject({ providerEventId: "msg-1", accountId: "alice" });
-    expect(verified?.transaction.state).toBe("active");
+    expect(verified?.transaction).toMatchObject({ state: "active", providerReference: "pro:monthly" });
   });
 
   it("refuses a notification that names no purchase", async () => {

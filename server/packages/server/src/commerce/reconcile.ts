@@ -17,7 +17,6 @@ type SweepRow = {
   providerTransactionId: string;
   accountId: string | null;
   providerReference: string;
-  offerKey: string;
   kind: "oneTime" | "subscription";
   sealedProviderState: string | null;
   acknowledgementState: "notRequired" | "pending" | "acknowledged";
@@ -47,7 +46,6 @@ async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: un
       providerTransactionId: commerceTransactions.providerTransactionId,
       accountId: commerceTransactions.userId,
       providerReference: commerceTransactions.providerReference,
-      offerKey: commerceTransactions.offerKey,
       kind: commerceTransactions.kind,
       sealedProviderState: commerceTransactions.sealedProviderState,
       acknowledgementState: commerceTransactions.acknowledgementState,
@@ -124,7 +122,6 @@ async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: un
         catalog: commerce.catalog,
         provider: adapter.key,
         accountId: row.accountId as string,
-        expectedOfferKey: row.offerKey,
         transaction,
         now: commerce.now(),
         reconciled: true,

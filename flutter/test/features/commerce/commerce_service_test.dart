@@ -40,6 +40,10 @@ CommerceCatalog _catalog() => CommerceCatalog.fromJson({
 });
 
 class _Repository implements CommerceRepository {
+  _Repository({CommerceCatalog Function() catalog = _catalog})
+    : _catalogFor = catalog;
+
+  final CommerceCatalog Function() _catalogFor;
   final claims = <CommercePurchaseClaim>[];
   final checkouts =
       <({String provider, String offerKey, String operationId})>[];
@@ -55,7 +59,7 @@ class _Repository implements CommerceRepository {
   @override
   Future<CommerceCatalog> getCatalog({Iterable<String>? providers}) async {
     requestedProviders = providers;
-    return _catalog();
+    return _catalogFor();
   }
 
   @override
@@ -79,7 +83,12 @@ class _Repository implements CommerceRepository {
 }
 
 class _Gateway implements PurchaseGateway {
-  _Gateway(this.updates);
+  _Gateway(this.updates, {this.coverage});
+
+  /// How this store reports purchases, when it reports less than the catalog
+  /// names. Exact match otherwise.
+  final bool Function(String providerReference, PurchaseUpdate update)?
+  coverage;
 
   @override
   final Stream<PurchaseUpdate> updates;
@@ -113,6 +122,11 @@ class _Gateway implements PurchaseGateway {
 
   @override
   Future<void> restore() async {}
+
+  @override
+  bool covers(String providerReference, PurchaseUpdate update) =>
+      coverage?.call(providerReference, update) ??
+      providerReference == update.providerReference;
 
   @override
   Future<void> complete(PurchaseUpdate update) async {
@@ -490,6 +504,53 @@ void main() {
     // Resolved without a store screen having asked for the catalog first: a
     // restored purchase can arrive before anything else does.
     expect(repository.requestedProviders, ['google_play']);
+    await service.dispose();
+  });
+
+  test('claims under an offer the store cannot tell apart, leaving the Worker to say which', () async {
+    // Play's purchase names the subscription product, never its base plan, so
+    // both plans cover it. Either is a valid claim: the Worker records the
+    // plan Play verifies, not the one claimed.
+    CommerceCatalog plans() => CommerceCatalog.fromJson({
+      'offers': [
+        for (final plan in ['monthly', 'yearly'])
+          {
+            'key': 'pro_$plan',
+            'name': 'Pro $plan',
+            'description': '',
+            'kind': 'subscription',
+            'entitlements': ['pro'],
+            'repeatable': false,
+            'products': [
+              {
+                'provider': 'google_play',
+                'providerReference': 'pro:$plan',
+                'displayPrice': null,
+                'currencyCode': null,
+              },
+            ],
+          },
+      ],
+    });
+    final repository = _Repository(catalog: plans);
+    final gateway = _Gateway(
+      Stream.value(
+        const PurchaseUpdate(
+          deliveryId: 'GPA.2',
+          offerKey: 'pro',
+          providerReference: 'pro',
+          state: PurchaseUpdateState.restored,
+          evidence: {'purchaseToken': 'tok'},
+        ),
+      ),
+      coverage: (reference, update) =>
+          reference.startsWith('${update.providerReference}:'),
+    );
+    final service = CommerceService(repository, [gateway], _Deliveries());
+
+    await service.verifiedUpdates().take(1).toList();
+
+    expect(repository.claims.single.offerKey, 'pro_monthly');
     await service.dispose();
   });
 }

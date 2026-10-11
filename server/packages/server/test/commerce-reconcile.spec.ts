@@ -106,7 +106,7 @@ describe("reconciliation liveness", () => {
 
     expect((await row("good"))?.state).toBe("grace");
     expect((await row("bad-product"))?.reconcileFailures).toBe(1);
-    expect((await row("bad-product"))?.reconcileError).toContain("does not match");
+    expect((await row("bad-product"))?.reconcileError).toContain("not registered");
   });
 
   it("counts a provider outage against the batch without losing the queue", async () => {

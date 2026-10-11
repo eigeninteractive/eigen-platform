@@ -34,7 +34,7 @@ function validateTransaction(transaction: VerifiedCommerceTransaction, offer: Co
     throw new HttpError(502, "The provider returned an invalid transaction identity");
   }
   if (transaction.kind !== offer.kind) {
-    throw new HttpError(409, "The verified purchase kind does not match the requested offer", "purchaseConflict");
+    throw new HttpError(409, "The verified purchase kind does not match its offer", "purchaseConflict");
   }
   safeInstant(transaction.purchasedAt, "purchase instant");
   safeInstant(transaction.validFrom, "entitlement start");
@@ -94,16 +94,19 @@ export async function recordVerifiedTransaction(
     catalog: CommerceCatalog;
     provider: string;
     accountId: string;
-    expectedOfferKey: string;
     transaction: VerifiedCommerceTransaction;
     now: number;
     reconciled?: boolean;
   },
   allowRaceRetry = true,
 ): Promise<CommerceTransactionReference> {
+  // The offer is whatever the provider verified, never what a caller asked
+  // for. A store SDK cannot always tell: Play reports a subscription's product
+  // but not its base plan, and a restore on a fresh install has nothing to
+  // remember it from. The provider can, so its answer is the one recorded.
   const offer = offerForProduct(input.catalog, input.provider, input.transaction.providerReference);
-  if (offer === undefined || offer.key !== input.expectedOfferKey) {
-    throw new HttpError(409, "The verified product does not match the requested offer", "purchaseConflict");
+  if (offer === undefined) {
+    throw new HttpError(409, "The verified product is not registered", "purchaseConflict");
   }
   validateTransaction(input.transaction, offer);
 
@@ -121,7 +124,13 @@ export async function recordVerifiedTransaction(
     if (existing.userId !== input.accountId) {
       throw new HttpError(409, "This purchase is associated with another account", "purchaseConflict");
     }
-    if (existing.providerReference !== input.transaction.providerReference || existing.offerKey !== offer.key || existing.kind !== input.transaction.kind) {
+    // A subscription changes plan in place -- Play swaps the line item at a
+    // deferred renewal, Stripe swaps the price when the player switches in the
+    // Billing Portal -- and the transaction follows it: the grants batch below
+    // revokes what the old offer granted and the new one does not. A one-time
+    // purchase never changes what was bought, and nothing changes its kind.
+    const changedPlan = existing.providerReference !== input.transaction.providerReference || existing.offerKey !== offer.key;
+    if (existing.kind !== input.transaction.kind || (changedPlan && existing.kind !== "subscription")) {
       throw new HttpError(409, "The provider transaction changed product identity", "purchaseConflict");
     }
   }
@@ -171,6 +180,8 @@ export async function recordVerifiedTransaction(
       : db
           .update(commerceTransactions)
           .set({
+            providerReference: input.transaction.providerReference,
+            offerKey: offer.key,
             state: input.transaction.state,
             purchasedAt: input.transaction.purchasedAt,
             validFrom: input.transaction.validFrom,
@@ -288,10 +299,6 @@ export async function recordVerifiedEvent(
       .onConflictDoNothing();
   }
 
-  const offer = offerForProduct(input.catalog, input.provider, input.event.transaction.providerReference);
-  if (offer === undefined) {
-    throw new HttpError(409, "The verified webhook product is not registered", "purchaseConflict");
-  }
   // An erased account is the one conflict a provider cannot retry its way out
   // of, and a 5xx would have Stripe redelivering this for three days. The
   // notification was received and understood; there is simply nothing left to
@@ -300,7 +307,6 @@ export async function recordVerifiedEvent(
     catalog: input.catalog,
     provider: input.provider,
     accountId: input.event.accountId,
-    expectedOfferKey: offer.key,
     transaction: input.event.transaction,
     now: input.now,
   }).catch((error) => {

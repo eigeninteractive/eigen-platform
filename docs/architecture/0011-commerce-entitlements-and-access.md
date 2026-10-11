@@ -10,6 +10,11 @@
   _Composed operations_.
 - Amended: 2026-09-16. Every bot belongs to exactly one tier, and a grant
   covers only the resource it names. See _Closed access-capability vocabulary_ and _Composed operations_.
+- Amended: 2026-10-11. A claim's offer steers verification and the offer
+  recorded is the one the provider verifies; a subscription follows a plan
+  change in place; a Play subscription is referenced by base plan; and a
+  catalog change takes effect at once. See _Offers_, _Subscriptions_, and
+  _What validation cannot see_.
 
 ## Context
 
@@ -130,6 +135,25 @@ The catalog MUST NOT hard-code a user-visible price. Storefront adapters return
 the current localized price and purchase terms. A client MUST NOT be allowed to
 select an arbitrary provider product or price; the server resolves the provider
 identifier from the registered offer.
+
+The form of a provider reference belongs to its adapter: a Stripe Price, a
+Razorpay Plan, a Play product id for a one-time product, and
+`{productId}:{basePlanId}` for a Play subscription. Monthly and yearly are two
+base plans of one Play product, so the product id alone could not sell them as
+two offers. A Play offer — a free trial, an introductory price — is a price on
+a base plan rather than a different thing bought, and it is not part of the
+reference; which one to launch is the device's choice.
+
+A purchase claim names an offer, but that offer only steers verification. The
+offer recorded is the one the provider verifies, because a store SDK cannot
+always say which offer it sold: Play's on-device purchase names a
+subscription's product and never its base plan, and a restore on a fresh
+install has nothing to remember it from. Recording the provider's answer means
+a client gains nothing by naming an offer it did not pay for, and a paying
+player is never refused because their device guessed the plan wrong. The access
+snapshot the claim returns says what was recorded. (A Play one-time purchase is
+read under the product id the claim names, so there the provider's answer is
+that Play accepted the token for that product.)
 
 ### Entitlements
 
@@ -601,6 +625,18 @@ Provider status decides whether a grant remains active; client claims never
 extend it. Webhooks and real-time developer notifications are hints to fetch or
 verify the provider's current object, not trusted entitlement commands.
 
+A subscription can change plan within one transaction. Stripe's Billing Portal
+swaps the price on the same subscription. Play treats every plan change as a
+new purchase, with a new token to claim and acknowledge and the old token
+reported expired; a deferred change issues that token at once but serves the
+old plan from it until renewal, then swaps the line item in place. Either way
+the transaction follows: its offer becomes the one the new reference maps to,
+and any grant the old offer gave that the new one does not is revoked. A one-time
+purchase never changes what was bought, and no transaction changes its kind;
+either is refused as a conflict. One transaction grants one offer, so a Play
+purchase serving several line items at once (add-on subscriptions) is refused
+rather than granting only its first item.
+
 An account with permanent `supporter` and active subscription `pro` receives
 the union of both. When `pro` expires, its AI, analysis, and temporary limit
 grants disappear while permanent supporter content and limits remain.
@@ -740,8 +776,10 @@ abstract interface class PurchaseGateway implements Storefront {
   Future<void> purchase({
     required String offerKey,
     required StoreProduct product,
+    required bool repeatable,
   });
   Future<void> restore();
+  bool covers(String providerReference, PurchaseUpdate update);
   Future<void> complete(PurchaseUpdate update);
 }
 
@@ -759,6 +797,12 @@ abstract interface class HostedStorefront implements Storefront {
 Both produce a `PurchaseUpdate`, so `CommerceService` verifies, settles and
 publishes them on one stream whatever they came from. `complete` runs only for
 an SDK gateway: a hosted page holds no transaction to settle.
+
+`covers` is how a gateway says that its update could be a purchase of a catalog
+reference, when the store reports less than the catalog names. Play's gateway
+answers yes for every base plan of the purchased product, `CommerceService`
+claims under the first offer covered, and the Worker records the plan Play
+verifies.
 
 Which storefronts a build carries is an application composition decision, made
 at the composition root and not by the server. The server holds no routing
@@ -840,9 +884,23 @@ them:
   through it. Renaming one orphans that purchase history and breaks
   restoration for anyone who bought it.
 
-Provider product references (a Stripe Price, a Play product id) are the
-exception: they may be re-pointed freely, because a transaction records the
-reference it was actually bought at and the catalog only maps the current one.
+Provider product references (a Stripe Price, a Play product id) must stay
+mapped for as long as the provider may still report on something bought under
+them. Every renewal, refund, notification and sweep resolves its offer from the
+reference the provider reports, and a reference the catalog no longer maps is
+refused: the row stalls, visibly, on `GET /ops/commerce/stalled`. For a
+subscription that means its grant lapses at the end of the paid period while
+the provider keeps billing; for a one-time purchase, a later refund is not
+applied.
+
+What an entitlement means is resolved from the catalog on every read. Changing
+an entitlement's permissions, content or limits applies at once to purchases
+already made, and an entitlement the catalog no longer defines grants nothing
+and is not reported in the access snapshot — which is exactly why renaming one
+is a silent revocation. Which entitlements an offer grants is recorded per
+purchase, by contrast: changing an offer's list applies to new purchases, and
+to a subscription when the provider next reports on it, but a one-time
+purchase keeps the grants it was made with.
 
 A key that must change is therefore a data migration, not an edit. Treat both
 as append-only: introduce the new key, grant it alongside the old one, and
