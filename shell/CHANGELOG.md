@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ### Added
 - The store shows a subscription's introductory price ahead of its regular one: “Free for 1 week, then $4.99”.
 
+### Changed
+- `PlayPurchaseGateway` no longer takes `accountId`: `CommerceService` passes the signed-in account to each purchase and restore. Construct it as `PlayPurchaseGateway()`.
+
 ### Fixed
 - `PlayPurchaseGateway` sells subscriptions by base plan, the `productId:basePlanId` references the Worker now uses, priced at what the plan renews at. It launches an offer — a free trial, an introductory price — only when the offer carries the `eigen-launch` tag in the Play Console (or the gateway's `launchTag`), choosing the cheapest tagged offer Play still returns. Before, whichever offer loaded last was the one bought, including developer-determined offers (win-back, retention) that Play returns to every player.
 - `PlayPurchaseGateway` restores a subscription whatever plan it was bought on: every plan of the purchased product covers it, and the Worker records the plan Play reports.

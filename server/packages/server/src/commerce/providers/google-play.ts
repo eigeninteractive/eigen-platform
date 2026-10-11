@@ -94,7 +94,6 @@ interface DeveloperNotification {
   /** `productType` 1 is a subscription and 2 a one-time product; `refundType`
    * 1 voids the whole purchase and 2 part of a multi-quantity one. */
   voidedPurchaseNotification?: { purchaseToken?: string; productType?: number; refundType?: number };
-  testNotification?: unknown;
 }
 
 /** The handle stored as `sealedProviderState`. */
@@ -340,7 +339,7 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       // Play's obfuscated account id is the only link back to the buyer, so a
       // token minted for someone else must not become this account's grant.
       if (transaction.providerAccountId !== undefined && transaction.providerAccountId !== input.accountId) {
-        throw new Error("google play purchase belongs to another account");
+        throw new ProviderRefusal("google play purchase belongs to another account");
       }
       return transaction;
     },
@@ -359,8 +358,6 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       const encoded = envelope.message?.data;
       if (typeof encoded !== "string") throw new Error("google play notification has no message data");
       const notification = JSON.parse(atob(encoded)) as DeveloperNotification;
-      // Sent from the Play Console to check the endpoint, and about nothing.
-      if (notification.testNotification !== undefined) return null;
       const transaction = await (async (): Promise<VerifiedCommerceTransaction | undefined> => {
         const voided = notification.voidedPurchaseNotification;
         if (voided?.purchaseToken !== undefined) {
@@ -371,7 +368,9 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
         const subscription = notification.subscriptionNotification?.purchaseToken;
         return subscription === undefined ? undefined : await readSubscription(env, subscription);
       })();
-      if (transaction === undefined) throw new Error("google play notification names no purchase");
+      // A test notification sent from the Play Console, or one about no
+      // purchase this adapter reads: authentic, and about nothing to record.
+      if (transaction === undefined) return null;
       return {
         providerEventId: envelope.message?.messageId ?? `${transaction.providerTransactionId}:${transaction.state}`,
         // A resubscription from the Play Store carries no account id; the

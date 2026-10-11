@@ -22,7 +22,7 @@
  * @module @eigeninteractive/server/commerce/stripe
  */
 
-import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
+import { basicAuth, hmacSha256Hex, ProviderRefusal, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://api.stripe.com/v1";
@@ -225,7 +225,7 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
       const session = await call<StripeCheckoutSession>(env, `/checkout/sessions/${sessionId}`);
       // The account that opened the session is the only account it can pay for.
       if (session.client_reference_id !== null && session.client_reference_id !== input.accountId) {
-        throw new Error("stripe session belongs to another account");
+        throw new ProviderRefusal("stripe session belongs to another account");
       }
       return await fromSession(env, session);
     },
@@ -252,7 +252,7 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
 
       const event = JSON.parse(body) as { id: string; type: string; data: { object: Record<string, unknown> } };
       const object = event.data.object;
-      const transaction = await (async (): Promise<VerifiedCommerceTransaction> => {
+      const transaction = await (async (): Promise<VerifiedCommerceTransaction | undefined> => {
         if (event.type.startsWith("customer.subscription.")) {
           // Re-read rather than trust: the notification is a change signal, and
           // an out-of-order delivery would otherwise resurrect a dead state.
@@ -261,12 +261,14 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
         if (event.type.startsWith("checkout.session.")) {
           return await fromSession(env, await call<StripeCheckoutSession>(env, `/checkout/sessions/${object.id as string}`));
         }
-        throw new Error(`stripe event ${event.type} is not a commerce lifecycle event`);
+        return undefined;
       })();
+      // An endpoint subscribed to more than the lifecycle events is told about
+      // invoices, customers and the rest. Authentic, and about no purchase.
+      if (transaction === undefined) return null;
       const accountId = (object.client_reference_id ?? object.metadata) as string | { eigenAccountId?: string } | undefined;
       const resolved = typeof accountId === "string" ? accountId : accountId?.eigenAccountId;
-      if (resolved === undefined) throw new Error("stripe event does not name an Eigen account");
-      return { providerEventId: event.id, accountId: resolved, transaction } satisfies VerifiedCommerceEvent;
+      return { providerEventId: event.id, ...(resolved === undefined ? {} : { accountId: resolved }), transaction } satisfies VerifiedCommerceEvent;
     },
 
     reconcile: async (env, transactions) => {

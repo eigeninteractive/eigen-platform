@@ -42,6 +42,23 @@ and `recordVerifiedEvent` take an optional `observedAt`.
 through Razorpay Checkout; and accepts a payment or subscription claim only for
 the account its notes name, where a missing note used to let anyone claim it.
 
+**Fixed:** every authentic provider notification is answered 2xx. One about
+no purchase resolves to nothing to record instead of failing with 502: a
+Razorpay payment that names no Eigen offer — each subscription renewal's
+`payment.captured` is one, and failing it got the webhook disabled after a
+day — a Razorpay event about neither a subscription nor a payment, a Stripe
+event beyond the lifecycle ones, and a Play notification of a kind the adapter
+does not read. Razorpay and Stripe events that name no account are left to the
+ledger to attribute, as Play's already were.
+
+**Fixed:** Razorpay events are deduplicated by Razorpay's
+`x-razorpay-event-id`. The identity derived from the subscription and its state
+made every renewal after the first look like a redelivery of it, so it was
+dropped.
+
+**Fixed:** a claim for a purchase made by another account, or a Razorpay
+payment that names no offer, answers 409 rather than 502.
+
 A refund or expiry for a product the catalog no longer sells is applied to the
 transaction already recorded instead of being refused.
 

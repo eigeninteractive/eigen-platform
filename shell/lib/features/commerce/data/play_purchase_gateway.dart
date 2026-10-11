@@ -49,7 +49,6 @@ String _productOf(String providerReference) =>
 /// Android Publisher API before any of it becomes access.
 class PlayPurchaseGateway implements PurchaseGateway {
   PlayPurchaseGateway({
-    required this.accountId,
     this.launchTag = defaultPlayLaunchTag,
     InAppPurchasePlatform? billing,
     PlayOwnedPurchases? ownedPurchases,
@@ -68,15 +67,6 @@ class PlayPurchaseGateway implements PurchaseGateway {
   }
 
   static bool _registered = false;
-
-  /// The Eigen account to bind a purchase to, read at purchase time.
-  ///
-  /// Play carries it as `obfuscatedAccountId` and the Worker's adapter reads it
-  /// back as `obfuscatedExternalAccountId`, which is how a developer
-  /// notification — which names no Eigen account — is attributed to one. Read
-  /// late rather than captured, because the signed-in account outlives no
-  /// session in particular.
-  final String Function() accountId;
 
   /// The offer tag that lets an offer be launched; see [defaultPlayLaunchTag].
   final String launchTag;
@@ -213,8 +203,11 @@ class PlayPurchaseGateway implements PurchaseGateway {
     (deliveries) => Stream.fromIterable(deliveries.map(_updateOf)),
   );
 
+  /// Play carries [accountId] as `obfuscatedAccountId`, and the Worker's
+  /// adapter reads it back as `obfuscatedExternalAccountId`.
   @override
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
@@ -227,7 +220,7 @@ class PlayPurchaseGateway implements PurchaseGateway {
     }
     final parameters = GooglePlayPurchaseParam(
       productDetails: details,
-      applicationUserName: accountId(),
+      applicationUserName: accountId,
       changeSubscriptionParam: await _replacing(details),
     );
     // A repeatable offer is a consumable: Play will not sell the same
@@ -264,8 +257,8 @@ class PlayPurchaseGateway implements PurchaseGateway {
   }
 
   @override
-  Future<void> restore() =>
-      _billing.restorePurchases(applicationUserName: accountId());
+  Future<void> restore({required String accountId}) =>
+      _billing.restorePurchases(applicationUserName: accountId);
 
   /// Play's purchase names the product, never a subscription's base plan, so
   /// every plan of the product covers it. The Worker reads the plan from Play.

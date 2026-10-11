@@ -135,12 +135,18 @@ String _$commerceRepositoryHash() =>
 
 /// Provider-neutral coordinator joining storefront updates to server
 /// verification.
+///
+/// Rebuilt for each signed-in account, so a purchase is always bound to the
+/// account the Worker will check its claim against.
 
 @ProviderFor(commerceService)
 final commerceServiceProvider = CommerceServiceProvider._();
 
 /// Provider-neutral coordinator joining storefront updates to server
 /// verification.
+///
+/// Rebuilt for each signed-in account, so a purchase is always bound to the
+/// account the Worker will check its claim against.
 
 final class CommerceServiceProvider
     extends
@@ -148,6 +154,9 @@ final class CommerceServiceProvider
     with $Provider<CommerceService> {
   /// Provider-neutral coordinator joining storefront updates to server
   /// verification.
+  ///
+  /// Rebuilt for each signed-in account, so a purchase is always bound to the
+  /// account the Worker will check its claim against.
   CommerceServiceProvider._()
     : super(
         from: null,
@@ -181,4 +190,4 @@ final class CommerceServiceProvider
   }
 }
 
-String _$commerceServiceHash() => r'6212e4daf0254edf27fb9a3abd64ddb6453a4283';
+String _$commerceServiceHash() => r'bbd11e65684b8ba9665e23706254db746e2e2d68';

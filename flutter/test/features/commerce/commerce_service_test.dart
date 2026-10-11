@@ -96,6 +96,8 @@ class _Gateway implements PurchaseGateway {
   @override
   String get provider => 'google_play';
 
+  String? purchasedFor;
+  final restoredFor = <String>[];
   String? purchasedOffer;
   bool? purchasedRepeatable;
   PurchaseUpdate? completedUpdate;
@@ -112,16 +114,19 @@ class _Gateway implements PurchaseGateway {
 
   @override
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
   }) async {
+    purchasedFor = accountId;
     purchasedOffer = offerKey;
     purchasedRepeatable = repeatable;
   }
 
   @override
-  Future<void> restore() async {}
+  Future<void> restore({required String accountId}) async =>
+      restoredFor.add(accountId);
 
   @override
   bool covers(String providerReference, PurchaseUpdate update) =>
@@ -194,13 +199,60 @@ class _Hosted implements HostedStorefront {
 void main() {
   test('loads and purchases only the active gateway product mapping', () async {
     final gateway = _Gateway(const Stream.empty());
-    final service = CommerceService(_Repository(), [gateway], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
     final catalog = _catalog();
 
     final products = await service.productsFor(catalog);
     expect(products.keys, ['google_play:supporter_once']);
     await service.purchase(catalog.offers.single, products);
     expect(gateway.purchasedOffer, 'supporter');
+  });
+
+  test('buys and restores for the account the service belongs to', () async {
+    // The store binds the purchase to this account, and the Worker checks a
+    // claim against it, so the application never supplies one.
+    final gateway = _Gateway(const Stream.empty());
+    final service = CommerceService(
+      _Repository(),
+      [gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
+    final catalog = _catalog();
+
+    await service.purchase(
+      catalog.offers.single,
+      await service.productsFor(catalog),
+    );
+    await service.restore();
+
+    expect(gateway.purchasedFor, 'alice');
+    expect(gateway.restoredFor, ['alice']);
+  });
+
+  test('refuses to buy or restore while signed out', () async {
+    final gateway = _Gateway(const Stream.empty());
+    final service = CommerceService(
+      _Repository(),
+      [gateway],
+      _Deliveries(),
+      accountId: null,
+    );
+    final catalog = _catalog();
+    final products = await service.productsFor(catalog);
+
+    await expectLater(
+      service.purchase(catalog.offers.single, products),
+      throwsStateError,
+    );
+    await expectLater(service.restore(), throwsStateError);
+    expect(gateway.purchasedOffer, isNull);
+    expect(gateway.restoredFor, isEmpty);
   });
 
   test('server-verifies completed updates before exposing access', () async {
@@ -222,7 +274,12 @@ void main() {
       ]),
     );
     final deliveries = _Deliveries();
-    final service = CommerceService(repository, [gateway], deliveries);
+    final service = CommerceService(
+      repository,
+      [gateway],
+      deliveries,
+      accountId: 'alice',
+    );
 
     final events = await service.verifiedUpdates().take(2).toList();
     expect(events.first.access, isNull);
@@ -246,7 +303,12 @@ void main() {
         ),
       ),
     );
-    final service = CommerceService(_Repository(), [gateway], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     expect(service.verifiedUpdates(), emitsError(isA<StateError>()));
     expect(gateway.completedUpdate, isNull);
@@ -264,7 +326,12 @@ void main() {
       ..values['google_play:${pending.deliveryId}'] = pending;
     final repository = _Repository();
     final gateway = _Gateway(const Stream.empty());
-    final service = CommerceService(repository, [gateway], deliveries);
+    final service = CommerceService(
+      repository,
+      [gateway],
+      deliveries,
+      accountId: 'alice',
+    );
 
     final events = await service.verifiedUpdates().take(1).toList();
 
@@ -275,9 +342,12 @@ void main() {
 
   test('asks the Worker only for the storefronts this build carries', () async {
     final repository = _Repository();
-    final service = CommerceService(repository, [
-      _Gateway(const Stream.empty()),
-    ], _Deliveries());
+    final service = CommerceService(
+      repository,
+      [_Gateway(const Stream.empty())],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     await service.getCatalog();
 
@@ -294,7 +364,12 @@ void main() {
         state: PurchaseUpdateState.cancelled,
       ),
     );
-    final service = CommerceService(_Repository(), [hosted], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [hosted],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     final products = await service.productsFor(_catalog());
 
@@ -315,10 +390,12 @@ void main() {
     );
     final gateway = _Gateway(const Stream.empty());
     // Hosted first: ordering the storefronts orders the preference.
-    final service = CommerceService(repository, [
-      hosted,
-      gateway,
-    ], _Deliveries());
+    final service = CommerceService(
+      repository,
+      [hosted, gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
     final catalog = _catalog();
 
     final updates = service.verifiedUpdates().take(1).toList();
@@ -349,7 +426,12 @@ void main() {
         ),
       );
       final deliveries = _Deliveries();
-      final service = CommerceService(repository, [hosted], deliveries);
+      final service = CommerceService(
+        repository,
+        [hosted],
+        deliveries,
+        accountId: 'alice',
+      );
 
       final updates = service.verifiedUpdates().take(1).toList();
       await service.purchase(_catalog().offers.single, const {});
@@ -374,10 +456,12 @@ void main() {
       ),
     );
     final gateway = _Gateway(const Stream.empty());
-    final service = CommerceService(_Repository(), [
-      hosted,
-      gateway,
-    ], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [hosted, gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     final updates = service.verifiedUpdates().take(1).toList();
     await service.purchase(_catalog().offers.single, const {});
@@ -388,9 +472,12 @@ void main() {
   });
 
   test('refuses an offer no storefront here sells', () async {
-    final service = CommerceService(_Repository(), [
-      _Hosted((_) => throw StateError('unreachable')),
-    ], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [_Hosted((_) => throw StateError('unreachable'))],
+      _Deliveries(),
+      accountId: 'alice',
+    );
     final playOnly = CommerceCatalog.fromJson({
       'offers': [
         {
@@ -431,7 +518,12 @@ void main() {
           state: PurchaseUpdateState.pending,
         ),
       );
-      final service = CommerceService(repository, [hosted], _Deliveries());
+      final service = CommerceService(
+        repository,
+        [hosted],
+        _Deliveries(),
+        accountId: 'alice',
+      );
 
       await service.purchase(_catalog().offers.single, const {});
 
@@ -452,7 +544,12 @@ void main() {
     final repository = _Repository();
     final deliveries = _Deliveries();
     final hosted = _Hosted((_) => throw StateError('nothing was presented'));
-    final service = CommerceService(repository, [hosted], deliveries);
+    final service = CommerceService(
+      repository,
+      [hosted],
+      deliveries,
+      accountId: 'alice',
+    );
 
     final updates = service.verifiedUpdates().take(1).toList();
     final claimed = await service.resumeFrom(
@@ -470,9 +567,12 @@ void main() {
   });
 
   test('ignores a URL that no storefront claims', () async {
-    final service = CommerceService(_Repository(), [
-      _Hosted((_) => throw StateError('nothing was presented')),
-    ], _Deliveries());
+    final service = CommerceService(
+      _Repository(),
+      [_Hosted((_) => throw StateError('nothing was presented'))],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     expect(
       await service.resumeFrom(Uri.parse('https://game.example/games/42')),
@@ -496,7 +596,12 @@ void main() {
         ),
       ),
     );
-    final service = CommerceService(repository, [gateway], _Deliveries());
+    final service = CommerceService(
+      repository,
+      [gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     await service.verifiedUpdates().take(1).toList();
 
@@ -546,7 +651,12 @@ void main() {
       coverage: (reference, update) =>
           reference.startsWith('${update.providerReference}:'),
     );
-    final service = CommerceService(repository, [gateway], _Deliveries());
+    final service = CommerceService(
+      repository,
+      [gateway],
+      _Deliveries(),
+      accountId: 'alice',
+    );
 
     await service.verifiedUpdates().take(1).toList();
 

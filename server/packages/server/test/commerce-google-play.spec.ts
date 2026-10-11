@@ -117,7 +117,7 @@ describe("google play one-time purchases", () => {
     await testPrivateKey();
     scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { obfuscatedExternalAccountId: "mallory" }) });
     const provider = await makeProvider();
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("acknowledges through the v1 product path and reuses one access token", async () => {
@@ -350,10 +350,11 @@ describe("google play notifications", () => {
     expect(state.seen).toEqual([]);
   });
 
-  it("refuses a notification that names no purchase", async () => {
+  it("answers a notification of a kind it does not read with nothing to record", async () => {
     await testPrivateKey();
-    scriptFetch({});
-    await expect((await makeProvider()).verifyWebhook?.(null, notify({}))).rejects.toThrow(/names no purchase/);
+    const state = scriptFetch({});
+    await expect((await makeProvider()).verifyWebhook?.(null, notify({}))).resolves.toBeNull();
+    expect(state.seen).toEqual([]);
   });
 });
 

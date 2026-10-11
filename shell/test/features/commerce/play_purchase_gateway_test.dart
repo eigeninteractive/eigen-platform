@@ -180,50 +180,47 @@ PurchaseDetails _delivery(
 );
 
 void main() {
-  test(
-    'offers the account to Play, so a notification can be attributed',
-    () async {
-      // Play carries this as obfuscatedAccountId, and a developer notification
-      // names no Eigen account. Read late: the signed-in account changes.
-      var account = 'alice';
-      final billing = _Billing(products: [_product('supporter_once')]);
-      final gateway = PlayPurchaseGateway(
-        accountId: () => account,
-        billing: billing,
-      );
+  test('offers the account it is given to Play, so a notification can be attributed', () async {
+    // Play carries this as obfuscatedAccountId, and a developer notification
+    // names no Eigen account.
+    final billing = _Billing(products: [_product('supporter_once')]);
+    final gateway = PlayPurchaseGateway(billing: billing);
 
-      await gateway.products({'supporter_once'});
-      await gateway.purchase(
-        offerKey: 'supporter',
-        product: const StoreProduct(
-          providerReference: 'supporter_once',
-          displayPrice: r'$4.99',
-        ),
-        repeatable: false,
-      );
-      account = 'bob';
-      await gateway.restore();
+    await gateway.products({'supporter_once'});
+    await gateway.purchase(
+      accountId: 'alice',
+      offerKey: 'supporter',
+      product: const StoreProduct(
+        providerReference: 'supporter_once',
+        displayPrice: r'$4.99',
+      ),
+      repeatable: false,
+    );
+    await gateway.restore(accountId: 'bob');
 
-      expect(billing.restoredFor, ['bob']);
-    },
-  );
+    expect(billing.params.single.applicationUserName, 'alice');
+    expect(billing.restoredFor, ['bob']);
+  });
 
   test('sells a repeatable offer as a consumable', () async {
     // Play will not sell the same non-consumable twice, so a tip bought as one
     // can never be tipped again.
     final billing = _Billing(products: [_product('supporter_once')]);
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: billing,
-    );
+    final gateway = PlayPurchaseGateway(billing: billing);
     await gateway.products({'supporter_once'});
     const product = StoreProduct(
       providerReference: 'supporter_once',
       displayPrice: r'$4.99',
     );
 
-    await gateway.purchase(offerKey: 'tip', product: product, repeatable: true);
     await gateway.purchase(
+      accountId: 'alice',
+      offerKey: 'tip',
+      product: product,
+      repeatable: true,
+    );
+    await gateway.purchase(
+      accountId: 'alice',
       offerKey: 'supporter',
       product: product,
       repeatable: false,
@@ -234,13 +231,11 @@ void main() {
   });
 
   test('refuses to buy a product Play never described', () async {
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: _Billing(),
-    );
+    final gateway = PlayPurchaseGateway(billing: _Billing());
 
     await expectLater(
       gateway.purchase(
+        accountId: 'alice',
         offerKey: 'supporter',
         product: const StoreProduct(
           providerReference: 'supporter_once',
@@ -256,10 +251,7 @@ void main() {
     'sends evidence only for a delivery that was actually paid for',
     () async {
       final billing = _Billing();
-      final gateway = PlayPurchaseGateway(
-        accountId: () => 'alice',
-        billing: billing,
-      );
+      final gateway = PlayPurchaseGateway(billing: billing);
       final updates = gateway.updates.take(3).toList();
 
       billing.deliver([
@@ -286,10 +278,7 @@ void main() {
 
   test('settles the live delivery when this run has seen it', () async {
     final billing = _Billing();
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: billing,
-    );
+    final gateway = PlayPurchaseGateway(billing: billing);
     final updates = gateway.updates.take(1).toList();
     final live = _delivery('tok_live');
     billing.deliver([live]);
@@ -305,10 +294,7 @@ void main() {
     // unacknowledged purchase after three days, so "wait for Play to
     // re-deliver" is not a settlement strategy.
     final billing = _Billing();
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: billing,
-    );
+    final gateway = PlayPurchaseGateway(billing: billing);
 
     await gateway.complete(
       const PurchaseUpdate(
@@ -328,10 +314,7 @@ void main() {
   });
 
   test('will not settle a delivery carrying no token', () async {
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: _Billing(),
-    );
+    final gateway = PlayPurchaseGateway(billing: _Billing());
 
     await expectLater(
       gateway.complete(
@@ -349,10 +332,7 @@ void main() {
   test('shows the products Play knows rather than none at all', () async {
     // A catalog may list an offer this build's Play listing does not carry yet.
     final billing = _Billing(products: [_product('supporter_once')]);
-    final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
-      billing: billing,
-    );
+    final gateway = PlayPurchaseGateway(billing: billing);
 
     final products = await gateway.products({
       'supporter_once',
@@ -366,7 +346,6 @@ void main() {
 
   test('has nothing to sell where billing is unavailable', () async {
     final gateway = PlayPurchaseGateway(
-      accountId: () => 'alice',
       billing: _Billing(
         available: false,
         products: [_product('supporter_once')],
@@ -387,7 +366,6 @@ void main() {
       _Billing billing, {
       List<GooglePlayPurchaseDetails> owned = const [],
     }) => PlayPurchaseGateway(
-      accountId: () => 'alice',
       billing: billing,
       ownedPurchases: () async => owned,
     );
@@ -399,6 +377,7 @@ void main() {
       final products = await gateway.products(references);
       for (final product in products) {
         await gateway.purchase(
+          accountId: 'alice',
           offerKey: 'pro',
           product: product,
           repeatable: false,
@@ -513,7 +492,6 @@ void main() {
         ]),
       );
       final spring = PlayPurchaseGateway(
-        accountId: () => 'alice',
         launchTag: 'spring',
         billing: billing,
         ownedPurchases: () async => const [],
@@ -573,7 +551,6 @@ void main() {
       var asked = false;
       final billing = _Billing(products: [_product('supporter_once')]);
       final gateway = PlayPurchaseGateway(
-        accountId: () => 'alice',
         billing: billing,
         ownedPurchases: () async {
           asked = true;
@@ -591,10 +568,7 @@ void main() {
       () {
         // Play's purchase names the product, never the base plan; the Worker
         // reads the plan back from Play and records that one.
-        final gateway = PlayPurchaseGateway(
-          accountId: () => 'alice',
-          billing: _Billing(),
-        );
+        final gateway = PlayPurchaseGateway(billing: _Billing());
         const update = PurchaseUpdate(
           offerKey: 'pro',
           providerReference: 'pro',

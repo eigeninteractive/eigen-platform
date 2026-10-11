@@ -17,9 +17,11 @@ for how this package, the engine and the generated `eigen_api` client pair up.
 ## [Unreleased]
 ### Added
 - `StoreProduct.introductoryPrices`, a list of `IntroductoryPrice`, carries the phases a subscription starts at before `displayPrice`, which is now the price it renews at.
+- `platformStorefronts` picks the storefronts for the platform the app runs on: the ones given for Android, web, or Windows and Linux, and none on iOS or macOS, where Apple requires its own in-app purchase and the store therefore does not appear.
 
 ### Changed
 - `PurchaseGateway.covers` says whether a purchase update may be a purchase of a catalog reference, for a store that reports less than the catalog names. Play names a subscription's product but never its base plan, so `CommerceService` claims under the first offer covered and the Worker records the plan Play verifies. Every `PurchaseGateway` implementation must add it.
+- `PurchaseGateway.purchase` and `restore` take the `accountId` to bind the purchase to, and `CommerceService` passes the signed-in account it is now built for, refusing to buy or restore while signed out. A gateway no longer asks the application who is buying; every `PurchaseGateway` implementation must take the parameter.
 
 ## [0.14.0] - 2026-09-17
 ### Added

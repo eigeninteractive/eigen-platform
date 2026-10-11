@@ -146,7 +146,7 @@ The service account's PKCS#8 `private_key`, PEM, newlines intact.
 function googlePlayCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:209](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L209)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:208](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L208)
 
 #### Type Parameters
 
@@ -172,7 +172,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:209](h
 function googlePlaySubscriptionReference(productId, basePlanId): string;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L120)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L119)
 
 The `providerReference` a catalog names for a Play subscription base plan.
 

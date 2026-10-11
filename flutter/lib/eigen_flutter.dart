@@ -46,6 +46,7 @@ export 'features/commerce/data/commerce_service.dart';
 export 'features/commerce/data/hosted_storefront.dart';
 export 'features/commerce/data/razorpay_storefront.dart';
 export 'features/commerce/data/stripe_storefront.dart';
+export 'features/commerce/domain/platform_storefronts.dart';
 export 'features/commerce/domain/purchase_gateway.dart';
 export 'features/commerce/providers/commerce_providers.dart'
     show commerceRepositoryProvider, commerceServiceProvider;

@@ -73,7 +73,7 @@ describe("razorpay subscriptions", () => {
     ["no account's", []],
   ])("refuses a subscription made for %s", async (_label, notes) => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active", notes) });
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "plan_pro", evidence: { subscriptionId: "sub_rz" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "plan_pro", evidence: { subscriptionId: "sub_rz" } })).rejects.toThrow(ProviderRefusal);
   });
 });
 
@@ -87,12 +87,12 @@ describe("razorpay payments", () => {
 
   it("refuses a payment whose notes name another account", async () => {
     scriptFetch({ "/v1/payments/pay_1": payment({ notes: { eigenAccountId: "mallory", eigenProviderReference: "supporter_once" } }) });
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("refuses a payment that names no account", async () => {
     scriptFetch({ "/v1/payments/pay_1": payment({ notes: { eigenProviderReference: "supporter_once" } }) });
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it.each([
@@ -102,6 +102,11 @@ describe("razorpay payments", () => {
     ["the right amount in another currency", { currency: "USD" }],
   ])("refuses a payment of %s", async (_label, overrides) => {
     scriptFetch({ "/v1/payments/pay_1": payment(overrides) });
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(ProviderRefusal);
+  });
+
+  it("refuses a payment that names no Eigen offer", async () => {
+    scriptFetch({ "/v1/payments/pay_1": payment({ notes: { eigenAccountId: "alice" } }) });
     await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
@@ -118,32 +123,69 @@ describe("razorpay payments", () => {
 
 describe("razorpay webhooks", () => {
   const event = JSON.stringify({ event: "subscription.charged", payload: { subscription: { entity: { id: "sub_rz", notes: { eigenAccountId: "alice" } } } } });
+  const deliver = async (body: string, eventId = "evt_1", signature?: string) => await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": signature ?? (await sign(body)), "x-razorpay-event-id": eventId }, body }));
 
   it("takes the account from the subscription it re-read, not from the event body", async () => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active", { eigenAccountId: "bob" }) });
-    const verified = await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": await sign(event) }, body: event }));
-    expect(verified).toMatchObject({ accountId: "bob" });
+    expect(await deliver(event)).toMatchObject({ accountId: "bob" });
   });
 
   it("accepts a correct signature and re-reads the subscription", async () => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
-    const verified = await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": await sign(event) }, body: event }));
-    expect(verified).toMatchObject({ accountId: "alice" });
+    const verified = await deliver(event, "evt_charged");
+    expect(verified).toMatchObject({ accountId: "alice", providerEventId: "evt_charged" });
     expect(verified?.transaction.state).toBe("active");
-    // Razorpay sends no event id, so the identity has to be derived and stable.
-    expect(verified?.providerEventId).toBe("subscription.charged:sub_rz:active");
+  });
+
+  it("tells one renewal from the next", async () => {
+    // Each month's charge leaves the subscription active, so only Razorpay's
+    // own event id keeps the second from reading as a redelivery of the first.
+    scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
+    const first = await deliver(event, "evt_october");
+    const second = await deliver(event, "evt_november");
+    expect(first?.providerEventId).not.toBe(second?.providerEventId);
+  });
+
+  it("refuses an event without Razorpay's event id", async () => {
+    scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
+    await expect(deliver(event, "")).rejects.toThrow(/x-razorpay-event-id/);
+  });
+
+  it("re-reads a payment the event carries", async () => {
+    scriptFetch({ "/v1/payments/pay_1": payment() });
+    const captured = JSON.stringify({ event: "payment.captured", payload: { payment: { entity: { id: "pay_1" } } } });
+    expect(await deliver(captured)).toMatchObject({ accountId: "alice", transaction: { providerReference: "supporter_once", state: "active" } });
+  });
+
+  it("records nothing for a payment that names no Eigen offer, such as a renewal", async () => {
+    // A renewal's payment.captured carries the invoice and no notes; the
+    // subscription.charged sent with it is the one that says what changed.
+    scriptFetch({ "/v1/payments/pay_renewal": payment({ id: "pay_renewal", invoice_id: "inv_1", notes: [] }) });
+    const captured = JSON.stringify({ event: "payment.captured", payload: { payment: { entity: { id: "pay_renewal" } } } });
+    expect(await deliver(captured)).toBeNull();
+  });
+
+  it("records nothing for an event about neither a subscription nor a payment", async () => {
+    const seen = scriptFetch({});
+    expect(await deliver(JSON.stringify({ event: "payment_link.expired", payload: { payment_link: { entity: { id: "plink_1" } } } }))).toBeNull();
+    expect(seen.seen).toEqual([]);
+  });
+
+  it("leaves a subscription that names no account for the ledger to attribute", async () => {
+    scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active", []) });
+    const verified = await deliver(event);
+    expect(verified).not.toHaveProperty("accountId");
   });
 
   it("refuses a forged signature", async () => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
-    await expect(provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": "0".repeat(64) }, body: event }))).rejects.toThrow(/did not verify/);
+    await expect(deliver(event, "evt_1", "0".repeat(64))).rejects.toThrow(/did not verify/);
   });
 
   it("refuses a body altered after signing", async () => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
-    const signature = await sign(event);
     const tampered = event.replace("alice", "mallory");
-    await expect(provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": signature }, body: tampered }))).rejects.toThrow(/did not verify/);
+    await expect(deliver(tampered, "evt_1", await sign(event))).rejects.toThrow(/did not verify/);
   });
 });
 

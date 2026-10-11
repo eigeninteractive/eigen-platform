@@ -23,6 +23,11 @@
   launch only when tagged, and plan changes replace in the app. See _Offers_,
   _One-time products_, _Subscriptions_, _Provider adapters_, _Storage and
   authority_, _Dart and Flutter integration_, and _Catalog validation_.
+- Amended: 2026-10-11 (follow-up). Notifications are deduplicated by the
+  provider's own event identity, and any authentic notification about no
+  purchase is accepted; a purchase gateway buys for the account
+  `CommerceService` belongs to; and an Apple build carries no storefront. See
+  _Provider adapters_ and _Dart and Flutter integration_.
 
 ## Context
 
@@ -700,7 +705,9 @@ replacement, and management links.
 
 The intended first optional adapters are Google Play Billing for Android and
 Stripe Checkout/Billing for web. StoreKit may use the same boundary when iOS
-becomes a supported application target. A concrete provider is deliberately not
+becomes a supported commerce target; until then an iOS or macOS build carries
+no storefront, because Apple requires its own in-app purchase for digital goods
+and a hosted checkout in its place is grounds for rejection. A concrete provider is deliberately not
 part of the core implementation: it requires a consuming game's merchant
 account, product identifiers, SDK choice, and credential policy. Neither
 provider is a dependency of the pure domain model.
@@ -710,8 +717,14 @@ something the engine will never accept — a purchase of several products at
 once, a Razorpay payment for less than its offer's configured price. The
 latter is a `ProviderRefusal`: a claim answers 409, and a notification is
 accepted and logged, because asking the provider to resend it for days cannot
-change the answer. An authentic notification about no purchase, such as a Play
-Console test message, resolves to nothing to record.
+change the answer. An authentic notification about no purchase resolves to
+nothing to record and is accepted too: a Play Console test message, a Stripe
+event the endpoint was subscribed to beyond the lifecycle ones, or the Razorpay
+payment that pays a subscription renewal. Razorpay announces every payment on
+the account, and a renewal's payment names no offer; the subscription's own
+charge event is the one that says what changed. Answering any of these with an
+error would be worse than noisy: Razorpay disables a webhook that has failed
+for a day.
 
 Notes and metadata a payer can write are not proof of what was bought. Razorpay
 payment notes are set by whoever opens Checkout with the public key id, so the
@@ -720,7 +733,10 @@ amount and currency, and a payment or subscription only for the account its
 notes name.
 
 Provider notifications MUST be signature- or identity-verified, deduplicated,
-safe under retries, and independent of delivery order. Where a provider
+safe under retries, and independent of delivery order. Deduplication uses the
+provider's own event identity — Stripe's event id, the Pub/Sub message id for
+Play, Razorpay's `x-razorpay-event-id` — because one derived from the
+purchase and its state cannot tell one month's renewal from the next. Where a provider
 notification contains only a change signal, the adapter fetches current provider
 state before changing entitlements. A reconciliation job repairs missed
 notifications and stuck acknowledgement work.
@@ -826,11 +842,12 @@ abstract interface class PurchaseGateway implements Storefront {
   Future<List<StoreProduct>> products(Set<String> providerReferences);
   Stream<PurchaseUpdate> get updates;
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
   });
-  Future<void> restore();
+  Future<void> restore({required String accountId});
   bool covers(String providerReference, PurchaseUpdate update);
   Future<void> complete(PurchaseUpdate update);
 }
@@ -849,6 +866,12 @@ abstract interface class HostedStorefront implements Storefront {
 Both produce a `PurchaseUpdate`, so `CommerceService` verifies, settles and
 publishes them on one stream whatever they came from. `complete` runs only for
 an SDK gateway: a hosted page holds no transaction to settle.
+
+A store SDK binds each purchase to an account — Play's `obfuscatedAccountId` —
+and the Worker checks a claim against the account the store read back. So the
+account is the platform's to supply, not the application's: `CommerceService`
+is built for the signed-in account, rebuilt when it changes, and passes it to
+`purchase` and `restore`. Signed out, it refuses to buy or restore at all.
 
 `covers` is how a gateway says that its update could be a purchase of a catalog
 reference, when the store reports less than the catalog names. Play's gateway
@@ -876,6 +899,10 @@ deployment and a binary would be worse than one in a single place. A client
 tells the catalog route which storefronts it carries so the Worker does not
 call payment APIs for prices that client could never render; that is the client
 declaring what it is, not the server deciding what it may do.
+
+`platformStorefronts` is that decision for the platforms the engine has
+storefronts for: the application names its Android, web and desktop
+storefronts, and an iOS or macOS build gets none, so its store does not appear.
 
 Purchase updates are evidence to send to the Worker, not permission to unlock
 locally.

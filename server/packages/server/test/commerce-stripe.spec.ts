@@ -8,6 +8,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ProviderRefusal } from "../src/commerce/provider-kit.js";
 import { stripeCommerceProvider } from "../src/commerce/providers/stripe.js";
 
 const SECRET = "whsec_test_secret";
@@ -107,7 +108,7 @@ describe("stripe subscriptions", () => {
 describe("stripe claims", () => {
   it("refuses a session opened by another account", async () => {
     scriptFetch({ "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: "someone-else", created: 1_699_000_000 } });
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("reads the price from the expanded session rather than the client", async () => {
@@ -128,6 +129,14 @@ describe("stripe webhook signatures", () => {
     const verified = await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(event, timestamp)}` }, body: event }));
     expect(verified).toMatchObject({ providerEventId: "evt_1", accountId: "alice" });
     expect(verified?.transaction.state).toBe("active");
+  });
+
+  it("records nothing for an event about no purchase", async () => {
+    const seen = scriptFetch({});
+    const invoice = JSON.stringify({ id: "evt_2", type: "invoice.paid", data: { object: { id: "in_1" } } });
+    const timestamp = Math.floor(config.now() / 1000);
+    expect(await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(invoice, timestamp)}` }, body: invoice }))).toBeNull();
+    expect(seen).toEqual([]);
   });
 
   it("refuses a forged signature", async () => {

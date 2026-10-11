@@ -413,27 +413,39 @@ Override `storefrontsProvider` at the application composition root with the
 storefronts this build carries, in preference order, then use
 `CommerceService`. That list is the routing decision: the server holds no
 per-platform policy, so which storefront an Android or web build uses is
-decided here and changing it is an app release.
+decided here and changing it is an app release. `platformStorefronts` makes it
+for you, given the storefronts for each platform:
 
 ```dart
 runEigenShell(
   module: myGame,
   config: myConfig,
   initializeAdapter: () async => [
-    storefrontsProvider.overrideWithValue([
-      // Android sells through Play; everywhere else through a hosted page.
-      // This conditional is the whole routing policy.
-      if (defaultTargetPlatform == TargetPlatform.android && !kIsWeb)
-        PlayPurchaseGateway(accountId: () => ref.read(currentUserIdProvider)!)
-      else
-        StripeHostedStorefront(
-          returnUrl: Uri.parse('https://yourgame.example/store/return'),
-          launcher: const UrlLauncherCheckout(),
-        ),
-    ]),
+    storefrontsProvider.overrideWithValue(
+      platformStorefronts(
+        android: [PlayPurchaseGateway()],
+        web: [
+          StripeHostedStorefront(
+            returnUrl: Uri.parse('https://yourgame.example/store/return'),
+            launcher: const UrlLauncherCheckout(),
+          ),
+        ],
+      ),
+    ),
   ],
 );
 ```
+
+An iOS or macOS build carries no storefront, so its store does not appear.
+Apple requires its own in-app purchase for digital goods, there is no App
+Store storefront yet, and sending an iPhone player to a hosted checkout
+instead is grounds for rejecting the app. Windows and Linux builds sell through
+the `desktop` storefronts you pass, and none if you pass none.
+
+No storefront asks you who is buying. `CommerceService` belongs to the
+signed-in account and passes it to the gateway, which binds the purchase to it
+at the store — the account the Worker then checks the claim against. A player
+who is signed out cannot buy or restore.
 
 The shell's store screen, restore, subscription management and upgrade prompts
 work from that list alone. The return URL must use the Worker's origin or a
@@ -503,6 +515,17 @@ are only true of that provider. These are worth knowing before you choose:
 - **Play's notifications are not signed.** Google delivers them by Pub/Sub push,
   so the deployment must authenticate that endpoint itself. Stripe and Razorpay
   both sign, and their adapters verify before parsing.
+- **Every authentic notification is answered 2xx.** One about no purchase —
+  a Stripe event beyond the lifecycle ones, a Razorpay payment that names no
+  Eigen offer — is accepted with nothing recorded. That matters most on
+  Razorpay, which disables a webhook that has failed for 24 hours.
+- **Turn on these Razorpay webhook events:** `subscription.*` for
+  subscriptions, and `payment.captured`, `payment.failed` and `refund.processed`
+  for one-time sales. `payment.captured` also fires for every subscription
+  renewal; the adapter accepts those and leaves them to the
+  `subscription.charged` sent alongside. Events are deduplicated by Razorpay's
+  `x-razorpay-event-id`, so each month's charge is processed, not taken for a
+  redelivery of the last.
 - **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
   auto-charge failed and is being retried. The adapter maps it to `grace` so a
   paying player is not cut off mid-retry.
@@ -559,8 +582,9 @@ const provider: CommerceProvider<Env> = {
   },
 
   async verifyWebhook(env, request) {
-    // Authenticate the raw request, then resolve current provider state.
-    // Resolve null for an authentic notification about no purchase.
+    // Authenticate the raw request, then resolve current provider state,
+    // with the provider's own event id as providerEventId. Resolve null for
+    // an authentic notification about no purchase.
     return verifyNotification(env, request);
   },
 
