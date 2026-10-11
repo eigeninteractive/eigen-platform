@@ -18,6 +18,7 @@ class _Billing implements InAppPurchasePlatform {
   final consumable = <String>[];
   final nonConsumable = <String>[];
   final offerTokens = <String?>[];
+  final params = <PurchaseParam>[];
   final restoredFor = <String?>[];
   bool startSucceeds = true;
 
@@ -51,6 +52,7 @@ class _Billing implements InAppPurchasePlatform {
   @override
   Future<bool> buyNonConsumable({required PurchaseParam purchaseParam}) async {
     nonConsumable.add(purchaseParam.productDetails.id);
+    params.add(purchaseParam);
     final details = purchaseParam.productDetails;
     offerTokens.add(
       details is GooglePlayProductDetails ? details.offerToken : null,
@@ -79,11 +81,20 @@ ProductDetails _product(String id) => ProductDetails(
   currencyCode: 'USD',
 );
 
+/// One pricing phase of a Play offer.
+typedef _Phase = ({String price, int micros, String period, int cycles});
+
+const _regular = (price: r'$4.99', micros: 4990000, period: 'P1M', cycles: 0);
+
 /// One Play subscription product as the plugin reports it: one entry per
-/// offer, each naming its base plan.
+/// offer, each naming its base plan. An offer's tags include its base plan's,
+/// as Play reports them; the last phase is the regular, recurring price.
 List<ProductDetails> _subscription(
   String id,
-  List<({String basePlan, String? offer, int micros, String price})> offers,
+  List<
+    ({String basePlan, String? offer, List<String> tags, List<_Phase> phases})
+  >
+  offers,
 ) => GooglePlayProductDetails.fromProductDetails(
   ProductDetailsWrapper(
     description: 'Analysis and archive',
@@ -96,22 +107,61 @@ List<ProductDetails> _subscription(
         SubscriptionOfferDetailsWrapper(
           basePlanId: offer.basePlan,
           offerId: offer.offer,
-          offerTags: const [],
+          offerTags: offer.tags,
           offerIdToken: 'token-${offer.basePlan}-${offer.offer ?? 'base'}',
           pricingPhases: [
-            PricingPhaseWrapper(
-              billingCycleCount: 0,
-              billingPeriod: 'P1M',
-              formattedPrice: offer.price,
-              priceAmountMicros: offer.micros,
-              priceCurrencyCode: 'USD',
-              recurrenceMode: RecurrenceMode.infiniteRecurring,
-            ),
+            for (final (index, phase) in offer.phases.indexed)
+              PricingPhaseWrapper(
+                billingCycleCount: phase.cycles,
+                billingPeriod: phase.period,
+                formattedPrice: phase.price,
+                priceAmountMicros: phase.micros,
+                priceCurrencyCode: 'USD',
+                recurrenceMode: index == offer.phases.length - 1
+                    ? RecurrenceMode.infiniteRecurring
+                    : RecurrenceMode.finiteRecurring,
+              ),
           ],
         ),
     ],
   ),
 );
+
+/// A base plan, or an offer on it, at [price] then the regular price.
+({String basePlan, String? offer, List<String> tags, List<_Phase> phases})
+_plan(
+  String basePlan, {
+  String? offer,
+  List<String> tags = const [],
+  _Phase? intro,
+  _Phase regular = _regular,
+}) => (basePlan: basePlan, offer: offer, tags: tags, phases: [?intro, regular]);
+
+const _yearly = (price: r'$39.99', micros: 39990000, period: 'P1Y', cycles: 0);
+const _freeWeek = (price: 'Free', micros: 0, period: 'P1W', cycles: 1);
+const _cheapMonths = (
+  price: r'$0.99',
+  micros: 990000,
+  period: 'P1M',
+  cycles: 3,
+);
+
+/// A subscription the device's Google account already holds.
+GooglePlayPurchaseDetails _owned(String productId, String token) =>
+    GooglePlayPurchaseDetails.fromPurchase(
+      PurchaseWrapper(
+        orderId: 'GPA.owned',
+        packageName: 'com.example.game',
+        purchaseTime: 0,
+        purchaseToken: token,
+        signature: '',
+        products: [productId],
+        isAutoRenewing: true,
+        originalJson: '{}',
+        isAcknowledged: true,
+        purchaseState: PurchaseStateWrapper.purchased,
+      ),
+    ).single;
 
 PurchaseDetails _delivery(
   String token, {
@@ -328,21 +378,40 @@ void main() {
 
   group('subscriptions, which Play sells by base plan', () {
     final pro = _subscription('pro', [
-      (basePlan: 'monthly', offer: null, micros: 4990000, price: r'$4.99'),
-      (basePlan: 'monthly', offer: 'trial', micros: 0, price: 'Free'),
-      (basePlan: 'yearly', offer: null, micros: 39990000, price: r'$39.99'),
+      _plan('monthly'),
+      _plan('monthly', offer: 'trial', intro: _freeWeek),
+      _plan('yearly', regular: _yearly),
     ]);
+
+    PlayPurchaseGateway gateway(
+      _Billing billing, {
+      List<GooglePlayPurchaseDetails> owned = const [],
+    }) => PlayPurchaseGateway(
+      accountId: () => 'alice',
+      billing: billing,
+      ownedPurchases: () async => owned,
+    );
+
+    Future<List<StoreProduct>> buyAll(
+      PlayPurchaseGateway gateway,
+      Set<String> references,
+    ) async {
+      final products = await gateway.products(references);
+      for (final product in products) {
+        await gateway.purchase(
+          offerKey: 'pro',
+          product: product,
+          repeatable: false,
+        );
+      }
+      return products;
+    }
 
     test(
       'prices each base plan the catalog names at the base plan itself',
       () async {
-        final billing = _Billing(products: pro);
-        final gateway = PlayPurchaseGateway(
-          accountId: () => 'alice',
-          billing: billing,
-        );
-
-        final products = await gateway.products({'pro:monthly', 'pro:yearly'});
+        final products = await gateway(_Billing(products: pro))
+            .products({'pro:monthly', 'pro:yearly'});
 
         expect(
           {
@@ -351,39 +420,29 @@ void main() {
           },
           {'pro:monthly': r'$4.99', 'pro:yearly': r'$39.99'},
         );
+        expect(products.expand((p) => p.introductoryPrices), isEmpty);
       },
     );
 
-    test('never launches an offer, however cheap', () async {
+    test('never launches an offer that is not tagged for launch', () async {
       // Play returns developer-determined offers (win-back, retention) to every
       // player and leaves eligibility to the app; picking the cheapest would
       // sell a price meant for a few to everyone.
       final billing = _Billing(
         products: _subscription('pro', [
-          (
-            basePlan: 'yearly',
+          _plan(
+            'yearly',
             offer: 'winback',
-            micros: 19990000,
-            price: r'$19.99',
+            intro: _cheapMonths,
+            regular: _yearly,
           ),
-          (basePlan: 'yearly', offer: null, micros: 39990000, price: r'$39.99'),
-          (basePlan: 'monthly', offer: 'trial', micros: 0, price: 'Free'),
-          (basePlan: 'monthly', offer: null, micros: 4990000, price: r'$4.99'),
+          _plan('yearly', regular: _yearly),
+          _plan('monthly', offer: 'trial', intro: _freeWeek),
+          _plan('monthly'),
         ]),
       );
-      final gateway = PlayPurchaseGateway(
-        accountId: () => 'alice',
-        billing: billing,
-      );
-      final products = await gateway.products({'pro:monthly', 'pro:yearly'});
 
-      for (final product in products) {
-        await gateway.purchase(
-          offerKey: 'pro',
-          product: product,
-          repeatable: false,
-        );
-      }
+      await buyAll(gateway(billing), {'pro:monthly', 'pro:yearly'});
 
       expect(
         billing.offerTokens,
@@ -391,17 +450,140 @@ void main() {
       );
     });
 
-    test('leaves out a base plan the catalog does not sell', () async {
-      final gateway = PlayPurchaseGateway(
-        accountId: () => 'alice',
-        billing: _Billing(products: pro),
+    test(
+      'launches the cheapest tagged offer, priced at what it renews at',
+      () async {
+        final billing = _Billing(
+          products: _subscription('pro', [
+            _plan('monthly'),
+            _plan(
+              'monthly',
+              offer: 'intro',
+              tags: [defaultPlayLaunchTag],
+              intro: _cheapMonths,
+            ),
+            _plan(
+              'monthly',
+              offer: 'trial',
+              tags: [defaultPlayLaunchTag],
+              intro: _freeWeek,
+            ),
+            _plan('monthly', offer: 'winback', intro: _freeWeek),
+          ]),
+        );
+
+        final products = await buyAll(gateway(billing), {'pro:monthly'});
+
+        expect(billing.offerTokens, ['token-monthly-trial']);
+        final product = products.single;
+        // Play prices an offer at its first phase: "Free" is true of the
+        // first week, and not what the subscription costs.
+        expect(product.displayPrice, r'$4.99');
+        expect(product.introductoryPrices.single.displayPrice, 'Free');
+        expect(product.introductoryPrices.single.billingPeriod, 'P1W');
+        expect(product.introductoryPrices.single.cycles, 1);
+      },
+    );
+
+    test('reads a launch tag on the base plan as no offer\'s', () async {
+      // Offers inherit their base plan's tags. Tagging the plan must not
+      // launch every offer on it, the win-back among them.
+      final billing = _Billing(
+        products: _subscription('pro', [
+          _plan('monthly', tags: [defaultPlayLaunchTag]),
+          _plan(
+            'monthly',
+            offer: 'winback',
+            tags: [defaultPlayLaunchTag],
+            intro: _freeWeek,
+          ),
+        ]),
       );
 
-      final products = await gateway.products({'pro:yearly'});
+      await buyAll(gateway(billing), {'pro:monthly'});
+
+      expect(billing.offerTokens, ['token-monthly-base']);
+    });
+
+    test('takes the launch tag the application names', () async {
+      final billing = _Billing(
+        products: _subscription('pro', [
+          _plan('monthly'),
+          _plan('monthly', offer: 'trial', tags: ['spring'], intro: _freeWeek),
+        ]),
+      );
+      final spring = PlayPurchaseGateway(
+        accountId: () => 'alice',
+        launchTag: 'spring',
+        billing: billing,
+        ownedPurchases: () async => const [],
+      );
+
+      await buyAll(spring, {'pro:monthly'});
+
+      expect(billing.offerTokens, ['token-monthly-trial']);
+    });
+
+    test('leaves out a base plan the catalog does not sell', () async {
+      final products = await gateway(_Billing(products: pro))
+          .products({'pro:yearly'});
 
       expect(products.map((product) => product.providerReference), [
         'pro:yearly',
       ]);
+    });
+
+    test(
+      'changes the plan of a subscription the account holds, as Play requires',
+      () async {
+        // Play will not sell a second plan of a product the account holds.
+        final billing = _Billing(products: pro);
+
+        await buyAll(gateway(billing, owned: [_owned('pro', 'tok_monthly')]), {
+          'pro:yearly',
+        });
+
+        final change = (billing.params.single as GooglePlayPurchaseParam)
+            .changeSubscriptionParam!;
+        expect(
+          change.oldPurchaseDetails.verificationData.serverVerificationData,
+          'tok_monthly',
+        );
+        // Unset, so Play applies the replacement mode the game's Play Console
+        // sets: when the new price is charged is that console's call.
+        expect(change.replacementMode, isNull);
+      },
+    );
+
+    test('buys another product alongside the one the account holds', () async {
+      final billing = _Billing(products: pro);
+
+      await buyAll(gateway(billing, owned: [_owned('themes', 'tok_themes')]), {
+        'pro:yearly',
+      });
+
+      expect(
+        (billing.params.single as GooglePlayPurchaseParam)
+            .changeSubscriptionParam,
+        isNull,
+      );
+    });
+
+    test('never asks what is owned to sell a one-time product', () async {
+      var asked = false;
+      final billing = _Billing(products: [_product('supporter_once')]);
+      final gateway = PlayPurchaseGateway(
+        accountId: () => 'alice',
+        billing: billing,
+        ownedPurchases: () async {
+          asked = true;
+          return const [];
+        },
+      );
+
+      await buyAll(gateway, {'supporter_once'});
+
+      expect(asked, isFalse);
     });
 
     test(

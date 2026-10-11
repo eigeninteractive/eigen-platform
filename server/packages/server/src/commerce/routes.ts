@@ -6,6 +6,7 @@ import { errorShape } from "../routes/wire.js";
 import { readEffectiveAccess } from "./access.js";
 import { assertPurchasable, readCheckout, readOpenCheckout, recordCheckout } from "./checkout.js";
 import { readProviderAccount, recordProviderAccount, recordVerifiedEvent, recordVerifiedTransaction } from "./ledger.js";
+import { ProviderRefusal } from "./provider-kit.js";
 import { acknowledgeIfNeeded } from "./provider-lifecycle.js";
 import type { CommerceOffer, CommerceProvider, ResolvedCommerce } from "./types.js";
 import { accessSnapshotShape, checkoutBodyShape, claimBodyShape, commerceCatalogShape, managementBodyShape, restoreBodyShape, urlShape } from "./wire.js";
@@ -86,6 +87,9 @@ async function providerCall<T>(message: string, call: () => Promise<T>): Promise
     return await call();
   } catch (error) {
     if (error instanceof HttpError) throw error;
+    // The provider answered and the answer will not change: a conflict with
+    // what the engine accepts, not a provider failure worth retrying.
+    if (error instanceof ProviderRefusal) throw new HttpError(409, error.message, "purchaseConflict");
     throw new HttpError(502, message);
   }
 }
@@ -112,6 +116,7 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
   const selectedOffer = offer(ctx, body.offerKey);
   const adapter = provider(ctx, body.provider);
   const expectedProviderReference = registeredProduct(selectedOffer, adapter.key);
+  const observedAt = resolved.now();
   const transaction = await providerCall(`The ${adapter.key} provider could not verify this purchase`, async () => await adapter.verifyClaim(env, { accountId, expectedProviderReference, evidence: body.evidence }));
   const reference = await recordVerifiedTransaction(ctx.d1(env), {
     catalog: resolved.catalog,
@@ -119,6 +124,7 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
     accountId,
     transaction,
     now: resolved.now(),
+    observedAt,
   });
   if (transaction.state === "pending") throw new HttpError(409, "The purchase is still pending", "purchasePending");
   await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () => await acknowledgeIfNeeded(ctx.d1(env), adapter, env, reference, resolved.now));
@@ -296,12 +302,27 @@ export function registerCommerceWebhookRoutes(app: EngineApp, ctx: RouteContext)
     if (adapter.verifyWebhook === undefined) {
       throw new HttpError(404, `The ${adapter.key} provider has no webhook`);
     }
-    const event = await providerCall(`The ${adapter.key} webhook could not be verified`, async () => (await adapter.verifyWebhook?.(c.env, c.req.raw)) as Awaited<ReturnType<NonNullable<typeof adapter.verifyWebhook>>>);
+    const observedAt = resolved.now();
+    const event = await providerCall(`The ${adapter.key} webhook could not be verified`, async () => {
+      try {
+        return (await adapter.verifyWebhook?.(c.env, c.req.raw)) ?? null;
+      } catch (error) {
+        // Authentic, understood, and never acceptable. Answering with an
+        // error would have the provider resend it for days to the same
+        // refusal, so it is accepted and left for the operator in the log.
+        if (!(error instanceof ProviderRefusal)) throw error;
+        console.warn(`commerce: ${adapter.key} notification refused: ${error.message}`);
+        return null;
+      }
+    });
+    // An authentic notification about no purchase: nothing to record.
+    if (event === null) return c.body(null, 204);
     const reference = await recordVerifiedEvent(ctx.d1(c.env), {
       catalog: resolved.catalog,
       provider: adapter.key,
       event,
       now: resolved.now(),
+      observedAt,
     });
     if (reference !== null) {
       await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () => await acknowledgeIfNeeded(ctx.d1(c.env), adapter, c.env, reference, resolved.now));

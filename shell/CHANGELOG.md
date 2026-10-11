@@ -2,9 +2,13 @@
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+### Added
+- The store shows a subscription's introductory price ahead of its regular one: “Free for 1 week, then $4.99”.
+
 ### Fixed
-- `PlayPurchaseGateway` sells subscriptions by base plan, the `productId:basePlanId` references the Worker now uses, at the base plan's own price. It launches no offer: Play returns developer-determined offers (win-back, retention) to every player, and before, whichever offer loaded last was the one bought.
+- `PlayPurchaseGateway` sells subscriptions by base plan, the `productId:basePlanId` references the Worker now uses, priced at what the plan renews at. It launches an offer — a free trial, an introductory price — only when the offer carries the `eigen-launch` tag in the Play Console (or the gateway's `launchTag`), choosing the cheapest tagged offer Play still returns. Before, whichever offer loaded last was the one bought, including developer-determined offers (win-back, retention) that Play returns to every player.
 - `PlayPurchaseGateway` restores a subscription whatever plan it was bought on: every plan of the purchased product covers it, and the Worker records the plan Play reports.
+- Buying another base plan of a Play subscription the account holds replaces the old purchase, as Play requires, instead of being refused as already owned. When the new price is charged is the default replacement mode the game sets in the Play Console.
 
 ## [0.6.0] - 2026-09-17
 ### Added

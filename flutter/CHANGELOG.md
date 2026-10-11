@@ -15,6 +15,9 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 for how this package, the engine and the generated `eigen_api` client pair up.
 
 ## [Unreleased]
+### Added
+- `StoreProduct.introductoryPrices`, a list of `IntroductoryPrice`, carries the phases a subscription starts at before `displayPrice`, which is now the price it renews at.
+
 ### Changed
 - `PurchaseGateway.covers` says whether a purchase update may be a purchase of a catalog reference, for a store that reports less than the catalog names. Play names a subscription's product but never its base plan, so `CommerceService` claims under the first offer covered and the Worker records the plan Play verifies. Every `PurchaseGateway` implementation must add it.
 

@@ -139,6 +139,11 @@ evidence are secrets and must stay in Worker secret bindings. The server derives
 the expected product identifier from the selected offer; it never trusts a
 client-supplied price or arbitrary product ID.
 
+Each adapter checks the form of its references when the Worker starts: a Play
+subscription missing its base plan, a Stripe Product id where a Price belongs,
+or a one-time Razorpay offer with no configured amount fails `createEngine`
+rather than the first purchase.
+
 A purchase claim names an offer, but the offer recorded is the one the provider
 verifies. A store SDK cannot always tell which offer it sold — Play's purchase
 names a subscription's product, never its base plan — so the claim's offer only
@@ -160,17 +165,21 @@ Three things are permanent from the moment anything is sold under them:
 - **An offer key.** Every transaction names one, and restoration resolves
   through it.
 - **A provider reference, while the store may still report on it.** Renewals
-  and refunds arrive naming the reference they were bought at. One the catalog
-  no longer maps is refused and the transaction shows up on
-  `GET /ops/commerce/stalled`: a subscriber's access ends with their paid
-  period while the store keeps charging them, and a refund is not applied.
+  arrive naming the reference they were bought at. One the catalog no longer
+  maps is refused and the transaction shows up on `GET /ops/commerce/stalled`:
+  a subscriber's access ends with their paid period while the store keeps
+  charging them. Refunds and expiries under a retired reference still apply,
+  because they only take access away.
 
 A Stripe subscriber who switches plan in the Billing Portal keeps one
 transaction, and it moves to the offer the new plan maps to; whatever only the
 old offer granted is revoked. On Play a plan change is a new purchase with a
-new token, claimed like any other, and the old token expires. A deferred change
-serves the old plan from the new token until renewal, then moves it the same
-way.
+new token, claimed like any other, that names the token it replaced; the engine
+ends the old transaction at once, so a downgrade does not keep what only the
+old plan granted. A deferred change serves the old plan from the new token
+until renewal, then moves it the same way. A resubscription from the Play Store
+after a lapse carries no account id, and is attributed through the token it
+replaced.
 
 If `commerce` is absent, the routes are absent and ordinary game behavior is
 unchanged. No billing SDK or merchant credential becomes a transitive engine
@@ -484,7 +493,7 @@ normal case, and importing one carries only that one into your bundle:
 | [`@eigeninteractive/server/commerce/razorpay`](../reference/typescript/server-commerce-razorpay.md) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
 
 Each reference page carries the adapter's configuration and the details that
-are only true of that provider. Three are worth knowing before you choose:
+are only true of that provider. These are worth knowing before you choose:
 
 - **Play refunds an unacknowledged purchase after three days.** The engine
   acknowledges only after the entitlement is durable and retries a lost
@@ -501,11 +510,33 @@ are only true of that provider. Three are worth knowing before you choose:
   `productId:basePlanId` (`googlePlaySubscriptionReference` builds one), so
   monthly and yearly can be two offers. Play's offers — free trials,
   introductory prices, win-back discounts — are prices on a base plan and stay
-  out of the reference. `PlayPurchaseGateway` sells the base plan at its own
-  price and launches no offer: Play returns developer-determined offers to
-  every player and leaves eligibility to the app. Add-on subscriptions, which
-  serve several products from one purchase, are not supported and are
-  refused.
+  out of the reference. Add-on subscriptions, which serve several products
+  from one purchase, are not supported and are refused.
+- **Play offers launch only when you tag them.** In the Play Console, give an
+  offer the tag `eigen-launch` (or the `launchTag` you pass
+  `PlayPurchaseGateway`) and the gateway sells the cheapest tagged offer Play
+  still returns for the player, showing its introductory price ahead of the
+  regular one: "Free for 1 week, then $4.99". Untagged offers never launch.
+  Play hides an offer from an ineligible player only when Play decides
+  eligibility, as for a new-customer trial; a developer-determined offer
+  (win-back, retention, upgrade) reaches every player, so tag one only if
+  everyone buying from the store should get it. Tag the offer itself: an offer
+  inherits its base plan's tags, so a tag on the base plan launches none.
+- **A player switches Play plans in the app.** Buying another base plan of a
+  subscription the account already holds replaces the old purchase, as Play
+  requires. When the new price is charged is the default replacement mode you
+  set for the product in the Play Console. A different subscription product is
+  bought alongside, not as a replacement.
+- **Play refunds revoke.** Voided-purchase notifications end a refunded
+  one-time purchase even while Play still reads it as purchased, and a partial
+  refund of a multi-quantity purchase ends it once nothing is left. Enable
+  Real-time Developer Notifications for one-time products too, so their
+  purchases and cancellations reach the Worker.
+- **A Razorpay one-time sale must be paid in full.** Payment notes are written
+  by whoever opens Razorpay Checkout, so the adapter accepts a payment only for
+  exactly the `amounts` entry of the offer it names, and only for the account
+  its notes name. A subscription is likewise accepted only by the account that
+  started its checkout.
 
 ### Write your own
 
@@ -529,7 +560,12 @@ const provider: CommerceProvider<Env> = {
 
   async verifyWebhook(env, request) {
     // Authenticate the raw request, then resolve current provider state.
+    // Resolve null for an authentic notification about no purchase.
     return verifyNotification(env, request);
+  },
+
+  validateReference(providerReference, kind) {
+    // Throw at startup for a reference this storefront could never sell.
   },
 
   async reconcile(env, transactions) {
@@ -547,6 +583,10 @@ An adapter you write yourself implements the same `CommerceProvider` port, and
 `@eigeninteractive/server/commerce-kit` carries the Workers-side primitives the
 three shipped ones use: an HMAC, a constant-time comparison, and a JSON call
 that names a failing provider without quoting the credential it failed with.
+Throw its `ProviderRefusal` when the provider answered and the answer will never
+be accepted, such as a purchase of several products at once: a claim then
+answers 409 rather than 502, and a notification is accepted and logged instead
+of being resent for days.
 
 ## Production checklist
 
@@ -561,6 +601,8 @@ that names a failing provider without quoting the credential it failed with.
 - Explain the exact limit and reset date before purchase.
 - Test pending, duplicate, restore, renewal, expiry, refund, revocation, plan
   change, and another account's transaction—not just the successful checkout.
+- On Play, set each subscription's default replacement mode, tag the offers the
+  store may launch, and turn on notifications for one-time products.
 - Keep every subscription's provider reference in the catalog until nobody is
   subscribed under it.
 - Keep abuse rate limits identical for free and paid accounts.

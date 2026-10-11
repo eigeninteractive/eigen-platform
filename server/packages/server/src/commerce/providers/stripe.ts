@@ -191,6 +191,13 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
   return {
     key: PROVIDER,
 
+    // Only the mistake worth catching: a Product id where a Price belongs. A
+    // Price created from a legacy Plan keeps whatever id the Plan had, so the
+    // positive form cannot be checked.
+    validateReference: (reference) => {
+      if (reference.startsWith("prod_")) throw new Error("a Stripe offer is sold through a Price (price_...), not a Product");
+    },
+
     products: async (env, providerReferences) => {
       const priced = await Promise.all(providerReferences.map(async (providerReference) => await call<{ id: string; unit_amount: number | null; currency: string }>(env, `/prices/${providerReference}`)));
       // A price with no unit amount is tiered or metered, which this catalog

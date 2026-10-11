@@ -211,3 +211,12 @@ describe("stripe checkout", () => {
     expect(new URLSearchParams(seenForm).get("success_url")).toBe("https://game.example/store?from=offer&session_id={CHECKOUT_SESSION_ID}");
   });
 });
+
+describe("stripe catalog references", () => {
+  it("refuses a Product id where a Price belongs, and takes any Price", () => {
+    expect(() => provider.validateReference?.("prod_PRO", "subscription")).toThrow(/Price/);
+    expect(() => provider.validateReference?.("price_1Pro", "subscription")).not.toThrow();
+    // A Price made from a legacy Plan keeps the Plan's own id.
+    expect(() => provider.validateReference?.("pro-monthly", "subscription")).not.toThrow();
+  });
+});

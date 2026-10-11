@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c666088a-3c8c-4e87-95eb-b32b0bc43d9f",
+  "id": "df53f151-d50e-4d2b-918b-962416bf84fa",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "bots": {
@@ -512,6 +512,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "observed_at": {
+          "name": "observed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "created_at": {

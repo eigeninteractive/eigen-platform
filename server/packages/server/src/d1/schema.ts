@@ -354,6 +354,14 @@ export const commerceTransactions = sqliteTable(
     /** Why the last attempt failed, truncated, for the operator surface.
      * Adapters must keep provider tokens out of their error messages. */
     reconcileError: text(),
+    /** When the provider was asked for the state this row holds: the instant
+     * before the read, not the write. A write only lands over an older
+     * observation, so two verifications racing cannot leave the earlier
+     * provider answer on top. */
+    observedAt: integer().notNull(),
+    /** Changes on every write. Statements batched after the row's guarded
+     * write condition on it, so a write that lost the race touches nothing. */
+    revision: text().notNull(),
     createdAt: integer().notNull(),
     updatedAt: integer().notNull(),
   },

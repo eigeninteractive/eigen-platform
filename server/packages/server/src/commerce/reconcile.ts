@@ -124,6 +124,9 @@ async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: un
         accountId: row.accountId as string,
         transaction,
         now: commerce.now(),
+        // Taken before the provider call, so a webhook that read the provider
+        // after this sweep did is not overwritten by the sweep's older answer.
+        observedAt: now,
         reconciled: true,
       });
       await acknowledgeIfNeeded(d1, adapter, env, reference, commerce.now);

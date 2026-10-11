@@ -10,6 +10,8 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { resolveCommerce } from "../src/commerce/catalog.js";
+import { ProviderRefusal } from "../src/commerce/provider-kit.js";
 import { googlePlayCommerceProvider, googlePlaySubscriptionReference } from "../src/commerce/providers/google-play.js";
 
 // A throwaway PKCS#8 RSA key, generated for this test and used nowhere else:
@@ -23,6 +25,10 @@ async function testPrivateKey(): Promise<string> {
   const base64 = btoa(String.fromCharCode(...pkcs8)).replace(/(.{64})/g, "$1\n");
   cachedKey = `-----BEGIN PRIVATE KEY-----\n${base64}\n-----END PRIVATE KEY-----`;
   return cachedKey;
+}
+
+function makeProviderSync() {
+  return googlePlayCommerceProvider<unknown>({ packageName: () => "com.example.game", serviceAccountEmail: () => undefined, serviceAccountPrivateKey: () => undefined });
 }
 
 async function makeProvider() {
@@ -51,50 +57,76 @@ function scriptFetch(routes: Record<string, unknown>): { seen: string[]; tokenCa
   return state;
 }
 
-const PRODUCT_PATH = "/androidpublisher/v3/applications/com.example.game/purchases/products/supporter_once/tokens/tok_1";
+const PRODUCT_PATH = "/androidpublisher/v3/applications/com.example.game/purchases/productsv2/tokens/tok_1";
+const PRODUCT_ACKNOWLEDGE_PATH = "/androidpublisher/v3/applications/com.example.game/purchases/products/supporter_once/tokens/tok_1:acknowledge";
 const SUBSCRIPTION_PATH = "/androidpublisher/v3/applications/com.example.game/purchases/subscriptionsv2/tokens/tok_sub";
+
+/** A `productsv2` purchase of one product. */
+const productPurchase = (purchaseState: string, overrides: Record<string, unknown> = {}) => ({
+  productLineItem: [{ productId: "supporter_once", productOfferDetails: { quantity: 1, refundableQuantity: 1 } }],
+  purchaseStateContext: { purchaseState },
+  acknowledgementState: "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED",
+  purchaseCompletionTime: "2023-11-03T08:26:40Z",
+  orderId: "GPA.1",
+  obfuscatedExternalAccountId: "alice",
+  ...overrides,
+});
+
+const notify = (notification: Record<string, unknown>, messageId = "msg-1") => new Request("https://x/rtdn", { method: "POST", body: JSON.stringify({ message: { data: btoa(JSON.stringify({ packageName: "com.example.game", ...notification })), messageId } }) });
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("google play one-time purchases", () => {
   it("reports an unacknowledged purchase as needing acknowledgement, carrying its token", async () => {
     await testPrivateKey();
-    scriptFetch({ [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 0, purchaseTimeMillis: "1699000000000", orderId: "GPA.1", obfuscatedExternalAccountId: "alice" } });
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { acknowledgementState: "ACKNOWLEDGEMENT_STATE_PENDING" }) });
     const provider = await makeProvider();
     const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
-    expect(verified).toMatchObject({ providerTransactionId: "GPA.1", providerReference: "supporter_once", kind: "oneTime", state: "active", requiresAcknowledgement: true });
-    // The token is the handle every later call needs, so it rides in sealed
-    // state rather than being the transaction's public identity.
-    expect(JSON.parse(verified.sealedProviderState as string)).toEqual({ productId: "supporter_once", token: "tok_1" });
+    // The token, not the order id: a pending purchase has no order yet, and
+    // the transaction must be the same row before and after it is paid.
+    expect(verified).toMatchObject({ providerTransactionId: "tok_1", providerReference: "supporter_once", kind: "oneTime", state: "active", purchasedAt: Date.parse("2023-11-03T08:26:40Z"), requiresAcknowledgement: true });
+    expect(JSON.parse(verified.sealedProviderState as string)).toEqual({ kind: "oneTime", token: "tok_1" });
   });
 
   it.each([
-    [0, 1, "active", false],
-    [2, 0, "pending", false],
-    [1, 0, "revoked", false],
-  ])("maps purchaseState %i / ack %i onto %s", async (purchaseState, acknowledgementState, expected, needsAck) => {
+    ["PURCHASED", "active"],
+    ["PENDING", "pending"],
+    ["CANCELLED", "revoked"],
+  ])("maps %s onto %s", async (purchaseState, expected) => {
     await testPrivateKey();
-    scriptFetch({ [PRODUCT_PATH]: { purchaseState, acknowledgementState, purchaseTimeMillis: "1699000000000", orderId: "GPA.1" } });
-    const provider = await makeProvider();
-    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
+    scriptFetch({ [PRODUCT_PATH]: productPurchase(purchaseState) });
+    const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
     expect(verified.state).toBe(expected);
-    expect(verified.requiresAcknowledgement).toBe(needsAck);
+    expect(verified.requiresAcknowledgement).toBe(false);
+  });
+
+  it("reports the product Play says was bought, not the one the claim named", async () => {
+    await testPrivateKey();
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { productLineItem: [{ productId: "supporter_plus" }] }) });
+    const verified = await (await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
+    expect(verified.providerReference).toBe("supporter_plus");
+  });
+
+  it("refuses a purchase of several products, which no one offer describes", async () => {
+    await testPrivateKey();
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { productLineItem: [{ productId: "supporter_once" }, { productId: "supporter_plus" }] }) });
+    await expect((await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("refuses a token minted against another player's account", async () => {
     await testPrivateKey();
-    scriptFetch({ [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 1, orderId: "GPA.1", obfuscatedExternalAccountId: "mallory" } });
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { obfuscatedExternalAccountId: "mallory" }) });
     const provider = await makeProvider();
     await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } })).rejects.toThrow(/another account/);
   });
 
-  it("acknowledges through the product path and reuses one access token", async () => {
+  it("acknowledges through the v1 product path and reuses one access token", async () => {
     await testPrivateKey();
-    const state = scriptFetch({ [`${PRODUCT_PATH}:acknowledge`]: null, [PRODUCT_PATH]: { purchaseState: 0, acknowledgementState: 0, orderId: "GPA.1" } });
+    const state = scriptFetch({ [PRODUCT_ACKNOWLEDGE_PATH]: null, [PRODUCT_PATH]: productPurchase("PURCHASED", { acknowledgementState: "ACKNOWLEDGEMENT_STATE_PENDING" }) });
     const provider = await makeProvider();
     await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { purchaseToken: "tok_1" } });
-    await provider.acknowledge?.(null, { providerTransactionId: "GPA.1", accountId: "alice", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ productId: "supporter_once", token: "tok_1" }), acknowledgementPending: true });
-    expect(state.seen).toContain(`POST ${PRODUCT_PATH}:acknowledge`);
+    await provider.acknowledge?.(null, { providerTransactionId: "tok_1", accountId: "alice", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ kind: "oneTime", token: "tok_1" }), acknowledgementPending: true });
+    expect(state.seen).toContain(`POST ${PRODUCT_ACKNOWLEDGE_PATH}`);
     // Minting is an RS256 signature plus a round trip; once per isolate.
     expect(state.tokenCalls).toBe(1);
   });
@@ -221,7 +253,7 @@ describe("google play subscriptions", () => {
         ],
       },
     });
-    await expect((await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } })).rejects.toThrow(/add-on/);
+    await expect((await makeProvider()).verifyClaim(null, { accountId: "alice", expectedProviderReference: "pro:monthly", evidence: { purchaseToken: "tok_sub" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("refuses a line item with no base plan rather than guessing one", async () => {
@@ -268,12 +300,86 @@ describe("google play notifications", () => {
     expect(verified?.transaction).toMatchObject({ state: "active", providerReference: "pro:monthly" });
   });
 
+  it("reads a one-time purchase notification back by its token alone", async () => {
+    await testPrivateKey();
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED") });
+    const verified = await (await makeProvider()).verifyWebhook?.(null, notify({ oneTimeProductNotification: { notificationType: 1, purchaseToken: "tok_1", sku: "supporter_once" } }));
+    expect(verified).toMatchObject({ accountId: "alice", transaction: { providerTransactionId: "tok_1", providerReference: "supporter_once", state: "active" } });
+  });
+
+  it("revokes a refunded one-time purchase, even while Play still reads it as purchased", async () => {
+    // The refund was routed to the subscription API, which knows nothing of a
+    // one-time token, so a refunded player kept what they bought.
+    await testPrivateKey();
+    const state = scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED") });
+    const verified = await (await makeProvider()).verifyWebhook?.(null, notify({ voidedPurchaseNotification: { purchaseToken: "tok_1", orderId: "GPA.1", productType: 2, refundType: 1 } }));
+    expect(state.seen).toEqual([`GET ${PRODUCT_PATH}`]);
+    expect(verified?.transaction).toMatchObject({ providerTransactionId: "tok_1", state: "revoked", requiresAcknowledgement: false });
+  });
+
+  it("keeps a partly refunded purchase while some of it is left, and revokes it when none is", async () => {
+    await testPrivateKey();
+    const partial = { voidedPurchaseNotification: { purchaseToken: "tok_1", productType: 2, refundType: 2 } };
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { productLineItem: [{ productId: "supporter_once", productOfferDetails: { quantity: 3, refundableQuantity: 2 } }] }) });
+    expect((await (await makeProvider()).verifyWebhook?.(null, notify(partial)))?.transaction.state).toBe("active");
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED", { productLineItem: [{ productId: "supporter_once", productOfferDetails: { quantity: 3, refundableQuantity: 0 } }] }) });
+    expect((await (await makeProvider()).verifyWebhook?.(null, notify(partial)))?.transaction.state).toBe("revoked");
+  });
+
+  it("reads a voided subscription back from the subscription API", async () => {
+    await testPrivateKey();
+    scriptFetch({ [SUBSCRIPTION_PATH]: { subscriptionState: "SUBSCRIPTION_STATE_EXPIRED", startTime: "2026-09-01T00:00:00Z", externalAccountIdentifiers: { obfuscatedExternalAccountId: "alice" }, lineItems: [{ productId: "pro", expiryTime: "2023-11-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } }] } });
+    const verified = await (await makeProvider()).verifyWebhook?.(null, notify({ voidedPurchaseNotification: { purchaseToken: "tok_sub", productType: 1, refundType: 1 } }));
+    expect(verified?.transaction).toMatchObject({ kind: "subscription", state: "expired" });
+  });
+
+  it("names the token a resubscription replaced, and no account when Play has none", async () => {
+    // Resubscribing from the Play Store after a lapse: a new token, linked to
+    // the old one, and no obfuscated account id because the app was not there.
+    await testPrivateKey();
+    scriptFetch({ [SUBSCRIPTION_PATH]: { subscriptionState: "SUBSCRIPTION_STATE_ACTIVE", startTime: "2026-09-01T00:00:00Z", linkedPurchaseToken: "tok_old", lineItems: [{ productId: "pro", expiryTime: "2026-10-01T00:00:00Z", offerDetails: { basePlanId: "monthly" } }] } });
+    const verified = await (await makeProvider()).verifyWebhook?.(null, notify({ subscriptionNotification: { notificationType: 4, purchaseToken: "tok_sub" } }));
+    expect(verified).not.toHaveProperty("accountId");
+    expect(verified?.transaction).toMatchObject({ providerTransactionId: "tok_sub", replacesProviderTransactionId: "tok_old" });
+  });
+
+  it("answers a console test notification with nothing to record", async () => {
+    await testPrivateKey();
+    const state = scriptFetch({});
+    await expect((await makeProvider()).verifyWebhook?.(null, notify({ testNotification: { version: "1.0" } }))).resolves.toBeNull();
+    expect(state.seen).toEqual([]);
+  });
+
   it("refuses a notification that names no purchase", async () => {
     await testPrivateKey();
     scriptFetch({});
-    const provider = await makeProvider();
-    const data = btoa(JSON.stringify({ packageName: "com.example.game", testNotification: { version: "1.0" } }));
-    await expect(provider.verifyWebhook?.(null, new Request("https://x/rtdn", { method: "POST", body: JSON.stringify({ message: { data, messageId: "msg-2" } }) }))).rejects.toThrow(/names no purchase/);
+    await expect((await makeProvider()).verifyWebhook?.(null, notify({}))).rejects.toThrow(/names no purchase/);
+  });
+});
+
+describe("google play catalog references", () => {
+  it.each([
+    ["supporter_once", "oneTime"],
+    ["com.example.coins_100", "oneTime"],
+    ["pro:monthly", "subscription"],
+    ["pro:p1y-auto", "subscription"],
+  ] as const)("accepts %s as a %s reference", async (reference, kind) => {
+    expect(() => makeProviderSync().validateReference?.(reference, kind)).not.toThrow();
+  });
+
+  it.each([
+    ["pro", "subscription", /productId:basePlanId/],
+    ["pro:", "subscription", /productId:basePlanId/],
+    ["pro:Monthly", "subscription", /productId:basePlanId/],
+    ["supporter:once", "oneTime", /product id alone/],
+    ["Supporter", "oneTime", /not a Play product id/],
+  ] as const)("refuses %s as a %s reference", async (reference, kind, message) => {
+    expect(() => makeProviderSync().validateReference?.(reference, kind)).toThrow(message);
+  });
+
+  it("fails the deploy, not the first purchase, on a subscription missing its base plan", () => {
+    const catalog = { free: {}, entitlements: [{ key: "pro" }], offers: [{ key: "pro_monthly", name: "Pro", description: "", kind: "subscription" as const, entitlements: ["pro"], providerReferences: { google_play: "pro" } }] };
+    expect(() => resolveCommerce({ catalog, providers: [makeProviderSync()] })).toThrow(/offer pro_monthly has an invalid google_play reference "pro": .*productId:basePlanId/);
   });
 });
 

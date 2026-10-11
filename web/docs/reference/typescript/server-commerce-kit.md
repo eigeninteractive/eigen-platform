@@ -11,6 +11,50 @@ failed with it.
 
 ## Classes
 
+### ProviderRefusal
+
+Defined in: [server/packages/server/src/commerce/provider-kit.ts:61](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L61)
+
+The provider answered, and what it described is something the engine will
+never accept -- a Play purchase holding several subscriptions at once, say.
+
+Distinct from a failure because retrying cannot change it. A claim refusing
+one answers 409 rather than 502, and a webhook accepts the notification
+rather than asking the provider to resend it for days. The message is logged,
+so it must not quote a token.
+
+#### Extends
+
+- `Error`
+
+#### Constructors
+
+##### Constructor
+
+```ts
+new ProviderRefusal(message): ProviderRefusal;
+```
+
+Defined in: [server/packages/server/src/commerce/provider-kit.ts:62](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L62)
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `message` | `string` |
+
+###### Returns
+
+[`ProviderRefusal`](#providerrefusal)
+
+###### Overrides
+
+```ts
+Error.constructor
+```
+
+***
+
 ### ProviderRequestError
 
 Defined in: [server/packages/server/src/commerce/provider-kit.ts:41](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L41)
@@ -79,7 +123,7 @@ Defined in: [server/packages/server/src/commerce/provider-kit.ts:44](https://git
 function basicAuth(id, secret): string;
 ```
 
-Defined in: [server/packages/server/src/commerce/provider-kit.ts:68](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L68)
+Defined in: [server/packages/server/src/commerce/provider-kit.ts:84](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L84)
 
 Basic authorization header value for a key/secret pair.
 
@@ -125,7 +169,7 @@ HMAC-SHA256 of `message` under `secret`, lowercase hex.
 function providerJson<T>(provider, request): Promise<T>;
 ```
 
-Defined in: [server/packages/server/src/commerce/provider-kit.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L58)
+Defined in: [server/packages/server/src/commerce/provider-kit.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L74)
 
 A JSON call to a provider.
 
@@ -157,7 +201,7 @@ useful part first, and an untruncated one is how a token ends up in a log.
 function requireSecret(value, name): string;
 ```
 
-Defined in: [server/packages/server/src/commerce/provider-kit.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L73)
+Defined in: [server/packages/server/src/commerce/provider-kit.ts:89](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/provider-kit.ts#L89)
 
 Require a configured secret, naming what is missing rather than failing later.
 

@@ -6,11 +6,38 @@ class StoreProduct {
     required this.providerReference,
     required this.displayPrice,
     this.currencyCode,
+    this.introductoryPrices = const [],
   });
 
   final String providerReference;
+
+  /// What the product costs: for a subscription, the price it renews at.
   final String displayPrice;
   final String? currencyCode;
+
+  /// The prices a subscription starts at before [displayPrice], in order — a
+  /// free trial, then perhaps a discounted first period. Empty for a product
+  /// sold at its regular price from the start.
+  final List<IntroductoryPrice> introductoryPrices;
+}
+
+/// One phase of a subscription's introductory pricing.
+class IntroductoryPrice {
+  const IntroductoryPrice({
+    required this.displayPrice,
+    required this.billingPeriod,
+    required this.cycles,
+  });
+
+  /// As the store formats it; a free trial reads as the store's word for
+  /// free.
+  final String displayPrice;
+
+  /// One cycle, as an ISO 8601 duration such as `P1W` or `P1M`.
+  final String billingPeriod;
+
+  /// How many cycles of [billingPeriod] this price lasts.
+  final int cycles;
 }
 
 /// The normalized state of one platform purchase update.

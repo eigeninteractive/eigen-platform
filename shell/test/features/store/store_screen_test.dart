@@ -177,6 +177,43 @@ void main() {
     expect(unavailable.onPressed, isNull);
   });
 
+  testWidgets('says what a trial costs first, and what it costs after', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      overrides: [
+        storeAvailableProvider.overrideWithValue(true),
+        storeCatalogProvider.overrideWith((ref) async => _catalog()),
+        storeAccessProvider.overrideWith((ref) async => _access()),
+        storeProductsProvider.overrideWith(
+          (ref) async => const {
+            'stripe:price_pro': StoreProduct(
+              providerReference: 'price_pro',
+              displayPrice: r'$9.99',
+              introductoryPrices: [
+                IntroductoryPrice(
+                  displayPrice: 'Free',
+                  billingPeriod: 'P1W',
+                  cycles: 1,
+                ),
+              ],
+            ),
+          },
+        ),
+      ],
+    );
+
+    expect(
+      find.text(
+        'Monthly analysis\nSubscription · Free for 1 week, then \$9.99',
+      ),
+      findsOneWidget,
+    );
+    // The button is what it renews at, not "Free".
+    expect(find.text(r'$9.99'), findsOneWidget);
+  });
+
   group('the upgrade call to action', () {
     Widget probe(Object error) => Builder(
       builder: (context) => Consumer(

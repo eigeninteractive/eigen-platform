@@ -59,6 +59,8 @@ async function seed(accountId: string, providerTransactionId: string, createdAt:
     reconcileAttemptedAt: null,
     reconcileFailures: 0,
     reconcileError: null,
+    observedAt: createdAt,
+    revision: crypto.randomUUID(),
     createdAt,
     updatedAt: createdAt,
     ...overrides,

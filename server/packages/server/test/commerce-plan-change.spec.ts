@@ -165,3 +165,129 @@ describe("a catalog that changes under existing purchases", () => {
     expect(snapshot.permissions).not.toContainEqual({ kind: "analysis.use" });
   });
 });
+
+describe("a purchase that replaces another", () => {
+  it("ends the transaction it replaced, so the old plan's grants do not outlive it", async () => {
+    // An immediate Play plan change: a new token for the monthly plan, naming
+    // the yearly token it replaced. The yearly row's archive grant must go now,
+    // not whenever the sweep next reads the old token.
+    const accountId = await account("replaced");
+    const yearly = crypto.randomUUID();
+    const monthly = crypto.randomUUID();
+    await record(accountId, subscription(yearly, "pro:yearly"));
+    await record(accountId, subscription(monthly, "pro:monthly", { replacesProviderTransactionId: yearly }));
+
+    expect(await row(yearly)).toMatchObject({ state: "expired" });
+    expect((await row(yearly))?.validUntil).toBeLessThanOrEqual(Date.now());
+    expect(await entitlementKeys(accountId)).toEqual(["pro"]);
+  });
+
+  it("keeps the old plan serving while the replacement is still being paid for", async () => {
+    const accountId = await account("pending-replacement");
+    const yearly = crypto.randomUUID();
+    await record(accountId, subscription(yearly, "pro:yearly"));
+    await record(accountId, subscription(crypto.randomUUID(), "pro:monthly", { state: "pending", replacesProviderTransactionId: yearly }));
+    expect(await row(yearly)).toMatchObject({ state: "active" });
+    expect(await entitlementKeys(accountId)).toEqual(["archive", "pro"]);
+  });
+
+  it("attributes a notification that names no account through the purchase it replaced", async () => {
+    // A resubscription from the Play Store after a lapse carries no obfuscated
+    // account id; the token it replaced says whose it is.
+    const accountId = await account("resubscribed");
+    const lapsed = crypto.randomUUID();
+    const renewed = crypto.randomUUID();
+    await record(accountId, subscription(lapsed, "pro:monthly", { state: "expired", validUntil: Date.now() - DAY, validFrom: Date.now() - 31 * DAY }));
+    await recordVerifiedEvent(env.DB, { catalog, provider: KEY, now: Date.now(), event: { providerEventId: crypto.randomUUID(), transaction: subscription(renewed, "pro:monthly", { replacesProviderTransactionId: lapsed }) } });
+
+    expect(await row(renewed)).toMatchObject({ userId: accountId, offerKey: "pro_monthly" });
+    expect(await entitlementKeys(accountId)).toEqual(["pro"]);
+  });
+
+  it("handles a notification it cannot attribute without recording it, for the player's own claim to pick up", async () => {
+    const token = crypto.randomUUID();
+    const eventId = crypto.randomUUID();
+    await expect(recordVerifiedEvent(env.DB, { catalog, provider: KEY, now: Date.now(), event: { providerEventId: eventId, transaction: subscription(token, "pro:monthly") } })).resolves.toBeNull();
+    expect(await row(token)).toBeUndefined();
+  });
+
+  it("will not let a claim that names nobody take over another account's subscription", async () => {
+    const owner = await account("owner");
+    const other = await account("other");
+    const original = crypto.randomUUID();
+    await record(owner, subscription(original, "pro:monthly"));
+    await expect(record(other, subscription(crypto.randomUUID(), "pro:monthly", { replacesProviderTransactionId: original }))).rejects.toThrow(/another account/);
+    expect(await row(original)).toMatchObject({ state: "active" });
+  });
+
+  it("lets a purchase the provider binds to the new account replace the old one, leaving the old account's row to the sweep", async () => {
+    // The same Google account, two Eigen accounts: the second upgraded, and
+    // Play bound the new token to it.
+    const first = await account("first");
+    const second = await account("second");
+    const original = crypto.randomUUID();
+    await record(first, subscription(original, "pro:monthly"));
+    await record(second, subscription(crypto.randomUUID(), "pro:yearly", { replacesProviderTransactionId: original, providerAccountId: second }));
+    expect(await entitlementKeys(second)).toEqual(["archive", "pro"]);
+    expect(await row(original)).toMatchObject({ state: "active" });
+  });
+});
+
+describe("two verifications of one purchase racing", () => {
+  it("keeps the provider's later answer when the earlier one is written last", async () => {
+    // A claim read Play before the renewal webhook did, and finished after it.
+    const accountId = await account("race");
+    const token = crypto.randomUUID();
+    const read = Date.now();
+    await recordVerifiedTransaction(env.DB, { catalog, provider: KEY, accountId, transaction: subscription(token, "pro:monthly"), now: read, observedAt: read - 1 });
+    const later = await recordVerifiedTransaction(env.DB, { catalog, provider: KEY, accountId, transaction: subscription(token, "pro:yearly"), now: read + 2, observedAt: read + 1 });
+    const earlier = await recordVerifiedTransaction(env.DB, {
+      catalog,
+      provider: KEY,
+      accountId,
+      transaction: subscription(token, "pro:monthly", { requiresAcknowledgement: true, sealedProviderState: "{}" }),
+      now: read + 3,
+      observedAt: read,
+    });
+
+    expect(later.providerReference).toBe("pro:yearly");
+    expect(await row(token)).toMatchObject({ offerKey: "pro_yearly" });
+    expect(await entitlementKeys(accountId)).toEqual(["archive", "pro"]);
+    // The write that lost owns nothing, including an acknowledgement.
+    expect(earlier.acknowledgementPending).toBe(false);
+  });
+
+  it("does not undo an acknowledgement recorded since the row was read", async () => {
+    const accountId = await account("acknowledged");
+    const token = crypto.randomUUID();
+    await record(accountId, subscription(token, "pro:monthly", { requiresAcknowledgement: true, sealedProviderState: "{}" }));
+    await db.update(commerceTransactions).set({ acknowledgementState: "acknowledged" }).where(eq(commerceTransactions.providerTransactionId, token));
+    await record(accountId, subscription(token, "pro:monthly", { requiresAcknowledgement: true, sealedProviderState: "{}" }));
+    expect(await row(token)).toMatchObject({ acknowledgementState: "acknowledged" });
+  });
+});
+
+describe("a product the catalog stopped selling", () => {
+  const retired: CommerceCatalog = { ...catalog, offers: catalog.offers.filter((offer) => offer.key !== "supporter") };
+  const oneTime = (orderId: string, state: VerifiedCommerceTransaction["state"]): VerifiedCommerceTransaction => ({ providerTransactionId: orderId, providerReference: "supporter_once", kind: "oneTime", state, purchasedAt: Date.now(), validFrom: Date.now() });
+
+  it("still takes its refund, and revokes what it granted", async () => {
+    const accountId = await account("refund-retired");
+    const orderId = crypto.randomUUID();
+    await record(accountId, oneTime(orderId, "active"));
+    await recordVerifiedTransaction(env.DB, { catalog: retired, provider: KEY, accountId, transaction: oneTime(orderId, "revoked"), now: Date.now() });
+
+    expect(await row(orderId)).toMatchObject({ state: "revoked", offerKey: "supporter" });
+    const transactionId = (await row(orderId))?.id as string;
+    const grants = await db.select().from(entitlementGrants).where(eq(entitlementGrants.sourceTransactionId, transactionId)).all();
+    expect(grants.every((grant) => grant.revokedAt !== null)).toBe(true);
+  });
+
+  it("refuses to grant it anew, or to anyone new", async () => {
+    const accountId = await account("new-retired");
+    const orderId = crypto.randomUUID();
+    await record(accountId, oneTime(orderId, "active"));
+    await expect(recordVerifiedTransaction(env.DB, { catalog: retired, provider: KEY, accountId, transaction: oneTime(orderId, "active"), now: Date.now() })).rejects.toThrow(/not registered/);
+    await expect(recordVerifiedTransaction(env.DB, { catalog: retired, provider: KEY, accountId, transaction: oneTime(crypto.randomUUID(), "revoked"), now: Date.now() })).rejects.toThrow(/not registered/);
+  });
+});

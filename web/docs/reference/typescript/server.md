@@ -745,7 +745,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:35](https://github.com
 
 ### AccessSnapshot
 
-Defined in: [server/packages/server/src/commerce/types.ts:212](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L212)
+Defined in: [server/packages/server/src/commerce/types.ts:236](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L236)
 
 #### Properties
 
@@ -755,7 +755,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:212](https://github.co
 content: ContentGrant[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:215](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L215)
+Defined in: [server/packages/server/src/commerce/types.ts:239](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L239)
 
 ##### entitlements
 
@@ -763,7 +763,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:215](https://github.co
 entitlements: ActiveEntitlement[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:213](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L213)
+Defined in: [server/packages/server/src/commerce/types.ts:237](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L237)
 
 ##### limits
 
@@ -771,7 +771,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:213](https://github.co
 limits: LimitAccess[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:216](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L216)
+Defined in: [server/packages/server/src/commerce/types.ts:240](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L240)
 
 ##### permissions
 
@@ -779,7 +779,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:216](https://github.co
 permissions: EngineAccessCapability[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:214](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L214)
+Defined in: [server/packages/server/src/commerce/types.ts:238](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L238)
 
 ***
 
@@ -889,7 +889,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:66](https://github.com
 
 ### CommerceCheckout
 
-Defined in: [server/packages/server/src/commerce/types.ts:105](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L105)
+Defined in: [server/packages/server/src/commerce/types.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L113)
 
 #### Properties
 
@@ -899,7 +899,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:105](https://github.co
 optional expiresAt?: number;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L108)
+Defined in: [server/packages/server/src/commerce/types.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L116)
 
 Provider session expiry in epoch milliseconds, when known.
 
@@ -909,7 +909,7 @@ Provider session expiry in epoch milliseconds, when known.
 optional providerAccountId?: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L110)
+Defined in: [server/packages/server/src/commerce/types.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L118)
 
 Returned when checkout created or resolved a provider customer.
 
@@ -919,13 +919,13 @@ Returned when checkout created or resolved a provider customer.
 url: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:106](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L106)
+Defined in: [server/packages/server/src/commerce/types.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L114)
 
 ***
 
 ### CommerceConfig
 
-Defined in: [server/packages/server/src/commerce/types.ts:171](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L171)
+Defined in: [server/packages/server/src/commerce/types.ts:195](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L195)
 
 #### Type Parameters
 
@@ -941,7 +941,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:171](https://github.co
 catalog: CommerceCatalog;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L172)
+Defined in: [server/packages/server/src/commerce/types.ts:196](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L196)
 
 ##### now?
 
@@ -949,7 +949,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.co
 optional now?: () => number;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:175](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L175)
+Defined in: [server/packages/server/src/commerce/types.ts:199](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L199)
 
 Test seam. Production uses `Date.now`.
 
@@ -963,7 +963,7 @@ Test seam. Production uses `Date.now`.
 providers: readonly CommerceProvider<TEnv>[];
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:173](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L173)
+Defined in: [server/packages/server/src/commerce/types.ts:197](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L197)
 
 ##### reconcileBatch?
 
@@ -971,7 +971,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:173](https://github.co
 optional reconcileBatch?: number;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:177](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L177)
+Defined in: [server/packages/server/src/commerce/types.ts:201](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L201)
 
 Maximum nonterminal transactions checked per provider and invocation.
 
@@ -981,7 +981,7 @@ Maximum nonterminal transactions checked per provider and invocation.
 optional reconcileMaxFailures?: number;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
+Defined in: [server/packages/server/src/commerce/types.ts:204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L204)
 
 Consecutive failed sweeps after which a transaction stops being swept and
 is surfaced to the operator instead. Defaults to 10.
@@ -990,7 +990,7 @@ is surfaced to the operator instead. Defaults to 10.
 
 ### CommerceManagement
 
-Defined in: [server/packages/server/src/commerce/types.ts:113](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L113)
+Defined in: [server/packages/server/src/commerce/types.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L121)
 
 #### Properties
 
@@ -1000,7 +1000,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:113](https://github.co
 url: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:114](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L114)
+Defined in: [server/packages/server/src/commerce/types.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L122)
 
 ***
 
@@ -1079,7 +1079,7 @@ Defaults to false. Enable only for intentionally repeatable support/tip offers.
 
 ### CommerceProduct
 
-Defined in: [server/packages/server/src/commerce/types.ts:99](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L99)
+Defined in: [server/packages/server/src/commerce/types.ts:107](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L107)
 
 #### Properties
 
@@ -1089,7 +1089,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:99](https://github.com
 optional currencyCode?: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L102)
+Defined in: [server/packages/server/src/commerce/types.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L110)
 
 ##### displayPrice
 
@@ -1097,7 +1097,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:102](https://github.co
 displayPrice: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:101](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L101)
+Defined in: [server/packages/server/src/commerce/types.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L109)
 
 ##### providerReference
 
@@ -1105,13 +1105,13 @@ Defined in: [server/packages/server/src/commerce/types.ts:101](https://github.co
 providerReference: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:100](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L100)
+Defined in: [server/packages/server/src/commerce/types.ts:108](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L108)
 
 ***
 
 ### CommerceProvider
 
-Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
+Defined in: [server/packages/server/src/commerce/types.ts:171](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L171)
 
 A provider boundary. Implementations perform all remote verification.
 
@@ -1133,7 +1133,7 @@ A provider boundary. Implementations perform all remote verification.
 readonly key: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
+Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L172)
 
 #### Methods
 
@@ -1143,7 +1143,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.co
 optional acknowledge(env, transaction): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:166](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L166)
+Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
 
 Runs only after the normalized transaction and grants commit.
 
@@ -1164,7 +1164,7 @@ Runs only after the normalized transaction and grants commit.
 optional createCheckout(env, input): Promise<CommerceCheckout>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:167](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L167)
+Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L191)
 
 ###### Parameters
 
@@ -1188,7 +1188,7 @@ optional management(
 ): Promise<CommerceManagement>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:168](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L168)
+Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L192)
 
 ###### Parameters
 
@@ -1209,7 +1209,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:168](https://github.co
 optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L159)
+Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
 
 ###### Parameters
 
@@ -1228,7 +1228,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.co
 optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:164](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L164)
+Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
 
 Fetches current state for locally active or pending transaction refs.
 
@@ -1243,13 +1243,36 @@ Fetches current state for locally active or pending transaction refs.
 
 `Promise`\<readonly [`VerifiedCommerceTransaction`](#verifiedcommercetransaction)[]\>
 
+##### validateReference()?
+
+```ts
+optional validateReference(providerReference, kind): void;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
+
+Throws when a catalog reference cannot name anything this provider sells as
+an offer of `kind`. Called for every offer at `createEngine`, so a
+misspelt reference is a deploy failure rather than a refused purchase.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `providerReference` | `string` |
+| `kind` | `"oneTime"` \| `"subscription"` |
+
+###### Returns
+
+`void`
+
 ##### verifyClaim()
 
 ```ts
 verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:160](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L160)
+Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
 
 ###### Parameters
 
@@ -1265,12 +1288,14 @@ Defined in: [server/packages/server/src/commerce/types.ts:160](https://github.co
 ##### verifyWebhook()?
 
 ```ts
-optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent>;
+optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent | null>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:162](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L162)
+Defined in: [server/packages/server/src/commerce/types.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L186)
 
 Verifies the raw request and fetches current provider state when needed.
+Resolves null for an authentic notification that concerns no purchase, such
+as a console test message, so the provider is answered and stops resending.
 
 ###### Parameters
 
@@ -1281,13 +1306,13 @@ Verifies the raw request and fetches current provider state when needed.
 
 ###### Returns
 
-`Promise`\<[`VerifiedCommerceEvent`](#verifiedcommerceevent)\>
+`Promise`\<[`VerifiedCommerceEvent`](#verifiedcommerceevent) \| `null`\>
 
 ***
 
 ### CommerceTransactionReference
 
-Defined in: [server/packages/server/src/commerce/types.ts:147](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L147)
+Defined in: [server/packages/server/src/commerce/types.ts:161](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L161)
 
 #### Properties
 
@@ -1297,7 +1322,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:147](https://github.co
 accountId: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L149)
+Defined in: [server/packages/server/src/commerce/types.ts:163](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L163)
 
 ##### acknowledgementPending
 
@@ -1305,7 +1330,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.co
 acknowledgementPending: boolean;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:153](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L153)
+Defined in: [server/packages/server/src/commerce/types.ts:167](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L167)
 
 ##### kind
 
@@ -1313,7 +1338,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:153](https://github.co
 kind: "oneTime" | "subscription";
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L151)
+Defined in: [server/packages/server/src/commerce/types.ts:165](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L165)
 
 ##### providerReference
 
@@ -1321,7 +1346,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.co
 providerReference: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L150)
+Defined in: [server/packages/server/src/commerce/types.ts:164](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L164)
 
 ##### providerTransactionId
 
@@ -1329,7 +1354,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.co
 providerTransactionId: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:148](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L148)
+Defined in: [server/packages/server/src/commerce/types.ts:162](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L162)
 
 ##### sealedProviderState?
 
@@ -1337,7 +1362,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:148](https://github.co
 optional sealedProviderState?: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:152](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L152)
+Defined in: [server/packages/server/src/commerce/types.ts:166](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L166)
 
 ***
 
@@ -2583,7 +2608,7 @@ Delay primitive, injectable so tests run without real timers.
 
 ### SelectedContent
 
-Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L192)
+Defined in: [server/packages/server/src/commerce/types.ts:216](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L216)
 
 One content choice snapshotted onto a game at creation.
 
@@ -2599,7 +2624,7 @@ One content choice snapshotted onto a game at creation.
 classification: ContentClassification;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:194](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L194)
+Defined in: [server/packages/server/src/commerce/types.ts:218](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L218)
 
 ##### collection
 
@@ -2631,7 +2656,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:17](https://github.com
 ownership: ContentOwnershipScope;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:193](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L193)
+Defined in: [server/packages/server/src/commerce/types.ts:217](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L217)
 
 ***
 
@@ -2978,19 +3003,24 @@ Resolve a bearer token to claims, or throw [AuthError](#autherror).
 
 ### VerifiedCommerceEvent
 
-Defined in: [server/packages/server/src/commerce/types.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L141)
+Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L149)
 
 A provider-authenticated notification resolved to current provider state.
 
 #### Properties
 
-##### accountId
+##### accountId?
 
 ```ts
-accountId: string;
+optional accountId?: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:143](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L143)
+Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
+
+The Eigen account the provider says the purchase belongs to. Absent when
+it names none -- a Play resubscription made from the Play Store carries no
+obfuscated account id -- and the ledger then attributes the transaction
+through the row it already has, or the one it replaced.
 
 ##### providerEventId
 
@@ -2998,7 +3028,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:143](https://github.co
 providerEventId: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L142)
+Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L150)
 
 ##### transaction
 
@@ -3006,7 +3036,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:142](https://github.co
 transaction: VerifiedCommerceTransaction;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:144](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L144)
+Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
 
 ***
 
@@ -3064,6 +3094,20 @@ purchasedAt: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:84](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L84)
+
+##### replacesProviderTransactionId?
+
+```ts
+optional replacesProviderTransactionId?: string;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:104](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L104)
+
+The transaction this one replaced at the provider, when it says so: Play
+issues a new purchase token for every plan change and for a resubscription
+after a lapse, and names the old token as `linkedPurchaseToken`. The ledger
+ends the replaced transaction, so the old token's grants do not outlive it,
+and attributes this one through it when the provider names no account.
 
 ##### requiresAcknowledgement?
 

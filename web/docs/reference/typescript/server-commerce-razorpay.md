@@ -125,7 +125,7 @@ The secret configured on the webhook, not the API key secret.
 function razorpayCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/razorpay.ts:93](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/razorpay.ts#L93)
+Defined in: [server/packages/server/src/commerce/providers/razorpay.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/razorpay.ts#L102)
 
 #### Type Parameters
 

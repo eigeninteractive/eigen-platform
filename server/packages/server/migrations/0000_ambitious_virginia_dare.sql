@@ -78,6 +78,8 @@ CREATE TABLE `commerce_transactions` (
 	`reconcile_attempted_at` integer,
 	`reconcile_failures` integer DEFAULT 0 NOT NULL,
 	`reconcile_error` text,
+	`observed_at` integer NOT NULL,
+	`revision` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL
 );

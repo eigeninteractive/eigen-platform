@@ -481,6 +481,15 @@ describe("purchase claims", () => {
   });
 });
 
+describe("claims the provider refuses", () => {
+  it("answers 409, not 502: the provider answered, and asking again will not change it", async () => {
+    const accountId = await provisioned(uid("refused"));
+    const response = await api(accountId, "POST", "/commerce/claims", { provider: "fake", offerKey: "supporter", evidence: evidence(accountId, crypto.randomUUID(), "supporter_once", { refusal: "holds several products" }) });
+    const body = await json<{ code: string; error: string }>(response, 409);
+    expect(body).toMatchObject({ code: "purchaseConflict" });
+  });
+});
+
 describe("provider webhooks", () => {
   it("authenticates in the adapter, deduplicates events, and applies revocation", async () => {
     const accountId = await provisioned(uid("webhook"));
@@ -522,6 +531,28 @@ describe("provider webhooks", () => {
     expect(revoked.status).toBe(204);
     const after = await json<{ entitlements: unknown[] }>(await api(accountId, "GET", "/commerce/access"));
     expect(after.entitlements).toEqual([]);
+  });
+
+  const notify = async (body: Record<string, unknown>) => await exports.default.fetch("https://x/api/commerce/fake/webhook", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eventId: crypto.randomUUID(), ...body }) });
+
+  it("answers a notification about no purchase without recording anything", async () => {
+    const eventId = crypto.randomUUID();
+    expect((await notify({ eventId, ignore: true })).status).toBe(204);
+    expect(await db.select().from(commerceEvents).where(eq(commerceEvents.providerEventId, eventId)).all()).toEqual([]);
+  });
+
+  it("accepts a notification the provider will never stop refusing, rather than having it resent for days", async () => {
+    const transactionId = crypto.randomUUID();
+    expect((await notify({ transactionId, providerReference: "supporter_once", refusal: "holds several products" })).status).toBe(204);
+    expect(await db.select().from(commerceTransactions).where(eq(commerceTransactions.providerTransactionId, transactionId)).all()).toEqual([]);
+  });
+
+  it("attributes a notification that names no account to the account already holding the purchase", async () => {
+    const accountId = await provisioned(uid("unnamed"));
+    const transactionId = crypto.randomUUID();
+    await json(await api(accountId, "POST", "/commerce/claims", { provider: "fake", offerKey: "supporter", evidence: evidence(accountId, transactionId, "supporter_once") }));
+    expect((await notify({ transactionId, providerReference: "supporter_once", state: "revoked" })).status).toBe(204);
+    expect((await json<{ entitlements: unknown[] }>(await api(accountId, "GET", "/commerce/access"))).entitlements).toEqual([]);
   });
 
   it("rejects malformed notification evidence without Firebase auth", async () => {

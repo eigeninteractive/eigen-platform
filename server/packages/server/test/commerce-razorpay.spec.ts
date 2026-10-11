@@ -7,6 +7,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ProviderRefusal } from "../src/commerce/provider-kit.js";
 import { razorpayCommerceProvider } from "../src/commerce/providers/razorpay.js";
 
 const SECRET = "wh_secret";
@@ -38,7 +39,9 @@ async function sign(body: string): Promise<string> {
   return [...new Uint8Array(mac)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-const subscription = (status: string) => ({ id: "sub_rz", plan_id: "plan_pro", customer_id: "cust_rz", status, created_at: 1_699_000_000, start_at: 1_699_000_000, current_start: 1_699_000_000, current_end: 1_701_000_000 });
+const subscription = (status: string, notes: unknown = { eigenAccountId: "alice" }) => ({ id: "sub_rz", plan_id: "plan_pro", customer_id: "cust_rz", status, created_at: 1_699_000_000, start_at: 1_699_000_000, current_start: 1_699_000_000, current_end: 1_701_000_000, notes });
+
+const payment = (overrides: Record<string, unknown> = {}) => ({ id: "pay_1", status: "captured", amount: 49900, currency: "INR", order_id: "order_1", customer_id: "cust_rz", created_at: 1_699_000_000, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter_once" }, ...overrides });
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -62,19 +65,44 @@ describe("razorpay subscriptions", () => {
     expect(verified.state).toBe(expected);
     expect(verified).toMatchObject({ providerReference: "plan_pro", kind: "subscription", providerAccountId: "cust_rz" });
   });
+
+  it.each([
+    ["another account's", { eigenAccountId: "mallory" }],
+    // Every subscription checkout creates carries the note, so one without it
+    // was made elsewhere, and its id alone says nothing about whose it is.
+    ["no account's", []],
+  ])("refuses a subscription made for %s", async (_label, notes) => {
+    scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active", notes) });
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "plan_pro", evidence: { subscriptionId: "sub_rz" } })).rejects.toThrow(/another account/);
+  });
 });
 
 describe("razorpay payments", () => {
   it("authenticates with the key pair and reads the offer from the payment notes", async () => {
-    const { auth } = scriptFetch({ "/v1/payments/pay_1": { id: "pay_1", status: "captured", order_id: "order_1", customer_id: "cust_rz", created_at: 1_699_000_000, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter_once" } } });
+    const { auth } = scriptFetch({ "/v1/payments/pay_1": payment() });
     const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } });
     expect(verified).toMatchObject({ providerTransactionId: "pay_1", providerReference: "supporter_once", kind: "oneTime", state: "active" });
     expect(auth[0]).toBe(`Basic ${btoa("rzp_test:rzp_secret")}`);
   });
 
   it("refuses a payment whose notes name another account", async () => {
-    scriptFetch({ "/v1/payments/pay_1": { id: "pay_1", status: "captured", order_id: null, created_at: 1, notes: { eigenAccountId: "mallory", eigenProviderReference: "supporter_once" } } });
+    scriptFetch({ "/v1/payments/pay_1": payment({ notes: { eigenAccountId: "mallory", eigenProviderReference: "supporter_once" } }) });
     await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(/another account/);
+  });
+
+  it("refuses a payment that names no account", async () => {
+    scriptFetch({ "/v1/payments/pay_1": payment({ notes: { eigenProviderReference: "supporter_once" } }) });
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(/another account/);
+  });
+
+  it.each([
+    // Notes are whatever the payer's checkout said: a one-rupee payment
+    // carrying the supporter offer's notes must not become the supporter offer.
+    ["less than the offer's price", { amount: 100 }],
+    ["the right amount in another currency", { currency: "USD" }],
+  ])("refuses a payment of %s", async (_label, overrides) => {
+    scriptFetch({ "/v1/payments/pay_1": payment(overrides) });
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it.each([
@@ -82,7 +110,7 @@ describe("razorpay payments", () => {
     ["failed", "revoked"],
     ["authorized", "pending"],
   ])("maps a %s payment onto %s", async (status, expected) => {
-    scriptFetch({ "/v1/payments/pay_1": { id: "pay_1", status, order_id: null, created_at: 1, notes: { eigenProviderReference: "supporter_once" } } });
+    scriptFetch({ "/v1/payments/pay_1": payment({ status }) });
     const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "supporter_once", evidence: { paymentId: "pay_1" } });
     expect(verified.state).toBe(expected);
   });
@@ -90,6 +118,12 @@ describe("razorpay payments", () => {
 
 describe("razorpay webhooks", () => {
   const event = JSON.stringify({ event: "subscription.charged", payload: { subscription: { entity: { id: "sub_rz", notes: { eigenAccountId: "alice" } } } } });
+
+  it("takes the account from the subscription it re-read, not from the event body", async () => {
+    scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active", { eigenAccountId: "bob" }) });
+    const verified = await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "x-razorpay-signature": await sign(event) }, body: event }));
+    expect(verified).toMatchObject({ accountId: "bob" });
+  });
 
   it("accepts a correct signature and re-reads the subscription", async () => {
     scriptFetch({ "/v1/subscriptions/sub_rz": subscription("active") });
@@ -143,6 +177,17 @@ describe("razorpay checkout", () => {
         operationId: "op-8",
       }),
     ).rejects.toThrow(/no amount configured/);
+  });
+
+  it.each([
+    ["plan_pro", "subscription", undefined],
+    ["supporter_once", "oneTime", undefined],
+    ["pro_monthly", "subscription", /Plan/],
+    ["unpriced", "oneTime", /amounts/],
+  ] as const)("checks %s as a %s reference", (reference, kind, problem) => {
+    const check = () => provider.validateReference?.(reference, kind);
+    if (problem === undefined) expect(check).not.toThrow();
+    else expect(check).toThrow(problem);
   });
 
   it("has no management portal, because Razorpay has none", () => {

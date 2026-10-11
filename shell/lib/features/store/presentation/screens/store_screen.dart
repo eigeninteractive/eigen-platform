@@ -119,6 +119,7 @@ class _OfferTileState extends ConsumerState<_OfferTile> {
     final offer = widget.offer;
     final products = ref.watch(storeProductsProvider).value ?? const {};
     final price = _priceOf(offer, products);
+    final introduction = _introductionOf(offer, products);
     // No product for any storefront this build carries: the offer exists and
     // is not purchasable from here, which is worth saying rather than hiding.
     final sellable = offer.products.isNotEmpty;
@@ -130,6 +131,7 @@ class _OfferTileState extends ConsumerState<_OfferTile> {
         subtitle: Text(
           offer.kind == CommerceOfferKindEnum.subscription
               ? '${offer.description}\nSubscription'
+                    '${introduction == null ? '' : ' · $introduction, then $price'}'
               : offer.description,
         ),
         isThreeLine: offer.kind == CommerceOfferKindEnum.subscription,
@@ -300,6 +302,38 @@ String? _priceOf(CommerceOffer offer, Map<String, StoreProduct> products) {
     if (product.displayPrice != null) return product.displayPrice;
   }
   return null;
+}
+
+/// How a subscription starts, when it starts below its regular price: "Free
+/// for 1 week", "₹49 for 3 months". Only the first phase — a player deciding
+/// whether to try something reads the first thing it costs.
+String? _introductionOf(
+  CommerceOffer offer,
+  Map<String, StoreProduct> products,
+) {
+  for (final product in offer.products) {
+    final sdk = products['${product.provider}:${product.providerReference}'];
+    if (sdk == null) continue;
+    final first = sdk.introductoryPrices.firstOrNull;
+    return first == null
+        ? null
+        : '${first.displayPrice} for ${_lasting(first)}';
+  }
+  return null;
+}
+
+/// An introductory phase's length in words, from its ISO 8601 cycle.
+String _lasting(IntroductoryPrice price) {
+  final cycle = RegExp(r'^P(\d+)([DWMY])$').firstMatch(price.billingPeriod);
+  if (cycle == null) return price.billingPeriod;
+  final count = int.parse(cycle[1]!) * (price.cycles < 1 ? 1 : price.cycles);
+  final unit = switch (cycle[2]) {
+    'D' => 'day',
+    'W' => 'week',
+    'M' => 'month',
+    _ => 'year',
+  };
+  return '$count $unit${count == 1 ? '' : 's'}';
 }
 
 /// Play's own subscription centre, which is where a Play subscription is
