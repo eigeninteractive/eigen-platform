@@ -9,7 +9,8 @@
  * anywhere a log would see it.
  */
 
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { exportJWK, generateKeyPair, SignJWT } from "jose";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { resolveCommerce } from "../src/commerce/catalog.js";
 import { ProviderRefusal } from "../src/commerce/provider-kit.js";
 import { googlePlayCommerceProvider, googlePlaySubscriptionReference } from "../src/commerce/providers/google-play.js";
@@ -27,6 +28,30 @@ async function testPrivateKey(): Promise<string> {
   return cachedKey;
 }
 
+const NOW = 1_700_000_000_000;
+const SERVICE_ACCOUNT = "svc@example.iam.gserviceaccount.com";
+const RTDN_URL = "https://worker.example/api/commerce/google_play/webhook";
+
+// Stands in for Google's push signer: the scripted certs endpoint serves its
+// public half, and each notification carries a token it signed.
+let googleSigner: CryptoKey;
+let googleCerts: { keys: Record<string, unknown>[] };
+let delivery: string;
+
+/** A Pub/Sub push token, as Google mints one for a subscription delivering as
+ * `email` to `audience`. */
+async function pushToken(claims: Record<string, unknown> = {}, signer = googleSigner): Promise<string> {
+  const issuedAt = Math.floor(NOW / 1000) - 60;
+  return await new SignJWT({ iss: "https://accounts.google.com", aud: RTDN_URL, iat: issuedAt, exp: issuedAt + 3600, email: SERVICE_ACCOUNT, email_verified: true, ...claims }).setProtectedHeader({ alg: "RS256", kid: "google-1" }).sign(signer);
+}
+
+beforeAll(async () => {
+  const pair = await generateKeyPair("RS256");
+  googleSigner = pair.privateKey;
+  googleCerts = { keys: [{ ...(await exportJWK(pair.publicKey)), kid: "google-1", alg: "RS256", use: "sig" }] };
+  delivery = await pushToken();
+});
+
 function makeProviderSync() {
   return googlePlayCommerceProvider<unknown>({ packageName: () => "com.example.game", serviceAccountEmail: () => undefined, serviceAccountPrivateKey: () => undefined });
 }
@@ -34,16 +59,20 @@ function makeProviderSync() {
 async function makeProvider() {
   return googlePlayCommerceProvider<unknown>({
     packageName: () => "com.example.game",
-    serviceAccountEmail: () => "svc@example.iam.gserviceaccount.com",
+    serviceAccountEmail: () => SERVICE_ACCOUNT,
     serviceAccountPrivateKey: () => cachedKey as string,
-    now: () => 1_700_000_000_000,
+    now: () => NOW,
   });
 }
 
 function scriptFetch(routes: Record<string, unknown>): { seen: string[]; tokenCalls: number } {
   const state = { seen: [] as string[], tokenCalls: 0 };
-  vi.stubGlobal("fetch", async (request: Request) => {
+  vi.stubGlobal("fetch", async (input: Request | string | URL, init?: RequestInit) => {
+    const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
+    if (url.href === "https://www.googleapis.com/oauth2/v3/certs") {
+      return new Response(JSON.stringify(googleCerts), { headers: { "content-type": "application/json" } });
+    }
     if (url.hostname === "oauth2.googleapis.com") {
       state.tokenCalls += 1;
       return new Response(JSON.stringify({ access_token: "ya29.test", expires_in: 3600 }), { headers: { "content-type": "application/json" } });
@@ -72,7 +101,13 @@ const productPurchase = (purchaseState: string, overrides: Record<string, unknow
   ...overrides,
 });
 
-const notify = (notification: Record<string, unknown>, messageId = "msg-1") => new Request("https://x/rtdn", { method: "POST", body: JSON.stringify({ message: { data: btoa(JSON.stringify({ packageName: "com.example.game", ...notification })), messageId } }) });
+/** A notification as Pub/Sub pushes it, delivered with `token`. */
+const notify = (notification: Record<string, unknown>, messageId = "msg-1", token: string | null = delivery) =>
+  new Request(RTDN_URL, {
+    method: "POST",
+    headers: token === null ? {} : { authorization: `Bearer ${token}` },
+    body: JSON.stringify({ message: { data: btoa(JSON.stringify({ packageName: "com.example.game", ...notification })), messageId } }),
+  });
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -294,8 +329,7 @@ describe("google play notifications", () => {
       },
     });
     const provider = await makeProvider();
-    const data = btoa(JSON.stringify({ packageName: "com.example.game", subscriptionNotification: { purchaseToken: "tok_sub" } }));
-    const verified = await provider.verifyWebhook?.(null, new Request("https://x/rtdn", { method: "POST", body: JSON.stringify({ message: { data, messageId: "msg-1" } }) }));
+    const verified = await provider.verifyWebhook?.(null, notify({ subscriptionNotification: { purchaseToken: "tok_sub" } }));
     expect(verified).toMatchObject({ providerEventId: "msg-1", accountId: "alice" });
     expect(verified?.transaction).toMatchObject({ state: "active", providerReference: "pro:monthly" });
   });
@@ -389,5 +423,47 @@ describe("google play boundaries", () => {
     const provider = await makeProvider();
     expect(provider.createCheckout).toBeUndefined();
     expect(provider.management).toBeUndefined();
+  });
+});
+
+describe("google play notification delivery", () => {
+  const purchased = { oneTimeProductNotification: { notificationType: 1, purchaseToken: "tok_1" } };
+
+  /** Refused before Play is asked anything: a forged notification costs no
+   * API call. */
+  async function expectRefused(request: Request) {
+    await testPrivateKey();
+    const state = scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED") });
+    await expect((await makeProvider()).verifyWebhook?.(null, request)).rejects.toThrow();
+    expect(state.seen).toEqual([]);
+  }
+
+  it("reads a notification Pub/Sub delivered as the game's service account", async () => {
+    await testPrivateKey();
+    scriptFetch({ [PRODUCT_PATH]: productPurchase("PURCHASED") });
+    await expect((await makeProvider()).verifyWebhook?.(null, notify(purchased))).resolves.toMatchObject({ transaction: { providerTransactionId: "tok_1" } });
+  });
+
+  it("refuses a notification with no Pub/Sub token", async () => {
+    await expectRefused(notify(purchased, "msg-1", null));
+  });
+
+  it("refuses a token Google did not sign", async () => {
+    const forger = (await generateKeyPair("RS256")).privateKey;
+    await expectRefused(notify(purchased, "msg-1", await pushToken({}, forger)));
+  });
+
+  it("refuses a token for another service account, which anyone's subscription could mint", async () => {
+    await expectRefused(notify(purchased, "msg-1", await pushToken({ email: "mallory@evil.iam.gserviceaccount.com" })));
+    await expectRefused(notify(purchased, "msg-1", await pushToken({ email_verified: false })));
+  });
+
+  it("refuses a token minted for another endpoint", async () => {
+    await expectRefused(notify(purchased, "msg-1", await pushToken({ aud: "https://elsewhere.example/push" })));
+  });
+
+  it("refuses an expired token", async () => {
+    const issuedAt = Math.floor(NOW / 1000) - 7200;
+    await expectRefused(notify(purchased, "msg-1", await pushToken({ iat: issuedAt, exp: issuedAt + 3600 })));
   });
 });

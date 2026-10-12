@@ -46,6 +46,12 @@ Play-specific facts shape the rest:
 - **A refund is a notification, not a state.** A voided one-time purchase
   may still read as purchased, so the voided notification itself revokes it,
   as Google's notification reference allows.
+- **Notifications are authenticated by their delivery, not their body.**
+  Google signs nothing in a Real-time Developer Notification. Pub/Sub push
+  attaches a Google-signed token naming the service account it delivers as
+  and the endpoint it delivers to, so a notification is read only when that
+  token verifies, names this game's service account, and was minted for the
+  URL it arrived at.
 
 There is no `createCheckout`: Play checkout is launched by the Billing
 library on the device, and the engine answers that plainly for this provider.
@@ -54,7 +60,7 @@ library on the device, and the engine answers that plainly for this provider.
 
 ### GooglePlayCommerceConfig
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L63)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L73)
 
 #### Type Parameters
 
@@ -70,7 +76,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:63](ht
 optional now?: () => number;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:70](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L70)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:82](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L82)
 
 ###### Returns
 
@@ -84,7 +90,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:70](ht
 packageName(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:65](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L65)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L75)
 
 The app's package name, e.g. `com.example.game`.
 
@@ -104,9 +110,11 @@ The app's package name, e.g. `com.example.game`.
 serviceAccountEmail(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:67](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L67)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L79)
 
-The service account's `client_email` from its JSON key.
+The service account's `client_email` from its JSON key. It is also the
+account the Pub/Sub push subscription delivers notifications as: a
+notification delivered as anyone else is refused.
 
 ###### Parameters
 
@@ -124,7 +132,7 @@ The service account's `client_email` from its JSON key.
 serviceAccountPrivateKey(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:69](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L69)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L81)
 
 The service account's PKCS#8 `private_key`, PEM, newlines intact.
 
@@ -146,7 +154,7 @@ The service account's PKCS#8 `private_key`, PEM, newlines intact.
 function googlePlayCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:208](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L208)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:220](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L220)
 
 #### Type Parameters
 
@@ -172,7 +180,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:208](h
 function googlePlaySubscriptionReference(productId, basePlanId): string;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L119)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L131)
 
 The `providerReference` a catalog names for a Play subscription base plan.
 

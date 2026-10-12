@@ -45,6 +45,12 @@
  * - **A refund is a notification, not a state.** A voided one-time purchase
  *   may still read as purchased, so the voided notification itself revokes it,
  *   as Google's notification reference allows.
+ * - **Notifications are authenticated by their delivery, not their body.**
+ *   Google signs nothing in a Real-time Developer Notification. Pub/Sub push
+ *   attaches a Google-signed token naming the service account it delivers as
+ *   and the endpoint it delivers to, so a notification is read only when that
+ *   token verifies, names this game's service account, and was minted for the
+ *   URL it arrived at.
  *
  * There is no `createCheckout`: Play checkout is launched by the Billing
  * library on the device, and the engine answers that plainly for this provider.
@@ -52,6 +58,7 @@
  * @module @eigeninteractive/server/commerce/google-play
  */
 
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { ProviderRefusal, providerJson, requireSecret } from "../provider-kit.js";
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
@@ -59,11 +66,16 @@ const API = "https://androidpublisher.googleapis.com/androidpublisher/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const SCOPE = "https://www.googleapis.com/auth/androidpublisher";
 const PROVIDER = "google_play";
+/** The keys Google signs Pub/Sub push tokens with, and who it says signed. */
+const GOOGLE_CERTS = "https://www.googleapis.com/oauth2/v3/certs";
+const GOOGLE_ISSUERS = ["https://accounts.google.com", "accounts.google.com"];
 
 export interface GooglePlayCommerceConfig<TEnv> {
   /** The app's package name, e.g. `com.example.game`. */
   packageName(env: TEnv): string | undefined;
-  /** The service account's `client_email` from its JSON key. */
+  /** The service account's `client_email` from its JSON key. It is also the
+   * account the Pub/Sub push subscription delivers notifications as: a
+   * notification delivered as anyone else is refused. */
   serviceAccountEmail(env: TEnv): string | undefined;
   /** The service account's PKCS#8 `private_key`, PEM, newlines intact. */
   serviceAccountPrivateKey(env: TEnv): string | undefined;
@@ -211,6 +223,9 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
   // Minting is an RS256 signature plus a round trip; doing it per verification
   // would put that on the purchase path for no benefit.
   let cached: { token: string; expiresAt: number } | null = null;
+  // jose caches the fetched keys inside this resolver and refetches when Google
+  // rotates them, so it lives as long as the adapter does.
+  const googleKeys = createRemoteJWKSet(new URL(GOOGLE_CERTS));
 
   const accessToken = async (env: TEnv): Promise<string> => {
     if (cached !== null && cached.expiresAt > now() + 60_000) return cached.token;
@@ -307,6 +322,35 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
     };
   };
 
+  /** Throws unless Pub/Sub delivered [request] as this game's service account,
+   * to the URL it arrived at. */
+  const verifyDelivery = async (env: TEnv, request: Request): Promise<void> => {
+    const serviceAccount = requireSecret(config.serviceAccountEmail(env), "google play serviceAccountEmail");
+    const authorization = request.headers.get("authorization") ?? "";
+    if (!authorization.startsWith("Bearer ")) throw new Error("google play notification carries no Pub/Sub token");
+    // Pub/Sub mints the token for the push endpoint as configured, which is
+    // the URL the notification arrives at.
+    const endpoint = new URL(request.url);
+    endpoint.search = "";
+    endpoint.hash = "";
+    let claims: { email?: unknown; email_verified?: unknown };
+    try {
+      ({ payload: claims } = await jwtVerify(authorization.slice("Bearer ".length), googleKeys, {
+        issuer: GOOGLE_ISSUERS,
+        audience: endpoint.toString(),
+        algorithms: ["RS256"],
+        currentDate: new Date(now()),
+      }));
+    } catch {
+      throw new Error("google play notification token does not verify");
+    }
+    // Any Google service account can have a token minted for this URL; only
+    // the game's own can be the one its subscription delivers as.
+    if (claims.email !== serviceAccount || claims.email_verified !== true) {
+      throw new Error("google play notification was not delivered as this game's service account");
+    }
+  };
+
   const readSealed = async (env: TEnv, sealed: string): Promise<VerifiedCommerceTransaction> => {
     const handle = JSON.parse(sealed) as Handle;
     return handle.kind === "subscription" ? await readSubscription(env, handle.token) : await readProduct(env, handle.token);
@@ -348,12 +392,12 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
      * Real-time Developer Notifications, delivered by Pub/Sub push.
      *
      * The message is a change signal and nothing more -- it carries a token, not
-     * a state -- so the current purchase is always read back from the API. The
-     * push endpoint itself must be authenticated by the deployment (a Pub/Sub
-     * OIDC token, or an unguessable path), which is why there is no signature
-     * to check here: Google does not sign the body.
+     * a state -- so the current purchase is always read back from the API.
+     * Nothing is read until the delivery itself verifies: Google does not sign
+     * the body, so the Pub/Sub token is the only proof it came from Play.
      */
     verifyWebhook: async (env, request) => {
+      await verifyDelivery(env, request);
       const envelope = (await request.json()) as { message?: { data?: string; messageId?: string } };
       const encoded = envelope.message?.data;
       if (typeof encoded !== "string") throw new Error("google play notification has no message data");

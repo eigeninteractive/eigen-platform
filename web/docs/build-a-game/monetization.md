@@ -512,9 +512,11 @@ are only true of that provider. These are worth knowing before you choose:
   acknowledgement on the reconciliation sweep, so this is handled — but it is
   why `sealedProviderState` exists, and why a Play deployment must let the
   scheduled run happen.
-- **Play's notifications are not signed.** Google delivers them by Pub/Sub push,
-  so the deployment must authenticate that endpoint itself. Stripe and Razorpay
-  both sign, and their adapters verify before parsing.
+- **Play's notifications are authenticated by their delivery.** Google signs
+  nothing in the notification, so the adapter reads one only when Pub/Sub
+  delivered it as your service account, with a token minted for your endpoint.
+  [Set up Google Play](#set-up-google-play) configures that. Stripe and
+  Razorpay sign the body, and their adapters verify it before parsing.
 - **Every authentic notification is answered 2xx.** One about no purchase —
   a Stripe event beyond the lifecycle ones, a Razorpay payment that names no
   Eigen offer — is accepted with nothing recorded. That matters most on
@@ -552,14 +554,93 @@ are only true of that provider. These are worth knowing before you choose:
   bought alongside, not as a replacement.
 - **Play refunds revoke.** Voided-purchase notifications end a refunded
   one-time purchase even while Play still reads it as purchased, and a partial
-  refund of a multi-quantity purchase ends it once nothing is left. Enable
-  Real-time Developer Notifications for one-time products too, so their
-  purchases and cancellations reach the Worker.
+  refund of a multi-quantity purchase ends it once nothing is left.
 - **A Razorpay one-time sale must be paid in full.** Payment notes are written
   by whoever opens Razorpay Checkout, so the adapter accepts a payment only for
   exactly the `amounts` entry of the offer it names, and only for the account
   its notes name. A subscription is likewise accepted only by the account that
   started its checkout.
+
+### Set up Google Play
+
+Play needs two things from Google Cloud, both done once per game:
+
+- a **service account** — a login for your Worker, not a person — which the
+  adapter uses to ask Play whether a purchase is real and to acknowledge it;
+- a **Pub/Sub topic**, where Play publishes [Real-time developer
+  notifications](https://developer.android.com/google/play/billing/rtdn-reference):
+  renewals, cancellations, refunds, and purchases made in the Play Store
+  rather than in your game. A push subscription forwards each one to your
+  Worker, signed as that same service account.
+
+The Cloud project holds only the account and the topic. In a shell with
+`gcloud` signed in:
+
+```sh
+PROJECT=your-cloud-project-id
+WEBHOOK=https://yourgame.example/api/commerce/google_play/webhook
+SERVICE_ACCOUNT="eigen-play@$PROJECT.iam.gserviceaccount.com"
+
+gcloud services enable androidpublisher.googleapis.com pubsub.googleapis.com --project="$PROJECT"
+
+# The account the Worker calls Play as, and its key.
+gcloud iam service-accounts create eigen-play --project="$PROJECT"
+gcloud iam service-accounts keys create play-key.json --iam-account="$SERVICE_ACCOUNT"
+
+# Let Pub/Sub sign push deliveries as that account.
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')
+gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT" \
+  --member="serviceAccount:service-$PROJECT_NUMBER@gcp-sa-pubsub.iam.gserviceaccount.com" \
+  --role=roles/iam.serviceAccountTokenCreator
+
+# The topic Play publishes to, and the push subscription to your Worker.
+gcloud pubsub topics create play-notifications --project="$PROJECT"
+gcloud pubsub topics add-iam-policy-binding play-notifications --project="$PROJECT" \
+  --member=serviceAccount:google-play-developer-notifications@system.gserviceaccount.com \
+  --role=roles/pubsub.publisher
+gcloud pubsub subscriptions create play-notifications-push --project="$PROJECT" \
+  --topic=play-notifications \
+  --push-endpoint="$WEBHOOK" \
+  --push-auth-service-account="$SERVICE_ACCOUNT"
+```
+
+`WEBHOOK` must be exactly the URL your Worker serves: Pub/Sub mints each
+delivery's token for it, and the adapter refuses a token minted for anywhere
+else. If your Google Cloud organization forbids service account keys, an
+administrator has to allow one for this account; the Worker has no other way
+to sign in to Google.
+
+Store the key as Worker secrets, then delete the file:
+
+```sh
+jq -r .client_email play-key.json | npx wrangler secret put GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
+jq -r .private_key play-key.json | npx wrangler secret put GOOGLE_PLAY_PRIVATE_KEY
+rm play-key.json
+```
+
+```ts
+import { googlePlayCommerceProvider } from "@eigeninteractive/server/commerce/google-play";
+
+const play = googlePlayCommerceProvider<Env>({
+  packageName: () => "com.example.game",
+  serviceAccountEmail: (env) => env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
+  serviceAccountPrivateKey: (env) => env.GOOGLE_PLAY_PRIVATE_KEY,
+});
+```
+
+Then, in the [Play Console](https://play.google.com/console/):
+
+1. **Users and permissions → Invite new users.** Enter the service account's
+   email, and for your app grant *View financial data, orders, and
+   cancellation survey responses* and *Manage orders and subscriptions*.
+2. Open your app, then **Monetize → Monetization setup**. Under *Real-time
+   developer notifications*, check *Enable real-time notifications*, enter the
+   topic name `projects/your-cloud-project-id/topics/play-notifications`, and
+   choose *Get all notifications for subscriptions and one-time products*.
+   One-time notifications are how a refunded unlock is taken back.
+3. Save, then **Send test message**. Your Worker answers it with 204 and
+   records nothing. Anything else is in the Worker's log: a refused token
+   usually means `WEBHOOK` differs from the URL the Worker serves.
 
 ### Write your own
 
@@ -625,8 +706,9 @@ of being resent for days.
 - Explain the exact limit and reset date before purchase.
 - Test pending, duplicate, restore, renewal, expiry, refund, revocation, plan
   change, and another account's transaction—not just the successful checkout.
-- On Play, set each subscription's default replacement mode, tag the offers the
-  store may launch, and turn on notifications for one-time products.
+- On Play, finish [Set up Google Play](#set-up-google-play) through its test
+  message, set each subscription's default replacement mode, and tag the offers
+  the store may launch.
 - Keep every subscription's provider reference in the catalog until nobody is
   subscribed under it.
 - Keep abuse rate limits identical for free and paid accounts.

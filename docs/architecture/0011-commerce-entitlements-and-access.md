@@ -28,6 +28,8 @@
   purchase is accepted; a purchase gateway buys for the account
   `CommerceService` belongs to; and an Apple build carries no storefront. See
   _Provider adapters_ and _Dart and Flutter integration_.
+- Amended: 2026-10-12. The Play adapter authenticates a notification by its
+  Pub/Sub push token. See _Provider adapters_.
 
 ## Context
 
@@ -733,7 +735,14 @@ amount and currency, and a payment or subscription only for the account its
 notes name.
 
 Provider notifications MUST be signature- or identity-verified, deduplicated,
-safe under retries, and independent of delivery order. Deduplication uses the
+safe under retries, and independent of delivery order. Stripe and Razorpay sign
+the body. Play signs nothing in its notification, so the adapter verifies the
+delivery instead: Pub/Sub push attaches a Google-signed token, and a
+notification is read only when that token was minted for the URL it arrived at
+and names the game's service account — the one the adapter already calls the
+Play Developer API as, so the deployment configures nothing more. Anyone can
+point a subscription of their own at the endpoint; only the game can have it
+deliver as that account. Deduplication uses the
 provider's own event identity — Stripe's event id, the Pub/Sub message id for
 Play, Razorpay's `x-razorpay-event-id` — because one derived from the
 purchase and its state cannot tell one month's renewal from the next. Where a provider

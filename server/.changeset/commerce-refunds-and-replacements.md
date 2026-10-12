@@ -74,3 +74,10 @@ products. A claim answers 409 rather than 502, and a notification is accepted
 and logged rather than resent for days. The fake provider in
 `@eigeninteractive/server/testing` takes `refusal`, `replaces`, an optional
 webhook `accountId`, and `ignore: true`.
+
+**Breaking:** the Google Play adapter reads a Real-time Developer Notification
+only when its Pub/Sub push token verifies: signed by Google, minted for the URL
+the notification arrived at, and naming the adapter's `serviceAccountEmail`.
+Anything else is refused before Play is called. Turn on authentication on the
+push subscription and have it deliver as the same service account; an
+unauthenticated subscription's notifications now fail.
