@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.7.0] - 2026-10-12
 ### Added
 - The store shows a subscription's introductory price ahead of its regular one: “Free for 1 week, then $4.99”.
 
@@ -74,7 +74,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.6.0...HEAD
+[0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.6.0...eigen_shell-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.5.0...eigen_shell-v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.4.0...eigen_shell-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.3.0...eigen_shell-v0.4.0
