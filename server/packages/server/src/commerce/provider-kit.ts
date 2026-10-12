@@ -50,6 +50,22 @@ export class ProviderRequestError extends Error {
 }
 
 /**
+ * The provider answered, and what it described is something the engine will
+ * never accept -- a Play purchase holding several subscriptions at once, say.
+ *
+ * Distinct from a failure because retrying cannot change it. A claim refusing
+ * one answers 409 rather than 502, and a webhook accepts the notification
+ * rather than asking the provider to resend it for days. The message is logged,
+ * so it must not quote a token.
+ */
+export class ProviderRefusal extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ProviderRefusal";
+  }
+}
+
+/**
  * A JSON call to a provider.
  *
  * The body of a failed response is truncated into the error: providers put the

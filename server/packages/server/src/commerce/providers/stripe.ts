@@ -18,11 +18,14 @@
  * - **Nothing trusts the webhook body.** A notification is a signed hint; the
  *   adapter re-reads the Session, Subscription or PaymentIntent from the API
  *   before anything becomes an entitlement.
+ * - **A refund changes the charge, not the session.** A one-time purchase is
+ *   read with its payment's charge, so a full refund or a lost dispute revokes
+ *   it, and the charge's own events find the session it paid for.
  *
  * @module @eigeninteractive/server/commerce/stripe
  */
 
-import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
+import { basicAuth, hmacSha256Hex, ProviderRefusal, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://api.stripe.com/v1";
@@ -103,6 +106,14 @@ interface StripeCheckoutSession {
   url?: string;
   expires_at?: number;
   line_items?: { data: { price: { id: string } }[] };
+  /** Expanded to its latest charge when a one-time session is read. */
+  payment_intent?: string | { id: string; latest_charge?: string | StripeCharge | null } | null;
+}
+
+interface StripeCharge {
+  /** Fully refunded; a partial refund leaves it false. */
+  refunded?: boolean;
+  disputed?: boolean;
 }
 
 /** Stripe's subscription vocabulary, mapped onto the engine's five states. */
@@ -165,23 +176,31 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
     };
   };
 
+  const disputeLost = async (env: TEnv, paymentIntent: string): Promise<boolean> => (await call<{ data: { status: string }[] }>(env, `/disputes?payment_intent=${encodeURIComponent(paymentIntent)}`)).data.some((dispute) => dispute.status === "lost");
+
   const fromSession = async (env: TEnv, session: StripeCheckoutSession): Promise<VerifiedCommerceTransaction> => {
     if (session.mode === "subscription") {
       if (session.subscription === null) throw new Error("stripe subscription session has no subscription");
       return fromSubscription(await call<StripeSubscription>(env, `/subscriptions/${session.subscription}`));
     }
     // A one-time session's line items are not expanded by default, and the
-    // price is the only thing that says WHAT was bought.
-    const expanded = await call<StripeCheckoutSession>(env, `/checkout/sessions/${session.id}?expand[]=line_items`);
+    // price is the only thing that says WHAT was bought. The charge is what
+    // says whether the money was given back, which the session never records.
+    const expanded = await call<StripeCheckoutSession>(env, `/checkout/sessions/${session.id}?expand[]=line_items&expand[]=payment_intent.latest_charge`);
     const price = expanded.line_items?.data[0]?.price.id;
     if (price === undefined) throw new Error("stripe session has no line item");
     const paid = session.payment_status === "paid" || session.payment_status === "no_payment_required";
+    const intent = typeof expanded.payment_intent === "object" ? expanded.payment_intent : null;
+    const charge = typeof intent?.latest_charge === "object" ? intent.latest_charge : null;
+    // A dispute only takes the money once it is lost; until then the player
+    // keeps what they bought.
+    const reversed = charge !== null && (charge.refunded === true || (charge.disputed === true && intent !== null && (await disputeLost(env, intent.id))));
     const purchasedAt = session.created * 1000;
     return {
       providerTransactionId: session.id,
       providerReference: price,
       kind: "oneTime",
-      state: paid ? "active" : "pending",
+      state: reversed ? "revoked" : paid ? "active" : "pending",
       purchasedAt,
       validFrom: purchasedAt,
       ...(session.customer === null ? {} : { providerAccountId: session.customer }),
@@ -190,6 +209,13 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
 
   return {
     key: PROVIDER,
+
+    // Only the mistake worth catching: a Product id where a Price belongs. A
+    // Price created from a legacy Plan keeps whatever id the Plan had, so the
+    // positive form cannot be checked.
+    validateReference: (reference) => {
+      if (reference.startsWith("prod_")) throw new Error("a Stripe offer is sold through a Price (price_...), not a Product");
+    },
 
     products: async (env, providerReferences) => {
       const priced = await Promise.all(providerReferences.map(async (providerReference) => await call<{ id: string; unit_amount: number | null; currency: string }>(env, `/prices/${providerReference}`)));
@@ -218,7 +244,7 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
       const session = await call<StripeCheckoutSession>(env, `/checkout/sessions/${sessionId}`);
       // The account that opened the session is the only account it can pay for.
       if (session.client_reference_id !== null && session.client_reference_id !== input.accountId) {
-        throw new Error("stripe session belongs to another account");
+        throw new ProviderRefusal("stripe session belongs to another account");
       }
       return await fromSession(env, session);
     },
@@ -245,7 +271,7 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
 
       const event = JSON.parse(body) as { id: string; type: string; data: { object: Record<string, unknown> } };
       const object = event.data.object;
-      const transaction = await (async (): Promise<VerifiedCommerceTransaction> => {
+      const transaction = await (async (): Promise<VerifiedCommerceTransaction | undefined> => {
         if (event.type.startsWith("customer.subscription.")) {
           // Re-read rather than trust: the notification is a change signal, and
           // an out-of-order delivery would otherwise resurrect a dead state.
@@ -254,12 +280,24 @@ export function stripeCommerceProvider<TEnv>(config: StripeCommerceConfig<TEnv>)
         if (event.type.startsWith("checkout.session.")) {
           return await fromSession(env, await call<StripeCheckoutSession>(env, `/checkout/sessions/${object.id as string}`));
         }
-        throw new Error(`stripe event ${event.type} is not a commerce lifecycle event`);
+        if (event.type === "charge.refunded" || event.type === "charge.dispute.closed") {
+          // Both name the payment; the session that took it is the
+          // transaction. A charge no Checkout Session took -- a subscription
+          // invoice's -- is about no purchase this adapter records.
+          const paymentIntent = object.payment_intent;
+          if (typeof paymentIntent !== "string") return undefined;
+          const sessions = await call<{ data: StripeCheckoutSession[] }>(env, `/checkout/sessions?payment_intent=${encodeURIComponent(paymentIntent)}`);
+          const session = sessions.data[0];
+          return session?.mode === "payment" ? await fromSession(env, session) : undefined;
+        }
+        return undefined;
       })();
+      // An endpoint subscribed to more than the lifecycle events is told about
+      // invoices, customers and the rest. Authentic, and about no purchase.
+      if (transaction === undefined) return null;
       const accountId = (object.client_reference_id ?? object.metadata) as string | { eigenAccountId?: string } | undefined;
       const resolved = typeof accountId === "string" ? accountId : accountId?.eigenAccountId;
-      if (resolved === undefined) throw new Error("stripe event does not name an Eigen account");
-      return { providerEventId: event.id, accountId: resolved, transaction } satisfies VerifiedCommerceEvent;
+      return { providerEventId: event.id, ...(resolved === undefined ? {} : { accountId: resolved }), transaction } satisfies VerifiedCommerceEvent;
     },
 
     reconcile: async (env, transactions) => {

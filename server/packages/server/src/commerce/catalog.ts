@@ -142,8 +142,18 @@ export function resolveCommerce<TEnv>(config: CommerceConfig<TEnv>): ResolvedCom
     providers.set(provider.key, provider as CommerceProvider<unknown>);
   }
   for (const offer of catalog.offers) {
-    for (const provider of Object.keys(offer.providerReferences)) {
-      if (!providers.has(provider)) throw new Error(`createEngine: offer ${offer.key} references unconfigured provider ${provider}`);
+    for (const [key, providerReference] of Object.entries(offer.providerReferences)) {
+      const provider = providers.get(key);
+      if (provider === undefined) throw new Error(`createEngine: offer ${offer.key} references unconfigured provider ${key}`);
+      // The adapter knows its own reference forms. Asked here, a reference it
+      // could never sell -- a Play subscription missing its base plan, a
+      // one-time Razorpay offer with no amount -- fails the deploy instead of
+      // the first player who tries to buy it.
+      try {
+        provider.validateReference?.(providerReference, offer.kind);
+      } catch (error) {
+        throw new Error(`createEngine: offer ${offer.key} has an invalid ${key} reference ${JSON.stringify(providerReference)}: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }
 

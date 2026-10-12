@@ -15,6 +15,27 @@ import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_inte
 /// adapter registered on the Worker, because that is what a claim is routed by.
 const googlePlayProvider = 'google_play';
 
+/// The Play Console offer tag that marks an offer this gateway may launch.
+///
+/// Play hides an offer from a player it is not eligible for only when Play
+/// decides eligibility — a new-customer free trial, say. A developer-determined
+/// offer (win-back, retention, upgrade) is returned to every player, so nothing
+/// on the device can tell who it was meant for. Launching only tagged offers
+/// leaves that call with whoever set them up.
+const defaultPlayLaunchTag = 'eigen-launch';
+
+/// The Play subscriptions the device's Google account holds now.
+typedef PlayOwnedPurchases = Future<List<GooglePlayPurchaseDetails>> Function();
+
+/// The product a catalog reference names.
+///
+/// A one-time product's reference is its product id. A subscription's is
+/// `{productId}:{basePlanId}`, the form the Worker's Play adapter defines,
+/// because monthly and yearly are two base plans of one product and a catalog
+/// sells them as two offers.
+String _productOf(String providerReference) =>
+    providerReference.split(':').first;
+
 /// Google Play Billing behind the [PurchaseGateway] port.
 ///
 /// Play is the reason the port has a [complete] step at all: a purchase that is
@@ -27,8 +48,12 @@ const googlePlayProvider = 'google_play';
 /// claim that Play says something was bought; the Worker re-reads it from the
 /// Android Publisher API before any of it becomes access.
 class PlayPurchaseGateway implements PurchaseGateway {
-  PlayPurchaseGateway({required this.accountId, InAppPurchasePlatform? billing})
-    : _billing = billing ?? _androidPlatform();
+  PlayPurchaseGateway({
+    this.launchTag = defaultPlayLaunchTag,
+    InAppPurchasePlatform? billing,
+    PlayOwnedPurchases? ownedPurchases,
+  }) : _billing = billing ?? _androidPlatform(),
+       _ownedPurchases = ownedPurchases ?? _ownedOnDevice;
 
   /// The umbrella package registers the Android implementation on startup, and
   /// this does not use the umbrella. Registering here rather than asking an
@@ -43,18 +68,25 @@ class PlayPurchaseGateway implements PurchaseGateway {
 
   static bool _registered = false;
 
-  /// The Eigen account to bind a purchase to, read at purchase time.
-  ///
-  /// Play carries it as `obfuscatedAccountId` and the Worker's adapter reads it
-  /// back as `obfuscatedExternalAccountId`, which is how a developer
-  /// notification — which names no Eigen account — is attributed to one. Read
-  /// late rather than captured, because the signed-in account outlives no
-  /// session in particular.
-  final String Function() accountId;
+  /// The offer tag that lets an offer be launched; see [defaultPlayLaunchTag].
+  final String launchTag;
   final InAppPurchasePlatform _billing;
+  final PlayOwnedPurchases _ownedPurchases;
 
-  /// What Play last said about each product, so a purchase can name the SDK
-  /// object Play expects rather than an identifier we invented.
+  /// Through the Android addition the platform registered, which is the one
+  /// place the plugin exposes `queryPurchasesAsync`. A failed read is no
+  /// subscriptions: the purchase then goes ahead as a new one, and Play
+  /// refuses it itself if the account does hold the product.
+  static Future<List<GooglePlayPurchaseDetails>> _ownedOnDevice() async {
+    final addition = InAppPurchasePlatformAddition.instance;
+    if (addition is! InAppPurchaseAndroidPlatformAddition) return const [];
+    final response = await addition.queryPastPurchases();
+    return response.error == null ? response.pastPurchases : const [];
+  }
+
+  /// What Play last said about each catalog reference, so a purchase can name
+  /// the SDK object Play expects — for a subscription, the one carrying the
+  /// offer token — rather than an identifier we invented.
   final Map<String, ProductDetails> _details = <String, ProductDetails>{};
 
   /// Live deliveries keyed by purchase token. Play re-delivers anything
@@ -65,25 +97,105 @@ class PlayPurchaseGateway implements PurchaseGateway {
   @override
   String get provider => googlePlayProvider;
 
+  /// Play's products for [providerReferences], one per reference.
+  ///
+  /// Play describes a subscription as one entry per offer: each base plan, and
+  /// each offer on it — a trial, an introductory price, a win-back discount.
+  /// A reference names a base plan. What is sold under it is the cheapest of
+  /// its offers tagged [launchTag] that Play still returns for this player, and
+  /// otherwise the base plan itself; see [defaultPlayLaunchTag] for why an
+  /// untagged offer is never launched.
   @override
   Future<List<StoreProduct>> products(Set<String> providerReferences) async {
     if (providerReferences.isEmpty) return const [];
     if (!await _billing.isAvailable()) return const [];
-    final response = await _billing.queryProductDetails(providerReferences);
+    final response = await _billing.queryProductDetails({
+      for (final reference in providerReferences) _productOf(reference),
+    });
+    final byReference = <String, List<ProductDetails>>{};
     for (final details in response.productDetails) {
-      _details[details.id] = details;
+      final reference = _referenceOf(details);
+      if (providerReferences.contains(reference)) {
+        (byReference[reference] ??= []).add(details);
+      }
     }
+    final chosen = <String, ProductDetails>{
+      for (final MapEntry(key: reference, value: entries)
+          in byReference.entries)
+        reference: ?_launchable(entries),
+    };
+    _details.addAll(chosen);
     // `notFoundIDs` is not an error here. A catalog may list an offer this
     // build's Play listing does not carry yet, and a store screen showing the
     // rest is better than one showing nothing.
     return [
-      for (final details in response.productDetails)
-        StoreProduct(
-          providerReference: details.id,
-          displayPrice: details.price,
-          currencyCode: details.currencyCode,
-        ),
+      for (final MapEntry(key: reference, value: details) in chosen.entries)
+        _storeProduct(reference, details),
     ];
+  }
+
+  /// The entry to sell from one base plan's entries.
+  ///
+  /// An offer inherits its base plan's tags, so only the tags it carries
+  /// beyond the base plan's count: tagging a base plan launches none of its
+  /// offers. Cheapest is by the lowest price any phase charges, which puts a
+  /// free trial ahead of a discount.
+  ProductDetails? _launchable(List<ProductDetails> entries) {
+    final base = entries.where((d) => _offerOf(d)?.offerId == null).firstOrNull;
+    final inherited = _offerOf(base)?.offerTags.toSet() ?? const <String>{};
+    final tagged = [
+      for (final details in entries)
+        if (_offerOf(details) case final offer?
+            when offer.offerId != null &&
+                offer.offerTags.contains(launchTag) &&
+                !inherited.contains(launchTag))
+          details,
+    ];
+    if (tagged.isEmpty) return base;
+    int lowest(ProductDetails details) =>
+        _offerOf(details)!.pricingPhases
+            .map((phase) => phase.priceAmountMicros)
+            .reduce((a, b) => a < b ? a : b);
+    return tagged.reduce((a, b) => lowest(b) < lowest(a) ? b : a);
+  }
+
+  /// The regular price, and any introductory phases ahead of it. Play prices
+  /// an offer entry at its first phase, which for a trial is "Free" — true of
+  /// the first week, and not what the subscription costs.
+  static StoreProduct _storeProduct(String reference, ProductDetails details) {
+    final phases = _offerOf(details)?.pricingPhases ?? const [];
+    final regular = phases
+        .where(
+          (phase) => phase.recurrenceMode == RecurrenceMode.infiniteRecurring,
+        )
+        .lastOrNull;
+    return StoreProduct(
+      providerReference: reference,
+      displayPrice: regular?.formattedPrice ?? details.price,
+      currencyCode: details.currencyCode,
+      introductoryPrices: [
+        for (final phase in phases)
+          if (!identical(phase, regular))
+            IntroductoryPrice(
+              displayPrice: phase.formattedPrice,
+              billingPeriod: phase.billingPeriod,
+              cycles: phase.billingCycleCount,
+            ),
+      ],
+    );
+  }
+
+  /// The catalog reference [details] sells under.
+  static String _referenceOf(ProductDetails details) {
+    final offer = _offerOf(details);
+    return offer == null ? details.id : '${details.id}:${offer.basePlanId}';
+  }
+
+  static SubscriptionOfferDetailsWrapper? _offerOf(ProductDetails? details) {
+    if (details is! GooglePlayProductDetails) return null;
+    final index = details.subscriptionIndex;
+    if (index == null) return null;
+    return details.productDetails.subscriptionOfferDetails?[index];
   }
 
   @override
@@ -91,8 +203,11 @@ class PlayPurchaseGateway implements PurchaseGateway {
     (deliveries) => Stream.fromIterable(deliveries.map(_updateOf)),
   );
 
+  /// Play carries [accountId] as `obfuscatedAccountId`, and the Worker's
+  /// adapter reads it back as `obfuscatedExternalAccountId`.
   @override
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
@@ -103,9 +218,10 @@ class PlayPurchaseGateway implements PurchaseGateway {
         'Play has no product details for ${product.providerReference}; load products first.',
       );
     }
-    final parameters = PurchaseParam(
+    final parameters = GooglePlayPurchaseParam(
       productDetails: details,
-      applicationUserName: accountId(),
+      applicationUserName: accountId,
+      changeSubscriptionParam: await _replacing(details),
     );
     // A repeatable offer is a consumable: Play will not sell the same
     // non-consumable twice, so a tip that cannot be tipped again is not a
@@ -120,9 +236,35 @@ class PlayPurchaseGateway implements PurchaseGateway {
     }
   }
 
+  /// The subscription this purchase changes the plan of, if the account holds
+  /// one: another base plan of the same product.
+  ///
+  /// Play will not sell a second plan of a product the account already holds;
+  /// moving between them is a replacement of the old purchase. How it is
+  /// charged — now, or from the next renewal — is left unset, so Play applies
+  /// the default replacement mode the game's Play Console sets for the
+  /// product, which for plans of one subscription is the only place that
+  /// choice belongs. Another product is a separate subscription and is bought
+  /// alongside.
+  Future<ChangeSubscriptionParam?> _replacing(ProductDetails details) async {
+    if (_offerOf(details) == null) return null;
+    for (final owned in await _ownedPurchases()) {
+      if (owned.productID == details.id) {
+        return ChangeSubscriptionParam(oldPurchaseDetails: owned);
+      }
+    }
+    return null;
+  }
+
   @override
-  Future<void> restore() =>
-      _billing.restorePurchases(applicationUserName: accountId());
+  Future<void> restore({required String accountId}) =>
+      _billing.restorePurchases(applicationUserName: accountId);
+
+  /// Play's purchase names the product, never a subscription's base plan, so
+  /// every plan of the product covers it. The Worker reads the plan from Play.
+  @override
+  bool covers(String providerReference, PurchaseUpdate update) =>
+      _productOf(providerReference) == update.providerReference;
 
   @override
   Future<void> complete(PurchaseUpdate update) async {
@@ -153,9 +295,10 @@ class PlayPurchaseGateway implements PurchaseGateway {
       // Worker records. It is absent until a pending purchase completes, and
       // the token is the only stable handle before then.
       deliveryId: details.purchaseID ?? token,
-      // The storefront knows the product, not the offer. `CommerceService`
-      // resolves the offer against the catalog, which is the only thing that
-      // holds the mapping.
+      // The storefront knows the product, not the offer, and for a
+      // subscription not even the base plan. `CommerceService` resolves an
+      // offer against the catalog through [covers], and the Worker records the
+      // plan Play reports.
       offerKey: details.productID,
       providerReference: details.productID,
       state: switch (details.status) {

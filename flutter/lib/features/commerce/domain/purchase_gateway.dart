@@ -6,11 +6,38 @@ class StoreProduct {
     required this.providerReference,
     required this.displayPrice,
     this.currencyCode,
+    this.introductoryPrices = const [],
   });
 
   final String providerReference;
+
+  /// What the product costs: for a subscription, the price it renews at.
   final String displayPrice;
   final String? currencyCode;
+
+  /// The prices a subscription starts at before [displayPrice], in order — a
+  /// free trial, then perhaps a discounted first period. Empty for a product
+  /// sold at its regular price from the start.
+  final List<IntroductoryPrice> introductoryPrices;
+}
+
+/// One phase of a subscription's introductory pricing.
+class IntroductoryPrice {
+  const IntroductoryPrice({
+    required this.displayPrice,
+    required this.billingPeriod,
+    required this.cycles,
+  });
+
+  /// As the store formats it; a free trial reads as the store's word for
+  /// free.
+  final String displayPrice;
+
+  /// One cycle, as an ISO 8601 duration such as `P1W` or `P1M`.
+  final String billingPeriod;
+
+  /// How many cycles of [billingPeriod] this price lasts.
+  final int cycles;
 }
 
 /// The normalized state of one platform purchase update.
@@ -76,19 +103,37 @@ abstract interface class PurchaseGateway implements Storefront {
 
   Stream<PurchaseUpdate> get updates;
 
-  /// Starts the SDK purchase flow.
+  /// Starts the SDK purchase flow for [accountId], the signed-in account.
+  ///
+  /// The store carries [accountId] on the purchase — Play's
+  /// `obfuscatedAccountId` — and the Worker reads it back from the store's
+  /// own record. A notification names no account of its own, so this is how
+  /// one is attributed, and how a purchase made for one account is kept from
+  /// becoming another's. `CommerceService` passes the account it was built
+  /// for; a gateway never looks it up.
   ///
   /// [repeatable] is the offer's own flag, and it decides the store's product
   /// type: a store will not sell the same non-consumable twice, so a tip that
   /// cannot be tipped again is the wrong product type rather than a quirk to
   /// work around.
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
   });
 
-  Future<void> restore();
+  /// Replays the store's purchases for [accountId] onto [updates].
+  Future<void> restore({required String accountId});
+
+  /// Whether [update] may be a purchase of the catalog's [providerReference].
+  ///
+  /// A store can report less than the catalog names. Play's purchase names a
+  /// subscription's product but never its base plan, so every plan of that
+  /// product covers it. `CommerceService` claims with the first offer covered,
+  /// and the Worker records the offer the provider verifies, so a guess among
+  /// them costs nothing.
+  bool covers(String providerReference, PurchaseUpdate update);
 
   /// Acknowledges or completes provider delivery after Worker verification.
   ///
@@ -164,6 +209,7 @@ class UnavailablePurchaseGateway implements PurchaseGateway {
 
   @override
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
     required bool repeatable,
@@ -172,9 +218,12 @@ class UnavailablePurchaseGateway implements PurchaseGateway {
   }
 
   @override
-  Future<void> restore() {
+  Future<void> restore({required String accountId}) {
     throw UnsupportedError('No purchase gateway is configured.');
   }
+
+  @override
+  bool covers(String providerReference, PurchaseUpdate update) => false;
 
   @override
   Future<void> complete(PurchaseUpdate update) {

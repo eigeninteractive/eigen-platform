@@ -53,8 +53,9 @@ export interface CommerceOffer {
   repeatable?: boolean;
   /**
    * Public, provider-owned sellable references. The engine treats each value
-   * as opaque; the matching adapter may interpret a Stripe Price, or a Google
-   * Play product/base-plan/offer tuple. Secret credentials remain in bindings.
+   * as opaque; the matching adapter defines its form -- a Stripe Price, a
+   * Razorpay Plan, a Google Play product id, or a Play subscription's
+   * `{productId}:{basePlanId}`. Secret credentials remain in bindings.
    */
   providerReferences: Readonly<Record<string, string>>;
 }
@@ -74,6 +75,8 @@ export type CommerceTransactionState = "pending" | "active" | "grace" | "expired
 /** Provider output after server-side verification. Never accepted from a client. */
 export interface VerifiedCommerceTransaction {
   providerTransactionId: string;
+  /** What this transaction serves now. A subscription's may change over its
+   * life (a plan change), and the ledger moves it to the matching offer. */
   providerReference: string;
   /** Must match the configured logical offer kind. */
   kind: "oneTime" | "subscription";
@@ -91,6 +94,14 @@ export interface VerifiedCommerceTransaction {
   sealedProviderState?: string;
   /** True when the provider requires a post-ledger acknowledgement. */
   requiresAcknowledgement?: boolean;
+  /**
+   * The transaction this one replaced at the provider, when it says so: Play
+   * issues a new purchase token for every plan change and for a resubscription
+   * after a lapse, and names the old token as `linkedPurchaseToken`. The ledger
+   * ends the replaced transaction, so the old token's grants do not outlive it,
+   * and attributes this one through it when the provider names no account.
+   */
+  replacesProviderTransactionId?: string;
 }
 
 export interface CommerceProduct {
@@ -113,6 +124,12 @@ export interface CommerceManagement {
 
 export interface VerifyClaimInput {
   accountId: string;
+  /**
+   * The reference of the offer the claim named. It steers verification -- Play
+   * reads a one-time purchase under its product id, and tells a subscription
+   * from its shape -- but the transaction returned says what was actually
+   * bought, and the ledger records that.
+   */
   expectedProviderReference: string;
   evidence: unknown;
 }
@@ -131,7 +148,13 @@ export interface CreateCheckoutInput {
 /** A provider-authenticated notification resolved to current provider state. */
 export interface VerifiedCommerceEvent {
   providerEventId: string;
-  accountId: string;
+  /**
+   * The Eigen account the provider says the purchase belongs to. Absent when
+   * it names none -- a Play resubscription made from the Play Store carries no
+   * obfuscated account id -- and the ledger then attributes the transaction
+   * through the row it already has, or the one it replaced.
+   */
+  accountId?: string;
   transaction: VerifiedCommerceTransaction;
 }
 
@@ -147,10 +170,20 @@ export interface CommerceTransactionReference {
 /** A provider boundary. Implementations perform all remote verification. */
 export interface CommerceProvider<TEnv = unknown> {
   readonly key: string;
+  /**
+   * Throws when a catalog reference cannot name anything this provider sells as
+   * an offer of `kind`. Called for every offer at `createEngine`, so a
+   * misspelt reference is a deploy failure rather than a refused purchase.
+   */
+  validateReference?(providerReference: string, kind: CommerceOffer["kind"]): void;
   products?(env: TEnv, providerReferences: readonly string[]): Promise<readonly CommerceProduct[]>;
   verifyClaim(env: TEnv, input: VerifyClaimInput): Promise<VerifiedCommerceTransaction>;
-  /** Verifies the raw request and fetches current provider state when needed. */
-  verifyWebhook?(env: TEnv, request: Request): Promise<VerifiedCommerceEvent>;
+  /**
+   * Verifies the raw request and fetches current provider state when needed.
+   * Resolves null for an authentic notification that concerns no purchase, such
+   * as a console test message, so the provider is answered and stops resending.
+   */
+  verifyWebhook?(env: TEnv, request: Request): Promise<VerifiedCommerceEvent | null>;
   /** Fetches current state for locally active or pending transaction refs. */
   reconcile?(env: TEnv, transactions: readonly CommerceTransactionReference[]): Promise<readonly VerifiedCommerceTransaction[]>;
   /** Runs only after the normalized transaction and grants commit. */

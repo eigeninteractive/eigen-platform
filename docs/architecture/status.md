@@ -42,7 +42,7 @@ compatibility and command machinery from earlier phases.
 | Mutation model | Generic receipts and public `Idempotency-Key` requirements are removed. Lifecycle and membership operations rely on their operation-specific idempotence. |
 | Creation identity | Both create routes require a client-minted `creationId`; D1 binds it to the creator and canonical input fingerprint in the same transaction as the game, usage, and capacity. |
 | Commerce core | Optional catalogs, fixed capabilities, content ownership, limits, a normalized transaction/grant ledger, access projection, claims, restoration, hosted checkout/management seams, provider-authenticated webhooks, and scheduled reconciliation are implemented. |
-| Commerce clients | Generated OpenAPI/Dart models, the pure-Dart `CommerceRepository`, the Flutter `PurchaseGateway`/`HostedStorefront` ports with `CommerceService`, and shell-safe creation retries are implemented. `eigen_flutter` implements the Stripe and Razorpay hosted storefronts and `eigen_shell` implements Google Play Billing and the URL launcher; neither has been run against a provider sandbox. Storefront presentation remains application work. |
+| Commerce clients | Generated OpenAPI/Dart models, the pure-Dart `CommerceRepository`, the Flutter `PurchaseGateway`/`HostedStorefront` ports with `CommerceService`, and shell-safe creation retries are implemented. `eigen_flutter` implements the Stripe and Razorpay hosted storefronts and `platformStorefronts`, which carries no storefront on iOS or macOS; `eigen_shell` implements Google Play Billing, the URL launcher, and the store screen with restore, subscription management and upgrade prompts. A game that does not use the shell builds its own presentation on `CommerceService`. There is no App Store storefront, and none of the storefronts has been run against a provider sandbox. |
 | Creation policy | Versioned server rules validate player limits and timing options after parsing config. Flutter may mirror these rules for responsive UX. |
 | Socket authentication | Authenticated HTTP mints a signed 60-second game ticket; upgrade verification happens before Durable Object routing. |
 | Unknown game routing | Public commands and session reads prove the retained D1 row exists before deriving or waking a Durable Object. |
@@ -78,9 +78,9 @@ as a normal feature, bug, dependency upgrade, or production-readiness requiremen
    dependencies move.
 3. Add deferred retention, resource, replay, or offline machinery only when a
    measured product need justifies it.
-4. Build optional Google Play and Stripe integration packages once their first
-   consuming game chooses merchant accounts, product identifiers, and SDK
-   policy; then add the optional shell storefront on those real adapters.
+4. Run the Google Play, Stripe, and Razorpay storefronts against provider
+   sandboxes with the first consuming game's merchant accounts and product
+   identifiers, and add an App Store storefront once a game sells on iOS.
 5. Define the engine-owned analysis execution boundary before enabling
    `analysis.use` or `analysis.run.success` in a production catalog, including
    atomic success metering and failure semantics.

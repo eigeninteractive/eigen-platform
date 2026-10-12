@@ -8,6 +8,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ProviderRefusal } from "../src/commerce/provider-kit.js";
 import { stripeCommerceProvider } from "../src/commerce/providers/stripe.js";
 
 const SECRET = "whsec_test_secret";
@@ -107,7 +108,7 @@ describe("stripe subscriptions", () => {
 describe("stripe claims", () => {
   it("refuses a session opened by another account", async () => {
     scriptFetch({ "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: "someone-else", created: 1_699_000_000 } });
-    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(/another account/);
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
   it("reads the price from the expanded session rather than the client", async () => {
@@ -128,6 +129,14 @@ describe("stripe webhook signatures", () => {
     const verified = await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(event, timestamp)}` }, body: event }));
     expect(verified).toMatchObject({ providerEventId: "evt_1", accountId: "alice" });
     expect(verified?.transaction.state).toBe("active");
+  });
+
+  it("records nothing for an event about no purchase", async () => {
+    const seen = scriptFetch({});
+    const invoice = JSON.stringify({ id: "evt_2", type: "invoice.paid", data: { object: { id: "in_1" } } });
+    const timestamp = Math.floor(config.now() / 1000);
+    expect(await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(invoice, timestamp)}` }, body: invoice }))).toBeNull();
+    expect(seen).toEqual([]);
   });
 
   it("refuses a forged signature", async () => {
@@ -209,5 +218,71 @@ describe("stripe checkout", () => {
       operationId: "op-44",
     });
     expect(new URLSearchParams(seenForm).get("success_url")).toBe("https://game.example/store?from=offer&session_id={CHECKOUT_SESSION_ID}");
+  });
+});
+
+describe("stripe catalog references", () => {
+  it("refuses a Product id where a Price belongs, and takes any Price", () => {
+    expect(() => provider.validateReference?.("prod_PRO", "subscription")).toThrow(/Price/);
+    expect(() => provider.validateReference?.("price_1Pro", "subscription")).not.toThrow();
+    // A Price made from a legacy Plan keeps the Plan's own id.
+    expect(() => provider.validateReference?.("pro-monthly", "subscription")).not.toThrow();
+  });
+});
+
+describe("stripe refunds", () => {
+  /** A paid one-time session, read back with its payment's latest charge. */
+  const paidSession = (charge: Record<string, unknown>) => ({
+    id: "cs_1",
+    mode: "payment",
+    payment_status: "paid",
+    customer: "cus_1",
+    subscription: null,
+    client_reference_id: "alice",
+    created: 1_699_000_000,
+    line_items: { data: [{ price: { id: "price_supporter" } }] },
+    payment_intent: { id: "pi_1", latest_charge: { refunded: false, disputed: false, ...charge } },
+  });
+  const claim = () => provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
+
+  async function deliver(type: string, object: Record<string, unknown>) {
+    const body = JSON.stringify({ id: "evt_refund", type, data: { object } });
+    const timestamp = Math.floor(config.now() / 1000);
+    return await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(body, timestamp)}` }, body }));
+  }
+
+  it("revokes a one-time purchase whose charge was fully refunded", async () => {
+    // The session still reads as paid: only the charge records the refund.
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ refunded: true }) });
+    expect((await claim()).state).toBe("revoked");
+  });
+
+  it("keeps a partly refunded purchase", async () => {
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ refunded: false }) });
+    expect((await claim()).state).toBe("active");
+  });
+
+  it("revokes a purchase once its dispute is lost, and not while it is open", async () => {
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "needs_response" }] } });
+    expect((await claim()).state).toBe("active");
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "lost" }] } });
+    expect((await claim()).state).toBe("revoked");
+  });
+
+  it("finds the session a refunded charge paid for", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [paidSession({ refunded: true })] }, "/v1/checkout/sessions/cs_1": paidSession({ refunded: true }) });
+    const verified = await deliver("charge.refunded", { id: "ch_1", payment_intent: "pi_1", metadata: {} });
+    expect(verified).toMatchObject({ providerEventId: "evt_refund", transaction: { providerTransactionId: "cs_1", state: "revoked" } });
+  });
+
+  it("finds the session a lost dispute took back", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [paidSession({ disputed: true })] }, "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "lost" }] } });
+    const verified = await deliver("charge.dispute.closed", { id: "dp_1", status: "lost", payment_intent: "pi_1" });
+    expect(verified?.transaction).toMatchObject({ providerTransactionId: "cs_1", state: "revoked" });
+  });
+
+  it("records nothing for a refunded charge no checkout took, such as a subscription invoice's", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [] } });
+    expect(await deliver("charge.refunded", { id: "ch_2", payment_intent: "pi_invoice", metadata: {} })).toBeNull();
   });
 });

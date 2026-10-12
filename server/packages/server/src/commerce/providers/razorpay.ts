@@ -21,7 +21,7 @@
  * @module @eigeninteractive/server/commerce/razorpay
  */
 
-import { basicAuth, hmacSha256Hex, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
+import { basicAuth, hmacSha256Hex, ProviderRefusal, providerJson, requireSecret, timingSafeEqualHex } from "../provider-kit.js";
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://api.razorpay.com/v1";
@@ -49,15 +49,24 @@ interface RazorpaySubscription {
   current_end?: number | null;
   start_at?: number | null;
   created_at: number;
+  notes?: Record<string, string> | unknown[];
 }
 
 interface RazorpayPayment {
   id: string;
   status: "created" | "authorized" | "captured" | "refunded" | "failed";
+  /** In the minor unit. */
+  amount: number;
+  currency: string;
   order_id: string | null;
   customer_id?: string | null;
   created_at: number;
-  notes?: Record<string, string>;
+  notes?: Record<string, string> | unknown[];
+}
+
+/** Razorpay sends empty notes as `[]`, not `{}`. */
+function noteOf(notes: Record<string, string> | unknown[] | undefined, key: string): string | undefined {
+  return notes === undefined || Array.isArray(notes) ? undefined : notes[key];
 }
 
 /**
@@ -108,11 +117,20 @@ export function razorpayCommerceProvider<TEnv>(config: RazorpayCommerceConfig<TE
     ...(subscription.customer_id === undefined || subscription.customer_id === null ? {} : { providerAccountId: subscription.customer_id }),
   });
 
-  /** A one-time payment. The offer it paid for rides in `notes`, because a
-   * Razorpay payment has no product identity of its own to read back. */
+  /**
+   * A one-time payment. The offer it paid for rides in `notes`, because a
+   * Razorpay payment has no product identity of its own to read back -- and
+   * notes are not proof: anyone holding the public key id can open Razorpay
+   * Checkout with notes of their choosing. What the payment cannot fake is
+   * its amount, so the configured price for that offer must be what was paid.
+   */
   const fromPayment = (payment: RazorpayPayment): VerifiedCommerceTransaction => {
-    const providerReference = payment.notes?.eigenProviderReference;
-    if (providerReference === undefined) throw new Error("razorpay payment does not name an Eigen offer");
+    const providerReference = noteOf(payment.notes, "eigenProviderReference");
+    if (providerReference === undefined) throw new ProviderRefusal("razorpay payment does not name an Eigen offer");
+    const priced = config.amounts?.[providerReference];
+    if (priced === undefined || payment.amount !== priced.amount || payment.currency.toUpperCase() !== priced.currency.toUpperCase()) {
+      throw new ProviderRefusal("razorpay payment does not match the configured price of the offer it names");
+    }
     const purchasedAt = payment.created_at * 1000;
     return {
       providerTransactionId: payment.id,
@@ -136,46 +154,72 @@ export function razorpayCommerceProvider<TEnv>(config: RazorpayCommerceConfig<TE
         return priced === undefined ? [] : [{ providerReference, displayPrice: String(priced.amount), currencyCode: priced.currency }];
       }),
 
+    validateReference: (reference, kind) => {
+      if (kind === "subscription" && !reference.startsWith("plan_")) throw new Error("a Razorpay subscription is sold through a Plan (plan_...)");
+      // A one-time sale's price lives in the adapter config, so a reference
+      // without one could be shown but never bought.
+      if (kind === "oneTime" && config.amounts?.[reference] === undefined) throw new Error("a one-time Razorpay offer needs an entry in `amounts`");
+    },
+
     verifyClaim: async (env, input) => {
       const evidence = input.evidence as { paymentId?: unknown; subscriptionId?: unknown } | null;
+      // Checkout writes the account into the subscription's or the payment
+      // link's notes, and nothing else this adapter creates lacks it. A
+      // missing note is therefore not "anyone's": an id alone is not proof of
+      // whose purchase it is, so the note must name this caller.
       if (typeof evidence?.subscriptionId === "string" && evidence.subscriptionId.length > 0) {
-        return fromSubscription(await call<RazorpaySubscription>(env, `/subscriptions/${evidence.subscriptionId}`));
+        const subscription = await call<RazorpaySubscription>(env, `/subscriptions/${encodeURIComponent(evidence.subscriptionId)}`);
+        if (noteOf(subscription.notes, "eigenAccountId") !== input.accountId) throw new ProviderRefusal("razorpay subscription belongs to another account");
+        return fromSubscription(subscription);
       }
       if (typeof evidence?.paymentId !== "string" || evidence.paymentId.length === 0) {
         throw new Error("razorpay evidence needs a paymentId or a subscriptionId");
       }
-      const payment = await call<RazorpayPayment>(env, `/payments/${evidence.paymentId}`);
-      // The link was created for one account; a payment carrying another
-      // account's note is not this caller's to claim.
-      if (payment.notes?.eigenAccountId !== undefined && payment.notes.eigenAccountId !== input.accountId) {
-        throw new Error("razorpay payment belongs to another account");
-      }
+      const payment = await call<RazorpayPayment>(env, `/payments/${encodeURIComponent(evidence.paymentId)}`);
+      if (noteOf(payment.notes, "eigenAccountId") !== input.accountId) throw new ProviderRefusal("razorpay payment belongs to another account");
       return fromPayment(payment);
     },
 
     verifyWebhook: async (env, request) => {
       const secret = requireSecret(config.webhookSecret(env), "razorpay webhookSecret");
       const signature = request.headers.get("x-razorpay-signature") ?? "";
-      // Razorpay signs the raw body alone -- no timestamp, unlike Stripe -- so
-      // the engine's event-identity deduplication is what stops a replay.
+      // Razorpay signs the raw body alone -- no timestamp, unlike Stripe, and
+      // not the event id header -- so a captured body can be replayed under a
+      // new id. That is harmless: the entity is re-read below, so a replay
+      // records only what Razorpay says now.
       const body = await request.text();
       const expected = await hmacSha256Hex(secret, body);
       if (!timingSafeEqualHex(expected, signature)) throw new Error("razorpay signature did not verify");
 
+      // Razorpay's identity for the event, the same on every redelivery and
+      // different for every renewal of one subscription.
+      const providerEventId = request.headers.get("x-razorpay-event-id") ?? "";
+      if (providerEventId.length === 0) throw new Error("razorpay event has no x-razorpay-event-id");
       const event = JSON.parse(body) as {
-        event: string;
         payload: { subscription?: { entity: RazorpaySubscription }; payment?: { entity: RazorpayPayment } };
       };
-      const subscription = event.payload.subscription?.entity;
-      const payment = event.payload.payment?.entity;
-      const transaction = subscription !== undefined ? fromSubscription(await call<RazorpaySubscription>(env, `/subscriptions/${subscription.id}`)) : payment !== undefined ? fromPayment(await call<RazorpayPayment>(env, `/payments/${payment.id}`)) : undefined;
-      if (transaction === undefined) throw new Error(`razorpay event ${event.event} carries no subscription or payment`);
-      const accountId = payment?.notes?.eigenAccountId ?? (subscription as unknown as { notes?: Record<string, string> } | undefined)?.notes?.eigenAccountId;
-      if (accountId === undefined) throw new Error("razorpay event does not name an Eigen account");
-      // Razorpay sends no event id of its own, so the identity is the event
-      // name and the object it concerns -- stable under redelivery, which is
-      // all the ledger's deduplication needs.
-      return { providerEventId: `${event.event}:${transaction.providerTransactionId}:${transaction.state}`, accountId, transaction } satisfies VerifiedCommerceEvent;
+      const verified = (transaction: VerifiedCommerceTransaction, accountId: string | undefined): VerifiedCommerceEvent => ({
+        providerEventId,
+        ...(accountId === undefined ? {} : { accountId }),
+        transaction,
+      });
+      // Both re-read, and the account taken from what was re-read rather than
+      // from the event body. A subscription comes first: a charge carries the
+      // payment too, and the subscription is what it changed.
+      const subscriptionId = event.payload.subscription?.entity.id;
+      if (subscriptionId !== undefined) {
+        const subscription = await call<RazorpaySubscription>(env, `/subscriptions/${encodeURIComponent(subscriptionId)}`);
+        return verified(fromSubscription(subscription), noteOf(subscription.notes, "eigenAccountId"));
+      }
+      const paymentId = event.payload.payment?.entity.id;
+      if (paymentId === undefined) return null;
+      const payment = await call<RazorpayPayment>(env, `/payments/${encodeURIComponent(paymentId)}`);
+      // Payment events announce every payment on the account, not only the
+      // ones Eigen sold: each subscription renewal is paid by a payment with
+      // no notes, whose `subscription.charged` already said what it changed,
+      // and a studio may sell other things through the same account.
+      if (noteOf(payment.notes, "eigenProviderReference") === undefined) return null;
+      return verified(fromPayment(payment), noteOf(payment.notes, "eigenAccountId"));
     },
 
     reconcile: async (env, transactions) => {

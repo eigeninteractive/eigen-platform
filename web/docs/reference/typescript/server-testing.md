@@ -31,7 +31,7 @@ production config: pass `testing` ONLY in test workers.
 
 ### FakeCommerceEvidence
 
-Defined in: [server/packages/server/src/testing.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L116)
+Defined in: [server/packages/server/src/testing.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L117)
 
 #### Properties
 
@@ -41,7 +41,7 @@ Defined in: [server/packages/server/src/testing.ts:116](https://github.com/eigen
 accountId: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L119)
+Defined in: [server/packages/server/src/testing.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L120)
 
 ##### kind?
 
@@ -49,7 +49,7 @@ Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigen
 optional kind?: "oneTime" | "subscription";
 ```
 
-Defined in: [server/packages/server/src/testing.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L124)
+Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L125)
 
 ##### providerReference
 
@@ -57,7 +57,7 @@ Defined in: [server/packages/server/src/testing.ts:124](https://github.com/eigen
 providerReference: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L118)
+Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L119)
 
 ##### purchasedAt?
 
@@ -65,7 +65,27 @@ Defined in: [server/packages/server/src/testing.ts:118](https://github.com/eigen
 optional purchasedAt?: number;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L121)
+Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L122)
+
+##### refusal?
+
+```ts
+optional refusal?: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L131)
+
+Answer as a provider that read the purchase and will never accept it.
+
+##### replaces?
+
+```ts
+optional replaces?: string;
+```
+
+Defined in: [server/packages/server/src/testing.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L129)
+
+The transaction this one replaced, as Play's `linkedPurchaseToken`.
 
 ##### requiresAcknowledgement?
 
@@ -73,7 +93,7 @@ Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigen
 optional requiresAcknowledgement?: boolean;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L125)
+Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L126)
 
 ##### sealedProviderState?
 
@@ -81,7 +101,7 @@ Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigen
 optional sealedProviderState?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L126)
+Defined in: [server/packages/server/src/testing.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L127)
 
 ##### state?
 
@@ -89,7 +109,7 @@ Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigen
 optional state?: CommerceTransactionState;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:120](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L120)
+Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L121)
 
 ##### transactionId
 
@@ -97,7 +117,7 @@ Defined in: [server/packages/server/src/testing.ts:120](https://github.com/eigen
 transactionId: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:117](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L117)
+Defined in: [server/packages/server/src/testing.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L118)
 
 ##### validFrom?
 
@@ -105,7 +125,7 @@ Defined in: [server/packages/server/src/testing.ts:117](https://github.com/eigen
 optional validFrom?: number;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L122)
+Defined in: [server/packages/server/src/testing.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L123)
 
 ##### validUntil?
 
@@ -113,13 +133,13 @@ Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigen
 optional validUntil?: number;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L123)
+Defined in: [server/packages/server/src/testing.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L124)
 
 ***
 
 ### FakeCommerceProvider
 
-Defined in: [server/packages/server/src/testing.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L136)
+Defined in: [server/packages/server/src/testing.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L141)
 
 A fake provider with the controls a lifecycle test needs.
 
@@ -139,7 +159,7 @@ stall, or refuse to answer cannot prove either of them works.
 readonly acknowledged: string[];
 ```
 
-Defined in: [server/packages/server/src/testing.ts:141](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L141)
+Defined in: [server/packages/server/src/testing.ts:146](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L146)
 
 Every transaction this provider was asked to acknowledge, in order.
 
@@ -154,7 +174,7 @@ readonly checkouts: {
 }[];
 ```
 
-Defined in: [server/packages/server/src/testing.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L151)
+Defined in: [server/packages/server/src/testing.ts:156](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L156)
 
 One entry per checkout session the provider actually opened. A replayed
 operation identity must not add one.
@@ -189,7 +209,7 @@ url: string;
 readonly key: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L149)
+Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L172)
 
 ###### Inherited from
 
@@ -201,7 +221,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:149](https://github.co
 readonly sweeps: string[][];
 ```
 
-Defined in: [server/packages/server/src/testing.ts:143](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L143)
+Defined in: [server/packages/server/src/testing.ts:148](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L148)
 
 Each sweep's requested ids, in order. Proves queue rotation.
 
@@ -211,7 +231,7 @@ Each sweep's requested ids, in order. Proves queue rotation.
 readonly transactions: Map<string, Partial<VerifiedCommerceTransaction>>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:139](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L139)
+Defined in: [server/packages/server/src/testing.ts:144](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L144)
 
 Current provider truth per transaction, returned by the next sweep.
 A transaction absent from here is one the provider will not answer for.
@@ -224,7 +244,7 @@ A transaction absent from here is one the provider will not answer for.
 optional acknowledge(env, transaction): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
+Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
 
 Runs only after the normalized transaction and grants commit.
 
@@ -249,7 +269,7 @@ Runs only after the normalized transaction and grants commit.
 clearFailures(): void;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:148](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L148)
+Defined in: [server/packages/server/src/testing.ts:153](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L153)
 
 ###### Returns
 
@@ -261,7 +281,7 @@ Defined in: [server/packages/server/src/testing.ts:148](https://github.com/eigen
 optional createCheckout(env, input): Promise<CommerceCheckout>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L158)
+Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L191)
 
 ###### Parameters
 
@@ -284,7 +304,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:158](https://github.co
 failAcknowledgement(message?): void;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:147](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L147)
+Defined in: [server/packages/server/src/testing.ts:152](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L152)
 
 Make every `acknowledge` throw until cleared.
 
@@ -304,7 +324,7 @@ Make every `acknowledge` throw until cleared.
 failNextSweep(message?): void;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:145](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L145)
+Defined in: [server/packages/server/src/testing.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L150)
 
 Make the whole next `reconcile` call throw, as a provider outage does.
 
@@ -329,7 +349,7 @@ optional management(
 ): Promise<CommerceManagement>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L159)
+Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L192)
 
 ###### Parameters
 
@@ -354,7 +374,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:159](https://github.co
 optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L150)
+Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
 
 ###### Parameters
 
@@ -377,7 +397,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:150](https://github.co
 optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:155](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L155)
+Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
 
 Fetches current state for locally active or pending transaction refs.
 
@@ -402,7 +422,7 @@ Fetches current state for locally active or pending transaction refs.
 reportProviderAccount(providerAccountId): void;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:154](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L154)
+Defined in: [server/packages/server/src/testing.ts:159](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L159)
 
 Report this provider customer on the next checkout instead of the
 account's usual one, as a provider confusing two customers would.
@@ -417,13 +437,40 @@ account's usual one, as a provider confusing two customers would.
 
 `void`
 
+##### validateReference()?
+
+```ts
+optional validateReference(providerReference, kind): void;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
+
+Throws when a catalog reference cannot name anything this provider sells as
+an offer of `kind`. Called for every offer at `createEngine`, so a
+misspelt reference is a deploy failure rather than a refused purchase.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `providerReference` | `string` |
+| `kind` | `"oneTime"` \| `"subscription"` |
+
+###### Returns
+
+`void`
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`validateReference`](server.md#validatereference)
+
 ##### verifyClaim()
 
 ```ts
 verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L151)
+Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
 
 ###### Parameters
 
@@ -443,12 +490,16 @@ Defined in: [server/packages/server/src/commerce/types.ts:151](https://github.co
 ##### verifyWebhook()?
 
 ```ts
-optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent>;
+optional verifyWebhook(env, request): Promise<
+  | VerifiedCommerceEvent
+| null>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:153](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L153)
+Defined in: [server/packages/server/src/commerce/types.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L186)
 
 Verifies the raw request and fetches current provider state when needed.
+Resolves null for an authentic notification that concerns no purchase, such
+as a console test message, so the provider is answered and stops resending.
 
 ###### Parameters
 
@@ -459,7 +510,9 @@ Verifies the raw request and fetches current provider state when needed.
 
 ###### Returns
 
-`Promise`\<[`VerifiedCommerceEvent`](server.md#verifiedcommerceevent)\>
+`Promise`\<
+  \| [`VerifiedCommerceEvent`](server.md#verifiedcommerceevent)
+  \| `null`\>
 
 ###### Inherited from
 
@@ -469,7 +522,7 @@ Verifies the raw request and fetches current provider state when needed.
 
 ### TestTokenOptions
 
-Defined in: [server/packages/server/src/testing.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L73)
+Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L74)
 
 #### Properties
 
@@ -479,7 +532,7 @@ Defined in: [server/packages/server/src/testing.ts:73](https://github.com/eigeni
 optional anonymous?: boolean;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L75)
+Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L76)
 
 ##### claims?
 
@@ -487,7 +540,7 @@ Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeni
 optional claims?: Record<string, unknown>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:80](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L80)
+Defined in: [server/packages/server/src/testing.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L81)
 
 Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 
@@ -497,7 +550,7 @@ Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 optional email?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L76)
+Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L77)
 
 ##### name?
 
@@ -505,7 +558,7 @@ Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeni
 optional name?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L77)
+Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L78)
 
 ##### picture?
 
@@ -513,7 +566,7 @@ Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeni
 optional picture?: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L78)
+Defined in: [server/packages/server/src/testing.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L79)
 
 ##### uid
 
@@ -521,7 +574,7 @@ Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeni
 uid: string;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L74)
+Defined in: [server/packages/server/src/testing.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L75)
 
 ## Variables
 
@@ -531,7 +584,7 @@ Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeni
 const TEST_PROJECT_ID: "eigen-test" = "eigen-test";
 ```
 
-Defined in: [server/packages/server/src/testing.ts:39](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L39)
+Defined in: [server/packages/server/src/testing.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L40)
 
 ***
 
@@ -541,7 +594,7 @@ Defined in: [server/packages/server/src/testing.ts:39](https://github.com/eigeni
 const testFirebaseAdmin: FirebaseAdminEffects;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L63)
+Defined in: [server/packages/server/src/testing.ts:64](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L64)
 
 No-op Firebase Admin effects for test workers and test Durable Objects.
 
@@ -557,7 +610,7 @@ function fakeCommerceProvider(
 ): FakeCommerceProvider;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:158](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L158)
+Defined in: [server/packages/server/src/testing.ts:163](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L163)
 
 Deterministic provider for commerce lifecycle and implementor conformance tests.
 
@@ -581,7 +634,7 @@ Deterministic provider for commerce lifecycle and implementor conformance tests.
 function mintTestToken(opts): Promise<string>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:83](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L83)
+Defined in: [server/packages/server/src/testing.ts:84](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L84)
 
 #### Parameters
 
@@ -605,7 +658,7 @@ function testAccount(
 ): Promise<string>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:307](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L307)
+Defined in: [server/packages/server/src/testing.ts:304](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L304)
 
 Provision the account a commerce test is about.
 
@@ -635,7 +688,7 @@ ledger directly has to say so itself.
 function testBearer(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:102](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L102)
+Defined in: [server/packages/server/src/testing.ts:103](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L103)
 
 Authorization header for a minted token.
 
@@ -657,7 +710,7 @@ Authorization header for a minted token.
 function testMutationHeaders(opts): Promise<Record<string, string>>;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:109](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L109)
+Defined in: [server/packages/server/src/testing.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L110)
 
 Headers for an authenticated JSON mutation.
 
@@ -679,7 +732,7 @@ Headers for an authenticated JSON mutation.
 function testVerifier(): TokenVerifier;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:69](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L69)
+Defined in: [server/packages/server/src/testing.ts:70](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L70)
 
 The verifier a test worker passes under `createEngine({ testing })`.
 
@@ -699,7 +752,7 @@ function withCreationId(
 ): unknown;
 ```
 
-Defined in: [server/packages/server/src/testing.ts:324](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L324)
+Defined in: [server/packages/server/src/testing.ts:321](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L321)
 
 #### Parameters
 

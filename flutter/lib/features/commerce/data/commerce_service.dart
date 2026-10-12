@@ -9,12 +9,31 @@ import 'package:eigen_flutter/features/commerce/domain/purchase_gateway.dart';
 /// — a store SDK, one or more hosted pages, or both. This class is where the
 /// two shapes stop differing: however a purchase was made, it arrives on
 /// [verifiedUpdates] only after the Worker verified it and returned access.
+///
+/// A service belongs to one account, [accountId], or to nobody while signed
+/// out. The store SDKs bind every purchase to an account, and that is the
+/// account the Worker checks a claim against, so it comes from here and never
+/// from the application.
 class CommerceService {
-  CommerceService(this._repository, this._storefronts, this._deliveries);
+  CommerceService(
+    this._repository,
+    this._storefronts,
+    this._deliveries, {
+    required this.accountId,
+  });
 
   final CommerceRepository _repository;
   final List<Storefront> _storefronts;
   final PurchaseDeliveryStore _deliveries;
+
+  /// The signed-in account, or null when nobody is signed in.
+  final String? accountId;
+
+  /// Buying and restoring both act for an account, and a purchase bound to
+  /// nobody could never be claimed by anybody.
+  String get _purchaser =>
+      accountId ??
+      (throw StateError('Sign in before buying or restoring a purchase.'));
 
   /// Hosted checkouts resolve as futures; this is how they join the stream the
   /// SDK gateways already publish on, so a store screen listens once.
@@ -68,6 +87,7 @@ class CommerceService {
     CommerceOffer offer,
     Map<String, StoreProduct> products,
   ) async {
+    final purchaser = _purchaser;
     for (final storefront in _storefronts) {
       final mapping = offer.products
           .where((product) => product.provider == storefront.provider)
@@ -83,6 +103,7 @@ class CommerceService {
             );
           }
           await gateway.purchase(
+            accountId: purchaser,
             offerKey: offer.key,
             product: product,
             repeatable: offer.repeatable,
@@ -170,8 +191,9 @@ class CommerceService {
   /// held on the device, and the account's entitlements are already whatever
   /// [getAccess] says.
   Future<void> restore() async {
+    final purchaser = _purchaser;
     for (final gateway in _storefronts.whereType<PurchaseGateway>()) {
-      await gateway.restore();
+      await gateway.restore(accountId: purchaser);
     }
   }
 
@@ -230,22 +252,35 @@ class CommerceService {
     return (update: update, access: access);
   }
 
-  /// The logical offer [update] paid for.
+  /// The logical offer to claim [update] under.
   ///
   /// A store SDK reports its own product identifier and knows nothing about
   /// offers, so the mapping lives in the catalog and nowhere else. It is
   /// fetched if this service has not read one yet: a purchase restored at
   /// startup can arrive before any store screen has asked for the catalog, and
   /// claiming it with a product id would fail as an unknown offer.
+  ///
+  /// It can be a guess. A store may report less than tells offers apart —
+  /// Play names a subscription's product, not its base plan — and the gateway
+  /// says which references an update [PurchaseGateway.covers]. The claim's
+  /// offer only steers the Worker's verification; the offer recorded is the
+  /// one the provider verifies.
   Future<String> _offerKeyFor(
     Storefront storefront,
     PurchaseUpdate update,
   ) async {
     final catalog = _catalog ?? await getCatalog();
+    bool covers(String providerReference) => switch (storefront) {
+      final PurchaseGateway gateway => gateway.covers(
+        providerReference,
+        update,
+      ),
+      _ => providerReference == update.providerReference,
+    };
     for (final offer in catalog.offers) {
       for (final product in offer.products) {
         if (product.provider == storefront.provider &&
-            product.providerReference == update.providerReference) {
+            covers(product.providerReference)) {
           return offer.key;
         }
       }

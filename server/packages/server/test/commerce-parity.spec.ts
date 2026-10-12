@@ -78,15 +78,29 @@ async function cases(): Promise<Record<string, ParityCase>> {
         now: () => NOW,
       }),
       routes: {
-        "/androidpublisher/v3/applications/com.example.game/purchases/products/supporter_once/tokens/tok_a": { purchaseState: 0, acknowledgementState: 1, purchaseTimeMillis: "1699000000000", orderId: "GPA.A", obfuscatedExternalAccountId: "alice" },
-        "/androidpublisher/v3/applications/com.example.game/purchases/products/supporter_once/tokens/tok_b": { purchaseState: 0, acknowledgementState: 1, purchaseTimeMillis: "1699000001000", orderId: "GPA.B", obfuscatedExternalAccountId: "alice" },
+        "/androidpublisher/v3/applications/com.example.game/purchases/productsv2/tokens/tok_a": {
+          productLineItem: [{ productId: "supporter_once" }],
+          purchaseStateContext: { purchaseState: "PURCHASED" },
+          acknowledgementState: "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED",
+          purchaseCompletionTime: "2023-11-03T08:26:40Z",
+          orderId: "GPA.A",
+          obfuscatedExternalAccountId: "alice",
+        },
+        "/androidpublisher/v3/applications/com.example.game/purchases/productsv2/tokens/tok_b": {
+          productLineItem: [{ productId: "supporter_once" }],
+          purchaseStateContext: { purchaseState: "PURCHASED" },
+          acknowledgementState: "ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED",
+          purchaseCompletionTime: "2023-11-03T08:26:41Z",
+          orderId: "GPA.B",
+          obfuscatedExternalAccountId: "alice",
+        },
       },
       claim: { evidence: { purchaseToken: "tok_a" }, providerReference: "supporter_once" },
       references: [
-        { providerTransactionId: "GPA.A", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ productId: "supporter_once", token: "tok_a" }) },
-        { providerTransactionId: "GPA.B", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ productId: "supporter_once", token: "tok_b" }) },
+        { providerTransactionId: "tok_a", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ kind: "oneTime", token: "tok_a" }) },
+        { providerTransactionId: "tok_b", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ kind: "oneTime", token: "tok_b" }) },
       ],
-      failingPath: "/androidpublisher/v3/applications/com.example.game/purchases/products/supporter_once/tokens/tok_a",
+      failingPath: "/androidpublisher/v3/applications/com.example.game/purchases/productsv2/tokens/tok_a",
       supports: { checkout: false, management: false, webhook: true },
     },
     stripe: {
@@ -116,8 +130,8 @@ async function cases(): Promise<Record<string, ParityCase>> {
         now: () => NOW,
       }),
       routes: {
-        "/v1/payments/pay_a": { id: "pay_a", status: "captured", order_id: null, created_at: 1_699_000_000, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter" } },
-        "/v1/payments/pay_b": { id: "pay_b", status: "captured", order_id: null, created_at: 1_699_000_001, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter" } },
+        "/v1/payments/pay_a": { id: "pay_a", status: "captured", amount: 49900, currency: "INR", order_id: null, created_at: 1_699_000_000, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter" } },
+        "/v1/payments/pay_b": { id: "pay_b", status: "captured", amount: 49900, currency: "INR", order_id: null, created_at: 1_699_000_001, notes: { eigenAccountId: "alice", eigenProviderReference: "supporter" } },
       },
       claim: { evidence: { paymentId: "pay_a" }, providerReference: "supporter" },
       references: [

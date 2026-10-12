@@ -71,7 +71,7 @@ const catalog: CommerceCatalog = {
   content: { board_theme: { gold: { classification: "cosmetic" } } },
 };
 
-async function record(accountId: string, offerKey: string, transaction: VerifiedCommerceTransaction) {
+async function record(accountId: string, transaction: VerifiedCommerceTransaction) {
   // The ledger writes only for an account that exists. Through the API the
   // auth middleware guarantees that; a direct call has to provision it.
   await testAccount(env.DB, accountId, now);
@@ -79,7 +79,6 @@ async function record(accountId: string, offerKey: string, transaction: Verified
     catalog,
     provider: "fake",
     accountId,
-    expectedOfferKey: offerKey,
     transaction,
     now,
   });
@@ -88,7 +87,7 @@ async function record(accountId: string, offerKey: string, transaction: Verified
 describe("grant composition", () => {
   it("unions permissions/content, takes the greatest limit, then unlimited", async () => {
     const accountId = `compose-${crypto.randomUUID()}`;
-    await record(accountId, "supporter", {
+    await record(accountId, {
       providerTransactionId: crypto.randomUUID(),
       providerReference: "supporter_once",
       kind: "oneTime",
@@ -109,7 +108,7 @@ describe("grant composition", () => {
     expect(supporter.snapshot.limits).toEqual([expect.objectContaining({ maximum: 20, remaining: 20 })]);
 
     const proTransactionId = crypto.randomUUID();
-    await record(accountId, "pro_monthly", {
+    await record(accountId, {
       providerTransactionId: proTransactionId,
       providerReference: "pro_monthly",
       kind: "subscription",
@@ -131,7 +130,7 @@ describe("grant composition", () => {
       }),
     ]);
 
-    await record(accountId, "pro_monthly", {
+    await record(accountId, {
       providerTransactionId: proTransactionId,
       providerReference: "pro_monthly",
       kind: "subscription",
@@ -148,7 +147,7 @@ describe("grant composition", () => {
   it("scheduled reconciliation converges a missed expiry", async () => {
     const accountId = `reconcile-${crypto.randomUUID()}`;
     const transactionId = crypto.randomUUID();
-    await record(accountId, "pro_monthly", {
+    await record(accountId, {
       providerTransactionId: transactionId,
       providerReference: "pro_monthly",
       kind: "subscription",
@@ -182,7 +181,7 @@ describe("grant composition", () => {
 
   it("uses one real sustaining source period rather than inventing a merged one", async () => {
     const accountId = `overlap-${crypto.randomUUID()}`;
-    await record(accountId, "pro_monthly", {
+    await record(accountId, {
       providerTransactionId: crypto.randomUUID(),
       providerReference: "pro_monthly",
       kind: "subscription",
@@ -191,7 +190,7 @@ describe("grant composition", () => {
       validFrom: now - 5000,
       validUntil: now + 1000,
     });
-    await record(accountId, "pro_monthly", {
+    await record(accountId, {
       providerTransactionId: crypto.randomUUID(),
       providerReference: "pro_monthly",
       kind: "subscription",
@@ -277,7 +276,6 @@ describe("grant composition", () => {
       catalog: unlimitedCatalog,
       provider: "fake",
       accountId,
-      expectedOfferKey: "lifetime",
       transaction: {
         providerTransactionId: crypto.randomUUID(),
         providerReference: "lifetime",

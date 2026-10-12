@@ -19,12 +19,15 @@ Three things about the shape are deliberate:
 - **Nothing trusts the webhook body.** A notification is a signed hint; the
   adapter re-reads the Session, Subscription or PaymentIntent from the API
   before anything becomes an entitlement.
+- **A refund changes the charge, not the session.** A one-time purchase is
+  read with its payment's charge, so a full refund or a lost dispute revokes
+  it, and the charge's own events find the session it paid for.
 
 ## Interfaces
 
 ### StripeCommerceConfig
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:43](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L43)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:46](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L46)
 
 Everything this adapter needs from the Worker's environment.
 
@@ -42,7 +45,7 @@ Everything this adapter needs from the Worker's environment.
 optional apiVersion?: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:55](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L55)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L58)
 
 Override the pinned API version. Set the webhook endpoint to the same
 version, and expect to revisit the field mapping below if you move back
@@ -54,7 +57,7 @@ past Basil.
 optional now?: () => number;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:56](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L56)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L59)
 
 ###### Returns
 
@@ -66,7 +69,7 @@ Defined in: [server/packages/server/src/commerce/providers/stripe.ts:56](https:/
 optional toleranceSeconds?: number;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:49](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L49)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:52](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L52)
 
 Seconds a signed payload stays acceptable. Stripe's own default is 300.
 
@@ -78,7 +81,7 @@ Seconds a signed payload stays acceptable. Stripe's own default is 300.
 secretKey(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:45](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L45)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:48](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L48)
 
 The restricted or secret API key. Never a publishable key.
 
@@ -98,7 +101,7 @@ The restricted or secret API key. Never a publishable key.
 webhookSecret(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:47](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L47)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:50](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L50)
 
 The `whsec_...` signing secret for the endpoint Stripe posts to.
 
@@ -120,7 +123,7 @@ The `whsec_...` signing secret for the endpoint Stripe posts to.
 function stripeCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:133](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L133)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:144](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L144)
 
 #### Type Parameters
 

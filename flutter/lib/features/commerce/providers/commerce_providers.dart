@@ -1,5 +1,6 @@
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
+import 'package:eigen_flutter/features/auth/providers/auth_providers.dart';
 import 'package:eigen_flutter/features/commerce/data/commerce_service.dart';
 import 'package:eigen_flutter/features/commerce/data/drift_purchase_delivery_store.dart';
 import 'package:eigen_flutter/features/commerce/domain/purchase_gateway.dart';
@@ -26,12 +27,16 @@ CommerceRepository commerceRepository(Ref ref) =>
 
 /// Provider-neutral coordinator joining storefront updates to server
 /// verification.
+///
+/// Rebuilt for each signed-in account, so a purchase is always bound to the
+/// account the Worker will check its claim against.
 @Riverpod(keepAlive: true)
 CommerceService commerceService(Ref ref) {
   final service = CommerceService(
     ref.watch(commerceRepositoryProvider),
     ref.watch(storefrontsProvider),
     DriftPurchaseDeliveryStore(ref.watch(replicaDatabaseProvider.future)),
+    accountId: ref.watch(currentUserIdProvider),
   );
   ref.onDispose(service.dispose);
   return service;

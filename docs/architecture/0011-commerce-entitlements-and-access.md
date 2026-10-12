@@ -10,6 +10,27 @@
   _Composed operations_.
 - Amended: 2026-09-16. Every bot belongs to exactly one tier, and a grant
   covers only the resource it names. See _Closed access-capability vocabulary_ and _Composed operations_.
+- Amended: 2026-10-11. A claim's offer steers verification and the offer
+  recorded is the one the provider verifies; a subscription follows a plan
+  change in place; a Play subscription is referenced by base plan; and a
+  catalog change takes effect at once. See _Offers_, _Subscriptions_, and
+  _What validation cannot see_.
+- Amended: 2026-10-11 (later). A Play one-time purchase is read by token, so
+  Play says which product was bought; a refund notification revokes; a
+  replacement purchase ends the one it replaced and attributes through it;
+  ledger writes only land over an older provider observation; adapters
+  validate references at startup and can refuse permanently; Play offers
+  launch only when tagged, and plan changes replace in the app. See _Offers_,
+  _One-time products_, _Subscriptions_, _Provider adapters_, _Storage and
+  authority_, _Dart and Flutter integration_, and _Catalog validation_.
+- Amended: 2026-10-11 (follow-up). Notifications are deduplicated by the
+  provider's own event identity, and any authentic notification about no
+  purchase is accepted; a purchase gateway buys for the account
+  `CommerceService` belongs to; and an Apple build carries no storefront. See
+  _Provider adapters_ and _Dart and Flutter integration_.
+- Amended: 2026-10-12. The Play adapter authenticates a notification by its
+  Pub/Sub push token, and a refunded or lost-dispute Stripe one-time purchase
+  is revoked. See _Provider adapters_ and _Purchase and entitlement lifecycle_.
 
 ## Context
 
@@ -130,6 +151,27 @@ The catalog MUST NOT hard-code a user-visible price. Storefront adapters return
 the current localized price and purchase terms. A client MUST NOT be allowed to
 select an arbitrary provider product or price; the server resolves the provider
 identifier from the registered offer.
+
+The form of a provider reference belongs to its adapter: a Stripe Price, a
+Razorpay Plan, a Play product id for a one-time product, and
+`{productId}:{basePlanId}` for a Play subscription. Monthly and yearly are two
+base plans of one Play product, so the product id alone could not sell them as
+two offers. A Play offer — a free trial, an introductory price — is a price on
+a base plan rather than a different thing bought, and it is not part of the
+reference. Which offer to launch is the client's choice, and the Play gateway
+launches only offers the game tagged for it (see _Dart and Flutter
+integration_).
+
+A purchase claim names an offer, but that offer only steers verification. The
+offer recorded is the one the provider verifies, because a store SDK cannot
+always say which offer it sold: Play's on-device purchase names a
+subscription's product and never its base plan, and a restore on a fresh
+install has nothing to remember it from. Recording the provider's answer means
+a client gains nothing by naming an offer it did not pay for, and a paying
+player is never refused because their device guessed the plan wrong. The access
+snapshot the claim returns says what was recorded. Play's one-time purchases are
+read from `productsv2` by token alone, so for them too the product comes from
+Play.
 
 ### Entitlements
 
@@ -582,7 +624,18 @@ A permanent product follows this state machine:
 
 Pending purchases create no active entitlement. Refunds, chargebacks, and
 provider revocations invalidate their source grants but do not remove access
-still supplied by another valid source.
+still supplied by another valid source. A refund is not always a state the
+provider reports back: a voided Play one-time purchase may still read as
+purchased, so the voided notification revokes it itself, as Google's
+notification reference allows — and a partial refund of a multi-quantity
+purchase does so once its refundable quantity reaches zero. Nor does a Stripe
+Checkout Session record a refund: its payment's charge does, so a one-time
+purchase is read with that charge and is revoked once it is fully refunded or a
+dispute over it is lost, and the charge's own events find the session.
+
+The transaction identity is the one that is stable from a pending purchase to
+a paid one. For Play that is the purchase token, not the order id, which a
+pending purchase does not have yet.
 
 ### Subscriptions
 
@@ -600,6 +653,30 @@ Subscriptions use the same entitlement projection and additionally normalize:
 Provider status decides whether a grant remains active; client claims never
 extend it. Webhooks and real-time developer notifications are hints to fetch or
 verify the provider's current object, not trusted entitlement commands.
+
+A subscription can change plan within one transaction. Stripe's Billing Portal
+swaps the price on the same subscription. Play treats every plan change as a
+new purchase, with a new token to claim and acknowledge and the old token
+reported expired; a deferred change issues that token at once but serves the
+old plan from it until renewal, then swaps the line item in place. Either way
+the transaction follows: its offer becomes the one the new reference maps to,
+and any grant the old offer gave that the new one does not is revoked. A one-time
+purchase never changes what was bought, and no transaction changes its kind;
+either is refused as a conflict. One transaction grants one offer, so a Play
+purchase serving several line items at once (add-on subscriptions) is refused
+rather than granting only its first item.
+
+A purchase can also name the transaction it replaced — Play's
+`linkedPurchaseToken`, set on every plan change and on a resubscription after a
+lapse. The ledger ends the replaced transaction in the same write and revokes
+its grants, as Google requires of a backend, rather than waiting for the sweep
+to read the old token as expired; until then a downgrade would keep what only
+the old plan granted. The replaced transaction also attributes the new one: a
+resubscription made in the Play Store carries no obfuscated account id, and is
+recorded for the account that held the purchase it continues. A purchase that
+names no account cannot take over a subscription another account holds; one
+the provider binds to a different account may, and leaves the old account's
+row for the sweep.
 
 An account with permanent `supporter` and active subscription `pro` receives
 the union of both. When `pro` expires, its AI, analysis, and temporary limit
@@ -634,13 +711,45 @@ replacement, and management links.
 
 The intended first optional adapters are Google Play Billing for Android and
 Stripe Checkout/Billing for web. StoreKit may use the same boundary when iOS
-becomes a supported application target. A concrete provider is deliberately not
+becomes a supported commerce target; until then an iOS or macOS build carries
+no storefront, because Apple requires its own in-app purchase for digital goods
+and a hosted checkout in its place is grounds for rejection. A concrete provider is deliberately not
 part of the core implementation: it requires a consuming game's merchant
 account, product identifiers, SDK choice, and credential policy. Neither
 provider is a dependency of the pure domain model.
 
+An adapter distinguishes a provider that failed from one that answered with
+something the engine will never accept — a purchase of several products at
+once, a Razorpay payment for less than its offer's configured price. The
+latter is a `ProviderRefusal`: a claim answers 409, and a notification is
+accepted and logged, because asking the provider to resend it for days cannot
+change the answer. An authentic notification about no purchase resolves to
+nothing to record and is accepted too: a Play Console test message, a Stripe
+event the endpoint was subscribed to beyond the lifecycle ones, or the Razorpay
+payment that pays a subscription renewal. Razorpay announces every payment on
+the account, and a renewal's payment names no offer; the subscription's own
+charge event is the one that says what changed. Answering any of these with an
+error would be worse than noisy: Razorpay disables a webhook that has failed
+for a day.
+
+Notes and metadata a payer can write are not proof of what was bought. Razorpay
+payment notes are set by whoever opens Checkout with the public key id, so the
+adapter accepts a one-time payment only for exactly its offer's configured
+amount and currency, and a payment or subscription only for the account its
+notes name.
+
 Provider notifications MUST be signature- or identity-verified, deduplicated,
-safe under retries, and independent of delivery order. Where a provider
+safe under retries, and independent of delivery order. Stripe and Razorpay sign
+the body. Play signs nothing in its notification, so the adapter verifies the
+delivery instead: Pub/Sub push attaches a Google-signed token, and a
+notification is read only when that token was minted for the URL it arrived at
+and names the game's service account — the one the adapter already calls the
+Play Developer API as, so the deployment configures nothing more. Anyone can
+point a subscription of their own at the endpoint; only the game can have it
+deliver as that account. Deduplication uses the
+provider's own event identity — Stripe's event id, the Pub/Sub message id for
+Play, Razorpay's `x-razorpay-event-id` — because one derived from the
+purchase and its state cannot tell one month's renewal from the next. Where a provider
 notification contains only a change signal, the adapter fetches current provider
 state before changing entitlements. A reconciliation job repairs missed
 notifications and stuck acknowledgement work.
@@ -651,6 +760,14 @@ require, never place them in routine logs or client responses, and redact them
 from diagnostics.
 
 ## Storage and authority
+
+Two verifications of one purchase can race — a claim and a notification, or a
+notification and the sweep — and finish in the opposite order to the one in
+which they read the provider. Each write records when the provider was asked
+(`observed_at`, taken before the call) and lands only over an older
+observation; the grant statements batched with it are guarded on the row's
+new `revision`, so a write that lost touches nothing, and an acknowledgement
+recorded meanwhile is never undone.
 
 D1 remains a read model for live games but becomes the authority for this
 separate account-scoped commerce domain. A per-game Durable Object does not own
@@ -738,10 +855,13 @@ abstract interface class PurchaseGateway implements Storefront {
   Future<List<StoreProduct>> products(Set<String> providerReferences);
   Stream<PurchaseUpdate> get updates;
   Future<void> purchase({
+    required String accountId,
     required String offerKey,
     required StoreProduct product,
+    required bool repeatable,
   });
-  Future<void> restore();
+  Future<void> restore({required String accountId});
+  bool covers(String providerReference, PurchaseUpdate update);
   Future<void> complete(PurchaseUpdate update);
 }
 
@@ -760,6 +880,30 @@ Both produce a `PurchaseUpdate`, so `CommerceService` verifies, settles and
 publishes them on one stream whatever they came from. `complete` runs only for
 an SDK gateway: a hosted page holds no transaction to settle.
 
+A store SDK binds each purchase to an account — Play's `obfuscatedAccountId` —
+and the Worker checks a claim against the account the store read back. So the
+account is the platform's to supply, not the application's: `CommerceService`
+is built for the signed-in account, rebuilt when it changes, and passes it to
+`purchase` and `restore`. Signed out, it refuses to buy or restore at all.
+
+`covers` is how a gateway says that its update could be a purchase of a catalog
+reference, when the store reports less than the catalog names. Play's gateway
+answers yes for every base plan of the purchased product, `CommerceService`
+claims under the first offer covered, and the Worker records the plan Play
+verifies.
+
+The Play gateway decides two things the port leaves to it. It launches an offer
+on a base plan only when the game tagged the offer in the Play Console
+(`eigen-launch` by default), choosing the cheapest such offer Play still
+returns. Play withholds an offer from an ineligible player only when Play
+decides eligibility; developer-determined offers reach every player, so an
+untagged offer launching would sell a win-back price to everyone. A
+`StoreProduct` carries the regular price as `displayPrice` and the phases ahead
+of it as `introductoryPrices`, because Play prices an offer at its first phase.
+And buying another base plan of a subscription the account holds replaces the
+old purchase, as Play requires, with the replacement mode left to the default
+the game sets in the Play Console.
+
 Which storefronts a build carries is an application composition decision, made
 at the composition root and not by the server. The server holds no routing
 policy — jurisdiction and distribution rules change slowly enough that an app
@@ -768,6 +912,10 @@ deployment and a binary would be worse than one in a single place. A client
 tells the catalog route which storefronts it carries so the Worker does not
 call payment APIs for prices that client could never render; that is the client
 declaring what it is, not the server deciding what it may do.
+
+`platformStorefronts` is that decision for the platforms the engine has
+storefronts for: the application names its Android, web and desktop
+storefronts, and an iOS or macOS build gets none, so its store does not appear.
 
 Purchase updates are evidence to send to the Worker, not permission to unlock
 locally.
@@ -812,7 +960,10 @@ Startup and CI fail for an invalid commerce definition. Validation includes:
 - unique offer, entitlement, content, capability-resource, and metric keys;
 - every offer grants declared entitlements;
 - every entitlement references fixed capabilities and registered resources;
-- provider product IDs do not map ambiguously;
+- provider product IDs do not map ambiguously, and each has the form its
+  adapter can sell (`validateReference`): a Play subscription names its base
+  plan, a Stripe offer a Price rather than a Product, a one-time Razorpay offer
+  has a configured amount;
 - free grants and paid grants use valid capability parameters;
 - content extraction returns only declared resources;
 - one metric does not combine incompatible period policies;
@@ -840,9 +991,24 @@ them:
   through it. Renaming one orphans that purchase history and breaks
   restoration for anyone who bought it.
 
-Provider product references (a Stripe Price, a Play product id) are the
-exception: they may be re-pointed freely, because a transaction records the
-reference it was actually bought at and the catalog only maps the current one.
+Provider product references (a Stripe Price, a Play product id) must stay
+mapped for as long as the provider may still report on something bought under
+them. Every renewal, refund, notification and sweep resolves its offer from the
+reference the provider reports, and a reference the catalog no longer maps is
+refused: the row stalls, visibly, on `GET /ops/commerce/stalled`. For a
+subscription that means its grant lapses at the end of the paid period while
+the provider keeps billing. A refund or expiry under a retired reference is
+still applied to the transaction already recorded, because it only takes
+access away; it grants nothing new.
+
+What an entitlement means is resolved from the catalog on every read. Changing
+an entitlement's permissions, content or limits applies at once to purchases
+already made, and an entitlement the catalog no longer defines grants nothing
+and is not reported in the access snapshot — which is exactly why renaming one
+is a silent revocation. Which entitlements an offer grants is recorded per
+purchase, by contrast: changing an offer's list applies to new purchases, and
+to a subscription when the provider next reports on it, but a one-time
+purchase keeps the grants it was made with.
 
 A key that must change is therefore a data migration, not an edit. Treat both
 as append-only: introduce the new key, grant it alongside the old one, and

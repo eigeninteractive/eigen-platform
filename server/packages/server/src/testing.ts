@@ -31,6 +31,7 @@
 
 import { createLocalJWKSet, importJWK, type JWK, SignJWT } from "jose";
 import { createFirebaseVerifier, type TokenVerifier } from "./auth/firebase.js";
+import { ProviderRefusal } from "./commerce/provider-kit.js";
 import type { CommerceProduct, CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "./commerce/types.js";
 import { orm } from "./d1/orm.js";
 import { users } from "./d1/schema.js";
@@ -124,6 +125,10 @@ export interface FakeCommerceEvidence {
   kind?: "oneTime" | "subscription";
   requiresAcknowledgement?: boolean;
   sealedProviderState?: string;
+  /** The transaction this one replaced, as Play's `linkedPurchaseToken`. */
+  replaces?: string;
+  /** Answer as a provider that read the purchase and will never accept it. */
+  refusal?: string;
 }
 
 /**
@@ -170,6 +175,26 @@ export function fakeCommerceProvider(
   let sweepFailure: string | null = null;
   let acknowledgementFailure: string | null = null;
   let providerAccountOverride: string | null = null;
+  // The evidence names what was bought, as a Play token does, and the claim's
+  // offer does not get a say: a store SDK may not know it.
+  const verified = (evidence: Partial<FakeCommerceEvidence>, withLifecycle: boolean): VerifiedCommerceTransaction => {
+    if (typeof evidence.refusal === "string") throw new ProviderRefusal(evidence.refusal);
+    if (typeof evidence.providerReference !== "string" || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
+    if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
+    const instant = now();
+    return {
+      providerTransactionId: evidence.transactionId,
+      providerReference: evidence.providerReference,
+      kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
+      state: evidence.state ?? "active",
+      purchasedAt: evidence.purchasedAt ?? instant,
+      validFrom: evidence.validFrom ?? instant,
+      ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
+      ...(evidence.replaces === undefined ? {} : { replacesProviderTransactionId: evidence.replaces }),
+      ...(withLifecycle && evidence.requiresAcknowledgement !== undefined ? { requiresAcknowledgement: evidence.requiresAcknowledgement } : {}),
+      ...(withLifecycle && evidence.sealedProviderState !== undefined ? { sealedProviderState: evidence.sealedProviderState } : {}),
+    };
+  };
   return {
     key,
     transactions,
@@ -224,47 +249,19 @@ export function fakeCommerceProvider(
       const evidence = input.evidence as Partial<FakeCommerceEvidence> | null;
       if (evidence === null || typeof evidence !== "object") throw new Error("fake commerce evidence must be an object");
       if (evidence.accountId !== input.accountId) throw new Error("fake commerce evidence belongs to another account");
-      if (evidence.providerReference !== input.expectedProviderReference || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
-      if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
-      const instant = now();
-      return {
-        providerTransactionId: evidence.transactionId,
-        providerReference: evidence.providerReference,
-        kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
-        state: evidence.state ?? "active",
-        purchasedAt: evidence.purchasedAt ?? instant,
-        validFrom: evidence.validFrom ?? instant,
-        ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
-        ...(evidence.requiresAcknowledgement === undefined ? {} : { requiresAcknowledgement: evidence.requiresAcknowledgement }),
-        ...(evidence.sealedProviderState === undefined ? {} : { sealedProviderState: evidence.sealedProviderState }),
-      };
+      return verified(evidence, true);
     },
-    verifyWebhook: async (_env, request): Promise<VerifiedCommerceEvent> => {
-      const body = (await request.json()) as Partial<FakeCommerceEvidence> & {
-        eventId?: string;
-      };
+    /** The body is the evidence plus an `eventId`. `accountId` may be left
+     * out, as Play leaves it out of a resubscription made in the Play Store,
+     * and `ignore: true` is a notification about no purchase at all. */
+    verifyWebhook: async (_env, request): Promise<VerifiedCommerceEvent | null> => {
+      const body = (await request.json()) as Partial<FakeCommerceEvidence> & { eventId?: string; ignore?: boolean };
       if (typeof body.eventId !== "string" || body.eventId.length === 0) {
         throw new Error("fake commerce webhook needs an eventId");
       }
-      if (typeof body.accountId !== "string") {
-        throw new Error("fake commerce webhook needs an accountId");
-      }
-      const transaction = await (async (): Promise<VerifiedCommerceTransaction> => {
-        const evidence = body;
-        if (typeof evidence.providerReference !== "string" || !registered.has(evidence.providerReference)) throw new Error("fake commerce evidence has an unknown product");
-        if (typeof evidence.transactionId !== "string" || evidence.transactionId.length === 0) throw new Error("fake commerce evidence needs a transactionId");
-        const instant = now();
-        return {
-          providerTransactionId: evidence.transactionId,
-          providerReference: evidence.providerReference,
-          kind: evidence.kind ?? registered.get(evidence.providerReference)?.kind ?? "oneTime",
-          state: evidence.state ?? "active",
-          purchasedAt: evidence.purchasedAt ?? instant,
-          validFrom: evidence.validFrom ?? instant,
-          ...(evidence.validUntil === undefined ? {} : { validUntil: evidence.validUntil }),
-        };
-      })();
-      return { providerEventId: body.eventId, accountId: body.accountId, transaction };
+      if (body.ignore === true) return null;
+      const transaction = verified(body, false);
+      return { providerEventId: body.eventId, ...(typeof body.accountId === "string" ? { accountId: body.accountId } : {}), transaction };
     },
     createCheckout: async (_env, input) => {
       // A real storefront opens a NEW session per call. Keeping that true here

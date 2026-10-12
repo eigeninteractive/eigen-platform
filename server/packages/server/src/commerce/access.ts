@@ -156,6 +156,11 @@ export async function readEffectiveAccess(d1: D1Database, catalog: CommerceCatal
   const sources = await activeSources(d1, userId, now);
   const definitions = new Map(catalog.entitlements.map((item) => [item.key, item] as const));
   const grants: GrantWithSource[] = [{ grant: catalog.free, source: null }];
+  // The ledger records which entitlement a purchase granted; the catalog says
+  // what that entitlement means today. Resolving here, on every read, is what
+  // makes a catalog change take effect at once: an entitlement the catalog no
+  // longer defines grants nothing and is not reported, and one whose
+  // permissions changed grants the new ones.
   for (const source of sources) {
     const definition = definitions.get(source.key);
     if (definition !== undefined) grants.push({ grant: definition, source });
@@ -171,7 +176,7 @@ export async function readEffectiveAccess(d1: D1Database, catalog: CommerceCatal
   const access: EffectiveAccess = {
     grants,
     snapshot: {
-      entitlements: sources.map((source): ActiveEntitlement => ({ key: source.key, validFrom: source.validFrom, validUntil: source.validUntil })),
+      entitlements: grants.flatMap(({ source }): ActiveEntitlement[] => (source === null ? [] : [{ key: source.key, validFrom: source.validFrom, validUntil: source.validUntil }])),
       permissions: [...permissions.values()],
       content: [...content.values()],
       limits: [],
