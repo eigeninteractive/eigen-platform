@@ -16,6 +16,7 @@
 // spans the whole line, and the line is all the compatibility table and the
 // scaffold gate read from this constraint.
 
+import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -33,12 +34,32 @@ if (!match) throw new Error(`Cannot derive a Dart compatibility line from server
 
 const [, major, minor, patch] = match;
 const lowerBound = `${major}.${minor}.${patch}`;
-const dependency = /^( {2}eigen_api:)\s*\S+\s*$/m;
+const dependency = /^( {2}eigen_api:)\s*(\S+)\s*$/m;
+
+// The part of a version a pub caret holds fixed: the major from 1.0, and the
+// minor before it, where `^0.11.0` means `<0.12.0`.
+const line = (constraint) => {
+  const parts = /^\^?(\d+)\.(\d+)\./.exec(constraint);
+  if (!parts) throw new Error(`Cannot read a compatibility line from eigen_api ${JSON.stringify(constraint)}.`);
+  return parts[1] === "0" ? `0.${parts[2]}` : parts[1];
+};
+
 for (const pubspecPath of consumerPubspecs) {
   const pubspec = await readFile(pubspecPath, "utf8");
-  if (!dependency.test(pubspec)) {
+  const current = dependency.exec(pubspec)?.[2];
+  if (current === undefined) {
     throw new Error(`${pubspecPath} must declare eigen_api as a one-line dependency.`);
   }
   await writeFile(pubspecPath, pubspec.replace(dependency, `$1 ^${lowerBound}`));
+
+  // Crossing a line strands the published package: it still names the old
+  // line, so an app resolving it beside anything built for the new engine
+  // fails `pub get`. The Dart release only versions packages with Unreleased
+  // entries, so the entry is what makes the consumer ship with its new floor
+  // instead of being skipped. Inside a line the published range already admits
+  // the new client, and nothing needs releasing for the floor alone.
+  if (line(current) !== line(lowerBound)) {
+    execFileSync("cider", [`--project-root=${dirname(pubspecPath)}`, "log", "changed", `Requires \`eigen_api\` ${lowerBound}, the client generated from engine ${lowerBound}.`], { stdio: "inherit" });
+  }
 }
 console.log(`Pinned Dart consumers to eigen_api ^${lowerBound} for server ${version}.`);
