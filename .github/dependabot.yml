@@ -75,74 +75,21 @@ updates:
     commit-message:
       prefix: "deps(web)"
 
+  # The seven Dart packages resolve as one pub workspace (root `pubspec.yaml`),
+  # and pub only computes upgrades from the root of a resolution: an entry per
+  # member fails every run with "Only apply dependency_services to the root of
+  # the workspace." One entry here covers every member's pubspec and the shared
+  # `pubspec.lock`.
   - package-ecosystem: pub
-    directory: /flutter
-    schedule:
-      interval: monthly
-    # Dependabot's Pub updater normalizes the whole manifest while updating an
-    # unrelated package. It currently rewrites our exact Freezed pin to a
-    # release requiring Dart 3.13 even though the supported Flutter baseline
-    # ships Dart 3.12, and widens other deliberately bounded constraints.
-    # Disable routine Pub version PRs until the baseline moves; Dependabot
-    # security updates are independent of this limit.
-    open-pull-requests-limit: 0
-    commit-message:
-      prefix: "deps(flutter)"
-
-  - package-ecosystem: pub
-    directory: /server/clients/dart
+    directory: /
     schedule:
       interval: monthly
     groups:
-      generated-client-dependencies:
+      dart-dependencies:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     commit-message:
-      prefix: "deps(eigen_api)"
-
-  - package-ecosystem: pub
-    directory: /dart/eigen_client
-    schedule:
-      interval: monthly
-    groups:
-      client-dependencies:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-    commit-message:
-      prefix: "deps(eigen_client)"
-
-  - package-ecosystem: pub
-    directory: /dart/eigen_codegen
-    schedule:
-      interval: monthly
-    groups:
-      codegen-dependencies:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-    commit-message:
-      prefix: "deps(eigen_codegen)"
-
-  - package-ecosystem: pub
-    directory: /shell
-    schedule:
-      interval: monthly
-    groups:
-      shell-dependencies:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-    commit-message:
-      prefix: "deps(eigen_shell)"
-
-  - package-ecosystem: pub
-    directory: /firebase
-    schedule:
-      interval: monthly
-    groups:
-      firebase-dependencies:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
-    commit-message:
-      prefix: "deps(eigen_firebase)"
+      prefix: "deps(dart)"
 
   - package-ecosystem: gradle
     directory: /firebase/android
