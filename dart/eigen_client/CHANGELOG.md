@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Changed
+- Requires `eigen_api` 0.11.0, the client generated from engine 0.11.0, so it resolves beside an `eigen_flutter` built for that engine.
+
 ## [0.6.0] - 2026-09-17
 ### Changed
 - A sync request is answered by a completed pass that began pulling after it was made, instead of joining a pass in flight: passes never overlap, a burst of triggers costs one pass, a request made mid-pull still gets its own, and a failed pass answers nothing. `SyncPass` takes a `SyncLock` so processes sharing a replica, such as browser tabs, share passes too, and `run` answers null when an earlier pass already covered the request.
@@ -43,6 +47,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.6.0...HEAD
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.5.0...eigen_client-v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.4.0...eigen_client-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.3.0...eigen_client-v0.4.0
