@@ -13,7 +13,7 @@
  * web output to make its own legal pages render correctly.
  *
  * Each face is a generated TypeScript module holding its base64, not a bundler
- * asset import: `vitest-pool-workers` resolves worker-side modules outside
+ * asset import: `@cloudflare/vitest-plugin` resolves worker-side modules outside
  * vite's plugin graph, so a `.woff2` loader would work in the build and leave
  * this route answering 500 in the test suite. woff2 is Brotli-compressed
  * already, so this is about 90KB of the worker's 3MB compressed budget, and it

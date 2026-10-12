@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Changed
+- Builds Android against the Firebase BoM 34.19.0, which the plugin exposes to the app, so a game gets the Firebase Android SDKs from that release.
+
 ## [0.5.2] - 2026-10-12
 ### Changed
 - Require the release of its sibling packages in this version.
@@ -43,6 +47,7 @@ permanent Android notification-permission denials.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
 Android notification resources compose above `eigen_flutter` ports.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.2...HEAD
 [0.5.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.1...eigen_firebase-v0.5.2
 [0.5.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.0...eigen_firebase-v0.5.1
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.4.0...eigen_firebase-v0.5.0

@@ -9,7 +9,7 @@
  * request path to test through.
  *
  * KNOWN GAP: `site.css.txt` is not covered by any of this. `tsdown` inlines it as
- * text at build time via its `.txt` loader, but under `vitest-pool-workers`
+ * text at build time via its `.txt` loader, but under `@cloudflare/vitest-plugin`
  * `import styles from "./site.css.txt"` resolves to an empty module, so every page
  * here renders with an empty `<style>`, so the palette, the inlined display face
  * and the layout are all absent from what these assertions see. A vite `load`

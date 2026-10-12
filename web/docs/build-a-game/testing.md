@@ -252,7 +252,7 @@ hand-built `GameContentContext` is the whole harness: no server, no socket, no
 auth. See [Rendering](./rendering.md#testing-the-screen).
 
 **Integration tests against the real runtime.** Drive the actual Worker (routes +
-Durable Object + D1) with `@cloudflare/vitest-pool-workers`, using
+Durable Object + D1) with `@cloudflare/vitest-plugin`, using
 `@eigeninteractive/server/testing` to mint local tokens. The engine's own suites cover the
 plumbing (lobby, sockets, timing, finish, ratings, purge) so your job is *your
 game* end to end: a full match, a timeout resolution, a bot game.

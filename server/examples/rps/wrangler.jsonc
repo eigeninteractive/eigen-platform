@@ -49,7 +49,7 @@
       "binding": "rps_dev",
       "database_name": "rps-dev",
       // Placeholder. Local development and the test suite never read this;
-      // `wrangler dev` and vitest-pool-workers simulate D1 locally against the
+      // `wrangler dev` and @cloudflare/vitest-plugin simulate D1 locally against the
       // binding name. Replace it with your own before deploying:
       //     wrangler d1 create rps-dev
       "database_id": "00000000-0000-0000-0000-000000000000",

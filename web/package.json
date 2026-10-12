@@ -43,24 +43,24 @@
     "docusaurus-plugin-sass": "^0.2.7",
     "docusaurus-theme-openapi-docs": "^5.2.0",
     "prism-react-renderer": "^2.3.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "sass": "^1.104.0"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sass": "^1.105.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
-    "@cloudflare/workers-types": "^5.20260908.1",
+    "@biomejs/biome": "2.5.15",
+    "@cloudflare/workers-types": "^5.20261009.1",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
-    "@types/node": "^26.5.0",
-    "@types/react": "^19.2.18",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
     "opentype.js": "^2.0.0",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "typedoc": "^0.28.20",
-    "typedoc-plugin-markdown": "^4.13.0",
+    "typedoc-plugin-markdown": "^4.13.1",
     "typescript": "~6.0.2",
-    "wrangler": "^4.130.0"
+    "wrangler": "^4.149.0"
   },
   "browserslist": {
     "production": [

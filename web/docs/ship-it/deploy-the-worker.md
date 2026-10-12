@@ -98,7 +98,7 @@ Three things make that true:
 
 :::tip[Tests run in the real runtime]
 
-Tests run under `@cloudflare/vitest-pool-workers`, inside the real `workerd`
+Tests run under `@cloudflare/vitest-plugin`, inside the real `workerd`
 runtime, so a passing test has exercised the actual input gate, the actual
 SQLite and the actual alarm scheduler, not a mock of them.
 

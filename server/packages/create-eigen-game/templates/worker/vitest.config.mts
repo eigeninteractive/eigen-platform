@@ -14,7 +14,7 @@ import { configDefaults, defineConfig } from "vitest/config";
  *
  * A match reruns the whole suite rather than one file. That is cheap here
  * because these tests are pure Node. Keep the trigger off any
- * `@cloudflare/vitest-pool-workers` project added later, where a fixture
+ * `@cloudflare/vitest-plugin` project added later, where a fixture
  * cannot change the result and the rebuild is not free.
  */
 export default defineConfig({

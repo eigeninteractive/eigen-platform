@@ -12,7 +12,7 @@
     "lint": "biome check ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.15",
     "workbox-cli": "7.4.1"
   },
   "overrides": {

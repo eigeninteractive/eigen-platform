@@ -537,7 +537,7 @@ describe("bots", () => {
   // unresolvable host, because that call fails nondeterministically slowly under load,
   // and until it settles the bot's follow-up `bot/action` command queues behind
   // it on the same DO, so the move sometimes doesn't land before `vi.waitFor`
-  // gives up. This version of vitest-pool-workers dropped the `fetchMock`
+  // gives up. The Workers Vitest plugin dropped the `fetchMock`
   // MockAgent, so we wrap `globalThis.fetch` exactly as the pool itself does for
   // MSW. The test and the DO share one workerd isolate, so the DO's `fetch`
   // picks up the override.
