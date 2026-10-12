@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.15.0] - 2026-10-12
 ### Added
 - `StoreProduct.introductoryPrices`, a list of `IntroductoryPrice`, carries the phases a subscription starts at before `displayPrice`, which is now the price it renews at.
 - `platformStorefronts` picks the storefronts for the platform the app runs on: the ones given for Android, web, or Windows and Linux, and none on iOS or macOS, where Apple requires its own in-app purchase and the store therefore does not appear.
@@ -358,7 +358,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.14.0...HEAD
+[0.15.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.14.0...eigen_flutter-v0.15.0
 [0.14.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.13.0...eigen_flutter-v0.14.0
 [0.13.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.12.0...eigen_flutter-v0.13.0
 [0.12.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.11.0...eigen_flutter-v0.12.0
