@@ -1,5 +1,15 @@
 # create-eigen-game
 
+## 0.17.3
+
+### Patch Changes
+
+- [#127](https://github.com/eigeninteractive/eigen-platform/pull/127) [`eb53418`](https://github.com/eigeninteractive/eigen-platform/commit/eb534187be6a941eee280ad06d7ede79f115a053) Thanks [@eigen-release](https://github.com/apps/eigen-release)! - Install the newly released Dart packages in a scaffolded app.
+  
+  - `eigen_flutter` ^0.15.0
+  - `eigen_shell` ^0.7.0
+  - `eigen_firebase` ^0.5.1
+
 ## 0.17.2
 
 ### Patch Changes
