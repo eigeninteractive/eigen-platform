@@ -38,14 +38,7 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
       !await _TabLocks.take(tabLock)) {
     return _BrowserReplicaHost.heldElsewhere(_TabLocks.wait(tabLock));
   }
-  var connection = await probe.open(storage, name);
-  if (storage.storageApi == WebStorageApi.indexedDb) {
-    connection = connection.interceptWith(
-      _PersistToIndexedDb(connection.executor),
-    );
-  }
-  // Outermost, so it times everything the database is asked, the line above
-  // included.
+  final connection = await probe.open(storage, name);
   final watch = AnsweringWatch();
   return _BrowserReplicaHost(
     connection.interceptWith(watch),
@@ -54,77 +47,6 @@ Future<ReplicaHost> openReplicaHost({required String name}) async {
         : ReplicaStorage.persistent,
     watch,
   );
-}
-
-/// Makes what the database writes durable in IndexedDB. Temporary: remove once
-/// `eigen_flutter` is on a drift release carrying simolus3/drift#3865 (see
-/// docs/blockers.md, "Drift does not persist IndexedDB transactions").
-///
-/// Drift's IndexedDB storage holds writes in memory and saves them only after a
-/// statement run outside a transaction. In drift 2.35.0 neither of the two
-/// writes that matter most is followed by one:
-///
-/// - A transaction's `COMMIT` still counts as inside the transaction, so nothing
-///   it wrote is saved until some later, unrelated statement. Nearly every write
-///   the replica makes is a transaction, including a local game's moves, which
-///   exist nowhere else until uploaded.
-/// - Opening a database writes its schema version last, after every migration
-///   statement. Lost, it makes every later open fail creating tables that exist.
-///
-/// A tab that closes in between loses them. So after each outermost commit, and
-/// once after opening, this runs one statement outside any transaction, which
-/// is what makes drift save. A nested transaction is left alone: its writes are
-/// saved with its outermost one, and the root cannot run a statement while that
-/// is still open.
-final class _PersistToIndexedDb extends QueryInterceptor {
-  _PersistToIndexedDb(this._root);
-
-  /// The connection's own executor, outside every transaction.
-  final QueryExecutor _root;
-
-  final _outermost = <TransactionExecutor>{};
-  Future<void>? _opened;
-
-  @override
-  Future<bool> ensureOpen(
-    QueryExecutor executor,
-    QueryExecutorUser user,
-  ) async {
-    final opened = await executor.ensureOpen(user);
-    if (identical(executor, _root)) {
-      try {
-        await (_opened ??= _save());
-      } on Object {
-        _opened = null;
-        rethrow;
-      }
-    }
-    return opened;
-  }
-
-  @override
-  TransactionExecutor beginTransaction(QueryExecutor parent) {
-    final transaction = parent.beginTransaction();
-    if (identical(parent, _root)) _outermost.add(transaction);
-    return transaction;
-  }
-
-  @override
-  Future<void> commitTransaction(TransactionExecutor inner) async {
-    // Only once the commit succeeded: drift may retry a failed one.
-    await inner.send();
-    if (_outermost.remove(inner)) await _save();
-  }
-
-  @override
-  Future<void> rollbackTransaction(TransactionExecutor inner) {
-    _outermost.remove(inner);
-    return inner.rollback();
-  }
-
-  /// Any statement outside a transaction makes drift save what it holds; this
-  /// one reads nothing.
-  Future<void> _save() => _root.runCustom('SELECT 1');
 }
 
 Uri _asset(String file) =>
