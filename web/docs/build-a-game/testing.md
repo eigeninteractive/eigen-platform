@@ -255,7 +255,10 @@ auth. See [Rendering](./rendering.md#testing-the-screen).
 Durable Object + D1) with `@cloudflare/vitest-plugin`, using
 `@eigeninteractive/server/testing` to mint local tokens. The engine's own suites cover the
 plumbing (lobby, sockets, timing, finish, ratings, purge) so your job is *your
-game* end to end: a full match, a timeout resolution, a bot game.
+game* end to end: a full match, a timeout resolution, a bot game. To see what
+those tests reach, add `@vitest/coverage-v8` and run `vitest run --coverage`;
+V8 coverage is collected inside `workerd` too, so it covers your Durable Object
+code, not only the plain-Node suites.
 
 ## CI
 

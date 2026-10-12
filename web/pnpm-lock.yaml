@@ -269,7 +269,7 @@ importers:
         specifier: 3.10.2
         version: 3.10.2(@swc/core@1.15.46)(@swc/html@1.15.46)(clean-css@5.3.3)(cssnano@6.1.2(postcss@8.5.22))(csso@5.0.5)(esbuild@0.28.2)(html-minifier-terser@7.2.0)(lightningcss@1.33.0)(postcss@8.5.22)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@10.2.2)
       '@types/node':
-        specifier: ^26.6.4
+        specifier: ^26.6.5
         version: 26.6.5
       '@types/react':
         specifier: ^19.3.0

@@ -270,12 +270,12 @@ and connect different adapters through `package:eigen_flutter/adapters.dart`.
    observability for uncaught web failures.
 5. **Android FID registration:** `eigen_firebase` is an Android Flutter plugin.
    Its library manifest enables
-   `firebase_messaging_installation_id_enabled`, and its exported Firebase BoM
-   constraint selects a native Messaging SDK with FID registration. This works
-   for scaffolded and hand-created apps that depend on `eigen_firebase`; do not
-   edit the generated application manifest or `gradle.properties`. The engine's
-   explicit BoM constraint can be removed once FlutterFire selects Messaging
-   25.1.0 or newer itself. See Firebase's
+   `firebase_messaging_installation_id_enabled`. FID registration needs the
+   native Messaging SDK 25.1.0 or newer, and the `firebase_core` release that
+   `eigen_firebase` requires already selects it through FlutterFire's own
+   Firebase BoM. This works for scaffolded and hand-created apps that depend on
+   `eigen_firebase`; do not edit the generated application manifest or
+   `gradle.properties`. See Firebase's
    [Android release notes](https://firebase.google.com/support/release-notes/android#messaging_v25-1-0).
 6. **Android desugaring:** foreground notifications use
    `flutter_local_notifications`, which requires core-library desugaring in the

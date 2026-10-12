@@ -18,12 +18,12 @@
   },
   "devDependencies": {
     "@eigeninteractive/testkit": "workspace:*",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "drizzle-orm": "^0.45.4"
   },
   "dependencies": {
     "@eigeninteractive/rules": "workspace:*",
     "@eigeninteractive/server": "workspace:*",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   }
 }

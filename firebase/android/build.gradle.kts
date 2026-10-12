@@ -36,11 +36,3 @@ android {
         minSdk = 24
     }
 }
-
-dependencies {
-    // FID-based registration landed after FlutterFire's currently pinned BoM.
-    // Exporting the platform constraint lets Gradle select this version for
-    // FlutterFire too. Remove the pin once firebase_core carries it or newer.
-    api(platform("com.google.firebase:firebase-bom:34.19.0"))
-    api("com.google.firebase:firebase-messaging")
-}

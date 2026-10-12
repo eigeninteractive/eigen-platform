@@ -1,7 +1,8 @@
 # Changelog
 ## [Unreleased]
 ### Changed
-- Builds Android against the Firebase BoM 34.19.0, which the plugin exposes to the app, so a game gets the Firebase Android SDKs from that release.
+- Requires `firebase_core` 4.15.0, whose Firebase BoM 34.19.0 selects Messaging 25.1.3 for FID registration, so the Android plugin no longer exports a BoM of its own. Messaging 25.1.2 also fixes FCM registration failing with `FID_ALREADY_USED`.
+- Requires the September FlutterFire releases (`firebase_messaging` 16.7.0, `firebase_auth` 6.7.0, `firebase_analytics` 12.6.0, `firebase_crashlytics` 5.4.0, `firebase_app_installations` 0.4.4) and `flutter_local_notifications` 22.3.2.
 
 ## [0.5.2] - 2026-10-12
 ### Changed

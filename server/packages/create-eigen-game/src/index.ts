@@ -927,7 +927,7 @@ export function scaffoldGame(options: ScaffoldOptions): ScaffoldResult {
     if (bootstrap) {
       reporter.step("Adding the Flutter packages", () => {
         configureLauncherIconsAndSplash(appRoot);
-        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, `eigen_shell@${flutterShellVersion}`, `eigen_firebase@${firebaseAdapterVersion}`, "firebase_core@^4.9.0"], appRoot);
+        run("flutter", ["pub", "add", `eigen_flutter@${flutterClientVersion}`, `eigen_shell@${flutterShellVersion}`, `eigen_firebase@${firebaseAdapterVersion}`, "firebase_core@^4.15.0"], appRoot);
         run("flutter", ["pub", "add", `dev:eigen_codegen@${dartCodegenVersion}`, "dev:flutter_launcher_icons", "dev:flutter_native_splash"], appRoot);
       });
       // Actually apply the icons rather than only configuring them. Both tools

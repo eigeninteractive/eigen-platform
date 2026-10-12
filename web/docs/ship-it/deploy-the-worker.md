@@ -46,8 +46,10 @@ config's type parameters infer from the accessors.
 ## What `wrangler.jsonc` declares
 
 The `GameDO` Durable Object (SQLite storage, via the `exports` field), your D1
-database, a daily `cron` trigger (the lifecycle backstop), `nodejs_compat`, and,
-if you use them, an R2 bucket for avatars and a `public/` assets directory. Set
+database, a daily `cron` trigger (the lifecycle backstop), `nodejs_compat`,
+observability with [Workers Issues](https://developers.cloudflare.com/workers/observability/issues/)
+switched on so production failures are grouped for you, and, if you use them, an
+R2 bucket for avatars and a `public/` assets directory. Set
 the required Firebase trio (`FIREBASE_PROJECT_ID`,
 `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY`) from the same project used
 by the app. Set `WEB_APP_ORIGIN` for absolute web-notification links and as the
@@ -144,6 +146,21 @@ pnpm deploy              # = wrangler d1 migrations apply --remote && wrangler d
 
 Migrations apply **before** the code goes out, so new code never meets an old
 schema. Secrets persist across deploys and do not need re-setting.
+
+### Games in progress during a deploy
+
+A deploy does not end anyone's game. Each game's state lives in its Durable
+Object's SQLite, so new code picks up exactly where the old code stopped. The
+switch itself is Cloudflare's: by default it waits up to five minutes for a
+game's Durable Object to go idle before restarting it on the new code, so a
+move in flight finishes on the code that started it. A player whose socket drops
+in that restart reconnects and resynchronizes from the authoritative state, the
+same path as any network blip.
+
+Wrangler 4.141 and newer can change that wait with
+`durable_objects.code_update_strategy` (`mode` and `max_delay`) or
+`wrangler deploy --durable-objects-code-update-mode`. Leave the default unless a
+fix has to reach live games immediately.
 
 ### First-deploy checklist
 
