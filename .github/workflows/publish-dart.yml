@@ -112,8 +112,11 @@ jobs:
 
       - name: Authenticate to pub.dev
         if: steps.published.outputs.skip == 'false'
+        # `--fail` turns an error page into a failed request, which
+        # `--retry-all-errors` retries; without it, a transient non-JSON reply
+        # from the token endpoint reached jq and failed eigen_firebase 0.6.0.
         run: |
-          PUB_TOKEN=$(curl --retry 5 --retry-connrefused -sLS \
+          PUB_TOKEN=$(curl --fail --retry 5 --retry-all-errors --retry-delay 5 -sLS \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://pub.dev" \
             -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | jq -r '.value')
           [ -n "$PUB_TOKEN" ] && [ "$PUB_TOKEN" != "null" ] || {
