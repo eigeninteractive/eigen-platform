@@ -31,8 +31,8 @@ verified in a browser or in the source of the library involved:
   so a transaction was not saved until some unrelated later write, and neither
   was the schema version opening writes last. A tab closed in between lost the
   transaction, or left every later open failing to create tables that exist.
-  Both reproduced in Chrome with shared-worker storage; the first is fixed
-  upstream in simolus3/drift#3865, not yet released.
+  Both reproduced in Chrome with shared-worker storage; simolus3/drift#3865,
+  released in drift 2.35.1, fixes both.
 - The sync pass lock was taken before joining a pass in flight, so a trigger
   arriving mid-pass queued a second full pass rather than joining; on native the
   lock was immediate and joining worked.
@@ -95,10 +95,9 @@ offers, and only then decides whether this tab may open it:
   open elsewhere, waits for the lock, and opens by itself when it is granted.
 - Memory opens, and the app says nothing survives a reload.
 
-A host is created already knowing its storage. On IndexedDB storage, until the
-drift release carrying #3865, one statement runs outside a transaction after
-each outermost commit and once after opening, so drift saves what they wrote.
-`docs/blockers.md` tracks its removal.
+A host is created already knowing its storage. On IndexedDB storage, drift's
+own worker saves each commit and the schema version opening writes, from drift
+2.35.1; `eigen_flutter` requires a release no older, and ships its worker.
 
 ### A sync request is answered by a pass that began after it
 
