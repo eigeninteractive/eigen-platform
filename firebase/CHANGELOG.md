@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.6.0] - 2026-10-12
 ### Changed
 - Requires `firebase_core` 4.15.0, whose Firebase BoM 34.19.0 selects Messaging 25.1.3 for FID registration, so the Android plugin no longer exports a BoM of its own. Messaging 25.1.2 also fixes FCM registration failing with `FID_ALREADY_USED`.
 - Requires the September FlutterFire releases (`firebase_messaging` 16.7.0, `firebase_auth` 6.7.0, `firebase_analytics` 12.6.0, `firebase_crashlytics` 5.4.0, `firebase_app_installations` 0.4.4) and `flutter_local_notifications` 22.3.2.
@@ -48,7 +48,7 @@ permanent Android notification-permission denials.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
 Android notification resources compose above `eigen_flutter` ports.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.2...HEAD
+[0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.2...eigen_firebase-v0.6.0
 [0.5.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.1...eigen_firebase-v0.5.2
 [0.5.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.0...eigen_firebase-v0.5.1
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.4.0...eigen_firebase-v0.5.0
