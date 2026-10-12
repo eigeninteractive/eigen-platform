@@ -229,3 +229,60 @@ describe("stripe catalog references", () => {
     expect(() => provider.validateReference?.("pro-monthly", "subscription")).not.toThrow();
   });
 });
+
+describe("stripe refunds", () => {
+  /** A paid one-time session, read back with its payment's latest charge. */
+  const paidSession = (charge: Record<string, unknown>) => ({
+    id: "cs_1",
+    mode: "payment",
+    payment_status: "paid",
+    customer: "cus_1",
+    subscription: null,
+    client_reference_id: "alice",
+    created: 1_699_000_000,
+    line_items: { data: [{ price: { id: "price_supporter" } }] },
+    payment_intent: { id: "pi_1", latest_charge: { refunded: false, disputed: false, ...charge } },
+  });
+  const claim = () => provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
+
+  async function deliver(type: string, object: Record<string, unknown>) {
+    const body = JSON.stringify({ id: "evt_refund", type, data: { object } });
+    const timestamp = Math.floor(config.now() / 1000);
+    return await provider.verifyWebhook?.(null, new Request("https://x/hook", { method: "POST", headers: { "stripe-signature": `t=${timestamp},v1=${await sign(body, timestamp)}` }, body }));
+  }
+
+  it("revokes a one-time purchase whose charge was fully refunded", async () => {
+    // The session still reads as paid: only the charge records the refund.
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ refunded: true }) });
+    expect((await claim()).state).toBe("revoked");
+  });
+
+  it("keeps a partly refunded purchase", async () => {
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ refunded: false }) });
+    expect((await claim()).state).toBe("active");
+  });
+
+  it("revokes a purchase once its dispute is lost, and not while it is open", async () => {
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "needs_response" }] } });
+    expect((await claim()).state).toBe("active");
+    scriptFetch({ "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "lost" }] } });
+    expect((await claim()).state).toBe("revoked");
+  });
+
+  it("finds the session a refunded charge paid for", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [paidSession({ refunded: true })] }, "/v1/checkout/sessions/cs_1": paidSession({ refunded: true }) });
+    const verified = await deliver("charge.refunded", { id: "ch_1", payment_intent: "pi_1", metadata: {} });
+    expect(verified).toMatchObject({ providerEventId: "evt_refund", transaction: { providerTransactionId: "cs_1", state: "revoked" } });
+  });
+
+  it("finds the session a lost dispute took back", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [paidSession({ disputed: true })] }, "/v1/checkout/sessions/cs_1": paidSession({ disputed: true }), "/v1/disputes": { data: [{ status: "lost" }] } });
+    const verified = await deliver("charge.dispute.closed", { id: "dp_1", status: "lost", payment_intent: "pi_1" });
+    expect(verified?.transaction).toMatchObject({ providerTransactionId: "cs_1", state: "revoked" });
+  });
+
+  it("records nothing for a refunded charge no checkout took, such as a subscription invoice's", async () => {
+    scriptFetch({ "/v1/checkout/sessions": { data: [] } });
+    expect(await deliver("charge.refunded", { id: "ch_2", payment_intent: "pi_invoice", metadata: {} })).toBeNull();
+  });
+});

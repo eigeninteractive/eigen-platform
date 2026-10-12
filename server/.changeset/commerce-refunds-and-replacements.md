@@ -81,3 +81,10 @@ the notification arrived at, and naming the adapter's `serviceAccountEmail`.
 Anything else is refused before Play is called. Turn on authentication on the
 push subscription and have it deliver as the same service account; an
 unauthenticated subscription's notifications now fail.
+
+**Fixed:** a refunded Stripe one-time purchase is revoked. A refund changes the
+payment's charge, never the Checkout Session, so a refunded player kept what
+they bought. A session is now read with its charge and revoked once it is fully
+refunded or a dispute over it is lost, and `charge.refunded` and
+`charge.dispute.closed` find the session they paid for. Add both events to the
+Stripe webhook endpoint.

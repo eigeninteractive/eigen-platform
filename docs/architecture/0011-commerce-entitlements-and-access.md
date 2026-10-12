@@ -29,7 +29,8 @@
   `CommerceService` belongs to; and an Apple build carries no storefront. See
   _Provider adapters_ and _Dart and Flutter integration_.
 - Amended: 2026-10-12. The Play adapter authenticates a notification by its
-  Pub/Sub push token. See _Provider adapters_.
+  Pub/Sub push token, and a refunded or lost-dispute Stripe one-time purchase
+  is revoked. See _Provider adapters_ and _Purchase and entitlement lifecycle_.
 
 ## Context
 
@@ -627,7 +628,10 @@ still supplied by another valid source. A refund is not always a state the
 provider reports back: a voided Play one-time purchase may still read as
 purchased, so the voided notification revokes it itself, as Google's
 notification reference allows — and a partial refund of a multi-quantity
-purchase does so once its refundable quantity reaches zero.
+purchase does so once its refundable quantity reaches zero. Nor does a Stripe
+Checkout Session record a refund: its payment's charge does, so a one-time
+purchase is read with that charge and is revoked once it is fully refunded or a
+dispute over it is lost, and the charge's own events find the session.
 
 The transaction identity is the one that is stable from a pending purchase to
 a paid one. For Play that is the purchase token, not the order id, which a

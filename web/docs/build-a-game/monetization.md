@@ -45,12 +45,19 @@ play, a permanent cosmetic/variant product, and a subscription for analysis:
 
 ```ts
 import { createEngine } from "@eigeninteractive/server";
+import { googlePlayCommerceProvider, googlePlaySubscriptionReference } from "@eigeninteractive/server/commerce/google-play";
 import { stripeCommerceProvider } from "@eigeninteractive/server/commerce/stripe";
 
-// A storefront is one factory and the bindings it reads. Import only the ones
+// A storefront is one factory and the secrets it reads. Import only the ones
 // you sell through: a game that sells nothing imports none, and each entry
-// point carries only itself into your Worker bundle.
-const provider = stripeCommerceProvider<Env>({
+// point carries only itself into your Worker bundle. "Set up your
+// storefronts", below, says where each secret comes from.
+const play = googlePlayCommerceProvider<Env>({
+  packageName: () => "com.example.game",
+  serviceAccountEmail: (env) => env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
+  serviceAccountPrivateKey: (env) => env.GOOGLE_PLAY_PRIVATE_KEY,
+});
+const stripe = stripeCommerceProvider<Env>({
   secretKey: (env) => env.STRIPE_SECRET_KEY,
   webhookSecret: (env) => env.STRIPE_WEBHOOK_SECRET,
 });
@@ -62,7 +69,7 @@ export default createEngine({
   gameDO: (env: Env) => env.GAME_DO,
 
   commerce: {
-    providers: [provider],
+    providers: [play, stripe],
     catalog: {
       free: {
         permissions: [
@@ -105,7 +112,7 @@ export default createEngine({
           description: "Permanent themes and variants.",
           kind: "oneTime",
           entitlements: ["supporter"],
-          providerReferences: { my_store: "supporter_once" },
+          providerReferences: { google_play: "supporter_once", stripe: "price_1SupporterOnce" },
         },
         {
           key: "pro_monthly",
@@ -113,7 +120,10 @@ export default createEngine({
           description: "AI and analysis services.",
           kind: "subscription",
           entitlements: ["pro"],
-          providerReferences: { my_store: "pro_monthly" },
+          providerReferences: {
+            google_play: googlePlaySubscriptionReference("pro", "monthly"),
+            stripe: "price_1ProMonthly",
+          },
         },
       ],
       content: {
@@ -132,6 +142,10 @@ export default createEngine({
   },
 });
 ```
+
+An offer names what it is sold as at each storefront that sells it, keyed by the
+storefront: `google_play`, `stripe` or `razorpay`. An offer a storefront does
+not list is simply not sold there.
 
 Provider product identifiers are public catalog configuration and may be
 committed. API keys, webhook secrets, service credentials, and raw purchase
@@ -392,111 +406,11 @@ The practical consequence for a paid catalog:
   gating the projected frames of the same game would be two answers about one
   game.
 
-## Connect the client
+## Set up your storefronts
 
-The pure Dart client exposes `CommerceRepository` for:
-
-- `getCatalog()` and `getAccess()`;
-- server-verified `claim()` and `restore()`;
-- provider-hosted `createCheckout()`; and
-- provider-hosted `createManagement()`.
-
-`eigen_flutter` adds two storefront boundaries, because a store SDK and a
-hosted page are not the same shape. A `PurchaseGateway` supplies localized
-products, launches the SDK purchase/restore flow, emits normalized updates with
-provider evidence, and settles provider delivery only after verification. A
-`HostedStorefront` opens a checkout URL the Worker created and reports what
-came back through the return URL; it settles nothing, because the provider
-already took the money.
-
-Override `storefrontsProvider` at the application composition root with the
-storefronts this build carries, in preference order, then use
-`CommerceService`. That list is the routing decision: the server holds no
-per-platform policy, so which storefront an Android or web build uses is
-decided here and changing it is an app release. `platformStorefronts` makes it
-for you, given the storefronts for each platform:
-
-```dart
-runEigenShell(
-  module: myGame,
-  config: myConfig,
-  initializeAdapter: () async => [
-    storefrontsProvider.overrideWithValue(
-      platformStorefronts(
-        android: [PlayPurchaseGateway()],
-        web: [
-          StripeHostedStorefront(
-            returnUrl: Uri.parse('https://yourgame.example/store/return'),
-            launcher: const UrlLauncherCheckout(),
-          ),
-        ],
-      ),
-    ),
-  ],
-);
-```
-
-An iOS or macOS build carries no storefront, so its store does not appear.
-Apple requires its own in-app purchase for digital goods, there is no App
-Store storefront yet, and sending an iPhone player to a hosted checkout
-instead is grounds for rejecting the app. Windows and Linux builds sell through
-the `desktop` storefronts you pass, and none if you pass none.
-
-No storefront asks you who is buying. `CommerceService` belongs to the
-signed-in account and passes it to the gateway, which binds the purchase to it
-at the store — the account the Worker then checks the claim against. A player
-who is signed out cannot buy or restore.
-
-The shell's store screen, restore, subscription management and upgrade prompts
-work from that list alone. The return URL must use the Worker's origin or a
-configured trusted client origin, and must be `http`/`https` — on Android and
-iOS, an App Link or Universal Link.
-
-Whatever the storefront, a purchased or restored update is not access. The
-service submits its evidence to the Worker, commits access, settles at the SDK
-if there is one, and only then yields an `AccessSnapshot` — on one stream, so a
-store screen listens once.
-
-`CommerceService.getCatalog` names this build's storefronts, so the Worker
-consults only those providers' pricing APIs. Calling
-`CommerceRepository.getCatalog` without them asks every registered storefront,
-which is what an operator wants and what a player's first screen does not.
-
-A hosted return URL must use the Worker origin or a configured trusted client
-origin, and it must be `http`/`https` — a custom URI scheme will not do, so on
-Android and iOS it is an App Link or Universal Link. It is also not proof of
-payment: a browser closed on a slow network returns nothing at all, which a
-`HostedStorefront` reports as `PurchaseUpdateState.pending` rather than a
-failure. The provider webhook remains authoritative.
-
-Leaving and coming back are separate events, and on the web separate page
-loads: opening checkout replaces the page, so the return is an ordinary cold
-start that happens to carry a purchase. Call `CommerceService.resumeFrom` with
-the URL the app was opened at, and again whenever a deep link arrives.
-
-Implementations ship where their dependencies belong, which is the same rule
-the Worker's storefront entry points follow:
-
-| | Where | Why there |
-| --- | --- | --- |
-| `StripeHostedStorefront`, `RazorpayHostedStorefront` | `eigen_flutter` | Pure URL construction. No dependency, so nothing is saved by keeping them out. |
-| `UrlLauncherCheckout` | `eigen_shell` | Needs `url_launcher`, which the shell already has. |
-| `PlayPurchaseGateway` | `eigen_shell` | Links Google Play Billing, native Android code no game should carry unless it ships the shell. |
-
-`CheckoutLauncher` is the seam between the two halves: `eigen_flutter` asks for
-one rather than depending on a platform plugin every game would then link
-whether or not it sells anything. The shell supplies `UrlLauncherCheckout`, and
-an application that wants an in-app browser instead supplies its own — it is a
-single `launchUrl` call.
-
-`PlayPurchaseGateway` depends on `in_app_purchase_android` rather than the
-`in_app_purchase` umbrella, which would also link StoreKit into every iOS
-build. Play Billing is Android-only, and so is this.
-
-A concrete adapter is an entry point of its own rather than part of the barrel,
+Each storefront is an entry point of its own rather than part of the barrel,
 because it needs a merchant account, credentials and product identifiers the
-engine has no business holding. Three ship today, importing none of them is the
-normal case, and importing one carries only that one into your bundle:
+engine has no business holding. Three ship today:
 
 | Entry point | Storefront | Reference is | Checkout |
 | --- | --- | --- | --- |
@@ -504,64 +418,12 @@ normal case, and importing one carries only that one into your bundle:
 | [`@eigeninteractive/server/commerce/stripe`](../reference/typescript/server-commerce-stripe.md) | Stripe | a Price id (`price_...`) | hosted Checkout Session |
 | [`@eigeninteractive/server/commerce/razorpay`](../reference/typescript/server-commerce-razorpay.md) | Razorpay | a Plan id, or your own key for a one-time sale | hosted Payment Link |
 
-Each reference page carries the adapter's configuration and the details that
-are only true of that provider. These are worth knowing before you choose:
+Every storefront posts notifications to the Worker at
+`/api/commerce/<storefront>/webhook`, so the URLs below are your Worker's origin
+plus `/api/commerce/google_play/webhook`, `/api/commerce/stripe/webhook` or
+`/api/commerce/razorpay/webhook`.
 
-- **Play refunds an unacknowledged purchase after three days.** The engine
-  acknowledges only after the entitlement is durable and retries a lost
-  acknowledgement on the reconciliation sweep, so this is handled — but it is
-  why `sealedProviderState` exists, and why a Play deployment must let the
-  scheduled run happen.
-- **Play's notifications are authenticated by their delivery.** Google signs
-  nothing in the notification, so the adapter reads one only when Pub/Sub
-  delivered it as your service account, with a token minted for your endpoint.
-  [Set up Google Play](#set-up-google-play) configures that. Stripe and
-  Razorpay sign the body, and their adapters verify it before parsing.
-- **Every authentic notification is answered 2xx.** One about no purchase —
-  a Stripe event beyond the lifecycle ones, a Razorpay payment that names no
-  Eigen offer — is accepted with nothing recorded. That matters most on
-  Razorpay, which disables a webhook that has failed for 24 hours.
-- **Turn on these Razorpay webhook events:** `subscription.*` for
-  subscriptions, and `payment.captured`, `payment.failed` and `refund.processed`
-  for one-time sales. `payment.captured` also fires for every subscription
-  renewal; the adapter accepts those and leaves them to the
-  `subscription.charged` sent alongside. Events are deduplicated by Razorpay's
-  `x-razorpay-event-id`, so each month's charge is processed, not taken for a
-  redelivery of the last.
-- **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
-  auto-charge failed and is being retried. The adapter maps it to `grace` so a
-  paying player is not cut off mid-retry.
-- **A Play subscription is sold by base plan.** Reference it as
-  `productId:basePlanId` (`googlePlaySubscriptionReference` builds one), so
-  monthly and yearly can be two offers. Play's offers — free trials,
-  introductory prices, win-back discounts — are prices on a base plan and stay
-  out of the reference. Add-on subscriptions, which serve several products
-  from one purchase, are not supported and are refused.
-- **Play offers launch only when you tag them.** In the Play Console, give an
-  offer the tag `eigen-launch` (or the `launchTag` you pass
-  `PlayPurchaseGateway`) and the gateway sells the cheapest tagged offer Play
-  still returns for the player, showing its introductory price ahead of the
-  regular one: "Free for 1 week, then $4.99". Untagged offers never launch.
-  Play hides an offer from an ineligible player only when Play decides
-  eligibility, as for a new-customer trial; a developer-determined offer
-  (win-back, retention, upgrade) reaches every player, so tag one only if
-  everyone buying from the store should get it. Tag the offer itself: an offer
-  inherits its base plan's tags, so a tag on the base plan launches none.
-- **A player switches Play plans in the app.** Buying another base plan of a
-  subscription the account already holds replaces the old purchase, as Play
-  requires. When the new price is charged is the default replacement mode you
-  set for the product in the Play Console. A different subscription product is
-  bought alongside, not as a replacement.
-- **Play refunds revoke.** Voided-purchase notifications end a refunded
-  one-time purchase even while Play still reads it as purchased, and a partial
-  refund of a multi-quantity purchase ends it once nothing is left.
-- **A Razorpay one-time sale must be paid in full.** Payment notes are written
-  by whoever opens Razorpay Checkout, so the adapter accepts a payment only for
-  exactly the `amounts` entry of the offer it names, and only for the account
-  its notes name. A subscription is likewise accepted only by the account that
-  started its checkout.
-
-### Set up Google Play
+### Google Play
 
 Play needs two things from Google Cloud, both done once per game:
 
@@ -610,22 +472,13 @@ else. If your Google Cloud organization forbids service account keys, an
 administrator has to allow one for this account; the Worker has no other way
 to sign in to Google.
 
-Store the key as Worker secrets, then delete the file:
+Store the key as the two Worker secrets the [Play
+factory](#configure-the-worker) reads, then delete the file:
 
 ```sh
 jq -r .client_email play-key.json | npx wrangler secret put GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL
 jq -r .private_key play-key.json | npx wrangler secret put GOOGLE_PLAY_PRIVATE_KEY
 rm play-key.json
-```
-
-```ts
-import { googlePlayCommerceProvider } from "@eigeninteractive/server/commerce/google-play";
-
-const play = googlePlayCommerceProvider<Env>({
-  packageName: () => "com.example.game",
-  serviceAccountEmail: (env) => env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
-  serviceAccountPrivateKey: (env) => env.GOOGLE_PLAY_PRIVATE_KEY,
-});
 ```
 
 Then, in the [Play Console](https://play.google.com/console/):
@@ -641,6 +494,143 @@ Then, in the [Play Console](https://play.google.com/console/):
 3. Save, then **Send test message**. Your Worker answers it with 204 and
    records nothing. Anything else is in the Worker's log: a refused token
    usually means `WEBHOOK` differs from the URL the Worker serves.
+4. **Monetize → Products.** Create each one-time product and subscription the
+   catalog names. A one-time product's id is its reference; a subscription is
+   referenced by product and base plan, `googlePlaySubscriptionReference("pro",
+   "monthly")`. Set each subscription's default replacement mode, which decides
+   when a player switching plans pays the new price.
+
+To buy, the app must come from Play: upload a build to a testing track (internal
+testing is enough) and install it from there. Add your testers under
+**Settings → License testing** and they buy with test cards that are never
+charged.
+
+### Stripe
+
+Stripe sells a Price, so create a Product in the [Stripe
+Dashboard](https://dashboard.stripe.com/) for each offer and give it a one-time
+or recurring Price; the `price_...` id is the reference. Then, with your secret
+key:
+
+```sh
+STRIPE_SECRET_KEY=sk_test_...
+WEBHOOK=https://yourgame.example/api/commerce/stripe/webhook
+
+curl https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" \
+  --data-urlencode "url=$WEBHOOK" \
+  -d "enabled_events[]=checkout.session.completed" \
+  -d "enabled_events[]=checkout.session.async_payment_succeeded" \
+  -d "enabled_events[]=checkout.session.async_payment_failed" \
+  -d "enabled_events[]=checkout.session.expired" \
+  -d "enabled_events[]=customer.subscription.created" \
+  -d "enabled_events[]=customer.subscription.updated" \
+  -d "enabled_events[]=customer.subscription.deleted" \
+  -d "enabled_events[]=charge.refunded" \
+  -d "enabled_events[]=charge.dispute.closed" \
+  | jq -r .secret | npx wrangler secret put STRIPE_WEBHOOK_SECRET
+printf %s "$STRIPE_SECRET_KEY" | npx wrangler secret put STRIPE_SECRET_KEY
+```
+
+Stripe shows an endpoint's signing secret only when it is created, which is why
+it goes straight into the secret. The refund and dispute events are how a
+refunded one-time purchase is taken back.
+
+Players manage a Stripe subscription in Stripe's customer portal. Open
+**Settings → Billing → Customer portal** and save it once, in test mode and
+again in live mode; until then Stripe refuses to open it. To let players switch
+plan there, add the subscription Prices you sell to its product list.
+
+Test mode has its own keys, Prices and webhook endpoints, so run the commands
+again with a live key for production; a staging Worker keeps the test ones.
+Pay with the card `4242 4242 4242 4242`, and use a test clock to fast-forward a
+subscription through its renewals.
+
+### Razorpay
+
+Razorpay has no priced product for a one-time sale, so its reference is a key
+you choose, and its price is that key's entry in the factory's `amounts`: an
+offer with `razorpay: "supporter_once"` sells at the price below. A subscription is
+sold through a Plan, created under **Subscriptions → Plans**, and the
+`plan_...` id is its reference.
+
+```ts
+import { razorpayCommerceProvider } from "@eigeninteractive/server/commerce/razorpay";
+
+const razorpay = razorpayCommerceProvider<Env>({
+  keyId: (env) => env.RAZORPAY_KEY_ID,
+  keySecret: (env) => env.RAZORPAY_KEY_SECRET,
+  webhookSecret: (env) => env.RAZORPAY_WEBHOOK_SECRET,
+  // In the minor unit: ₹199.00.
+  amounts: { supporter_once: { amount: 19900, currency: "INR" } },
+});
+```
+
+In the [Razorpay Dashboard](https://dashboard.razorpay.com/):
+
+1. **Account & Settings → API Keys.** Generate a key pair and store it:
+   `npx wrangler secret put RAZORPAY_KEY_ID`, then `RAZORPAY_KEY_SECRET`.
+2. **Account & Settings → Webhooks → Add New Webhook.** Set the URL to
+   `https://yourgame.example/api/commerce/razorpay/webhook`, generate a secret
+   with `openssl rand -hex 32` and store it as `RAZORPAY_WEBHOOK_SECRET`, add
+   an alert email, and turn on `subscription.*`, `payment.captured`,
+   `payment.failed` and `refund.processed`.
+
+Razorpay disables a webhook that has failed for 24 hours, and turning it back on
+is manual, so the alert email matters. Test mode keeps its own keys and
+webhooks; set both up again there.
+
+### What differs between storefronts
+
+Each reference page carries the adapter's full configuration. These are worth
+knowing before you choose:
+
+- **Play refunds an unacknowledged purchase after three days.** The engine
+  acknowledges only after the entitlement is durable and retries a lost
+  acknowledgement on the reconciliation sweep, so this is handled — but it is
+  why `sealedProviderState` exists, and why a Play deployment must let the
+  scheduled run happen.
+- **Notifications are checked before they are read.** Stripe and Razorpay sign
+  the body. Google signs nothing in a Play notification, so the adapter reads
+  one only when Pub/Sub delivered it as your service account, with a token
+  minted for your endpoint.
+- **Every authentic notification is answered 2xx.** One about no purchase —
+  a Stripe event beyond the lifecycle ones, a Razorpay payment that names no
+  Eigen offer — is accepted with nothing recorded. That matters most on
+  Razorpay, which disables a webhook that has failed for 24 hours.
+- **Refunds revoke.** A full refund takes back what was bought on all three. A
+  lost chargeback does too on Play and Stripe; Razorpay disputes are not read,
+  so revoke one by refunding it. A partial refund of a Play purchase of several
+  items ends it once nothing is left; a partial Stripe or Razorpay refund keeps
+  it.
+- **Razorpay's `pending` is a grace period**, not an unpaid purchase: an
+  auto-charge failed and is being retried. The adapter maps it to `grace` so a
+  paying player is not cut off mid-retry.
+- **A Play subscription is sold by base plan.** Reference it as
+  `productId:basePlanId` (`googlePlaySubscriptionReference` builds one), so
+  monthly and yearly can be two offers. Play's offers — free trials,
+  introductory prices, win-back discounts — are prices on a base plan and stay
+  out of the reference. Add-on subscriptions, which serve several products
+  from one purchase, are not supported and are refused.
+- **Play offers launch only when you tag them.** In the Play Console, give an
+  offer the tag `eigen-launch` (or the `launchTag` you pass
+  `PlayPurchaseGateway`) and the gateway sells the cheapest tagged offer Play
+  still returns for the player, showing its introductory price ahead of the
+  regular one: "Free for 1 week, then $4.99". Untagged offers never launch.
+  Play hides an offer from an ineligible player only when Play decides
+  eligibility, as for a new-customer trial; a developer-determined offer
+  (win-back, retention, upgrade) reaches every player, so tag one only if
+  everyone buying from the store should get it. Tag the offer itself: an offer
+  inherits its base plan's tags, so a tag on the base plan launches none.
+- **A player switches Play plans in the app.** Buying another base plan of a
+  subscription the account already holds replaces the old purchase, as Play
+  requires. When the new price is charged is the default replacement mode you
+  set for the product in the Play Console. A different subscription product is
+  bought alongside, not as a replacement.
+- **A Razorpay one-time sale must be paid in full.** Payment notes are written
+  by whoever opens Razorpay Checkout, so the adapter accepts a payment only for
+  exactly the `amounts` entry of the offer it names, and only for the account
+  its notes name. A subscription is likewise accepted only by the account that
+  started its checkout.
 
 ### Write your own
 
@@ -693,6 +683,107 @@ be accepted, such as a purchase of several products at once: a claim then
 answers 409 rather than 502, and a notification is accepted and logged instead
 of being resent for days.
 
+## Connect the client
+
+The pure Dart client exposes `CommerceRepository` for:
+
+- `getCatalog()` and `getAccess()`;
+- server-verified `claim()` and `restore()`;
+- provider-hosted `createCheckout()`; and
+- provider-hosted `createManagement()`.
+
+`eigen_flutter` adds two storefront boundaries, because a store SDK and a
+hosted page are not the same shape. A `PurchaseGateway` supplies localized
+products, launches the SDK purchase/restore flow, emits normalized updates with
+provider evidence, and settles provider delivery only after verification. A
+`HostedStorefront` opens a checkout URL the Worker created and reports what
+came back through the return URL; it settles nothing, because the provider
+already took the money.
+
+Override `storefrontsProvider` at the application composition root with the
+storefronts this build carries, in preference order, then use
+`CommerceService`. That list is the routing decision: the server holds no
+per-platform policy, so which storefront an Android or web build uses is
+decided here and changing it is an app release. `platformStorefronts` makes it
+for you, given the storefronts for each platform:
+
+```dart
+runEigenShell(
+  module: myGame,
+  config: myConfig,
+  initializeAdapter: () async => [
+    storefrontsProvider.overrideWithValue(
+      platformStorefronts(
+        android: [PlayPurchaseGateway()],
+        web: [
+          StripeHostedStorefront(
+            returnUrl: Uri.parse('https://yourgame.example/store/return'),
+            launcher: const UrlLauncherCheckout(),
+          ),
+        ],
+      ),
+    ),
+  ],
+);
+```
+
+An iOS or macOS build carries no storefront, so its store does not appear.
+Apple requires its own in-app purchase for digital goods, there is no App
+Store storefront yet, and sending an iPhone player to a hosted checkout
+instead is grounds for rejecting the app. Windows and Linux builds sell through
+the `desktop` storefronts you pass, and none if you pass none.
+
+The shell's store screen, restore, subscription management and upgrade prompts
+work from that list alone.
+
+No storefront asks you who is buying. `CommerceService` belongs to the
+signed-in account and passes it to the gateway, which binds the purchase to it
+at the store — the account the Worker then checks the claim against. A player
+who is signed out cannot buy or restore.
+
+Whatever the storefront, a purchased or restored update is not access. The
+service submits its evidence to the Worker, commits access, settles at the SDK
+if there is one, and only then yields an `AccessSnapshot` — on one stream, so a
+store screen listens once.
+
+`CommerceService.getCatalog` names this build's storefronts, so the Worker
+consults only those providers' pricing APIs. Calling
+`CommerceRepository.getCatalog` without them asks every registered storefront,
+which is what an operator wants and what a player's first screen does not.
+
+A hosted return URL must use the Worker's origin or one listed in
+`createEngine`'s `clientOrigins`. A web build the Worker serves already has the
+Worker's origin, so `https://yourgame.example/store/return` needs nothing more.
+It must be `http`/`https` — a custom URI scheme will not do, so on Android it
+is an App Link. It is also not proof of payment: a browser closed on a slow network returns nothing at all, which a
+`HostedStorefront` reports as `PurchaseUpdateState.pending` rather than a
+failure. The provider webhook remains authoritative.
+
+Leaving and coming back are separate events, and on the web separate page
+loads: opening checkout replaces the page, so the return is an ordinary cold
+start that happens to carry a purchase. The shell hands the URL it was opened
+at, and every deep link, to `CommerceService.resumeFrom`. An app without the
+shell calls it itself.
+
+Implementations ship where their dependencies belong, which is the same rule
+the Worker's storefront entry points follow:
+
+| | Where | Why there |
+| --- | --- | --- |
+| `StripeHostedStorefront`, `RazorpayHostedStorefront` | `eigen_flutter` | Pure URL construction. No dependency, so nothing is saved by keeping them out. |
+| `UrlLauncherCheckout` | `eigen_shell` | Needs `url_launcher`, which the shell already has. |
+| `PlayPurchaseGateway` | `eigen_shell` | Links Google Play Billing, native Android code no game should carry unless it ships the shell. |
+
+`CheckoutLauncher` is the seam between the two halves: `eigen_flutter` asks for
+one rather than depending on a platform plugin every game would then link
+whether or not it sells anything. The shell supplies `UrlLauncherCheckout`, and
+an application that wants an in-app browser instead supplies its own — it is a
+single `launchUrl` call.
+
+`PlayPurchaseGateway` depends on `in_app_purchase_android` rather than the
+`in_app_purchase` umbrella, which would also link StoreKit into every iOS
+build. Play Billing is Android-only, and so is this.
+
 ## Production checklist
 
 - Require a recoverable signed-in account before launching checkout.
@@ -706,9 +797,10 @@ of being resent for days.
 - Explain the exact limit and reset date before purchase.
 - Test pending, duplicate, restore, renewal, expiry, refund, revocation, plan
   change, and another account's transaction—not just the successful checkout.
-- On Play, finish [Set up Google Play](#set-up-google-play) through its test
-  message, set each subscription's default replacement mode, and tag the offers
-  the store may launch.
+- Finish each storefront's setup under [Set up your
+  storefronts](#set-up-your-storefronts), in test mode and again in live mode,
+  and send Play's test message.
+- On Play, tag the offers the store may launch.
 - Keep every subscription's provider reference in the catalog until nobody is
   subscribed under it.
 - Keep abuse rate limits identical for free and paid accounts.
