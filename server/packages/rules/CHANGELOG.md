@@ -1,5 +1,9 @@
 # @eigeninteractive/rules
 
+## 0.11.0
+
+No changes in this release.
+
 ## 0.10.0
 
 No changes in this release.
