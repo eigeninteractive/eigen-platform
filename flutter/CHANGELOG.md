@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.15.1] - 2026-10-12
 ### Changed
 - Requires `drift` 2.35.2 and ships its web worker, which saves an IndexedDB transaction when it commits and the schema version when the replica opens, so the replica no longer runs an extra statement after each commit to make drift save.
 
@@ -362,7 +362,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.15.0...HEAD
+[0.15.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.15.0...eigen_flutter-v0.15.1
 [0.15.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.14.0...eigen_flutter-v0.15.0
 [0.14.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.13.0...eigen_flutter-v0.14.0
 [0.13.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.12.0...eigen_flutter-v0.13.0

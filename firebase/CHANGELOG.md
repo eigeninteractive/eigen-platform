@@ -1,4 +1,8 @@
 # Changelog
+## [0.5.2] - 2026-10-12
+### Changed
+- Require the release of its sibling packages in this version.
+
 ## [0.5.1] - 2026-10-12
 ### Changed
 - Require the release of its sibling packages in this version.
@@ -39,6 +43,7 @@ permanent Android notification-permission denials.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
 Android notification resources compose above `eigen_flutter` ports.
 
+[0.5.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.1...eigen_firebase-v0.5.2
 [0.5.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.0...eigen_firebase-v0.5.1
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.4.0...eigen_firebase-v0.5.0
 [0.4.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.3.2...eigen_firebase-v0.4.0
