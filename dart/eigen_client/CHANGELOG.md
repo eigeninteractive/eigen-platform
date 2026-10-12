@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.8.0] - 2026-10-12
 ### Changed
 - Requires `eigen_api` 0.12.0, the client generated from engine 0.12.0.
 
@@ -51,7 +51,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.7.0...HEAD
+[0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.7.0...eigen_client-v0.8.0
 [0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.6.0...eigen_client-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.5.0...eigen_client-v0.6.0
 [0.5.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.4.0...eigen_client-v0.5.0
