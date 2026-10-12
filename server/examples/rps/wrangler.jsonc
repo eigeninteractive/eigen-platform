@@ -31,7 +31,10 @@
     ]
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    // Workers Issues groups production failures, including errors the engine
+    // catches and reports with console.error. Free while in open beta.
+    "issues": { "enabled": true }
   },
   "vars": {
     // Public Firebase project id. The matching FIREBASE_CLIENT_EMAIL and
@@ -49,7 +52,7 @@
       "binding": "rps_dev",
       "database_name": "rps-dev",
       // Placeholder. Local development and the test suite never read this;
-      // `wrangler dev` and vitest-pool-workers simulate D1 locally against the
+      // `wrangler dev` and @cloudflare/vitest-plugin simulate D1 locally against the
       // binding name. Replace it with your own before deploying:
       //     wrangler d1 create rps-dev
       "database_id": "00000000-0000-0000-0000-000000000000",

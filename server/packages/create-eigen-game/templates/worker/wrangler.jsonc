@@ -6,7 +6,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "upload_source_maps": true,
   "observability": {
-    "enabled": true
+    "enabled": true,
+    // Workers Issues groups production failures, including errors the engine
+    // catches and reports with console.error. Free while in open beta.
+    "issues": { "enabled": true }
   },
   "durable_objects": {
     "bindings": [{ "class_name": "GameDO", "name": "GAME_DO" }]

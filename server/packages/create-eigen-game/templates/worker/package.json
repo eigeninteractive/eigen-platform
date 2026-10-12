@@ -46,13 +46,13 @@
   "dependencies": {
     "@eigeninteractive/rules": "{{ENGINE_VERSION}}",
     "@eigeninteractive/server": "{{ENGINE_VERSION}}",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@eigeninteractive/testkit": "{{ENGINE_VERSION}}",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.6.5",
     "typescript": "~6.0.2",
-    "vitest": "^4.1.10",
-    "wrangler": "^4.110.0"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
   }
 }

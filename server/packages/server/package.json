@@ -46,6 +46,7 @@
     "fonts:check": "node scripts/encode-fonts.mjs --check",
     "openapi": "tsdown && node scripts/emit-openapi.mjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p tsconfig.canary.json"
   },
   "keywords": [
@@ -61,16 +62,16 @@
   "dependencies": {
     "@eigeninteractive/kernel": "workspace:*",
     "@hono/zod-openapi": "^1.6.3",
-    "drizzle-orm": "^0.45.2",
-    "hono": "^4.13.7",
+    "drizzle-orm": "^0.45.4",
+    "hono": "^4.13.13",
     "jose": "^6.2.12",
     "openapi3-ts": "4.6.1",
-    "zod": "^4.5.4"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260908.1",
+    "@cloudflare/workers-types": "^5.20261009.1",
     "@eigeninteractive/rules": "workspace:*",
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.31.11"
   },
   "peerDependencies": {
     "@eigeninteractive/rules": "workspace:^"

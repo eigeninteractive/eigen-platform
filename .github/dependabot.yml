@@ -41,17 +41,18 @@ updates:
     ignore:
       - dependency-name: typescript
         update-types: ["version-update:semver-major"]
+    groups:
+      # The Workers Vitest plugin relies on Vitest internals and peers on its
+      # major, and the coverage provider is versioned in lockstep with Vitest,
+      # so the three move in one pull request, majors included.
+      test-runner:
+        patterns: ["vitest", "@vitest/*", "@cloudflare/vitest-plugin"]
       # Zod's JSON Schema serializer is part of the checked-in TypeScript/Dart
       # wire contract. Upgrade it deliberately with regenerated contracts and
-      # cross-language generator coverage, so keep it out of grouped PRs below.
-      # The Cloudflare Workers pool currently supports Vitest 4.1 and relies on
-      # Vitest internals. Vitest 5 prevents every Worker test from starting.
-      - dependency-name: vitest
-        update-types: ["version-update:semver-major"]
-    groups:
+      # cross-language generator coverage, so it stays out of this group.
       server-dependencies:
         patterns: ["*"]
-        exclude-patterns: ["zod", "vitest"]
+        exclude-patterns: ["zod", "vitest", "@vitest/*", "@cloudflare/vitest-plugin"]
         update-types: ["minor", "patch"]
     commit-message:
       prefix: "deps(server)"

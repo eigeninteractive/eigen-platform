@@ -26,13 +26,14 @@
   },
   "type": "module",
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.15",
     "@changesets/changelog-github": "^1.0.1",
-    "@changesets/cli": "3.0.2",
-    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@changesets/cli": "3.0.3",
+    "@cloudflare/vitest-plugin": "^1.4.0",
+    "@vitest/coverage-v8": "^5.0.3",
     "tsdown": "^0.23.0",
     "typescript": "~6.0.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.130.0"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0"
   }
 }

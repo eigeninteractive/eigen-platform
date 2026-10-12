@@ -121,12 +121,20 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - uses: actions/setup-java@v6.0.0
+      - uses: actions/setup-java@v6.0.1
         with:
           distribution: temurin
           java-version: "21"
 
       - uses: dart-lang/setup-dart@v1
+
+      # `tool/sync-dart-api-pin.mjs` logs a Cider entry for each Dart consumer
+      # whose `eigen_api` floor crosses a line, so the Dart release ships it
+      # rather than skipping a package with an empty Unreleased section.
+      - name: Install cider
+        run: |
+          dart pub global activate cider
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
 
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         id: app-token

@@ -36,7 +36,7 @@ dependencies:
   eigen_flutter: ^0.9.0
   eigen_shell: ^0.1.0 # omit when embedding beneath your own app root
   eigen_firebase: ^0.2.0 # only when the app chooses Firebase
-  firebase_core: ^4.9.0
+  firebase_core: ^4.15.0
 ```
 
 Import the framework through its public barrel:

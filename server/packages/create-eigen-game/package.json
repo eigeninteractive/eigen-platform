@@ -24,19 +24,19 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p templates/worker/tsconfig.json"
   },
   "dependencies": {
-    "@clack/core": "^1.5.0",
-    "@clack/prompts": "^1.8.0",
+    "@clack/core": "^1.5.1",
+    "@clack/prompts": "^1.8.1",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@eigeninteractive/rules": "workspace:*",
     "@eigeninteractive/server": "workspace:*",
     "@eigeninteractive/testkit": "workspace:*",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.5",
     "typescript": "~6.0.2",
-    "vitest": "^4.1.11",
-    "wrangler": "^4.130.0",
-    "zod": "^4.5.4"
+    "vitest": "^5.0.3",
+    "wrangler": "^4.149.0",
+    "zod": "^4.6.6"
   },
   "engines": {
     "node": ">=22"
