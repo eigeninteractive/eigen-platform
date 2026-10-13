@@ -268,7 +268,7 @@ const flutterClientVersion = "^0.16.0";
  *
  * Moves with `eigen_flutter`, and pre-1.0 it has to: `eigen_shell 0.3.0`
  * constrains `eigen_flutter ^0.11.0`, and `^0.2.0` cannot reach it. */
-const flutterShellVersion = "^0.7.2";
+const flutterShellVersion = "^0.7.3";
 
 /** Optional Firebase adapter installed by the standard app scaffold. */
 const firebaseAdapterVersion = "^0.6.0";
