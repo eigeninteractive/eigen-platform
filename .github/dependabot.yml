@@ -13,11 +13,10 @@ version: 2
 # reference -- peers at `typedoc: 0.28.x` exactly, so it could not follow even if
 # the prerelease were acceptable in a docs build.
 #
-# `/server` is not blocked. Its `tsdown` build uses rolldown-plugin-dts, which
-# supports TypeScript 6 and selects the native TypeScript 7 declaration generator
-# when TS 7 is installed. It is held only to keep one TypeScript version across
-# the repository while `/web` is pinned, which is a preference and can be dropped
-# whenever that stops being worth it.
+# `/server` is also blocked: TypeScript 7.0.2 lacks the classic compiler API
+# used by rolldown-plugin-dts in tsdown 0.23.2. Its native declaration generator
+# requires TypeScript 7.1+, currently prerelease. Keep the stable 6.0.3 compiler
+# until both declaration generation and the documentation pipeline support 7.
 #
 # Routine minor and patch updates are grouped to keep maintenance cheap. Major
 # updates stay in focused pull requests so an incompatible upgrade cannot block

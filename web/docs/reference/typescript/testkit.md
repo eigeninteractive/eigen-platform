@@ -47,7 +47,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:189](https://github.co
 ###### observation?
 
 ```ts
-optional observation?: JsonObject;
+observation?: JsonObject;
 ```
 
 ###### valid
@@ -75,7 +75,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:179](https://github.co
 ##### obs?
 
 ```ts
-optional obs?: JsonObject;
+obs?: JsonObject;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:183](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L183)
@@ -85,7 +85,7 @@ Dart-side observation payload; unused here (defaults to `state`).
 ##### participantCount?
 
 ```ts
-optional participantCount?: number;
+participantCount?: number;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L186)
@@ -109,7 +109,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:185](https://github.co
 ##### rngSeed?
 
 ```ts
-optional rngSeed?: string;
+rngSeed?: string;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:187](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L187)
@@ -189,7 +189,7 @@ Inputs for building a [GameContract](#gamecontract) without writing it.
 ##### fixturesRoot?
 
 ```ts
-optional fixturesRoot?: string | URL;
+fixturesRoot?: string | URL;
 ```
 
 Defined in: [server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L51)
@@ -220,7 +220,7 @@ Authoritative TypeScript rules registry.
 
 ### CommitInput
 
-Defined in: server/packages/kernel/dist/index.d.ts:248
+Defined in: server/packages/kernel/dist/index.d.ts:239
 
 #### Properties
 
@@ -230,7 +230,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:248
 game: GameRow;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:249
+Defined in: server/packages/kernel/dist/index.d.ts:240
 
 ##### intent
 
@@ -238,7 +238,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:249
 intent: Intent;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:254
+Defined in: server/packages/kernel/dist/index.d.ts:245
 
 ##### now
 
@@ -246,7 +246,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:254
 now: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:257
+Defined in: server/packages/kernel/dist/index.d.ts:248
 
 The commit instant (epoch ms), sampled once by the host and never read
 here.
@@ -257,7 +257,7 @@ here.
 roster: Seat[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:253
+Defined in: server/packages/kernel/dist/index.d.ts:244
 
 ##### rules
 
@@ -265,7 +265,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:253
 rules: GameRules;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:260
+Defined in: server/packages/kernel/dist/index.d.ts:251
 
 The version unit for the game's `schemaVersion`, already resolved by
 the host from the `GameModule.versions` map.
@@ -273,13 +273,13 @@ the host from the `GameModule.versions` map.
 ##### staleViews?
 
 ```ts
-optional staleViews?: {
+staleViews?: {
   current: SeatView | null;
   expected: SeatView | null;
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:268
+Defined in: server/packages/kernel/dist/index.d.ts:259
 
 Same-view material for a stale game action: the acting seat's stored
 frames at `expectedVersion` and at the current version. Only consulted
@@ -305,7 +305,7 @@ expected: SeatView | null;
 state: StateRow | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:252
+Defined in: server/packages/kernel/dist/index.d.ts:243
 
 The latest transition, or null before v0 (only a `start` intent is
 meaningful then).
@@ -314,7 +314,7 @@ meaningful then).
 
 ### CommitPlan
 
-Defined in: server/packages/kernel/dist/index.d.ts:314
+Defined in: server/packages/kernel/dist/index.d.ts:305
 
 #### Properties
 
@@ -324,7 +324,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:314
 action: TransitionAction | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:317
+Defined in: server/packages/kernel/dist/index.d.ts:308
 
 ##### effects
 
@@ -332,7 +332,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:317
 effects: Effect[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:328
+Defined in: server/packages/kernel/dist/index.d.ts:319
 
 ##### frames
 
@@ -340,7 +340,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:328
 frames: ObservationFrame[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:320
+Defined in: server/packages/kernel/dist/index.d.ts:311
 
 Per-seat projected frames (identified seats only), persisted with the
 transition, fanned out over sockets. No raw state escapes the kernel.
@@ -351,7 +351,7 @@ transition, fanned out over sockets. No raw state escapes the kernel.
 nextState: StateRow;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:316
+Defined in: server/packages/kernel/dist/index.d.ts:307
 
 The next transition row, already versioned (`v+1`, or 0 for start).
 
@@ -361,7 +361,7 @@ The next transition row, already versioned (`v+1`, or 0 for start).
 outcomes: OutcomeEntry[] | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:327
+Defined in: server/packages/kernel/dist/index.d.ts:318
 
 Per-seat results when this transition ends the game, else null.
 
@@ -387,7 +387,7 @@ Inputs for emitting or checking a [GameContract](#gamecontract) file.
 ##### fixturesRoot?
 
 ```ts
-optional fixturesRoot?: string | URL;
+fixturesRoot?: string | URL;
 ```
 
 Defined in: [server/packages/testkit/src/game-contract.ts:51](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/game-contract.ts#L51)
@@ -452,7 +452,7 @@ asserts the game is ongoing, a list asserts it ended exactly so.
 ##### outcome?
 
 ```ts
-optional outcome?: OutcomeEntry[] | null;
+outcome?: OutcomeEntry[] | null;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:172](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L172)
@@ -460,7 +460,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:172](https://github.co
 ##### pending?
 
 ```ts
-optional pending?: number[];
+pending?: number[];
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:171](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L171)
@@ -468,7 +468,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:171](https://github.co
 ##### state?
 
 ```ts
-optional state?: JsonObject;
+state?: JsonObject;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:170](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L170)
@@ -596,7 +596,7 @@ state: Record<string, unknown>;
 
 ### GameRow
 
-Defined in: server/packages/kernel/dist/index.d.ts:183
+Defined in: server/packages/kernel/dist/index.d.ts:174
 
 The game's standing configuration: the DO `meta` snapshot.
 
@@ -608,7 +608,7 @@ The game's standing configuration: the DO `meta` snapshot.
 budgetSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:190
+Defined in: server/packages/kernel/dist/index.d.ts:181
 
 ##### config
 
@@ -616,7 +616,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:190
 config: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:188
+Defined in: server/packages/kernel/dist/index.d.ts:179
 
 Stored creation config; parsed against the version unit's config schema
 before any hook sees it.
@@ -627,7 +627,7 @@ before any hook sees it.
 incrementSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:191
+Defined in: server/packages/kernel/dist/index.d.ts:182
 
 ##### rated
 
@@ -635,7 +635,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:191
 rated: boolean;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:192
+Defined in: server/packages/kernel/dist/index.d.ts:183
 
 ##### ratingPool
 
@@ -643,7 +643,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:192
 ratingPool: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:193
+Defined in: server/packages/kernel/dist/index.d.ts:184
 
 ##### schemaVersion
 
@@ -651,7 +651,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:193
 schemaVersion: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:185
+Defined in: server/packages/kernel/dist/index.d.ts:176
 
 ##### status
 
@@ -659,7 +659,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:185
 status: GameStatus;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:184
+Defined in: server/packages/kernel/dist/index.d.ts:175
 
 ##### turnSeconds
 
@@ -667,7 +667,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:184
 turnSeconds: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:189
+Defined in: server/packages/kernel/dist/index.d.ts:180
 
 ***
 
@@ -723,7 +723,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:232](https://github.co
 ##### rngSeed?
 
 ```ts
-optional rngSeed?: string;
+rngSeed?: string;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:233](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L233)
@@ -774,7 +774,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:241](https://github.co
 ##### participantCount?
 
 ```ts
-optional participantCount?: number;
+participantCount?: number;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:249](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L249)
@@ -790,7 +790,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:244](https://github.co
 ##### playerIndex?
 
 ```ts
-optional playerIndex?: number;
+playerIndex?: number;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:248](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L248)
@@ -801,7 +801,7 @@ carries no seat (its victims are `pending`), so it must be omitted.
 ##### rngSeed?
 
 ```ts
-optional rngSeed?: string;
+rngSeed?: string;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:250](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L250)
@@ -826,7 +826,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:245](https://github.co
 
 ### ObservationFrame
 
-Defined in: server/packages/kernel/dist/index.d.ts:103
+Defined in: server/packages/kernel/dist/index.d.ts:98
 
 One seat's projected frame, tagged with its seat. The host stamps
 version/timing when it persists and fans these out.
@@ -839,7 +839,7 @@ version/timing when it persists and fans these out.
 data: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:105
+Defined in: server/packages/kernel/dist/index.d.ts:100
 
 ##### pendingPlayers
 
@@ -847,7 +847,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:105
 pendingPlayers: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:106
+Defined in: server/packages/kernel/dist/index.d.ts:101
 
 ##### playerIndex
 
@@ -855,7 +855,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:106
 playerIndex: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:104
+Defined in: server/packages/kernel/dist/index.d.ts:99
 
 ***
 
@@ -935,7 +935,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:199](https://github.co
 ##### budgetSeconds?
 
 ```ts
-optional budgetSeconds?: number | null;
+budgetSeconds?: number | null;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:201](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L201)
@@ -959,7 +959,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:206](https://github.co
 ##### incrementSeconds?
 
 ```ts
-optional incrementSeconds?: number | null;
+incrementSeconds?: number | null;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:202](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L202)
@@ -999,7 +999,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:198](https://github.co
 ##### turnSeconds?
 
 ```ts
-optional turnSeconds?: number | null;
+turnSeconds?: number | null;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:200](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L200)
@@ -1008,7 +1008,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:200](https://github.co
 
 ### Rejected
 
-Defined in: server/packages/kernel/dist/index.d.ts:43
+Defined in: server/packages/kernel/dist/index.d.ts:42
 
 An intent the kernel refused. A value, not a throw: rejections are part
 of the normal protocol.
@@ -1021,7 +1021,7 @@ of the normal protocol.
 code: RejectCode;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:45
+Defined in: server/packages/kernel/dist/index.d.ts:44
 
 ##### message
 
@@ -1029,7 +1029,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:45
 message: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:46
+Defined in: server/packages/kernel/dist/index.d.ts:45
 
 ##### rejected
 
@@ -1037,7 +1037,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:46
 rejected: true;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:44
+Defined in: server/packages/kernel/dist/index.d.ts:43
 
 ***
 
@@ -1078,7 +1078,7 @@ Defined in: [server/packages/testkit/src/twin-fixtures.ts:279](https://github.co
 ##### seat?
 
 ```ts
-optional seat?: number;
+seat?: number;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:284](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L284)
@@ -1136,7 +1136,7 @@ The case name, used as the test name on both sides.
 ##### seat?
 
 ```ts
-optional seat?: number;
+seat?: number;
 ```
 
 Defined in: [server/packages/testkit/src/twin-fixtures.ts:988](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/testkit/src/twin-fixtures.ts#L988)
@@ -1167,7 +1167,7 @@ The state version whose stream to record.
 
 ### Seat
 
-Defined in: server/packages/kernel/dist/index.d.ts:197
+Defined in: server/packages/kernel/dist/index.d.ts:188
 
 One seat of the roster. Both ids null ⇒ the account was purged mid-game
 (the seat plays on as "Deleted User" for display, but can never act).
@@ -1180,7 +1180,7 @@ One seat of the roster. Both ids null ⇒ the account was purged mid-game
 botId: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:200
+Defined in: server/packages/kernel/dist/index.d.ts:191
 
 ##### playerIndex
 
@@ -1188,7 +1188,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:200
 playerIndex: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:198
+Defined in: server/packages/kernel/dist/index.d.ts:189
 
 ##### type
 
@@ -1196,7 +1196,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:198
 type: "bot" | "human";
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:201
+Defined in: server/packages/kernel/dist/index.d.ts:192
 
 ##### userId
 
@@ -1204,13 +1204,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:201
 userId: string | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:199
+Defined in: server/packages/kernel/dist/index.d.ts:190
 
 ***
 
 ### SeatView
 
-Defined in: server/packages/kernel/dist/index.d.ts:85
+Defined in: server/packages/kernel/dist/index.d.ts:82
 
 A seat's stored projection at one version: what the same-view compare
 runs on (and what the DO persists per transition as `frames[]`).
@@ -1223,7 +1223,7 @@ runs on (and what the DO persists per transition as `frames[]`).
 data: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:86
+Defined in: server/packages/kernel/dist/index.d.ts:83
 
 ##### pendingPlayers
 
@@ -1231,13 +1231,13 @@ Defined in: server/packages/kernel/dist/index.d.ts:86
 pendingPlayers: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:87
+Defined in: server/packages/kernel/dist/index.d.ts:84
 
 ***
 
 ### StateRow
 
-Defined in: server/packages/kernel/dist/index.d.ts:205
+Defined in: server/packages/kernel/dist/index.d.ts:196
 
 The latest committed transition: state plus the engine-owned clocks. All
 instants are epoch milliseconds.
@@ -1250,7 +1250,7 @@ instants are epoch milliseconds.
 deadline: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:212
+Defined in: server/packages/kernel/dist/index.d.ts:203
 
 The true turn deadline shown to clients; the alarm arms one millisecond
 after `deadline + grace`.
@@ -1261,7 +1261,7 @@ after `deadline + grace`.
 pending: number[];
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:208
+Defined in: server/packages/kernel/dist/index.d.ts:199
 
 ##### playerTimes
 
@@ -1269,7 +1269,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:208
 playerTimes: number[] | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:214
+Defined in: server/packages/kernel/dist/index.d.ts:205
 
 Per-seat budget banks (ms), budget mode only.
 
@@ -1279,7 +1279,7 @@ Per-seat budget banks (ms), budget mode only.
 rngSeed: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:209
+Defined in: server/packages/kernel/dist/index.d.ts:200
 
 ##### state
 
@@ -1287,7 +1287,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:209
 state: JsonObject;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:207
+Defined in: server/packages/kernel/dist/index.d.ts:198
 
 ##### turnStartedAt
 
@@ -1295,7 +1295,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:207
 turnStartedAt: number | null;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:218
+Defined in: server/packages/kernel/dist/index.d.ts:209
 
 When the current turn is consuming a budget bank. Null for untimed,
 per-action, and hook-override turns. This is persisted so charging the
@@ -1307,7 +1307,7 @@ turn that ends never depends on the next envelope.
 version: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:206
+Defined in: server/packages/kernel/dist/index.d.ts:197
 
 ***
 
@@ -1444,7 +1444,7 @@ type Effect =
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:302
+Defined in: server/packages/kernel/dist/index.d.ts:293
 
 A push/wake the host should attempt post-commit (single attempt + error
 log, with no retry machinery in v1). The kernel names seats; the host resolves
@@ -1478,7 +1478,7 @@ type Intent =
 };
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:222
+Defined in: server/packages/kernel/dist/index.d.ts:213
 
 What the host asks the kernel to do: the kernel-facing half of a
 `Command` (authorization already happened at the edge; dedupe at the DO).
@@ -1601,7 +1601,7 @@ type RejectCode =
   | "abstain";
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:22
+Defined in: server/packages/kernel/dist/index.d.ts:21
 
 Why an intent was refused. Stable machine codes: the host's transport
 mapping and the client's retry policy key on these, so treat renames as
@@ -1699,7 +1699,7 @@ Use this in CI through `eigen-contract --check`.
 
 | Parameter | Type |
 | ------ | ------ |
-| `root` | `any` |
+| `root?` | `any` |
 
 #### Returns
 
@@ -1735,7 +1735,7 @@ Fail when an emitted contract is missing or differs from its inputs.
 function commit(input): CommitPlan | Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:332
+Defined in: server/packages/kernel/dist/index.d.ts:323
 
 #### Parameters
 
@@ -1780,7 +1780,7 @@ matters.
 function deriveRng(seed, version): Rng;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:345
+Defined in: server/packages/kernel/dist/index.d.ts:334
 
 The deterministic RNG for one transition: rand-seed's sfc32 keyed by the
 game's base seed and the state version the envelope will commit as. The
@@ -1819,7 +1819,7 @@ games should invoke the executable through their package script.
 
 | Parameter | Type |
 | ------ | ------ |
-| `root` | `any` |
+| `root?` | `any` |
 
 #### Returns
 
@@ -1876,7 +1876,7 @@ the engine guard messages a `lifecycle` or `transcript` case can provoke;
 | ------ | ------ | ------ |
 | `rules` | `GameRules` | `undefined` |
 | `kase` | [`TwinFixtureCase`](#twinfixturecase) | `undefined` |
-| `schemaVersion` | `number` | `1` |
+| `schemaVersion?` | `number` | `1` |
 
 #### Returns
 
@@ -1934,7 +1934,7 @@ Render one deterministic, newline-terminated contract document.
 function isRejected(result): result is Rejected;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:331
+Defined in: server/packages/kernel/dist/index.d.ts:322
 
 Type guard: did `commit()` refuse the intent?
 
@@ -2013,7 +2013,7 @@ tests that replay a simultaneous-move race.
 function randomSeed(): string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:338
+Defined in: server/packages/kernel/dist/index.d.ts:327
 
 A fresh base seed for a new game: 128 random bits, hex-encoded. Stored on
 the game's v0 state row and copied onto every later row (server-only,

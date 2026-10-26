@@ -1,6 +1,5 @@
 import 'package:eigen_firebase/src/analytics/firebase_analytics_service.dart';
 import 'package:eigen_firebase/src/auth/firebase_auth_gateway.dart';
-import 'package:eigen_firebase/src/notifications/firebase_messaging_registration_factory.dart';
 import 'package:eigen_firebase/src/notifications/firebase_notification_service.dart';
 import 'package:eigen_flutter/adapters.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -141,10 +140,6 @@ Future<List<Override>> initializeEigenFirebase({
       final activeGameId = ref.watch(activeGameIdResolverProvider);
       return FirebaseNotificationService(
         messaging: FirebaseMessaging.instance,
-        messagingRegistration: createFirebaseMessagingRegistration(
-          FirebaseMessaging.instance,
-          FirebaseInstallations.instance,
-        ),
         installations: FirebaseInstallations.instance,
         installationRepository: ref.watch(deviceInstallationRepositoryProvider),
         localNotifications: FlutterLocalNotificationsPlugin(),

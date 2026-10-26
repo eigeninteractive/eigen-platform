@@ -454,9 +454,12 @@ describe("hibernating sockets", () => {
     expect(messages[1].players).toHaveLength(2);
     expect(messages[1].seq).toBeGreaterThan(messages[0].seq);
 
-    await stub.handle(cmd("start", gameId));
+    const started = await stub.handle(cmd("start", gameId));
     await vi.waitFor(() => expect(messages).toHaveLength(3));
     expect(messages[2]).toMatchObject({ type: "session", status: "active", version: 0 });
+    expect(started).toEqual({ ok: true, session: messages[2] });
+    expect(messages[2].frame).not.toBeNull();
+    expect(await stub.session(gameId, "user-a")).toEqual(messages[2]);
     ws.close();
   });
 
@@ -523,6 +526,8 @@ describe("hibernating sockets", () => {
     const withRatings = messages.find((m) => m.frame?.ratings !== undefined);
     expect(withRatings).toMatchObject({ type: "session", status: "finished" });
     expect(withRatings?.version).toBe(3);
+    expect(withRatings?.frame?.outcomes).toEqual(finished[0].frame?.outcomes);
+    expect(await stub.session(gameId, "user-b")).toEqual(withRatings);
     // Strictly increasing across lobby and state commits alike.
     const seqs = messages.map((m) => m.seq);
     expect(seqs).toEqual([...seqs].sort((x, y) => x - y));

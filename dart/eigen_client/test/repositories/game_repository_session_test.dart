@@ -62,6 +62,7 @@ class _FramesAdapter implements HttpClientAdapter {
 
   /// Versions the server would return.
   final List<int> available;
+  Map<String, dynamic>? commandSession;
 
   /// Every `[from, to]` the repository asked for, in order.
   final requests = <({int from, int? to})>[];
@@ -72,6 +73,15 @@ class _FramesAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    if (options.method == 'POST') {
+      return ResponseBody.fromString(
+        jsonEncode({'session': commandSession}),
+        200,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+        },
+      );
+    }
     final from = int.parse(options.queryParameters['from'].toString());
     final rawTo = options.queryParameters['to'];
     final to = rawTo == null ? null : int.parse(rawTo.toString());
@@ -100,6 +110,7 @@ class _ScriptedSocket implements GameSocket {
   final _controller = StreamController<GameSocketEvent>();
 
   void emit(GameSocketEvent event) => _controller.add(event);
+  void fail(Object error) => _controller.addError(error);
 
   @override
   Stream<GameSocketEvent> connect(String gameId) => _controller.stream;
@@ -146,6 +157,20 @@ Future<List<GameSession>> _emitted(
 }
 
 void main() {
+  test('same-seq reconnect clears an error without replaying a move', () async {
+    final harness = _build();
+    final captured = await _captured(harness.repo.sessions('g'), () async {
+      harness.socket.emit(_session(seq: 2, version: 0));
+      harness.socket.fail(
+        const GameConnectionException('offline', retrying: true),
+      );
+      harness.socket.emit(_session(seq: 2, version: 0));
+    });
+    expect(captured.errors, hasLength(1));
+    expect(captured.sessions, hasLength(2));
+    expect(captured.sessions.last, same(captured.sessions.first));
+    expect(harness.adapter.requests, isEmpty);
+  });
   test('emits the first snapshot as-is, without replaying history', () async {
     // A cold load snaps to the present: joining at v7 must not replay v0-v6.
     final t = _build(available: [0, 1, 2, 3, 4, 5, 6, 7]);
@@ -298,24 +323,56 @@ void main() {
     check(seen.map((s) => s.seq)).deepEquals([4, 5]);
   });
 
-  test('an injected session renders without waiting for the socket', () async {
-    // The socket-less paths: a freshly created solo game, and a move made
-    // while the socket is mid-reconnect.
-    final t = _build();
-    final injected = StreamController<Session>();
-
-    final seen = await _emitted(
-      t.repo.sessions('g', inject: injected.stream),
+  for (final socketFirst in [false, true]) {
+    test(
+      'start HTTP and socket share one queue (socket first: $socketFirst)',
       () async {
-        injected.add(_session(seq: 1, version: 0));
-        await Future<void>.delayed(Duration.zero);
-        injected.add(_session(seq: 2, version: 1));
+        final t = _build();
+        t.adapter.commandSession = _sessionJson(
+          seq: 2,
+          status: 'active',
+          version: 0,
+        );
+        final seen = await _emitted(t.repo.sessions('g'), () async {
+          t.socket.emit(_session(seq: 1, status: 'ready', frame: false));
+          if (socketFirst) t.socket.emit(_session(seq: 2, version: 0));
+          await t.repo.startGame('g');
+          if (!socketFirst) t.socket.emit(_session(seq: 2, version: 0));
+        });
+        expect(seen.map((s) => s.seq), [1, 2]);
+        expect(seen.last.frame?.version, 0);
+        expect(t.adapter.requests, isEmpty);
       },
     );
+  }
 
-    check(seen.map((s) => s.version)).deepEquals([0, 1]);
-    check(t.adapter.requests).isEmpty();
-  });
+  test(
+    'HTTP actions render and recover gaps without a socket broadcast',
+    () async {
+      final t = _build(available: [1, 2]);
+      final seen = await _emitted(t.repo.sessions('g'), () async {
+        t.adapter.commandSession = _sessionJson(
+          seq: 2,
+          status: 'active',
+          version: 0,
+        );
+        await t.repo.startGame('g');
+        t.adapter.commandSession = _sessionJson(
+          seq: 5,
+          status: 'active',
+          version: 3,
+        );
+        await t.repo.submitAction(
+          gameId: 'g',
+          seat: 0,
+          expectedVersion: 2,
+          data: {},
+        );
+      });
+      expect(seen.map((s) => s.version), [0, 1, 2, 3]);
+      expect(t.adapter.requests, [(from: 1, to: 2)]);
+    },
+  );
 
   test('a lobby snapshot has no version and no frame', () async {
     final t = _build();

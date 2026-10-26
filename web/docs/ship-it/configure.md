@@ -408,19 +408,19 @@ time, by hand:
 ```sql
 -- an engine bot: the brain ships in the game module as
 -- GameRules.botActions['easy_ai']; no webhook, no key material.
-INSERT INTO bots (id, username, display_name, type, schema_version, rated_eligible, config)
-VALUES (lower(hex(randomblob(16))), 'easy_ai', 'Easy AI', 'engine', 1, 0, '{}');
+INSERT INTO bots (id, username, display_name, type, schema_version, rated_eligible, config, created_at)
+VALUES (lower(hex(randomblob(16))), 'easy_ai', 'Easy AI', 'engine', 1, 0, '{}', unixepoch() * 1000);
 
 -- an external bot: hosted elsewhere, woken over HTTPS.
-INSERT INTO bots (id, username, display_name, type, schema_version, webhook_url, rated_eligible, config)
+INSERT INTO bots (id, username, display_name, type, schema_version, webhook_url, rated_eligible, config, created_at)
 VALUES (lower(hex(randomblob(16))), 'hard_ai', 'Hard AI', 'external', 1,
-        'https://my-bot.example/wake', 1, '{}');
+        'https://my-bot.example/wake', 1, '{}', unixepoch() * 1000);
 
 -- a local bot: the brain ships only in the app, as the Dart local unit's
 -- botActions['practice_ai']. The server never dispatches it, so it can be
 -- seated in an on-device game and nowhere else.
-INSERT INTO bots (id, username, display_name, type, schema_version, rated_eligible, config)
-VALUES (lower(hex(randomblob(16))), 'practice_ai', 'Practice AI', 'local', 1, 0, '{}');
+INSERT INTO bots (id, username, display_name, type, schema_version, rated_eligible, config, created_at)
+VALUES (lower(hex(randomblob(16))), 'practice_ai', 'Practice AI', 'local', 1, 0, '{}', unixepoch() * 1000);
 ```
 
 **Without one of these rows there are no opponents.** A bot is an identity the

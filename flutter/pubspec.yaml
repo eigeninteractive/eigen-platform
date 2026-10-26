@@ -32,14 +32,14 @@ dependencies:
   json_annotation: ^4.12.0
   freezed_annotation: ^3.1.0
   shared_preferences: ^2.5.4
-  cached_network_image: ^4.0.0
+  cached_network_image: ^4.0.5
   connectivity_plus: ^7.1.1
   # `assets/drift/` carries this release's web worker and SQLite module. Drift
   # supports a newer client with an older worker within a major version, so the
   # range is an ordinary caret; raising its floor means replacing both files
   # from the matching drift release, since fixes to web storage live in the
   # worker.
-  drift: ^2.35.2
+  drift: ^2.35.3
   drift_flutter: ^0.3.1
   # The generated REST client. It is produced and published by the ENGINE repo
   # (eigen-server/clients/dart), because that is where the wire contract lives:
@@ -52,7 +52,7 @@ dependencies:
   eigen_api: ^0.12.0
   dio: ^5.10.0
   dio_smart_retry: ^7.0.1
-  web: ^1.1.1
+  web: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -61,7 +61,7 @@ dev_dependencies:
   build_runner: ^2.15.0
   riverpod_generator: ^4.0.4
   riverpod_lint: ^3.1.4
-  json_serializable: ^6.13.0
+  json_serializable: ^6.15.2
   # Generated sources are committed, so the generator itself is an exact build
   # input: a range would let a newer generator produce different source without
   # anyone choosing it. Dependabot proposes the bump, CI regenerates, and

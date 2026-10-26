@@ -2,8 +2,8 @@
 
 `sqlite3.wasm` and `drift_worker.js` are what give a browser the replica
 database: the SQLite module, and the worker that hosts it so every tab of the
-app shares one database. They are taken verbatim from the [drift 2.35.2
-release](https://github.com/simolus3/drift/releases/tag/drift-2.35.2), and the
+app shares one database. They are taken verbatim from the [drift 2.35.3
+release](https://github.com/simolus3/drift/releases/tag/drift-2.35.3), and the
 worker and the module are one pair.
 
 They ship here, as web-only package assets, because this package is what

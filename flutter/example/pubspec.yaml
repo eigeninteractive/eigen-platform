@@ -18,7 +18,7 @@ dependencies:
   eigen_firebase: ^0.6.0
   # Generated Firebase options and the background isolate use Firebase Core
   # directly, so the app declares it in addition to the adapter package.
-  firebase_core: ^4.15.0
+  firebase_core: ^5.1.0
 
 dev_dependencies:
   eigen_codegen: ^0.1.0

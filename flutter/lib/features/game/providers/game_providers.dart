@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:eigen_flutter/core/analytics/analytics_provider.dart';
 import 'package:eigen_flutter/core/api/engine_api_providers.dart';
+import 'package:eigen_flutter/core/api/retry_policy.dart';
 import 'package:eigen_client/eigen_client.dart';
 import 'package:eigen_flutter/core/game/game_module.dart';
 import 'package:eigen_flutter/core/replica/replica_providers.dart';
@@ -126,11 +127,10 @@ Stream<List<GameSummary>> finishedGames(Ref ref, {required int limit}) async* {
 /// snapshot silently reverted the roster, and nothing on the socket reported a
 /// status change at all.
 ///
-/// One socket serves the whole game. Riverpod's automatic retry covers a failure
-/// to establish it; drops after that are handled inside the socket, which
-/// reconnects and is answered with the current snapshot, so this stream is never
-/// torn down to resync.
-@riverpod
+/// One socket owns connection recovery. Riverpod must not restart it when the
+/// socket reports a failure: that would reset its backoff and retry permanent
+/// refusals. Failures opening prerequisite storage retain the normal policy.
+@Riverpod(retry: gameSessionRetry)
 Stream<GameSession> gameSession(Ref ref, {required String gameId}) async* {
   // Where the game is played is a property of the game, resolved once. A local
   // game's engine states the same complete snapshots the socket does, so
@@ -153,6 +153,12 @@ Stream<GameSession> gameSession(Ref ref, {required String gameId}) async* {
   // is stored as it passes (decision 0013).
   yield* replicatedSessions(replica: replica, games: games, gameId: gameId);
 }
+
+/// Leaves live-feed recovery with the socket; retries prerequisite reads only.
+Duration? gameSessionRetry(int retryCount, Object error) =>
+    error is GameConnectionException
+    ? null
+    : engineProviderRetry(retryCount, error);
 
 /// The game's status, live.
 ///

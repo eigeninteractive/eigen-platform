@@ -196,7 +196,7 @@ pnpm run deploy
 
 The root script runs `flutter build web --release` directly into
 `server/public/` with `--dart-define-from-file=app-config.json`, generates the
-service worker with `workbox generateSW workbox-config.cjs`, applies D1
+service worker with `node tool/build-service-worker.mjs`, applies D1
 migrations, then deploys the Worker and assets together. Wrangler's `single-page-application` fallback
 handles clean Flutter paths. Its selective `run_worker_first` list keeps exact
 static files on Cloudflare's asset path while reserving dynamic engine routes

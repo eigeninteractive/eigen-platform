@@ -11,6 +11,17 @@ import 'package:eigen_flutter/features/auth/domain/auth_gateway.dart';
 /// those are validation details and unexpected 500s, whose wording is
 /// diagnostic and sometimes internal.
 String humanize(Object e) => switch (e) {
+  GameConnectionException(retrying: true) => 'Connection lost. Reconnecting…',
+  GameConnectionException(cause: EngineException(statusCode: 401)) =>
+    'Sign in again to connect to this game.',
+  GameConnectionException(cause: EngineException(statusCode: 403)) =>
+    'You no longer have access to this game.',
+  GameConnectionException(cause: EngineException(statusCode: 404)) =>
+    'This game could not be found.',
+  GameConnectionException(cause: EngineException(code: final code?)) =>
+    messageForCode(code),
+  GameConnectionException() =>
+    'Unable to connect to the game. Please try again.',
   EngineException(:final code?) => messageForCode(code),
   // The server answered, but with nothing the UI can specialise on.
   EngineException() => _unexpected,

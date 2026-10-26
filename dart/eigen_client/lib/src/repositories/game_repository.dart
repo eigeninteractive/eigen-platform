@@ -54,6 +54,25 @@ class GameRepository {
   final BotsApi _bots;
   final PlayersApi _players;
   final GameSocket _socket;
+  final _sessionListeners = <String, Set<void Function(Session)>>{};
+
+  /// Every authoritative HTTP snapshot enters the same pipeline as the socket.
+  /// Listeners exist only while a session stream is subscribed.
+  Session _receive(Session session) {
+    for (final listener in _sessionListeners[session.gameId] ?? {}) {
+      listener(session);
+    }
+    return session;
+  }
+
+  Future<T> _receiveBody<T>(
+    Future<T> response,
+    Session Function(T) session,
+  ) async {
+    final body = await response;
+    _receive(session(body));
+    return body;
+  }
 
   // ── Discovery ──────────────────────────────────────────────────────────────
 
@@ -88,7 +107,9 @@ class GameRepository {
   /// with a socket never needs this. It serves the paths without one: a
   /// deep-link preview, and a replay of a finished game.
   Future<Session> getSession(String gameId) async {
-    return engineData(() => _api.getGameSession(gameId: gameId));
+    return _receive(
+      await engineData(() => _api.getGameSession(gameId: gameId)),
+    );
   }
 
   /// A player's finished public games - the replay list on their profile.
@@ -177,21 +198,24 @@ class GameRepository {
     int? budgetSeconds,
     int? incrementSeconds,
   }) async {
-    return engineData(
-      () => _api.createSoloGame(
-        createSolo: CreateSolo(
-          creationId: creationId,
-          schemaVersion: schemaVersion,
-          config: config,
-          minPlayers: minPlayers,
-          maxPlayers: maxPlayers,
-          botIds: botIds,
-          rated: rated,
-          turnSeconds: turnSeconds,
-          budgetSeconds: budgetSeconds,
-          incrementSeconds: incrementSeconds,
+    return _receiveBody(
+      engineData(
+        () => _api.createSoloGame(
+          createSolo: CreateSolo(
+            creationId: creationId,
+            schemaVersion: schemaVersion,
+            config: config,
+            minPlayers: minPlayers,
+            maxPlayers: maxPlayers,
+            botIds: botIds,
+            rated: rated,
+            turnSeconds: turnSeconds,
+            budgetSeconds: budgetSeconds,
+            incrementSeconds: incrementSeconds,
+          ),
         ),
       ),
+      (body) => body.session,
     );
   }
 
@@ -212,7 +236,7 @@ class GameRepository {
         join: Join(clientSchemaVersion: clientSchemaVersion),
       ),
     );
-    return body.session;
+    return _receive(body.session);
   }
 
   /// Takes a seat using a shared short code rather than a game id.
@@ -231,19 +255,19 @@ class GameRepository {
         ),
       ),
     );
-    return body.session;
+    return _receive(body.session);
   }
 
   /// Gives up a seat before the game starts. The creator cancels instead.
   Future<Session> leaveGame(String gameId) async {
     final body = await engineData(() => _api.leaveGame(gameId: gameId));
-    return body.session;
+    return _receive(body.session);
   }
 
   /// Abandons a game that has not started. Creator only.
   Future<Session> cancelGame(String gameId) async {
     final body = await engineData(() => _api.cancelGame(gameId: gameId));
-    return body.session;
+    return _receive(body.session);
   }
 
   /// Seats a bot alongside the humans. Creator only, pre-start.
@@ -254,7 +278,7 @@ class GameRepository {
         addBot: AddBot(botId: botId),
       ),
     );
-    return body.session;
+    return _receive(body.session);
   }
 
   /// Starts a ready game. Creator only.
@@ -264,7 +288,7 @@ class GameRepository {
   /// seat.
   Future<Session> startGame(String gameId) async {
     final body = await engineData(() => _api.startGame(gameId: gameId));
-    return body.session;
+    return _receive(body.session);
   }
 
   // ── Importing a game played on the device ──────────────────────────────────
@@ -300,7 +324,7 @@ class GameRepository {
         ),
       ),
     );
-    return SoloStarted(session: body.session);
+    return SoloStarted(session: _receive(body.session));
   }
 
   /// Appends the device's transitions after [fromVersion], replaying them
@@ -316,14 +340,17 @@ class GameRepository {
     required int fromVersion,
     required List<LocalTransition> transitions,
   }) {
-    return engineData(
-      () => _api.appendLocalTransitions(
-        gameId: gameId,
-        localTransitions: LocalTransitions(
-          fromVersion: fromVersion,
-          transitions: transitions,
+    return _receiveBody(
+      engineData(
+        () => _api.appendLocalTransitions(
+          gameId: gameId,
+          localTransitions: LocalTransitions(
+            fromVersion: fromVersion,
+            transitions: transitions,
+          ),
         ),
       ),
+      (body) => body.session,
     );
   }
 
@@ -335,8 +362,9 @@ class GameRepository {
   /// that played it. This is what lets a second device continue a game the
   /// first one started.
   Future<LocalRecord> getLocalRecord(String gameId, {int from = 0, int? to}) {
-    return engineData(
-      () => _api.getLocalRecord(gameId: gameId, from: from, to: to),
+    return _receiveBody(
+      engineData(() => _api.getLocalRecord(gameId: gameId, from: from, to: to)),
+      (body) => body.session,
     );
   }
 
@@ -386,24 +414,26 @@ class GameRepository {
   /// this seat could see, the move is refused with [ErrorCode.stateUpdated]
   /// rather than applied to a state the player never saw.
   ///
-  /// The returned session is this seat's own committed view. Feed it to
-  /// [sessions] so the move renders without waiting on the socket; see that
-  /// method for why both paths carry it.
+  /// The returned session is this seat's own committed view. It automatically
+  /// enters [sessions] so the move renders without waiting on the socket.
   Future<CommandAccepted> submitAction({
     required String gameId,
     required int seat,
     required int expectedVersion,
     required Object? data,
   }) async {
-    return engineData(
-      () => _api.submitAction(
-        gameId: gameId,
-        action: Action(
-          seat: seat,
-          data: data,
-          expectedVersion: expectedVersion,
+    return _receiveBody(
+      engineData(
+        () => _api.submitAction(
+          gameId: gameId,
+          action: Action(
+            seat: seat,
+            data: data,
+            expectedVersion: expectedVersion,
+          ),
         ),
       ),
+      (body) => body.session,
     );
   }
 
@@ -412,11 +442,14 @@ class GameRepository {
     required String gameId,
     required int seat,
   }) async {
-    return engineData(
-      () => _api.forfeitGame(
-        gameId: gameId,
-        forfeit: Forfeit(seat: seat),
+    return _receiveBody(
+      engineData(
+        () => _api.forfeitGame(
+          gameId: gameId,
+          forfeit: Forfeit(seat: seat),
+        ),
       ),
+      (body) => body.session,
     );
   }
 
@@ -452,17 +485,16 @@ class GameRepository {
   /// the envelope. A cold open does not animate: with no predecessor rendered
   /// there is nothing to animate from, so it snaps to the present.
   ///
-  /// **Duplicates are dropped.** A move's own snapshot rides the
-  /// [submitAction] response *and* fans out over the socket; pass the response
-  /// to [inject] and whichever copy arrives second is discarded by `seq`. On the
-  /// socket-less paths (a freshly created solo game, a move made while the
-  /// socket is mid-reconnect) the injected copy is the only one, which is why
-  /// the response carries a full session at all.
-  Stream<GameSession> sessions(String gameId, {Stream<Session>? inject}) {
+  /// **Duplicates are dropped.** All HTTP methods returning a session publish
+  /// it here automatically. HTTP and socket snapshots share the same queue;
+  /// whichever copy arrives second is discarded by `seq`. Callers never need
+  /// to forward command responses or wait for a broadcast to render a move.
+  Stream<GameSession> sessions(String gameId) {
     late StreamController<GameSession> controller;
     GameSession? held;
+    var connectionFailed = false;
     StreamSubscription<Session>? socketSub;
-    StreamSubscription<Session>? injectSub;
+    var cancelled = false;
 
     // Serialises handling so emissions stay in order however bursts of
     // snapshots interleave with the async gap fetches they trigger.
@@ -478,13 +510,22 @@ class GameRepository {
     /// Only a game that is already under way can have a gap: the client must
     /// have rendered a version to be behind one.
     Future<void> apply(Session next) async {
-      if (controller.isClosed) return;
+      if (cancelled) return;
       final current = held;
       if (current == null) {
         emit(GameSession(snapshot: next, frame: next.frame));
         return;
       }
-      if (!current.supersededBy(next)) return;
+      if (!current.supersededBy(next)) {
+        // A reconnect may restate the same revision. Clear the visible error
+        // without replaying a move or relaxing snapshot ordering.
+        if (connectionFailed && next.seq == current.snapshot.seq) {
+          connectionFailed = false;
+          emit(current);
+        }
+        return;
+      }
+      connectionFailed = false;
 
       final from = current.version;
       final to = next.version;
@@ -494,33 +535,44 @@ class GameRepository {
         final gaps = await getFrames(gameId, from: gapFrom, to: gapTo);
         _validateGapFrames(gaps, from: gapFrom, to: gapTo);
         for (final gap in gaps) {
-          if (controller.isClosed) return;
+          if (cancelled) return;
           final latest = held;
           if (latest == null || gap.version <= (latest.version ?? -1)) continue;
           emit(latest.applyGapFrame(gap));
         }
       }
-      if (controller.isClosed) return;
+      if (cancelled) return;
       final latest = held;
       if (latest != null) emit(latest.applySnapshot(next));
     }
 
     void enqueue(Session next) {
       pipeline = pipeline.then((_) => apply(next)).catchError((Object error) {
-        if (!controller.isClosed) controller.addError(error);
+        if (!cancelled) controller.addError(error);
+      });
+    }
+
+    void socketError(Object error, StackTrace stack) {
+      pipeline = pipeline.then((_) {
+        if (cancelled) return;
+        connectionFailed = true;
+        controller.addError(error, stack);
       });
     }
 
     controller = StreamController<GameSession>(
       onListen: () {
+        (_sessionListeners[gameId] ??= {}).add(enqueue);
         socketSub = _socket
             .connect(gameId)
-            .listen(enqueue, onError: controller.addError);
-        injectSub = inject?.listen(enqueue, onError: controller.addError);
+            .listen(enqueue, onError: socketError);
       },
       onCancel: () async {
+        cancelled = true;
+        final listeners = _sessionListeners[gameId];
+        listeners?.remove(enqueue);
+        if (listeners?.isEmpty ?? false) _sessionListeners.remove(gameId);
         await socketSub?.cancel();
-        await injectSub?.cancel();
       },
     );
 

@@ -110,10 +110,15 @@ list must never subscribe to a session, which would open one socket per row.
 **Ordering is by `seq`, not `version`**, because a lobby change has no version.
 A client applies a snapshot when `seq` exceeds the one it holds, which is what
 resolves a command response racing its own socket push, a duplicate delivery, and
-a reconnect that missed nothing. One exception, and it is a property of the state
-machine rather than a special case: a `finished` or `aborted` snapshot is applied
-whatever its `seq`, because those statuses are absorbing and the abort teardown
-drops the storage the counter lived in.
+a reconnect that missed nothing. Finished and aborted states are absorbing:
+a later active snapshot cannot resurrect a terminal game. A stale terminal
+snapshot cannot replace a newer revision either.
+
+Connection failures are visible stream errors. The socket retries transport
+failures and temporary HTTP 408/502/503/504 responses with capped backoff;
+authentication, access, configuration, rate-limit and malformed-response errors
+require an explicit retry. Riverpod does not add another retry loop. A successful
+reconnect at the same sequence clears the error without replaying a move.
 
 ### Gaps still animate
 
@@ -133,8 +138,12 @@ replay is the whole range rather than a missing slice.
 ### Commands answer with the same value
 
 Every accepted command, from `join` to a move, answers with the caller's own
-post-commit session, so the client feeds HTTP responses and socket pushes into
-one path and drops whichever arrives second by `seq`. That is what makes the
+post-commit session. Projection uses the authenticated recipient's seat, even
+when a command has no acting seat (start) or advances an offline bot's seat.
+The same recipient and sequence identify the same complete snapshot across
+HTTP, WebSocket and a fresh read. `GameRepository` automatically feeds all HTTP
+sessions and socket pushes into one serialized path, dropping the second copy
+by `seq`. That is what makes the
 socket-less paths work: a freshly created solo game has no socket yet, and a move
 submitted while the socket is mid-reconnect would otherwise render nothing.
 

@@ -103,7 +103,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       - uses: actions/setup-node@v7
         with:
@@ -208,7 +208,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       # Do not set registry-url. npm trusted publishing exchanges this job's
       # OIDC identity; an npmrc token placeholder can mask that exchange.

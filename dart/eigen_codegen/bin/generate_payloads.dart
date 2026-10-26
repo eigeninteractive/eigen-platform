@@ -14,6 +14,17 @@ void main(List<String> arguments) {
       return;
     }
     final contractFile = File(options.contract);
+    if (options.fixturesOutput case final fixturesOutput?) {
+      final owned = Directory(fixturesOutput).absolute.uri.normalizePath();
+      for (final source in [options.contract, options.output]) {
+        final path = File(source).absolute.uri.normalizePath();
+        if (path.path.startsWith(owned.path)) {
+          throw FormatException(
+            '--fixtures-output must not contain the contract or Dart output: $source',
+          );
+        }
+      }
+    }
     final contract =
         jsonDecode(contractFile.readAsStringSync()) as Map<String, dynamic>;
     final generated = generatePayloadLibrary(contract);
@@ -29,12 +40,9 @@ void main(List<String> arguments) {
       }
       if (options.fixturesOutput case final fixturesOutput?) {
         final directory = Directory(fixturesOutput);
-        for (final entry in contractFixtureContents(contract).entries) {
-          final file = File('${directory.path}/${entry.key}');
-          if (!file.existsSync() || file.readAsStringSync() != entry.value) {
-            stderr.writeln('${file.path} is stale');
-            stale = true;
-          }
+        for (final path in contractFixtureDrift(contract, directory)) {
+          stderr.writeln('${directory.path}/$path is stale or unexpected');
+          stale = true;
         }
       }
       if (stale) exitCode = 1;

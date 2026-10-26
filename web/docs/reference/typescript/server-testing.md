@@ -46,7 +46,7 @@ Defined in: [server/packages/server/src/testing.ts:120](https://github.com/eigen
 ##### kind?
 
 ```ts
-optional kind?: "oneTime" | "subscription";
+kind?: "oneTime" | "subscription";
 ```
 
 Defined in: [server/packages/server/src/testing.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L125)
@@ -62,7 +62,7 @@ Defined in: [server/packages/server/src/testing.ts:119](https://github.com/eigen
 ##### purchasedAt?
 
 ```ts
-optional purchasedAt?: number;
+purchasedAt?: number;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L122)
@@ -70,7 +70,7 @@ Defined in: [server/packages/server/src/testing.ts:122](https://github.com/eigen
 ##### refusal?
 
 ```ts
-optional refusal?: string;
+refusal?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L131)
@@ -80,7 +80,7 @@ Answer as a provider that read the purchase and will never accept it.
 ##### replaces?
 
 ```ts
-optional replaces?: string;
+replaces?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:129](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L129)
@@ -90,7 +90,7 @@ The transaction this one replaced, as Play's `linkedPurchaseToken`.
 ##### requiresAcknowledgement?
 
 ```ts
-optional requiresAcknowledgement?: boolean;
+requiresAcknowledgement?: boolean;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L126)
@@ -98,7 +98,7 @@ Defined in: [server/packages/server/src/testing.ts:126](https://github.com/eigen
 ##### sealedProviderState?
 
 ```ts
-optional sealedProviderState?: string;
+sealedProviderState?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:127](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L127)
@@ -106,7 +106,7 @@ Defined in: [server/packages/server/src/testing.ts:127](https://github.com/eigen
 ##### state?
 
 ```ts
-optional state?: CommerceTransactionState;
+state?: CommerceTransactionState;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L121)
@@ -122,7 +122,7 @@ Defined in: [server/packages/server/src/testing.ts:118](https://github.com/eigen
 ##### validFrom?
 
 ```ts
-optional validFrom?: number;
+validFrom?: number;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:123](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L123)
@@ -130,7 +130,7 @@ Defined in: [server/packages/server/src/testing.ts:123](https://github.com/eigen
 ##### validUntil?
 
 ```ts
-optional validUntil?: number;
+validUntil?: number;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:124](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L124)
@@ -241,7 +241,7 @@ A transaction absent from here is one the provider will not answer for.
 ##### acknowledge()?
 
 ```ts
-optional acknowledge(env, transaction): Promise<void>;
+acknowledge?(env, transaction): Promise<void>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
@@ -278,7 +278,7 @@ Defined in: [server/packages/server/src/testing.ts:153](https://github.com/eigen
 ##### createCheckout()?
 
 ```ts
-optional createCheckout(env, input): Promise<CommerceCheckout>;
+createCheckout?(env, input): Promise<CommerceCheckout>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L191)
@@ -341,7 +341,7 @@ Make the whole next `reconcile` call throw, as a provider outage does.
 ##### management()?
 
 ```ts
-optional management(
+management?(
    env,
    accountId,
    providerAccountId,
@@ -371,7 +371,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.co
 ##### products()?
 
 ```ts
-optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
+products?(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
@@ -394,7 +394,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.co
 ##### reconcile()?
 
 ```ts
-optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
+reconcile?(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
@@ -440,7 +440,7 @@ account's usual one, as a provider confusing two customers would.
 ##### validateReference()?
 
 ```ts
-optional validateReference(providerReference, kind): void;
+validateReference?(providerReference, kind): void;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
@@ -490,7 +490,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.co
 ##### verifyWebhook()?
 
 ```ts
-optional verifyWebhook(env, request): Promise<
+verifyWebhook?(env, request): Promise<
   | VerifiedCommerceEvent
 | null>;
 ```
@@ -529,7 +529,7 @@ Defined in: [server/packages/server/src/testing.ts:74](https://github.com/eigeni
 ##### anonymous?
 
 ```ts
-optional anonymous?: boolean;
+anonymous?: boolean;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L76)
@@ -537,7 +537,7 @@ Defined in: [server/packages/server/src/testing.ts:76](https://github.com/eigeni
 ##### claims?
 
 ```ts
-optional claims?: Record<string, unknown>;
+claims?: Record<string, unknown>;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L81)
@@ -547,7 +547,7 @@ Override any registered claim (e.g. an expired `exp`, a wrong `aud`).
 ##### email?
 
 ```ts
-optional email?: string;
+email?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L77)
@@ -555,7 +555,7 @@ Defined in: [server/packages/server/src/testing.ts:77](https://github.com/eigeni
 ##### name?
 
 ```ts
-optional name?: string;
+name?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L78)
@@ -563,7 +563,7 @@ Defined in: [server/packages/server/src/testing.ts:78](https://github.com/eigeni
 ##### picture?
 
 ```ts
-optional picture?: string;
+picture?: string;
 ```
 
 Defined in: [server/packages/server/src/testing.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/testing.ts#L79)
@@ -618,9 +618,9 @@ Deterministic provider for commerce lifecycle and implementor conformance tests.
 
 | Parameter | Type | Default value | Description |
 | ------ | ------ | ------ | ------ |
-| `products` | readonly [`CommerceProduct`](server.md#commerceproduct) & \{ `kind?`: `"oneTime"` \| `"subscription"`; \}[] | `undefined` | - |
-| `now` | () => `number` | `Date.now` | - |
-| `key` | `string` | `"fake"` | The provider key. Give a sweep test its own, so the reconciliation queue it reasons about holds only the rows that test seeded. |
+| `products` | readonly ([`CommerceProduct`](server.md#commerceproduct) & \{ `kind?`: `"oneTime"` \| `"subscription"`; \})[] | `undefined` | - |
+| `now?` | () => `number` | `Date.now` | - |
+| `key?` | `string` | `"fake"` | The provider key. Give a sweep test its own, so the reconciliation queue it reasons about holds only the rows that test seeded. |
 
 #### Returns
 
@@ -674,7 +674,7 @@ ledger directly has to say so itself.
 | ------ | ------ |
 | `d1` | `D1Database` |
 | `userId` | `string` |
-| `now` | `number` |
+| `now?` | `number` |
 
 #### Returns
 

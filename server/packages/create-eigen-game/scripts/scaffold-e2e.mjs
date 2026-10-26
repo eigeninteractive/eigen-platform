@@ -57,7 +57,7 @@ const shell = (command, args, cwd) => {
 const writeHostedDependencies = (args, cwd) => {
   const dependencies = args.slice(2).map((spec) => {
     const separator = spec.lastIndexOf("@");
-    if (separator < 1) throw new Error(`cannot parse Flutter dependency ${JSON.stringify(spec)}`);
+    if (separator < 1) return `  ${spec}: any`;
     return `  ${spec.slice(0, separator)}: ${spec.slice(separator + 1)}`;
   });
   const path = resolve(cwd, "pubspec.yaml");
@@ -78,15 +78,9 @@ const writeHostedDependencies = (args, cwd) => {
  */
 const overrideLines = () => ENGINE_PACKAGES.map((name) => `  "@eigeninteractive/${name}": "link:${resolve(workspaceRoot, "packages", name)}"`);
 
-/**
- * Merged into an existing `overrides:` key rather than appended as a second
- * one when the template already carries one of its own (the project root's
- * pins `tmp`, against a security advisory unrelated to this harness) --
- * `pnpm-workspace.yaml` is YAML, and a duplicate top-level key is a parse
- * error, not a merge, in every YAML reader including pnpm's.
- */
+/** Preserve the generated server's build policy while adding local packages. */
 const appendOverrides = (path) => {
-  const existing = readFileSync(path, "utf8");
+  const existing = existsSync(path) ? readFileSync(path, "utf8") : "";
   if (/^overrides:\s*$/m.test(existing)) {
     writeFileSync(path, existing.replace(/^overrides:\s*$/m, ["overrides:", ...overrideLines()].join("\n")));
   } else {
@@ -120,10 +114,8 @@ const { root } = scaffoldGame({
   // The seam exists for the tests; here it is the hook that lands the overrides
   // after the templates are rendered and before anything is installed.
   run: (command, args, cwd) => {
-    // Merged, not written: every template ships its own `pnpm-workspace.yaml`
-    // (`allowBuilds` for the server, an `overrides` pin for the root), and
-    // replacing it would silently drop that and turn this into a test of a
-    // project no user has.
+    // Preserve the server template's explicit build-script policy. The root
+    // needs a workspace file only for this test's unpublished local packages.
     if (args[0] === "install") appendOverrides(resolve(cwd, "pnpm-workspace.yaml"));
     // New platform packages cannot exist on pub.dev before the source that
     // introduces them lands. Put local roots in place and persist the exact

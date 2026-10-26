@@ -43,6 +43,7 @@ void main() {
       ).throws<EngineException>(
         (e) => e
           ..has((x) => x.code, 'code').equals(ErrorCode.gameFull)
+          ..has((x) => x.statusCode, 'statusCode').equals(409)
           ..has((x) => x.message, 'message').equals('Game is full'),
       );
     });

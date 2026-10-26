@@ -138,7 +138,7 @@ describe("scaffoldGame", () => {
     expect(readFileSync(resolve(root, "app/fastlane/Fastfile"), "utf8")).toContain("upload_to_play_store");
     expect(readFileSync(resolve(root, "app/Gemfile"), "utf8")).toContain("fastlane");
     expect(readFileSync(resolve(root, "app/.ruby-version"), "utf8").trim()).not.toBe("");
-    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.47.4");
+    expect(readFileSync(resolve(root, "app/.fvmrc"), "utf8")).toContain("3.47.7");
     expect(readFileSync(resolve(root, "app/android/app/proguard-rules.pro"), "utf8")).toContain("image_cropper");
     expect(readFileSync(resolve(root, "app/CHANGELOG.md"), "utf8")).toContain("[Unreleased]");
     expect(readFileSync(resolve(root, ".nvmrc"), "utf8").trim()).toBe("24");
@@ -176,8 +176,9 @@ describe("scaffoldGame", () => {
     expect(rootManifest.scripts.contract).toContain("cd server && npm run contract");
     expect(rootManifest.scripts.contract).toContain("cd ../app && dart run eigen_codegen:generate_payloads");
     // A web build is not finished until Workbox has written its service worker.
-    expect(rootManifest.scripts["build:web"]).toMatch(/flutter build web .*&& cd \.\. && workbox generateSW workbox-config\.cjs$/);
-    expect(rootManifest.devDependencies).toHaveProperty("workbox-cli");
+    expect(rootManifest.scripts["build:web"]).toMatch(/flutter build web .*&& cd \.\. && node tool\/build-service-worker\.mjs$/);
+    expect(rootManifest.devDependencies).toHaveProperty("workbox-build");
+    expect(readFileSync(resolve(root, "tool/build-service-worker.mjs"), "utf8")).toContain("generateSW(config)");
     expect(readFileSync(resolve(root, "workbox-config.cjs"), "utf8")).toContain('globDirectory: "server/public"');
     expect(rootManifest.scripts.contract).toContain("--fixtures-output test/fixtures");
     expect(rootManifest.scripts["contract:check"]).toContain("npm run contract:check");
@@ -212,7 +213,7 @@ describe("scaffoldGame", () => {
     // release on that line, which is the part a scaffold-time pub.dev lookup
     // was duplicating. Crossing to the next line is the move that needs the
     // `scaffold` CI job to confirm the templates still compile.
-    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.16.0", "eigen_shell@^0.7.3", "eigen_firebase@^0.6.0", "firebase_core@^4.15.0"], expect.stringMatching(/\/app$/));
+    expect(run).toHaveBeenCalledWith("flutter", ["pub", "add", "eigen_flutter@^0.16.0", "eigen_shell@^0.7.3", "eigen_firebase@^0.6.0", "firebase_core"], expect.stringMatching(/\/app$/));
     // A separate `pub add` (rather than folded into the call above) so a
     // failure here is legible on its own, and because these are dev
     // dependencies (`dev:` prefix) while the engine/Firebase packages above

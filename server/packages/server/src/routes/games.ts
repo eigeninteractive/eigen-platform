@@ -659,10 +659,8 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
 
       // Start immediately: the DO lazy-inits from D1 (bots included) and
       // commits v0; a bot due to open plays via its in-DO brain post-commit
-      // (arriving over the socket). A start has no single acting seat, so the
-      // committed response carries no frame; read the creator's session back so
-      // the client has the opening board without a round trip. The game is
-      // already running before any socket exists, so this is its only delivery.
+      // (arriving over the socket). The response carries the creator's complete
+      // session, including the opening frame, before any socket exists.
       const stub = ctx.stub(c.env, created.gameId);
       // Starting is an idempotent lifecycle transition, so this compound route
       // needs no generic command identity or receipt -- and that idempotence is
@@ -674,7 +672,7 @@ export function registerGameRoutes(app: EngineApp, ctx: RouteContext): void {
       // so the tolerance is scoped to the replay rather than granted to both.
       const started = await stub.handle(mint(auth, "start", created.gameId));
       if (!(created.replayed && !started.ok && started.code === "abstain")) unwrap(started);
-      const session = await stub.session(created.gameId, auth.user.id);
+      const session = started.ok ? started.session : await stub.session(created.gameId, auth.user.id);
       if (session === null) throw new HttpError(500, "engine bug: started game has no session");
       return c.json({ session }, 201);
     },

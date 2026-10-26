@@ -117,6 +117,29 @@ GameSession _waiting({
 );
 
 void main() {
+  testWidgets('a permanent ticket failure shows a retry instead of spinning', (
+    tester,
+  ) async {
+    final sessions = StreamController<GameSession>();
+    addTearDown(sessions.close);
+    sessions.addError(
+      const GameConnectionException(
+        EngineException(
+          'Socket ticket signing is not configured',
+          statusCode: 500,
+        ),
+        retrying: false,
+      ),
+    );
+    await _pump(tester, sessions.stream, viewer: _creator);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(
+      find.text('Unable to connect to the game. Please try again.'),
+      findsOne,
+    );
+    expect(find.text('Retry'), findsOne);
+  });
+
   testWidgets('offers Start to the creator the moment the roster fills', (
     tester,
   ) async {

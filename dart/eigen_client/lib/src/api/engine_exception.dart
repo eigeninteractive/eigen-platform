@@ -10,7 +10,10 @@ import 'package:eigen_api/eigen_api.dart';
 /// Dispatch on [code], never on [message]: the message is display copy the
 /// server may reword at any time, while the code is a stable machine value.
 class EngineException implements Exception {
-  const EngineException(this.message, {this.code});
+  const EngineException(this.message, {this.code, this.statusCode});
+
+  /// HTTP status when this failure came from a server response.
+  final int? statusCode;
 
   /// The server's human-readable text. Used as display copy only when [code] is
   /// null; a coded failure is phrased by `humanize` instead.

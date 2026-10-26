@@ -16,24 +16,24 @@
     "changeset": "changeset",
     "version-packages": "changeset version && node ../tool/sync-dart-api-pin.mjs && pnpm --filter \"@eigeninteractive/server^...\" build && pnpm openapi && scripts/generate-dart-client.sh && pnpm --dir ../web sync-api"
   },
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.20.0",
+      "version": "12.15.0",
       "onFail": "download"
     }
   },
   "type": "module",
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "3.0.3",
-    "@cloudflare/vitest-plugin": "^1.4.0",
-    "@vitest/coverage-v8": "^5.0.3",
-    "tsdown": "^0.23.0",
-    "typescript": "~6.0.2",
-    "vitest": "^5.0.3",
-    "wrangler": "^4.149.0"
+    "@cloudflare/vitest-plugin": "^1.4.7",
+    "@vitest/coverage-v8": "^5.0.5",
+    "tsdown": "^0.23.2",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
   }
 }

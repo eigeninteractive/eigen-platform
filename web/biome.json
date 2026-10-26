@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!build", "!.docusaurus", "!static", "!**/*.mdx", "!api", "!docs/reference/http-api", "!docs/reference/typescript"]
+    "includes": ["**", "!build", "!.docusaurus", "!static", "!**/*.mdx", "!api", "!docs/reference/http-api", "!docs/reference/typescript", "!**/*.md", "!**/*.yaml", "!**/*.yml"]
   },
   "formatter": {
     "enabled": true,
@@ -37,7 +37,11 @@
   "overrides": [
     {
       "includes": ["scripts/typedoc.tsconfig.json"],
-      "json": { "parser": { "allowComments": true } }
+      "json": {
+        "parser": {
+          "allowComments": true
+        }
+      }
     }
   ]
 }

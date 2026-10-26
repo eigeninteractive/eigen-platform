@@ -29,14 +29,14 @@ Defined in: [server/packages/server/src/commerce/providers/razorpay.ts:30](https
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv"></a> `TEnv` |
 
 #### Properties
 
 ##### amounts?
 
 ```ts
-optional amounts?: Readonly<Record<string, {
+amounts?: Readonly<Record<string, {
   amount: number;
   currency: string;
 }>>;
@@ -50,7 +50,7 @@ Razorpay has no priced product to read, so a payment link must be told.
 ##### now?
 
 ```ts
-optional now?: () => number;
+now?: () => number;
 ```
 
 Defined in: [server/packages/server/src/commerce/providers/razorpay.ts:40](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/razorpay.ts#L40)
@@ -131,7 +131,7 @@ Defined in: [server/packages/server/src/commerce/providers/razorpay.ts:102](http
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv-1"></a> `TEnv` |
 
 #### Parameters
 

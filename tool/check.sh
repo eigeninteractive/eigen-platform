@@ -161,7 +161,7 @@ run_flutter() {
   flutter analyze
   flutter test
   flutter build web --release --dart-define-from-file=app-config.json
-  "$platform_root/node_modules/.bin/workbox" generateSW workbox-config.cjs
+  node "$platform_root/server/packages/create-eigen-game/templates/project/tool/build-service-worker.mjs" workbox-config.cjs
   test -f build/web/assets/packages/eigen_shell/assets/vendor/cropperjs/cropper.min.js
   # Drift's web runtime, shipped by eigen_flutter, and the Workbox worker that
   # precaches the build. Without them a browser has no persistence and no cold

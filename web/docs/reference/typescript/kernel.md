@@ -40,9 +40,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ##### Constructor
 
@@ -65,9 +63,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ## Interfaces
 
@@ -126,7 +122,7 @@ the host from the `GameModule.versions` map.
 ##### staleViews?
 
 ```ts
-optional staleViews?: {
+staleViews?: {
   current: SeatView | null;
   expected: SeatView | null;
 };
@@ -909,7 +905,7 @@ back as a value for `commit()` to turn into a rejection.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t"></a> `T` |
 
 ***
 
@@ -1102,7 +1098,7 @@ value on the game's behalf.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t-1"></a> `T` |
 
 #### Parameters
 
@@ -1503,7 +1499,7 @@ submission.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t-2"></a> `T` |
 
 #### Parameters
 
@@ -1540,7 +1536,7 @@ what this version historically wrote: an engine-side bug, thrown.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t-3"></a> `T` |
 
 #### Parameters
 

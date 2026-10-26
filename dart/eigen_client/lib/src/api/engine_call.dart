@@ -81,10 +81,17 @@ EngineException _engineExceptionFrom(Response<dynamic> response) {
           name: 'eigen.compatibility',
         );
       }
-      return EngineException(parsed.error, code: parsed.code);
+      return EngineException(
+        parsed.error,
+        code: parsed.code,
+        statusCode: response.statusCode,
+      );
     } on CheckedFromJsonException catch (_) {
       // Fall through to the status line.
     }
   }
-  return EngineException('Request failed (status ${response.statusCode})');
+  return EngineException(
+    'Request failed (status ${response.statusCode})',
+    statusCode: response.statusCode,
+  );
 }

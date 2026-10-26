@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Fixed
+- Replace the generated fixture directory on regeneration and reject stale extra files in check mode.
+
 ## [0.1.3] - 2026-09-13
 ### Added
 - Generate a State payload type per version, and a per-version local rules base (RpsV1LocalRulesBase for a game named Rps) that a game on-device rules unit extends.
@@ -16,6 +20,7 @@ deterministic across newer SDK releases.
 - Initial package: extract the contract payload generator and CLI from
 `eigen_flutter`.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.3...HEAD
 [0.1.3]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.2...eigen_codegen-v0.1.3
 [0.1.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.1...eigen_codegen-v0.1.2
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.0...eigen_codegen-v0.1.1

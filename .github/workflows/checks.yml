@@ -95,7 +95,7 @@ jobs:
       - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true'
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       - uses: actions/setup-node@v7
         if: needs.scope.outputs.full == 'true'
@@ -157,7 +157,7 @@ jobs:
       - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true' && matrix.shard == 'flutter'
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       - uses: actions/setup-node@v7
         if: needs.scope.outputs.full == 'true' && matrix.shard == 'flutter'
@@ -187,7 +187,7 @@ jobs:
 
       - uses: pnpm/action-setup@v6
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       - uses: actions/setup-node@v7
         with:
@@ -223,7 +223,7 @@ jobs:
       - uses: pnpm/action-setup@v6
         if: needs.scope.outputs.full == 'true'
         with:
-          version: 11.20.0
+          version: 12.15.0
 
       - uses: actions/setup-node@v7
         if: needs.scope.outputs.full == 'true'

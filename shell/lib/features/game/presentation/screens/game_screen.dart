@@ -183,9 +183,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isTerminal
-                  ? 'This game has ended.'
-                  : 'Connection lost. Retrying…',
+              isTerminal ? 'This game has ended.' : humanize(next.error),
             ),
             action: isTerminal
                 ? SnackBarAction(
