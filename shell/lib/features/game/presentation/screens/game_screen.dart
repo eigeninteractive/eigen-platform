@@ -174,6 +174,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         if (_pendingAction == _PendingAction.submittingAction) {
           setState(() => _pendingAction = null);
         }
+        // A blocking error has a persistent message and Retry in the body.
+        // Cached registry data can have a status without a renderable frame.
+        if (_showSessionError(next)) return;
         // One snackbar per error episode, terminal or not, since Riverpod's retry
         // cycle would otherwise re-show it on every failed attempt. The flag
         // resets on the next successful snapshot.
@@ -258,6 +261,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           Expanded(
             child: SafeArea(
               child: switch (sessionAsync) {
+                _ when _showSessionError(sessionAsync) => _ErrorState(
+                  error: humanize(sessionAsync.error!),
+                  onRetry: _retryConnection,
+                ),
                 // value is non-null for AsyncData and for AsyncError with
                 // stale data: keep showing the game while the banner
                 // communicates the reconnecting state.
@@ -274,10 +281,6 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           onAction: _submitAction,
                           onForfeit: _forfeitGame,
                         ),
-                ),
-                AsyncError(:final error) => _ErrorState(
-                  error: humanize(error),
-                  onRetry: _retryConnection,
                 ),
                 _ => const Center(child: CircularProgressIndicator()),
               },

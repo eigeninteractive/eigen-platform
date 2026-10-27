@@ -138,7 +138,38 @@ void main() {
       findsOne,
     );
     expect(find.text('Retry'), findsOne);
+    expect(find.text('Reconnecting…'), findsNothing);
   });
+
+  testWidgets(
+    'a stopped connection replaces a cached snapshot without a frame',
+    (tester) async {
+      final sessions = StreamController<GameSession>();
+      addTearDown(sessions.close);
+      sessions.add(_waiting(seq: 2, status: 'ready', seats: 2));
+      await _pump(tester, sessions.stream, viewer: _creator);
+      expect(find.text('Start Game'), findsOne);
+
+      sessions.addError(
+        const GameConnectionException(
+          EngineException(
+            'Socket ticket signing is not configured',
+            statusCode: 500,
+          ),
+          retrying: false,
+        ),
+      );
+      await _flush(tester);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Reconnecting…'), findsNothing);
+      expect(
+        find.text('Unable to connect to the game. Please try again.'),
+        findsOne,
+      );
+      expect(find.text('Retry'), findsOne);
+      expect(find.text('Start Game'), findsNothing);
+    },
+  );
 
   testWidgets('offers Start to the creator the moment the roster fills', (
     tester,
