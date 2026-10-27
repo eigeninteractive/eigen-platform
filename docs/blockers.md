@@ -63,3 +63,24 @@ Recheck both pipelines before removing the Dependabot TypeScript major hold.
 References: [TypeScript 7 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/),
 [rolldown-plugin-dts](https://github.com/sxzz/rolldown-plugin-dts#readme),
 [TypeDoc releases](https://github.com/TypeStrong/typedoc/releases).
+
+## Development-tool audit pins
+
+**Status:** Stable upstream releases still carry affected dependencies.
+After compatible transitive updates and Cloudflare 4.153.0 / plugin 1.4.8,
+`pnpm audit` reports zero findings in the root Workbox graph, one moderate
+finding in server tools, and fourteen in web tools (2 critical, 7 high,
+4 moderate, 1 low). Counts are advisory counts, not distinct packages.
+
+| Owner | Remaining dependency | Why the update stops here |
+| --- | --- | --- |
+| drizzle-kit 0.31.11 | esbuild 0.18.20 through the obsolete esbuild-kit loader | Stable Drizzle Kit still includes the loader; a newer direct esbuild does not replace its nested copy. |
+| Docusaurus 3.10.2 | tinypool 1.1.1; serialize-javascript 6.0.2; uuid 8.3.2 | Fixes require majors selected by the framework/minifier/socket owners. Docusaurus 4 is canary, not stable. |
+| docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3; yaml 2.8.1 | Latest stable plugin pins these exact versions. |
+| OpenAPI docs 5.2.0 / Postman tools | yaml 1.10.2; js-yaml 4.3.0; faker 5.5.3 | Latest supported converter/collection graph still pins the older packages. |
+
+These are development/build graphs, not the deployed Hono/Worker dependency
+closure. That distinction does not make the findings resolved: tooling still
+processes repository inputs. Recheck the owners' releases and audit when they
+update; do not report the full repository audit as clean or force unrelated
+major versions with overrides merely to clear the report.

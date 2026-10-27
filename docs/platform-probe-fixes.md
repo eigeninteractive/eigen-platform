@@ -22,7 +22,9 @@ the actual scaffolder, engine, Dart client and Flutter web output.
    The SQL was executed against all actual D1 migrations in an in-memory database.
 4. Socket failures are visible. Transport and temporary service errors retry
    with backoff; permanent errors stop and show Retry. Riverpod does not add a
-   second retry loop. A duplicate revision on reconnect clears the error without
+   second retry loop. A stopped connection replaces even a cached frameless
+   snapshot with a persistent error and Retry; it does not retain a spinner or
+   claim to be reconnecting. A duplicate revision on reconnect clears the error without
    replaying the move. Diagnostics retain the underlying HTTP status.
 
 ## Dependency decisions
@@ -45,7 +47,7 @@ No dependency overrides were added to force incompatible graphs.
 | app_settings / in_app_review | 9.0.1 / 2.0.12 resolved | [Settings](https://pub.dev/packages/app_settings/changelog) guards built-in Kotlin; [review](https://pub.dev/packages/in_app_review/changelog) fixes background Activity handling but still applies KGP unconditionally. |
 | Workbox | workbox-build 7.4.1 | Replace workbox-cli with the supported [Node generateSW API](https://developer.chrome.com/docs/workbox/modules/workbox-build), keeping the same precache configuration. Removes CLI watcher dependencies and the tmp override. Root audit reported zero vulnerabilities after replacement. |
 | Biome | 2.6.3 | [Release](https://biomejs.dev/blog/biome-v2-6/): migrate configs to the current schema/preset. Explicitly exclude Markdown/YAML so the new formatters do not rewrite generated API docs or package-manager-owned lockfiles. |
-| Wrangler / workers-types / Cloudflare Vitest plugin | 4.152.0 / 5.20261025.0 / 1.4.7 | [Cloudflare releases](https://github.com/cloudflare/workers-sdk/releases): regenerate Worker bindings; plugin fixes Vitest coverage/cache compatibility. No new platform service or binding is required. |
+| Wrangler / workers-types / Cloudflare Vitest plugin | 4.153.0 / 5.20261026.1 / 1.4.8 | [Cloudflare releases](https://github.com/cloudflare/workers-sdk/releases): regenerate Worker bindings; plugin fixes Vitest coverage/cache compatibility and updates pinned Zod/Undici security fixes. No new platform service or binding is required. |
 | Vitest and coverage-v8 / tsdown | 5.0.5 / 0.23.2 | [Vitest](https://github.com/vitest-dev/vitest/releases), [tsdown](https://github.com/rolldown/tsdown/releases): keep test/coverage versions paired; compiler option fixes. TypeScript remains 6.0.3 after a real TS7 build failure. |
 | Hono / jose / Zod / openapi3-ts | 4.13.14 / 6.2.13 / 4.6.7 / 4.6.2 | [Hono](https://github.com/honojs/hono/releases), [jose](https://github.com/panva/jose/releases), [Zod](https://github.com/colinhacks/zod/releases), [OpenAPI changelog](https://github.com/metadevpro/openapi3-ts/blob/master/Changelog.md): request/security/build fixes. Keep WebCrypto JWT verification and OpenAPI 3.1 contract generation; regenerate and compare artifacts. |
 | React / React DOM / Sass / typedoc-plugin-markdown | 19.3.1 / 19.3.1 / 1.106.1 / 4.14.1 | [React](https://github.com/facebook/react/releases), [Sass](https://github.com/sass/dart-sass/blob/main/CHANGELOG.md), [TypeDoc plugin](https://typedoc-plugin-markdown.org/docs/CHANGELOG): runtime and renderer fixes. Docusaurus does not use the changed RSC protocol; retain supported stable TypeDoc 0.28.20. |
@@ -57,8 +59,89 @@ their owners: built_value/build_runner keep built_collection 5; share_plus keeps
 cross_file 0.3; qr_flutter keeps qr 3; the Flutter SDK pins platform and material
 color utilities. No transitive dependency is forcibly overridden.
 
+## Transitive dependency review
+
+`pnpm update --depth Infinity` refreshed compatible lockfile ranges in server
+and web. Changelogs/release notes were checked by upstream project; native
+platform variants share their compiler's notes. These are the behavior changes
+that affect our consumers:
+
+- [Vite 8.3.5](https://github.com/vitejs/vite/blob/v8.3.5/packages/vite/CHANGELOG.md),
+  [SWC 1.16.20](https://github.com/swc-project/swc/releases/tag/v1.16.20),
+  [Babel 7.29.11](https://github.com/babel/babel/releases/tag/v7.29.11) and
+  [webpack 5.112.2](https://github.com/webpack/webpack/releases/tag/v5.112.2)
+  fix parsing, generated code and module invalidation. We retain the framework's
+  supported build configuration; experimental package maps and type stripping
+  are not prerequisites for these fixes.
+- [PostCSS 8.5.31](https://github.com/postcss/postcss/blob/8.5.31/CHANGELOG.md)
+  hardens source-map loading and fixes CSS escaping. Sass-loader 17.0.1 preserves
+  the modern compiler default while fixing BOM placement. Browser/Unicode data,
+  selector parsers and minifiers update through their owning toolchain.
+- [Algolia 5.60](https://github.com/algolia/algoliasearch-client-javascript/blob/main/CHANGELOG.md)
+  includes breaking changes to A/B testing and Agent Studio in a minor release.
+  This site uses local search, neither API. DocSearch 4.7.1 and autocomplete
+  1.19.12 stay within Docusaurus's supported ranges; no DocSearch 5 migration is
+  forced into its wrapper.
+- [Redocly 2.70/2.71](https://redocly.com/docs/cli/changelog) changes its standalone
+  `build-docs` command and reader telemetry. This repository uses the OpenAPI
+  core parser through Docusaurus, not that command; its published docs remain
+  Docusaurus output. OpenAPI-to-Postman 6.4 adds 3.2 support, while our normative
+  contract remains OpenAPI 3.1.
+- Redux Toolkit 2.13 preserves its exports while moving build tools. Reselect
+  5.3 removes experimental autotracking and adds bounded memoization; we do not
+  import that removed API. These arrive through the OpenAPI documentation UI.
+- Markdown/MDX AST traversal gains exit visitors and parser fixes. Markdown-it
+  14.3.3 and SVGO 3.3.5 backport security fixes without forcing their consumers
+  across unsupported major boundaries. The generation drift gate and full
+  documentation build check the resulting output.
+- Express/body-parser/proxy, YAML, URI, websocket and Undici updates include
+  input-validation and resource-exhaustion fixes. They are consumed through
+  development tools; the authoritative game server continues to use Hono and
+  Workers WebCrypto. Remaining exact upstream pins are listed in blockers.
+
+For some small transitive packages, no version-specific release notes could be
+located after checking repository/release pages; and their owning package's supported
+range was preserved. No application-level migration was invented for an API we
+do not call. The reviewed Cloudflare security releases were less than pnpm's
+default release age: its CLI recorded exclusions for those exact versions only,
+without disabling the age policy globally.
+
 ## Validation
 
-Results are recorded here after the final full platform and browser checks.
+`./tool/check.sh` completed the server and fresh-scaffold checks. The first
+combined run stopped its Dart shard on a local macOS analyzer-cache failure.
+The crash reports identify `CODESIGNING / Invalid Page` in the generated plugin
+AOT cache; moving only that regenerable binary and depfile aside let Flutter
+3.47.7 rebuild them. Analysis then passed. The affected shards were rerun using
+`./tool/check.sh dart`, `flutter`, `shell`, `docs`, and `web`.
+
+- Server: 732 tests across rules, kernel, server, testkit, scaffolder and RPS;
+  typechecking, OpenAPI/client/type generation, migration drift and package
+  dry runs passed.
+- Dart: 190 client tests, 21 Chrome tests and 16 codegen tests passed, including
+  HTTP/socket arrival ordering, recovery and generated-directory cleanup.
+- Flutter: 175 framework tests and 37 example tests passed, with analysis,
+  generated-file checks, release web output and Workbox precache verification.
+- Shell/Firebase: 120 shell tests and 44 Firebase tests passed, including
+  registration events/account changes and persistent connection-error UI.
+- Fresh scaffold: actual CLI bootstrap, Worker typecheck/9 tests, Flutter
+  analysis/10 tests, Android release APK and Flutter web release with service
+  worker passed. No hosted service was deployed.
+- Documentation: TypeScript/HTTP references regenerate without drift; the
+  Docusaurus typecheck and production build passed. Dart doc-comment validation
+  passed for Flutter, shell and Firebase; shell reports one non-blocking
+  unresolved `[state=]` reference inherited from Riverpod 3.4.3.
+- Actual Rival Courts Flutter web: two players joined and started a private
+  game, hid simultaneous choices and received the same terminal result.
+  Missing socket configuration showed one persistent error with Retry and no
+  spinner; restoring configuration and clicking Retry restored the game.
+  Solo play created a server-bot match, resolved a round and accepted forfeit.
+- Real HTTP probe: public/private start responses exactly match the immediate
+  same-sequence read; idempotent creation, private-card projection, unchanged-
+  view simultaneous actions, changed-view rejection, seat authorization,
+  contiguous replay, and a complete seven-round bot match passed.
+
+Evidence remains under the disposable game's `evidence/after-*` files; the
+original pre-fix evidence and report were preserved.
 Real Firebase push delivery requires configured Firebase/APNs credentials;
 registration logic tests and scaffold builds do not establish delivered pushes.

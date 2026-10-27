@@ -116,7 +116,9 @@ List<String> contractFixtureDrift(
       followLinks: false,
     )) {
       if (entity is Directory) continue;
-      final relative = entity.path.substring(directory.path.length + 1);
+      final relative = entity.path
+          .substring(directory.path.length + 1)
+          .replaceAll(Platform.pathSeparator, '/');
       if (entity is! File || !expected.containsKey(relative)) {
         stale.add(relative);
       }
