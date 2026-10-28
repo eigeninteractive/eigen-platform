@@ -27,7 +27,7 @@
 
 import { computeRatings, defaultRating, displayRating, GameBugError, type GameStatus, type RatingDelta, type Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
-import { and, eq, inArray, lte, or, sql } from "drizzle-orm";
+import { and, count, eq, exists, inArray, isNull, lt, lte, max, or, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import type { SelectedContent } from "../commerce/types.js";
 import type { GameOrigin } from "../protocol.js";
@@ -55,8 +55,13 @@ const CAS_ATTEMPTS = 5;
 /** The row still names this revision: true after a guarded update that landed,
  * or when an equal-revision write already had. What the statements after that
  * update in one batch condition on. */
-function rowAt(gameId: string, seq: number) {
-  return sql`EXISTS (SELECT 1 FROM games WHERE id = ${gameId} AND seq = ${seq})`;
+function rowAt(db: ReturnType<typeof orm>, gameId: string, seq: number) {
+  return exists(
+    db
+      .select({ id: games.id })
+      .from(games)
+      .where(and(eq(games.id, gameId), eq(games.seq, seq))),
+  );
 }
 
 /** The row is not newer than this revision, so a write carrying it may land. */
@@ -93,7 +98,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         seq: input.seq,
         updatedAt: input.now,
       })
-      .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq)));
+      .where(and(eq(games.id, input.gameId), isNull(games.finishId), notNewerThan(input.seq)));
     // The history sync cursor, appended in the same batch and under the same
     // guard as the summary above, so the number the database assigns reflects
     // the order finishes COMMIT in. It runs FIRST: its guard reads the
@@ -108,7 +113,7 @@ export async function applyFinish(d1: D1Database, input: FinishApplyInput): Prom
         // to assign the next one.
         .select({ seq: sql<number>`NULL`.as("seq"), gameId: games.id })
         .from(games)
-        .where(and(eq(games.id, input.gameId), sql`${games.finishId} IS NULL`, notNewerThan(input.seq))),
+        .where(and(eq(games.id, input.gameId), isNull(games.finishId), notNewerThan(input.seq))),
     );
     const capacityRelease = db.delete(commerceCapacity).where(eq(commerceCapacity.gameId, input.gameId));
 
@@ -324,7 +329,7 @@ export async function updateSummary(d1: D1Database, args: { gameId: string; stat
  * leave the roster a newer one wrote, not delete it and put back an older one. */
 export async function mirrorRoster(d1: D1Database, args: { gameId: string; status: GameStatus; seats: Seat[]; seq: number; now: number }): Promise<void> {
   const db = orm(d1);
-  const current = rowAt(args.gameId, args.seq);
+  const current = rowAt(db, args.gameId, args.seq);
   const statements: BatchItem<"sqlite">[] = [
     db
       .update(games)
@@ -458,27 +463,34 @@ export async function createGame(d1: D1Database, input: CreateGameInput): Promis
     );
   }
   for (const usage of input.usage ?? []) {
-    const nextSlot = sql<number>`CASE WHEN ${usage.maximum} IS NULL OR (SELECT count(*) FROM commerce_usage WHERE user_id = ${input.createdBy} AND metric = ${usage.metric} AND period_key = ${usage.periodKey}) < ${usage.maximum} THEN COALESCE((SELECT max(slot) + 1 FROM commerce_usage WHERE user_id = ${input.createdBy} AND metric = ${usage.metric} AND period_key = ${usage.periodKey}), 1) ELSE NULL END`;
+    const slot = sql<number>`coalesce(${max(commerceUsage.slot)} + 1, 1)`;
+    const nextSlot = db
+      .select({ slot: usage.maximum === null ? slot : sql<number>`case when ${lt(count(), usage.maximum)} then ${slot} else null end` })
+      .from(commerceUsage)
+      .where(and(eq(commerceUsage.userId, input.createdBy as string), eq(commerceUsage.metric, usage.metric), eq(commerceUsage.periodKey, usage.periodKey)));
     statements.push(
       db.insert(commerceUsage).values({
         id: crypto.randomUUID(),
         userId: input.createdBy as string,
         metric: usage.metric,
         periodKey: usage.periodKey,
-        slot: nextSlot,
+        slot: sql`(${nextSlot})`,
         operationId: usage.operationId,
         createdAt: input.now,
       }),
     );
   }
   if (input.capacity !== undefined) {
-    const nextSlot = sql<number>`CASE WHEN (SELECT count(*) FROM commerce_capacity WHERE user_id = ${input.createdBy} AND metric = 'games.openCreated') < ${input.capacity.maximum} THEN COALESCE((SELECT max(slot) + 1 FROM commerce_capacity WHERE user_id = ${input.createdBy} AND metric = 'games.openCreated'), 1) ELSE NULL END`;
+    const nextSlot = db
+      .select({ slot: sql<number>`case when ${lt(count(), input.capacity.maximum)} then coalesce(${max(commerceCapacity.slot)} + 1, 1) else null end` })
+      .from(commerceCapacity)
+      .where(and(eq(commerceCapacity.userId, input.createdBy as string), eq(commerceCapacity.metric, "games.openCreated")));
     statements.push(
       db.insert(commerceCapacity).values({
         id: crypto.randomUUID(),
         userId: input.createdBy as string,
         metric: "games.openCreated",
-        slot: nextSlot,
+        slot: sql`(${nextSlot})`,
         gameId: input.gameId,
         createdAt: input.now,
       }),

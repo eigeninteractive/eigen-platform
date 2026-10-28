@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, count, eq, gt, inArray, isNull, lte, ne, or } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { commerceUsage, entitlementGrants, gameContent, games } from "../d1/schema.js";
 import { HttpError } from "../http.js";
@@ -136,7 +136,7 @@ async function usageFor(d1: D1Database, userId: string, policy: MetricPolicy): P
     // the same constant the create and replay gates read, so the boundary
     // cannot drift between what is charged and what is counted.
     const row = await orm(d1)
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: count() })
       .from(games)
       .where(and(eq(games.createdBy, userId), ne(games.origin, COMMERCE_EXEMPT_ORIGIN), inArray(games.status, ["waiting", "ready", "active"])))
       .get();
@@ -144,7 +144,7 @@ async function usageFor(d1: D1Database, userId: string, policy: MetricPolicy): P
   }
   if (policy.periodKey === null) return 0;
   const row = await orm(d1)
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(commerceUsage)
     .where(and(eq(commerceUsage.userId, userId), eq(commerceUsage.metric, policy.metric), eq(commerceUsage.periodKey, policy.periodKey)))
     .get();

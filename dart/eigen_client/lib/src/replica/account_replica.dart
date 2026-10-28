@@ -563,19 +563,24 @@ final class AccountReplica {
   /// Deletes everything the device holds for the account, its local games
   /// included: what deleting the account does.
   Future<void> deleteAll() => _db.transaction(() async {
-    for (final table in <TableInfo<Table, Object?>>[
+    await (_db.delete(
       _db.participants,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.ratingHistory,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.relationships,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.frames,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.localGames,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.transitions,
-    ]) {
-      await _db.customStatement(
-        'DELETE FROM ${table.actualTableName} WHERE account_id = ?',
-        [accountId],
-      );
-    }
+    )..where((row) => row.accountId.equals(accountId))).go();
     await (_db.delete(
       _db.games,
     )..where((row) => row.accountId.equals(accountId))).go();

@@ -18,7 +18,7 @@
  * id is smaller.
  */
 
-import { type AnyColumn, and, eq, inArray, notExists, or, sql } from "drizzle-orm";
+import { type AnyColumn, and, eq, inArray, notExists, or } from "drizzle-orm";
 import { orm } from "./orm.js";
 import { games, participants, relationships } from "./schema.js";
 
@@ -41,7 +41,7 @@ export async function isBlockedAmong(d1: D1Database, caller: string, ids: string
   const others = ids.filter((id) => id !== caller);
   if (others.length === 0) return false;
   const row = await orm(d1)
-    .select({ one: sql`1` })
+    .select({ id: relationships.id })
     .from(relationships)
     .where(and(eq(relationships.status, "blocked"), or(and(eq(relationships.userId1, caller), inArray(relationships.userId2, others)), and(eq(relationships.userId2, caller), inArray(relationships.userId1, others)))))
     .limit(1)
@@ -61,7 +61,7 @@ export async function isBlockedAmong(d1: D1Database, caller: string, ids: string
 export function noBlockedParticipant(d1: D1Database, caller: string) {
   return notExists(
     orm(d1)
-      .select({ one: sql`1` })
+      .select({ id: participants.id })
       .from(participants)
       .innerJoin(relationships, and(eq(relationships.status, "blocked"), samePair(relationships.userId1, relationships.userId2, caller, participants.userId)))
       .where(eq(participants.gameId, games.id)),

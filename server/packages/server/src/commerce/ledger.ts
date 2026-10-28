@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, notInArray, sql } from "drizzle-orm";
+import { and, eq, exists, isNull, lte, notInArray, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { isUniqueViolation } from "../d1/errors.js";
 import { orm } from "../d1/orm.js";
@@ -232,7 +232,13 @@ export async function recordVerifiedTransaction(
   // Everything after the row's write restates its guard: a batch statement
   // that matches nothing does not fail the batch, so a write that lost the
   // race above must not still move grants.
-  const written = (id: string) => sql`exists (select 1 from ${commerceTransactions} where ${commerceTransactions.id} = ${id} and ${commerceTransactions.revision} = ${revision})`;
+  const written = (id: string) =>
+    exists(
+      db
+        .select({ id: commerceTransactions.id })
+        .from(commerceTransactions)
+        .where(and(eq(commerceTransactions.id, id), eq(commerceTransactions.revision, revision))),
+    );
   const statements: BatchItem<"sqlite">[] = [
     transactionWrite,
     db

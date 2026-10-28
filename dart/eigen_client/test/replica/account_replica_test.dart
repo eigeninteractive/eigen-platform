@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:eigen_client/eigen_client.dart';
 import 'package:test/test.dart';
 
@@ -366,6 +368,68 @@ void main() {
       expect(await replica.watchActiveGames().first, isEmpty);
       expect(await replica.decidesHere('local-1'), isFalse);
     });
+
+    test(
+      'deletion updates watchers and preserves another account\'s copies',
+      () async {
+        for (final accountId in [me, them]) {
+          final account = AccountReplica(db, accountId);
+          final sync = syncJson(
+            active: [summaryJson(id: 'online', seq: 2)],
+            friends: [friendJson('shared-friend')],
+          );
+          sync['account'] = {
+            ...playerJson(accountId),
+            'email': '$accountId@example.test',
+            'createdAt': 1,
+          };
+          await account.applySync(
+            AccountSync.fromJson(sync),
+            first: true,
+            endedSeen: const {},
+            pulledAt: _now,
+          );
+          final engine = await LocalGameEngine.create(
+            userId: accountId,
+            schemaVersion: 1,
+            config: const {'target': 5},
+            botIds: const ['bot-1'],
+            bots: {'bot-1': counterBot()},
+            rules: const CounterRules(),
+            storage: LocalGameStorage(db),
+            newGameId: () => 'local-1',
+          );
+          await engine.close();
+        }
+
+        final friends = StreamIterator(replica.watchFriends());
+        addTearDown(friends.cancel);
+        expect(await friends.moveNext(), isTrue);
+        expect(friends.current, hasLength(1));
+
+        await replica.deleteAll();
+
+        expect(
+          await friends.moveNext().timeout(const Duration(seconds: 5)),
+          isTrue,
+        );
+        expect(friends.current, isEmpty);
+        expect(await replica.decidesHere('local-1'), isFalse);
+        expect(await replica.coldSession('local-1'), isNull);
+        final other = AccountReplica(db, them);
+        expect(await other.decidesHere('local-1'), isTrue);
+        expect((await other.coldSession('local-1'))!.frame, isNotNull);
+        expect((await other.watchProfile().first)!.id, them);
+        expect(
+          (await other.watchFriends().first).single.userId,
+          'shared-friend',
+        );
+        expect(
+          (await other.watchActiveGames().first).map((game) => game.id),
+          unorderedEquals(['online', 'local-1']),
+        );
+      },
+    );
 
     test('is invisible to another account on the same device', () async {
       await seedBoth();
