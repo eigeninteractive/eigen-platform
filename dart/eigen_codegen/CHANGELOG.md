@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- The fixtures-output directory is exclusively generated output. Regeneration replaces every file; keep authored fixtures in the server contract.
+
 ### Fixed
 - Replace the generated fixture directory on regeneration and reject stale extra files in check mode.
 

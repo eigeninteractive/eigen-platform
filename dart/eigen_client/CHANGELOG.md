@@ -1,5 +1,8 @@
 # Changelog
 ## [Unreleased]
+### Changed
+- GameRepository.sessions no longer accepts an inject stream: repository HTTP responses enter the session coordinator automatically. GameSocket.connect surfaces GameConnectionException and stops on permanent failures.
+
 ### Fixed
 - Automatically serialize authoritative HTTP sessions with socket snapshots; surface connection failures with one retry owner and restore same-sequence reconnects.
 - Notify database watchers when deleting an account by using typed Drift deletes, while preserving other accounts on the device.

@@ -2,6 +2,7 @@
 ## [Unreleased]
 ### Changed
 - Use released FlutterFire FID registration and acknowledgement streams across platforms; remove custom native and web compatibility adapters.
+- Requires Firebase Core 5, Auth 7, Analytics 13, Crashlytics 6, Installations 0.5 and Messaging 17; registration uses the current FlutterFire APIs without a legacy fallback.
 
 ## [0.6.0] - 2026-10-12
 ### Changed
