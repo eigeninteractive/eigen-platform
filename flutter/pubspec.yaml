@@ -1,6 +1,6 @@
 name: eigen_flutter
 description: "EigenInteractive Flutter client: the whitelabel app half for turn-based multiplayer games on the EigenInteractive server."
-version: 0.16.0
+version: 0.17.0
 homepage: https://eigeninteractive.com
 repository: https://github.com/eigeninteractive/eigen-platform/tree/main/flutter
 documentation: https://eigeninteractive.com/docs/reference/dart
@@ -26,7 +26,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  eigen_client: ^0.8.0
+  eigen_client: ^0.9.0
   flutter_riverpod: ^3.3.2
   riverpod_annotation: ^4.0.3
   json_annotation: ^4.12.0
@@ -74,7 +74,7 @@ dev_dependencies:
   # on older versions across the whole workspace.
   freezed: 4.0.1
   checks: ^0.3.1
-  eigen_codegen: ^0.1.0
+  eigen_codegen: ^0.2.0
   # A fake connectivity platform, so a test can start the app with no network.
   connectivity_plus_platform_interface: ^2.1.0
   plugin_platform_interface: ^2.1.8

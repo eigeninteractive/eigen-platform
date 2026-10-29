@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.9.0] - 2026-10-29
 ### Changed
 - GameRepository.sessions no longer accepts an inject stream: repository HTTP responses enter the session coordinator automatically. GameSocket.connect surfaces GameConnectionException and stops on permanent failures.
 
@@ -59,7 +59,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.8.0...HEAD
+[0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.8.0...eigen_client-v0.9.0
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.7.0...eigen_client-v0.8.0
 [0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.6.0...eigen_client-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.5.0...eigen_client-v0.6.0

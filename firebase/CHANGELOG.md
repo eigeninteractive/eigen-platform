@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.7.0] - 2026-10-29
 ### Changed
 - Use released FlutterFire FID registration and acknowledgement streams across platforms; remove custom native and web compatibility adapters.
 - Requires Firebase Core 5, Auth 7, Analytics 13, Crashlytics 6, Installations 0.5 and Messaging 17; registration uses the current FlutterFire APIs without a legacy fallback.
@@ -53,7 +53,7 @@ permanent Android notification-permission denials.
 - Firebase Auth, bearer tokens, Analytics, Crashlytics, Cloud Messaging, and
 Android notification resources compose above `eigen_flutter` ports.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.6.0...HEAD
+[0.7.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.6.0...eigen_firebase-v0.7.0
 [0.6.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.2...eigen_firebase-v0.6.0
 [0.5.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.1...eigen_firebase-v0.5.2
 [0.5.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_firebase-v0.5.0...eigen_firebase-v0.5.1

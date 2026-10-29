@@ -1,5 +1,5 @@
 # Changelog
-## [Unreleased]
+## [0.2.0] - 2026-10-29
 ### Changed
 - The fixtures-output directory is exclusively generated output. Regeneration replaces every file; keep authored fixtures in the server contract.
 
@@ -23,7 +23,7 @@ deterministic across newer SDK releases.
 - Initial package: extract the contract payload generator and CLI from
 `eigen_flutter`.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.3...HEAD
+[0.2.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.3...eigen_codegen-v0.2.0
 [0.1.3]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.2...eigen_codegen-v0.1.3
 [0.1.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.1...eigen_codegen-v0.1.2
 [0.1.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_codegen-v0.1.0...eigen_codegen-v0.1.1
