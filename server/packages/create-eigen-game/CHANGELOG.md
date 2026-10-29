@@ -1,5 +1,20 @@
 # create-eigen-game
 
+## 0.17.8
+
+### Patch Changes
+
+- [#147](https://github.com/eigeninteractive/eigen-platform/pull/147) [`9ccdb0e`](https://github.com/eigeninteractive/eigen-platform/commit/9ccdb0ee5d64b85f6a32a1d02b488f70bc8a5bbe) Thanks [@seenu-k](https://github.com/seenu-k)! - Return complete sessions projected for the authenticated recipient on every accepted command, including starts and offline bot transitions. Preserve outcomes on rating transitions so HTTP, socket and cold reads agree at the same sequence. Remove the redundant solo-start read.
+  
+  Update scaffold dependencies, use Workbox's supported Node build API without the vulnerable CLI watcher dependency, and let Pub resolve the Firebase Core version compatible with the selected adapter.
+
+- [#150](https://github.com/eigeninteractive/eigen-platform/pull/150) [`fd29ed0`](https://github.com/eigeninteractive/eigen-platform/commit/fd29ed098911fd9af849afe788122fb6e6c36a82) Thanks [@eigen-release](https://github.com/apps/eigen-release)! - Install the newly released Dart packages in a scaffolded app.
+  
+  - `eigen_codegen` ^0.2.0
+  - `eigen_flutter` ^0.17.0
+  - `eigen_shell` ^0.8.0
+  - `eigen_firebase` ^0.7.0
+
 ## 0.17.7
 
 ### Patch Changes

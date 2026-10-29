@@ -1,5 +1,18 @@
 # @eigeninteractive/server
 
+## 0.12.1
+
+### Patch Changes
+
+- [#147](https://github.com/eigeninteractive/eigen-platform/pull/147) [`9ccdb0e`](https://github.com/eigeninteractive/eigen-platform/commit/9ccdb0ee5d64b85f6a32a1d02b488f70bc8a5bbe) Thanks [@seenu-k](https://github.com/seenu-k)! - Return complete sessions projected for the authenticated recipient on every accepted command, including starts and offline bot transitions. Preserve outcomes on rating transitions so HTTP, socket and cold reads agree at the same sequence. Remove the redundant solo-start read.
+  
+  Update scaffold dependencies, use Workbox's supported Node build API without the vulnerable CLI watcher dependency, and let Pub resolve the Firebase Core version compatible with the selected adapter.
+
+- [#147](https://github.com/eigeninteractive/eigen-platform/pull/147) [`9ccdb0e`](https://github.com/eigeninteractive/eigen-platform/commit/9ccdb0ee5d64b85f6a32a1d02b488f70bc8a5bbe) Thanks [@seenu-k](https://github.com/seenu-k)! - Use typed Drizzle predicates, aggregates, and subqueries for user search, relationship sync, revision guards, and commercial quota allocation. Keep quota checks and slot allocation inside the same database statement and batch transaction.
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.12.1
+  - @eigeninteractive/rules@0.12.1
+
 ## 0.12.0
 
 ### Patch Changes
