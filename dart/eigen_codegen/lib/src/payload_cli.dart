@@ -34,7 +34,7 @@ final class PayloadGeneratorCli {
         ..addOption(
           'fixtures-output',
           valueHelp: 'directory',
-          help: 'Directory for generated fixture copies.',
+          help: 'Generated-only fixture directory; replaced on every run.',
         )
         ..addFlag(
           'check',

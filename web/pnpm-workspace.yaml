@@ -21,3 +21,6 @@ allowBuilds:
   # both of which are dependencies of postman-code-generators itself, so pnpm has
   # already placed them on the resolution path every codegen walks up through.
   postman-code-generators: false
+minimumReleaseAgeExclude:
+  - miniflare@5.20261023.0-beta
+  - wrangler@4.153.0

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!app", "!server/worker-configuration.d.ts", "!server/game-contract.json"]
+    "includes": ["**", "!app", "!server/worker-configuration.d.ts", "!server/game-contract.json", "!**/*.md", "!**/*.yaml", "!**/*.yml"]
   },
   "formatter": {
     "enabled": true,

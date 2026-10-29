@@ -14,6 +14,10 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
+## [Unreleased]
+### Fixed
+- Expose game connection errors without a second provider retry loop; update Drift runtime assets and dependencies.
+
 ## [0.16.0] - 2026-10-12
 ### Changed
 - Requires `eigen_api` 0.12.0, the client generated from engine 0.12.0.
@@ -366,6 +370,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.16.0...HEAD
 [0.16.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.15.1...eigen_flutter-v0.16.0
 [0.15.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.15.0...eigen_flutter-v0.15.1
 [0.15.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.14.0...eigen_flutter-v0.15.0

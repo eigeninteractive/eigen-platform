@@ -43,9 +43,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ##### Constructor
 
@@ -68,9 +66,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ***
 
@@ -104,7 +100,7 @@ export class GameDO extends BaseGameDO<Env> {
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv"></a> `TEnv` |
 
 #### Implements
 
@@ -133,9 +129,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:131](https://github.com/ei
 
 ###### Overrides
 
-```ts
-DurableObject<TEnv>.constructor
-```
+`DurableObject<TEnv>.constructor`
 
 #### Properties
 
@@ -157,7 +151,7 @@ The implementor's game: the `versions` map the engine dispatches on.
 abort(gameId): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:394](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L394)
+Defined in: [server/packages/server/src/do/game-do.ts:390](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L390)
 
 Unconditional teardown (cron reap): mark the game aborted in D1 and
 compact its game data, with no creator gate or init requirement. A
@@ -176,9 +170,7 @@ gameId. Idempotent; `cancel` shares the teardown for its live path.
 
 ###### Implementation of
 
-```ts
-GameStub.abort
-```
+`GameStub.abort`
 
 ##### alarm()
 
@@ -186,7 +178,7 @@ GameStub.abort
 alarm(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:951](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L951)
+Defined in: [server/packages/server/src/do/game-do.ts:949](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L949)
 
 A timeout is derived from committed state, not submitted, so it carries no
 caller identity. It is idempotent because the kernel abstains once the state it was derived from
@@ -200,9 +192,7 @@ re-arms the alarm for the next turn on its way out.
 
 ###### Overrides
 
-```ts
-DurableObject.alarm
-```
+`DurableObject.alarm`
 
 ##### d1()
 
@@ -231,7 +221,7 @@ subclass picks the D1 database off its own Env.
 fetch(request): Promise<Response>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:965](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L965)
+Defined in: [server/packages/server/src/do/game-do.ts:963](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L963)
 
 The worker routes the upgrade here after authenticating; the principal
 header is worker-set (never client-supplied; the worker strips inbound
@@ -252,15 +242,11 @@ roster contains them, which is how it learns the game started at all.
 
 ###### Implementation of
 
-```ts
-GameStub.fetch
-```
+`GameStub.fetch`
 
 ###### Overrides
 
-```ts
-DurableObject.fetch
-```
+`DurableObject.fetch`
 
 ##### firebaseAdmin()
 
@@ -289,7 +275,7 @@ fake exported by `@eigeninteractive/server/testing`.
 frames(args): Promise<FrameMessage[]>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:1148](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1148)
+Defined in: [server/packages/server/src/do/game-do.ts:1154](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1154)
 
 Project a version range for one seat (null = public viewer, replay
 only). Live rows serve the stored frame; compacted/ratings rows
@@ -311,9 +297,7 @@ re-project. Raw state never leaves the DO.
 
 ###### Implementation of
 
-```ts
-GameStub.frames
-```
+`GameStub.frames`
 
 ##### handle()
 
@@ -335,9 +319,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:144](https://github.com/ei
 
 ###### Implementation of
 
-```ts
-GameStub.handle
-```
+`GameStub.handle`
 
 ##### localRecord()
 
@@ -349,7 +331,7 @@ localRecord(
 ): Promise<LocalRecord | null>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:271](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L271)
+Defined in: [server/packages/server/src/do/game-do.ts:267](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L267)
 
 A local game's stored log: raw state and the action that produced it, plus
 the seed they were all derived from.
@@ -376,9 +358,7 @@ object that owns it.
 
 ###### Implementation of
 
-```ts
-GameStub.localRecord
-```
+`GameStub.localRecord`
 
 ##### localTransitions()
 
@@ -421,9 +401,7 @@ already committed and permanent.
 
 ###### Implementation of
 
-```ts
-GameStub.localTransitions
-```
+`GameStub.localTransitions`
 
 ##### reconcile()
 
@@ -431,7 +409,7 @@ GameStub.localTransitions
 reconcile(gameId): Promise<ReconcileReport>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:915](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L915)
+Defined in: [server/packages/server/src/do/game-do.ts:913](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L913)
 
 Re-derive D1's read model from this object's committed state, and finish any
 post-commit work that never landed.
@@ -470,9 +448,7 @@ already matches.
 
 ###### Implementation of
 
-```ts
-GameStub.reconcile
-```
+`GameStub.reconcile`
 
 ##### session()
 
@@ -480,7 +456,7 @@ GameStub.reconcile
 session(gameId, userId): Promise<SessionSnapshot | null>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:988](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L988)
+Defined in: [server/packages/server/src/do/game-do.ts:986](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L986)
 
 The snapshot over RPC, for the HTTP paths that have no socket.
 
@@ -497,9 +473,7 @@ The snapshot over RPC, for the HTTP paths that have no socket.
 
 ###### Implementation of
 
-```ts
-GameStub.session
-```
+`GameStub.session`
 
 ##### webSocketClose()
 
@@ -507,7 +481,7 @@ GameStub.session
 webSocketClose(): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:1001](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1001)
+Defined in: [server/packages/server/src/do/game-do.ts:999](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L999)
 
 ###### Returns
 
@@ -515,9 +489,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:1001](https://github.com/e
 
 ###### Overrides
 
-```ts
-DurableObject.webSocketClose
-```
+`DurableObject.webSocketClose`
 
 ##### webSocketError()
 
@@ -525,7 +497,7 @@ DurableObject.webSocketClose
 webSocketError(_ws, error): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:1007](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1007)
+Defined in: [server/packages/server/src/do/game-do.ts:1005](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L1005)
 
 ###### Parameters
 
@@ -540,9 +512,7 @@ Defined in: [server/packages/server/src/do/game-do.ts:1007](https://github.com/e
 
 ###### Overrides
 
-```ts
-DurableObject.webSocketError
-```
+`DurableObject.webSocketError`
 
 ##### webSocketMessage()
 
@@ -550,7 +520,7 @@ DurableObject.webSocketError
 webSocketMessage(ws): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/do/game-do.ts:993](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L993)
+Defined in: [server/packages/server/src/do/game-do.ts:991](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/do/game-do.ts#L991)
 
 ###### Parameters
 
@@ -564,15 +534,13 @@ Defined in: [server/packages/server/src/do/game-do.ts:993](https://github.com/ei
 
 ###### Overrides
 
-```ts
-DurableObject.webSocketMessage
-```
+`DurableObject.webSocketMessage`
 
 ***
 
 ### CommercialLimitWriteError
 
-Defined in: [server/packages/server/src/d1/apply.ts:402](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L402)
+Defined in: [server/packages/server/src/d1/apply.ts:407](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L407)
 
 #### Extends
 
@@ -600,9 +568,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ##### Constructor
 
@@ -625,9 +591,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ***
 
@@ -669,9 +633,7 @@ Defined in: [server/packages/server/src/http.ts:64](https://github.com/eigeninte
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 #### Properties
 
@@ -720,7 +682,7 @@ Permissions, content ownership, and limits contributed by one source.
 ##### content?
 
 ```ts
-optional content?: readonly ContentGrant[];
+content?: readonly ContentGrant[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L36)
@@ -728,7 +690,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:36](https://github.com
 ##### limits?
 
 ```ts
-optional limits?: readonly CommercialLimit[];
+limits?: readonly CommercialLimit[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L37)
@@ -736,7 +698,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:37](https://github.com
 ##### permissions?
 
 ```ts
-optional permissions?: readonly EngineAccessCapability[];
+permissions?: readonly EngineAccessCapability[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:35](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L35)
@@ -845,7 +807,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:63](https://github.com
 ##### botTiers?
 
 ```ts
-optional botTiers?: Readonly<Record<string, string>>;
+botTiers?: Readonly<Record<string, string>>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:70](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L70)
@@ -856,7 +818,7 @@ this does not list is in `standard` (`DEFAULT_BOT_TIER`).
 ##### content?
 
 ```ts
-optional content?: Readonly<Record<string, Readonly<Record<string, ContentDefinition>>>>;
+content?: Readonly<Record<string, Readonly<Record<string, ContentDefinition>>>>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:67](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L67)
@@ -896,7 +858,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:113](https://github.co
 ##### expiresAt?
 
 ```ts
-optional expiresAt?: number;
+expiresAt?: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:116](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L116)
@@ -906,7 +868,7 @@ Provider session expiry in epoch milliseconds, when known.
 ##### providerAccountId?
 
 ```ts
-optional providerAccountId?: string;
+providerAccountId?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:118](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L118)
@@ -931,7 +893,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:195](https://github.co
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv-1"></a> `TEnv` |
 
 #### Properties
 
@@ -946,7 +908,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:196](https://github.co
 ##### now?
 
 ```ts
-optional now?: () => number;
+now?: () => number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:199](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L199)
@@ -968,7 +930,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:197](https://github.co
 ##### reconcileBatch?
 
 ```ts
-optional reconcileBatch?: number;
+reconcileBatch?: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:201](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L201)
@@ -978,7 +940,7 @@ Maximum nonterminal transactions checked per provider and invocation.
 ##### reconcileMaxFailures?
 
 ```ts
-optional reconcileMaxFailures?: number;
+reconcileMaxFailures?: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L204)
@@ -1068,7 +1030,7 @@ Razorpay Plan, a Google Play product id, or a Play subscription's
 ##### repeatable?
 
 ```ts
-optional repeatable?: boolean;
+repeatable?: boolean;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:53](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L53)
@@ -1086,7 +1048,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:107](https://github.co
 ##### currencyCode?
 
 ```ts
-optional currencyCode?: string;
+currencyCode?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:110](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L110)
@@ -1123,7 +1085,7 @@ A provider boundary. Implementations perform all remote verification.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TEnv` | `unknown` |
+| <a id="type-parameter-tenv-2"></a> `TEnv` | `unknown` |
 
 #### Properties
 
@@ -1140,7 +1102,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.co
 ##### acknowledge()?
 
 ```ts
-optional acknowledge(env, transaction): Promise<void>;
+acknowledge?(env, transaction): Promise<void>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
@@ -1161,7 +1123,7 @@ Runs only after the normalized transaction and grants commit.
 ##### createCheckout()?
 
 ```ts
-optional createCheckout(env, input): Promise<CommerceCheckout>;
+createCheckout?(env, input): Promise<CommerceCheckout>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L191)
@@ -1180,7 +1142,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.co
 ##### management()?
 
 ```ts
-optional management(
+management?(
    env,
    accountId,
    providerAccountId,
@@ -1206,7 +1168,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.co
 ##### products()?
 
 ```ts
-optional products(env, providerReferences): Promise<readonly CommerceProduct[]>;
+products?(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
@@ -1225,7 +1187,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.co
 ##### reconcile()?
 
 ```ts
-optional reconcile(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
+reconcile?(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
@@ -1246,7 +1208,7 @@ Fetches current state for locally active or pending transaction refs.
 ##### validateReference()?
 
 ```ts
-optional validateReference(providerReference, kind): void;
+validateReference?(providerReference, kind): void;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
@@ -1288,7 +1250,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.co
 ##### verifyWebhook()?
 
 ```ts
-optional verifyWebhook(env, request): Promise<VerifiedCommerceEvent | null>;
+verifyWebhook?(env, request): Promise<VerifiedCommerceEvent | null>;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L186)
@@ -1359,7 +1321,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:162](https://github.co
 ##### sealedProviderState?
 
 ```ts
-optional sealedProviderState?: string;
+sealedProviderState?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:166](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L166)
@@ -1414,7 +1376,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:17](https://github.com
 
 ### CreateGameInput
 
-Defined in: [server/packages/server/src/d1/apply.ts:359](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L359)
+Defined in: [server/packages/server/src/d1/apply.ts:364](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L364)
 
 The worker-direct create, engine-owned so implementors never touch
 the D1 schema: seats already validated by worker policy.
@@ -1427,7 +1389,7 @@ the D1 schema: seats already validated by worker policy.
 access: GameAccess;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:363](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L363)
+Defined in: [server/packages/server/src/d1/apply.ts:368](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L368)
 
 ##### budgetSeconds
 
@@ -1435,17 +1397,17 @@ Defined in: [server/packages/server/src/d1/apply.ts:363](https://github.com/eige
 budgetSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:368](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L368)
+Defined in: [server/packages/server/src/d1/apply.ts:373](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L373)
 
 ##### capacity?
 
 ```ts
-optional capacity?: {
+capacity?: {
   maximum: number;
 };
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:397](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L397)
+Defined in: [server/packages/server/src/d1/apply.ts:402](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L402)
 
 ###### maximum
 
@@ -1459,15 +1421,15 @@ maximum: number;
 config: JsonObject;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:366](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L366)
+Defined in: [server/packages/server/src/d1/apply.ts:371](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L371)
 
 ##### content?
 
 ```ts
-optional content?: readonly SelectedContent[];
+content?: readonly SelectedContent[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:389](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L389)
+Defined in: [server/packages/server/src/d1/apply.ts:394](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L394)
 
 ##### createdAt
 
@@ -1475,7 +1437,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:389](https://github.com/eige
 createdAt: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:380](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L380)
+Defined in: [server/packages/server/src/d1/apply.ts:385](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L385)
 
 When the game began. `now` for an online create, which begins here; a
 local game began on the device, possibly days earlier, so it carries its
@@ -1488,19 +1450,19 @@ history sorts by when it was played rather than when it synchronized.
 createdBy: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:361](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L361)
+Defined in: [server/packages/server/src/d1/apply.ts:366](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L366)
 
 ##### creation?
 
 ```ts
-optional creation?: {
+creation?: {
   creationId: string;
   creatorId: string;
   fingerprint: string;
 };
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:384](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L384)
+Defined in: [server/packages/server/src/d1/apply.ts:389](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L389)
 
 Present on client-facing creates; omitted only by low-level test/repair
 utilities that seed a game directly.
@@ -1529,7 +1491,7 @@ fingerprint: string;
 gameId: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:360](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L360)
+Defined in: [server/packages/server/src/d1/apply.ts:365](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L365)
 
 ##### incrementSeconds
 
@@ -1537,7 +1499,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:360](https://github.com/eige
 incrementSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:369](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L369)
+Defined in: [server/packages/server/src/d1/apply.ts:374](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L374)
 
 ##### maxPlayers
 
@@ -1545,7 +1507,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:369](https://github.com/eige
 maxPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:373](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L373)
+Defined in: [server/packages/server/src/d1/apply.ts:378](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L378)
 
 ##### minPlayers
 
@@ -1553,7 +1515,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:373](https://github.com/eige
 minPlayers: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:372](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L372)
+Defined in: [server/packages/server/src/d1/apply.ts:377](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L377)
 
 ##### now
 
@@ -1561,7 +1523,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:372](https://github.com/eige
 now: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:381](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L381)
+Defined in: [server/packages/server/src/d1/apply.ts:386](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L386)
 
 ##### origin
 
@@ -1569,7 +1531,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:381](https://github.com/eige
 origin: GameOrigin;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:364](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L364)
+Defined in: [server/packages/server/src/d1/apply.ts:369](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L369)
 
 ##### rated
 
@@ -1577,7 +1539,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:364](https://github.com/eige
 rated: boolean;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:370](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L370)
+Defined in: [server/packages/server/src/d1/apply.ts:375](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L375)
 
 ##### ratingPool
 
@@ -1585,7 +1547,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:370](https://github.com/eige
 ratingPool: string | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:371](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L371)
+Defined in: [server/packages/server/src/d1/apply.ts:376](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L376)
 
 ##### schemaVersion
 
@@ -1593,7 +1555,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:371](https://github.com/eige
 schemaVersion: number;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:365](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L365)
+Defined in: [server/packages/server/src/d1/apply.ts:370](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L370)
 
 ##### seats
 
@@ -1601,7 +1563,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:365](https://github.com/eige
 seats: Seat[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:375](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L375)
+Defined in: [server/packages/server/src/d1/apply.ts:380](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L380)
 
 ##### shortCode
 
@@ -1609,7 +1571,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:375](https://github.com/eige
 shortCode: string;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:374](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L374)
+Defined in: [server/packages/server/src/d1/apply.ts:379](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L379)
 
 ##### status
 
@@ -1617,7 +1579,7 @@ Defined in: [server/packages/server/src/d1/apply.ts:374](https://github.com/eige
 status: "waiting" | "ready";
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:362](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L362)
+Defined in: [server/packages/server/src/d1/apply.ts:367](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L367)
 
 ##### turnSeconds
 
@@ -1625,12 +1587,12 @@ Defined in: [server/packages/server/src/d1/apply.ts:362](https://github.com/eige
 turnSeconds: number | null;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:367](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L367)
+Defined in: [server/packages/server/src/d1/apply.ts:372](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L372)
 
 ##### usage?
 
 ```ts
-optional usage?: readonly {
+usage?: readonly {
   maximum: number | null;
   metric: "game.create.success" | "bot.game.success";
   operationId: string;
@@ -1638,7 +1600,7 @@ optional usage?: readonly {
 }[];
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:390](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L390)
+Defined in: [server/packages/server/src/d1/apply.ts:395](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L395)
 
 ***
 
@@ -1654,8 +1616,8 @@ parameter and both type arguments infer.
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
-| `TDO` *extends* [`BaseGameDO`](#abstract-basegamedo)\<`TEnv`\> |
+| <a id="type-parameter-tenv-3"></a> `TEnv` |
+| <a id="type-parameter-tdo"></a> `TDO` *extends* [`BaseGameDO`](#abstract-basegamedo)\<`TEnv`\> |
 
 #### Properties
 
@@ -1676,7 +1638,7 @@ feature blocks are enabled.
 ##### avatars?
 
 ```ts
-optional avatars?: AvatarsConfig<TEnv>;
+avatars?: AvatarsConfig<TEnv>;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:136](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L136)
@@ -1686,7 +1648,7 @@ Opt-in avatar uploads. Omit → not mounted.
 ##### clientOrigins?
 
 ```ts
-optional clientOrigins?: readonly string[] | ((env) => readonly string[]);
+clientOrigins?: readonly string[] | ((env) => readonly string[]);
 ```
 
 Defined in: [server/packages/server/src/engine.ts:132](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L132)
@@ -1705,7 +1667,7 @@ Set an empty list to disable the `WEB_APP_ORIGIN` default.
 ##### commerce?
 
 ```ts
-optional commerce?: CommerceConfig<TEnv>;
+commerce?: CommerceConfig<TEnv>;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:139](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L139)
@@ -1716,7 +1678,7 @@ Omit to mount no commerce routes and enforce no commercial policy.
 ##### deepLink?
 
 ```ts
-optional deepLink?: DeepLinkConfig;
+deepLink?: DeepLinkConfig;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:134](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L134)
@@ -1734,7 +1696,7 @@ Defined in: [server/packages/server/src/engine.ts:108](https://github.com/eigeni
 ##### lifecycle?
 
 ```ts
-optional lifecycle?: LifecycleOptions;
+lifecycle?: LifecycleOptions;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:146](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L146)
@@ -1746,7 +1708,7 @@ override just those.
 ##### site?
 
 ```ts
-optional site?: SiteConfig;
+site?: SiteConfig;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:142](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L142)
@@ -1757,9 +1719,9 @@ Omit → not mounted (the worker is API-only).
 ##### testing?
 
 ```ts
-optional testing?: {
+testing?: {
   auth: TokenVerifier;
-  firebaseAdmin: FirebaseAdminEffects;
+  firebaseAdmin(env): FirebaseAdminEffects;
 };
 ```
 
@@ -1817,7 +1779,7 @@ The engine's D1 database (engine-private).
 ##### firebaseProjectId()?
 
 ```ts
-optional firebaseProjectId(env): string;
+firebaseProjectId?(env): string;
 ```
 
 Defined in: [server/packages/server/src/engine.ts:121](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/engine.ts#L121)
@@ -1872,7 +1834,7 @@ Permissions, content ownership, and limits contributed by one source.
 ##### content?
 
 ```ts
-optional content?: readonly ContentGrant[];
+content?: readonly ContentGrant[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:36](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L36)
@@ -1894,7 +1856,7 @@ Stable logical key, independent of any storefront product identifier.
 ##### limits?
 
 ```ts
-optional limits?: readonly CommercialLimit[];
+limits?: readonly CommercialLimit[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:37](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L37)
@@ -1906,7 +1868,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:37](https://github.com
 ##### permissions?
 
 ```ts
-optional permissions?: readonly EngineAccessCapability[];
+permissions?: readonly EngineAccessCapability[];
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:35](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L35)
@@ -2055,7 +2017,7 @@ Send one notification through the engine's registered-device store.
 Defined in: [server/packages/server/src/protocol.ts:204](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L204)
 
 One seat's versioned frame on the wire: the socket fan-out payload, and
-(for the acting seat) the command-response ride-along. `ratings` appears
+(for the receiving principal) the command-response ride-along. `ratings` appears
 only on the post-finish ratings transition.
 
 #### Properties
@@ -2081,7 +2043,7 @@ The true client-facing deadline (grace is display-only there).
 ##### outcomes?
 
 ```ts
-optional outcomes?: OutcomeEntry[];
+outcomes?: OutcomeEntry[];
 ```
 
 Defined in: [server/packages/server/src/protocol.ts:212](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L212)
@@ -2105,7 +2067,7 @@ Defined in: [server/packages/server/src/protocol.ts:211](https://github.com/eige
 ##### ratings?
 
 ```ts
-optional ratings?: RatingDelta[];
+ratings?: RatingDelta[];
 ```
 
 Defined in: [server/packages/server/src/protocol.ts:213](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/protocol.ts#L213)
@@ -2146,7 +2108,7 @@ what a template's tokens used to stand in for.
 ##### deleteAccount?
 
 ```ts
-optional deleteAccount?: string;
+deleteAccount?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:32](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L32)
@@ -2154,7 +2116,7 @@ Defined in: [server/packages/server/src/site/config.ts:32](https://github.com/ei
 ##### privacy?
 
 ```ts
-optional privacy?: string;
+privacy?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L31)
@@ -2162,7 +2124,7 @@ Defined in: [server/packages/server/src/site/config.ts:31](https://github.com/ei
 ##### terms?
 
 ```ts
-optional terms?: string;
+terms?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:30](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L30)
@@ -2409,7 +2371,7 @@ Defined in: [server/packages/server/src/protocol.ts:33](https://github.com/eigen
 
 ### RatingDelta
 
-Defined in: server/packages/kernel/dist/index.d.ts:147
+Defined in: server/packages/kernel/dist/index.d.ts:140
 
 One rated identity's before → after, exactly the rating_history row minus
 store keys. Computed by the D1 applier inside the rating CAS and delivered
@@ -2423,7 +2385,7 @@ on the post-finish ratings transition (the `kind: "ratings"` action).
 displayAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:155
+Defined in: server/packages/kernel/dist/index.d.ts:148
 
 ##### displayBefore
 
@@ -2431,7 +2393,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:155
 displayBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:152
+Defined in: server/packages/kernel/dist/index.d.ts:145
 
 ##### displayChange
 
@@ -2439,7 +2401,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:152
 displayChange: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:156
+Defined in: server/packages/kernel/dist/index.d.ts:149
 
 ##### identity
 
@@ -2447,7 +2409,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:156
 identity: RatingIdentity;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:148
+Defined in: server/packages/kernel/dist/index.d.ts:141
 
 ##### muAfter
 
@@ -2455,7 +2417,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:148
 muAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:153
+Defined in: server/packages/kernel/dist/index.d.ts:146
 
 ##### muBefore
 
@@ -2463,7 +2425,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:153
 muBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:150
+Defined in: server/packages/kernel/dist/index.d.ts:143
 
 ##### pool
 
@@ -2471,7 +2433,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:150
 pool: string;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:149
+Defined in: server/packages/kernel/dist/index.d.ts:142
 
 ##### sigmaAfter
 
@@ -2479,7 +2441,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:149
 sigmaAfter: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:154
+Defined in: server/packages/kernel/dist/index.d.ts:147
 
 ##### sigmaBefore
 
@@ -2487,7 +2449,7 @@ Defined in: server/packages/kernel/dist/index.d.ts:154
 sigmaBefore: number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:151
+Defined in: server/packages/kernel/dist/index.d.ts:144
 
 ***
 
@@ -2514,7 +2476,7 @@ documented remedy is to shed load rather than add to it.
 ##### attempts?
 
 ```ts
-optional attempts?: number;
+attempts?: number;
 ```
 
 Defined in: [server/packages/server/src/retry.ts:19](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L19)
@@ -2524,7 +2486,7 @@ Total attempts including the first. Default 4.
 ##### baseDelayMs?
 
 ```ts
-optional baseDelayMs?: number;
+baseDelayMs?: number;
 ```
 
 Defined in: [server/packages/server/src/retry.ts:21](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L21)
@@ -2534,7 +2496,7 @@ First backoff, doubling each retry. Default 50ms.
 ##### maxDelayMs?
 
 ```ts
-optional maxDelayMs?: number;
+maxDelayMs?: number;
 ```
 
 Defined in: [server/packages/server/src/retry.ts:23](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L23)
@@ -2544,7 +2506,7 @@ Backoff ceiling. Default 2000ms.
 ##### onRetry?
 
 ```ts
-optional onRetry?: (error, attempt) => void;
+onRetry?: (error, attempt) => void;
 ```
 
 Defined in: [server/packages/server/src/retry.ts:29](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L29)
@@ -2587,7 +2549,7 @@ operation can be applied twice.
 ##### sleep?
 
 ```ts
-optional sleep?: (ms) => Promise<void>;
+sleep?: (ms) => Promise<void>;
 ```
 
 Defined in: [server/packages/server/src/retry.ts:31](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/retry.ts#L31)
@@ -2880,7 +2842,7 @@ The scaffold reserves these paths for the Worker with Static Assets'
 ##### description?
 
 ```ts
-optional description?: string;
+description?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L59)
@@ -2890,7 +2852,7 @@ Longer download-page prose. Defaults to `tagline`.
 ##### legal?
 
 ```ts
-optional legal?: LegalConfig;
+legal?: LegalConfig;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L73)
@@ -2898,7 +2860,7 @@ Defined in: [server/packages/server/src/site/config.ts:73](https://github.com/ei
 ##### madeByCredit?
 
 ```ts
-optional madeByCredit?: string | null;
+madeByCredit?: string | null;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L71)
@@ -2908,7 +2870,7 @@ Footer credit line. Defaults to [DEFAULT\_CREDIT](#default_credit); `null` remov
 ##### name?
 
 ```ts
-optional name?: string;
+name?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:55](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L55)
@@ -2918,7 +2880,7 @@ Public game name in titles and OG tags. Defaults to `appName`.
 ##### ogImage?
 
 ```ts
-optional ogImage?: string;
+ogImage?: string;
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:69](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L69)
@@ -2950,7 +2912,7 @@ Hex accent colour, e.g. `#1a237e`. Also the `theme-color`.
 ##### screenshots?
 
 ```ts
-optional screenshots?: string[];
+screenshots?: string[];
 ```
 
 Defined in: [server/packages/server/src/site/config.ts:63](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/site/config.ts#L63)
@@ -3012,7 +2974,7 @@ A provider-authenticated notification resolved to current provider state.
 ##### accountId?
 
 ```ts
-optional accountId?: string;
+accountId?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:157](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L157)
@@ -3061,7 +3023,7 @@ Must match the configured logical offer kind.
 ##### providerAccountId?
 
 ```ts
-optional providerAccountId?: string;
+providerAccountId?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:88](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L88)
@@ -3098,7 +3060,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:84](https://github.com
 ##### replacesProviderTransactionId?
 
 ```ts
-optional replacesProviderTransactionId?: string;
+replacesProviderTransactionId?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:104](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L104)
@@ -3112,7 +3074,7 @@ and attributes this one through it when the provider names no account.
 ##### requiresAcknowledgement?
 
 ```ts
-optional requiresAcknowledgement?: boolean;
+requiresAcknowledgement?: boolean;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:96](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L96)
@@ -3122,7 +3084,7 @@ True when the provider requires a post-ledger acknowledgement.
 ##### sealedProviderState?
 
 ```ts
-optional sealedProviderState?: string;
+sealedProviderState?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:94](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L94)
@@ -3150,7 +3112,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:85](https://github.com
 ##### validUntil?
 
 ```ts
-optional validUntil?: number;
+validUntil?: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/types.ts:86](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L86)
@@ -3270,7 +3232,7 @@ kind: "start";
 ###### seed?
 
 ```ts
-optional seed?: string;
+seed?: string;
 ```
 
 The game's base RNG seed. Carried ONLY by the local-import create
@@ -3390,7 +3352,7 @@ kind: "lifecycle";
 ###### seat?
 
 ```ts
-optional seat?: number;
+seat?: number;
 ```
 
 The affected seat: `forfeit` carries the resigning seat (verified
@@ -3726,7 +3688,7 @@ Defined in: [server/packages/server/src/auth/provision.ts:19](https://github.com
 const DEADLINE_GRACE_MS: 750 = 750;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:395
+Defined in: server/packages/kernel/dist/index.d.ts:380
 
 Grace window (ms) added to every deadline comparison so a player who
 submits on time is not rejected because network latency carried the request
@@ -3777,7 +3739,7 @@ renders as plain text rather than pointing somewhere it never mentioned.
 function applyFinish(d1, input): Promise<RatingDelta[] | null>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L71)
+Defined in: [server/packages/server/src/d1/apply.ts:76](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L76)
 
 Apply one finished game to D1. Returns the rated deltas (null for an
 unrated game) for the DO to deliver as the ratings transition. Throws on
@@ -3869,8 +3831,8 @@ dispatch stay engine-owned.
 
 | Type Parameter |
 | ------ |
-| `TEnv` *extends* `object` |
-| `TDO` *extends* [`BaseGameDO`](#abstract-basegamedo)\<`TEnv`\> |
+| <a id="type-parameter-tenv-4"></a> `TEnv` *extends* `object` |
+| <a id="type-parameter-tdo-1"></a> `TDO` *extends* [`BaseGameDO`](#abstract-basegamedo)\<`TEnv`\> |
 
 #### Parameters
 
@@ -3922,7 +3884,7 @@ Defined in: [server/packages/server/src/auth/firebase.ts:46](https://github.com/
 function createGame(d1, input): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:409](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L409)
+Defined in: [server/packages/server/src/d1/apply.ts:414](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L414)
 
 Write the games row + one participants row per seat, atomically. The DO
 lazy-inits from exactly these rows on first contact.
@@ -3987,7 +3949,7 @@ owners you would re-issue all of them for.
 function displayRating(mu, sigma): number;
 ```
 
-Defined in: server/packages/kernel/dist/index.d.ts:160
+Defined in: server/packages/kernel/dist/index.d.ts:153
 
 max(0, round((mu − 3σ) · 40)): the one server-side home of the display
 formula (the client mirrors it for optimistic display only).
@@ -4085,7 +4047,7 @@ Deliberately narrow; see RETRYABLE\_D1. Pass to `withRetry` as its
 function mirrorRoster(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:325](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L325)
+Defined in: [server/packages/server/src/d1/apply.ts:330](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L330)
 
 The roster mirror after a committed waiting-room command. The DO's
 roster is the integrity copy; this rewrites the D1 display copy wholesale
@@ -4154,7 +4116,7 @@ function readCreationOperation(
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:498](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L498)
+Defined in: [server/packages/server/src/d1/apply.ts:510](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L510)
 
 #### Parameters
 
@@ -4214,7 +4176,7 @@ function readGameRow(d1, gameId): Promise<
 | undefined>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:508](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L508)
+Defined in: [server/packages/server/src/d1/apply.ts:520](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L520)
 
 Lazy-init read: the D1 game + participants rows the DO copies into
 its `meta`/`roster` on first contact, in one batched round trip.
@@ -4274,7 +4236,7 @@ Validate a deployment catalog once, before any request can reach it.
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv-5"></a> `TEnv` |
 
 #### Parameters
 
@@ -4294,7 +4256,7 @@ Validate a deployment catalog once, before any request can reach it.
 function updateSummary(d1, args): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/d1/apply.ts:303](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L303)
+Defined in: [server/packages/server/src/d1/apply.ts:308](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/d1/apply.ts#L308)
 
 The display upsert after a non-finishing transition: fire-and-forget
 post-commit (the DO leaves it unawaited, under a retry), re-derivable from
@@ -4343,7 +4305,7 @@ is the caller's invariant, not this function's.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t"></a> `T` |
 
 #### Parameters
 

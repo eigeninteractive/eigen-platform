@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { commerceTransactions } from "../d1/schema.js";
 import { recordVerifiedTransaction } from "./ledger.js";
@@ -171,7 +171,7 @@ export async function stalledTransactions(d1: D1Database, commerce: ResolvedComm
       reconciledAt: commerceTransactions.lastReconciledAt,
     })
     .from(commerceTransactions)
-    .where(sql`${commerceTransactions.reconcileFailures} >= ${commerce.reconcileMaxFailures}`)
+    .where(gte(commerceTransactions.reconcileFailures, commerce.reconcileMaxFailures))
     .orderBy(asc(commerceTransactions.reconcileAttemptedAt))
     .limit(limit)
     .all();

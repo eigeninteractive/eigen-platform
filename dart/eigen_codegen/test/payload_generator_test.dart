@@ -251,5 +251,33 @@ void main() {
       () => writeContractFixtures(value, directory),
       throwsFormatException,
     );
+    expect(File('${directory.path}/v1/case.json').existsSync(), isTrue);
+  });
+
+  test('replaces the entire generated fixture set and detects orphans', () {
+    final directory = Directory.systemTemp.createTempSync('eigen-fixtures-');
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final value = contract()
+      ..['fixtures'] = [
+        {
+          'path': 'v1/new.json',
+          'document': {'schemaVersion': 1},
+        },
+      ];
+    writeContractFixtures(value, directory);
+    expect(contractFixtureDrift(value, directory), isEmpty);
+    final orphan = File('${directory.path}/v0/removed.json');
+    orphan.parent.createSync();
+    orphan.writeAsStringSync('{}');
+    expect(contractFixtureDrift(value, directory), ['v0/removed.json']);
+    writeContractFixtures(value, directory);
+    expect(orphan.parent.existsSync(), isFalse);
+    expect(contractFixtureDrift(value, directory), isEmpty);
+
+    value['fixtures'] = <dynamic>[];
+    expect(contractFixtureDrift(value, directory), ['v1/new.json']);
+    writeContractFixtures(value, directory);
+    expect(directory.listSync(), isEmpty);
+    expect(contractFixtureDrift(value, directory), isEmpty);
   });
 }

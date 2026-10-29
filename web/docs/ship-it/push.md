@@ -81,20 +81,20 @@ later waiting rooms show an inline **Settings** action on native platforms or
 browser site-settings guidance on web; the player is not expected to discover
 the recovery path unaided.
 
-:::note[FlutterFire compatibility seam]
+:::note[Firebase Installation ID registration]
 
-FlutterFire's messaging plugin does not yet expose Firebase's FID registration
-APIs. The engine calls the official Web SDK's `register` through an isolated
-web adapter and enables Android's native FID auto-registration, which the
-Messaging SDK selected by FlutterFire already supports. Game code never
-calls `getToken`, handles `onTokenRefresh`, or stores a registration token.
-Remove the adapter when FlutterFire exposes the same APIs; the app/server
-contract remains `{ fid, platform }`.
+`eigen_firebase` uses FlutterFire's released `register`, `onRegistered` and
+`onUnregistered` APIs. It subscribes before registration and uploads the
+acknowledged FID, including repeat registrations and account changes. Game code
+never handles registration tokens; the server contract remains `{ fid, platform }`.
 
-See Firebase's official
-[Web registration guide](https://firebase.google.com/docs/cloud-messaging/web/get-started#access_the_firebase_installation_id)
-and
-[Android FID setup](https://firebase.google.com/docs/cloud-messaging/android/get-started#enable-registration-via-fid).
+The adapter retains `firebase_app_installations` to identify this installation
+for sign-out cleanup, and Android's `firebase_messaging_installation_id_enabled`
+manifest flag remains required by Firebase's native FID API. These are supported
+SDK requirements, not the removed compatibility adapters.
+
+See Firebase's [Flutter registration guide](https://firebase.google.com/docs/cloud-messaging/flutter/get-started)
+and [Android FID setup](https://firebase.google.com/docs/cloud-messaging/android/get-started#enable-registration-via-fid).
 
 :::
 

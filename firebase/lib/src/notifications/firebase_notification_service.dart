@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:eigen_firebase/src/notifications/firebase_messaging_registration.dart';
 import 'package:eigen_flutter/adapters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -102,7 +101,6 @@ NotificationPermissionState resolveNotificationPermissionState({
 class FirebaseNotificationService implements NotificationService {
   factory FirebaseNotificationService({
     required FirebaseMessaging messaging,
-    required FirebaseMessagingRegistration messagingRegistration,
     required FirebaseInstallations installations,
     required DeviceInstallationRepository installationRepository,
     required FlutterLocalNotificationsPlugin localNotifications,
@@ -112,7 +110,6 @@ class FirebaseNotificationService implements NotificationService {
     required String vapidKey,
   }) => FirebaseNotificationService._(
     messaging,
-    messagingRegistration,
     installations,
     installationRepository,
     localNotifications,
@@ -124,7 +121,6 @@ class FirebaseNotificationService implements NotificationService {
 
   FirebaseNotificationService._(
     this._messaging,
-    this._messagingRegistration,
     this._installations,
     this._installationRepository,
     this._localNotifications,
@@ -135,7 +131,6 @@ class FirebaseNotificationService implements NotificationService {
   );
 
   final FirebaseMessaging _messaging;
-  final FirebaseMessagingRegistration _messagingRegistration;
   final FirebaseInstallations _installations;
   final DeviceInstallationRepository _installationRepository;
   final FlutterLocalNotificationsPlugin _localNotifications;
@@ -211,7 +206,7 @@ class FirebaseNotificationService implements NotificationService {
       );
     }
 
-    _messagingRegistration.registeredFids.listen((fid) async {
+    _messaging.onRegistered.listen((fid) async {
       try {
         await _register(fid: fid);
       } catch (error, stackTrace) {
@@ -223,7 +218,7 @@ class FirebaseNotificationService implements NotificationService {
         );
       }
     });
-    _messagingRegistration.unregisteredFids.listen((fid) async {
+    _messaging.onUnregistered.listen((fid) async {
       try {
         await _installationRepository.delete(fid: fid);
         final marker = await _preferences.getString(_registeredKey);
@@ -246,23 +241,6 @@ class FirebaseNotificationService implements NotificationService {
     await syncPermissionAndRegistration();
 
     if (!await _messagingAvailable()) return;
-
-    // The FID→user row is written by [registerInstallation], driven by auth
-    // events (sign-in), not here: the FID stream is user-agnostic and fires at
-    // FID birth, before any user is signed in. The FID rarely changes, but when
-    // it does we re-register the current user (a no-op when signed out).
-    _installations.onIdChange.listen((_) async {
-      try {
-        await syncPermissionAndRegistration();
-      } catch (e, stack) {
-        developer.log(
-          'Installation id change registration failed',
-          name: 'notifications',
-          error: e,
-          stackTrace: stack,
-        );
-      }
-    });
 
     FirebaseMessaging.onMessage.listen((message) {
       _received.add(null);
@@ -356,8 +334,7 @@ class FirebaseNotificationService implements NotificationService {
     );
     if (state == NotificationPermissionState.enabled) {
       try {
-        final fid = await _ensurePushRegistration();
-        if (fid != null) await _register(fid: fid);
+        await _ensurePushRegistration();
       } catch (error) {
         throw NotificationRegistrationException(error);
       }
@@ -377,8 +354,7 @@ class FirebaseNotificationService implements NotificationService {
     final state = await permissionState();
     if (state == NotificationPermissionState.enabled) {
       try {
-        final fid = await _ensurePushRegistration();
-        if (fid != null) await _register(fid: fid);
+        await _ensurePushRegistration();
       } catch (error, stackTrace) {
         developer.log(
           'Notification installation registration failed; will retry',
@@ -407,16 +383,13 @@ class FirebaseNotificationService implements NotificationService {
 
   /// Upserts the `(current user, FID)` row.
   ///
-  /// Repeating this write is intentional: Firebase tells native clients to
-  /// upload their FID on registration, but FlutterFire does not expose that
-  /// callback yet. Startup/resume reconciliation therefore also repairs a row
-  /// the sender pruned after a 404.
-  Future<void> _register({String? fid}) async {
+  /// Registration callbacks and startup/resume both repair a row the sender
+  /// pruned after a 404. The server operation is an idempotent desired-state write.
+  Future<void> _register({required String fid}) async {
     final userId = _currentUserId();
     if (userId == null) return;
-    final installationId = fid ?? await _installations.getId();
-    final registered = '$userId:$installationId';
-    await _upsertInstallation(installationId);
+    final registered = '$userId:$fid';
+    await _upsertInstallation(fid);
     await _preferences.setString(_registeredKey, registered);
   }
 
@@ -462,10 +435,11 @@ class FirebaseNotificationService implements NotificationService {
   /// Ensures this Firebase installation has a live FCM registration.
   ///
   /// The server targets the FID returned by Firebase Installations. The
-  /// platform adapter calls Firebase's current registration API without
-  /// creating or persisting a deprecated registration token.
-  Future<String?> _ensurePushRegistration() =>
-      _messagingRegistration.register(vapidKey: _vapidKey);
+  /// released FlutterFire API announces the acknowledged FID through
+  /// onRegistered on every platform, even when already registered. Installations
+  /// is retained only to identify the device during sign-out and permission cleanup.
+  Future<void> _ensurePushRegistration() =>
+      _messaging.register(vapidKey: kIsWeb ? _vapidKey : null);
 
   void _showForegroundNotification(RemoteMessage message) {
     if (kIsWeb) return; // flutter_local_notifications has no web implementation

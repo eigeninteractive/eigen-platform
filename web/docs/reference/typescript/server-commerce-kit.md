@@ -49,9 +49,7 @@ Defined in: [server/packages/server/src/commerce/provider-kit.ts:62](https://git
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ***
 
@@ -93,9 +91,7 @@ Defined in: [server/packages/server/src/commerce/provider-kit.ts:42](https://git
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 #### Properties
 
@@ -180,7 +176,7 @@ useful part first, and an untruncated one is how a token ends up in a log.
 
 | Type Parameter |
 | ------ |
-| `T` |
+| <a id="type-parameter-t"></a> `T` |
 
 #### Parameters
 

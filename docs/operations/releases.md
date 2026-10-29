@@ -28,12 +28,13 @@ packages move only when their own user-visible contents change.
 
 ## Safety model
 
-- Pull requests to `main` call `.github/workflows/checks.yml`. Its five
-  validation shards run concurrently; the final `check` job succeeds only when
-  all five do. The [repository ruleset](rulesets.md) requires that result before
+- Pull requests to `main` call `.github/workflows/checks.yml`. Its validation
+  jobs run concurrently; the final `check` job succeeds only when all required
+  jobs do. The [repository ruleset](rulesets.md) requires that result before
   squash merge. A successful check of the resulting `main` commit emits
   `workflow_run` events that start `.github/workflows/release.yml` and
-  `.github/workflows/publish-dart.yml` at the checked commit.
+  `.github/workflows/tag-dart-packages.yml` at the checked commit. The resulting
+  package tags start `.github/workflows/publish-dart.yml`.
 - Publishing runs only after a successful `Platform checks` push run for
   `main`. The pull-request run protects the merge; the main run protects the
   release and proves the exact commit that will ship.
@@ -49,9 +50,9 @@ packages move only when their own user-visible contents change.
 - The release GitHub App can push release branches and tags and can open pull
   requests. It has no ruleset bypass and never pushes directly to `main`.
 - The Dart tag coordinator runs only after the complete `main` gate. Each
-  package-specific pub.dev job repeats its own resolution, analysis, tests, and
-  publish dry run. It does not rerun unrelated server, documentation, or
-  scaffold shards after the tagged commit has already passed them.
+  hand-written package's pub.dev job repeats workspace resolution and its
+  publish dry run. Analysis and tests have already passed on that exact commit
+  in the complete gate; the upload job does not rerun them.
 - An unprivileged registry-comparison job proves that at least one exact local
   version is absent before the platform gate and OIDC-enabled npm job start.
   A no-op main push therefore finishes quickly. Changesets then resolves
@@ -63,7 +64,7 @@ packages move only when their own user-visible contents change.
   after the publish step wrote to the same registry, and npm's read path is
   eventually consistent, so both the 0.5.0 and 0.5.1 releases failed there with a
   404 for a version that was already live. It still refuses to tag a version npm
-  never accepted; it waits up to two minutes first.
+  never accepted; it retries with backoff for about ten minutes first.
 - Constraints between the Dart packages are checked by resolution itself. They
   are one pub workspace, so `pub get` uses the local sibling and still enforces
   the declared range; a consumer naming a line its sibling has outgrown fails
@@ -205,7 +206,7 @@ actually version at least one package. Whether a package change is release-worth
 is a contributor and reviewer decision rather than a mechanical path-based CI
 rule.
 
-After a Changeset reaches `main`, **Release npm packages** opens or refreshes
+After a Changeset reaches `main`, the push-triggered **Release npm packages** opens or refreshes
 **Release: version npm packages**. It does not duplicate the main-branch gate
 before creating a protected pull request. That deterministic version PR runs
 only the manifest and documentation shards: its source `main` commit has already
@@ -365,6 +366,34 @@ node scripts/set-pins.mjs eigen_flutter=0.12.0 eigen_shell=0.3.1
 
 It refuses to lower a floor, and insists each constant and expectation it
 rewrites is exactly where it expects, rather than quietly matching nothing.
+
+## Coordinating a change to both npm and Dart packages
+
+Merge the implementation pull request first, retaining Changesets and Cider's
+Unreleased entries. Do not manually advance package versions in that pull request.
+
+When the Dart changes can compile against the currently published `eigen_api`
+(for example, a client implementation fix with no new wire models), release the
+Dart packages before merging the pending npm version pull request:
+
+1. Dispatch **Version Dart packages** with the appropriate bump and review its
+   **Release Dart packages** pull request. Pre-1.0 breaking API changes require
+   `major`, which advances the minor version. The workflow applies the selected
+   bump to every package with Unreleased entries.
+2. Merge the Dart version pull request and wait for the main gate, tags, and all
+   pub.dev uploads. Its commit also raises the scaffolder's Dart floors and adds
+   a Changeset.
+3. Let **Release npm packages** refresh **Release: version npm packages** from
+   that new main commit. Merge the refreshed version pull request only after
+   the Dart versions are available. This combines the implementation and floor
+   Changesets into one scaffolder release.
+4. Wait for the new main gate, npm publication, and the matching `eigen_api`
+   tag and publication. Verify a fresh scaffold using only registry packages.
+
+If the Dart changes require generated models that have not been published yet,
+release the engine and `eigen_api` first instead. Then release the hand-written
+Dart packages and the subsequent scaffolder floor update. Do not publish Dart
+packages against an unavailable generated client merely to avoid a release round.
 
 ## Verification after publication
 

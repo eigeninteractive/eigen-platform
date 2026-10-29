@@ -1,155 +1,86 @@
 # Upstream blockers
 
-Upstream limitations that force temporary compatibility code in the
-EigenInteractive platform. This is for engine maintainers, not game
-implementors.
-
-Keep each entry only while its workaround exists. Re-check the upstream state
-and update the **Last checked** date whenever planning dependency or platform
-upgrades.
-
-- [Android built-in Kotlin migration](#android-built-in-kotlin-migration)
-- [Dart SDK ships a crashing dartdoc](#dart-sdk-ships-a-crashing-dartdoc)
-- [FlutterFire Firebase Installation ID registration API](#flutterfire-firebase-installation-id-registration-api)
+Limitations that still require a compatibility choice in the platform.
+Last checked: **2026-10-27**. Remove entries when their workaround is removed.
 
 ## Android built-in Kotlin migration
 
-**Status:** Blocked on plugin releases. Does **not** block the Flutter SDK
-version. **Last checked:** 2026-09-14.
+**Status:** Still blocked by `in_app_review` 2.0.12.
 
-Gradle's built-in Kotlin support cannot be enabled while a resolved plugin still
-applies the Kotlin Gradle Plugin itself. Flutter names them during a release
-build:
+The upgraded FlutterFire packages and `app_settings` 9.0.1 now guard their
+Kotlin Gradle Plugin application when AGP built-in Kotlin is enabled.
+`in_app_review` still unconditionally applies `kotlin-android`. Keep Flutter's
+default compatibility opt-out until that plugin supports built-in Kotlin.
+The Flutter warning scans source text, so its list can include plugins whose
+application is already correctly guarded; inspect the resolved Gradle code.
 
-```
-WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP):
-app_settings, firebase_analytics, firebase_app_installations, firebase_auth,
-firebase_core, firebase_crashlytics, in_app_review
-Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
-```
+`image_cropper` 13 also removes its old Android DSL dependency. Do not switch
+all apps to the new DSL/Kotlin together until the remaining plugin supports it.
+Then generate a fresh scaffold and build Android debug and release with both
+compatibility flags removed before deleting this entry.
 
-Seven plugins, six of them Firebase. Every one is already at its newest release,
-so there is nothing to upgrade to yet.
+References: [Flutter app migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers),
+[in_app_review source](https://github.com/britannio/in_app_review/blob/master/in_app_review/android/build.gradle),
+[app_settings changelog](https://pub.dev/packages/app_settings/changelog).
 
-Two things this entry used to say that were wrong, and are worth not repeating.
-It claimed the other resolved plugins were already guarded; Flutter's own list
-above is the authority, and it is longer. And it treated this as the reason the
-platform could not move off Flutter 3.44.8 -- it is not. Built-in Kotlin is
-opt-in today, the repository sets no `gradle.properties` at all, and a release
-APK builds clean on Flutter 3.47. **The SDK moved; this did not have to.**
+## Dart documentation and analyzer toolchain
 
-The deadline is real but not yet: a future Flutter will make KGP usage a build
-failure rather than a warning. `in_app_review` is the only one of the seven the
-platform could drop unilaterally -- one dependency line, one 58-line file, one
-call site -- and dropping it alone changes nothing while six remain.
+**Status:** Keep `dartdoc: 9.0.8` and Freezed 4.0.1 with Flutter 3.47.7 / Dart 3.13.5.
 
-### Unblock and remove
+The SDK's bundled dartdoc revision is still `9.0.6-wip`; it crashes parsing
+`@docImport` comments inherited from dependencies. The root's pinned 9.0.8
+contains the offset fix, and `tool/check.sh` invokes that version explicitly.
 
-1. Watch the seven plugins for releases supporting built-in Kotlin. The Firebase
-   six move together, so FlutterFire is the one to watch.
-2. When all seven have shipped, enable built-in Kotlin, regenerate a scaffold,
-   and build Android debug and release without the KGP warning.
-3. Remove this entry.
+Newer dartdoc (9.0.11) and Freezed (4.0.3) need analyzer 14. The SDK's
+`flutter_test` pins matcher 0.12.20, resolving test 1.31.1 / test_core 0.6.18,
+which require analyzer below 14. Build runner 2.17.1, build 5 and source_gen
+4.3.1 are also outside this compatible graph. Do not override these constraints:
+they represent compiler API compatibility, not a cosmetic solver obstacle.
 
-References:
+When a stable Flutter SDK relaxes the test stack, resolve the complete workspace
+again, regenerate all packages, and run tests and documentation checks. Remove
+the dartdoc dependency only after the SDK's own `dart doc` succeeds on Flutter,
+shell and Firebase packages.
 
-- [Flutter app migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers)
-- [Flutter plugin migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors)
+References: [dartdoc changelog](https://pub.dev/packages/dartdoc/changelog),
+[Freezed changelog](https://pub.dev/packages/freezed/changelog),
+[Dart SDK DEPS](https://github.com/dart-lang/sdk/blob/main/DEPS).
 
-## Dart SDK ships a crashing dartdoc
+## TypeScript 7 declaration generation and documentation
 
-**Status:** Worked around with a pinned dartdoc. **Last checked:** 2026-09-14.
+**Status:** Keep TypeScript 6.0.3 in server, generated Workers and web docs.
 
-`dart doc` crashes on any package whose dependencies carry `@docImport` doc
-comments:
+A real build with TypeScript 7.0.2 and tsdown 0.23.2 fails because the stable
+native compiler does not provide the classic TypeScript compiler API used by
+rolldown-plugin-dts. Its native declaration generator needs TypeScript 7.1+;
+that compiler line is currently experimental. Do not add a second TypeScript
+compiler or weaken declaration generation to make a version number advance.
 
-```
-DocumentationComment._stripDocImports (package:dartdoc/src/model/documentation_comment.dart:931)
-RangeError (end): Invalid value: Only valid value is 79: 80
-```
+The docs have an independent constraint: stable TypeDoc 0.28.20 supports
+TypeScript through 6, and typedoc-plugin-markdown 4.14.1 requires TypeDoc 0.28.x.
+Recheck both pipelines before removing the Dependabot TypeScript major hold.
 
-The platform declares no `@docImport` anywhere; the ranges arrive on doc comments
-inherited from dependencies, and dartdoc 9.0.6 slices them against the wrong
-string. dartdoc 9.0.8 fixes it -- "Fix a `RangeError` caused by string offset
-drift when parsing `@docImport`".
+References: [TypeScript 7 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/),
+[rolldown-plugin-dts](https://github.com/sxzz/rolldown-plugin-dts#readme),
+[TypeDoc releases](https://github.com/TypeStrong/typedoc/releases).
 
-Upgrading the SDK does not help. Dart 3.13.1 and 3.13.3 pin the same
-`dartdoc_rev` (`1d56f263...`, whose pubspec reads `9.0.6-wip`), so every current
-stable ships the bug.
+## Development-tool audit pins
 
-So the tool is pinned instead of waited for: the workspace root declares
-`dartdoc: 9.0.8` and `tool/check.sh` runs that rather than `dart doc`. 9.0.8
-rather than the newer 9.0.9 because 9.0.9 wants analyzer ^14.1.0, and
-`flutter_test` from the SDK pins `matcher`, which pins `test`, which caps
-analyzer below 14.
+**Status:** Stable upstream releases still carry affected dependencies.
+After compatible transitive updates and Cloudflare 4.153.0 / plugin 1.4.8,
+`pnpm audit` reports zero findings in the root Workbox graph, one moderate
+finding in server tools, and fourteen in web tools (2 critical, 7 high,
+4 moderate, 1 low). Counts are advisory counts, not distinct packages.
 
-### Unblock and remove
+| Owner | Remaining dependency | Why the update stops here |
+| --- | --- | --- |
+| drizzle-kit 0.31.11 | esbuild 0.18.20 through the obsolete esbuild-kit loader | Stable Drizzle Kit still includes the loader; a newer direct esbuild does not replace its nested copy. |
+| Docusaurus 3.10.2 | tinypool 1.1.1; serialize-javascript 6.0.2; uuid 8.3.2 | Fixes require majors selected by the framework/minifier/socket owners. Docusaurus 4 is canary, not stable. |
+| docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3; yaml 2.8.1 | Latest stable plugin pins these exact versions. |
+| OpenAPI docs 5.2.0 / Postman tools | yaml 1.10.2; js-yaml 4.3.0; faker 5.5.3 | Latest supported converter/collection graph still pins the older packages. |
 
-1. Watch for a Dart SDK whose pinned dartdoc is 9.0.8 or newer:
-
-   ```bash
-   curl -s https://raw.githubusercontent.com/dart-lang/sdk/<version>/DEPS | grep dartdoc_rev
-   ```
-
-   Resolve the revision through
-   `https://raw.githubusercontent.com/dart-lang/dartdoc/<rev>/pubspec.yaml`.
-
-2. Confirm `dart doc --dry-run .` succeeds in `flutter/`, `shell/` and
-   `firebase/` on that SDK.
-3. Drop the `dartdoc` dev dependency from the root `pubspec.yaml`, restore
-   `dart doc --dry-run .` in `tool/check.sh`, and remove `check_docs`.
-4. Remove this entry.
-
-References:
-
-- [dartdoc changelog](https://pub.dev/packages/dartdoc/changelog)
-- [Dart SDK `DEPS`](https://github.com/dart-lang/sdk/blob/main/DEPS)
-
-## FlutterFire Firebase Installation ID registration API
-
-**Status:** Blocked until FlutterFire publishes the proposed API. **Last
-checked:** 2026-09-10.
-
-[Issue #18479](https://github.com/firebase/flutterfire/issues/18479) and
-[PR #18482](https://github.com/firebase/flutterfire/pull/18482) remain open.
-`firebase_messaging` 16.6.0 has shipped without the proposed FID-based
-`register`, `unregister`, `onRegistered`, and `onUnregistered` operations.
-Token-only FlutterFire APIs are not an adequate replacement because Eigen uses
-the Firebase Installation ID as its server-side installation identity.
-
-### Current compatibility seam
-
-Keep the workaround narrow inside `eigen_firebase`:
-
-- `FirebaseMessagingRegistration` is the removable interface used by the
-  notification service.
-- The native implementation enables messaging auto-init and reads the current
-  FID through `firebase_app_installations`.
-- The web implementation calls the official Firebase Messaging JavaScript
-  registration APIs through Dart JS interop.
-- The Android library manifest enables FID registration, while the plugin
-  Gradle build supplies the required native Firebase dependency.
-
-Do not spread direct JS interop or native SDK handling into application
-features.
-
-### Unblock and remove
-
-1. Confirm the FlutterFire PR is merged and identify the first published
-   `firebase_messaging` version containing the API.
-2. Upgrade the compatible FlutterFire package set together.
-3. Replace `FirebaseMessagingRegistration` with the released FlutterFire API.
-4. Remove the adapter, platform implementations, Android manifest metadata,
-   direct native dependency, and `firebase_app_installations` only where the
-   released implementation makes each unnecessary.
-5. Test Android and web registration, registration/unregistration events,
-   guest-to-account upgrades, sign-out and account deletion, foreground and
-   background delivery, and server-side installation reconciliation.
-6. Generate and build a fresh game scaffold to confirm that implementors do not
-   inherit additional Firebase or Android configuration.
-
-References:
-
-- [FlutterFire issue #18479](https://github.com/firebase/flutterfire/issues/18479)
-- [FlutterFire PR #18482](https://github.com/firebase/flutterfire/pull/18482)
-- [`firebase_messaging` on pub.dev](https://pub.dev/packages/firebase_messaging)
+These are development/build graphs, not the deployed Hono/Worker dependency
+closure. That distinction does not make the findings resolved: tooling still
+processes repository inputs. Recheck the owners' releases and audit when they
+update; do not report the full repository audit as clean or force unrelated
+major versions with overrides merely to clear the report.

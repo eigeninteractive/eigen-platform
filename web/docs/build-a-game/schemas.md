@@ -120,6 +120,10 @@ dart run eigen_codegen:generate_payloads \
   --fixtures-output test/fixtures
 ```
 
+`--fixtures-output` names a generated-only directory. Generation replaces the
+whole directory, removing fixtures for deleted versions; keep handwritten tests
+and fixtures elsewhere. `--check` fails on missing, changed, or extra files.
+
 The contract's top-level `game` value supplies the Dart type prefix. For
 example, `"game": "Example Game"` emits `ExampleGameV1Observation`,
 `ExampleGameV1Action`, `ExampleGameV1Config`, and

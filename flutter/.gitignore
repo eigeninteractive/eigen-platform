@@ -42,3 +42,6 @@ macos/Runner/GoogleService-Info.plist
 *.p8
 *.p12
 *.mobileprovision
+
+# FVM Version Cache
+.fvm/

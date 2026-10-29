@@ -5,3 +5,7 @@ allowBuilds:
   esbuild: true
   workerd: true
   sharp: true
+minimumReleaseAgeExclude:
+  - miniflare@5.20261023.0-beta
+  - wrangler@4.153.0
+  - "@cloudflare/vitest-plugin@1.4.8"

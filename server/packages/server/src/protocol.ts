@@ -199,7 +199,7 @@ export interface SessionSnapshot {
 }
 
 /** One seat's versioned frame on the wire: the socket fan-out payload, and
- * (for the acting seat) the command-response ride-along. `ratings` appears
+ * (for the receiving principal) the command-response ride-along. `ratings` appears
  * only on the post-finish ratings transition. */
 export interface FrameMessage {
   type: "frame";

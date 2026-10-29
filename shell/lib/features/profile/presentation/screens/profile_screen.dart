@@ -152,6 +152,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         AndroidUiSettings(
           toolbarTitle: 'Crop Photo',
           lockAspectRatio: true,
+          freeStyleCropEnabled: true,
           initAspectRatio: CropAspectRatioPreset.square,
         ),
         IOSUiSettings(

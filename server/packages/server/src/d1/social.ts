@@ -12,7 +12,7 @@
  * and requests is part of the account sync (`d1/sync.ts`).
  */
 
-import { and, desc, eq, inArray, ne, notExists, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, ne, notExists, or } from "drizzle-orm";
 import type { Cursor, Page } from "../cursor.js";
 import { noBlockedParticipant, pair, samePair } from "./blocks.js";
 import { orm } from "./orm.js";
@@ -107,7 +107,7 @@ export async function unblockUser(d1: D1Database, caller: string, target: string
 export async function searchUsers(d1: D1Database, caller: string, query: string, limit: number): Promise<Pick<typeof users.$inferSelect, "id" | "username" | "displayName" | "avatarUrl" | "isAnonymous">[]> {
   const cleaned = query.replace(/%/g, "").trim();
   if (cleaned === "") return [];
-  const like = `%${cleaned}%`;
+  const pattern = `%${cleaned}%`;
   const rows = await orm(d1)
     .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, isAnonymous: users.isAnonymous })
     .from(users)
@@ -115,18 +115,18 @@ export async function searchUsers(d1: D1Database, caller: string, query: string,
       and(
         eq(users.isAnonymous, false),
         ne(users.id, caller),
-        or(sql`${users.username} LIKE ${like}`, sql`${users.displayName} LIKE ${like}`),
+        or(like(users.username, pattern), like(users.displayName, pattern)),
         // Hide anyone the caller has blocked or been blocked by.
         notExists(
           orm(d1)
-            .select({ one: sql`1` })
+            .select({ id: relationships.id })
             .from(relationships)
             .where(and(samePair(relationships.userId1, relationships.userId2, caller, users.id), eq(relationships.status, "blocked"))),
         ),
       ),
     )
     // Exact match, then prefix, then any substring; alphabetical within a tier.
-    .orderBy(sql`CASE WHEN ${users.username} = ${cleaned} THEN 0 WHEN ${users.username} LIKE ${`${cleaned}%`} THEN 1 ELSE 2 END`, users.username)
+    .orderBy(desc(eq(users.username, cleaned)), desc(like(users.username, `${cleaned}%`)), users.username)
     .limit(limit)
     .all();
   return rows;

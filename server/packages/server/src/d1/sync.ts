@@ -21,6 +21,7 @@
 
 import { and, asc, desc, eq, getTableColumns, gt, inArray, max, or, sql } from "drizzle-orm";
 import { encodeCursor } from "../cursor.js";
+import { samePair } from "./blocks.js";
 import { orm } from "./orm.js";
 import { assembleGames, finishedAtOf, type GameWithRoster, playerColumns, ratingColumns, seatColumns } from "./reads.js";
 import { gameFinishes, games, participants, playerRatings, ratingHistory, relationships, users } from "./schema.js";
@@ -99,7 +100,6 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
     .limit(SYNC_FINISHED_PAGE + 1);
 
   const inSyncedGames = or(inArray(participants.gameId, activeIds), inArray(participants.gameId, finishedIds));
-  const otherUser = sql<string>`CASE WHEN ${relationships.userId1} = ${userId} THEN ${relationships.userId2} ELSE ${relationships.userId1} END`;
 
   const [ratings, relationshipRows, activeRows, finishedRows, seatRows, deltaRows, playerRows, highest] = await db.batch([
     db.select(ratingColumns).from(playerRatings).where(eq(playerRatings.userId, userId)).orderBy(desc(playerRatings.displayRating)),
@@ -108,8 +108,8 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
       .from(relationships)
       // An inner join, so a relationship whose other user no longer exists is
       // simply not listed.
-      .innerJoin(users, eq(users.id, otherUser))
-      .where(and(or(eq(relationships.userId1, userId), eq(relationships.userId2, userId)), inArray(relationships.status, ["pending", "accepted"])))
+      .innerJoin(users, samePair(relationships.userId1, relationships.userId2, userId, users.id))
+      .where(inArray(relationships.status, ["pending", "accepted"]))
       .orderBy(desc(relationships.updatedAt)),
     db.select().from(games).where(inArray(games.id, activeIds)),
     // The sequence rides along so the page's last row IS the next cursor; it is

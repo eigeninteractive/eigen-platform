@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
-  "packageManager": "pnpm@11.20.0",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "scripts": {
     "docusaurus": "docusaurus",
     "sync-api": "node scripts/sync-api.mjs",
@@ -26,7 +26,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "11.20.0",
+      "version": "12.15.0",
       "onFail": "download"
     }
   },
@@ -36,20 +36,20 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@docusaurus/theme-common": "3.10.2",
     "@easyops-cn/docusaurus-search-local": "^0.55.3",
-    "@mdx-js/react": "^3.0.0",
-    "clsx": "^2.0.0",
+    "@mdx-js/react": "^3.1.1",
+    "clsx": "^2.1.1",
     "docusaurus-plugin-llms": "^0.6.1",
     "docusaurus-plugin-openapi-docs": "^5.2.0",
     "docusaurus-plugin-sass": "^0.2.7",
     "docusaurus-theme-openapi-docs": "^5.2.0",
-    "prism-react-renderer": "^2.3.0",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
-    "sass": "^1.105.0"
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sass": "^1.106.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "@cloudflare/workers-types": "^5.20261009.1",
+    "@biomejs/biome": "2.6.3",
+    "@cloudflare/workers-types": "^5.20261026.1",
     "@docusaurus/module-type-aliases": "3.10.2",
     "@docusaurus/tsconfig": "3.10.2",
     "@docusaurus/types": "3.10.2",
@@ -58,9 +58,9 @@
     "opentype.js": "^2.0.0",
     "sharp": "^0.35.5",
     "typedoc": "^0.28.20",
-    "typedoc-plugin-markdown": "^4.13.1",
-    "typescript": "~6.0.2",
-    "wrangler": "^4.149.0"
+    "typedoc-plugin-markdown": "^4.14.1",
+    "typescript": "~6.0.3",
+    "wrangler": "^4.153.0"
   },
   "browserslist": {
     "production": [

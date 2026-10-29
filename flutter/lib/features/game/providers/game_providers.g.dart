@@ -497,10 +497,9 @@ final class FinishedGamesFamily extends $Family
 /// snapshot silently reverted the roster, and nothing on the socket reported a
 /// status change at all.
 ///
-/// One socket serves the whole game. Riverpod's automatic retry covers a failure
-/// to establish it; drops after that are handled inside the socket, which
-/// reconnects and is answered with the current snapshot, so this stream is never
-/// torn down to resync.
+/// One socket owns connection recovery. Riverpod must not restart it when the
+/// socket reports a failure: that would reset its backoff and retry permanent
+/// refusals. Failures opening prerequisite storage retain the normal policy.
 
 @ProviderFor(gameSession)
 final gameSessionProvider = GameSessionFamily._();
@@ -513,10 +512,9 @@ final gameSessionProvider = GameSessionFamily._();
 /// snapshot silently reverted the roster, and nothing on the socket reported a
 /// status change at all.
 ///
-/// One socket serves the whole game. Riverpod's automatic retry covers a failure
-/// to establish it; drops after that are handled inside the socket, which
-/// reconnects and is answered with the current snapshot, so this stream is never
-/// torn down to resync.
+/// One socket owns connection recovery. Riverpod must not restart it when the
+/// socket reports a failure: that would reset its backoff and retry permanent
+/// refusals. Failures opening prerequisite storage retain the normal policy.
 
 final class GameSessionProvider
     extends
@@ -534,15 +532,14 @@ final class GameSessionProvider
   /// snapshot silently reverted the roster, and nothing on the socket reported a
   /// status change at all.
   ///
-  /// One socket serves the whole game. Riverpod's automatic retry covers a failure
-  /// to establish it; drops after that are handled inside the socket, which
-  /// reconnects and is answered with the current snapshot, so this stream is never
-  /// torn down to resync.
+  /// One socket owns connection recovery. Riverpod must not restart it when the
+  /// socket reports a failure: that would reset its backoff and retry permanent
+  /// refusals. Failures opening prerequisite storage retain the normal policy.
   GameSessionProvider._({
     required GameSessionFamily super.from,
     required String super.argument,
   }) : super(
-         retry: null,
+         retry: gameSessionRetry,
          name: r'gameSessionProvider',
          isAutoDispose: true,
          dependencies: null,
@@ -582,7 +579,7 @@ final class GameSessionProvider
   }
 }
 
-String _$gameSessionHash() => r'314868f42ae9bcc53d6bc98548d3ee6ff810f796';
+String _$gameSessionHash() => r'0bdeaed612b93d6469cc7012c5075c7e51b010be';
 
 /// One game's live session: the single subscription a game screen needs.
 ///
@@ -592,16 +589,15 @@ String _$gameSessionHash() => r'314868f42ae9bcc53d6bc98548d3ee6ff810f796';
 /// snapshot silently reverted the roster, and nothing on the socket reported a
 /// status change at all.
 ///
-/// One socket serves the whole game. Riverpod's automatic retry covers a failure
-/// to establish it; drops after that are handled inside the socket, which
-/// reconnects and is answered with the current snapshot, so this stream is never
-/// torn down to resync.
+/// One socket owns connection recovery. Riverpod must not restart it when the
+/// socket reports a failure: that would reset its backoff and retry permanent
+/// refusals. Failures opening prerequisite storage retain the normal policy.
 
 final class GameSessionFamily extends $Family
     with $FunctionalFamilyOverride<Stream<GameSession>, String> {
   GameSessionFamily._()
     : super(
-        retry: null,
+        retry: gameSessionRetry,
         name: r'gameSessionProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
@@ -616,10 +612,9 @@ final class GameSessionFamily extends $Family
   /// snapshot silently reverted the roster, and nothing on the socket reported a
   /// status change at all.
   ///
-  /// One socket serves the whole game. Riverpod's automatic retry covers a failure
-  /// to establish it; drops after that are handled inside the socket, which
-  /// reconnects and is answered with the current snapshot, so this stream is never
-  /// torn down to resync.
+  /// One socket owns connection recovery. Riverpod must not restart it when the
+  /// socket reports a failure: that would reset its backoff and retry permanent
+  /// refusals. Failures opening prerequisite storage retain the normal policy.
 
   GameSessionProvider call({required String gameId}) =>
       GameSessionProvider._(argument: gameId, from: this);

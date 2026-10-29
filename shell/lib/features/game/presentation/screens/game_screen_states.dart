@@ -1,5 +1,14 @@
 part of 'game_screen.dart';
 
+/// A stopped connection needs an explicit retry, even if a cached registry
+/// snapshot exists. Completed games remain viewable without a live connection.
+bool _showSessionError(AsyncValue<GameSession> session) =>
+    session is AsyncError &&
+    (session.value == null ||
+        (session.error is GameConnectionException &&
+            !(session.error! as GameConnectionException).retrying &&
+            !session.value!.isTerminal));
+
 /// Shown for aborted games: cancelled by the host before starting, or
 /// closed by the idle-cleanup job (which also aborts long-abandoned
 /// untimed active games), so the copy stays neutral about timing.
@@ -144,7 +153,7 @@ class _ReconnectingBannerSlot extends ConsumerWidget {
     };
 
     final Widget banner;
-    if (isLocal != false || !isInGame) {
+    if (isLocal != false || !isInGame || _showSessionError(sessionAsync)) {
       banner = const SizedBox.shrink();
     } else if (isOffline) {
       banner = const _OfflineGameBanner();
@@ -222,7 +231,7 @@ class _ErrorState extends StatelessWidget {
         children: [
           Icon(Icons.error_outline, size: 48, color: colorScheme.error),
           const SizedBox(height: 16),
-          Text('Error: $error'),
+          Text(error, textAlign: TextAlign.center),
           const SizedBox(height: 16),
           FilledButton(onPressed: onRetry, child: const Text('Retry')),
         ],

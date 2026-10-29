@@ -75,15 +75,56 @@ String generatePayloadLibrary(Map<String, dynamic> contract) {
 
 /// Copies validated fixture documents embedded in a contract into the layout
 /// consumed by `package:eigen_flutter/testing.dart`.
+///
+/// The entire directory is generated output and is replaced on each run. Keep
+/// authored fixtures in the server contract, never in this directory.
 void writeContractFixtures(
   Map<String, dynamic> contract,
   Directory outputDirectory,
 ) {
-  for (final entry in contractFixtureContents(contract).entries) {
+  // Validate everything before removing the previous output.
+  final contents = contractFixtureContents(contract);
+  if (outputDirectory.existsSync()) {
+    outputDirectory.deleteSync(recursive: true);
+  }
+  outputDirectory.createSync(recursive: true);
+  for (final entry in contents.entries) {
     final file = File('${outputDirectory.path}/${entry.key}');
     file.parent.createSync(recursive: true);
     file.writeAsStringSync(entry.value);
   }
+}
+
+/// Missing, changed, or unexpected files in the generated fixture directory.
+/// An empty result means both the contents and the complete file set match.
+List<String> contractFixtureDrift(
+  Map<String, dynamic> contract,
+  Directory outputDirectory,
+) {
+  final expected = contractFixtureContents(contract);
+  final directory = outputDirectory.absolute;
+  final stale = <String>{};
+  for (final entry in expected.entries) {
+    final file = File('${directory.path}/${entry.key}');
+    if (!file.existsSync() || file.readAsStringSync() != entry.value) {
+      stale.add(entry.key);
+    }
+  }
+  if (directory.existsSync()) {
+    for (final entity in directory.listSync(
+      recursive: true,
+      followLinks: false,
+    )) {
+      if (entity is Directory) continue;
+      final relative = entity.path
+          .substring(directory.path.length + 1)
+          .replaceAll(Platform.pathSeparator, '/');
+      if (entity is! File || !expected.containsKey(relative)) {
+        stale.add(relative);
+      }
+    }
+  }
+  return stale.toList()..sort();
 }
 
 /// Returns the normalized fixture files embedded in [contract], keyed by their

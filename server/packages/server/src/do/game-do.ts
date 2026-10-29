@@ -249,12 +249,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         this.#mirrorD1(`local import summary for game ${gameId}`, () => updateSummary(this.d1(this.env), { gameId, pendingPlayers: state.pending, turnDeadline: state.deadline, seq: settled.seq, now: Date.now() }));
       }
     }
-    // Read the caller's OWN session rather than reusing the last commit's
-    // response. A commit answers with the acting seat's view, and half the seats
-    // in this batch are the caller's bots, so the last one would hand a client a
-    // bot's observation to render its board from. This is the human's seat,
-    // whatever the batch ended on, and it is also the right answer when nothing
-    // committed at all.
+    // Read the settled session even when the batch committed nothing. Every
+    // individual response uses this same recipient, including imported bot moves.
     return { ok: true, applied, session: this.#sessionFor(cmd.actor.userId), rejection };
   }
 
@@ -473,7 +469,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     if (isRejected(result)) {
       return { ok: false, code: result.code, message: result.message };
     }
-    return await this.#apply(cmd, meta, roster, result, now, actingSeat, mode);
+    return await this.#apply(cmd, meta, roster, result, now, mode);
   }
 
   /** Verify the acting seat against the authoritative roster; the D1
@@ -545,7 +541,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   /** Apply the plan: ONE SQLite transaction, gate held. Everything
    * after the transaction is post-commit: interleaving is harmless. */
-  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, actingSeat: number | null, mode: CommitMode): Promise<CommandResult> {
+  async #apply(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, meta: MetaRow, roster: Seat[], plan: CommitPlan, now: number, mode: CommitMode): Promise<CommandResult> {
     const next = plan.nextState;
     const finish = plan.outcomes === null ? null : { outcomes: plan.outcomes, finishId: crypto.randomUUID() };
     const status: GameStatus = finish === null ? "active" : "finished";
@@ -555,7 +551,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // The actor's own copy rides the response, which is what lets a move render
     // before the socket delivers it, and is the only delivery on the paths that
     // have no socket yet (a freshly created solo game, a move made mid-reconnect).
-    const response: CommandResult = { ok: true, session: { ...header, frame: actingSeat === null ? null : (wireFrames.get(actingSeat) ?? null) } };
+    const recipientSeat = this.#recipientSeat(cmd, roster);
+    const response: CommandResult = { ok: true, session: { ...header, frame: recipientSeat === null ? null : (wireFrames.get(recipientSeat) ?? null) } };
 
     this.#db.transaction((tx) => {
       tx.insert(t.transitions)
@@ -861,7 +858,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // An ordinary snapshot, no longer a special frame with a `ratings` field
     // bolted on: the status is already `finished`, so what this delivers is the
     // deltas, riding the same envelope every other commit uses.
-    const wireFrames = new Map<number, FrameMessage>(frames.map((frame) => [frame.playerIndex, { type: "frame", version, data: frame.data, pendingPlayers: frame.pendingPlayers, deadline: null, playerTimes: null, ratings: deltas }]));
+    const outcomes = this.#meta().outcomes;
+    const wireFrames = new Map<number, FrameMessage>(frames.map((frame) => [frame.playerIndex, { type: "frame", version, data: frame.data, pendingPlayers: frame.pendingPlayers, deadline: null, playerTimes: null, ...(outcomes !== null ? { outcomes } : {}), ratings: deltas }]));
     this.#broadcast(this.#header(meta, { status: "finished", players: roster, seq, version }), wireFrames, roster);
   }
 
@@ -1053,11 +1051,8 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const view = seat === null ? null : (this.#storedView(latest.version, seat) ?? this.#viewFor(meta, roster, latest, seat, false));
     if (view === null) return { ...header, frame: null };
     const ratings = latest.action !== null && latest.action.kind === "ratings" ? latest.action.data.deltas : null;
-    // A finished game attaches its outcomes to whatever its newest frame is,
-    // because that is the only frame a cold-opening client will see. On the live
-    // path they rode the finishing frame and the ratings transition N+1 carried
-    // only the deltas; here both arrive together. Either way the client ends up
-    // holding the same thing.
+    // Outcomes are part of every finished snapshot, including the ratings
+    // transition. A cold read and a live delivery at one seq must agree.
     const outcomes = meta.status === "finished" ? meta.outcomes : null;
     return {
       ...header,
@@ -1079,6 +1074,17 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   #seatOf(userId: string | null, roster: Seat[]): number | null {
     if (userId === null) return null;
     return roster.find((s) => s.userId === userId)?.playerIndex ?? null;
+  }
+
+  /** Response ownership is independent of transition ownership. A human always
+   * receives their own seat, even when starting (no acting seat) or importing a
+   * bot move (a different acting seat). A bot principal can own several seats;
+   * its already-authorized command identifies which view it is requesting.
+   * System commands have no recipient and disclose no seat's view. */
+  #recipientSeat(cmd: Extract<Command, { kind: "start" | "action" | "lifecycle" }>, roster: Seat[]): number | null {
+    if (cmd.actor?.userId != null) return this.#seatOf(cmd.actor.userId, roster);
+    if (cmd.actor?.botId != null && "seat" in cmd) return cmd.seat ?? null;
+    return null;
   }
 
   /** Project a commit's frames onto the wire, keyed by seat. */

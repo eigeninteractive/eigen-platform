@@ -43,9 +43,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ##### Constructor
 
@@ -68,9 +66,7 @@ Defined in: web/node\_modules/.pnpm/typescript@6.0.3/node\_modules/typescript/li
 
 ###### Inherited from
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 ***
 
@@ -107,9 +103,7 @@ Defined in: [server/packages/rules/src/portable-schema.ts:64](https://github.com
 
 ###### Overrides
 
-```ts
-Error.constructor
-```
+`Error.constructor`
 
 #### Properties
 
@@ -143,9 +137,9 @@ Defined in: [server/packages/rules/src/contract.ts:122](https://github.com/eigen
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -159,9 +153,7 @@ Defined in: [server/packages/rules/src/contract.ts:113](https://github.com/eigen
 
 ###### Inherited from
 
-```ts
-HookContext.config
-```
+`HookContext.config`
 
 ##### data
 
@@ -219,8 +211,8 @@ Defined in: [server/packages/rules/src/contract.ts:140](https://github.com/eigen
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-1"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-1"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -234,9 +226,7 @@ Defined in: [server/packages/rules/src/contract.ts:113](https://github.com/eigen
 
 ###### Inherited from
 
-```ts
-HookContext.config
-```
+`HookContext.config`
 
 ##### data
 
@@ -312,8 +302,8 @@ pure (replay uses the recorded action, never re-runs the brain).
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tobservation"></a> `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-2"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -335,9 +325,7 @@ Defined in: [server/packages/rules/src/contract.ts:113](https://github.com/eigen
 
 ###### Inherited from
 
-```ts
-HookContext.config
-```
+`HookContext.config`
 
 ##### observation
 
@@ -378,7 +366,7 @@ schemas, so it stays opaque.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-3"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -412,9 +400,9 @@ Defined in: [server/packages/rules/src/contract.ts:170](https://github.com/eigen
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-2"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-1"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-4"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -440,9 +428,7 @@ Defined in: [server/packages/rules/src/contract.ts:113](https://github.com/eigen
 
 ###### Inherited from
 
-```ts
-HookContext.config
-```
+`HookContext.config`
 
 ##### isReplay
 
@@ -504,7 +490,7 @@ Input to the pure commercial-content extraction hook.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-5"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -563,14 +549,14 @@ The result of advancing the game by one transition: the return of
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-3"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
 ##### outcome?
 
 ```ts
-optional outcome?: OutcomeEntry[];
+outcome?: OutcomeEntry[];
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:89](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L89)
@@ -602,7 +588,7 @@ winner info; those are engine-owned fields. Must match the game's
 ##### turnSeconds?
 
 ```ts
-optional turnSeconds?: number;
+turnSeconds?: number;
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:92](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L92)
@@ -663,17 +649,17 @@ change incompatibly, ship a new `GameRules` under the next version key
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-4"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tobservation-1"></a> `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-2"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-6"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
 ##### botActions?
 
 ```ts
-optional botActions?: Record<string, BotAction<TAction, TObservation, TConfig>>;
+botActions?: Record<string, BotAction<TAction, TObservation, TConfig>>;
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:393](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L393)
@@ -801,7 +787,7 @@ the acting seat's projected view is unchanged (the same-view rule).
 ##### contentForCreate()?
 
 ```ts
-optional contentForCreate(args): readonly ContentForCreateResult[];
+contentForCreate?(args): readonly ContentForCreateResult[];
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:380](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L380)
@@ -937,10 +923,10 @@ bug.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-5"></a> `TState` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tobservation-2"></a> `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-3"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-7"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -998,7 +984,7 @@ Defined in: [server/packages/rules/src/contract.ts:116](https://github.com/eigen
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-8"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -1012,9 +998,7 @@ Defined in: [server/packages/rules/src/contract.ts:113](https://github.com/eigen
 
 ###### Inherited from
 
-```ts
-HookContext.config
-```
+`HookContext.config`
 
 ##### playerCount
 
@@ -1065,7 +1049,7 @@ One participant's view of the state, produced by `computeObservation`.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tobservation-3"></a> `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -1138,7 +1122,7 @@ a config-driven bound (a "4 or 6 players" choice) can read it directly.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-9"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -1195,7 +1179,7 @@ schema.
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-10"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -1292,7 +1276,7 @@ Defined in: [server/packages/rules/src/contract.ts:222](https://github.com/eigen
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-11"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Properties
 
@@ -1375,9 +1359,9 @@ One engine bot's move function: the value type in
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-4"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tobservation-4"></a> `TObservation` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-12"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 #### Parameters
 
@@ -1419,7 +1403,7 @@ share one type: what parses is what persists and what Dart generates.
 
 | Type Parameter |
 | ------ |
-| `Payload` |
+| <a id="type-parameter-payload"></a> `Payload` |
 
 ***
 
@@ -1543,7 +1527,7 @@ Defined in: [server/packages/rules/src/contract.ts:70](https://github.com/eigeni
 ##### score?
 
 ```ts
-optional score?: number | null;
+score?: number | null;
 ```
 
 Defined in: [server/packages/rules/src/contract.ts:74](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/rules/src/contract.ts#L74)
@@ -1627,7 +1611,7 @@ them as animation only when it has the frame's predecessor, and as static
 
 | Type Parameter | Default type |
 | ------ | ------ |
-| `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-5"></a> `TAction` *extends* [`JsonObject`](#jsonobject) | [`JsonObject`](#jsonobject) |
 
 ## Functions
 
@@ -1673,9 +1657,9 @@ simultaneous submissions: any opponent move changes every seat's view.
 
 | Type Parameter |
 | ------ |
-| `TState` *extends* [`JsonObject`](#jsonobject) |
-| `TAction` *extends* [`JsonObject`](#jsonobject) |
-| `TConfig` *extends* [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tstate-6"></a> `TState` *extends* [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-taction-6"></a> `TAction` *extends* [`JsonObject`](#jsonobject) |
+| <a id="type-parameter-tconfig-13"></a> `TConfig` *extends* [`JsonObject`](#jsonobject) |
 
 #### Parameters
 
@@ -1708,7 +1692,7 @@ build at a time is miserable.
 | Parameter | Type | Default value |
 | ------ | ------ | ------ |
 | `schema` | `unknown` | `undefined` |
-| `pointer` | `string` | `""` |
+| `pointer?` | `string` | `""` |
 
 #### Returns
 

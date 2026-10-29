@@ -66,14 +66,14 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:73](ht
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv"></a> `TEnv` |
 
 #### Properties
 
 ##### now?
 
 ```ts
-optional now?: () => number;
+now?: () => number;
 ```
 
 Defined in: [server/packages/server/src/commerce/providers/google-play.ts:82](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L82)
@@ -160,7 +160,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:220](h
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv-1"></a> `TEnv` |
 
 #### Parameters
 

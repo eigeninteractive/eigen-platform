@@ -35,14 +35,14 @@ Everything this adapter needs from the Worker's environment.
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv"></a> `TEnv` |
 
 #### Properties
 
 ##### apiVersion?
 
 ```ts
-optional apiVersion?: string;
+apiVersion?: string;
 ```
 
 Defined in: [server/packages/server/src/commerce/providers/stripe.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L58)
@@ -54,7 +54,7 @@ past Basil.
 ##### now?
 
 ```ts
-optional now?: () => number;
+now?: () => number;
 ```
 
 Defined in: [server/packages/server/src/commerce/providers/stripe.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L59)
@@ -66,7 +66,7 @@ Defined in: [server/packages/server/src/commerce/providers/stripe.ts:59](https:/
 ##### toleranceSeconds?
 
 ```ts
-optional toleranceSeconds?: number;
+toleranceSeconds?: number;
 ```
 
 Defined in: [server/packages/server/src/commerce/providers/stripe.ts:52](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L52)
@@ -129,7 +129,7 @@ Defined in: [server/packages/server/src/commerce/providers/stripe.ts:144](https:
 
 | Type Parameter |
 | ------ |
-| `TEnv` |
+| <a id="type-parameter-tenv-1"></a> `TEnv` |
 
 #### Parameters
 

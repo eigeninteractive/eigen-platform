@@ -2,8 +2,42 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 
+import 'package:dio/dio.dart';
 import 'package:eigen_api/eigen_api.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+
+import 'engine_exception.dart';
+
+/// A visible failure of the live feed, retaining the underlying diagnostic.
+///
+/// [retrying] means this subscription owns automatic recovery. Otherwise the
+/// caller must explicitly reconnect after fixing the cause or signing in.
+class GameConnectionException implements Exception {
+  const GameConnectionException(this.cause, {required this.retrying});
+
+  final Object cause;
+  final bool retrying;
+
+  @override
+  String toString() => 'Game connection failed: $cause';
+}
+
+bool _canReconnect(Object error) => switch (error) {
+  EngineException(:final statusCode) =>
+    statusCode == 408 ||
+        statusCode == 502 ||
+        statusCode == 503 ||
+        statusCode == 504,
+  DioException(:final type, response: null) => switch (type) {
+    DioExceptionType.connectionTimeout ||
+    DioExceptionType.sendTimeout ||
+    DioExceptionType.receiveTimeout ||
+    DioExceptionType.connectionError => true,
+    _ => false,
+  },
+  WebSocketChannelException() => true,
+  _ => false,
+};
 
 /// Builds the browser-compatible authenticated socket URI.
 ///
@@ -52,8 +86,8 @@ typedef GameSocketEvent = Session;
 
 /// Opens a game's socket and keeps it open for the screen's lifetime.
 ///
-/// Reconnects on drop with capped exponential backoff, emitting
-/// [GameSocketConnected] each time so the caller can recover whatever it missed
+/// Reconnects on transient failures with capped exponential backoff. The first
+/// snapshot on each connection lets the caller recover whatever it missed
 /// while disconnected. It deliberately owns *only* the connection: ordering,
 /// gap detection, and recovery are the repository's, because recovering a gap
 /// means an HTTP range fetch this layer knows nothing about.
@@ -74,13 +108,12 @@ class GameSocket {
   final Duration _maxBackoff;
 
   /// Connects to [gameId]'s socket, reconnecting until the subscription is
-  /// cancelled.
+  /// cancelled or a failure requires user/operator intervention.
   ///
-  /// The stream never completes on its own and never surfaces a connection
-  /// failure as an error: a dropped socket is an expected condition on mobile,
-  /// and the recovery for it is the reconnect this already performs. Errors
-  /// that are *not* recoverable that way, such as a malformed message, are logged and
-  /// skipped rather than tearing down a working connection.
+  /// Failures emit [GameConnectionException]. Network failures and temporary
+  /// gateway/service failures retry; authentication, permissions, rate limits,
+  /// server bugs and malformed snapshots stop. Other layers must not add a
+  /// second retry loop. A fresh subscription is an explicit retry.
   ///
   /// A reconnect needs no announcement, because the server's first message on
   /// the new connection is the current snapshot. When nothing was missed it
@@ -95,19 +128,27 @@ class GameSocket {
         final ticket = await _ticketProvider(gameId);
         channel = WebSocketChannel.connect(_socketUri(gameId, ticket));
         await channel.ready;
-        backoff = _initialBackoff;
-
         await for (final message in channel.stream) {
           final event = _decode(message);
-          if (event != null) yield event;
+          if (event != null) {
+            backoff = _initialBackoff;
+            yield event;
+          }
         }
+        throw WebSocketChannelException('The game connection closed');
       } catch (error, stack) {
+        final retrying = _canReconnect(error);
         developer.log(
-          'game socket for $gameId dropped; reconnecting',
+          'game socket for $gameId failed; retrying=$retrying',
           name: 'eigen.socket',
           error: error,
           stackTrace: stack,
         );
+        yield* Stream<GameSocketEvent>.error(
+          GameConnectionException(error, retrying: retrying),
+          stack,
+        );
+        if (!retrying) return;
       } finally {
         await channel?.sink.close();
       }
@@ -143,7 +184,7 @@ class GameSocket {
         error: error,
         stackTrace: stack,
       );
-      return null;
+      rethrow;
     }
   }
 }

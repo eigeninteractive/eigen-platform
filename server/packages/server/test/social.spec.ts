@@ -119,6 +119,19 @@ describe("blocking", () => {
 });
 
 describe("user search", () => {
+  it("ranks exact usernames before prefixes and other matches, alphabetically within each tier", async () => {
+    const tag = `rank${rnd()}`;
+    const expected = [tag, `${tag}a`, `${tag}z`, `a${tag}`, `z${tag}`];
+    // Create in reverse rank order so insertion order cannot satisfy the assertion.
+    for (const username of [...expected].reverse()) {
+      const candidate = await user("candidate");
+      expect((await api(candidate, "PUT", "/me/username", { username })).status).toBe(200);
+    }
+    const seeker = await user("seek");
+    const found = await json<{ users: { username: string }[] }>(await api(seeker, "GET", `/users/search?q=${tag}`));
+    expect(found.users.map((u) => u.username)).toEqual(expected);
+  });
+
   it("finds registered users, excluding self, guests, and blocked", async () => {
     const tag = `srch${rnd()}`;
     const target: TestTokenOptions = { uid: `t-${rnd()}`, email: `${tag}@e.com`, name: `${tag} Target` };

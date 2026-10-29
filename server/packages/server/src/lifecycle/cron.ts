@@ -19,7 +19,7 @@
  * one failure never blocks the batch, and anything skipped is retried next run.
  */
 
-import { and, eq, gte, inArray, isNull, lt, notExists, or, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lt, notExists, or } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { games, participants, users } from "../d1/schema.js";
 import { type EngineOps, purgeUser } from "./purge.js";
@@ -98,7 +98,7 @@ async function purgeStaleGuests(ops: EngineOps, now: number, opts: Required<Life
   const activityCutoff = now - opts.guestInactivityMs;
   // Correlated: keep any guest with a game touched since the activity cutoff.
   const recentActivity = db
-    .select({ one: sql`1` })
+    .select({ id: participants.id })
     .from(participants)
     .innerJoin(games, eq(participants.gameId, games.id))
     .where(and(eq(participants.userId, users.id), gte(games.updatedAt, activityCutoff)));
