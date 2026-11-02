@@ -46,10 +46,12 @@ use documented narrow paths through the gate. Unknown paths fail closed to the
 complete platform check.
 
 Routine third-party Actions use maintained major or exact-version tags and are
-updated by Dependabot. The two release-sensitive actions remain pinned to full
-commit SHAs. Repository-wide SHA enforcement is deliberately off because it
-also rejects version-tagged actions used internally by standard composite
-actions such as `setup-java`.
+updated by Dependabot. `actions/create-github-app-token` uses an exact-version
+tag; `changesets/action` remains pinned to a full commit SHA. Version tags can
+be moved upstream, whereas a commit SHA fixes the action's source revision.
+Repository-wide SHA enforcement is deliberately off because it also rejects
+version-tagged actions used internally by standard composite actions such as
+`setup-java`.
 
 ## Verify the policy
 
