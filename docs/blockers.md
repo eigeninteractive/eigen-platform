@@ -40,7 +40,7 @@ dry runs reject Freezed 4.0.3 and Dartdoc 9.0.11, which require analyzer 14 and
 14.5 respectively. Upgrading the SDK patch does not unblock those tools.
 
 There is also an independent build-system constraint: build_runner 2.17.1
-requires build 5, while riverpod_generator 4.0.4 requires build below 5. The
+requires build 5, while even the latest riverpod_generator 4.0.9 requires build below 5. The
 resolved build_runner 2.16.1 and source_gen 4.2.4 are intentional, not missed
 updates. Do not bypass these constraints with overrides.
 
@@ -83,12 +83,14 @@ References: [tsdown 0.23.3](https://github.com/rolldown/tsdown/releases/tag/v0.2
 ## Development-tool audit findings
 
 **Status:** Stable owners still constrain affected dependencies. After compatible
-transitive refreshes, `pnpm audit` reports zero root findings, one moderate
+transitive refreshes, `pnpm audit` reports three root findings (2 moderate,
+1 low), one moderate
 server finding, and sixteen web findings (2 critical, 7 high, 5 moderate, 2 low).
 Counts are advisory counts, not distinct packages or deployed vulnerabilities.
 
 | Owner | Remaining dependency | Why the update stops here |
 | --- | --- | --- |
+| Workbox 7.4.1 | glob 11/minimatch 10 and deepmerge 4.3.1 | The patched glob/minimatch need new major ranges; deepmerge has no patched stable release. A compatible root refresh does not clear these new advisories. |
 | drizzle-kit 0.31.11 | esbuild 0.18.20 through the deprecated esbuild-kit loader | The latest stable Kit still includes the loader. Drizzle 1.0 is an RC; changing a direct esbuild does not replace the loader's nested copy. |
 | Docusaurus 3.10.2 and its bundler/dev server | tinypool 1.1.1, serialize-javascript 6.0.2, uuid 8.3.2 | Fixes need new major ranges from their owners. Docusaurus 4 remains canary. |
 | docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3, yaml 2.8.1 | The latest plugin pins these versions exactly. |
