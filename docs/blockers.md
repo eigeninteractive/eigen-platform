@@ -54,6 +54,8 @@ Other unavailable transitive majors remain owned by their dependents:
 built_collection 6, cross_file 0.4, qr 4 and package_config 3 do not resolve in
 this workspace. Re-evaluate their owners together with the SDK/generator graph,
 instead of adding direct constraints on transitive implementation details.
+The SDK itself also pins platform and material_color_utilities; their newer
+releases cannot be selected independently of the SDK.
 
 References: [Freezed changelog](https://pub.dev/packages/freezed/changelog),
 [Dartdoc changelog](https://pub.dev/packages/dartdoc/changelog),
@@ -97,6 +99,13 @@ Counts are advisory counts, not distinct packages or deployed vulnerabilities.
 | OpenAPI docs 5.2.0 / Postman converter | yaml 1.10.2, js-yaml 4.3.0, older Faker | The latest supported owner graph still selects the affected versions. |
 | TypeDoc 0.28.20 | minimatch 10 | The new advisory requires minimatch 11; the owner's range excludes it. |
 | SVGR/SVGO through Docusaurus | deepmerge 4.3.1 | No patched stable deepmerge release is available. |
+
+Drizzle 1.0 RC is an available migration path, not a missing release. Its Kit
+removes the old loader but requires ORM 1.0 RC too; the upstream upgrade changes
+migration metadata/layout and several SQLite/query semantics. Evaluate the
+coordinated migration for both D1 and SQLite Durable Objects separately from
+this stable update. See [the v1 upgrade](https://orm.drizzle.team/docs/upgrade-v1)
+and [RC5 changes](https://orm.drizzle.team/docs/latest-releases/drizzle-orm-v1rc5).
 
 Joi is no longer held: refreshing the owner's compatible range selects 17.13.9,
 which fixes the email-validation denial of service. Its high advisory is gone.

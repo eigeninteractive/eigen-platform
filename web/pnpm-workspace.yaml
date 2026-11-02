@@ -22,5 +22,5 @@ allowBuilds:
   # already placed them on the resolution path every codegen walks up through.
   postman-code-generators: false
 minimumReleaseAgeExclude:
-  - miniflare@5.20261023.0-beta || 5.20261101.0-beta
-  - wrangler@4.153.0 || 4.156.1
+  - miniflare@5.20261101.0-beta
+  - wrangler@4.156.1
