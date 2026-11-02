@@ -6,6 +6,7 @@ allowBuilds:
   workerd: true
   sharp: true
 minimumReleaseAgeExclude:
-  - miniflare@5.20261023.0-beta
-  - wrangler@4.153.0
-  - "@cloudflare/vitest-plugin@1.4.8"
+  - miniflare@5.20261023.0-beta || 5.20261101.0-beta
+  - wrangler@4.153.0 || 4.156.1
+  - "@cloudflare/vitest-plugin@1.4.8 || 1.4.12"
+  - jose@6.2.15

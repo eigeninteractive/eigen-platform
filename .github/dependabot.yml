@@ -4,19 +4,14 @@ version: 2
 # Dart package changelog. Keep the CI actions current without mixing automated
 # dependency releases into those workflows.
 #
-# TypeScript majors are held back in both npm ecosystems below, and the two halves
-# are held for different reasons.
+# The documentation toolchain still requires TypeScript 6. Server builds use
+# TypeScript 7 with tsdown 0.23.4; its declaration generator supports that compiler.
 #
 # `/web` is genuinely blocked. `typedoc` peers at `<=6.0.x` and 0.28.20 is its
 # latest stable; the only newer publishes are 1.0.0-dev prereleases, and
 # `typedoc-plugin-markdown` -- which is what actually generates the TypeScript
 # reference -- peers at `typedoc: 0.28.x` exactly, so it could not follow even if
 # the prerelease were acceptable in a docs build.
-#
-# `/server` is also blocked: TypeScript 7.0.2 lacks the classic compiler API
-# used by rolldown-plugin-dts in tsdown 0.23.2. Its native declaration generator
-# requires TypeScript 7.1+, currently prerelease. Keep the stable 6.0.3 compiler
-# until both declaration generation and the documentation pipeline support 7.
 #
 # Routine minor and patch updates are grouped to keep maintenance cheap. Major
 # updates stay in focused pull requests so an incompatible upgrade cannot block
@@ -36,10 +31,6 @@ updates:
     directory: /server
     schedule:
       interval: monthly
-    # See the header: nothing blocks 7 here; held to match `/web`.
-    ignore:
-      - dependency-name: typescript
-        update-types: ["version-update:semver-major"]
     groups:
       # The Workers Vitest plugin relies on Vitest internals and peers on its
       # major, and the coverage provider is versioned in lockstep with Vitest,

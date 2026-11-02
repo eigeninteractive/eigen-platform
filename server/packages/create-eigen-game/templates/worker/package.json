@@ -50,9 +50,9 @@
   },
   "devDependencies": {
     "@eigeninteractive/testkit": "{{ENGINE_VERSION}}",
-    "@types/node": "^26.6.5",
-    "typescript": "~6.0.3",
+    "@types/node": "^26.6.6",
+    "typescript": "~7.0.2",
     "vitest": "^5.0.5",
-    "wrangler": "^4.153.0"
+    "wrangler": "^4.156.1"
   }
 }
