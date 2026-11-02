@@ -1,5 +1,16 @@
 # @eigeninteractive/server
 
+## 0.12.2
+
+### Patch Changes
+
+- [#155](https://github.com/eigeninteractive/eigen-platform/pull/155) [`69cbaa2`](https://github.com/eigeninteractive/eigen-platform/commit/69cbaa255988dc139980c156b6c65ef17412bc77) Thanks [@seenu-k](https://github.com/seenu-k)! - Update jose and validate Google Pub/Sub private claims from the verified JWT payload without weakening runtime checks. Move server and scaffold compilation to TypeScript 7 with the repaired tsdown declaration generator, update Cloudflare tooling, and regenerate Worker types.
+  
+  Generated apps use Flutter 3.47.9 / Dart 3.13.7, including certificate-store security fixes and the workspace native-assets test fix. Keep scaffold dependencies and Biome configuration aligned with the platform's validated toolchain.
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.12.2
+  - @eigeninteractive/rules@0.12.2
+
 ## 0.12.1
 
 ### Patch Changes
