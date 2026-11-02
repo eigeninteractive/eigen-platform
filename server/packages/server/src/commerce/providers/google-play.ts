@@ -58,7 +58,7 @@
  * @module @eigeninteractive/server/commerce/google-play
  */
 
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import { ProviderRefusal, providerJson, requireSecret } from "../provider-kit.js";
 import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
@@ -333,7 +333,7 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
     const endpoint = new URL(request.url);
     endpoint.search = "";
     endpoint.hash = "";
-    let claims: { email?: unknown; email_verified?: unknown };
+    let claims: JWTPayload;
     try {
       ({ payload: claims } = await jwtVerify(authorization.slice("Bearer ".length), googleKeys, {
         issuer: GOOGLE_ISSUERS,

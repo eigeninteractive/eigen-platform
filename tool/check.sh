@@ -6,14 +6,10 @@ platform_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The platform manifest: versions, package inventory, and cross-repo wiring. The
 # portable schema profile is no longer checked here — it is enforced where it can
 # be acted on, inside the contract emitter (`run_server`).
-# The SDK's bundled `dart doc` crashes on any package whose dependencies carry
-# `@docImport` doc comments (dartdoc's `_stripDocImports`, fixed upstream in
-# 9.0.8, still unfixed in every current stable SDK). The workspace pins a fixed
-# dartdoc instead; see the root pubspec.yaml. Run from the repository root with
-# `--input` rather than from inside the package, because the pin is a dependency
-# of the workspace root.
+# Validate documentation with the pinned SDK. All three Flutter packages pass
+# its dry run, so a separate analyzer-constrained dartdoc dependency is unnecessary.
 check_docs() {
-  ( cd "$platform_root" && dart run dartdoc --no-generate-docs --input="$1" --output="$(mktemp -d)" )
+  ( cd "$platform_root" && dart doc --dry-run "$1" )
 }
 
 run_manifest() {

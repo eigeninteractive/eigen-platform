@@ -1,86 +1,118 @@
 # Upstream blockers
 
 Limitations that still require a compatibility choice in the platform.
-Last checked: **2026-10-27**. Remove entries when their workaround is removed.
+Last checked: **2026-11-02**. See [the dependency review](dependency-review-2026-11-02.md).
 
-## Android built-in Kotlin migration
+## Android built-in Kotlin and new DSL
 
-**Status:** Still blocked by `in_app_review` 2.0.12.
+**Status:** Keep `android.builtInKotlin=false` and `android.newDsl=false`.
 
-The upgraded FlutterFire packages and `app_settings` 9.0.1 now guard their
-Kotlin Gradle Plugin application when AGP built-in Kotlin is enabled.
-`in_app_review` still unconditionally applies `kotlin-android`. Keep Flutter's
-default compatibility opt-out until that plugin supports built-in Kotlin.
-The Flutter warning scans source text, so its list can include plugins whose
-application is already correctly guarded; inspect the resolved Gradle code.
+These are independent blockers, verified with a fresh Flutter 3.47.9 app:
 
-`image_cropper` 13 also removes its old Android DSL dependency. Do not switch
-all apps to the new DSL/Kotlin together until the remaining plugin supports it.
-Then generate a fresh scaffold and build Android debug and release with both
-compatibility flags removed before deleting this entry.
+- With built-in Kotlin enabled and the legacy DSL retained, `in_app_review`
+  2.0.12 fails at `android/build.gradle:25` because it unconditionally applies
+  `kotlin-android`. It is still the latest published version; its last fix
+  handles a background-Activity null pointer, not built-in Kotlin.
+- With the new DSL enabled, Flutter's Gradle plugin fails while applying to the
+  app: `ApplicationExtensionImpl` cannot be cast to `AbstractAppExtension`.
+  Updating individual plugins cannot repair this SDK-side compatibility issue.
+
+FlutterFire and `app_settings` already guard their Kotlin plugin application.
+Their presence in Flutter's source-text warning is not evidence they still
+block the migration. `image_cropper` 13 also removed its old DSL dependency.
+
+Recheck the stable SDK and the published `in_app_review` Gradle script. Remove
+these flags only after a fresh scaffold builds Android debug and release with
+the corresponding migration enabled. Do not patch cached plugin sources or
+force Gradle plugin versions across consumers.
 
 References: [Flutter app migration](https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers),
-[in_app_review source](https://github.com/britannio/in_app_review/blob/master/in_app_review/android/build.gradle),
-[app_settings changelog](https://pub.dev/packages/app_settings/changelog).
+[in_app_review changelog](https://pub.dev/packages/in_app_review/changelog).
 
-## Dart documentation and analyzer toolchain
+## Dart analyzer and generator graph
 
-**Status:** Keep `dartdoc: 9.0.8` and Freezed 4.0.1 with Flutter 3.47.7 / Dart 3.13.5.
+**Status:** Keep Freezed 4.0.1 and the resolvable analyzer-13 generator graph
+with Flutter 3.47.9 / Dart 3.13.7.
 
-The SDK's bundled dartdoc revision is still `9.0.6-wip`; it crashes parsing
-`@docImport` comments inherited from dependencies. The root's pinned 9.0.8
-contains the offset fix, and `tool/check.sh` invokes that version explicitly.
+The stable SDK still pins `test_api` 0.7.12 and matcher 0.12.20. Resolution
+therefore selects test 1.31.1, whose analyzer constraint is below 14. Actual Pub
+dry runs reject Freezed 4.0.3 and Dartdoc 9.0.11, which require analyzer 14 and
+14.5 respectively. Upgrading the SDK patch does not unblock those tools.
 
-Newer dartdoc (9.0.11) and Freezed (4.0.3) need analyzer 14. The SDK's
-`flutter_test` pins matcher 0.12.20, resolving test 1.31.1 / test_core 0.6.18,
-which require analyzer below 14. Build runner 2.17.1, build 5 and source_gen
-4.3.1 are also outside this compatible graph. Do not override these constraints:
-they represent compiler API compatibility, not a cosmetic solver obstacle.
+There is also an independent build-system constraint: build_runner 2.17.1
+requires build 5, while even the latest riverpod_generator 4.0.9 requires build below 5. The
+resolved build_runner 2.16.1 and source_gen 4.2.4 are intentional, not missed
+updates. Do not bypass these constraints with overrides.
 
-When a stable Flutter SDK relaxes the test stack, resolve the complete workspace
-again, regenerate all packages, and run tests and documentation checks. Remove
-the dartdoc dependency only after the SDK's own `dart doc` succeeds on Flutter,
-shell and Firebase packages.
+The old root Dartdoc 9.0.8 workaround has been removed. With that dependency
+absent, the pinned SDK's `dart doc --dry-run` succeeds for Flutter, shell and
+Firebase, and a full Flutter documentation build produces an index. This is a
+result for the current graph, not a claim that the SDK changed its Dartdoc
+revision: Dart 3.13.5 and 3.13.7 still record the same upstream Dartdoc commit.
 
-References: [dartdoc changelog](https://pub.dev/packages/dartdoc/changelog),
-[Freezed changelog](https://pub.dev/packages/freezed/changelog),
-[Dart SDK DEPS](https://github.com/dart-lang/sdk/blob/main/DEPS).
+Other unavailable transitive majors remain owned by their dependents:
+built_collection 6, cross_file 0.4, qr 4 and package_config 3 do not resolve in
+this workspace. Re-evaluate their owners together with the SDK/generator graph,
+instead of adding direct constraints on transitive implementation details.
+The SDK itself also pins platform and material_color_utilities; their newer
+releases cannot be selected independently of the SDK.
 
-## TypeScript 7 declaration generation and documentation
+References: [Freezed changelog](https://pub.dev/packages/freezed/changelog),
+[Dartdoc changelog](https://pub.dev/packages/dartdoc/changelog),
+[Flutter test pins](https://github.com/flutter/flutter/blob/3.47.9/packages/flutter_test/pubspec.yaml),
+[build_runner](https://pub.dev/packages/build_runner),
+[riverpod_generator](https://pub.dev/packages/riverpod_generator).
 
-**Status:** Keep TypeScript 6.0.3 in server, generated Workers and web docs.
+## TypeScript documentation toolchain
 
-A real build with TypeScript 7.0.2 and tsdown 0.23.2 fails because the stable
-native compiler does not provide the classic TypeScript compiler API used by
-rolldown-plugin-dts. Its native declaration generator needs TypeScript 7.1+;
-that compiler line is currently experimental. Do not add a second TypeScript
-compiler or weaken declaration generation to make a version number advance.
+**Status:** Keep TypeScript 6.0.3 in `web/`. The server hold is removed.
 
-The docs have an independent constraint: stable TypeDoc 0.28.20 supports
-TypeScript through 6, and typedoc-plugin-markdown 4.14.1 requires TypeDoc 0.28.x.
-Recheck both pipelines before removing the Dependabot TypeScript major hold.
+tsdown 0.23.3 repaired stable TypeScript 7 support by selecting the compatible
+declaration generator. The platform uses tsdown 0.23.4 and TypeScript 7.0.2 for
+the server and generated Workers. The native compiler works without adding a
+second compiler or opting into experimental TypeScript 7.1 APIs.
 
-References: [TypeScript 7 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/),
-[rolldown-plugin-dts](https://github.com/sxzz/rolldown-plugin-dts#readme),
-[TypeDoc releases](https://github.com/TypeStrong/typedoc/releases).
+Web documentation has a separate npm graph: stable TypeDoc 0.28.20 accepts
+TypeScript only through 6.0.x, and typedoc-plugin-markdown 4.14.1 requires
+TypeDoc 0.28.x. There is no newer stable supported pair. Keep only the web
+Dependabot TypeScript-major hold. Its TypeScript 6 compiler also checks the
+server source while generating the cross-package documentation.
 
-## Development-tool audit pins
+References: [tsdown 0.23.3](https://github.com/rolldown/tsdown/releases/tag/v0.23.3),
+[TypeDoc releases](https://github.com/TypeStrong/typedoc/releases),
+[Markdown plugin compatibility](https://typedoc-plugin-markdown.org/docs/CHANGELOG).
 
-**Status:** Stable upstream releases still carry affected dependencies.
-After compatible transitive updates and Cloudflare 4.153.0 / plugin 1.4.8,
-`pnpm audit` reports zero findings in the root Workbox graph, one moderate
-finding in server tools, and fourteen in web tools (2 critical, 7 high,
-4 moderate, 1 low). Counts are advisory counts, not distinct packages.
+## Development-tool audit findings
+
+**Status:** Stable owners still constrain affected dependencies. After compatible
+transitive refreshes, `pnpm audit` reports three root findings (2 moderate,
+1 low), one moderate
+server finding, and sixteen web findings (2 critical, 7 high, 5 moderate, 2 low).
+Counts are advisory counts, not distinct packages or deployed vulnerabilities.
 
 | Owner | Remaining dependency | Why the update stops here |
 | --- | --- | --- |
-| drizzle-kit 0.31.11 | esbuild 0.18.20 through the obsolete esbuild-kit loader | Stable Drizzle Kit still includes the loader; a newer direct esbuild does not replace its nested copy. |
-| Docusaurus 3.10.2 | tinypool 1.1.1; serialize-javascript 6.0.2; uuid 8.3.2 | Fixes require majors selected by the framework/minifier/socket owners. Docusaurus 4 is canary, not stable. |
-| docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3; yaml 2.8.1 | Latest stable plugin pins these exact versions. |
-| OpenAPI docs 5.2.0 / Postman tools | yaml 1.10.2; js-yaml 4.3.0; faker 5.5.3 | Latest supported converter/collection graph still pins the older packages. |
+| Workbox 7.4.1 | glob 11/minimatch 10 and deepmerge 4.3.1 | The patched glob/minimatch need new major ranges; deepmerge has no patched stable release. A compatible root refresh does not clear these new advisories. |
+| drizzle-kit 0.31.11 | esbuild 0.18.20 through the deprecated esbuild-kit loader | The latest stable Kit still includes the loader. Drizzle 1.0 is an RC; changing a direct esbuild does not replace the loader's nested copy. |
+| Docusaurus 3.10.2 and its bundler/dev server | tinypool 1.1.1, serialize-javascript 6.0.2, uuid 8.3.2 | Fixes need new major ranges from their owners. Docusaurus 4 remains canary. |
+| docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3, yaml 2.8.1 | The latest plugin pins these versions exactly. |
+| OpenAPI docs 5.2.0 / Postman converter | yaml 1.10.2, js-yaml 4.3.0, older Faker | The latest supported owner graph still selects the affected versions. |
+| TypeDoc 0.28.20 | minimatch 10 | The new advisory requires minimatch 11; the owner's range excludes it. |
+| SVGR/SVGO through Docusaurus | deepmerge 4.3.1 | No patched stable deepmerge release is available. |
 
-These are development/build graphs, not the deployed Hono/Worker dependency
-closure. That distinction does not make the findings resolved: tooling still
-processes repository inputs. Recheck the owners' releases and audit when they
-update; do not report the full repository audit as clean or force unrelated
-major versions with overrides merely to clear the report.
+Drizzle 1.0 RC is an available migration path, not a missing release. Its Kit
+removes the old loader but requires ORM 1.0 RC too; the upstream upgrade changes
+migration metadata/layout and several SQLite/query semantics. Evaluate the
+coordinated migration for both D1 and SQLite Durable Objects separately from
+this stable update. See [the v1 upgrade](https://orm.drizzle.team/docs/upgrade-v1)
+and [RC5 changes](https://orm.drizzle.team/docs/latest-releases/drizzle-orm-v1rc5).
+
+Joi is no longer held: refreshing the owner's compatible range selects 17.13.9,
+which fixes the email-validation denial of service. Its high advisory is gone.
+Hono's newly published router/security fixes are also taken explicitly through
+the server's `^4.13.16` minimum, rather than only updating a development lockfile.
+
+These remaining findings belong to development/build graphs rather than the
+deployed Hono/Worker closure. They remain real maintenance work because tooling
+processes repository inputs. Do not claim the full audit is clean or force
+unrelated major versions with overrides merely to clear its report.
