@@ -1,5 +1,10 @@
 # Dependency and retained-hold review — 2026-11-02
 
+**2026-11-04 follow-up:** the separate Drizzle v1 migration is now implemented.
+ORM and Kit use `1.0.0-rc.5`, with fresh D1/DO baselines and no legacy adapter.
+The server audit now reports zero findings. The review below records the
+earlier stable-only update; [blockers.md](blockers.md) tracks current holds.
+
 This review starts from the four open Dependabot updates: actions #148,
 Cloudflare tests #152, server dependencies #153, and documentation #154.
 The isolated `codex/dependency-hold-review` branch includes their changes,

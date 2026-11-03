@@ -10,18 +10,20 @@
  *
  * JSON columns are canonical-JSON text (`{ mode: "json" }`); every instant is
  * epoch milliseconds, matching the kernel's injected clock.
+ * Text keys use explicit NOT NULL plus a table-level primary key, as in D1,
+ * so Kit preserves the constraint in generated SQLite migrations.
  */
 
 import type { GameStatus, TransitionAction } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { sql } from "drizzle-orm";
-import { check, integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { check, integer, primaryKey, snakeCase, text } from "drizzle-orm/sqlite-core";
 import type { GameOrigin } from "../protocol.js";
 
 /** The game row snapshot from lazy init + status + rng_seed. Exactly
  * one row, `id = 1`. The DO copies this from D1 once and owns `status` and
  * `rng_seed` from then on; D1's copy becomes the display read-model. */
-export const meta = sqliteTable(
+export const meta = snakeCase.table(
   "meta",
   {
     id: integer().primaryKey(),
@@ -75,7 +77,7 @@ export const meta = sqliteTable(
 
 /** Seats. Both ids null ⇒ account purged mid-game (plays on as "Deleted
  * User", can never act). */
-export const roster = sqliteTable("roster", {
+export const roster = snakeCase.table("roster", {
   playerIndex: integer().primaryKey(),
   userId: text(),
   botId: text(),
@@ -89,7 +91,7 @@ export const roster = sqliteTable("roster", {
  * game's opaque payload, parsed through the version's schema before any
  * hook sees it. Serves live gap recovery and post-finish replay
  * (re-projected via `computeObservation`). */
-export const transitions = sqliteTable("transitions", {
+export const transitions = snakeCase.table("transitions", {
   version: integer().primaryKey(),
   state: text({ mode: "json" }).$type<JsonObject>().notNull(),
   /** The action that produced this transition; null for start (v0). */
@@ -106,7 +108,7 @@ export const transitions = sqliteTable("transitions", {
  * socket gap recovery and the same-view compare, then the finish
  * compaction empties the whole table (replay re-projects instead).
  * A separate table so compaction never touches `transitions`. */
-export const frames = sqliteTable(
+export const frames = snakeCase.table(
   "frames",
   {
     version: integer().notNull(),
@@ -121,8 +123,12 @@ export const frames = sqliteTable(
 /** What the D1 apply needs, written atomically with the finish and
  * cleared only AFTER the apply succeeds; a surviving row is the recovery
  * signal for the gated admin re-poke. */
-export const outbox = sqliteTable("outbox", {
-  finishId: text().primaryKey(),
-  outcomes: text({ mode: "json" }).$type<OutcomeEntry[]>().notNull(),
-  createdAt: integer().notNull(),
-});
+export const outbox = snakeCase.table(
+  "outbox",
+  {
+    finishId: text().notNull(),
+    outcomes: text({ mode: "json" }).$type<OutcomeEntry[]>().notNull(),
+    createdAt: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.finishId] })],
+);

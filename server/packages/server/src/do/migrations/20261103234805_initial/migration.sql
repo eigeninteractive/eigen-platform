@@ -3,11 +3,11 @@ CREATE TABLE `frames` (
 	`player_index` integer NOT NULL,
 	`data` text NOT NULL,
 	`pending_players` text NOT NULL,
-	PRIMARY KEY(`version`, `player_index`)
+	CONSTRAINT `frames_pk` PRIMARY KEY(`version`, `player_index`)
 );
 --> statement-breakpoint
 CREATE TABLE `meta` (
-	`id` integer PRIMARY KEY NOT NULL,
+	`id` integer PRIMARY KEY,
 	`game_id` text NOT NULL,
 	`status` text NOT NULL,
 	`access` text NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE `meta` (
 	`short_code` text NOT NULL,
 	`outcomes` text,
 	`seq` integer NOT NULL,
-	CONSTRAINT "meta_origin_valid" CHECK("meta"."origin" IN ('online', 'local'))
+	CONSTRAINT "meta_origin_valid" CHECK("origin" IN ('online', 'local'))
 );
 --> statement-breakpoint
 CREATE TABLE `outbox` (
@@ -36,14 +36,14 @@ CREATE TABLE `outbox` (
 );
 --> statement-breakpoint
 CREATE TABLE `roster` (
-	`player_index` integer PRIMARY KEY NOT NULL,
+	`player_index` integer PRIMARY KEY,
 	`user_id` text,
 	`bot_id` text,
 	`type` text NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE `transitions` (
-	`version` integer PRIMARY KEY NOT NULL,
+	`version` integer PRIMARY KEY,
 	`state` text NOT NULL,
 	`action` text,
 	`pending` text NOT NULL,

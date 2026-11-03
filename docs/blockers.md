@@ -1,7 +1,8 @@
 # Upstream blockers
 
 Limitations that still require a compatibility choice in the platform.
-Last checked: **2026-11-02**. See [the dependency review](dependency-review-2026-11-02.md).
+Last general review: **2026-11-02**; Drizzle migration checked **2026-11-04**.
+See [the dependency review](dependency-review-2026-11-02.md).
 
 ## Android built-in Kotlin and new DSL
 
@@ -86,26 +87,27 @@ References: [tsdown 0.23.3](https://github.com/rolldown/tsdown/releases/tag/v0.2
 
 **Status:** Stable owners still constrain affected dependencies. After compatible
 transitive refreshes, `pnpm audit` reports three root findings (2 moderate,
-1 low), one moderate
-server finding, and sixteen web findings (2 critical, 7 high, 5 moderate, 2 low).
+1 low), zero server findings after the Drizzle v1 migration, and sixteen web
+findings (2 critical, 7 high, 5 moderate, 2 low).
 Counts are advisory counts, not distinct packages or deployed vulnerabilities.
 
 | Owner | Remaining dependency | Why the update stops here |
 | --- | --- | --- |
 | Workbox 7.4.1 | glob 11/minimatch 10 and deepmerge 4.3.1 | The patched glob/minimatch need new major ranges; deepmerge has no patched stable release. A compatible root refresh does not clear these new advisories. |
-| drizzle-kit 0.31.11 | esbuild 0.18.20 through the deprecated esbuild-kit loader | The latest stable Kit still includes the loader. Drizzle 1.0 is an RC; changing a direct esbuild does not replace the loader's nested copy. |
 | Docusaurus 3.10.2 and its bundler/dev server | tinypool 1.1.1, serialize-javascript 6.0.2, uuid 8.3.2 | Fixes need new major ranges from their owners. Docusaurus 4 remains canary. |
 | docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3, yaml 2.8.1 | The latest plugin pins these versions exactly. |
 | OpenAPI docs 5.2.0 / Postman converter | yaml 1.10.2, js-yaml 4.3.0, older Faker | The latest supported owner graph still selects the affected versions. |
 | TypeDoc 0.28.20 | minimatch 10 | The new advisory requires minimatch 11; the owner's range excludes it. |
 | SVGR/SVGO through Docusaurus | deepmerge 4.3.1 | No patched stable deepmerge release is available. |
 
-Drizzle 1.0 RC is an available migration path, not a missing release. Its Kit
-removes the old loader but requires ORM 1.0 RC too; the upstream upgrade changes
-migration metadata/layout and several SQLite/query semantics. Evaluate the
-coordinated migration for both D1 and SQLite Durable Objects separately from
-this stable update. See [the v1 upgrade](https://orm.drizzle.team/docs/upgrade-v1)
-and [RC5 changes](https://orm.drizzle.team/docs/latest-releases/drizzle-orm-v1rc5).
+The Drizzle hold is removed. ORM and Kit are pinned together at `1.0.0-rc.5`;
+the deprecated esbuild-kit loader and its advisory are gone. D1 and SQLite
+Durable Objects use fresh v1 migration baselines, table-level snake-case naming,
+and explicit primary-key nullability. Wrangler consumes the nested D1 layout
+natively. There is no old-format migration adapter or existing-database upgrade
+path: disposable development databases must be recreated for this baseline.
+See [the v1 upgrade](https://orm.drizzle.team/docs/upgrade-v1) and
+[RC5 changes](https://orm.drizzle.team/docs/latest-releases/drizzle-orm-v1rc5).
 
 Joi is no longer held: refreshing the owner's compatible range selects 17.13.9,
 which fixes the email-validation denial of service. Its high advisory is gone.

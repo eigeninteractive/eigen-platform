@@ -1,9 +1,8 @@
-import m0000 from "./0000_misty_cargill.sql";
-import journal from "./meta/_journal.json";
+import m0000 from './20261103234805_initial/migration.sql';
 
-export default {
-  journal,
-  migrations: {
-    m0000,
-  },
-};
+  export default {
+    migrations: {
+      "20261103234805_initial": m0000
+}
+  }
+  

@@ -34,7 +34,8 @@
   "d1_databases": [
     {
       "binding": "GAME_DB",
-      "migrations_dir": "node_modules/@eigeninteractive/server/migrations"
+      "migrations_dir": "node_modules/@eigeninteractive/server/migrations",
+      "migrations_pattern": "node_modules/@eigeninteractive/server/migrations/*/migration.sql"
     }
   ],
   "triggers": {

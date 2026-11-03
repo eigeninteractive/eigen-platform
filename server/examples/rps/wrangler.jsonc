@@ -60,7 +60,8 @@
       // @eigeninteractive/server and `deploy` applies them before the code goes out.
       // App-custom data belongs in a SEPARATE second d1_databases entry with
       // its own migrations_dir, never in this database.
-      "migrations_dir": "node_modules/@eigeninteractive/server/migrations"
+      "migrations_dir": "node_modules/@eigeninteractive/server/migrations",
+      "migrations_pattern": "node_modules/@eigeninteractive/server/migrations/*/migration.sql"
     }
   ],
   "r2_buckets": [

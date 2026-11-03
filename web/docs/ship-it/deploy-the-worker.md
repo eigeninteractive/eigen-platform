@@ -60,7 +60,8 @@ Set `clientOrigins` only to replace that convention with multiple or
 non-standard browser origins. Add `BOT_SIGNING_SECRET` to enable external bots.
 
 You do **not** write D1 migrations. The engine owns its schema and ships them;
-you apply them at deploy. The per-game Durable Object schema self-applies. If you
+you apply them at deploy using the engine's `migrations_dir` and
+`migrations_pattern` in the D1 binding. The per-game Durable Object schema self-applies. If you
 need your own app-specific tables, that is a *separate* D1 database with its own
 migrations, never the engine's.
 

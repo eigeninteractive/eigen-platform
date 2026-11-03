@@ -5,7 +5,12 @@ import { defineConfig } from "vitest/config";
 // Pure rules tests live under test/unit/ and run in Node via
 // vitest.unit.config.mts; see the `test` script.
 export default defineConfig(async () => {
-  const migrations = await readD1Migrations(new URL("./node_modules/@eigeninteractive/server/migrations", import.meta.url).pathname);
+  const migrationsDir = "node_modules/@eigeninteractive/server/migrations";
+  const migrations = await readD1Migrations({
+    projectPath: new URL(".", import.meta.url).pathname,
+    migrationsDir,
+    migrationsPattern: `${migrationsDir}/*/migration.sql`,
+  });
   return {
     plugins: [
       cloudflareTest({

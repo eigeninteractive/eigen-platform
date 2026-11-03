@@ -33,9 +33,16 @@ export default createEngine({
 client. Set `clientOrigins` only when a deployment needs multiple or
 non-standard browser origins.
 
-Ships the engine's D1 migrations under `migrations/`; point your
-`migrations_dir` at `node_modules/@eigeninteractive/server/migrations` and apply them with
-`wrangler d1 migrations apply`. You never author them.
+Ships the engine's D1 migrations under `migrations/`. Configure the D1 binding
+in `wrangler.jsonc` to discover Drizzle Kit's nested migration folders:
+
+```jsonc
+"migrations_dir": "node_modules/@eigeninteractive/server/migrations",
+"migrations_pattern": "node_modules/@eigeninteractive/server/migrations/*/migration.sql"
+```
+
+Apply them with `wrangler d1 migrations apply`. You never author them. The
+per-game Durable Object migrations are bundled and self-apply on activation.
 
 ## Documentation
 
