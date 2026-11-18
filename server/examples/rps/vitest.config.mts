@@ -7,7 +7,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig(async () => {
   const migrationsDir = "node_modules/@eigeninteractive/server/migrations";
   const migrations = await readD1Migrations({
-    projectPath: new URL(".", import.meta.url).pathname,
+    projectPath: import.meta.dirname,
     migrationsDir,
     migrationsPattern: `${migrationsDir}/*/migration.sql`,
   });

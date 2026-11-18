@@ -19,7 +19,7 @@
  * bound parameters.
  */
 
-import { and, asc, desc, eq, getColumns, gt, inArray, max, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getColumns, gt, inArray, max, or } from "drizzle-orm";
 import { encodeCursor } from "../cursor.js";
 import { samePair } from "./blocks.js";
 import { orm } from "./orm.js";
@@ -117,7 +117,7 @@ export async function readAccountSync(d1: D1Database, userId: string, finishedAf
     // the game's own revision is also called `seq` and D1 keys its rows by
     // column name: two `seq` columns in one join would arrive as one.
     db
-      .select({ ...getColumns(games), finishSeq: sql<number>`${gameFinishes.seq}`.as("finish_seq") })
+      .select({ ...getColumns(games), finishSeq: gameFinishes.seq.as("finish_seq") })
       .from(games)
       .innerJoin(gameFinishes, eq(gameFinishes.gameId, games.id))
       .where(inArray(games.id, finishedIds))

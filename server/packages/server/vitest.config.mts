@@ -6,7 +6,7 @@ import { defineConfig } from "vitest/config";
 // isolate by test/apply-migrations.ts.
 export default defineConfig(async () => {
   const migrations = await readD1Migrations({
-    projectPath: new URL(".", import.meta.url).pathname,
+    projectPath: import.meta.dirname,
     migrationsDir: "migrations",
     migrationsPattern: "migrations/*/migration.sql",
   });
