@@ -1,5 +1,17 @@
 # @eigeninteractive/server
 
+## 0.13.0
+
+### Minor Changes
+
+- [#157](https://github.com/eigeninteractive/eigen-platform/pull/157) [`f8820e7`](https://github.com/eigeninteractive/eigen-platform/commit/f8820e7bc5dd4bb62168fc17ea4bdcef4f9829ca) Thanks [@seenu-k](https://github.com/seenu-k)! - Adopt Drizzle ORM and Kit 1.0.0-rc.5 with fresh D1 and SQLite Durable Object migration baselines. Use table-level snake-case naming and explicit primary-key nullability. Wrangler and the scaffolder consume the nested D1 migrations directly; disposable development databases must be recreated, with no legacy migration adapter.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.13.0
+  - @eigeninteractive/rules@0.13.0
+
 ## 0.12.2
 
 ### Patch Changes
