@@ -1,7 +1,7 @@
 # Upstream blockers
 
 Limitations that still require a compatibility choice in the platform.
-Last general review: **2026-11-02**; Drizzle migration checked **2026-11-04**.
+Last general review: **2026-11-02**; Drizzle migration checked **2026-11-18**.
 See [the dependency review](dependency-review-2026-11-02.md).
 
 ## Android built-in Kotlin and new DSL
@@ -85,15 +85,19 @@ References: [tsdown 0.23.3](https://github.com/rolldown/tsdown/releases/tag/v0.2
 
 ## Development-tool audit findings
 
-**Status:** Stable owners still constrain affected dependencies. After compatible
-transitive refreshes, `pnpm audit` reports three root findings (2 moderate,
-1 low), zero server findings after the Drizzle v1 migration, and sixteen web
-findings (2 critical, 7 high, 5 moderate, 2 low).
+**Status:** Stable owners still constrain affected dependencies. The November 2
+review recorded three root findings (2 moderate, 1 low) and sixteen web findings
+(2 critical, 7 high, 5 moderate, 2 low). The Drizzle migration cleared the
+server's old loader finding; the November 18 server audit reports one high
+finding in development tooling's `picomatch` 4.0.7. That advisory was reviewed
+on November 17 and lists no patched version. The root and web counts have not
+been re-audited as part of this migration.
 Counts are advisory counts, not distinct packages or deployed vulnerabilities.
 
 | Owner | Remaining dependency | Why the update stops here |
 | --- | --- | --- |
 | Workbox 7.4.1 | glob 11/minimatch 10 and deepmerge 4.3.1 | The patched glob/minimatch need new major ranges; deepmerge has no patched stable release. A compatible root refresh does not clear these new advisories. |
+| Vitest, Vite, tsdown and Changesets | picomatch 4.0.7 | [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) lists no patched release. This is a development-tool graph finding, independent of Drizzle's removed loader. |
 | Docusaurus 3.10.2 and its bundler/dev server | tinypool 1.1.1, serialize-javascript 6.0.2, uuid 8.3.2 | Fixes need new major ranges from their owners. Docusaurus 4 remains canary. |
 | docusaurus-plugin-llms 0.6.1 | minimatch 9.0.3, yaml 2.8.1 | The latest plugin pins these versions exactly. |
 | OpenAPI docs 5.2.0 / Postman converter | yaml 1.10.2, js-yaml 4.3.0, older Faker | The latest supported owner graph still selects the affected versions. |
@@ -108,6 +112,13 @@ natively. There is no old-format migration adapter or existing-database upgrade
 path: disposable development databases must be recreated for this baseline.
 See [the v1 upgrade](https://orm.drizzle.team/docs/upgrade-v1) and
 [RC5 changes](https://orm.drizzle.team/docs/latest-releases/drizzle-orm-v1rc5).
+
+Text primary keys declare `.notNull()` on the column and `primaryKey(...)` in
+the table constraints. Kit RC5 otherwise discards NOT NULL on inline primary
+keys ([upstream issue](https://github.com/drizzle-team/drizzle-orm/issues/6165)).
+This uses supported schema declarations; generated SQL and dependency sources
+remain untouched. Real D1 and DO tests verify null-key rejection and transaction
+rollback.
 
 Joi is no longer held: refreshing the owner's compatible range selects 17.13.9,
 which fixes the email-validation denial of service. Its high advisory is gone.
