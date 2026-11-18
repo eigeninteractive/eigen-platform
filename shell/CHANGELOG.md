@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.8.1] - 2026-11-18
+### Changed
+- Require the release of its sibling packages in this version.
+
 ## [0.8.0] - 2026-10-29
 ### Fixed
 - Show actionable game connection failures; update navigation, image cropper and Play Billing dependencies.
@@ -90,6 +94,7 @@ the lower package reusable beneath an application-owned root.
 - Own account orchestration, profiles, friends, ratings, product persistence,
 app startup, navigation, and all first-party screens and platform plugins.
 
+[0.8.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.8.0...eigen_shell-v0.8.1
 [0.8.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.7.3...eigen_shell-v0.8.0
 [0.7.3]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.7.2...eigen_shell-v0.7.3
 [0.7.2]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_shell-v0.7.1...eigen_shell-v0.7.2
