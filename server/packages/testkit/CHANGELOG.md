@@ -1,5 +1,13 @@
 # @eigeninteractive/testkit
 
+## 0.13.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @eigeninteractive/kernel@0.13.0
+  - @eigeninteractive/rules@0.13.0
+
 ## 0.12.2
 
 ### Patch Changes
