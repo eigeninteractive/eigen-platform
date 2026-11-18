@@ -130,11 +130,11 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
 
   constructor(ctx: DurableObjectState, env: TEnv) {
     super(ctx, env);
-    this.#db = drizzle(ctx.storage, { casing: "snake_case" });
+    this.#db = drizzle(ctx.storage);
     // Schema is engine-owned and self-applying: every activation (including
     // a finished game woken years later) migrates itself before any event.
     ctx.blockConcurrencyWhile(async () => {
-      await migrate(this.#db, migrations);
+      migrate(this.#db, migrations);
     });
     ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
   }
@@ -336,7 +336,9 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     // the same value; the actor's copy is also the command response.
     const header = this.#header(meta, { status, players: nextRoster, seq, version: null });
     const response: CommandResult = { ok: true, session: { ...header, frame: null } };
-    this.#db.transaction((tx) => {
+    // durable-sqlite transactions are synchronous; write failures throw here
+    // and abort the command before any post-commit effects.
+    void this.#db.transaction((tx) => {
       tx.delete(t.roster).run();
       for (const seat of nextRoster) {
         tx.insert(t.roster).values({ playerIndex: seat.playerIndex, userId: seat.userId, botId: seat.botId, type: seat.type }).run();
@@ -404,7 +406,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
   #commitAbort(meta: MetaRow): SessionSnapshot {
     const seq = meta.status === "aborted" ? meta.seq : meta.seq + 1;
     const session = { ...this.#header(meta, { status: "aborted", players: [], seq, version: null }), frame: null };
-    this.#db.transaction((tx) => {
+    void this.#db.transaction((tx) => {
       if (meta.status !== "aborted") {
         tx.update(t.meta).set({ status: "aborted", seq }).where(eq(t.meta.id, 1)).run();
       }
@@ -554,7 +556,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const recipientSeat = this.#recipientSeat(cmd, roster);
     const response: CommandResult = { ok: true, session: { ...header, frame: recipientSeat === null ? null : (wireFrames.get(recipientSeat) ?? null) } };
 
-    this.#db.transaction((tx) => {
+    void this.#db.transaction((tx) => {
       tx.insert(t.transitions)
         .values({
           version: next.version,
@@ -832,7 +834,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
    * nothing can have moved the chain since the finish committed. */
   #commitRatingsTransition(meta: MetaRow, roster: Seat[], finalState: StateRow, deltas: RatingDelta[] | null): void {
     if (deltas === null) {
-      this.#db.transaction((tx) => {
+      void this.#db.transaction((tx) => {
         tx.delete(t.frames).run();
         tx.delete(t.outbox).run();
       });
@@ -843,7 +845,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
     const action: TransitionAction = { type: "system", kind: "ratings", data: { deltas }, playerIndex: null };
     const frames = this.#project(meta, roster, finalState.state, [], null, false);
     const seq = this.#meta().seq + 1;
-    this.#db.transaction((tx) => {
+    void this.#db.transaction((tx) => {
       tx.update(t.meta).set({ seq }).where(eq(t.meta.id, 1)).run();
       tx.insert(t.transitions).values({ version, state: finalState.state, action, pending: [], deadline: null, playerTimes: null, turnStartedAt: null }).run();
       // Uniform like every transition, and drained one statement later by
@@ -1256,7 +1258,7 @@ export abstract class BaseGameDO<TEnv> extends DurableObject<TEnv> implements Ga
         found = false;
         return;
       }
-      this.#db.transaction((tx) => {
+      void this.#db.transaction((tx) => {
         tx.insert(t.meta)
           .values({
             id: 1,

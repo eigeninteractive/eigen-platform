@@ -19,7 +19,7 @@
   "devDependencies": {
     "@eigeninteractive/testkit": "workspace:*",
     "@types/node": "^26.6.6",
-    "drizzle-orm": "^0.45.4"
+    "drizzle-orm": "1.0.0-rc.5"
   },
   "dependencies": {
     "@eigeninteractive/rules": "workspace:*",

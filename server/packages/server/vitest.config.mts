@@ -5,7 +5,11 @@ import { defineConfig } from "vitest/config";
 // SQLite). D1 migrations are injected as a binding and applied once per
 // isolate by test/apply-migrations.ts.
 export default defineConfig(async () => {
-  const migrations = await readD1Migrations(new URL("./migrations", import.meta.url).pathname);
+  const migrations = await readD1Migrations({
+    projectPath: import.meta.dirname,
+    migrationsDir: "migrations",
+    migrationsPattern: "migrations/*/migration.sql",
+  });
   return {
     plugins: [
       cloudflareTest({

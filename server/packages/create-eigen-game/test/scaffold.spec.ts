@@ -72,6 +72,8 @@ describe("scaffoldGame", () => {
     expect(worker).not.toContain("clientOrigins:");
     expect(worker).not.toContain("interface Env");
     expect(wrangler).toContain('"binding": "GAME_DB"');
+    expect(wrangler).toContain('"migrations_dir": "node_modules/@eigeninteractive/server/migrations"');
+    expect(wrangler).toContain('"migrations_pattern": "node_modules/@eigeninteractive/server/migrations/*/migration.sql"');
     expect(wrangler).toContain('"WEB_APP_ORIGIN": "http://localhost:7357"');
     expect(wrangler).toContain('"binding": "ASSETS"');
     expect(wrangler).toContain('"not_found_handling": "single-page-application"');

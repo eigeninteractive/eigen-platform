@@ -34,7 +34,7 @@ for the complete setup.
 | Kind | Name | Required | What it enables |
 |---|---|---|---|
 | Durable Object | `GameDO` (SQLite storage, via the `exports` field) | **yes** | The per-game session + history |
-| D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. `migrations_dir` points at `node_modules/@eigeninteractive/server/migrations` |
+| D1 database | any binding | **yes** | Identity, social, bots, ratings, summaries. Uses the engine's migration directory and pattern below |
 | Cron trigger | daily | **yes** in practice | The guest purge, abandoned-game reap, and read-model reconciliation. Without it those three backstops never run |
 | Assets | `ASSETS` → `./public` | **yes for web** | Flutter bundle, served directly unless a path is in `run_worker_first` |
 | R2 bucket | any binding | optional | Avatar uploads (`avatars` config block) |
@@ -44,6 +44,17 @@ for the complete setup.
 | Secret | `SOCKET_TICKET_SECRET` | **yes** | Signs the 60-second game-scoped credentials used by WebSocket upgrades; at least 32 characters |
 | Secret | `BOT_SIGNING_SECRET` | optional | External bots (the per-bot HMAC is derived from it) |
 | Secret | `OPS_TOKEN` | optional | The operator surface (`/api/ops`). Unset ⇒ every route there answers 404 |
+
+Set both fields on the engine's D1 binding in `wrangler.jsonc`. Wrangler reads
+Drizzle Kit's nested migration folders directly:
+
+```jsonc
+"migrations_dir": "node_modules/@eigeninteractive/server/migrations",
+"migrations_pattern": "node_modules/@eigeninteractive/server/migrations/*/migration.sql"
+```
+
+Apply them with `wrangler d1 migrations apply` before deploying the Worker.
+The generated scaffold already includes these fields and deploy command.
 
 The entries under `wrangler.jsonc` → `vars` are Worker environment variables,
 not TypeScript constants. They are used locally and uploaded with every

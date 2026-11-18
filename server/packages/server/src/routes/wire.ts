@@ -2,7 +2,7 @@
  * The wire vocabulary: zod schemas for every request and response body, and
  * the D1-row → wire projections. camelCase on the wire throughout, matching
  * the engine's TypeScript and the client's Dart; the D1 columns stay
- * snake_case behind the ORM (`casing: "snake_case"`). The OpenAPI document is
+ * snake_case in the table definitions. The OpenAPI document is
  * generated from exactly these schemas and vendored into the Dart repo.
  *
  * Leak-test discipline: no projection here ever touches a state field. Raw
