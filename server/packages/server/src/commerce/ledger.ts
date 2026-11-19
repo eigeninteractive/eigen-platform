@@ -1,4 +1,4 @@
-import { and, eq, exists, isNull, lte, notInArray, sql } from "drizzle-orm";
+import { and, eq, exists, isNull, lte, ne, notInArray, sql } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { isUniqueViolation } from "../d1/errors.js";
 import { orm } from "../d1/orm.js";
@@ -69,18 +69,20 @@ export async function readProviderAccount(d1: D1Database, provider: string, acco
 
 /** Persist a verified provider customer binding without permitting rebinding. */
 export async function recordProviderAccount(d1: D1Database, provider: string, accountId: string, providerAccountId: string, now: number): Promise<void> {
-  const existing = await readProviderAccount(d1, provider, accountId);
-  if (existing !== undefined && existing !== providerAccountId) {
-    throw new HttpError(409, "This account is already associated with another provider customer", "purchaseConflict");
-  }
   try {
-    await orm(d1)
+    const bound = await orm(d1)
       .insert(commerceProviderAccounts)
       .values({ id: crypto.randomUUID(), provider, userId: accountId, providerAccountId, createdAt: now, updatedAt: now })
       .onConflictDoUpdate({
         target: [commerceProviderAccounts.provider, commerceProviderAccounts.userId],
         set: { updatedAt: now },
-      });
+        setWhere: eq(commerceProviderAccounts.providerAccountId, providerAccountId),
+      })
+      .returning({ id: commerceProviderAccounts.id })
+      .get();
+    if (bound === undefined) {
+      throw new HttpError(409, "This account is already associated with another provider customer", "purchaseConflict");
+    }
   } catch (error) {
     if (!isUniqueViolation(error)) throw error;
     const raced = await readProviderAccount(d1, provider, accountId);
@@ -103,6 +105,8 @@ export async function recordVerifiedTransaction(
      * is only right when nothing could have raced the read. */
     observedAt?: number;
     reconciled?: boolean;
+    /** A client claim needs a known owner when it relies on a replaced purchase. */
+    clientClaim?: boolean;
   },
   allowRaceRetry = true,
 ): Promise<CommerceTransactionReference> {
@@ -168,6 +172,9 @@ export async function recordVerifiedTransaction(
     throw new HttpError(409, "The provider customer changed account identity", "purchaseConflict");
   }
   const replaced = await readReplaced(d1, input.provider, input.transaction);
+  if (input.clientClaim === true && input.transaction.providerAccountId === undefined && input.transaction.replacesProviderTransactionId !== undefined && existing === undefined && replaced?.userId !== input.accountId) {
+    throw new HttpError(409, "This purchase has no linked transaction on your account", "purchaseConflict");
+  }
   // A purchase that replaced someone else's carries that subscription's
   // history, and only an account the provider names can take it over: a
   // resubscription that names nobody stays with the account it continues.
@@ -178,6 +185,8 @@ export async function recordVerifiedTransaction(
   const transactionId = existing?.id ?? crypto.randomUUID();
   const revision = crypto.randomUUID();
   const active = isServing(input.transaction.state);
+  const oneTime = input.transaction.kind === "oneTime";
+  const finalRevocation = oneTime && input.transaction.state === "revoked";
   const acknowledgementState = existing?.acknowledgementState === "acknowledged" ? "acknowledged" : active && input.transaction.requiresAcknowledgement === true ? "pending" : "notRequired";
   const sealedProviderState = input.transaction.sealedProviderState ?? existing?.sealedProviderState ?? null;
   const transactionWrite =
@@ -216,18 +225,18 @@ export async function recordVerifiedTransaction(
             // acknowledgement that landed since the read must not be undone.
             acknowledgementState: sql`case when ${commerceTransactions.acknowledgementState} = 'acknowledged' then 'acknowledged' else ${acknowledgementState} end`,
             ...(input.reconciled === true ? { lastReconciledAt: input.now } : {}),
-            // A webhook or a claim that lands on a row the sweep had given up
-            // on is current provider truth, so the row rejoins the sweep.
-            reconcileFailures: 0,
-            reconcileError: null,
-            observedAt,
+            // A sweep clears its failures only after acknowledgement succeeds.
+            // A webhook or claim can clear backoff before the next sweep.
+            ...(input.reconciled === true ? {} : { reconcileFailures: 0, reconcileError: null }),
+            observedAt: sql`max(${commerceTransactions.observedAt}, ${observedAt})`,
             revision,
             updatedAt: input.now,
           })
-          // Only over an older observation. Two verifications of one purchase
-          // can finish in either order, and the provider's later answer is the
-          // one that must stand.
-          .where(and(eq(commerceTransactions.id, transactionId), lte(commerceTransactions.observedAt, observedAt)));
+          // A one-time revocation is final for that transaction identity.
+          // Play can report PURCHASED even after a void notification and a
+          // restore or sweep must never regrant that purchase. Put the guard
+          // in the update so an overlapping claim also cannot undo a refund.
+          .where(and(eq(commerceTransactions.id, transactionId), finalRevocation ? undefined : lte(commerceTransactions.observedAt, observedAt), oneTime && !finalRevocation ? ne(commerceTransactions.state, "revoked") : undefined));
 
   // Everything after the row's write restates its guard: a batch statement
   // that matches nothing does not fail the batch, so a write that lost the

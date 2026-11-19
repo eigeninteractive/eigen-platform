@@ -12,6 +12,7 @@
  * assume about whatever comes back.
  */
 
+import { base64url, CompactEncrypt } from "jose";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { googlePlayCommerceProvider } from "../src/commerce/providers/google-play.js";
 import { razorpayCommerceProvider } from "../src/commerce/providers/razorpay.js";
@@ -19,6 +20,17 @@ import { stripeCommerceProvider } from "../src/commerce/providers/stripe.js";
 import type { CommerceProvider, VerifiedCommerceTransaction } from "../src/commerce/types.js";
 
 const NOW = 1_700_000_000_000;
+const playTokenKey = new Uint8Array(32).fill(11);
+
+async function playReference(token: string): Promise<ParityCase["references"][number]> {
+  const bytes = new TextEncoder().encode(token);
+  return {
+    providerTransactionId: base64url.encode(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))),
+    providerReference: "supporter_once",
+    kind: "oneTime",
+    sealedProviderState: await new CompactEncrypt(bytes).setProtectedHeader({ alg: "dir", enc: "A256GCM" }).encrypt(playTokenKey),
+  };
+}
 
 /** A secret each adapter is configured with, so a failure can be checked for
  * having leaked it. Distinct per adapter so a match cannot be coincidence. */
@@ -75,6 +87,7 @@ async function cases(): Promise<Record<string, ParityCase>> {
         packageName: () => "com.example.game",
         serviceAccountEmail: () => "svc@example.iam.gserviceaccount.com",
         serviceAccountPrivateKey: () => key,
+        purchaseTokenKey: () => base64url.encode(playTokenKey),
         now: () => NOW,
       }),
       routes: {
@@ -96,10 +109,7 @@ async function cases(): Promise<Record<string, ParityCase>> {
         },
       },
       claim: { evidence: { purchaseToken: "tok_a" }, providerReference: "supporter_once" },
-      references: [
-        { providerTransactionId: "tok_a", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ kind: "oneTime", token: "tok_a" }) },
-        { providerTransactionId: "tok_b", providerReference: "supporter_once", kind: "oneTime", sealedProviderState: JSON.stringify({ kind: "oneTime", token: "tok_b" }) },
-      ],
+      references: await Promise.all(["tok_a", "tok_b"].map(playReference)),
       failingPath: "/androidpublisher/v3/applications/com.example.game/purchases/productsv2/tokens/tok_a",
       supports: { checkout: false, management: false, webhook: true },
     },

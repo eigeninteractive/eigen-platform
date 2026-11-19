@@ -1,9 +1,12 @@
-import { and, asc, eq, gte, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, lt, lte, or, sql } from "drizzle-orm";
 import { orm } from "../d1/orm.js";
 import { commerceTransactions } from "../d1/schema.js";
 import { recordVerifiedTransaction } from "./ledger.js";
 import { acknowledgeIfNeeded } from "./provider-lifecycle.js";
 import type { CommerceProvider, ResolvedCommerce } from "./types.js";
+
+export const RECONCILE_FAILURE_THRESHOLD = 10;
+const STALLED_RETRY_DELAY_MS = 24 * 60 * 60 * 1000;
 
 /** Operator-facing text only. Adapters must keep tokens out of error messages,
  * and the length cap keeps a runaway provider message out of the row. */
@@ -40,6 +43,7 @@ async function clearFailure(d1: D1Database, id: string, now: number): Promise<vo
 
 async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: unknown, adapter: CommerceProvider<unknown>): Promise<void> {
   const db = orm(d1);
+  const now = commerce.now();
   const rows: SweepRow[] = await db
     .select({
       id: commerceTransactions.id,
@@ -55,7 +59,7 @@ async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: un
       and(
         eq(commerceTransactions.provider, adapter.key),
         isNotNull(commerceTransactions.userId),
-        lt(commerceTransactions.reconcileFailures, commerce.reconcileMaxFailures),
+        or(lt(commerceTransactions.reconcileFailures, RECONCILE_FAILURE_THRESHOLD), lte(commerceTransactions.reconcileAttemptedAt, now - STALLED_RETRY_DELAY_MS)),
         or(inArray(commerceTransactions.state, ["pending", "grace"]), and(eq(commerceTransactions.kind, "subscription"), eq(commerceTransactions.state, "active")), eq(commerceTransactions.acknowledgementState, "pending")),
       ),
     )
@@ -66,7 +70,6 @@ async function sweepProvider(d1: D1Database, commerce: ResolvedCommerce, env: un
     .all();
   if (rows.length === 0) return;
 
-  const now = commerce.now();
   // Liveness, and before the provider is called at all: whatever happens next
   // -- an outage, a throw, a transaction this provider will never answer for
   // again -- these rows have had their turn and the next sweep moves past them.
@@ -157,8 +160,8 @@ export async function reconcileCommerce(d1: D1Database, commerce: ResolvedCommer
   }
 }
 
-/** Transactions the sweep has given up on, newest failure first. */
-export async function stalledTransactions(d1: D1Database, commerce: ResolvedCommerce, limit = 100): Promise<{ provider: string; providerTransactionId: string; offerKey: string; state: string; failures: number; error: string | null; attemptedAt: number | null; reconciledAt: number | null }[]> {
+/** Transactions in backoff, newest attempt first. */
+export async function stalledTransactions(d1: D1Database, limit = 100): Promise<{ provider: string; providerTransactionId: string; offerKey: string; state: string; failures: number; error: string | null; attemptedAt: number | null; reconciledAt: number | null }[]> {
   return await orm(d1)
     .select({
       provider: commerceTransactions.provider,
@@ -171,8 +174,8 @@ export async function stalledTransactions(d1: D1Database, commerce: ResolvedComm
       reconciledAt: commerceTransactions.lastReconciledAt,
     })
     .from(commerceTransactions)
-    .where(gte(commerceTransactions.reconcileFailures, commerce.reconcileMaxFailures))
-    .orderBy(asc(commerceTransactions.reconcileAttemptedAt))
+    .where(gte(commerceTransactions.reconcileFailures, RECONCILE_FAILURE_THRESHOLD))
+    .orderBy(desc(commerceTransactions.reconcileAttemptedAt))
     .limit(limit)
     .all();
 }

@@ -564,6 +564,9 @@ final class AccountReplica {
   /// included: what deleting the account does.
   Future<void> deleteAll() => _db.transaction(() async {
     await (_db.delete(
+      _db.commerceDeliveries,
+    )..where((row) => row.accountId.equals(accountId))).go();
+    await (_db.delete(
       _db.participants,
     )..where((row) => row.accountId.equals(accountId))).go();
     await (_db.delete(

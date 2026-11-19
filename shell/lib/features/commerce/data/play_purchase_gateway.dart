@@ -291,10 +291,14 @@ class PlayPurchaseGateway implements PurchaseGateway {
       _live[token] = details;
     }
     return PurchaseUpdate(
-      // Play's order id is the transaction's public identity, and the one the
-      // Worker records. It is absent until a pending purchase completes, and
-      // the token is the only stable handle before then.
+      // A paid callback has an order id. A pending callback still has a
+      // token, which is the only identity Play can give it at that point.
       deliveryId: details.purchaseID ?? token,
+      accountId: switch (details) {
+        GooglePlayPurchaseDetails(:final billingClientPurchase) =>
+          billingClientPurchase.obfuscatedAccountId,
+        _ => null,
+      },
       // The storefront knows the product, not the offer, and for a
       // subscription not even the base plan. `CommerceService` resolves an
       // offer against the catalog through [covers], and the Worker records the

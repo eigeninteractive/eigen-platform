@@ -172,9 +172,5 @@ export function resolveCommerce<TEnv>(config: CommerceConfig<TEnv>): ResolvedCom
   if (!Number.isSafeInteger(reconcileBatch) || reconcileBatch < 1 || reconcileBatch > 1000) {
     throw new Error("createEngine: commerce.reconcileBatch must be an integer from 1 to 1000");
   }
-  const reconcileMaxFailures = config.reconcileMaxFailures ?? 10;
-  if (!Number.isSafeInteger(reconcileMaxFailures) || reconcileMaxFailures < 1 || reconcileMaxFailures > 100) {
-    throw new Error("createEngine: commerce.reconcileMaxFailures must be an integer from 1 to 100");
-  }
-  return { catalog, providers, now: config.now ?? Date.now, reconcileBatch, reconcileMaxFailures };
+  return { catalog, providers, now: config.now ?? Date.now, reconcileBatch };
 }

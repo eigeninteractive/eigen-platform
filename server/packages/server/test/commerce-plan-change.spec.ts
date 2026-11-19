@@ -17,6 +17,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 import { readEffectiveAccess } from "../src/commerce/access.js";
 import { resolveCommerce } from "../src/commerce/catalog.js";
+import { assertPurchasable } from "../src/commerce/checkout.js";
 import { recordVerifiedEvent, recordVerifiedTransaction } from "../src/commerce/ledger.js";
 import { reconcileCommerce } from "../src/commerce/reconcile.js";
 import type { CommerceCatalog, VerifiedCommerceTransaction } from "../src/commerce/types.js";
@@ -267,9 +268,33 @@ describe("two verifications of one purchase racing", () => {
   });
 });
 
+it("only attributes a claim without a provider account to a known linked owner", async () => {
+  const owner = await account("linked-owner");
+  const stranger = await account("linked-stranger");
+  const replaced = crypto.randomUUID();
+  const replacement = subscription(crypto.randomUUID(), "pro:monthly", { replacesProviderTransactionId: replaced });
+  const claim = async (accountId: string) => await recordVerifiedTransaction(env.DB, { catalog, provider: KEY, accountId, transaction: replacement, now: Date.now(), clientClaim: true });
+
+  await expect(claim(owner)).rejects.toThrow(/no linked transaction/);
+  await record(owner, subscription(replaced, "pro:monthly"));
+  await expect(claim(stranger)).rejects.toThrow(/no linked transaction/);
+  await claim(owner);
+  expect(await row(replacement.providerTransactionId)).toMatchObject({ userId: owner, state: "active" });
+});
+
 describe("a product the catalog stopped selling", () => {
   const retired: CommerceCatalog = { ...catalog, offers: catalog.offers.filter((offer) => offer.key !== "supporter") };
   const oneTime = (orderId: string, state: VerifiedCommerceTransaction["state"]): VerifiedCommerceTransaction => ({ providerTransactionId: orderId, providerReference: "supporter_once", kind: "oneTime", state, purchasedAt: Date.now(), validFrom: Date.now() });
+
+  it("blocks a second hosted checkout for the same logical offer bought through another store", async () => {
+    const accountId = await account("cross-store");
+    await record(accountId, oneTime(crypto.randomUUID(), "active"));
+    const [offer] = catalog.offers.filter((entry) => entry.key === "supporter");
+    if (offer === undefined) throw new Error("missing supporter offer");
+    const hosted = { ...offer, providerReferences: { stripe: "price_supporter" } };
+    await expect(assertPurchasable(env.DB, accountId, hosted)).rejects.toThrow(/already has this non-repeatable purchase/);
+    await expect(assertPurchasable(env.DB, accountId, { ...hosted, repeatable: true })).resolves.toBeUndefined();
+  });
 
   it("still takes its refund, and revokes what it granted", async () => {
     const accountId = await account("refund-retired");
@@ -281,6 +306,22 @@ describe("a product the catalog stopped selling", () => {
     const transactionId = (await row(orderId))?.id as string;
     const grants = await db.select().from(entitlementGrants).where(eq(entitlementGrants.sourceTransactionId, transactionId)).all();
     expect(grants.every((grant) => grant.revokedAt !== null)).toBe(true);
+  });
+
+  it("keeps a refunded one-time transaction revoked across conflicting reads", async () => {
+    const accountId = await account("restore-after-refund");
+    const orderId = crypto.randomUUID();
+    const now = Date.now();
+    const apply = async (state: VerifiedCommerceTransaction["state"], observedAt: number) => await recordVerifiedTransaction(env.DB, { catalog, provider: KEY, accountId, transaction: oneTime(orderId, state), now, observedAt });
+
+    await apply("active", now);
+    // A refund notification can begin before a newer read of the same Play
+    // token, whose API resource may still report PURCHASED.
+    await apply("revoked", now - 1);
+    await apply("active", now + 1);
+
+    expect(await row(orderId)).toMatchObject({ state: "revoked" });
+    expect(await entitlementKeys(accountId)).toEqual([]);
   });
 
   it("refuses to grant it anew, or to anyone new", async () => {

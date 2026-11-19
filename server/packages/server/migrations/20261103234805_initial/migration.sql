@@ -29,7 +29,10 @@ CREATE TABLE `commerce_checkout_operations` (
 	`operation_id` text NOT NULL,
 	`offer_key` text NOT NULL,
 	`fingerprint` text NOT NULL,
-	`checkout_url` text NOT NULL,
+	`reserved_offer_key` text,
+	`request` text NOT NULL,
+	`result` text,
+	`lease_until` integer,
 	`expires_at` integer NOT NULL,
 	`created_at` integer NOT NULL
 );
@@ -223,6 +226,7 @@ CREATE UNIQUE INDEX `idx_commerce_capacity_slot` ON `commerce_capacity` (`user_i
 CREATE UNIQUE INDEX `idx_commerce_capacity_game` ON `commerce_capacity` (`game_id`);--> statement-breakpoint
 CREATE INDEX `idx_commerce_capacity_user` ON `commerce_capacity` (`user_id`,`metric`);--> statement-breakpoint
 CREATE UNIQUE INDEX `idx_commerce_checkout_operations_identity` ON `commerce_checkout_operations` (`provider`,`user_id`,`operation_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_commerce_checkout_operations_slot` ON `commerce_checkout_operations` (`user_id`,`reserved_offer_key`);--> statement-breakpoint
 CREATE UNIQUE INDEX `idx_commerce_events_provider_id` ON `commerce_events` (`provider`,`provider_event_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `idx_commerce_provider_accounts_user` ON `commerce_provider_accounts` (`provider`,`user_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `idx_commerce_provider_accounts_provider_id` ON `commerce_provider_accounts` (`provider`,`provider_account_id`);--> statement-breakpoint

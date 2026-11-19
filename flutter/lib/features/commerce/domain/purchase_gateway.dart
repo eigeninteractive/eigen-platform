@@ -50,6 +50,7 @@ enum PurchaseUpdateState { pending, purchased, restored, cancelled, failed }
 class PurchaseUpdate {
   const PurchaseUpdate({
     this.deliveryId,
+    this.accountId,
     required this.offerKey,
     required this.providerReference,
     required this.state,
@@ -59,6 +60,12 @@ class PurchaseUpdate {
 
   /// Stable provider delivery identity, required for completed updates.
   final String? deliveryId;
+
+  /// The Eigen account on the storefront's purchase, when available.
+  ///
+  /// Used to route callbacks on a shared device. The Worker independently
+  /// verifies ownership before granting access.
+  final String? accountId;
   final String offerKey;
   final String providerReference;
   final PurchaseUpdateState state;

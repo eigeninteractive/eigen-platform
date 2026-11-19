@@ -43,17 +43,6 @@ const subscription = (status: string) => ({
   items: { data: [{ price: { id: "price_pro" }, current_period_start: 1_699_000_000, current_period_end: 1_701_000_000 }] },
 });
 
-/** Before Basil, the same period sat on the subscription itself. */
-const legacySubscription = (status: string) => ({
-  id: "sub_1",
-  status,
-  customer: "cus_1",
-  start_date: 1_699_000_000,
-  current_period_start: 1_699_000_000,
-  current_period_end: 1_701_000_000,
-  items: { data: [{ price: { id: "price_pro" } }] },
-});
-
 afterEach(() => vi.unstubAllGlobals());
 
 describe("stripe subscriptions", () => {
@@ -73,11 +62,8 @@ describe("stripe subscriptions", () => {
     expect(verified?.[0]?.providerAccountId).toBe("cus_1");
   });
 
-  it.each([
-    ["item-level, as Basil and later report it", subscription("active")],
-    ["subscription-level, as versions before Basil did", legacySubscription("active")],
-  ])("reads the billing period %s", async (_shape, body) => {
-    scriptFetch({ "/v1/subscriptions/sub_1": body });
+  it("reads the billing period from the purchased line item", async () => {
+    scriptFetch({ "/v1/subscriptions/sub_1": subscription("active") });
     const verified = await provider.reconcile?.(null, [{ providerTransactionId: "sub_1", accountId: "a", providerReference: "price_pro", kind: "subscription", acknowledgementPending: false }]);
     // Without this, validUntil is absent and the grant never expires: a
     // cancelled subscription would keep paying out forever.
@@ -103,11 +89,21 @@ describe("stripe subscriptions", () => {
     ]);
     expect(verified?.map((entry) => entry.providerTransactionId)).toEqual(["sub_1"]);
   });
+
+  it("refuses a subscription whose items represent more than one purchase", async () => {
+    const active = subscription("active");
+    const [item] = active.items.data;
+    scriptFetch({
+      "/v1/checkout/sessions/cs_sub": { id: "cs_sub", mode: "subscription", subscription: "sub_1", client_reference_id: "alice" },
+      "/v1/subscriptions/sub_1": { ...active, items: { data: [item, { ...item, price: { id: "price_other" }, current_period_end: 1_702_000_000 }] } },
+    });
+    await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_pro", evidence: { sessionId: "cs_sub" } })).rejects.toThrow(/exactly one unit/);
+  });
 });
 
 describe("stripe claims", () => {
-  it("refuses a session opened by another account", async () => {
-    scriptFetch({ "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: "someone-else", created: 1_699_000_000 } });
+  it.each(["someone-else", null])("refuses a session with account reference %s", async (account) => {
+    scriptFetch({ "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", payment_status: "paid", customer: "cus_1", subscription: null, client_reference_id: account, created: 1_699_000_000 } });
     await expect(provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } })).rejects.toThrow(ProviderRefusal);
   });
 
@@ -117,6 +113,33 @@ describe("stripe claims", () => {
     });
     const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
     expect(verified).toMatchObject({ providerTransactionId: "cs_1", providerReference: "price_supporter", kind: "oneTime", state: "active", providerAccountId: "cus_1" });
+  });
+
+  it("ends an unpaid purchase when its Checkout Session expires", async () => {
+    scriptFetch({
+      "/v1/checkout/sessions/cs_1": { id: "cs_1", mode: "payment", status: "expired", payment_status: "unpaid", customer: null, subscription: null, client_reference_id: "alice", created: 1_699_000_000, line_items: { data: [{ price: { id: "price_supporter" } }] } },
+    });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
+    expect(verified.state).toBe("expired");
+  });
+
+  it("ends a completed session whose delayed payment failed", async () => {
+    scriptFetch({
+      "/v1/checkout/sessions/cs_1": {
+        id: "cs_1",
+        mode: "payment",
+        status: "complete",
+        payment_status: "unpaid",
+        customer: "cus_1",
+        subscription: null,
+        client_reference_id: "alice",
+        created: 1_699_000_000,
+        line_items: { data: [{ price: { id: "price_supporter" } }] },
+        payment_intent: { id: "pi_failed", status: "requires_payment_method" },
+      },
+    });
+    const verified = await provider.verifyClaim(null, { accountId: "alice", expectedProviderReference: "price_supporter", evidence: { sessionId: "cs_1" } });
+    expect(verified.state).toBe("expired");
   });
 });
 
@@ -159,23 +182,31 @@ describe("stripe webhook signatures", () => {
 });
 
 describe("stripe checkout", () => {
-  it("sends the engine's operation identity as Stripe's idempotency key", async () => {
-    let seenKey: string | null = null;
+  it("scopes Stripe idempotency to the Eigen account and operation", async () => {
+    const seenKeys: (string | null)[] = [];
     let seenForm = "";
     vi.stubGlobal("fetch", async (request: Request) => {
-      seenKey = request.headers.get("idempotency-key");
+      seenKeys.push(request.headers.get("idempotency-key"));
       seenForm = await request.text();
       return new Response(JSON.stringify({ id: "cs_1", url: "https://checkout.stripe.com/c/pay/cs_1", customer: "cus_1", mode: "payment", payment_status: "unpaid", subscription: null, client_reference_id: "alice", created: 1, expires_at: 1_700_003_600 }), { headers: { "content-type": "application/json" } });
     });
-    const checkout = await provider.createCheckout?.(null, {
-      accountId: "alice",
-      offer: { key: "supporter", kind: "oneTime", name: "Supporter" } as never,
-      providerReference: "price_supporter",
-      returnUrl: "https://game.example/store",
-      operationId: "op-42",
-    });
-    expect(seenKey).toBe("op-42");
-    expect(seenForm).toContain("client_reference_id=alice");
+    const start = async (accountId: string) =>
+      await provider.createCheckout?.(null, {
+        accountId,
+        offer: { key: "supporter", kind: "oneTime", name: "Supporter" } as never,
+        providerReference: "price_supporter",
+        returnUrl: "https://game.example/store",
+        operationId: "op-42",
+        expiresAt: 1_700_003_600_000,
+      });
+    const checkout = await start("alice");
+    await start("alice");
+    await start("bob");
+    expect(seenKeys[0]).toMatch(/^[0-9a-f]{64}$/);
+    expect(seenKeys[1]).toBe(seenKeys[0]);
+    expect(seenKeys[2]).not.toBe(seenKeys[0]);
+    expect(seenForm).toContain("client_reference_id=bob");
+    expect(new URLSearchParams(seenForm).get("expires_at")).toBe("1700003600");
     expect(checkout).toMatchObject({ url: "https://checkout.stripe.com/c/pay/cs_1", providerAccountId: "cus_1" });
   });
 
@@ -195,6 +226,7 @@ describe("stripe checkout", () => {
       providerReference: "price_supporter",
       returnUrl: "https://game.example/store",
       operationId: "op-43",
+      expiresAt: 1_700_003_600_000,
     });
     const form = new URLSearchParams(seenForm);
     // Stripe substitutes this itself, so the braces have to survive encoding.
@@ -204,7 +236,7 @@ describe("stripe checkout", () => {
     expect(form.get("cancel_url")).toBe("https://game.example/store");
   });
 
-  it("keeps a return URL's own query when it appends the session id", async () => {
+  it("puts a single session id in the query before the return URL fragment", async () => {
     let seenForm = "";
     vi.stubGlobal("fetch", async (request: Request) => {
       seenForm = await request.text();
@@ -214,10 +246,30 @@ describe("stripe checkout", () => {
       accountId: "alice",
       offer: { key: "supporter", kind: "oneTime", name: "Supporter" } as never,
       providerReference: "price_supporter",
-      returnUrl: "https://game.example/store?from=offer",
+      returnUrl: "https://game.example/store?from=offer&session_id=old#offers",
       operationId: "op-44",
+      expiresAt: 1_700_003_600_000,
     });
-    expect(new URLSearchParams(seenForm).get("success_url")).toBe("https://game.example/store?from=offer&session_id={CHECKOUT_SESSION_ID}");
+    expect(new URLSearchParams(seenForm).get("success_url")).toBe("https://game.example/store?from=offer&session_id={CHECKOUT_SESSION_ID}#offers");
+  });
+
+  it("lets Stripe create the first subscription customer and tags the subscription with its owner", async () => {
+    let form = new URLSearchParams();
+    vi.stubGlobal("fetch", async (request: Request) => {
+      form = new URLSearchParams(await request.text());
+      return Response.json({ url: "https://checkout.stripe.com/c/pay/cs_1", customer: null });
+    });
+    await provider.createCheckout?.(null, {
+      accountId: "alice",
+      offer: { key: "pro", kind: "subscription" } as never,
+      providerReference: "price_pro",
+      returnUrl: "https://game.example/store",
+      operationId: "op-45",
+      expiresAt: 1_700_003_600_000,
+    });
+    expect(form.get("mode")).toBe("subscription");
+    expect(form.has("customer_creation")).toBe(false);
+    expect(form.get("subscription_data[metadata][eigenAccountId]")).toBe("alice");
   });
 });
 
@@ -225,8 +277,7 @@ describe("stripe catalog references", () => {
   it("refuses a Product id where a Price belongs, and takes any Price", () => {
     expect(() => provider.validateReference?.("prod_PRO", "subscription")).toThrow(/Price/);
     expect(() => provider.validateReference?.("price_1Pro", "subscription")).not.toThrow();
-    // A Price made from a legacy Plan keeps the Plan's own id.
-    expect(() => provider.validateReference?.("pro-monthly", "subscription")).not.toThrow();
+    expect(() => provider.validateReference?.("pro-monthly", "subscription")).toThrow(/Price/);
   });
 });
 

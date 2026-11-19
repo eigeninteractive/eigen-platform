@@ -11,10 +11,9 @@ reconciliation sweep repairs an acknowledgement lost in between.
 
 Play-specific facts shape the rest:
 
-- **The purchase token is the identity and the handle.** Every later call
-  about a purchase needs it again, so it is returned as the transaction's
-  `sealedProviderState` and the engine stores it for the sweep. It is a
-  credential: it never appears in a log, an error, or a client response.
+- **Identity and credentials have separate lifetimes.** A digest of the
+  purchase token identifies the transaction. The token itself is encrypted
+  in `sealedProviderState` for later calls to Play.
 - **A product id is not enough.** A one-time product's reference is its
   product id, read back from `productsv2` by token alone, so Play -- not the
   claim -- says which product was bought. A subscription product sells
@@ -25,9 +24,8 @@ Play-specific facts shape the rest:
   not a different thing bought, so it is deliberately not part of the
   reference; its offer token is the device's business when it launches the
   Billing flow.
-- **The token is the transaction.** It is stable from a pending purchase to
-  a paid one, where the order id does not exist yet, so it is the identity
-  for both kinds.
+- **The token stays stable through payment.** An order id only exists once
+  payment completes, so the digest identifies pending purchases too.
 - **The device cannot say which base plan it bought.** Play's on-device
   purchase names the product, not the plan, so a claim may name any plan of
   that product; the plan Play reports here is the one recorded.
@@ -60,7 +58,7 @@ library on the device, and the engine answers that plainly for this provider.
 
 ### GooglePlayCommerceConfig
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L73)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:71](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L71)
 
 #### Type Parameters
 
@@ -90,9 +88,29 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:82](ht
 packageName(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:75](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L75)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:73](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L73)
 
 The app's package name, e.g. `com.example.game`.
+
+###### Parameters
+
+| Parameter | Type |
+| ------ | ------ |
+| `env` | `TEnv` |
+
+###### Returns
+
+`string` \| `undefined`
+
+##### purchaseTokenKey()
+
+```ts
+purchaseTokenKey(env): string | undefined;
+```
+
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L81)
+
+An independent, base64url-encoded 32-byte Worker secret for purchase tokens.
 
 ###### Parameters
 
@@ -110,7 +128,7 @@ The app's package name, e.g. `com.example.game`.
 serviceAccountEmail(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L79)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:77](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L77)
 
 The service account's `client_email` from its JSON key. It is also the
 account the Pub/Sub push subscription delivers notifications as: a
@@ -132,7 +150,7 @@ notification delivered as anyone else is refused.
 serviceAccountPrivateKey(env): string | undefined;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:81](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L81)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:79](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L79)
 
 The service account's PKCS#8 `private_key`, PEM, newlines intact.
 
@@ -154,7 +172,7 @@ The service account's PKCS#8 `private_key`, PEM, newlines intact.
 function googlePlayCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:220](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L220)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:206](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L206)
 
 #### Type Parameters
 
@@ -180,7 +198,7 @@ Defined in: [server/packages/server/src/commerce/providers/google-play.ts:220](h
 function googlePlaySubscriptionReference(productId, basePlanId): string;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/google-play.ts:131](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L131)
+Defined in: [server/packages/server/src/commerce/providers/google-play.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/google-play.ts#L125)
 
 The `providerReference` a catalog names for a Play subscription base plan.
 

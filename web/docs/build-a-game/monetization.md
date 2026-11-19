@@ -56,6 +56,7 @@ const play = googlePlayCommerceProvider<Env>({
   packageName: () => "com.example.game",
   serviceAccountEmail: (env) => env.GOOGLE_PLAY_SERVICE_ACCOUNT_EMAIL,
   serviceAccountPrivateKey: (env) => env.GOOGLE_PLAY_PRIVATE_KEY,
+  purchaseTokenKey: (env) => env.GOOGLE_PLAY_PURCHASE_TOKEN_KEY,
 });
 const stripe = stripeCommerceProvider<Env>({
   secretKey: (env) => env.STRIPE_SECRET_KEY,
@@ -481,6 +482,16 @@ jq -r .private_key play-key.json | npx wrangler secret put GOOGLE_PLAY_PRIVATE_K
 rm play-key.json
 ```
 
+Generate an independent 32-byte key per environment and store it as a Worker
+secret. The Play adapter uses it to encrypt tokens it needs for future
+acknowledgment and reconciliation. Keep a protected copy of the key for the
+lifetime of that ledger.
+
+```sh
+node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64url"))' \
+  | npx wrangler secret put GOOGLE_PLAY_PURCHASE_TOKEN_KEY
+```
+
 Then, in the [Play Console](https://play.google.com/console/):
 
 1. **Users and permissions → Invite new users.** Enter the service account's
@@ -518,6 +529,7 @@ WEBHOOK=https://yourgame.example/api/commerce/stripe/webhook
 
 curl https://api.stripe.com/v1/webhook_endpoints -u "$STRIPE_SECRET_KEY:" \
   --data-urlencode "url=$WEBHOOK" \
+  -d "api_version=2026-08-26.dahlia" \
   -d "enabled_events[]=checkout.session.completed" \
   -d "enabled_events[]=checkout.session.async_payment_succeeded" \
   -d "enabled_events[]=checkout.session.async_payment_failed" \
@@ -699,6 +711,22 @@ provider evidence, and settles provider delivery only after verification. A
 `HostedStorefront` opens a checkout URL the Worker created and reports what
 came back through the return URL; it settles nothing, because the provider
 already took the money.
+
+The Worker reserves one hosted checkout for each account and non-repeatable
+offer before calling the storefront. A second request on the same storefront
+gets the existing URL or a `purchasePending` response while it is being
+created. A request through a different storefront conflicts with that
+reservation. Checkout URLs have a provider-enforced authorization deadline
+within one hour of reservation.
+
+After a lost response, Stripe retries with the same provider operation and
+the original inputs. Stripe requires at least 30 minutes before the deadline
+to create a new session. If the original request never reached Stripe and
+that window has passed, start a new checkout after the reservation expires.
+Razorpay keeps the reservation through its deadline when the outcome is
+uncertain. Custom hosted adapters must enforce the deadline
+passed as `CreateCheckoutInput.expiresAt`. Set `retryCheckout` only when the
+provider can safely replay the same operation and inputs.
 
 Override `storefrontsProvider` at the application composition root with the
 storefronts this build carries, in preference order, then use

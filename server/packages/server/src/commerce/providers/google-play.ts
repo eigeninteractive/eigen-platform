@@ -10,10 +10,9 @@
  *
  * Play-specific facts shape the rest:
  *
- * - **The purchase token is the identity and the handle.** Every later call
- *   about a purchase needs it again, so it is returned as the transaction's
- *   `sealedProviderState` and the engine stores it for the sweep. It is a
- *   credential: it never appears in a log, an error, or a client response.
+ * - **Identity and credentials have separate lifetimes.** A digest of the
+ *   purchase token identifies the transaction. The token itself is encrypted
+ *   in `sealedProviderState` for later calls to Play.
  * - **A product id is not enough.** A one-time product's reference is its
  *   product id, read back from `productsv2` by token alone, so Play -- not the
  *   claim -- says which product was bought. A subscription product sells
@@ -24,9 +23,8 @@
  *   not a different thing bought, so it is deliberately not part of the
  *   reference; its offer token is the device's business when it launches the
  *   Billing flow.
- * - **The token is the transaction.** It is stable from a pending purchase to
- *   a paid one, where the order id does not exist yet, so it is the identity
- *   for both kinds.
+ * - **The token stays stable through payment.** An order id only exists once
+ *   payment completes, so the digest identifies pending purchases too.
  * - **The device cannot say which base plan it bought.** Play's on-device
  *   purchase names the product, not the plan, so a claim may name any plan of
  *   that product; the plan Play reports here is the one recorded.
@@ -58,9 +56,9 @@
  * @module @eigeninteractive/server/commerce/google-play
  */
 
-import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
+import { base64url, CompactEncrypt, compactDecrypt, createRemoteJWKSet, importPKCS8, type JWTPayload, jwtVerify, SignJWT } from "jose";
 import { ProviderRefusal, providerJson, requireSecret } from "../provider-kit.js";
-import type { CommerceProvider, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
+import type { CommerceProvider, CommerceTransactionReference, CommerceTransactionState, VerifiedCommerceEvent, VerifiedCommerceTransaction } from "../types.js";
 
 const API = "https://androidpublisher.googleapis.com/androidpublisher/v3";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -79,6 +77,8 @@ export interface GooglePlayCommerceConfig<TEnv> {
   serviceAccountEmail(env: TEnv): string | undefined;
   /** The service account's PKCS#8 `private_key`, PEM, newlines intact. */
   serviceAccountPrivateKey(env: TEnv): string | undefined;
+  /** An independent, base64url-encoded 32-byte Worker secret for purchase tokens. */
+  purchaseTokenKey(env: TEnv): string | undefined;
   now?: () => number;
 }
 
@@ -106,12 +106,6 @@ interface DeveloperNotification {
   /** `productType` 1 is a subscription and 2 a one-time product; `refundType`
    * 1 voids the whole purchase and 2 part of a multi-quantity one. */
   voidedPurchaseNotification?: { purchaseToken?: string; productType?: number; refundType?: number };
-}
-
-/** The handle stored as `sealedProviderState`. */
-interface Handle {
-  kind: "oneTime" | "subscription";
-  token: string;
 }
 
 interface SubscriptionLineItem {
@@ -178,20 +172,19 @@ function servingLine(items: readonly SubscriptionLineItem[], now: number): Subsc
 }
 
 /** Play's subscription vocabulary, mapped onto the engine's five states. */
-function subscriptionState(state: string | undefined): CommerceTransactionState {
+function subscriptionState(state: string | undefined, paidThrough: boolean): CommerceTransactionState {
   switch (state) {
     case "SUBSCRIPTION_STATE_ACTIVE":
       return "active";
-    // Play keeps serving through both of these; the player should keep playing.
     case "SUBSCRIPTION_STATE_IN_GRACE_PERIOD":
       return "grace";
     case "SUBSCRIPTION_STATE_PENDING":
-    case "SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED":
       return "pending";
-    // CANCELED means "will not renew", not "is over": Play keeps the
-    // subscription serving until its expiry, and the engine's validUntil is
-    // what ends it. ON_HOLD and PAUSED are not serving.
+    // Cancellation stops renewal. The verified line supplies the date when
+    // paid access ends, which can already be past after an account hold.
     case "SUBSCRIPTION_STATE_CANCELED":
+      return paidThrough ? "active" : "expired";
+    case "SUBSCRIPTION_STATE_PENDING_PURCHASE_CANCELED":
     case "SUBSCRIPTION_STATE_ON_HOLD":
     case "SUBSCRIPTION_STATE_PAUSED":
     case "SUBSCRIPTION_STATE_EXPIRED":
@@ -201,20 +194,13 @@ function subscriptionState(state: string | undefined): CommerceTransactionState 
   }
 }
 
-function pemToPkcs8(pem: string): ArrayBuffer {
-  const base64 = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-  return bytes.buffer;
-}
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+const tokenEncryption = { alg: "dir", enc: "A256GCM" } as const;
 
-function base64Url(bytes: Uint8Array | string): string {
-  const binary = typeof bytes === "string" ? bytes : String.fromCharCode(...bytes);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+async function transactionId(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(token));
+  return base64url.encode(new Uint8Array(digest));
 }
 
 export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfig<TEnv>): CommerceProvider<TEnv> {
@@ -227,16 +213,41 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
   // rotates them, so it lives as long as the adapter does.
   const googleKeys = createRemoteJWKSet(new URL(GOOGLE_CERTS));
 
+  const tokenKey = (env: TEnv): Uint8Array => {
+    const secret = requireSecret(config.purchaseTokenKey(env), "google play purchaseTokenKey");
+    if (!/^[A-Za-z0-9_-]{43}$/.test(secret)) throw new Error("google play purchaseTokenKey must be 32 bytes encoded as unpadded base64url");
+    return base64url.decode(secret);
+  };
+
+  const purchaseIdentity = async (env: TEnv, token: string) => ({
+    providerTransactionId: await transactionId(token),
+    sealedProviderState: await new CompactEncrypt(encoder.encode(token)).setProtectedHeader(tokenEncryption).encrypt(tokenKey(env)),
+  });
+
+  const openPurchaseToken = async (env: TEnv, reference: CommerceTransactionReference): Promise<string> => {
+    if (reference.sealedProviderState === undefined) throw new Error("google play purchase has no sealed token");
+    const { plaintext } = await compactDecrypt(reference.sealedProviderState, tokenKey(env), {
+      keyManagementAlgorithms: [tokenEncryption.alg],
+      contentEncryptionAlgorithms: [tokenEncryption.enc],
+    });
+    const token = decoder.decode(plaintext);
+    if ((await transactionId(token)) !== reference.providerTransactionId) throw new Error("google play sealed token belongs to a different transaction");
+    return token;
+  };
+
   const accessToken = async (env: TEnv): Promise<string> => {
     if (cached !== null && cached.expiresAt > now() + 60_000) return cached.token;
     const email = requireSecret(config.serviceAccountEmail(env), "google play serviceAccountEmail");
     const pem = requireSecret(config.serviceAccountPrivateKey(env), "google play serviceAccountPrivateKey");
     const issued = Math.floor(now() / 1000);
-    const claim = { iss: email, scope: SCOPE, aud: TOKEN_URL, iat: issued, exp: issued + 3600 };
-    const unsigned = `${base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }))}.${base64Url(JSON.stringify(claim))}`;
-    const key = await crypto.subtle.importKey("pkcs8", pemToPkcs8(pem), { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-    const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)));
-    const assertion = `${unsigned}.${base64Url(signature)}`;
+    const signingKey = await importPKCS8(pem, "RS256");
+    const assertion = await new SignJWT({ scope: SCOPE })
+      .setProtectedHeader({ alg: "RS256", typ: "JWT" })
+      .setIssuer(email)
+      .setAudience(TOKEN_URL)
+      .setIssuedAt(issued)
+      .setExpirationTime(issued + 3600)
+      .sign(signingKey);
     const granted = await providerJson<{ access_token: string; expires_in: number }>(
       PROVIDER,
       new Request(TOKEN_URL, {
@@ -256,17 +267,20 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       headers: { authorization: `Bearer ${await accessToken(env)}`, ...(method === "POST" ? { "content-type": "application/json" } : {}) },
       ...(method === "POST" ? { body: "{}" } : {}),
     });
-    const response = await fetch(request);
+    const response = await fetch(request).catch(() => {
+      // The request path can contain a purchase token.
+      throw new Error("google play API request failed");
+    });
     // Acknowledge returns an empty body on success, so it is read separately
     // from the JSON path rather than being parsed into nothing.
-    if (response.status === 204 || response.headers.get("content-length") === "0") return null;
     if (!response.ok) throw new Error(`${PROVIDER} responded ${response.status}`);
+    if (response.status === 204 || response.headers.get("content-length") === "0") return null;
     return (await response.json()) as T;
   };
 
   const fetchProduct = async (env: TEnv, token: string): Promise<ProductPurchaseV2> => (await call<ProductPurchaseV2>(env, `/purchases/productsv2/tokens/${encodeURIComponent(token)}`)) as ProductPurchaseV2;
 
-  const productTransaction = (purchase: ProductPurchaseV2, token: string): VerifiedCommerceTransaction => {
+  const productTransaction = async (env: TEnv, purchase: ProductPurchaseV2, token: string): Promise<VerifiedCommerceTransaction> => {
     const lines = purchase.productLineItem ?? [];
     if (lines.length > 1) throw new ProviderRefusal("google play purchase holds several products; one transaction grants one offer");
     const productId = lines[0]?.productId;
@@ -276,7 +290,7 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
     const reported = purchase.purchaseStateContext?.purchaseState;
     const state: CommerceTransactionState = reported === "PURCHASED" ? "active" : reported === "PENDING" ? "pending" : "revoked";
     return {
-      providerTransactionId: token,
+      ...(await purchaseIdentity(env, token)),
       providerReference: productId,
       kind: "oneTime",
       state,
@@ -285,18 +299,17 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       // Pending means Play is still waiting to be told, and will refund if it
       // never is.
       requiresAcknowledgement: state === "active" && purchase.acknowledgementState === "ACKNOWLEDGEMENT_STATE_PENDING",
-      sealedProviderState: JSON.stringify({ kind: "oneTime", token } satisfies Handle),
       ...(purchase.obfuscatedExternalAccountId === undefined ? {} : { providerAccountId: purchase.obfuscatedExternalAccountId }),
     };
   };
 
-  const readProduct = async (env: TEnv, token: string): Promise<VerifiedCommerceTransaction> => productTransaction(await fetchProduct(env, token), token);
+  const readProduct = async (env: TEnv, token: string): Promise<VerifiedCommerceTransaction> => productTransaction(env, await fetchProduct(env, token), token);
 
   /** A one-time purchase a voided notification names. A full refund ends it
    * whatever the read says; a partial one only once nothing is left. */
   const readVoidedProduct = async (env: TEnv, token: string, refundType: number | undefined): Promise<VerifiedCommerceTransaction> => {
     const purchase = await fetchProduct(env, token);
-    const transaction = productTransaction(purchase, token);
+    const transaction = await productTransaction(env, purchase, token);
     const remaining = purchase.productLineItem?.[0]?.productOfferDetails?.refundableQuantity;
     if (refundType === 2 && remaining !== undefined && remaining > 0) return transaction;
     return { ...transaction, state: "revoked", requiresAcknowledgement: false };
@@ -304,20 +317,24 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
 
   const readSubscription = async (env: TEnv, token: string): Promise<VerifiedCommerceTransaction> => {
     const purchase = (await call<SubscriptionPurchaseV2>(env, `/purchases/subscriptionsv2/tokens/${encodeURIComponent(token)}`)) as SubscriptionPurchaseV2;
-    const line = servingLine(purchase.lineItems ?? [], now());
-    const state = subscriptionState(purchase.subscriptionState);
+    const instant = now();
+    const line = servingLine(purchase.lineItems ?? [], instant);
+    const validUntil = line.expiryTime === undefined ? undefined : Date.parse(line.expiryTime);
+    const state = subscriptionState(purchase.subscriptionState, validUntil !== undefined && validUntil > instant);
+    if ((state === "active" || state === "grace") && !Number.isFinite(validUntil)) {
+      throw new Error("google play serving subscription has no valid expiry");
+    }
     const startedAt = purchase.startTime === undefined ? now() : Date.parse(purchase.startTime);
     return {
-      providerTransactionId: token,
+      ...(await purchaseIdentity(env, token)),
       providerReference: lineReference(line),
       kind: "subscription",
       state,
       purchasedAt: startedAt,
       validFrom: startedAt,
-      ...(line.expiryTime === undefined ? {} : { validUntil: Date.parse(line.expiryTime) }),
+      ...(validUntil === undefined ? {} : { validUntil }),
       requiresAcknowledgement: (state === "active" || state === "grace") && purchase.acknowledgementState === "ACKNOWLEDGEMENT_STATE_PENDING",
-      sealedProviderState: JSON.stringify({ kind: "subscription", token } satisfies Handle),
-      ...(purchase.linkedPurchaseToken === undefined ? {} : { replacesProviderTransactionId: purchase.linkedPurchaseToken }),
+      ...(purchase.linkedPurchaseToken === undefined ? {} : { replacesProviderTransactionId: await transactionId(purchase.linkedPurchaseToken) }),
       ...(purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId === undefined ? {} : { providerAccountId: purchase.externalAccountIdentifiers.obfuscatedExternalAccountId }),
     };
   };
@@ -351,11 +368,6 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
     }
   };
 
-  const readSealed = async (env: TEnv, sealed: string): Promise<VerifiedCommerceTransaction> => {
-    const handle = JSON.parse(sealed) as Handle;
-    return handle.kind === "subscription" ? await readSubscription(env, handle.token) : await readProduct(env, handle.token);
-  };
-
   return {
     key: PROVIDER,
 
@@ -382,6 +394,9 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       const transaction = parseReference(input.expectedProviderReference).basePlanId === undefined ? await readProduct(env, token) : await readSubscription(env, token);
       // Play's obfuscated account id is the only link back to the buyer, so a
       // token minted for someone else must not become this account's grant.
+      if (transaction.providerAccountId === undefined && transaction.replacesProviderTransactionId === undefined) {
+        throw new ProviderRefusal("google play purchase has no Eigen account binding");
+      }
       if (transaction.providerAccountId !== undefined && transaction.providerAccountId !== input.accountId) {
         throw new ProviderRefusal("google play purchase belongs to another account");
       }
@@ -429,7 +444,8 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
       for (const reference of transactions) {
         if (reference.sealedProviderState === undefined) continue;
         try {
-          results.push(await readSealed(env, reference.sealedProviderState));
+          const token = await openPurchaseToken(env, reference);
+          results.push(reference.kind === "subscription" ? await readSubscription(env, token) : await readProduct(env, token));
         } catch {
           // Unanswered: the engine counts it against that row and moves on.
         }
@@ -438,13 +454,12 @@ export function googlePlayCommerceProvider<TEnv>(config: GooglePlayCommerceConfi
     },
 
     acknowledge: async (env, transaction) => {
-      if (transaction.sealedProviderState === undefined) throw new Error("google play acknowledgement needs the purchase token");
-      const handle = JSON.parse(transaction.sealedProviderState) as Handle;
+      const token = await openPurchaseToken(env, transaction);
       // The v2 resources have no acknowledge method; the v1 ones do, and take
       // the product the transaction's reference names.
-      const resource = handle.kind === "subscription" ? "subscriptions" : "products";
+      const resource = transaction.kind === "subscription" ? "subscriptions" : "products";
       const productId = encodeURIComponent(parseReference(transaction.providerReference).productId);
-      await call(env, `/purchases/${resource}/${productId}/tokens/${encodeURIComponent(handle.token)}:acknowledge`, "POST");
+      await call(env, `/purchases/${resource}/${productId}/tokens/${encodeURIComponent(token)}:acknowledge`, "POST");
     },
 
     // No `createCheckout` or `management`: Play's purchase flow is launched by

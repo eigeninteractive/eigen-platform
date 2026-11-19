@@ -85,6 +85,11 @@ as a normal feature, bug, dependency upgrade, or production-readiness requiremen
    `analysis.use` or `analysis.run.success` in a production catalog, including
    atomic success metering and failure semantics.
 
+### Commerce production gaps
+
+- One-time refunds rely on provider notifications. Add backfill for missed
+  notifications, including the Play Voided Purchases API.
+
 ## Deliberately deferred
 
 - automatic deletion or cold storage of finished games;

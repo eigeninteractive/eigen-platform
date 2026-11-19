@@ -40,10 +40,11 @@ CommerceCatalog _catalog() => CommerceCatalog.fromJson({
 });
 
 class _Repository implements CommerceRepository {
-  _Repository({CommerceCatalog Function() catalog = _catalog})
+  _Repository({CommerceCatalog Function() catalog = _catalog, this.failedToken})
     : _catalogFor = catalog;
 
   final CommerceCatalog Function() _catalogFor;
+  final String? failedToken;
   final claims = <CommercePurchaseClaim>[];
   final checkouts =
       <({String provider, String offerKey, String operationId})>[];
@@ -53,6 +54,9 @@ class _Repository implements CommerceRepository {
   @override
   Future<AccessSnapshot> claim(CommercePurchaseClaim claim) async {
     claims.add(claim);
+    if (failedToken != null && claim.evidence['purchaseToken'] == failedToken) {
+      throw StateError('Provider verification temporarily unavailable.');
+    }
     return _access();
   }
 
@@ -337,6 +341,68 @@ void main() {
 
     expect(events.single.access?.entitlements.single.key, 'supporter');
     expect(gateway.completedUpdate?.deliveryId, 'purchase-retry');
+    expect(deliveries.values, isEmpty);
+  });
+
+  test('one blocked delivery leaves the next purchase claimable', () async {
+    PurchaseUpdate purchase(String id) => PurchaseUpdate(
+      deliveryId: id,
+      offerKey: 'supporter',
+      providerReference: 'supporter_once',
+      state: PurchaseUpdateState.purchased,
+      evidence: {'purchaseToken': id},
+    );
+    final repository = _Repository(failedToken: 'blocked');
+    final deliveries = _Deliveries()
+      ..values['google_play:blocked'] = purchase('blocked');
+    final gateway = _Gateway(Stream.value(purchase('ready')));
+    final service = CommerceService(
+      repository,
+      [gateway],
+      deliveries,
+      accountId: 'alice',
+    );
+
+    await expectLater(
+      service.verifiedUpdates(),
+      emitsInOrder([
+        emitsError(isA<StateError>()),
+        predicate<VerifiedPurchaseUpdate>(
+          (event) => event.update.deliveryId == 'ready' && event.access != null,
+        ),
+      ]),
+    );
+    expect(deliveries.values.keys, ['google_play:blocked']);
+    expect(gateway.completedUpdate?.deliveryId, 'ready');
+  });
+
+  test('ignores a storefront callback for another signed-in account', () async {
+    PurchaseUpdate purchase(String id, String accountId) => PurchaseUpdate(
+      deliveryId: id,
+      accountId: accountId,
+      offerKey: 'supporter',
+      providerReference: 'supporter_once',
+      state: PurchaseUpdateState.purchased,
+      evidence: {'purchaseToken': id},
+    );
+    final repository = _Repository();
+    final deliveries = _Deliveries();
+    final gateway = _Gateway(
+      Stream.fromIterable([
+        purchase('alice-order', 'alice'),
+        purchase('bob-order', 'bob'),
+      ]),
+    );
+    final service = CommerceService(
+      repository,
+      [gateway],
+      deliveries,
+      accountId: 'bob',
+    );
+
+    final event = await service.verifiedUpdates().first;
+    expect(event.update.deliveryId, 'bob-order');
+    expect(repository.claims.single.evidence['purchaseToken'], 'bob-order');
     expect(deliveries.values, isEmpty);
   });
 

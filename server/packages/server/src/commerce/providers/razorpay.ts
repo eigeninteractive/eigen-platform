@@ -244,6 +244,7 @@ export function razorpayCommerceProvider<TEnv>(config: RazorpayCommerceConfig<TE
             body: JSON.stringify({
               plan_id: input.providerReference,
               total_count: 120,
+              expire_by: Math.floor(input.expiresAt / 1000),
               customer_notify: 1,
               notes: { eigenAccountId: input.accountId, eigenOperationId: input.operationId, eigenProviderReference: input.providerReference },
             }),
@@ -263,6 +264,7 @@ export function razorpayCommerceProvider<TEnv>(config: RazorpayCommerceConfig<TE
             amount: priced.amount,
             currency: priced.currency,
             description: input.offer.name,
+            expire_by: Math.floor(input.expiresAt / 1000),
             // Razorpay rejects a duplicate reference_id, which makes the
             // engine's operation identity the link's identity too.
             reference_id: input.operationId,

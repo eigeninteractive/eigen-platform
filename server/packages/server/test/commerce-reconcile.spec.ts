@@ -12,7 +12,7 @@ import { env } from "cloudflare:workers";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it } from "vitest";
 import { resolveCommerce } from "../src/commerce/catalog.js";
-import { reconcileCommerce, stalledTransactions } from "../src/commerce/reconcile.js";
+import { RECONCILE_FAILURE_THRESHOLD, reconcileCommerce, stalledTransactions } from "../src/commerce/reconcile.js";
 import type { ResolvedCommerce } from "../src/commerce/types.js";
 import { orm } from "../src/d1/orm.js";
 import { commerceTransactions, entitlementGrants } from "../src/d1/schema.js";
@@ -26,7 +26,7 @@ let provider: FakeCommerceProvider;
  * only the rows it seeded. The table is shared across the whole suite. */
 let providerKey: string;
 
-function commerce(overrides: { reconcileBatch?: number; reconcileMaxFailures?: number } = {}): ResolvedCommerce {
+function commerce(overrides: { reconcileBatch?: number; now?: () => number } = {}): ResolvedCommerce {
   return resolveCommerce({
     catalog: {
       free: {},
@@ -128,24 +128,29 @@ describe("reconciliation liveness", () => {
     expect((await row("outage-one"))?.lastReconciledAt).not.toBeNull();
   });
 
-  it("gives up at the ceiling and reports the transaction to the operator", async () => {
+  it("reports repeated failures, backs off, and retries after a day", async () => {
     const account = uid("stall");
-    await seed(account, "hopeless", Date.now() - 50_000);
+    let now = Date.now();
+    await seed(account, "hopeless", now - 50_000, { reconcileFailures: RECONCILE_FAILURE_THRESHOLD - 2 });
 
-    const resolved = commerce({ reconcileBatch: 5, reconcileMaxFailures: 2 });
+    const resolved = commerce({ reconcileBatch: 5, now: () => now });
     for (let pass = 0; pass < 4; pass++) await reconcileCommerce(env.DB, resolved, env);
 
-    // Swept twice, then dropped from the queue entirely.
     expect(provider.sweeps).toEqual([["hopeless"], ["hopeless"]]);
-    expect((await row("hopeless"))?.reconcileFailures).toBe(2);
-    const stalled = await stalledTransactions(env.DB, resolved);
+    expect((await row("hopeless"))?.reconcileFailures).toBe(RECONCILE_FAILURE_THRESHOLD);
+    const stalled = await stalledTransactions(env.DB);
     expect(stalled.map((entry) => entry.providerTransactionId)).toContain("hopeless");
+
+    provider.transactions.set("hopeless", { state: "active" });
+    now += 24 * 60 * 60 * 1000;
+    await reconcileCommerce(env.DB, resolved, env);
+    expect((await row("hopeless"))?.reconcileFailures).toBe(0);
   });
 
-  it("returns a given-up transaction to the queue when the provider speaks again", async () => {
+  it("clears failure diagnostics when the provider speaks again", async () => {
     const account = uid("revive");
     const id = await seed(account, "revived", Date.now() - 50_000, { reconcileFailures: 9, reconcileError: "The provider did not answer for this transaction" });
-    const resolved = commerce({ reconcileMaxFailures: 10 });
+    const resolved = commerce();
 
     provider.transactions.set("revived", { state: "active" });
     await reconcileCommerce(env.DB, resolved, env);

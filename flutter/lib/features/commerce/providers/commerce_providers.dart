@@ -32,11 +32,15 @@ CommerceRepository commerceRepository(Ref ref) =>
 /// account the Worker will check its claim against.
 @Riverpod(keepAlive: true)
 CommerceService commerceService(Ref ref) {
+  final accountId = ref.watch(currentUserIdProvider);
   final service = CommerceService(
     ref.watch(commerceRepositoryProvider),
     ref.watch(storefrontsProvider),
-    DriftPurchaseDeliveryStore(ref.watch(replicaDatabaseProvider.future)),
-    accountId: ref.watch(currentUserIdProvider),
+    DriftPurchaseDeliveryStore(
+      ref.watch(replicaDatabaseProvider.future),
+      accountId,
+    ),
+    accountId: accountId,
   );
   ref.onDispose(service.dispose);
   return service;

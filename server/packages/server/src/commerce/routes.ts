@@ -4,7 +4,7 @@ import type { EngineApp, RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
 import { errorShape } from "../routes/wire.js";
 import { readEffectiveAccess } from "./access.js";
-import { assertPurchasable, readCheckout, readOpenCheckout, recordCheckout } from "./checkout.js";
+import { acquireCheckout, finishCheckout, releaseCheckout, reserveCheckout } from "./checkout.js";
 import { readProviderAccount, recordProviderAccount, recordVerifiedEvent, recordVerifiedTransaction } from "./ledger.js";
 import { ProviderRefusal } from "./provider-kit.js";
 import { acknowledgeIfNeeded } from "./provider-lifecycle.js";
@@ -125,6 +125,7 @@ async function claim(ctx: RouteContext, env: unknown, accountId: string, body: z
     transaction,
     now: resolved.now(),
     observedAt,
+    clientClaim: true,
   });
   if (transaction.state === "pending") throw new HttpError(409, "The purchase is still pending", "purchasePending");
   await providerCall(`The ${adapter.key} provider could not acknowledge this purchase`, async () => await acknowledgeIfNeeded(ctx.d1(env), adapter, env, reference, resolved.now));
@@ -232,43 +233,57 @@ export function registerCommerceRoutes(app: EngineApp, ctx: RouteContext): void 
       const body = c.req.valid("json");
       const selectedOffer = offer(ctx, body.offerKey);
       const adapter = provider(ctx, body.provider);
-      if (adapter.createCheckout === undefined) throw new HttpError(400, `${adapter.key} checkout is launched by its client SDK`);
+      const createCheckout = adapter.createCheckout?.bind(adapter);
+      if (createCheckout === undefined) throw new HttpError(400, `${adapter.key} checkout is launched by its client SDK`);
       const accountId = c.var.auth.user.id;
       const d1 = ctx.d1(c.env);
+      const now = commerce(ctx).now;
       const returnUrl = trustedReturnUrl(ctx, c.env, c.req.url, body.returnUrl);
-      const replay = await readCheckout(d1, adapter.key, accountId, body.operationId, selectedOffer.key, returnUrl);
-      if (replay !== null) return c.json({ url: replay.url }, 200);
-      if (selectedOffer.repeatable !== true) {
-        const open = await readOpenCheckout(d1, adapter.key, accountId, selectedOffer.key, commerce(ctx).now());
-        if (open !== null) return c.json({ url: open.url }, 200);
-      }
-      await assertPurchasable(d1, adapter.key, accountId, selectedOffer);
       const providerAccountId = await readProviderAccount(d1, adapter.key, accountId);
-      const result = await providerCall(
-        `The ${adapter.key} provider could not create checkout`,
-        async () =>
-          (await adapter.createCheckout?.(c.env, {
-            accountId,
-            offer: selectedOffer,
-            providerReference: registeredProduct(selectedOffer, adapter.key),
-            returnUrl,
-            operationId: body.operationId,
-            ...(providerAccountId === undefined ? {} : { providerAccountId }),
-          })) as Awaited<ReturnType<NonNullable<typeof adapter.createCheckout>>>,
-      );
-      if (result.providerAccountId !== undefined) {
-        await recordProviderAccount(d1, adapter.key, accountId, result.providerAccountId, commerce(ctx).now());
-      }
-      const recorded = await recordCheckout(d1, {
+      const checkout = await reserveCheckout(d1, {
         provider: adapter.key,
         accountId,
         operationId: body.operationId,
-        offerKey: selectedOffer.key,
-        returnUrl,
-        result,
-        now: commerce(ctx).now(),
+        offer: selectedOffer,
+        request: {
+          returnUrl,
+          providerReference: registeredProduct(selectedOffer, adapter.key),
+          offer: selectedOffer,
+          ...(providerAccountId === undefined ? {} : { providerAccountId }),
+        },
+        now: now(),
       });
-      return c.json({ url: recorded.url }, 200);
+      const request = checkout.request;
+      trustedReturnUrl(ctx, c.env, c.req.url, request.returnUrl);
+      let result = checkout.result;
+      if (result === null) {
+        // Reuse the original inputs even if the customer binding has changed.
+        const retryable = adapter.retryCheckout === true;
+        const leaseUntil = await acquireCheckout(d1, checkout, now(), retryable);
+        try {
+          const response = await providerCall(`The ${adapter.key} provider could not create checkout`, () =>
+            createCheckout(c.env, {
+              accountId,
+              offer: request.offer,
+              providerReference: request.providerReference,
+              returnUrl: request.returnUrl,
+              operationId: checkout.id,
+              expiresAt: checkout.expiresAt,
+              ...(request.providerAccountId === undefined ? {} : { providerAccountId: request.providerAccountId }),
+            }),
+          );
+          result = await finishCheckout(d1, checkout, leaseUntil, response, now());
+        } catch (error) {
+          if (retryable) await releaseCheckout(d1, checkout.id, leaseUntil);
+          throw error;
+        }
+      }
+      // The provider result is durable, so a failed binding can be retried
+      // without asking the provider to create another checkout.
+      if (result.providerAccountId !== undefined) {
+        await recordProviderAccount(d1, adapter.key, accountId, result.providerAccountId, now());
+      }
+      return c.json({ url: result.url }, 200);
     },
   );
 

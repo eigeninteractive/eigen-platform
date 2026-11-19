@@ -243,6 +243,7 @@ class Transitions extends Table {
 /// lands.
 @DataClassName('CommerceDeliveryRow')
 class CommerceDeliveries extends Table {
+  TextColumn get accountId => text()();
   TextColumn get provider => text()();
   TextColumn get deliveryId => text()();
   TextColumn get offerKey => text()();
@@ -251,5 +252,5 @@ class CommerceDeliveries extends Table {
   IntColumn get createdAt => integer()();
 
   @override
-  Set<Column<Object>> get primaryKey => {provider, deliveryId};
+  Set<Column<Object>> get primaryKey => {accountId, provider, deliveryId};
 }

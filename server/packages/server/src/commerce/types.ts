@@ -141,6 +141,8 @@ export interface CreateCheckoutInput {
   returnUrl: string;
   /** Stable across retries and suitable for the provider's idempotency key. */
   operationId: string;
+  /** Latest time the storefront may accept payment authorization, in epoch milliseconds. */
+  expiresAt: number;
   /** Previously bound provider customer, if one exists. */
   providerAccountId?: string;
 }
@@ -188,7 +190,10 @@ export interface CommerceProvider<TEnv = unknown> {
   reconcile?(env: TEnv, transactions: readonly CommerceTransactionReference[]): Promise<readonly VerifiedCommerceTransaction[]>;
   /** Runs only after the normalized transaction and grants commit. */
   acknowledge?(env: TEnv, transaction: CommerceTransactionReference): Promise<void>;
+  /** Open a session whose authorization deadline is at or before input.expiresAt. */
   createCheckout?(env: TEnv, input: CreateCheckoutInput): Promise<CommerceCheckout>;
+  /** True only when the provider can safely replay an ambiguous creation with the same input. */
+  retryCheckout?: boolean;
   management?(env: TEnv, accountId: string, providerAccountId: string, returnUrl: string): Promise<CommerceManagement>;
 }
 
@@ -199,9 +204,6 @@ export interface CommerceConfig<TEnv> {
   now?: () => number;
   /** Maximum nonterminal transactions checked per provider and invocation. */
   reconcileBatch?: number;
-  /** Consecutive failed sweeps after which a transaction stops being swept and
-   * is surfaced to the operator instead. Defaults to 10. */
-  reconcileMaxFailures?: number;
 }
 
 export interface ResolvedCommerce {
@@ -209,7 +211,6 @@ export interface ResolvedCommerce {
   providers: ReadonlyMap<string, CommerceProvider<unknown>>;
   now(): number;
   reconcileBatch: number;
-  reconcileMaxFailures: number;
 }
 
 /** One content choice snapshotted onto a game at creation. */

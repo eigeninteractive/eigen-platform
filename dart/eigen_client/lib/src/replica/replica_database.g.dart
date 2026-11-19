@@ -5288,6 +5288,14 @@ class $CommerceDeliveriesTable extends CommerceDeliveries
   final String? _alias;
   $CommerceDeliveriesTable(this.attachedDatabase, [this._alias]);
   @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
   late final GeneratedColumn<String> provider = GeneratedColumn<String>(
     'provider',
     aliasedName,
@@ -5338,6 +5346,7 @@ class $CommerceDeliveriesTable extends CommerceDeliveries
   );
   @override
   List<GeneratedColumn> get $columns => [
+    accountId,
     provider,
     deliveryId,
     offerKey,
@@ -5351,11 +5360,15 @@ class $CommerceDeliveriesTable extends CommerceDeliveries
   String get actualTableName => $name;
   static const String $name = 'commerce_deliveries';
   @override
-  Set<GeneratedColumn> get $primaryKey => {provider, deliveryId};
+  Set<GeneratedColumn> get $primaryKey => {accountId, provider, deliveryId};
   @override
   CommerceDeliveryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CommerceDeliveryRow(
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      )!,
       provider: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}provider'],
@@ -5391,6 +5404,7 @@ class $CommerceDeliveriesTable extends CommerceDeliveries
 
 class CommerceDeliveryRow extends DataClass
     implements Insertable<CommerceDeliveryRow> {
+  final String accountId;
   final String provider;
   final String deliveryId;
   final String offerKey;
@@ -5398,6 +5412,7 @@ class CommerceDeliveryRow extends DataClass
   final String evidence;
   final int createdAt;
   const CommerceDeliveryRow({
+    required this.accountId,
     required this.provider,
     required this.deliveryId,
     required this.offerKey,
@@ -5408,6 +5423,7 @@ class CommerceDeliveryRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['account_id'] = Variable<String>(accountId);
     map['provider'] = Variable<String>(provider);
     map['delivery_id'] = Variable<String>(deliveryId);
     map['offer_key'] = Variable<String>(offerKey);
@@ -5419,6 +5435,7 @@ class CommerceDeliveryRow extends DataClass
 
   CommerceDeliveriesCompanion toCompanion(bool nullToAbsent) {
     return CommerceDeliveriesCompanion(
+      accountId: Value(accountId),
       provider: Value(provider),
       deliveryId: Value(deliveryId),
       offerKey: Value(offerKey),
@@ -5434,6 +5451,7 @@ class CommerceDeliveryRow extends DataClass
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CommerceDeliveryRow(
+      accountId: serializer.fromJson<String>(json['accountId']),
       provider: serializer.fromJson<String>(json['provider']),
       deliveryId: serializer.fromJson<String>(json['deliveryId']),
       offerKey: serializer.fromJson<String>(json['offerKey']),
@@ -5446,6 +5464,7 @@ class CommerceDeliveryRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'accountId': serializer.toJson<String>(accountId),
       'provider': serializer.toJson<String>(provider),
       'deliveryId': serializer.toJson<String>(deliveryId),
       'offerKey': serializer.toJson<String>(offerKey),
@@ -5456,6 +5475,7 @@ class CommerceDeliveryRow extends DataClass
   }
 
   CommerceDeliveryRow copyWith({
+    String? accountId,
     String? provider,
     String? deliveryId,
     String? offerKey,
@@ -5463,6 +5483,7 @@ class CommerceDeliveryRow extends DataClass
     String? evidence,
     int? createdAt,
   }) => CommerceDeliveryRow(
+    accountId: accountId ?? this.accountId,
     provider: provider ?? this.provider,
     deliveryId: deliveryId ?? this.deliveryId,
     offerKey: offerKey ?? this.offerKey,
@@ -5472,6 +5493,7 @@ class CommerceDeliveryRow extends DataClass
   );
   CommerceDeliveryRow copyWithCompanion(CommerceDeliveriesCompanion data) {
     return CommerceDeliveryRow(
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
       provider: data.provider.present ? data.provider.value : this.provider,
       deliveryId: data.deliveryId.present
           ? data.deliveryId.value
@@ -5488,6 +5510,7 @@ class CommerceDeliveryRow extends DataClass
   @override
   String toString() {
     return (StringBuffer('CommerceDeliveryRow(')
+          ..write('accountId: $accountId, ')
           ..write('provider: $provider, ')
           ..write('deliveryId: $deliveryId, ')
           ..write('offerKey: $offerKey, ')
@@ -5500,6 +5523,7 @@ class CommerceDeliveryRow extends DataClass
 
   @override
   int get hashCode => Object.hash(
+    accountId,
     provider,
     deliveryId,
     offerKey,
@@ -5511,6 +5535,7 @@ class CommerceDeliveryRow extends DataClass
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CommerceDeliveryRow &&
+          other.accountId == this.accountId &&
           other.provider == this.provider &&
           other.deliveryId == this.deliveryId &&
           other.offerKey == this.offerKey &&
@@ -5520,6 +5545,7 @@ class CommerceDeliveryRow extends DataClass
 }
 
 class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
+  final Value<String> accountId;
   final Value<String> provider;
   final Value<String> deliveryId;
   final Value<String> offerKey;
@@ -5528,6 +5554,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
   final Value<int> createdAt;
   final Value<int> rowid;
   const CommerceDeliveriesCompanion({
+    this.accountId = const Value.absent(),
     this.provider = const Value.absent(),
     this.deliveryId = const Value.absent(),
     this.offerKey = const Value.absent(),
@@ -5537,6 +5564,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
     this.rowid = const Value.absent(),
   });
   CommerceDeliveriesCompanion.insert({
+    required String accountId,
     required String provider,
     required String deliveryId,
     required String offerKey,
@@ -5544,13 +5572,15 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
     required String evidence,
     required int createdAt,
     this.rowid = const Value.absent(),
-  }) : provider = Value(provider),
+  }) : accountId = Value(accountId),
+       provider = Value(provider),
        deliveryId = Value(deliveryId),
        offerKey = Value(offerKey),
        providerReference = Value(providerReference),
        evidence = Value(evidence),
        createdAt = Value(createdAt);
   static Insertable<CommerceDeliveryRow> custom({
+    Expression<String>? accountId,
     Expression<String>? provider,
     Expression<String>? deliveryId,
     Expression<String>? offerKey,
@@ -5560,6 +5590,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (accountId != null) 'account_id': accountId,
       if (provider != null) 'provider': provider,
       if (deliveryId != null) 'delivery_id': deliveryId,
       if (offerKey != null) 'offer_key': offerKey,
@@ -5571,6 +5602,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
   }
 
   CommerceDeliveriesCompanion copyWith({
+    Value<String>? accountId,
     Value<String>? provider,
     Value<String>? deliveryId,
     Value<String>? offerKey,
@@ -5580,6 +5612,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
     Value<int>? rowid,
   }) {
     return CommerceDeliveriesCompanion(
+      accountId: accountId ?? this.accountId,
       provider: provider ?? this.provider,
       deliveryId: deliveryId ?? this.deliveryId,
       offerKey: offerKey ?? this.offerKey,
@@ -5593,6 +5626,9 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
+    }
     if (provider.present) {
       map['provider'] = Variable<String>(provider.value);
     }
@@ -5620,6 +5656,7 @@ class CommerceDeliveriesCompanion extends UpdateCompanion<CommerceDeliveryRow> {
   @override
   String toString() {
     return (StringBuffer('CommerceDeliveriesCompanion(')
+          ..write('accountId: $accountId, ')
           ..write('provider: $provider, ')
           ..write('deliveryId: $deliveryId, ')
           ..write('offerKey: $offerKey, ')

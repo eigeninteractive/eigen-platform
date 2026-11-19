@@ -23,6 +23,7 @@ import type { GameStatus, Seat } from "@eigeninteractive/kernel";
 import type { GameAccess, JsonObject, OutcomeEntry } from "@eigeninteractive/rules";
 import { sql } from "drizzle-orm";
 import { check, index, integer, primaryKey, real, snakeCase, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import type { CreateCheckoutInput } from "../commerce/types.js";
 import type { GameOrigin } from "../protocol.js";
 
 /** One row per identity, public and private fields together; authorization is
@@ -390,8 +391,9 @@ export const commerceProviderAccounts = snakeCase.table(
   (t) => [primaryKey({ columns: [t.id] }), uniqueIndex("idx_commerce_provider_accounts_user").on(t.provider, t.userId), uniqueIndex("idx_commerce_provider_accounts_provider_id").on(t.provider, t.providerAccountId)],
 );
 
-/** Recoverable hosted-checkout result keyed by a client operation identity.
- * The provider receives the same identity as its idempotency key. */
+/** A hosted checkout reserved before the provider call. The row id is the
+ * provider operation identity and a non-null slot excludes another checkout
+ * for the same non-repeatable offer on this account. */
 export const commerceCheckoutOperations = snakeCase.table(
   "commerce_checkout_operations",
   {
@@ -401,11 +403,14 @@ export const commerceCheckoutOperations = snakeCase.table(
     operationId: text().notNull(),
     offerKey: text().notNull(),
     fingerprint: text().notNull(),
-    checkoutUrl: text().notNull(),
+    reservedOfferKey: text(),
+    request: text({ mode: "json" }).$type<Pick<CreateCheckoutInput, "returnUrl" | "providerReference" | "providerAccountId" | "offer">>().notNull(),
+    result: text({ mode: "json" }).$type<{ url: string; providerAccountId?: string }>(),
+    leaseUntil: integer(),
     expiresAt: integer().notNull(),
     createdAt: integer().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.id] }), uniqueIndex("idx_commerce_checkout_operations_identity").on(t.provider, t.userId, t.operationId)],
+  (t) => [primaryKey({ columns: [t.id] }), uniqueIndex("idx_commerce_checkout_operations_identity").on(t.provider, t.userId, t.operationId), uniqueIndex("idx_commerce_checkout_operations_slot").on(t.userId, t.reservedOfferKey)],
 );
 
 /** One entitlement granted by one verified transaction. Multiple rows may

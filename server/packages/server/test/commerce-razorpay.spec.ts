@@ -202,9 +202,10 @@ describe("razorpay checkout", () => {
       providerReference: "supporter_once",
       returnUrl: "https://game.example/store",
       operationId: "op-7",
+      expiresAt: 1_700_003_600_000,
     });
     expect(checkout?.url).toBe("https://rzp.io/i/abc");
-    expect(sent).toMatchObject({ amount: 49900, currency: "INR", reference_id: "op-7" });
+    expect(sent).toMatchObject({ amount: 49900, currency: "INR", reference_id: "op-7", expire_by: 1_700_003_600 });
     expect((sent.notes as Record<string, string>).eigenAccountId).toBe("alice");
   });
 
@@ -217,6 +218,7 @@ describe("razorpay checkout", () => {
         providerReference: "unpriced",
         returnUrl: "https://game.example/store",
         operationId: "op-8",
+        expiresAt: 1_700_003_600_000,
       }),
     ).rejects.toThrow(/no amount configured/);
   });

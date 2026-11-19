@@ -21,7 +21,7 @@
  */
 
 import { Hono } from "hono";
-import { stalledTransactions } from "../commerce/reconcile.js";
+import { RECONCILE_FAILURE_THRESHOLD, stalledTransactions } from "../commerce/reconcile.js";
 import { readGame } from "../d1/reads.js";
 import type { RouteContext } from "../engine.js";
 import { HttpError } from "../http.js";
@@ -118,8 +118,8 @@ export function buildOpsApp(ctx: RouteContext) {
   // never leave this token-gated surface.
   ops.get("/commerce/stalled", async (c) => {
     if (ctx.commerce === null) throw new HttpError(404, "Commerce is not configured");
-    const stalled = await stalledTransactions(ctx.d1(c.env), ctx.commerce);
-    return c.json({ ceiling: ctx.commerce.reconcileMaxFailures, count: stalled.length, transactions: stalled });
+    const stalled = await stalledTransactions(ctx.d1(c.env));
+    return c.json({ threshold: RECONCILE_FAILURE_THRESHOLD, count: stalled.length, transactions: stalled });
   });
 
   return ops;
