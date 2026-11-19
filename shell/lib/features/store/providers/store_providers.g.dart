@@ -65,6 +65,53 @@ final class StoreAvailableProvider extends $FunctionalProvider<bool, bool, bool>
 
 String _$storeAvailableHash() => r'dfbe7247f559b49088279ab5c85a551e3bbd0697';
 
+/// Drives purchase delivery for the signed-in account while the app is open.
+
+@ProviderFor(storePurchaseUpdates)
+final storePurchaseUpdatesProvider = StorePurchaseUpdatesProvider._();
+
+/// Drives purchase delivery for the signed-in account while the app is open.
+
+final class StorePurchaseUpdatesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<VerifiedPurchaseUpdate>,
+          VerifiedPurchaseUpdate,
+          Stream<VerifiedPurchaseUpdate>
+        >
+    with
+        $FutureModifier<VerifiedPurchaseUpdate>,
+        $StreamProvider<VerifiedPurchaseUpdate> {
+  /// Drives purchase delivery for the signed-in account while the app is open.
+  StorePurchaseUpdatesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'storePurchaseUpdatesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$storePurchaseUpdatesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<VerifiedPurchaseUpdate> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<VerifiedPurchaseUpdate> create(Ref ref) {
+    return storePurchaseUpdates(ref);
+  }
+}
+
+String _$storePurchaseUpdatesHash() =>
+    r'f6d74bb7cc732ba8d46468f1816a17ffae912e55';
+
 /// The offers this build can buy, priced by the storefronts it carries.
 
 @ProviderFor(storeCatalog)

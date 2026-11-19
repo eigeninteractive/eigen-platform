@@ -209,11 +209,25 @@ url: string;
 readonly key: string;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:172](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L172)
+Defined in: [server/packages/server/src/commerce/types.ts:174](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L174)
 
 ###### Inherited from
 
 [`CommerceProvider`](server.md#commerceprovider).[`key`](server.md#key-1)
+
+##### retryCheckout?
+
+```ts
+retryCheckout?: boolean;
+```
+
+Defined in: [server/packages/server/src/commerce/types.ts:196](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L196)
+
+True only when the provider can safely replay an ambiguous creation with the same input.
+
+###### Inherited from
+
+[`CommerceProvider`](server.md#commerceprovider).[`retryCheckout`](server.md#retrycheckout)
 
 ##### sweeps
 
@@ -244,7 +258,7 @@ A transaction absent from here is one the provider will not answer for.
 acknowledge?(env, transaction): Promise<void>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
+Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L192)
 
 Runs only after the normalized transaction and grants commit.
 
@@ -281,7 +295,9 @@ Defined in: [server/packages/server/src/testing.ts:153](https://github.com/eigen
 createCheckout?(env, input): Promise<CommerceCheckout>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:191](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L191)
+Defined in: [server/packages/server/src/commerce/types.ts:194](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L194)
+
+Open a session whose authorization deadline is at or before input.expiresAt.
 
 ###### Parameters
 
@@ -349,7 +365,7 @@ management?(
 ): Promise<CommerceManagement>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L192)
+Defined in: [server/packages/server/src/commerce/types.ts:197](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L197)
 
 ###### Parameters
 
@@ -374,7 +390,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:192](https://github.co
 products?(env, providerReferences): Promise<readonly CommerceProduct[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L179)
+Defined in: [server/packages/server/src/commerce/types.ts:181](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L181)
 
 ###### Parameters
 
@@ -397,7 +413,7 @@ Defined in: [server/packages/server/src/commerce/types.ts:179](https://github.co
 reconcile?(env, transactions): Promise<readonly VerifiedCommerceTransaction[]>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
+Defined in: [server/packages/server/src/commerce/types.ts:190](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L190)
 
 Fetches current state for locally active or pending transaction refs.
 
@@ -443,7 +459,7 @@ account's usual one, as a provider confusing two customers would.
 validateReference?(providerReference, kind): void;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:178](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L178)
+Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
 
 Throws when a catalog reference cannot name anything this provider sells as
 an offer of `kind`. Called for every offer at `createEngine`, so a
@@ -470,7 +486,7 @@ misspelt reference is a deploy failure rather than a refused purchase.
 verifyClaim(env, input): Promise<VerifiedCommerceTransaction>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:180](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L180)
+Defined in: [server/packages/server/src/commerce/types.ts:182](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L182)
 
 ###### Parameters
 
@@ -495,7 +511,7 @@ verifyWebhook?(env, request): Promise<
 | null>;
 ```
 
-Defined in: [server/packages/server/src/commerce/types.ts:186](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L186)
+Defined in: [server/packages/server/src/commerce/types.ts:188](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/types.ts#L188)
 
 Verifies the raw request and fetches current provider state when needed.
 Resolves null for an authentic notification that concerns no purchase, such

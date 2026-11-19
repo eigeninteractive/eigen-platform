@@ -608,6 +608,15 @@ The client receives `registrationRequired` before any provider purchase UI is
 launched. The stable authenticated account ID, or its provider-approved
 obfuscated derivative, associates the purchase with the correct user.
 
+### Hosted checkout
+
+For hosted checkout, reserve the non-repeatable offer for the account before
+calling a provider. The reservation is exclusive across hosted storefronts.
+It stores the provider operation identity, original inputs, and authorization
+deadline. Retries use that operation on providers that support idempotent
+creation. Otherwise an ambiguous attempt keeps its reservation until the
+deadline. Provider authorization expires at or before that deadline.
+
 ### One-time products
 
 A permanent product follows this state machine:
@@ -633,9 +642,28 @@ Checkout Session record a refund: its payment's charge does, so a one-time
 purchase is read with that charge and is revoked once it is fully refunded or a
 dispute over it is lost, and the charge's own events find the session.
 
-The transaction identity is the one that is stable from a pending purchase to
-a paid one. For Play that is the purchase token, not the order id, which a
-pending purchase does not have yet.
+Revocation is final for a one-time transaction identity. A later claim,
+restore, or reconciliation of the same identity cannot regrant access.
+A new purchase has a new transaction identity.
+
+The device queues purchase deliveries under the signed-in Eigen account.
+The queue uses the account, storefront, and delivery identity as its key.
+The Worker verifies account ownership before granting access.
+
+The transaction identity stays stable from a pending purchase to a paid one.
+Play uses a SHA-256 digest of its purchase token because the order id first
+appears after payment. The adapter stores the raw token in an authenticated
+encrypted envelope so it can acknowledge and reconcile after a restart.
+Only the Play adapter opens the envelope with a separate Worker secret.
+
+Stripe reads subscription periods from the purchased line item through
+the API version pinned by the adapter. A serving subscription needs a
+verified period end so a malformed provider response cannot grant
+permanent access.
+
+Reconciliation surfaces transactions with repeated failures to operators and
+backs off to daily retries. A provider outage can delay a repair but does not
+permanently remove a transaction from the queue.
 
 ### Subscriptions
 

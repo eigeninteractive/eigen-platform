@@ -300,9 +300,39 @@
     },
     {
       "table": "commerce_checkout_operations",
-      "name": "checkout_url",
+      "name": "reserved_offer_key",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "commerce_checkout_operations",
+      "name": "request",
       "type": "text",
       "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "commerce_checkout_operations",
+      "name": "result",
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "entityType": "columns"
+    },
+    {
+      "table": "commerce_checkout_operations",
+      "name": "lease_until",
+      "type": "integer",
+      "notNull": false,
       "autoincrement": false,
       "default": null,
       "generated": null,
@@ -1786,6 +1816,24 @@
         },
         {
           "value": "operation_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "entityType": "indexes"
+    },
+    {
+      "table": "commerce_checkout_operations",
+      "name": "idx_commerce_checkout_operations_slot",
+      "columns": [
+        {
+          "value": "user_id",
+          "isExpression": false
+        },
+        {
+          "value": "reserved_offer_key",
           "isExpression": false
         }
       ],

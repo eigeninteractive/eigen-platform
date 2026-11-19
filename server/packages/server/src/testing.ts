@@ -271,7 +271,7 @@ export function fakeCommerceProvider(
       checkouts.push({ accountId: input.accountId, providerReference: input.providerReference, operationId: input.operationId, url });
       const providerAccountId = providerAccountOverride ?? input.providerAccountId ?? `fake:${input.accountId}`;
       providerAccountOverride = null;
-      return { url, providerAccountId, expiresAt: now() + 30 * 60 * 1000 };
+      return { url, providerAccountId, expiresAt: input.expiresAt };
     },
     management: async (_env, accountId, providerAccountId, returnUrl) => ({
       url: `https://checkout.example/manage?account=${encodeURIComponent(accountId)}&customer=${encodeURIComponent(providerAccountId)}&return=${encodeURIComponent(returnUrl)}`,

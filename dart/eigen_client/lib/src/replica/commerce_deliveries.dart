@@ -18,9 +18,10 @@ typedef PendingDelivery = ({
 /// lands, oldest first, so a delivery is never lost to a crash between the
 /// store's callback and the server's answer.
 final class CommerceDeliveries {
-  const CommerceDeliveries(this._db);
+  const CommerceDeliveries(this._db, this._accountId);
 
   final ReplicaDatabase _db;
+  final String _accountId;
 
   /// Records a delivery, or updates what an earlier record of it says without
   /// moving its place in the queue.
@@ -35,6 +36,7 @@ final class CommerceDeliveries {
       .into(_db.commerceDeliveries)
       .insert(
         CommerceDeliveriesCompanion.insert(
+          accountId: _accountId,
           provider: provider,
           deliveryId: deliveryId,
           offerKey: offerKey,
@@ -55,7 +57,11 @@ final class CommerceDeliveries {
   Future<List<PendingDelivery>> pending(String provider) async {
     final rows =
         await (_db.select(_db.commerceDeliveries)
-              ..where((row) => row.provider.equals(provider))
+              ..where(
+                (row) =>
+                    row.accountId.equals(_accountId) &
+                    row.provider.equals(provider),
+              )
               ..orderBy([
                 (row) => OrderingTerm.asc(row.createdAt),
                 (row) => OrderingTerm.asc(row.deliveryId),
@@ -76,6 +82,7 @@ final class CommerceDeliveries {
   Future<void> remove(String provider, String deliveryId) =>
       (_db.delete(_db.commerceDeliveries)..where(
             (row) =>
+                row.accountId.equals(_accountId) &
                 row.provider.equals(provider) &
                 row.deliveryId.equals(deliveryId),
           ))

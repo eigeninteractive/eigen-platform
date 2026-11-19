@@ -39,25 +39,13 @@ Everything this adapter needs from the Worker's environment.
 
 #### Properties
 
-##### apiVersion?
-
-```ts
-apiVersion?: string;
-```
-
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:58](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L58)
-
-Override the pinned API version. Set the webhook endpoint to the same
-version, and expect to revisit the field mapping below if you move back
-past Basil.
-
 ##### now?
 
 ```ts
 now?: () => number;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:59](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L59)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:53](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L53)
 
 ###### Returns
 
@@ -123,7 +111,7 @@ The `whsec_...` signing secret for the endpoint Stripe posts to.
 function stripeCommerceProvider<TEnv>(config): CommerceProvider<TEnv>;
 ```
 
-Defined in: [server/packages/server/src/commerce/providers/stripe.ts:144](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L144)
+Defined in: [server/packages/server/src/commerce/providers/stripe.ts:125](https://github.com/eigeninteractive/eigen-platform/blob/main/server/packages/server/src/commerce/providers/stripe.ts#L125)
 
 #### Type Parameters
 

@@ -124,10 +124,8 @@ class CommerceService {
     CommerceOffer offer,
     String providerReference,
   ) async {
-    // A fresh identity per attempt. Retrying after an ambiguous failure
-    // therefore opens a second provider session rather than resolving the
-    // first; an abandoned session expires and costs nothing, while reusing an
-    // identity across a changed offer is refused outright.
+    // Each purchase action has its own identity. For non-repeatable offers,
+    // the server also reuses any open reservation for the account and offer.
     final checkout = await _repository.createCheckout(
       provider: hosted.provider,
       offerKey: offer.key,
@@ -160,6 +158,7 @@ class CommerceService {
   ///
   /// Returns true when a storefront claimed the URL.
   Future<bool> resumeFrom(Uri uri) async {
+    if (accountId == null) return false;
     for (final hosted in _storefronts.whereType<HostedStorefront>()) {
       final update = hosted.resume(uri);
       if (update == null) continue;
@@ -203,27 +202,50 @@ class CommerceService {
   /// restored event without evidence is an adapter bug and surfaces as an
   /// error rather than unlocking locally.
   Stream<VerifiedPurchaseUpdate> verifiedUpdates() async* {
-    for (final storefront in _storefronts) {
-      for (final update in await _deliveries.pending(storefront.provider)) {
-        yield await _verifyAndComplete(storefront, update);
+    if (accountId == null) return;
+    // Register the live listener before touching storage. SDK callbacks and
+    // hosted return links can arrive while the durable queue is opening.
+    final live = StreamController<StorefrontUpdate>();
+    final subscription = _storefrontUpdates().listen(
+      live.add,
+      onError: live.addError,
+    );
+    try {
+      for (final storefront in _storefronts) {
+        for (final update in await _deliveries.pending(storefront.provider)) {
+          yield* _deliver(storefront, update, alreadyQueued: true);
+        }
       }
+      await for (final event in live.stream) {
+        final update = event.update;
+        if (update.accountId != null && update.accountId != accountId) continue;
+        if (update.state != PurchaseUpdateState.purchased &&
+            update.state != PurchaseUpdateState.restored) {
+          yield (update: update, access: null);
+          continue;
+        }
+        yield* _deliver(event.storefront, update);
+      }
+    } finally {
+      await subscription.cancel();
+      unawaited(live.close());
     }
-    await for (final event in _storefrontUpdates()) {
-      final update = event.update;
-      if (update.state != PurchaseUpdateState.purchased &&
-          update.state != PurchaseUpdateState.restored) {
-        yield (update: update, access: null);
-        continue;
+  }
+
+  Stream<VerifiedPurchaseUpdate> _deliver(
+    Storefront storefront,
+    PurchaseUpdate update, {
+    bool alreadyQueued = false,
+  }) async* {
+    try {
+      if (update.evidence == null || update.deliveryId == null) {
+        throw StateError('A purchase delivery needs an identity and evidence.');
       }
-      final evidence = update.evidence;
-      final deliveryId = update.deliveryId;
-      if (evidence == null || deliveryId == null) {
-        throw StateError(
-          'Completed purchase ${update.providerReference} has no durable identity or provider evidence.',
-        );
-      }
-      await _deliveries.put(event.storefront.provider, update);
-      yield await _verifyAndComplete(event.storefront, update);
+      if (!alreadyQueued) await _deliveries.put(storefront.provider, update);
+      yield await _verifyAndComplete(storefront, update);
+    } catch (error, stackTrace) {
+      // Leave failed deliveries queued for retry and keep listening.
+      yield* Stream<VerifiedPurchaseUpdate>.error(error, stackTrace);
     }
   }
 

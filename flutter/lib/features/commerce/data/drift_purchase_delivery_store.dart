@@ -5,12 +5,15 @@ import 'package:eigen_flutter/features/commerce/domain/purchase_gateway.dart';
 
 /// Durable purchase-delivery outbox, in the replica database.
 class DriftPurchaseDeliveryStore implements PurchaseDeliveryStore {
-  DriftPurchaseDeliveryStore(this._database);
+  DriftPurchaseDeliveryStore(this._database, this._accountId);
 
   final Future<ReplicaDatabase> _database;
+  final String? _accountId;
 
-  Future<CommerceDeliveries> get _outbox async =>
-      CommerceDeliveries(await _database);
+  Future<CommerceDeliveries?> get _outbox async => switch (_accountId) {
+    final accountId? => CommerceDeliveries(await _database, accountId),
+    null => null,
+  };
 
   @override
   Future<void> put(String provider, PurchaseUpdate update) async {
@@ -19,7 +22,7 @@ class DriftPurchaseDeliveryStore implements PurchaseDeliveryStore {
     if (deliveryId == null || evidence == null) {
       throw ArgumentError('A durable purchase needs deliveryId and evidence.');
     }
-    await (await _outbox).put(
+    await (await _outbox)?.put(
       provider: provider,
       deliveryId: deliveryId,
       offerKey: update.offerKey,
@@ -31,7 +34,9 @@ class DriftPurchaseDeliveryStore implements PurchaseDeliveryStore {
 
   @override
   Future<List<PurchaseUpdate>> pending(String provider) async => [
-    for (final delivery in await (await _outbox).pending(provider))
+    for (final delivery
+        in await (await _outbox)?.pending(provider) ??
+            const <PendingDelivery>[])
       PurchaseUpdate(
         deliveryId: delivery.deliveryId,
         offerKey: delivery.offerKey,
@@ -43,5 +48,5 @@ class DriftPurchaseDeliveryStore implements PurchaseDeliveryStore {
 
   @override
   Future<void> remove(String provider, String deliveryId) async =>
-      (await _outbox).remove(provider, deliveryId);
+      await (await _outbox)?.remove(provider, deliveryId);
 }

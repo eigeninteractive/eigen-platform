@@ -9,6 +9,7 @@ import 'package:eigen_flutter/shell_support.dart';
 import 'package:eigen_shell/core/navigation/router/app_router.dart';
 import 'package:eigen_shell/core/updates/update_notifier.dart';
 import 'package:eigen_shell/features/profile/providers/profile_providers.dart';
+import 'package:eigen_shell/features/store/providers/store_providers.dart';
 
 /// Keeps the native splash screen visible until the auth state is known,
 /// then hands control to [child] (which GoRouter routes normally).
@@ -24,12 +25,17 @@ class AppStartup extends ConsumerStatefulWidget {
 class _AppStartupState extends ConsumerState<AppStartup> {
   late final AppLifecycleListener _lifecycleListener;
   late final ProviderSubscription<AsyncValue<AuthStateChange>> _authSub;
+  late final ProviderSubscription<AsyncValue<VerifiedPurchaseUpdate>>
+  _purchaseSub;
   StreamSubscription<String>? _notificationSub;
 
   @override
   void initState() {
     super.initState();
     _authSub = ref.listenManual(authStateChangesProvider, _onAuthStateChange);
+    _purchaseSub = ref.listenManual(storePurchaseUpdatesProvider, (_, next) {
+      if (next.value?.access != null) ref.invalidate(storeAccessProvider);
+    });
     // Built now so its triggers are listening from the first frame: signing
     // in, reconnecting, and a push each run the account's sync pass.
     ref.read(syncCoordinatorProvider);
@@ -51,6 +57,7 @@ class _AppStartupState extends ConsumerState<AppStartup> {
         ref.invalidate(notificationPermissionStatusProvider);
         // Coming back from a provider's checkout page is a resume on Android
         // and iOS, and a cold start on the web -- hence both here and below.
+        ref.invalidate(storePurchaseUpdatesProvider);
         unawaited(_claimHostedCheckoutReturn());
       },
     );
@@ -137,6 +144,7 @@ class _AppStartupState extends ConsumerState<AppStartup> {
   @override
   void dispose() {
     _authSub.close();
+    _purchaseSub.close();
     _notificationSub?.cancel();
     _lifecycleListener.dispose();
     super.dispose();
@@ -175,6 +183,7 @@ class _AppStartupState extends ConsumerState<AppStartup> {
         switch (authState.event) {
           case AuthEvent.signedIn:
             if (authState.user case final user?) {
+              unawaited(_claimHostedCheckoutReturn());
               unawaited(analytics.identify(user.id));
               // Segment all metrics by guest vs registered. Conversion later
               // re-tags to registered from AuthController.upgradeToGoogle.

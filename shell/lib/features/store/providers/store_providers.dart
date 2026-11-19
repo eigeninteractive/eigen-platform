@@ -13,6 +13,13 @@ part 'store_providers.g.dart';
 @riverpod
 bool storeAvailable(Ref ref) => ref.watch(storefrontsProvider).isNotEmpty;
 
+/// Drives purchase delivery for the signed-in account while the app is open.
+@riverpod
+Stream<VerifiedPurchaseUpdate> storePurchaseUpdates(Ref ref) {
+  if (!ref.watch(storeAvailableProvider)) return const Stream.empty();
+  return ref.watch(commerceServiceProvider).verifiedUpdates();
+}
+
 /// The offers this build can buy, priced by the storefronts it carries.
 @riverpod
 Future<CommerceCatalog> storeCatalog(Ref ref) async {

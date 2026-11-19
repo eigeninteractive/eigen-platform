@@ -3,6 +3,7 @@
 import { env, exports } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
+import type { CommerceProvider, CreateCheckoutInput } from "../src/commerce/types.js";
 import { orm } from "../src/d1/orm.js";
 import { bots, commerceEvents, commerceProviderAccounts, commerceTransactions, commerceUsage, entitlementGrants, gameContent } from "../src/d1/schema.js";
 import { createEngine } from "../src/engine.js";
@@ -42,6 +43,178 @@ async function provisioned(userId: string): Promise<string> {
 function evidence(accountId: string, transactionId: string, providerReference: string, overrides: Record<string, unknown> = {}) {
   return { accountId, transactionId, providerReference, ...overrides };
 }
+
+function checkoutHarness(createCheckout: NonNullable<CommerceProvider<unknown>["createCheckout"]>, retryCheckout: boolean) {
+  let now = Date.now();
+  let clientOrigins: readonly string[] = [];
+  const store = "checkout_test";
+  const fake = fakeCommerceProvider([{ providerReference: "supporter_once", displayPrice: "$4.99" }], () => now, store);
+  const other = fakeCommerceProvider([{ providerReference: "supporter_once", displayPrice: "$4.99" }], () => now, "checkout_other");
+  const engine = createEngine({
+    gameModule: testGame,
+    appName: "Checkout Test",
+    d1: (workerEnv: Cloudflare.Env) => workerEnv.DB,
+    gameDO: (workerEnv: Cloudflare.Env) => workerEnv.GAME_DO,
+    clientOrigins: () => clientOrigins,
+    testing: { auth: testVerifier(), firebaseAdmin: () => testFirebaseAdmin },
+    commerce: {
+      now: () => now,
+      catalog: {
+        free: {},
+        entitlements: [{ key: "supporter" }],
+        offers: [{ key: "supporter", name: "Supporter", description: "", kind: "oneTime", entitlements: ["supporter"], providerReferences: { [store]: "supporter_once", [other.key]: "supporter_once" } }],
+      },
+      providers: [{ ...fake, createCheckout, retryCheckout }, other],
+    },
+  });
+  const accountId = uid("reservation");
+  return {
+    accountId,
+    store,
+    other,
+    setClientOrigins: (origins: readonly string[]) => {
+      clientOrigins = origins;
+    },
+    setTime: (instant: number) => {
+      now = instant;
+    },
+    checkout: async (operationId = crypto.randomUUID(), provider = store, returnUrl = "https://checkout.test/store") =>
+      (await engine.fetch?.(
+        new Request("https://checkout.test/api/engine/commerce/checkout", {
+          method: "POST",
+          headers: await mutationHeaders({ uid: accountId }),
+          body: JSON.stringify({ provider, offerKey: "supporter", operationId, returnUrl }),
+        }),
+        env,
+        {} as ExecutionContext,
+      )) as Response,
+  };
+}
+
+describe("checkout reservations", () => {
+  const hosted = (input: CreateCheckoutInput) => ({ url: `https://payments.test/session/${input.operationId}`, expiresAt: input.expiresAt });
+
+  it("allows one provider call while two tabs try the same offer", async () => {
+    const entered = Promise.withResolvers<void>();
+    const unblock = Promise.withResolvers<void>();
+    const calls: CreateCheckoutInput[] = [];
+    const harness = checkoutHarness(async (_env, input) => {
+      calls.push(input);
+      entered.resolve();
+      await unblock.promise;
+      return hosted(input);
+    }, true);
+    const first = harness.checkout();
+    await entered.promise;
+    try {
+      expect(await json(await harness.checkout(), 409)).toMatchObject({ code: "purchasePending" });
+      expect(await json(await harness.checkout(crypto.randomUUID(), harness.other.key), 409)).toMatchObject({ code: "purchaseConflict" });
+      expect(harness.other.checkouts).toHaveLength(0);
+    } finally {
+      unblock.resolve();
+    }
+    const result = await json(await first);
+    expect(await json(await harness.checkout())).toEqual(result);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("replays the same provider request after losing the response", async () => {
+    const sessions = new Map<string, ReturnType<typeof hosted>>();
+    const calls: CreateCheckoutInput[] = [];
+    const harness = checkoutHarness(async (_env, input) => {
+      calls.push(input);
+      const existing = sessions.get(input.operationId);
+      if (existing !== undefined) return existing;
+      sessions.set(input.operationId, hosted(input));
+      throw new Error("Timed out after the storefront accepted the request");
+    }, true);
+
+    expect((await harness.checkout()).status).toBe(502);
+    const result = await json(await harness.checkout(crypto.randomUUID(), undefined, "https://checkout.test/new-return"));
+    expect(result).toMatchObject({ url: sessions.values().next().value?.url });
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toEqual(calls[0]);
+    expect(sessions.size).toBe(1);
+  });
+
+  it("refuses to reuse a URL if its original return origin is no longer trusted", async () => {
+    const harness = checkoutHarness(async (_env, input) => hosted(input), true);
+    const originalOrigin = "https://previous-client.test";
+    harness.setClientOrigins([originalOrigin]);
+    expect((await harness.checkout(crypto.randomUUID(), undefined, `${originalOrigin}/store`)).status).toBe(200);
+
+    harness.setClientOrigins([]);
+    expect((await harness.checkout()).status).toBe(400);
+  });
+
+  it("persists the hosted result when recording its customer binding fails", async () => {
+    const bindingId = crypto.randomUUID();
+    const customer = crypto.randomUUID();
+    let calls = 0;
+    const harness = checkoutHarness(async (_env, input) => {
+      calls++;
+      return { ...hosted(input), providerAccountId: customer };
+    }, false);
+    await db.insert(commerceProviderAccounts).values({
+      id: bindingId,
+      provider: harness.store,
+      userId: harness.accountId,
+      providerAccountId: "different-customer",
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    expect(await json(await harness.checkout(), 409)).toMatchObject({ code: "purchaseConflict" });
+    await db.delete(commerceProviderAccounts).where(eq(commerceProviderAccounts.id, bindingId));
+    expect((await harness.checkout()).status).toBe(200);
+    expect(calls).toBe(1);
+  });
+
+  it("takes over an expired attempt lease with the same provider operation", async () => {
+    const entered = Promise.withResolvers<CreateCheckoutInput>();
+    const unblock = Promise.withResolvers<void>();
+    const calls: CreateCheckoutInput[] = [];
+    const harness = checkoutHarness(async (_env, input) => {
+      calls.push(input);
+      if (calls.length === 1) {
+        entered.resolve(input);
+        await unblock.promise;
+      }
+      return hosted(input);
+    }, true);
+    const first = harness.checkout();
+    const original = await entered.promise;
+    // Simulate an attempt that outlives its lease, well before session expiry.
+    harness.setTime(original.expiresAt - 59 * 60 * 1000);
+    try {
+      expect(await json(await harness.checkout())).toEqual({ url: hosted(original).url });
+    } finally {
+      unblock.resolve();
+    }
+    expect((await first).status).toBe(409);
+    expect(calls).toEqual([original, original]);
+    expect(await json(await harness.checkout())).toEqual({ url: hosted(original).url });
+  });
+
+  it("waits out an ambiguous request when the storefront cannot replay it", async () => {
+    const calls: CreateCheckoutInput[] = [];
+    const harness = checkoutHarness(async (_env, input) => {
+      calls.push(input);
+      if (calls.length === 1) throw new Error("Storefront timed out");
+      return hosted(input);
+    }, false);
+    const operationId = crypto.randomUUID();
+    expect((await harness.checkout(operationId)).status).toBe(502);
+    expect(await json(await harness.checkout(), 409)).toMatchObject({ code: "purchasePending" });
+    expect(calls).toHaveLength(1);
+
+    harness.setTime(calls[0]?.expiresAt as number);
+    expect(await json(await harness.checkout(operationId), 409)).toMatchObject({ code: "purchaseConflict" });
+    expect((await harness.checkout()).status).toBe(200);
+    expect(calls).toHaveLength(2);
+    expect(calls[1]?.operationId).not.toBe(calls[0]?.operationId);
+  });
+});
 
 describe("commerce catalog and access", () => {
   it("publishes stable offers with provider-localized price data", async () => {
