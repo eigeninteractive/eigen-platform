@@ -258,13 +258,23 @@ Cloudflare build settings:
 | Deploy command | `pnpm exec wrangler deploy` |
 | Production branch | `main` |
 | Non-production branch builds | off |
-| Build variable | `PNPM_VERSION=11.20.0` |
+| Build watch paths | include `web/*` |
+| Build cache | off |
+| Build variables | none |
+
+Only changes under `web/` trigger a build, so a change elsewhere (including the
+root `docs/`) does not redeploy the site.
 
 Workers Builds installs dependencies before running the build command, so the
-build command must not repeat `pnpm install`. Keep `PNPM_VERSION` aligned with
-the top-level `packageManager` field in `package.json`. The pnpm 11 lockfile
-deliberately contains two YAML documents; Cloudflare's pnpm 10 default reports
-that valid lockfile as `ERR_PNPM_BROKEN_LOCKFILE`.
+build command must not repeat `pnpm install`. It reads the pnpm version from
+`packageManager` in `package.json` and the Node major from `.nvmrc`. Do not add
+a `PNPM_VERSION` build variable: it would override `packageManager` and drift
+from it. The lockfile deliberately contains two YAML documents, which pnpm 10
+reports as `ERR_PNPM_BROKEN_LOCKFILE`.
+
+The `build` script sets `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=1`
+because the build image's directory ownership fails SWC's native addon cache
+check. See the SWC entry in the root `docs/blockers.md` before removing it.
 
 Cloudflare defaults the deploy command to `npx wrangler deploy`; that cannot
 work here. `npx` runs under npm, npm enforces this repo's
