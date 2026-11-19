@@ -11,7 +11,7 @@
     "check-admonitions": "node scripts/check-admonitions.mjs",
     "generate-brand": "node scripts/generate-brand.mjs",
     "start": "docusaurus start",
-    "build": "docusaurus build",
+    "build": "SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=1 docusaurus build",
     "swizzle": "docusaurus swizzle",
     "deploy": "pnpm run build && wrangler deploy",
     "clear": "docusaurus clear",
