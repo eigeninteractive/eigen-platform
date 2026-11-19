@@ -1,7 +1,8 @@
 # Upstream blockers
 
 Limitations that still require a compatibility choice in the platform.
-Last general review: **2026-11-02**; Drizzle migration checked **2026-11-18**.
+Last general review: **2026-11-02**; Drizzle migration checked **2026-11-18**;
+SWC native cache checked **2026-11-19**.
 See [the dependency review](dependency-review-2026-11-02.md).
 
 ## Android built-in Kotlin and new DSL
@@ -82,6 +83,45 @@ server source while generating the cross-package documentation.
 References: [tsdown 0.23.3](https://github.com/rolldown/tsdown/releases/tag/v0.23.3),
 [TypeDoc releases](https://github.com/TypeStrong/typedoc/releases),
 [Markdown plugin compatibility](https://typedoc-plugin-markdown.org/docs/CHANGELOG).
+
+## SWC native addon cache on Workers Builds
+
+**Status:** Keep `SWC_NATIVE_BINDING_CACHE_SKIP_SECURITY_CHECK=1` on the web
+`build` script.
+
+Since SWC 1.16, `@swc/core` and `@swc/html` ship a compressed native addon that
+unpacks itself into a per-user cache before loading. The cache root and every
+ancestor must not be replaceable by another user. A Workers Builds image update
+between November 2 and November 18 (Node 24.22.2 to 24.22.3, same lockfile)
+changed directory ownership so that both `/opt/buildhome/.cache` and the `/tmp`
+fallback fail. The error says `/tmp` "has a parent writable by another user";
+its only parent is `/`. No cache root on that image can pass, so
+`SWC_NATIVE_BINDING_CACHE=0` or a custom root cannot help. Docusaurus then fails
+with `ERR_SWC_NATIVE_CACHE` while loading `@swc/html`. The first failing build
+was the merge of #157.
+
+The flag skips only the ownership, permission and symlink checks on the cache
+root and its ancestors. Integrity verification, the private 0700 namespace,
+locking, atomic publication and the `noexec` rejection stay enforced. The check
+defends against another local user swapping the verified addon before it is
+loaded. That threat does not exist in a single-tenant, ephemeral build
+container, and the project has one developer. It is a real risk on shared CI
+hosts or multi-user machines: remove the flag before that changes.
+
+The flag is on the `build` script, not a Workers Builds dashboard variable, so
+it stays reviewable. `pnpm install` still logs a harmless `@swc/core`
+postinstall failure on Workers Builds, because install runs before the script.
+SWC 1.16.22 contains no cache-check change, and pinning SWC 1.15 would only
+undo the upgrade.
+
+Recheck by removing the flag on a branch and running a Workers Build. Remove it
+once Cloudflare restores safe ownership or SWC changes the check. Do not pin
+SWC below 1.16 to avoid it.
+
+References: [SWC native addon carriers](https://github.com/swc-project/swc/blob/main/docs/native-addon-carriers.md),
+[SWC opt-out PR #12469](https://github.com/swc-project/swc/pull/12469),
+[SWC shared-ancestor issue #12498](https://github.com/swc-project/swc/issues/12498),
+[Cloudflare Community report](https://community.cloudflare.com/t/workers-builds-fail-since-nov-4-swc-core-rejects-opt-buildhome-cache-and-tmp/977250).
 
 ## Development-tool audit findings
 
