@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+### Changed
+- Requires `eigen_api` 0.14.0, the client generated from engine 0.14.0.
+
 ## [0.10.0] - 2026-11-19
 ### Fixed
 - Scope persisted purchase deliveries to the signed-in account.
@@ -67,6 +71,7 @@ by a later active snapshot.
 ## [0.1.0] - 2026-08-21
 - Initial pure Dart client and domain package.
 
+[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.10.0...HEAD
 [0.10.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.9.1...eigen_client-v0.10.0
 [0.9.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.9.0...eigen_client-v0.9.1
 [0.9.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_client-v0.8.0...eigen_client-v0.9.0
