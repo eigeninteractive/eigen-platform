@@ -14,7 +14,7 @@ Pre-1.0, breaking changes land in a **MINOR** bump: `^0.1.0` resolves to
 [Versions and compatibility](https://eigeninteractive.com/docs/reference/compatibility)
 for how this package, the engine and the generated `eigen_api` client pair up.
 
-## [Unreleased]
+## [0.18.0] - 2026-11-19
 ### Fixed
 - Retry purchase delivery without blocking subsequent purchase updates.
 
@@ -378,7 +378,7 @@ server-side concern now live in the engine.
 - `google_fonts`, which fetched Inter at runtime, replaced by the bundled
 package font above.
 
-[Unreleased]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.17.1...HEAD
+[0.18.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.17.1...eigen_flutter-v0.18.0
 [0.17.1]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.17.0...eigen_flutter-v0.17.1
 [0.17.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.16.0...eigen_flutter-v0.17.0
 [0.16.0]: https://github.com/eigeninteractive/eigen-platform/compare/eigen_flutter-v0.15.1...eigen_flutter-v0.16.0
